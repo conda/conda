@@ -203,26 +203,6 @@ def which_prefix(path):
         prefix = dirname(prefix)
 
 
-def which_package(path):
-    """
-    given the path (of a (presumably) conda installed file) iterate over
-    the conda packages the file came from.  Usually the iteration yields
-    only one package.
-    """
-    path = abspath(path)
-    prefix = which_prefix(path)
-    if prefix is None:
-        raise RuntimeError("could not determine conda prefix from: %s" % path)
-    for dist in install_linked(prefix):
-        meta = is_linked(prefix, dist)
-        if any(abspath(join(prefix, f)) == path for f in meta['files']):
-            yield dist
-
-
-def discard_conda(dists):
-    return [dist for dist in dists if not name_dist(dist) == 'conda']
-
-
 def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
@@ -352,23 +332,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
     actions = explicit(urls, prefix2, verbose=not quiet, index=index,
                        force_extract=False, fetch_args=fetch_args)
     return actions, untracked_files
-
-
-def install_local_packages(prefix, paths, verbose=False):
-    explicit(paths, prefix, verbose=verbose)
-
-
-def environment_for_conda_environment(prefix=root_dir):
-    # prepend the bin directory to the path
-    fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
-    binpath = fmt % abspath(prefix)
-    path = os.path.pathsep.join([binpath, os.getenv('PATH')])
-    env = {'PATH': path}
-    # copy existing environment variables, but not anything with PATH in it
-    for k, v in iteritems(os.environ):
-        if k != 'PATH':
-            env[k] = v
-    return binpath, env
 
 
 def make_icon_url(info):

@@ -149,7 +149,6 @@ def execute(args, parser):
                               user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
                               platform)
     from conda.resolve import Resolve
-    from conda.cli.main_init import is_initialized
     from conda.api import get_index
 
     if args.root:
@@ -249,10 +248,6 @@ Current conda install:
           config file : %(rc_path)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
-        if not is_initialized():
-            print("""\
-# NOTE:
-#     root directory '%s' is uninitialized""" % root_dir)
 
     if args.envs:
         handle_envs_list(info_dict['envs'], not args.json)

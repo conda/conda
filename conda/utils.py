@@ -86,35 +86,6 @@ def gnu_get_libc_version():
     return f()
 
 
-def can_open(file):
-    """
-    Return True if the given ``file`` can be opened for writing
-    """
-    try:
-        fp = open(file, "ab")
-        fp.close()
-        return True
-    except IOError:
-        stderrlog.info("Unable to open %s\n" % file)
-        return False
-
-
-def can_open_all(files):
-    """
-    Return True if all of the provided ``files`` can be opened
-    """
-    for f in files:
-        if not can_open(f):
-            return False
-    return True
-
-
-def can_open_all_files_in_prefix(prefix, files):
-    """
-    Returns True if all ``files`` at a given ``prefix`` can be opened
-    """
-    return can_open_all((os.path.join(prefix, f) for f in files))
-
 def try_write(dir_path):
     if not isdir(dir_path):
         return False
@@ -221,6 +192,7 @@ def unix_path_to_win(path, root_prefix=""):
 def win_path_to_cygwin(path):
     return win_path_to_unix(path, "/cygdrive")
 
+
 def cygwin_path_to_win(path):
     return unix_path_to_win(path, "/cygdrive")
 
@@ -280,15 +252,13 @@ def find_parent_shell(path=False, max_stack_depth=10):
 def get_yaml():
     try:
         import ruamel_yaml as yaml
-    except ImportError:
-        try:
-            import ruamel.yaml as yaml
-        except ImportError:
-            try:
-                import yaml
-            except ImportError:
-                sys.exit("No yaml library available.\n"
-                         "To proceed, please conda install ruamel_yaml")
+    except ImportError:                                         # pragma: no cover
+        try:                                                    # pragma: no cover
+            import ruamel.yaml as yaml                          # pragma: no cover
+        except ImportError:                                     # pragma: no cover
+            raise ImportError("No yaml library available.\n"    # pragma: no cover
+                              "To proceed, conda install "      # pragma: no cover
+                              "ruamel_yaml")                    # pragma: no cover
     return yaml
 
 
@@ -308,20 +278,15 @@ def yaml_bool(s, passthrough=None):
 
 def yaml_load(filehandle):
     yaml = get_yaml()
-    try:
-        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
-    except AttributeError:
-        return yaml.load(filehandle)
+    return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
 
 
 def yaml_dump(string):
     yaml = get_yaml()
-    try:
-        return yaml.dump(string, Dumper=yaml.RoundTripDumper,
-                         block_seq_indent=2, default_flow_style=False,
-                         indent=4)
-    except AttributeError:
-        return yaml.dump(string, default_flow_style=False)
+    return yaml.dump(string, Dumper=yaml.RoundTripDumper,
+                     block_seq_indent=2, default_flow_style=False,
+                     indent=4)
+
 
 # TODO: this should be done in a more extensible way
 #     (like files for each shell, with some registration mechanism.)
