@@ -1069,9 +1069,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                           (src, dst, lt, e))
 
-        if name_dist(dist) == '_cache':
-            return
-
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
             try:
@@ -1202,7 +1199,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
 
 def main():
     # This CLI is only invoked from the self-extracting shell installers
-    global pkgs_dirs, package_cache_, fname_table_
+    global pkgs_dirs
     from optparse import OptionParser
 
     p = OptionParser(description="conda link tool used by installer")
@@ -1249,9 +1246,6 @@ def main():
         if opts.verbose:
             print("linking: %s" % dist)
         link(prefix, dist, linktype)
-        if name_dist(dist) == '_cache':
-            package_cache_ = {}
-            fname_table_ = {}
 
     messages(prefix)
 
