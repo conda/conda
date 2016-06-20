@@ -179,6 +179,7 @@ def packages_multithread_cmd(cmd, state, package_list):
      If successes, use multi-thread pool to download
      Otherwise, download in series
     """
+    print("in side the function")
     try:
         import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(5)
@@ -217,7 +218,9 @@ def packages_multithread_cmd(cmd, state, package_list):
                 executor.shutdown(wait=True)
                 # Check for download result
                 if cmd == FETCH_CMD:
+                    print (package_list)
                     for arg_d in package_list:
+                        print (arg_d)
                         assert arg_d in package_cache()
 
 
@@ -254,7 +257,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             else:
                 cmd(state, arg)
             continue
-
+        print("CMD is ", cmd)
         packages_multithread_cmd(cmd, state, arg)
 
     messages(state['prefix'])
