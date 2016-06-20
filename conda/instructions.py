@@ -228,23 +228,29 @@ class DownloadBar:
     def __init__(self, length, label):
         self.length = length
         self.label = label
-        self.t = threading.Thread(target=self.consumer, args=(self.length, self.label))
+        self.t = threading.Thread(target=self.consumer, args=())
+        self.s = 0
+        self.lock = threading.Lock()
 
     def __enter__(self):
         self.t.daemon = True
         self.t.start()
+        return self
 
     def __exit__(self, *args):
         self.t.join(timeout=0.01)
         self.t.is_alive()
 
-    @staticmethod
-    def consumer(length, label):
-        with click.progressbar(length=length, label=label) as bar:
-            while True:
-                if not q.empty():
-                    size = q.get(True)
-                    bar.update(size)
+    def consumer(self):
+        try:
+            self.lock.acquire()
+            with click.progressbar(length=self.length, label=self.label) as bar:
+                while self.s < self.length:
+                    if not q.empty():
+                        size = q.get()
+                        bar.update(size)
+                        self.s += size
+        finally:
+            self.lock.release()
 
-    def producer(self, size):
-        q.put(size)
+
