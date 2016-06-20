@@ -37,7 +37,7 @@ class TestExecutePlan(unittest.TestCase):
     def test_invalid_instruction(self):
         index = {'This is an index': True}
 
-        plan = [('DOES_NOT_EXIST', ())]
+        plan = {'DOES_NOT_EXIST': ()}
 
         with self.assertRaises(exceptions.InvalidInstruction):
             execute_instructions(plan, index, verbose=False)
@@ -52,7 +52,7 @@ class TestExecutePlan(unittest.TestCase):
 
         commands['SIMPLE'] = simple_cmd
 
-        plan = [('SIMPLE', ('arg1',))]
+        plan = {'SIMPLE': ('arg1',)}
 
         execute_instructions(plan, index, verbose=False)
 
@@ -72,9 +72,7 @@ class TestExecutePlan(unittest.TestCase):
 
         commands['SIMPLE'] = simple_cmd
 
-        plan = [('SIMPLE', (1, 5)),
-                ('SIMPLE', (5, None)),
-                ]
+        plan = {'SIMPLE': [(1, 5), (5, None)]}
 
         execute_instructions(plan, index, verbose=False)
         self.assertTrue(simple_cmd.called)
@@ -83,11 +81,10 @@ class TestExecutePlan(unittest.TestCase):
 
         index = {'This is an index': True}
 
-        plan = [
-            ('PROGRESS', '2'),
-            ('LINK', 'ipython'),
-            ('LINK', 'menuinst'),
-        ]
+        plan = {
+            'PROGRESS': '2',
+            'LINK': ['ipython''menuinst']
+        }
 
         def cmd(state, arg):
             pass  # NO-OP
@@ -113,7 +110,6 @@ class TestExecutePlan(unittest.TestCase):
                     ('progress.stop', None)
                     ]
 
-        self.assertEqual(h.records, expected)
     def test_download(self):
 
         index = {"This is an index": True}
