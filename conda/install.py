@@ -409,7 +409,7 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text')
         new_prefix = new_prefix.replace('\\', '/')
 
     path = os.path.realpath(path)
-    with exp_backoff_fn(open, path, 'wb') as fo:
+    with open(path, 'rb') as fi:
         original_data = data = fi.read()
 
     data = replace_prefix(mode, data, placeholder, new_prefix)
@@ -421,7 +421,7 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text')
     st = os.lstat(path)
     # Remove file before rewriting to avoid destroying hard-linked cache
     os.remove(path)
-    with open(path, 'wb') as fo:
+    with exp_backoff_fn(open, path, 'wb') as fo:
         fo.write(data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
 
