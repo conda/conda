@@ -224,6 +224,25 @@ def warn_failed_remove(function, path, exc_info):
         log.warn("Cannot remove, unknown reason: {0}".format(path))
 
 
+def exp_backoff_fn(fn, *args):
+    """Mostly for retrying file operations that fail on Windows due to virus scanners"""
+    if not on_win:
+        return fn(*args)
+    import random
+
+    max_retries = 5
+    for n in range(max_retries):
+        try:
+            result = fn(*args)
+        except Exception as e:
+            log.debug(repr(e))
+            if n == max_retries-1:
+                raise
+            time.sleep((2 ** n) + (random.randint(0, 1000) / 1000))
+        else:
+            return result
+
+
 def rm_rf(path, max_retries=5, trash=True):
     """
     Completely delete path
@@ -390,7 +409,7 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text')
         new_prefix = new_prefix.replace('\\', '/')
 
     path = os.path.realpath(path)
-    with open(path, 'rb') as fi:
+    with exp_backoff_fn(open, path, 'wb') as fo:
         original_data = data = fi.read()
 
     data = replace_prefix(mode, data, placeholder, new_prefix)
@@ -826,7 +845,7 @@ def extract(dist):
         with tarfile.open(fname) as t:
             t.extractall(path=temp_path)
         rm_rf(path)
-        os.rename(temp_path, path)
+        exp_backoff_fn(os.rename, temp_path, path)
         if sys.platform.startswith('linux') and os.getuid() == 0:
             # When extracting as root, tarfile will by restore ownership
             # of extracted files.  However, we want root to be the owner
