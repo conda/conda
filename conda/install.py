@@ -1202,7 +1202,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
 
 def main():
     # This CLI is only invoked from the self-extracting shell installers
-    global pkgs_dirs
+    global pkgs_dirs, package_cache_, fname_table_
     from optparse import OptionParser
 
     p = OptionParser(description="conda link tool used by installer")
@@ -1249,6 +1249,9 @@ def main():
         if opts.verbose:
             print("linking: %s" % dist)
         link(prefix, dist, linktype)
+        if name_dist(dist) == '_cache':
+            package_cache_ = {}
+            fname_table_ = {}
 
     messages(prefix)
 
