@@ -20,9 +20,9 @@ install:
   - printenv
   - source ./utils/travis-bootstrap-conda.sh
   - conda install psutil ruamel_yaml
-  - conda install flake8 pytest mock
+  - conda install flake8 pytest pytest-cov mock
   - conda install pip
-  - pip install auxlib pytest-cov pytest-timeout radon
+  - pip install auxlib pytest-timeout radon responses
   - python setup.py install
 
 script:
