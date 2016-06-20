@@ -84,6 +84,7 @@ class CondaSession(requests.Session):
 
         self.verify = yaml_bool(ssl_verify, ssl_verify)
 
+
 class S3Adapter(requests.adapters.BaseAdapter):
 
     def __init__(self):
@@ -239,13 +240,16 @@ class AuthError(Exception):
     '''Denotes an error with authentication.'''
     pass
 
+
 def build_text_response(request, data, code):
     '''Build a response for textual data.'''
     return build_response(request, data, code, 'ascii')
 
+
 def build_binary_response(request, data, code):
     '''Build a response for data whose encoding is unknown.'''
     return build_response(request, data, code,  None)
+
 
 def build_response(request, data, code, encoding):
     '''Builds a response object from the data returned by ftplib, using the
@@ -266,6 +270,7 @@ def build_response(request, data, code, encoding):
     # Run the response hook.
     response = requests.hooks.dispatch_hook('response', request.hooks, response)
     return response
+
 
 def parse_multipart_files(request):
     '''Given a prepared reqest, return a file-like object containing the
@@ -290,11 +295,10 @@ def parse_multipart_files(request):
 
     return buf
 
+
 # Taken from urllib3 (actually
 # https://github.com/shazow/urllib3/pull/394). Once it is fully upstreamed to
 # requests.packages.urllib3 we can just use that.
-
-
 def unparse_url(U):
     """
     Convert a :class:`.Url` into a url
