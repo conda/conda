@@ -12,7 +12,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
-from collections import defaultdict
+from collections import defaultdict,  OrderedDict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
@@ -219,6 +219,13 @@ def add_unlink(actions, dist):
         actions[inst.UNLINK] = []
     actions[inst.UNLINK].append(dist)
 
+def list2ordereddict(plan):
+    result = OrderedDict()
+    for op, arg in plan:
+        if op not in result:
+            result[op] = []
+        result[op].append(arg)
+    return result
 
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
@@ -248,16 +255,10 @@ def plan_from_actions(actions):
             continue
         if not actions[op]:
             continue
-        if '_' not in op:
-            res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
-        elif op.startswith('RM_'):
-            res.append((inst.PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
-        if op in inst.progress_cmds:
-            res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
             res.append((op, arg))
 
-    return res
+    return list2ordereddict(res)
 
 
 # force_linked_actions has now been folded into this function, and is enabled by
@@ -571,7 +572,7 @@ def update_old_plan(old_plan):
     Update an old plan object to work with
     `conda.instructions.execute_instructions`
     """
-    plan = []
+    plan = OrderedDict()
     for line in old_plan:
         if line.startswith('#'):
             continue
@@ -581,7 +582,9 @@ def update_old_plan(old_plan):
             )
 
         instruction, arg = line.split(' ', 1)
-        plan.append((instruction, arg))
+        if instruction not in plan:
+            plan[instruction] = []
+        plan[instruction].append(arg)
     return plan
 
 
