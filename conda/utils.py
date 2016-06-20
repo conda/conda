@@ -252,12 +252,13 @@ def find_parent_shell(path=False, max_stack_depth=10):
 def get_yaml():
     try:
         import ruamel_yaml as yaml
-    except ImportError:
-        try:
-            import ruamel.yaml as yaml
-        except ImportError:
-            raise ImportError("No yaml library available.\n"
-                              "To proceed, please conda install ruamel_yaml")
+    except ImportError:                                         # pragma: no cover
+        try:                                                    # pragma: no cover
+            import ruamel.yaml as yaml                          # pragma: no cover
+        except ImportError:                                     # pragma: no cover
+            raise ImportError("No yaml library available.\n"    # pragma: no cover
+                              "To proceed, conda install "      # pragma: no cover
+                              "ruamel_yaml")                    # pragma: no cover
     return yaml
 
 
