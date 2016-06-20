@@ -415,6 +415,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                         n = resp.raw.tell()
                         if size and 0 <= n <= size:
                             if bar:
+                                # from .instructions import q
                                 bar.put(n, False)
 
         except IOError as e:

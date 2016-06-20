@@ -312,11 +312,9 @@ class ProgressBar:
         self.lock = threading.Lock()
         self.cmd = cmd
 
-
     def __enter__(self):
         self.t.daemon = True
         self.t.start()
-
         return self
 
     def __exit__(self, *args):
@@ -332,6 +330,7 @@ class ProgressBar:
                         break
                     if not action_queue[self.cmd].empty():
                         size = action_queue[self.cmd].get()
+
                         bar.update(size)
                         self.s += size
         finally:
