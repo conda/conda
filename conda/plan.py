@@ -442,6 +442,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     if auto_update_conda and is_root_prefix(prefix):
         specs.append('conda')
+        specs.append('conda-env')
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
