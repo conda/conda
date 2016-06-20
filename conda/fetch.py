@@ -355,6 +355,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
 
     if retries is None:
         retries = RETRIES
+
     with Locked(dst_dir, url.rsplit("/", 1)[1]):
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
@@ -379,6 +380,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                 handle_proxy_407(url, session)
                 # try again
                 return download(url, dst_path, session=session, md5=md5,
+                                urlstxt=urlstxt, bar=bar, retries=retries)
 
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
@@ -391,7 +393,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
+
             fn = basename(dst_path)
+
         if md5:
             h = hashlib.new('md5')
         try:
@@ -428,7 +432,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
 
         if size:
             pass
-
         if md5 and h.hexdigest() != md5:
             if retries:
                 # try again

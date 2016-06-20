@@ -95,6 +95,10 @@ def SYMLINK_CONDA_CMD(state, arg):
     symlink_conda(state['prefix'], arg, find_parent_shell(path=False))
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> f115f90c79f869e9ac10b2b6a11bdc919c5bb653
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,
@@ -167,6 +171,7 @@ action_callback = {
     UNLINK_CMD: unlinkCallback
 }
 
+
 def packages_multithread_cmd(cmd, state, package_list):
     """
     Try to download the packages in multi-thread
@@ -220,61 +225,6 @@ def packages_multithread_cmd(cmd, state, package_list):
                         assert arg_d in package_cache()
 
 
-
-def packages_multithread_cmd(cmd, state, package_list):
-    """
-    Try to download the packages in multi-thread
-    :param download_list: the list of packages and metadata for  downloadinh
-    :return: nothing
-    """
-    """
-     Try to import the concurrent futures library
-     If successes, use multi-thread pool to download
-     Otherwise, download in series
-    """
-    print("in side the function")
-    try:
-        import concurrent.futures
-        executor = concurrent.futures.ThreadPoolExecutor(5)
-    except (ImportError, RuntimeError):
-        # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-        # RuntimeError is thrown if number of threads are limited by OS
-        for arg_download in package_list:
-            cmd(state, arg_download)
-        return None
-    else:
-        if cmd == FETCH_CMD:
-            size = 0
-            if isinstance(package_list, list):
-                for arg_d in package_list:
-                    size += state['index'][str(arg_d) + '.tar.bz2']['size']
-            else:
-                size += state['index'][str(package_list) + '.tar.bz2']['size']
-        else:
-            size = len(package_list) if isinstance(package_list, list) else 1
-
-        res = " ".join([ar for ar in package_list if "-" in ar]) if isinstance(package_list,
-                                                                               list) else package_list.split()[0]
-        label = action_message[cmd] + res + " ]" if cmd in action_message else str(cmd)
-        with ProgressBar(size, label, cmd):
-            try:
-                if not isinstance(package_list, list):
-                    package_list = [package_list]
-                for arg_d in package_list:
-                    if cmd == FETCH_CMD:
-                        future = executor.submit(cmd, state, arg_d, action_queue[cmd])
-                    else:
-                        future = executor.submit(cmd, state, arg_d)
-                    future.add_done_callback(action_callback[cmd] if cmd in action_callback else defaultCallback)
-
-            finally:
-                executor.shutdown(wait=True)
-                # Check for download result
-                if cmd == FETCH_CMD:
-                    print (package_list)
-                    for arg_d in package_list:
-                        print (arg_d)
-                        assert arg_d in package_cache()
 
 
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
@@ -299,6 +249,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     for instruction, arg in plan.iteritems():
         log.debug(' %s(%r)' % (instruction, arg))
         cmd = _commands.get(instruction)
+
         if cmd is None:
             raise InvalidInstruction(instruction)
 
@@ -311,6 +262,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             continue
         packages_multithread_cmd(cmd, state, arg)
     messages(state['prefix'])
+
 
 class ProgressBar:
     """

@@ -5,10 +5,8 @@ from conda.lock import Locked, LockError
 
 
 def test_lock_passes(tmpdir):
-
     file_tmp = "conda_file_1"
     with Locked(tmpdir.strpath, file_tmp) as lock:
-
         path = os.path.basename(lock.lock_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
@@ -20,7 +18,6 @@ def test_lock_locks(tmpdir):
 
     file_tmp = "conda_file_2"
     with Locked(tmpdir.strpath, file_tmp) as lock1:
-
         path = os.path.basename(lock1.lock_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
