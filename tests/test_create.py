@@ -16,6 +16,8 @@ from unittest import TestCase
 from uuid import uuid4
 
 import pytest
+from requests import Session
+from requests.adapters import BaseAdapter
 
 from conda import config
 from conda.cli import conda_argparse
@@ -26,6 +28,7 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.compat import PY3, TemporaryDirectory
 from conda.config import pkgs_dirs, bits
+from conda.connection import LocalFSAdapter, CondaSession
 from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win
 from tests.helpers import captured
@@ -110,6 +113,42 @@ def make_temp_env(*packages):
         yield prefix
     finally:
         rmtree(prefix, ignore_errors=True)
+
+
+class EnforceUnusedAdapter(BaseAdapter):
+
+    def send(self, request, *args, **kwargs):
+        raise RuntimeError("EnforceUnusedAdapter called with url {0}".format(request.url))
+
+
+class OfflineCondaSession(Session):
+
+    timeout = None
+
+    def __init__(self, *args, **kwargs):
+        super(OfflineCondaSession, self).__init__()
+        unused_adapter = EnforceUnusedAdapter()
+        self.mount("http://", unused_adapter)
+        self.mount("https://", unused_adapter)
+        self.mount("ftp://", unused_adapter)
+        self.mount("s3://", unused_adapter)
+
+        # Enable file:// urls
+        self.mount("file://", LocalFSAdapter())
+
+
+@contextmanager
+def enforce_offline():
+    class NadaCondaSession(object):
+        def __init__(self, *args, **kwargs):
+            pass
+    import conda.connection
+    saved_conda_session = conda.connection.CondaSession
+    try:
+        conda.connection.CondaSession = OfflineCondaSession
+        yield
+    finally:
+        conda.connection.CondaSession = saved_conda_session
 
 
 def package_is_installed(prefix, package, exact=False):
@@ -266,6 +305,16 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "nomkl")
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+
+    def test_clone_offline(self):
+        with make_temp_env("python flask=0.10.1") as prefix:
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python')
+
+            with enforce_offline():
+                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                    assert_package_is_installed(clone_prefix, 'flask-0.10.1')
+                    assert_package_is_installed(clone_prefix, 'python')
 
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
