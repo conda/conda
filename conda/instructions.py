@@ -95,6 +95,7 @@ def SYMLINK_CONDA_CMD(state, arg):
     symlink_conda(state['prefix'], arg, find_parent_shell(path=False))
 
 
+
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,
@@ -179,7 +180,6 @@ def packages_multithread_cmd(cmd, state, package_list):
      If successes, use multi-thread pool to download
      Otherwise, download in series
     """
-    print("in side the function")
     try:
         import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(5)
@@ -218,9 +218,7 @@ def packages_multithread_cmd(cmd, state, package_list):
                 executor.shutdown(wait=True)
                 # Check for download result
                 if cmd == FETCH_CMD:
-                    print (package_list)
                     for arg_d in package_list:
-                        print (arg_d)
                         assert arg_d in package_cache()
 
 
@@ -257,7 +255,11 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             else:
                 cmd(state, arg)
             continue
+<<<<<<< HEAD
         print("CMD is ", cmd)
+=======
+
+>>>>>>> f49bb2314aa03230953b79d035fade1fba56eaea
         packages_multithread_cmd(cmd, state, arg)
 
     messages(state['prefix'])
