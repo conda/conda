@@ -41,7 +41,6 @@ import sys
 import tarfile
 import time
 import traceback
-import random
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
@@ -227,6 +226,10 @@ def warn_failed_remove(function, path, exc_info):
 
 def exp_backoff_fn(fn, *args):
     """Mostly for retrying file operations that fail on Windows due to virus scanners"""
+    if not on_win:
+        return fn(*args)
+    import random
+
     max_retries = 5
     for n in range(max_retries):
         try:
@@ -1085,9 +1088,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                           (src, dst, lt, e))
 
-        if name_dist(dist) == '_cache':
-            return
-
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
             try:
@@ -1218,6 +1218,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
 
 def main():
     # This CLI is only invoked from the self-extracting shell installers
+    global pkgs_dirs
     from optparse import OptionParser
 
     p = OptionParser(description="conda link tool used by installer")
@@ -1244,7 +1245,7 @@ def main():
 
     prefix = opts.prefix
     pkgs_dir = join(prefix, 'pkgs')
-    pkgs_dirs[0] = [pkgs_dir]
+    pkgs_dirs = [pkgs_dir]
     if opts.verbose:
         print("prefix: %r" % prefix)
 
@@ -1252,9 +1253,10 @@ def main():
         idists = list(yield_lines(join(prefix, opts.file)))
     else:
         idists = sorted(extracted())
+    assert idists
 
     linktype = (LINK_HARD
-                if idists and try_hard_link(pkgs_dir, prefix, idists[0]) else
+                if try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
     if opts.verbose:
         print("linktype: %s" % link_name_map[linktype])
