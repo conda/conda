@@ -269,7 +269,7 @@ def add_parser_install(p):
         action="store_true",
         dest="channel_priority",
         default=channel_priority,
-        help="Channel priority takes precedence over packaage version (default: %(default)s). "
+        help="Channel priority takes precedence over package version (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
     p.add_argument(
