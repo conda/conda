@@ -340,7 +340,6 @@ def fetch_pkg(info, bar=None, dst_dir=None, session=None):
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
              retries=None):
-
     pp = dst_path + '.part'
     dst_dir = dirname(dst_path)
     session = session or CondaSession()
@@ -393,34 +392,29 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
-
             fn = basename(dst_path)
 
         if md5:
             h = hashlib.new('md5')
         try:
-            # from click import progressbar
-            # label = "[    Downloading " + str(url.rsplit("/", 1)[1] + "       ]")
-            if 1 == 1:
-                with open(pp, 'wb') as fo:
-                    more = True
-                    while more:
-                        # Use resp.raw so that requests doesn't decode gz files
-                        chunk = resp.raw.read(2**14)
-                        if not chunk:
-                            more = False
-                        try:
-                            fo.write(chunk)
-                        except IOError:
-                            raise RuntimeError("Failed to write to %r." % pp)
-                        if md5:
-                            h.update(chunk)
+            with open(pp, 'wb') as fo:
+                more = True
+                while more:
+                    # Use resp.raw so that requests doesn't decode gz files
+                    chunk = resp.raw.read(2**14)
+                    if not chunk:
+                        more = False
+                    try:
+                        fo.write(chunk)
+                    except IOError:
+                        raise RuntimeError("Failed to write to %r." % pp)
+                    if md5:
+                        h.update(chunk)
                         # update n with actual bytes read
-                        n = resp.raw.tell()
-                        if size and 0 <= n <= size:
-                            if bar:
-                                # from .instructions import q
-                                bar.put(n, False)
+                    n = resp.raw.tell()
+                    if size and 0 <= n <= size:
+                        if bar:
+                            bar.put(n, False)
 
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
@@ -430,8 +424,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
 
-        if size:
-            pass
         if md5 and h.hexdigest() != md5:
             if retries:
                 # try again
@@ -450,7 +442,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
 
         if urlstxt:
             add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
-
         return None
 
 class TmpDownload(object):

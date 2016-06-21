@@ -94,9 +94,12 @@ def run_command(command, prefix, *arguments):
 
     args = p.parse_args(split(command_line))
     with captured(disallow_stderr=False) as c:
-        args.func(args, p)
-    print(c.stdout)
+        try:
+            args.func(args, p)
+        except AssertionError as e:
+            print(e)
     print(c.stderr, file=sys.stderr)
+    print(c.stdout)
     return c.stdout, c.stderr
 
 

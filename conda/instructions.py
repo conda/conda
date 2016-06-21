@@ -31,7 +31,7 @@ PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
-progress_cmds = set([FETCH, EXTRACT, RM_EXTRACTED, LINK, UNLINK])
+progress_cmds = [FETCH] #set([FETCH, EXTRACT, RM_EXTRACTED])
 action_codes = (
     FETCH,
     EXTRACT,
@@ -94,11 +94,6 @@ def UNLINK_CMD(state, arg):
 def SYMLINK_CONDA_CMD(state, arg):
     symlink_conda(state['prefix'], arg, find_parent_shell(path=False))
 
-
-<<<<<<< HEAD
-=======
-
->>>>>>> f115f90c79f869e9ac10b2b6a11bdc919c5bb653
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,
@@ -134,10 +129,6 @@ action_message = {
     UNLINK_CMD: "[ Unlinking Packages     "
 }
 
-def fetchCallback(fn):
-    if fn:
-        log.debug(fn.result())
-
 def extractCallback(fn):
     if fn:
         log.debug(fn.result())
@@ -162,9 +153,14 @@ def defaultCallback(fn):
     if fn:
         log.debug(fn.result())
 
+def fetchCallback(fn):
+    if fn:
+        log.debug(fn.result())
+    fetch_q.put(1)
+
 
 action_callback = {
-    FETCH_CMD: fetchCallback,
+    FETCH_CMD:fetchCallback,
     EXTRACT_CMD: extractCallback,
     RM_EXTRACTED_CMD: rmExtractCallback,
     LINK_CMD: linkCallback,
@@ -174,8 +170,10 @@ action_callback = {
 
 def packages_multithread_cmd(cmd, state, package_list):
     """
-    Try to download the packages in multi-thread
-    :param download_list: the list of packages and metadata for  downloadinh
+    Try to execute the command the packages in multi-thread
+    :param cmd, the command need to execute
+    :param state, contains the index of each action
+    :param package_list: the list of packages and metadata for download
     :return: nothing
     """
     """
@@ -193,32 +191,24 @@ def packages_multithread_cmd(cmd, state, package_list):
             cmd(state, arg_download)
         return None
     else:
-        if cmd == FETCH_CMD:
-            size = 0
-            if isinstance(package_list, list):
-                for arg_d in package_list:
-                    size += state['index'][str(arg_d) + '.tar.bz2']['size']
-            else:
-                size += state['index'][str(package_list) + '.tar.bz2']['size']
-        else:
-            size = len(package_list) if isinstance(package_list, list) else 1
 
-        res = " ".join([ar for ar in package_list if "-" in ar]) if isinstance(package_list,
-                                                                               list) else package_list.split()[0]
-        label = action_message[cmd] + res + " ]" if cmd in action_message else str(cmd)
+        """
+            Declare size and label for progress bar
+            Downloading are different than other command.
+        """
+        size = len(package_list)
+        label = action_message[cmd] + "packages" + " ]" if cmd in action_message else str(cmd)
+        # start progress bar
+        futures = []
         with ProgressBar(size, label, cmd):
             try:
-                if not isinstance(package_list, list):
-                    package_list = [package_list]
                 for arg_d in package_list:
-                    if cmd == FETCH_CMD:
-                        future = executor.submit(cmd, state, arg_d, action_queue[cmd])
-                    else:
-                        future = executor.submit(cmd, state, arg_d)
+                    future = executor.submit(cmd, state, arg_d)
                     future.add_done_callback(action_callback[cmd] if cmd in action_callback else defaultCallback)
-
+                    futures.append(future)
             finally:
                 executor.shutdown(wait=True)
+                log.debug((f.result() for f in futures))
                 # Check for download result
                 if cmd == FETCH_CMD:
                     for arg_d in package_list:
@@ -246,20 +236,32 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
+    """
+        iterate through actions in plan
+        If can be done in parallel, go to package_multithread_cmd
+        Otherwise, done in serial
+    """
+    print("hahaha",plan)
     for instruction, arg in plan.iteritems():
         log.debug(' %s(%r)' % (instruction, arg))
         cmd = _commands.get(instruction)
 
         if cmd is None:
             raise InvalidInstruction(instruction)
+        arg = [arg] if not isinstance(arg, list) else arg
 
+        # Done in serial
         if instruction not in progress_cmds:
-            if isinstance(arg, list):
-                for ar in arg:
-                    cmd(state, ar)
+            if cmd == PREFIX_CMD:
+                cmd(state, arg[0])
             else:
-                cmd(state, arg)
+                label = action_message[cmd] + "packages" + " ]" if cmd in action_message else str(cmd)
+                with click.progressbar(arg, label=label) as bar:
+                    for ar in bar:
+                        cmd(state, ar)
+
             continue
+        # Done in parallel
         packages_multithread_cmd(cmd, state, arg)
     messages(state['prefix'])
 
