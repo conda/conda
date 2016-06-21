@@ -48,7 +48,7 @@ syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identit
                                                          "sep": os.sep}))
 
 def print_ps1(env_dirs, raw_ps, number):
-    return (u"<{}> ".format(env_dirs[number]) + raw_ps)
+    return (u"({}) ".format(env_dirs[number]) + raw_ps)
 
 
 CONDA_ENTRY_POINT = """\

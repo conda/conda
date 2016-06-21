@@ -73,10 +73,10 @@ if (( $? == 0 )); then
     firstpath=${PATH%%:*}
     export CONDA_ENV_PATH="$(echo ${firstpath} | sed "s|/bin$||")" &>/dev/null
 
-    # if CONDA_DEFAULT_ENV not in PS1, prepend it with angle brackets
+    # if CONDA_DEFAULT_ENV not in PS1, prepend it with parentheses
     if [ $("$_CONDA_DIR/conda" ..changeps1) = "1" ]; then
         if ! $(grep -q CONDA_DEFAULT_ENV <<<$PS1); then
-            export PS1="<${CONDA_DEFAULT_ENV}> $PS1"
+            export PS1="(${CONDA_DEFAULT_ENV}) $PS1"
         fi
     fi
 
