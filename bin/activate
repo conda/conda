@@ -28,9 +28,6 @@ case "$(uname -s)" in
         ;;
 esac
 
-# Export whatever PS setting we have, so it is available to Python subprocesses
-export PS1
-
 # Ensure that this script is sourced, not executed
 # Also note that errors are ignored as `activate foo` doesn't generate a bad
 # value for $0 which would cause errors.
@@ -52,25 +49,36 @@ fi
 args=$@
 source "$_CONDA_DIR/deactivate"
 
-_NEW_PATH=$("$_CONDA_DIR/conda" ..activate $SHELL$EXT "$args")
+_NEW_PART=$("$_CONDA_DIR/conda" ..activate $SHELL$EXT "$args")
 if (( $? == 0 )); then
     export CONDA_PATH_BACKUP="$PATH"
     # export this to restore it upon deactivation
-    export CONDA_OLD_PS1=$PS1
+    export CONDA_PS1_BACKUP=$PS1
 
-    export PATH="$_NEW_PATH"
-    # Get first path (should be full path prefix of our env)
-    # inner string extraction pulls off first path
-    # outer string removes /bin if present (on Unix)
+    export PATH="$_NEW_PART:$PATH"
+    # CONDA_DEFAULT_ENV is the shortest representation of how conda recognizes your env.
+    #    It can be an env name, or a full path.
+    #    Last date of change: 2016-06-21
+    # If the string contains / it's a path
+    if [[ "$@" == */* ]]; then
+        export CONDA_DEFAULT_ENV=$(get_abs_filename "$args")
+    else
+        export CONDA_DEFAULT_ENV="$args"
+    fi
+    # CONDA_ENV_PATH is always the full path to the activated environment.  It is not set
+    #    when no environment is active.
+    # Legacy support: CONDA_DEFAULT_ENV is either env name or full path if given as path.
+    #    CONDA_ENV_PATH is always the full path, for consistency.
+    #    Last date of change: 2016-06-21
     firstpath=${PATH%%:*}
-    export CONDA_DEFAULT_ENV="$(echo ${firstpath} | sed "s|/bin$||")" &>/dev/null
-    # Legacy support: CONDA_DEFAULT_ENV used to be either env name or full path if given as path.
-    #    CONDA_DEFAULT_ENV is now always full path.
-    #    Keep CONDA_ENV_PATH around, and have it mirror CONDA_DEFAULT_ENV.
-    #    Last date of change: 2016-04-18
-    export CONDA_ENV_PATH=$CONDA_DEFAULT_ENV
+    export CONDA_ENV_PATH="$(echo ${firstpath} | sed "s|/bin$||")" &>/dev/null
 
-    export PS1="$( "$_CONDA_DIR/conda" ..setps1 $SHELL$EXT "$args" )"
+    # if CONDA_DEFAULT_ENV not in PS1, prepend it with angle brackets
+    if [ $("$_CONDA_DIR/conda" ..changeps1) = "1" ]; then
+        if ! $(grep -q CONDA_DEFAULT_ENV <<<$PS1); then
+            export PS1="<${CONDA_DEFAULT_ENV}> $PS1"
+        fi
+    fi
 
     # Load any of the scripts found $PREFIX/etc/conda/activate.d AFTER activation
     _CONDA_D="${CONDA_DEFAULT_ENV}/etc/conda/activate.d"
