@@ -330,8 +330,7 @@ def get_proxy_servers():
 def load_condarc(path):
     rc = load_condarc_(path)
 
-    root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
-                                            rc.get('root_dir', sys.prefix))))
+    root_dir = abspath(expanduser(os.getenv('CONDA_ROOT', rc.get('root_dir', sys.prefix))))
     root_writable = try_write(root_dir)
 
     globals().update(locals())
