@@ -45,7 +45,7 @@
 
 :: if our prompt var does not contain reference to CONDA_DEFAULT_ENV, set prompt
 @IF "%CHANGE_PROMPT%" == "1" @IF "x%PROMPT:CONDA_DEFAULT_ENV=%" == "x%PROMPT%" (
-    SET "PROMPT=<%CONDA_NEW_ENV%> %PROMPT%"
+    SET "PROMPT=(%CONDA_NEW_ENV%) %PROMPT%"
 )
 
 @REM This persists env variables, which are otherwise local to this script right now.
