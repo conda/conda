@@ -12,7 +12,7 @@ import unittest
 import pytest
 
 import conda.config as config
-from conda.utils import get_yaml, yaml_bool
+from conda.utils import get_yaml
 
 from tests.helpers import run_conda_command
 
@@ -325,7 +325,7 @@ always_yes: yes
         stdout, stderr = run_conda_command('config', '--file', rc, '--get')
 
         assert stdout == """\
---set always_yes yes
+--set always_yes True
 --set changeps1 False
 --add channels 'defaults'
 --add channels 'test'
@@ -350,7 +350,7 @@ create_default_packages:
 changeps1: false
 
 # Here is a comment
-always_yes: 'yes'
+always_yes: true
 """
 
         stdout, stderr = run_conda_command('config', '--file', rc,
@@ -371,7 +371,7 @@ create_default_packages:
 changeps1: true
 
 # Here is a comment
-always_yes: 'yes'
+always_yes: true
 """
 
         # Test adding a new list key. We couldn't test this above because it
@@ -467,17 +467,20 @@ yaml parser (this will remove any structure or comments from the existing
 
 def test_config_set():
     # Test the config set command
-    # Make sure it accepts any YAML 1.1 boolean values
-    assert yaml_bool(True) is True
-    assert yaml_bool(False) is False
-    for str in ('yes', 'Yes', 'YES', 'on', 'On', 'ON',
-                'off', 'Off', 'OFF', 'no', 'No', 'NO'):
-      with make_temp_condarc() as rc:
-          stdout, stderr = run_conda_command('config', '--file', rc,
-                                             '--set', 'always_yes', str)
-          assert stdout == ''
-          assert stderr == ''
+    # Make sure it accepts only boolean values for boolean keys and any value for string keys
 
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc,
+                                           '--set', 'always_yes', 'yes')
+
+        assert stdout == ''
+        assert stderr == ''
+
+        stdout, stderr = run_conda_command('config', '--file', rc,
+                                           '--set', 'always_yes', 'no')
+
+        assert stdout == ''
+        assert stderr == ''
 
 def test_set_rc_string():
     # Test setting string keys in .condarc
@@ -490,7 +493,7 @@ def test_set_rc_string():
         assert stderr == ''
 
         verify = yaml.load(open(rc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
-        assert verify == 'yes'
+        assert verify is True
 
         stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'ssl_verify', 'test_string.crt')
