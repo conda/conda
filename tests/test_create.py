@@ -11,7 +11,7 @@ from logging import getLogger, Handler
 from os.path import exists, isdir, isfile, join, relpath, basename
 from shlex import split
 from shutil import rmtree, copyfile
-from subprocess import check_call, Popen, PIPE
+from subprocess import check_call, Popen, PIPE, check_output
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
@@ -403,6 +403,67 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'python')
                     assert_package_is_installed(clone_prefix, 'rpy2')
                     assert isfile(join(clone_prefix, 'condarc'))  # untracked file
+
+    @pytest.mark.timeout(300)
+    def test_channel_order_channel_priority_true(self):
+        with make_temp_env("python=3 pycosat==0.6.1") as prefix:
+            assert_package_is_installed(prefix, 'python')
+            assert_package_is_installed(prefix, 'pycosat')
+
+            # add conda-forge channel
+            run_command(Commands.CONFIG, prefix, "--add channels conda-forge")
+            from conda.config import get_rc_urls
+            assert get_rc_urls() == ['conda-forge', 'defaults']
+
+            # update --all
+            update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
+
+            # pycosat should be in the SUPERCEDED list
+            superceded_split = update_stdout.split('SUPERCEDED')
+            assert len(superceded_split) == 2
+            assert 'pycosat' in superceded_split[1]
+
+            # python sys.version should show conda-forge python
+            sys_version = check_output('{0} -c "import sys; print(sys.version)"'
+                                       ''.format(join(prefix, PYTHON_BINARY)), shell=True)
+            sys_version = sys_version.decode('utf-8')
+            assert "packaged by conda-forge" in sys_version, sys_version
+
+            # conda list should show pycosat coming from conda-forge
+            pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
+            assert pycosat_tuple[3] == 'conda-forge'
+
+    @pytest.mark.timeout(300)
+    def test_channel_order_channel_priority_false(self):
+        with make_temp_env("python=3 pycosat==0.6.1") as prefix:
+            assert_package_is_installed(prefix, 'python')
+            assert_package_is_installed(prefix, 'pycosat')
+
+            # add conda-forge channel
+            run_command(Commands.CONFIG, prefix, "--add channels conda-forge")
+            from conda.config import get_rc_urls
+            assert get_rc_urls() == ['conda-forge', 'defaults']
+
+            # set channel_priority false
+            run_command(Commands.CONFIG, prefix, "--set channel_priority false")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get channel_priority")
+            assert stdout.strip() == "--set channel_priority False", stdout.strip()
+
+            # update --all
+            update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
+
+            # pycosat should not be update output at all
+            assert 'pycosat' not in update_stdout, update_stdout
+
+            # python sys.version should show Continuum Analytics python
+            sys_version = check_output('{0} -c "import sys; print(sys.version)"'
+                                       ''.format(join(prefix, PYTHON_BINARY)), shell=True)
+            sys_version = sys_version.decode('utf-8')
+            assert "Continuum Analytics, Inc" in sys_version, sys_version
+
+            # conda list should show pycosat from defaults channel
+            pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
+            assert len(pycosat_tuple) == 3, pycosat_tuple
 
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
