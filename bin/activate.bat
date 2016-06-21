@@ -28,8 +28,8 @@
 @SET "CONDA_EXE=%~dp0\..\Scripts\conda.exe"
 
 @REM Ensure that path or name passed is valid before deactivating anything
-@call "%CONDA_EXE%" ..checkenv "cmd.exe" "%CONDA_NEW_ENV%"
-@if errorlevel 1 exit /b 1
+@CALL "%CONDA_EXE%" ..checkenv "cmd.exe" "%CONDA_NEW_ENV%"
+@IF errorlevel 1 exit /b 1
 
 @call "%~dp0\deactivate.bat"
 @if errorlevel 1 exit /b 1
@@ -37,25 +37,25 @@
 @REM take a snapshot of pristine state for later
 @SET "CONDA_PATH_BACKUP=%PATH%"
 @REM Activate the new environment
-@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "PATH=%%i"
+@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "NEW_PATH=%%i"
 
 @REM take a snapshot of pristine state for later
-@set "CONDA_OLD_PS1=%PROMPT%"
-@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..setps1 "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "PROMPT=%%i"
+@SET "CONDA_PS1_BACKUP=%PROMPT%"
+@FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..changeps1') DO @SET "CHANGE_PROMPT=%%i"
 
-@REM Replace CONDA_NEW_ENV with the full path, if it is anything else
-@REM   (name or relative path).  This is to remove any ambiguity.
-@FOR /F "tokens=1 delims=;" %%i in ("%PATH%") DO @SET "CONDA_NEW_ENV=%%i"
-@CALL :TRIM CONDA_DEFAULT_ENV %CONDA_NEW_ENV%
+:: if our prompt var does not contain reference to CONDA_DEFAULT_ENV, set prompt
+@IF "%CHANGE_PROMPT%" == "1" @IF "x%PROMPT:CONDA_DEFAULT_ENV=%" == "x%PROMPT%" (
+    SET "PROMPT=<%CONDA_DEFAULT_ENV%> %PROMPT%"
+)
 
 @REM This persists env variables, which are otherwise local to this script right now.
 @endlocal & (
     @REM Used for deactivate, to make sure we restore original state after deactivation
     @SET "CONDA_PATH_BACKUP=%CONDA_PATH_BACKUP%"
-    @SET "CONDA_OLD_PS1=%CONDA_OLD_PS1%"
+    @SET "CONDA_PS1_BACKUP=%CONDA_PS1_BACKUP%"
     @SET "PROMPT=%PROMPT%"
-    @SET "PATH=%PATH%"
-    @SET "CONDA_DEFAULT_ENV=%CONDA_DEFAULT_ENV%"
+    @SET "PATH=%NEW_PATH%;%PATH%"
+    @SET "CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%"
 
     @REM Run any activate scripts
     @IF EXIST "%CONDA_NEW_ENV%\etc\conda\activate.d" (
@@ -64,10 +64,3 @@
         @POPD
     )
 )
-
-
-:TRIM
-    @SetLocal EnableDelayedExpansion
-    @set Params=%*
-    @for /f "tokens=1*" %%a in ("!Params!") do @EndLocal & @set %1=%%b
-    @exit /B

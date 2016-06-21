@@ -48,7 +48,7 @@ syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identit
                                                          "sep": os.sep}))
 
 def print_ps1(env_dirs, raw_ps, number):
-    return (u"(({})) ".format(os.path.split(env_dirs[number])[-1]) + raw_ps)
+    return (u"<{}> ".format(env_dirs[number]) + raw_ps)
 
 
 CONDA_ENTRY_POINT = """\
@@ -536,7 +536,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         {printdefaultenv}
         """).format(envs=envs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout.rstrip(), shells[shell]['path_to'](sys.prefix), stderr)
+        assert_equals(stdout.rstrip(), 'root', stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root {nul}
@@ -601,7 +601,7 @@ def test_activate_relative_path(shell):
             raise
         finally:
             os.chdir(cwd)
-        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
+        assert_equals(stdout.rstrip(), env_dir, stderr)
 
 
 @pytest.mark.slow
