@@ -6,7 +6,7 @@ from .config import root_dir
 from .exceptions import InvalidInstruction
 from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
-                      link, unlink, symlink_conda, name_dist, package_cache)
+                      link, unlink, symlink_conda, package_cache)
 from .utils import find_parent_shell
 import threading
 import click
@@ -31,7 +31,8 @@ PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
-progress_cmds = [FETCH] #set([FETCH, EXTRACT, RM_EXTRACTED])
+progress_cmds = set([FETCH, EXTRACT, RM_EXTRACTED])
+
 action_codes = (
     FETCH,
     EXTRACT,
@@ -160,7 +161,7 @@ def fetchCallback(fn):
 
 
 action_callback = {
-    FETCH_CMD:fetchCallback,
+    FETCH_CMD: fetchCallback,
     EXTRACT_CMD: extractCallback,
     RM_EXTRACTED_CMD: rmExtractCallback,
     LINK_CMD: linkCallback,
@@ -197,14 +198,15 @@ def packages_multithread_cmd(cmd, state, package_list):
             Downloading are different than other command.
         """
         size = len(package_list)
-        label = action_message[cmd] + "packages" + " ]" if cmd in action_message else str(cmd)
+        label = action_message[cmd] + " ]" if cmd in action_message else str(cmd)
         # start progress bar
         futures = []
         with ProgressBar(size, label, cmd):
             try:
                 for arg_d in package_list:
                     future = executor.submit(cmd, state, arg_d)
-                    future.add_done_callback(action_callback[cmd] if cmd in action_callback else defaultCallback)
+                    future.add_done_callback(action_callback[cmd] if
+                                             cmd in action_callback else defaultCallback)
                     futures.append(future)
             finally:
                 executor.shutdown(wait=True)
@@ -213,8 +215,6 @@ def packages_multithread_cmd(cmd, state, package_list):
                 if cmd == FETCH_CMD:
                     for arg_d in package_list:
                         assert arg_d in package_cache()
-
-
 
 
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
@@ -241,8 +241,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         If can be done in parallel, go to package_multithread_cmd
         Otherwise, done in serial
     """
-    print("hahaha",plan)
-    for instruction, arg in plan.iteritems():
+    for instruction, arg in plan.items():
         log.debug(' %s(%r)' % (instruction, arg))
         cmd = _commands.get(instruction)
 
@@ -255,7 +254,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             if cmd == PREFIX_CMD:
                 cmd(state, arg[0])
             else:
-                label = action_message[cmd] + "packages" + " ]" if cmd in action_message else str(cmd)
+                label = action_message[cmd] + " ]" if \
+                    cmd in action_message else str(cmd)
                 with click.progressbar(arg, label=label) as bar:
                     for ar in bar:
                         cmd(state, ar)

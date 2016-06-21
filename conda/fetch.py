@@ -392,7 +392,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
-            fn = basename(dst_path)
 
         if md5:
             h = hashlib.new('md5')
