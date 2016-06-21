@@ -260,13 +260,21 @@ NOTE: Conda does not check architecture or dependencies when installing from an 
 Saved environment variables
 ---------------------------
 
-On Linux and OS X, conda environments can include saved environment variables. Suppose you want an environment 'analytics' to store a secret key needed to log in to a server and a path to a configuration file. Locate the directory for the conda environment, such as ``/home/jsmith/anaconda3/envs/analytics`` . Enter that directory and create these subdirectories and files::
+Conda environments can include saved environment variables on Linux, macOS, and Windows. Suppose you want an environment 'analytics' to store a secret key needed to log in to a server and a path to a configuration file. Locate the directory for the conda environment, such as ``/home/jsmith/anaconda3/envs/analytics`` . Enter that directory and create these subdirectories and files::
 
   cd /home/jsmith/anaconda3/envs/analytics
   mkdir -p ./etc/conda/activate.d
   mkdir -p ./etc/conda/deactivate.d
   touch ./etc/conda/activate.d/env_vars.sh
   touch ./etc/conda/deactivate.d/env_vars.sh
+
+On Windows, the equivalent is::
+
+  cd C:\Users\jsmith\Anaconda3\envs\analytics
+  mkdir .\etc\conda\activate.d
+  mkdir .\etc\conda\deactivate.d
+  type NUL > .\etc\conda\activate.d\env_vars.bat
+  type NUL > .\etc\conda\deactivate.d\env_vars.bat
 
 Edit the two files. ``./etc/conda/activate.d/env_vars.sh`` should have this::
 
@@ -275,12 +283,22 @@ Edit the two files. ``./etc/conda/activate.d/env_vars.sh`` should have this::
   export MY_KEY='secret-key-value'
   export MY_FILE=/path/to/my/file/
 
+(or the Windows equivalent ``.\etc\conda\activate.d\env_vars.bat``)::
+
+  set MY_KEY='secret-key-value'
+  set MY_FILE=/path/to/my/file/
+
 And ``./etc/conda/deactivate.d/env_vars.sh`` should have this::
 
   #!/bin/sh
 
   unset MY_KEY
   unset MY_FILE
+
+(or the Windows equivalent ``.\etc\conda\deactivate.d\env_vars.bat``)::
+
+  set MY_KEY=
+  set MY_FILE=
 
 Now when you use ``source activate analytics`` the environment variables MY_KEY and MY_FILE will be set to the values you wrote into the file, and when you use ``source deactivate`` those variables will be erased.
 
