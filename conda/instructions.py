@@ -184,7 +184,7 @@ def packages_multithread_cmd(cmd, state, package_list):
     :return: nothing
     """
     """
-     Try to import the concurrent futures library
+     Try to importsour the concurrent futures library
      If successes, use multi-thread pool to download
      Otherwise, download in series
     """

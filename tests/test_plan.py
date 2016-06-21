@@ -912,10 +912,9 @@ class PlanFromActionsTests(unittest.TestCase):
 
         conda_plan = plan.plan_from_actions(actions)
 
-        expected_plan = {
-            'PREFIX': ['aprefix'],
-            'LINK': [ipython, menuinst]
-        }
+        expected_plan = OrderedDict()
+        expected_plan['PREFIX'] = ['aprefix']
+        expected_plan['LINK'] =  [ipython, menuinst]
 
         if sys.platform == 'win32':
             # menuinst should be linked first
@@ -927,7 +926,7 @@ class PlanFromActionsTests(unittest.TestCase):
             # last_two = expected_plan[-2:]
             # expected_plan[-2:] = last_two[::-1]
 
-        self.assertEqual(OrderedDict(expected_plan), conda_plan)
+        self.assertEqual(expected_plan, conda_plan)
 
 if __name__ == '__main__':
     unittest.main()
