@@ -1,4 +1,4 @@
-2016-06-XX   4.1.3:
+2016-0X-XX   4.1.3:
 -------------------
   * ensure conda-env auto update, along with conda, #2772
   * make yaml booleans behave how everyone expects them to, #2784
