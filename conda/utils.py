@@ -295,7 +295,7 @@ def get_yaml():
 def yaml_load(filehandle):
     yaml = get_yaml()
     try:
-        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
+        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.1")
     except AttributeError:
         return yaml.load(filehandle)
 
