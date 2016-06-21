@@ -325,7 +325,7 @@ always_yes: yes
         stdout, stderr = run_conda_command('config', '--file', rc, '--get')
 
         assert stdout == """\
---set always_yes yes
+--set always_yes True
 --set changeps1 False
 --add channels 'defaults'
 --add channels 'test'
@@ -350,7 +350,7 @@ create_default_packages:
 changeps1: false
 
 # Here is a comment
-always_yes: 'yes'
+always_yes: true
 """
 
         stdout, stderr = run_conda_command('config', '--file', rc,
@@ -371,7 +371,7 @@ create_default_packages:
 changeps1: true
 
 # Here is a comment
-always_yes: 'yes'
+always_yes: true
 """
 
         # Test adding a new list key. We couldn't test this above because it
@@ -474,13 +474,13 @@ def test_config_set():
                                            '--set', 'always_yes', 'yes')
 
         assert stdout == ''
-        assert stderr == 'Error: Key: always_yes; yes is not a YAML boolean.'
+        assert stderr == ''
 
         stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'always_yes', 'no')
 
         assert stdout == ''
-        assert stderr == 'Error: Key: always_yes; no is not a YAML boolean.'
+        assert stderr == ''
 
 def test_set_rc_string():
     # Test setting string keys in .condarc
@@ -493,7 +493,7 @@ def test_set_rc_string():
         assert stderr == ''
 
         verify = yaml.load(open(rc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
-        assert verify == 'yes'
+        assert verify is True
 
         stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'ssl_verify', 'test_string.crt')
