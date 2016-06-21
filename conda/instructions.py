@@ -130,42 +130,48 @@ action_message = {
     UNLINK_CMD: "[ Unlinking Packages     "
 }
 
-def extractCallback(fn):
+
+def extract_callback(fn):
     if fn:
         log.debug(fn.result())
-    extract_q.put(1)
+    extract_q.put(1, False)
 
-def rmExtractCallback(fn):
+
+def rm_extract_callback(fn):
     if fn:
         log.debug(fn.result())
-    rm_extracted_q.put(1)
+    rm_extracted_q.put(1, False)
 
-def linkCallback(fn):
+
+def link_callback(fn):
     if fn:
         log.debug(fn.result())
-    link_q.put(1)
+    link_q.put(1, False)
 
-def unlinkCallback(fn):
+
+def unlink_callback(fn):
     if fn:
         log.debug(fn.result())
-    unlink_q.put(1)
+    unlink_q.put(1, False)
 
-def defaultCallback(fn):
+
+def default_callback(fn):
     if fn:
         log.debug(fn.result())
 
-def fetchCallback(fn):
+
+def fetch_callback(fn):
     if fn:
         log.debug(fn.result())
     fetch_q.put(1)
 
 
 action_callback = {
-    FETCH_CMD: fetchCallback,
-    EXTRACT_CMD: extractCallback,
-    RM_EXTRACTED_CMD: rmExtractCallback,
-    LINK_CMD: linkCallback,
-    UNLINK_CMD: unlinkCallback
+    FETCH_CMD: fetch_callback,
+    EXTRACT_CMD: extract_callback,
+    RM_EXTRACTED_CMD: rm_extract_callback,
+    LINK_CMD: link_callback,
+    UNLINK_CMD: unlink_callback
 }
 
 
@@ -206,7 +212,7 @@ def packages_multithread_cmd(cmd, state, package_list):
                 for arg_d in package_list:
                     future = executor.submit(cmd, state, arg_d)
                     future.add_done_callback(action_callback[cmd] if
-                                             cmd in action_callback else defaultCallback)
+                                             cmd in action_callback else default_callback)
                     futures.append(future)
             finally:
                 executor.shutdown(wait=True)
