@@ -292,24 +292,10 @@ def get_yaml():
     return yaml
 
 
-# Restores YAML 1.1 boolean flexibility.
-yaml_bool_ = {
-    'true': True, 'yes': True, 'on': True,
-    'false': False, 'no': False, 'off': False
-}
-def yaml_bool(s, passthrough=None):
-    if type(s) is bool:
-        return s
-    try:
-        return yaml_bool_.get(s.lower(), passthrough)
-    except AttributeError:
-        return passthrough
-
-
 def yaml_load(filehandle):
     yaml = get_yaml()
     try:
-        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
+        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.1")
     except AttributeError:
         return yaml.load(filehandle)
 
