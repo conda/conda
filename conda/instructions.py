@@ -31,7 +31,7 @@ PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
-progress_cmds = set([FETCH, EXTRACT, RM_EXTRACTED])
+progress_cmds = set([FETCH, RM_EXTRACTED])
 
 action_codes = (
     FETCH,
@@ -163,7 +163,7 @@ def default_callback(fn):
 def fetch_callback(fn):
     if fn:
         log.debug(fn.result())
-    fetch_q.put(1)
+    fetch_q.put(1, False)
 
 
 action_callback = {
@@ -239,7 +239,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     if verbose:
         from .console import setup_verbose_handlers
         setup_verbose_handlers()
-
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
     """
@@ -291,18 +290,15 @@ class ProgressBar:
 
     def __exit__(self, *args):
         self.t.join(timeout=0.01)
-        self.t.is_alive()
+        if self.t.is_alive():
+            assert False
 
     def consumer(self):
-        try:
-            self.lock.acquire()
-            with click.progressbar(length=self.length, label=self.label) as bar:
-                while self.s < self.length:
-                    if self.cmd not in action_queue:
-                        break
-                    if not action_queue[self.cmd].empty():
-                        size = action_queue[self.cmd].get()
-                        bar.update(size)
-                        self.s += size
-        finally:
-            self.lock.release()
+        with click.progressbar(length=self.length, label=self.label) as bar:
+            while self.s < self.length:
+                if self.cmd not in action_queue:
+                    break
+                if not action_queue[self.cmd].empty():
+                    size = action_queue[self.cmd].get(True)
+                    bar.update(size)
+                    self.s += size
