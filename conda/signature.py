@@ -3,13 +3,13 @@ from __future__ import absolute_import, division, print_function
 import sys
 import base64
 from os.path import abspath, expanduser, isfile, join
-
+from .exceptions import CondaImportError
 try:
     from Crypto.Hash import SHA256
     from Crypto.PublicKey import RSA
     from Crypto.Signature import PKCS1_PSS
 except ImportError:
-    sys.exit("""\
+    raise CondaImportError("""\
 Error: could not import Crypto (required for signature verification).
     Run the following command:
 

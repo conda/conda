@@ -15,14 +15,15 @@ from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parse
                      add_parser_channels, add_parser_prefix, add_parser_quiet,
                      add_parser_no_use_index_cache, add_parser_use_index_cache,
                      add_parser_use_local, add_parser_offline, add_parser_pscheck,
-                     InstalledPackages, error_and_exit, get_prefix, check_write,
+                     InstalledPackages, get_prefix, check_write,
                      ensure_use_local, ensure_override_channels_requires_channel,
                      get_index_trap, specs_from_args, names_in_specs, root_no_rm, stdout_json,
                      confirm_yn)
 from ..config import default_prefix
 from ..console import json_progress_bars
 from ..compat import iteritems, iterkeys
-
+from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
+                          CondaValueError)
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -108,15 +109,13 @@ def execute(args, parser):
     from conda.install import rm_rf, linked_data
 
     if not (args.all or args.package_names):
-        error_and_exit('no package names supplied,\n'
-                       '       try "conda remove -h" for more details',
-                       json=args.json,
-                       error_type="ValueError")
+        raise CondaValueError('no package names supplied,\n'
+                       '       try "conda remove -h" for more details', json)
 
     prefix = get_prefix(args)
     if args.all and prefix == default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
-        error_and_exit(msg)
+        raise CondaEnvironmentError(msg)
     check_write('remove', prefix, json=args.json)
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
@@ -139,11 +138,8 @@ def execute(args, parser):
 
     elif args.all:
         if plan.is_root_prefix(prefix):
-            error_and_exit('cannot remove root environment,\n'
-                           '       add -n NAME or -p PREFIX option',
-                           json=args.json,
-                           error_type="CantRemoveRoot")
-
+            raise CondaEnvironmentError('cannot remove root environment,\n'
+                           '       add -n NAME or -p PREFIX option', args.json)
         actions = {inst.PREFIX: prefix}
         for fkey in sorted(iterkeys(index)):
             plan.add_unlink(actions, fkey[:-8])
@@ -151,10 +147,8 @@ def execute(args, parser):
     else:
         specs = specs_from_args(args.package_names)
         if (plan.is_root_prefix(prefix) and names_in_specs(root_no_rm, specs)):
-            error_and_exit('cannot remove %s from root environment' %
-                           ', '.join(root_no_rm),
-                           json=args.json,
-                           error_type="CantRemoveFromRoot")
+            raise CondaEnvironmentError('cannot remove %s from root environment' %
+                                        ', '.join(root_no_rm), args.json)
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
 
@@ -168,10 +162,8 @@ def execute(args, parser):
                     'actions': actions
                 })
             return
-        error_and_exit('no packages found to remove from '
-                       'environment: %s' % prefix,
-                       json=args.json,
-                       error_type="PackageNotInstalled")
+        raise PackageNotFoundError('no packages found to remove from '
+                       'environment: %s' % prefix, args.json)
 
     if not args.json:
         print()

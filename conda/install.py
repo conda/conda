@@ -43,7 +43,7 @@ import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
-
+from conda.exceptions import PaddingError, LinkError, ArgumentError
 
 on_win = bool(sys.platform == "win32")
 
@@ -348,9 +348,6 @@ def read_has_prefix(path):
     return res
 
 
-class PaddingError(Exception):
-    pass
-
 
 def binary_replace(data, a, b):
     """
@@ -397,7 +394,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
         else:
             logging.debug("Skipping prefix replacement in binary on Windows")
     else:
-        sys.exit("Invalid mode: %s" % mode)
+        raise ArgumentError("Invalid mode: %s" % mode)
     return data
 
 
@@ -1055,7 +1052,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
               (pkgs_dir, prefix, dist, linktype))
 
     if not run_script(source_dir, dist, 'pre-link', prefix):
-        sys.exit('Error: pre-link failed: %s' % dist)
+        raise LinkError('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
@@ -1096,7 +1093,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
             try:
                 update_prefix(join(prefix, f), prefix, placeholder, mode)
             except PaddingError:
-                sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
+                raise PaddingError("ERROR: placeholder '%s' too short in: %s\n" %
                          (placeholder, dist))
 
         # make sure that the child environment behaves like the parent,
@@ -1111,7 +1108,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
             mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):
-            sys.exit("Error: post-link failed for: %s" % dist)
+            raise LinkError("Error: post-link failed for: %s" % dist)
 
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
