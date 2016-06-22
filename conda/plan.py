@@ -21,7 +21,7 @@ from .config import (always_copy as config_always_copy, channel_priority,
                      show_channel_urls as config_show_channel_urls,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
                      track_features, foreign, url_channel, canonical_channel_name)
-from .exceptions import CondaException
+from .exceptions import TooFewArgumentsError, InstallError, RemoveError, CondaIndexError
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
                       is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
@@ -487,22 +487,24 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         # anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
         pass
+
     elif any(s in must_have for s in root_only):
         # the solver scheduled an install of conda, but it wasn't in the
         # specs, so it must have been a dependency.
         specs = [s for s in specs if r.depends_on(s, root_only)]
         if specs:
-            sys.exit("""\
+            raise InstallError("""\
 Error: the following specs depend on 'conda' and can only be installed
 into the root environment: %s""" % (' '.join(specs),))
         linked = [r.package_name(s) for s in linked]
         linked = [s for s in linked if r.depends_on(s, root_only)]
         if linked:
-            sys.exit("""\
+            raise InstallError("""\
 Error: one or more of the packages already installed depend on 'conda'
 and should only be installed in the root environment: %s
 These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
-        sys.exit("Error: 'conda' can only be installed into the root environment")
+        raise InstallError("Error: 'conda' can only be installed into the "
+                           "root environment")
 
     smh = r.dependency_sort(must_have)
 
@@ -556,11 +558,10 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             raise RuntimeError(msg % dist)
         if name == 'conda' and name not in nlinked:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
-                sys.exit("Error: 'conda' cannot be removed from the root environment")
+                raise RemoveError("'conda' cannot be removed from the root environment")
             else:
-                msg = ("Error: this 'remove' command cannot be executed because it\n"
+                raise RemoveError("Error: this 'remove' command cannot be executed because it\n"
                        "would require removing 'conda' dependencies")
-                sys.exit(msg)
         add_unlink(actions, old_fn)
 
     return actions
@@ -597,7 +598,7 @@ def revert_actions(prefix, revision=-1):
     try:
         state = h.get_state(revision)
     except IndexError:
-        sys.exit("Error: no such revision: %d" % revision)
+        raise CondaIndexError("no such revision: %d" % revision)
 
     curr = h.get_state()
     if state == curr:
@@ -628,9 +629,8 @@ def update_old_plan(old_plan):
         if line.startswith('#'):
             continue
         if ' ' not in line:
-            raise CondaException(
-                "The instruction '%s' takes at least one argument" % line
-            )
+            raise TooFewArgumentsError("The instruction '%s' takes at least"
+                                       " one argument" % line)
 
         instruction, arg = line.split(' ', 1)
         plan.append((instruction, arg))

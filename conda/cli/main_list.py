@@ -12,13 +12,13 @@ from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile
 
 from .common import (add_parser_help, add_parser_prefix, add_parser_json,
-                     add_parser_show_channel_urls, disp_features, error_and_exit, stdout_json,
+                     add_parser_show_channel_urls, disp_features, stdout_json,
                      get_prefix)
 from ..config import show_channel_urls, subdir, use_pip
 from ..egg_info import get_egg_info
 from ..install import dist2quad, linked
 from ..install import name_dist, is_linked, linked_data
-
+from ..exceptions import CondaEnvironmentError, CondaFileNotFoundError
 
 descr = "List linked packages in a conda environment."
 
@@ -155,13 +155,11 @@ def list_packages(prefix, installed, regex=None, format='human',
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=show_channel_urls):
     if not isdir(prefix):
-        error_and_exit("""\
+        raise CondaEnvironmentError("""\
 Error: environment does not exist: %s
 #
 # Use 'conda create' to create an environment before listing its packages.""" %
-                       prefix,
-                       json=json,
-                       error_type="NoEnvironmentFound")
+                                    prefix, json)
 
     if not json:
         if format == 'human':
@@ -185,7 +183,8 @@ Error: environment does not exist: %s
 
 def print_explicit(prefix, add_md5=False):
     if not isdir(prefix):
-        error_and_exit("Error: environment does not exist: %s" % prefix)
+        raise CondaEnvironmentError("Error: environment does not exist: %s" %
+                                    prefix)
     print_export_header()
     print("@EXPLICIT")
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
@@ -214,9 +213,8 @@ def execute(args, parser):
             else:
                 stdout_json(h.object_log())
         else:
-            error_and_exit("No revision log found: %s\n" % h.path,
-                           json=args.json,
-                           error_type="NoRevisionLog")
+            raise CondaFileNotFoundError("No revision log found: %s\n" % h.path,
+                                         json)
         return
 
     if args.explicit:
