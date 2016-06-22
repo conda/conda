@@ -144,7 +144,6 @@ def install(args, parser, command='install'):
 """ % prefix,
                               json=args.json,
                               error_type="ValueError")
-
     linked = install_linked(prefix)
     lnames = {name_dist(d) for d in linked}
     if isupdate and not args.all:

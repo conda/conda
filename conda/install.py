@@ -941,22 +941,9 @@ def linked_data(prefix):
             for fn in os.listdir(meta_dir):
                 if fn.endswith('.json'):
                     json_files.append(fn[:-5])
-        try:
-            import concurrent.futures
-            executor = concurrent.futures.ThreadPoolExecutor(10)
-        except (ImportError, RuntimeError):
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
 
-            for fn in json_files:
-                load_linked_data(prefix, fn)
-        else:
-            try:
-                json_files_tuple = tuple(json_files)
-                tuple(executor.submit(load_linked_data, prefix,
-                                      json_file) for json_file in json_files_tuple)
-            finally:
-                executor.shutdown(wait=True)
+        for fn in json_files:
+            load_linked_data(prefix, fn)
     return recs
 
 
