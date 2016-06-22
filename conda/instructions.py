@@ -135,7 +135,6 @@ def packages_multithread_cmd(cmd, state, package_list):
         with click.progressbar(package_list, label=action_message[cmd]) as bar:
             for arg_download in bar:
                 cmd(state, arg_download)
-        return None
     else:
         """
             Declare size and label for progress bar
@@ -218,7 +217,11 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 class ProgressBar:
     """
         A class for download progress bar using click progress bar
-        Mainly using
+        Mainly using click progress bar
+        Use blocking queue to update the progress bar
+        length : length of progress bar, for download, it is the size of all packages to be downloaded
+        label : The label of download bar
+        num : number of packages to be downloaded
     """
     def __init__(self, length, label, num):
         self.length = length
@@ -236,6 +239,12 @@ class ProgressBar:
         while self.t.is_alive():
             self.t.join(timeout=0.001)
 
+    """
+        using producer and consumer mode
+        Each download thread produces to the queue,
+        and the printing thread get from the queue
+        Finish when get enough None object
+    """
     def consumer(self):
         with click.progressbar(length=self.length, label=self.label) as bar:
             while self.num != 0:
