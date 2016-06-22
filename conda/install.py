@@ -878,13 +878,17 @@ def load_linked_data(prefix, dist, rec=None):
     else:
         linked_data(prefix)
     url = rec.get('url')
-    if 'fn' not in rec:
-        rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
-    if not url and 'channel' in rec:
-        url = rec['url'] = rec['channel'] + rec['fn']
-    if rec['fn'][:-8] != dname:
+    fn = rec.get('fn')
+    if not fn:
+        fn = rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
+    if fn[:-8] != dname:
         log.debug('Ignoring invalid package metadata file: %s' % meta_file)
         return None
+    channel = rec.get('channel')
+    if channel:
+        channel = channel.rstrip('/')
+        if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
+            url = rec['url'] = channel + '/' + fn
     channel, schannel = url_channel(url)
     rec['channel'] = channel
     rec['schannel'] = schannel
@@ -942,7 +946,6 @@ def linked_data(prefix):
                 if fn.endswith('.json'):
                     load_linked_data(prefix, fn[:-5])
     return recs
-
 
 def linked(prefix):
     """
