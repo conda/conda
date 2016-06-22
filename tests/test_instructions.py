@@ -4,7 +4,7 @@ import unittest
 
 from conda import exceptions
 from conda import instructions
-from conda.instructions import execute_instructions, commands, PROGRESS_CMD
+from conda.instructions import execute_instructions, commands
 
 
 def test_expected_operation_order():
@@ -77,38 +77,6 @@ class TestExecutePlan(unittest.TestCase):
         execute_instructions(plan, index, verbose=False)
         self.assertTrue(simple_cmd.called)
 
-    def test_progess(self):
-
-        index = {'This is an index': True}
-
-        plan = {
-            'PROGRESS': '2',
-            'LINK': ['ipython''menuinst']
-        }
-
-        def cmd(state, arg):
-            pass  # NO-OP
-
-        _commands = {'PROGRESS': PROGRESS_CMD, 'LINK': cmd}
-        h = TestHandler()
-
-        update_logger = getLogger('progress.update')
-        update_logger.setLevel(DEBUG)
-        update_logger.addHandler(h)
-
-        stop_logger = getLogger('progress.stop')
-        stop_logger.setLevel(DEBUG)
-        stop_logger.addHandler(h)
-
-        execute_instructions(plan, index, _commands=_commands)
-
-        update_logger.removeHandler(h)
-        stop_logger.removeHandler(h)
-
-        expected = [('progress.update', ('ipython', 0)),
-                    ('progress.update', ('menuinst', 1)),
-                    ('progress.stop', None)
-                    ]
 
     def test_download(self):
 
