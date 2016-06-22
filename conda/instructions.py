@@ -10,7 +10,6 @@ from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched,
 from .utils import find_parent_shell
 import threading
 import click
-import time
 import sys
 
 if float(sys.version.split()[0][:3]) < 2.8:
@@ -133,7 +132,7 @@ def packages_multithread_cmd(cmd, state, package_list):
     except (ImportError, RuntimeError):
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
         # RuntimeError is thrown if number of threads are limited by OS
-        with click.progressbar(package_list,label=action_message[cmd]) as bar:
+        with click.progressbar(package_list, label=action_message[cmd]) as bar:
             for arg_download in bar:
                 cmd(state, arg_download)
         return None
@@ -144,7 +143,8 @@ def packages_multithread_cmd(cmd, state, package_list):
         """
         size = 0
         for arg in package_list:
-            inc = state['index'][arg + '.tar.bz2']['size'] if "size" in state['index'][arg + '.tar.bz2'] else 0
+            inc = state['index'][arg + '.tar.bz2']['size'] \
+                if "size" in state['index'][arg + '.tar.bz2'] else 0
             size += inc
 
         label = action_message[cmd] + " ]" if cmd in action_message else str(cmd)
