@@ -143,6 +143,8 @@ if present in the build recipe
   description
   license_family
 
+``info/recipe/meta.yaml.rendered``: This is the fully rendered build recipe. See :doc:`../commands/build/conda-render`.
+
 
 Link and unlink scripts
 ------------------------
