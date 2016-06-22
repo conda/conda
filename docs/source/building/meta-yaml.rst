@@ -449,6 +449,8 @@ The script run_test.sh (or .bat/.py/.pl) will be run automatically if it is part
 
 NOTE: Python or Perl .py/.pl scripts are only valid as part of Python/Perl packages, respectively.
 
+.. _about:
+
 About section
 -------------
 
@@ -636,6 +638,8 @@ NOTE: The fully rendered recipe file will be written back to the directory as ``
 
 Features
 --------
+
+See also :ref:`build-features`.
 
 Features are a way to track differences in two packages that have the same
 name and version.  For example, a feature might indicate a specialized
