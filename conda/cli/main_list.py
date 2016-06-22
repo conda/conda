@@ -7,17 +7,16 @@
 from __future__ import print_function, division, absolute_import
 
 import logging
-import os
 import re
 from argparse import RawDescriptionHelpFormatter
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile
 
 from .common import (add_parser_help, add_parser_prefix, add_parser_json,
                      add_parser_show_channel_urls, disp_features, error_and_exit, stdout_json,
                      get_prefix)
 from ..config import show_channel_urls, subdir, use_pip
 from ..egg_info import get_egg_info
-from ..install import dist2quad, load_meta, linked
+from ..install import dist2quad, linked
 from ..install import name_dist, is_linked, linked_data
 
 
@@ -185,13 +184,10 @@ Error: environment does not exist: %s
 
 
 def print_explicit(prefix, add_md5=False):
-    import json
-
     if not isdir(prefix):
         error_and_exit("Error: environment does not exist: %s" % prefix)
     print_export_header()
     print("@EXPLICIT")
-
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
         url = meta.get('url')
         if not url or url.startswith('<unknown>'):
