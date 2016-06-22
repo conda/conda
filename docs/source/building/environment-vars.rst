@@ -136,6 +136,8 @@ On Linux, we have:
   * - ``LD_RUN_PATH``
     - ``<build prefix>/lib``
 
+.. _git-env:
+
 Git Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

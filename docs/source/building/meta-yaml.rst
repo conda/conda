@@ -45,12 +45,10 @@ string.
 
 NOTE: The version cannot contain a dash '-' character.
 
+
 NOTE: Post-build versioning: In some cases, you may not know the version, build 
 number, or build string of the package until after it is built. In this case, you 
-can write files named ``__conda_version__.txt``, ``__conda_buildnum__.txt``, or 
-``__conda_buildstr__.txt`` to the source directory, and the contents of the file 
-will be used as the version, build number, or build string, respectively (and the 
-respective metadata from the ``meta.yaml`` will be ignored).
+can perform :ref:`jinja-templates` or utilize :ref:`git-env` and :ref:`inherited-env-vars`.
 
 Source section
 --------------
@@ -542,6 +540,7 @@ For example, to store recipe maintainer information, one could do:
     maintainers:
      - name of maintainer
 
+.. _jinja-templates:
 
 Templating with Jinja
 ---------------------
