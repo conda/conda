@@ -125,6 +125,8 @@ Patches may optionally be applied to the source:
 NOTE: Conda-build will automatically determine the patch strip level.
 
 
+.. _meta-build:
+
 Build section
 -------------
 
@@ -345,6 +347,18 @@ with all platforms and architectures. Noarch packages can be installed on any pl
 
      build:
        noarch_python: True
+
+
+Include build recipe
+~~~~~~~~~~~~~~~~~~~~
+
+The full conda build recipe and rendered ``meta.yaml`` file is included in the :ref:`package_metadata`
+by default. This can be disabled with
+
+.. code-block:: yaml
+
+    build:
+      include_recipe: False
 
 
 Requirements section
@@ -640,9 +654,6 @@ need to put the same selector on multiple lines.
      md5: 30fbf531409a18a48b1be249052e242a  # [win]
      url: http://path/to/unix/source        # [unix]
      md5: 88510902197cba0d1ab4791e0f41a66e  # [unix]
-
-
-NOTE: The fully rendered recipe file will be written back to the directory as ``meta.yaml.rendered``.
 
 .. _features:
 

@@ -143,7 +143,11 @@ if present in the build recipe
   description
   license_family
 
-``info/recipe/meta.yaml.rendered``: This is the fully rendered build recipe. See :doc:`../commands/build/conda-render`.
+``info/recipe``: This directory will contain the full contents of the build recipe.
+
+    ``meta.yaml.rendered``: This is the fully rendered build recipe. See :doc:`../commands/build/conda-render`.
+
+    This directory is only present when the the ``include_recipe`` flag is true in the :ref:`meta-build`.
 
 
 Link and unlink scripts
