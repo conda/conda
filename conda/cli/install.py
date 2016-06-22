@@ -26,13 +26,14 @@ from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defau
                     display_actions, revert_actions, nothing_to_do, execute_actions)
 from ..resolve import NoPackagesFound, Unsatisfiable, Resolve
 from ..utils import find_parent_shell
+from ..exceptions import *
 
 log = logging.getLogger(__name__)
 
 
 def install_tar(prefix, tar_path, verbose=False):
     if not exists(tar_path):
-        sys.exit("File does not exist: %s" % tar_path)
+        raise CondaFileNotFoundError(tar_path)
     tmp_dir = tempfile.mkdtemp()
     t = tarfile.open(tar_path, 'r')
     t.extractall(path=tmp_dir)
@@ -59,22 +60,19 @@ def check_prefix(prefix, json=False):
         error = "prefix already exists: %s" % prefix
 
     if error:
-        common.error_and_exit(error, json=json, error_type="ValueError")
+        raise CondaValueError(error, json)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            common.error_and_exit('no such directory: %s' % src_arg,
-                                  json=json,
-                                  error_type="NoEnvironmentFound")
+            raise DirectoryNotFoundError('no such directory: %s' % src_arg, json)
     else:
         src_prefix = common.find_prefix_name(src_arg)
         if src_prefix is None:
-            common.error_and_exit('could not find environment: %s' % src_arg,
-                                  json=json,
-                                  error_type="NoEnvironmentFound")
+            raise CondaEnvironmentError('could not find environment: %s' %
+                                        src_arg, json)
 
     if not json:
         print("Source:      %s" % src_prefix)
@@ -116,9 +114,7 @@ def get_revision(arg, json=False):
     try:
         return int(arg)
     except ValueError:
-        common.error_and_exit("expected revision number, not: '%s'" % arg,
-                              json=json,
-                              error_type="ValueError")
+        CondaValueError("expected revision number, not: '%s'" % arg, json)
 
 
 def install(args, parser, command='install'):
@@ -134,16 +130,13 @@ def install(args, parser, command='install'):
     if newenv:
         check_prefix(prefix, json=args.json)
     if force_32bit and is_root_prefix(prefix):
-        common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
-
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
     if isupdate and not (args.file or args.all or args.packages):
-        common.error_and_exit("""no package names supplied
+        raise CondaValueError("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
-""" % prefix,
-                              json=args.json,
-                              error_type="ValueError")
+""" % prefix, args.json)
 
     linked = install_linked(prefix)
     lnames = {name_dist(d) for d in linked}
@@ -151,10 +144,8 @@ def install(args, parser, command='install'):
         for name in args.packages:
             common.arg2spec(name, json=args.json, update=True)
             if name not in lnames:
-                common.error_and_exit("Package '%s' is not installed in %s" %
-                                      (name, prefix),
-                                      json=args.json,
-                                      error_type="ValueError")
+                raise PackageNotFoundError("Package '%s' is not installed in %s" %
+                                           (name, prefix), args.json)
 
     if newenv and not args.no_default_packages:
         default_packages = create_default_packages[:]
@@ -179,8 +170,8 @@ def install(args, parser, command='install'):
             return
     elif getattr(args, 'all', False):
         if not linked:
-            common.error_and_exit("There are no packages installed in the "
-                                  "prefix %s" % prefix)
+            raise PackageNotFoundError("There are no packages installed in the "
+                                       "prefix %s" % prefix)
         specs.extend(nm for nm in lnames)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
 
@@ -196,10 +187,8 @@ def install(args, parser, command='install'):
             explicit(args.packages, prefix, verbose=not args.quiet)
             return
         else:
-            common.error_and_exit(
-                "cannot mix specifications with conda package filenames",
-                json=args.json,
-                error_type="ValueError")
+            raise CondaValueError("cannot mix specifications with conda package"
+                                  " filenames", args.json)
 
     # handle tar file containing conda packages
     if len(args.packages) == 1:
@@ -210,9 +199,8 @@ def install(args, parser, command='install'):
 
     if newenv and args.clone:
         if set(args.packages) - set(default_packages):
-            common.error_and_exit('did not expect any arguments for --clone',
-                                  json=args.json,
-                                  error_type="ValueError")
+            raise TooManyArgumentsError('did not expect any arguments for'
+                                        '--clone', args.json)
         clone(args.clone, prefix, json=args.json, quiet=args.quiet,
               fetch_args={'use_cache': args.use_index_cache,
                           'unknown': args.unknown})
@@ -246,10 +234,7 @@ def install(args, parser, command='install'):
                 assert len(vers_inst) == 1, name
                 assert len(build_inst) == 1, name
             except AssertionError as e:
-                if args.json:
-                    common.exception_and_exit(e, json=True)
-                else:
-                    raise
+                raise CondaAssertionError('', e, args.json)
 
             pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
@@ -285,18 +270,15 @@ def install(args, parser, command='install'):
             try:
                 os.makedirs(prefix)
             except OSError:
-                common.error_and_exit("Error: could not create directory: %s" % prefix,
-                                      json=args.json,
-                                      error_type="OSError")
+                raise CondaOSError("Error: could not create directory: %s" %
+                                   prefix, args.json)
         else:
-            common.error_and_exit("""\
+            raise CondaEnvironmentError("""\
 environment does not exist: %s
 #
 # Use 'conda create' to create an environment before installing packages
 # into it.
-#""" % prefix,
-                                  json=args.json,
-                                  error_type="NoEnvironmentFound")
+#""" % prefix, args.json)
 
     shortcuts = args.shortcuts if hasattr(args, "shortcuts") else None
 
@@ -366,15 +348,13 @@ environment does not exist: %s
                 error_message += "\n\nNote that you have pinned specs in %s:" % path
                 error_message += "\n\n    %r" % pinned_specs
 
-            common.error_and_exit(error_message, json=args.json)
+            raise PackageNotFoundError(error_message, e, args.json)
+
     except (Unsatisfiable, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
-        error_type = 'UnsatisfiableSpecifications'
         if e.args and 'could not import' in e.args[0]:
-            error_type = 'ImportError'
-        common.exception_and_exit(e, json=args.json, newline=True,
-                                  error_text=False,
-                                  error_type=error_type)
+            raise CondaImportError('', e, args.json)
+        raise CondaException('UnsatisfiableSpecifications', e, args.json)
 
     if nothing_to_do(actions):
         from .main_list import print_packages
@@ -400,7 +380,7 @@ environment does not exist: %s
         common.confirm_yn(args)
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
-        sys.exit(0)
+        raise DryRunExit
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         try:
@@ -417,12 +397,11 @@ environment does not exist: %s
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                error_type = "AlreadyLocked"
+                raise LockError('Already locked', e, args.json)
             else:
-                error_type = "RuntimeError"
-            common.exception_and_exit(e, error_type=error_type, json=args.json)
+                raise CondaRuntimeError('RuntimeError', e, args.json)
         except SystemExit as e:
-            common.exception_and_exit(e, json=args.json)
+            raise CondaSystemExit('Exiting', e, args.json)
 
     if newenv:
         append_env(prefix)

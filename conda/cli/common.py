@@ -15,7 +15,9 @@ from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
 from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
-
+from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
+                          CondaValueError, CondaFileIOError, TooFewArgumentsError,
+                          CondaException)
 
 class Completer(object):
     """
@@ -348,25 +350,23 @@ def ensure_use_local(args):
         return
     try:
         from conda_build.config import croot  # noqa
-    except ImportError:
-        error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
-                       " to use the --use-local option",
-                       json=args.json, error_type="RuntimeError")
+    except ImportError as e:
+        raise CondaRuntimeError("you need to have 'conda-build >= 1.7.1' installed"
+                                " to use the --use-local option", args.json, e)
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
         if dashc:
-            error_and_exit('--override-channels requires -c/--channel or --use-local',
-                           json=args.json, error_type="ValueError")
+            raise CondaValueError('--override-channels requires -c/--channel'
+                                  ' or --use-local', args.json)
         else:
-            error_and_exit('--override-channels requires --channel or --use-local',
-                           json=args.json, error_type="ValueError")
+            raise CondaValueError('--override-channels requires --channel'
+                                  'or --use-local', args.json)
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
     if args.dry_run:
-        print("Dry run: exiting")
-        sys.exit(0)
+        raise DryRunExit
 
     options = []
     for option in choices:
@@ -394,30 +394,27 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
-        print("Dry run: exiting")
-        sys.exit(0)
+        raise DryRunExit
     if args.yes or always_yes:
         return True
     try:
         choice = confirm(args, message=message, choices=('yes', 'no'),
                          default=default)
-    except KeyboardInterrupt:
-        # no need to exit by showing the traceback
-        sys.exit("\nOperation aborted.  Exiting.")
+    except KeyboardInterrupt as e:
+        raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
     if choice == 'yes':
         return True
     if exit_no:
-        sys.exit(1)
+        raise CondaSystemExit
     return False
 
 # --------------------------------------------------------------------
 
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
-        error_and_exit('either -n NAME or -p PREFIX option required,\n'
-                       '       try "conda %s -h" for more details' % command,
-                       json=getattr(args, 'json', False),
-                       error_type="ValueError")
+        raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
+                              'try "conda %s -h" for more details' % command,
+                              getattr(args, 'json', False))
 
 def find_prefix_name(name):
     if name == root_env_name:
@@ -432,10 +429,8 @@ def find_prefix_name(name):
 def get_prefix(args, search=True):
     if args.name:
         if '/' in args.name:
-            error_and_exit("'/' not allowed in environment name: %s" %
-                           args.name,
-                           json=getattr(args, 'json', False),
-                           error_type="ValueError")
+            raise CondaValueError("'/' not allowed in environment name: %s" %
+                                  args.name, getattr(args, 'json', False))
         if args.name == root_env_name:
             return root_dir
         if search:
@@ -473,18 +468,17 @@ def arg2spec(arg, json=False, update=False):
     try:
         spec = MatchSpec(spec_from_line(arg), normalize=True)
     except:
-        error_and_exit('invalid package specification: %s' % arg,
-                       json=json, error_type="ValueError")
+        raise CondaValueError('invalid package specification: %s' % arg, json)
+
     name = spec.name
     if name in disallow:
-        error_and_exit("specification '%s' is disallowed" % name,
-                       json=json,
-                       error_type="ValueError")
+        raise CondaValueError("specification '%s' is disallowed" % name, json)
+
     if not spec.is_simple() and update:
-        error_and_exit("""version specifications not allowed with 'update'; use
+        raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or
-    conda install %s""" % (name, ' ' * (len(arg)-len(name)), arg),
-                       json=json, error_type="ValueError")
+    conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg), json)
+
     return str(spec)
 
 
@@ -537,14 +531,11 @@ def specs_from_url(url, json=False):
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
-                    error_and_exit("could not parse '%s' in: %s" % (line, url),
-                                   json=json,
-                                   error_type="ValueError")
+                    raise CondaValueError("could not parse '%s' in: %s" %
+                                          (line, url), json)
                 specs.append(spec)
         except IOError:
-            error_and_exit('cannot open file: %s' % path,
-                           json=json,
-                           error_type="IOError")
+            raise CondaFileIOError('cannot open file: %s' % path, json, e)
     return specs
 
 
@@ -567,7 +558,7 @@ def check_specs(prefix, specs, json=False, create=False):
 
                     conda config --add create_default_packages PACKAGE_NAME
             """)
-        error_and_exit(msg, json=json, error_type="ValueError")
+        raise TooFewArgumentsError(msg, json)
 
 
 def disp_features(features):
@@ -622,7 +613,7 @@ def get_index_trap(*args, **kwargs):
         return get_index(*args, **kwargs)
     except BaseException as e:
         if json:
-            exception_and_exit(e, json=json)
+            raise CondaException(e, json)
         else:
             raise
 

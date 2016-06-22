@@ -16,6 +16,7 @@ from platform import machine
 
 from .compat import urlparse, string_types
 from .utils import try_write, yaml_load
+from .exceptions import ProxyError
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -324,7 +325,7 @@ def get_proxy_servers():
     res = rc.get('proxy_servers') or {}
     if isinstance(res, dict):
         return res
-    sys.exit("Error: proxy_servers setting not a mapping")
+    raise ProxyError('proxy_servers setting not a mapping')
 
 
 def load_condarc(path):

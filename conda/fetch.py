@@ -27,6 +27,7 @@ from .connection import CondaSession, unparse_url, RETRIES
 from .install import add_cached_package, find_new_location, package_cache, dist2pair
 from .lock import Locked
 from .utils import memoized
+from .exceptions import ProxyError, ChannelNotAllowed
 
 
 log = getLogger(__name__)
@@ -188,12 +189,12 @@ def handle_proxy_407(url, session):
     # proxies (see https://github.com/kennethreitz/requests/issues/2061).
     scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
     if scheme not in session.proxies:
-        sys.exit("""Could not find a proxy for %r. See
+        raise ProxyError("""Could not find a proxy for %r. See
 http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
 for more information on how to configure proxies.""" % scheme)
     username, passwd = get_proxy_username_and_pass(scheme)
     session.proxies[scheme] = add_username_and_pass_to_url(
-                           session.proxies[scheme], username, passwd)
+                            session.proxies[scheme], username, passwd)
 
 def add_username_and_pass_to_url(url, username, passwd):
     urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
@@ -259,7 +260,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         channel_urls = prioritize_channels(channel_urls)
     for url in iterkeys(channel_urls):
         if allowed_channels and url not in allowed_channels:
-            sys.exit("""
+            raise ChannelNotAllowed("""
 Error: URL '%s' not in allowed channels.
 
 Allowed channels are:
@@ -336,8 +337,10 @@ def fetch_pkg(info, dst_dir=None, session=None):
             if verify(path):
                 return
         except SignatureError as e:
-            sys.exit(str(e))
-        sys.exit("Error: Signature for '%s' is invalid." % (basename(path)))
+            raise
+
+        raise SignatureError("Error: Signature for '%s' is invalid." %
+                            (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,

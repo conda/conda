@@ -11,10 +11,11 @@ from collections import defaultdict
 from os import lstat, walk, listdir
 from os.path import join, getsize, isdir
 
-from .common import add_parser_json, add_parser_yes, confirm_yn, error_and_exit, stdout_json
+from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..config import pkgs_dirs as config_pkgs_dirs, root_dir, envs_dirs
 from ..install import rm_rf
 from ..utils import human_bytes
+from ..exceptions import ArgumentError
 
 descr = """
 Remove unused packages and caches.
@@ -457,10 +458,8 @@ def execute(args, parser):
 
     if not any((args.lock, args.tarballs, args.index_cache, args.packages,
                 args.source_cache, args.all)):
-        error_and_exit(
-            "One of {--lock, --tarballs, --index-cache, --packages, "
-            "--source-cache, --all} required",
-            error_type="ValueError")
+        raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
+                            "--source-cache, --all} required")
 
     if args.json:
         stdout_json(json_result)
