@@ -539,7 +539,7 @@ See the `Jinja2 template documentation <http://jinja.pocoo.org/docs/dev/template
 for more information.
 
 Jinja templates are evaluated during the build process. To retrieve a fully rendered ``meta.yaml``
-use the :doc:`../conda-render`.
+use the :doc:`../commands/build/conda-render`.
 
 
 Preprocessing selectors
@@ -629,9 +629,10 @@ need to put the same selector on multiple lines.
      url: http://path/to/unix/source        # [unix]
      md5: 88510902197cba0d1ab4791e0f41a66e  # [unix]
 
-.. _features:
 
 NOTE: The fully rendered recipe file will be written back to the directory as ``meta.yaml.rendered``.
+
+.. _features:
 
 Features
 --------
