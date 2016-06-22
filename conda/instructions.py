@@ -10,6 +10,7 @@ from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched,
 from .utils import find_parent_shell
 import threading
 import click
+import time
 import sys
 
 if float(sys.version.split()[0][:3]) < 2.8:
@@ -31,7 +32,7 @@ PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
-progress_cmds = set([FETCH, RM_EXTRACTED])
+progress_cmds = set([FETCH])
 
 action_codes = (
     FETCH,
@@ -48,19 +49,8 @@ def PREFIX_CMD(state, arg):
     state['prefix'] = arg
 
 
-def PRINT_CMD(state, arg):
-    # getLogger('print').info(arg)
-    pass
-
-
 def FETCH_CMD(state, arg, bar=None):
     fetch_pkg(state['index'][arg + '.tar.bz2'], bar=bar)
-
-
-def PROGRESS_CMD(state, arg):
-    state['i'] = 0
-    state['maxval'] = int(arg)
-    getLogger('progress.start').info(state['maxval'])
 
 
 def EXTRACT_CMD(state, arg):
@@ -98,9 +88,7 @@ def SYMLINK_CONDA_CMD(state, arg):
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,
-    PRINT: PRINT_CMD,
     FETCH: FETCH_CMD,
-    PROGRESS: PROGRESS_CMD,
     EXTRACT: EXTRACT_CMD,
     RM_EXTRACTED: RM_EXTRACTED_CMD,
     RM_FETCHED: RM_FETCHED_CMD,
@@ -110,18 +98,7 @@ commands = {
 }
 
 fetch_q = Queue(500)
-extract_q = Queue(500)
-rm_extracted_q = Queue(500)
-link_q = Queue(500)
-unlink_q = Queue(500)
 
-action_queue = {
-    FETCH_CMD: fetch_q,
-    EXTRACT_CMD: extract_q,
-    RM_EXTRACTED_CMD: rm_extracted_q,
-    LINK_CMD: link_q,
-    UNLINK_CMD: unlink_q
-}
 action_message = {
     FETCH_CMD: "[ Downloading Packages   ",
     EXTRACT_CMD: "[ Extracting Packages    ",
@@ -131,48 +108,10 @@ action_message = {
 }
 
 
-def extract_callback(fn):
-    if fn:
-        log.debug(fn.result())
-    extract_q.put(1, False)
-
-
-def rm_extract_callback(fn):
-    if fn:
-        log.debug(fn.result())
-    rm_extracted_q.put(1, False)
-
-
-def link_callback(fn):
-    if fn:
-        log.debug(fn.result())
-    link_q.put(1, False)
-
-
-def unlink_callback(fn):
-    if fn:
-        log.debug(fn.result())
-    unlink_q.put(1, False)
-
-
-def default_callback(fn):
-    if fn:
-        log.debug(fn.result())
-
-
 def fetch_callback(fn):
     if fn:
         log.debug(fn.result())
-    fetch_q.put(1, False)
-
-
-action_callback = {
-    FETCH_CMD: fetch_callback,
-    EXTRACT_CMD: extract_callback,
-    RM_EXTRACTED_CMD: rm_extract_callback,
-    LINK_CMD: link_callback,
-    UNLINK_CMD: unlink_callback
-}
+    fetch_q.put(None, False)
 
 
 def packages_multithread_cmd(cmd, state, package_list):
@@ -194,25 +133,28 @@ def packages_multithread_cmd(cmd, state, package_list):
     except (ImportError, RuntimeError):
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
         # RuntimeError is thrown if number of threads are limited by OS
-        for arg_download in package_list:
-            cmd(state, arg_download)
+        with click.progressbar(package_list,label=action_message[cmd]) as bar:
+            for arg_download in bar:
+                cmd(state, arg_download)
         return None
     else:
-
         """
             Declare size and label for progress bar
             Downloading are different than other command.
         """
-        size = len(package_list)
+        size = 0
+        for arg in package_list:
+            inc = state['index'][arg + '.tar.bz2']['size'] if "size" in state['index'][arg + '.tar.bz2'] else 0
+            size += inc
+
         label = action_message[cmd] + " ]" if cmd in action_message else str(cmd)
         # start progress bar
         futures = []
-        with ProgressBar(size, label, cmd):
+        with ProgressBar(size, label, len(package_list)) as bar:
             try:
                 for arg_d in package_list:
-                    future = executor.submit(cmd, state, arg_d)
-                    future.add_done_callback(action_callback[cmd] if
-                                             cmd in action_callback else default_callback)
+                    future = executor.submit(cmd, state, arg_d, fetch_q)
+                    future.add_done_callback(fetch_callback)
                     futures.append(future)
             finally:
                 executor.shutdown(wait=True)
@@ -264,10 +206,11 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 with click.progressbar(arg, label=label) as bar:
                     for ar in bar:
                         cmd(state, ar)
-
             continue
         # Done in parallel
+        # start = time.time()
         packages_multithread_cmd(cmd, state, arg)
+        # print("Time for downloading", time.time() -start)
     messages(state['prefix'])
 
 
@@ -275,13 +218,12 @@ class ProgressBar:
     """
         A class for download progress bar using click progress bar
     """
-    def __init__(self, length, label, cmd):
+    def __init__(self, length, label, num):
         self.length = length
         self.label = label
         self.t = threading.Thread(target=self.consumer, args=())
-        self.s = 0
         self.lock = threading.Lock()
-        self.cmd = cmd
+        self.num = num
 
     def __enter__(self):
         self.t.daemon = True
@@ -289,16 +231,15 @@ class ProgressBar:
         return self
 
     def __exit__(self, *args):
-        self.t.join(timeout=0.01)
-        if self.t.is_alive():
-            assert False
+        while self.t.is_alive():
+            self.t.join(timeout=0.001)
 
     def consumer(self):
         with click.progressbar(length=self.length, label=self.label) as bar:
-            while self.s < self.length:
-                if self.cmd not in action_queue:
-                    break
-                if not action_queue[self.cmd].empty():
-                    size = action_queue[self.cmd].get(True)
-                    bar.update(size)
-                    self.s += size
+            while self.num != 0:
+                if not fetch_q.empty():
+                    size = fetch_q.get(True)
+                    if size:
+                        bar.update(size)
+                    else:
+                        self.num -= 1
