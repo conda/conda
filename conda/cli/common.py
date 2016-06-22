@@ -575,27 +575,6 @@ def stdout_json(d):
     sys.stdout.write('\n')
 
 
-def error_and_exit(message, json=False, newline=False, error_text=True,
-                   error_type=None):
-    if json:
-        stdout_json(dict(error=message, error_type=error_type))
-        sys.exit(1)
-    else:
-        if newline:
-            print()
-
-        if error_text:
-            sys.exit("Error: " + message)
-        else:
-            sys.exit(message)
-
-
-def exception_and_exit(exc, **kwargs):
-    if 'error_type' not in kwargs:
-        kwargs['error_type'] = exc.__class__.__name__
-    error_and_exit('; '.join(map(str, exc.args)), **kwargs)
-
-
 def get_index_trap(*args, **kwargs):
     """
     Retrieves the package index, but traps exceptions and reports them as
