@@ -147,7 +147,7 @@ def execute(args, parser):
     from conda.config import (root_dir, get_channel_urls, subdir, pkgs_dirs,
                               root_writable, envs_dirs, default_prefix, rc_path,
                               user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
-                              platform)
+                              platform, offline)
     from conda.resolve import Resolve
     from conda.cli.main_init import is_initialized
     from conda.api import get_index
@@ -194,7 +194,7 @@ def execute(args, parser):
     else:
         conda_build_version = conda_build.__version__
 
-    channels = get_channel_urls()
+    channels = get_channel_urls(offline=offline)
 
     info_dict = dict(
         platform=subdir,
@@ -210,6 +210,7 @@ def execute(args, parser):
         user_rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,
         is_foreign=bool(foreign),
+        offline=offline,
         envs=[],
         python_version='.'.join(map(str, sys.version_info)),
         requests_version=requests_version,
@@ -247,6 +248,7 @@ Current conda install:
         package cache : %(_pkgs_dirs)s
          channel URLs : %(_channels)s
           config file : %(rc_path)s
+         offline mode : %(offline)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
         if not is_initialized():
