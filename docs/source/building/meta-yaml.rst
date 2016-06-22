@@ -304,6 +304,27 @@ Text files (files containing no NULL bytes) may contain the build prefix and nee
       - bin/file1
       - lib/file2
 
+Ignore prefix files
+~~~~~~~~~~~~~~~~~~~
+
+The ``ignore_prefix_files`` can be used to exclude some or all of the files in the build recipe
+from the list of files that have the build prefix replaced with the install prefix.
+
+To ignore all files in the build recipe use
+
+.. code-block:: yaml
+
+    build:
+      ignore_prefix_files: True
+
+To specify individual file names use
+
+.. code-block:: yaml
+
+    build:
+      ignore_prefix_files:
+        - file1
+
 Skipping builds
 ~~~~~~~~~~~~~~~
 
@@ -327,16 +348,6 @@ with all platforms and architectures. Noarch packages can be installed on any pl
      build:
        noarch_python: True
 
-Ignore prefix files
-~~~~~~~~~~~~~~~~~~~
-
-Individual files can be added to the ``ignore_prefix_files`` key to exclude them from the prefix path when the package is installed.
-
-.. code-block:: yaml
-
-    build:
-      ignore_prefix_files:
-        - file1
 
 Requirements section
 --------------------
