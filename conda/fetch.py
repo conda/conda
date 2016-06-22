@@ -91,23 +91,23 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if use_cache:
         return cache
 
-    headers = {}
+    headers = {'Accept-Encoding': 'gzip, deflate, compress, identity'}
     if "_etag" in cache:
         headers["If-None-Match"] = cache["_etag"]
     if "_mod" in cache:
         headers["If-Modified-Since"] = cache["_mod"]
 
     try:
-        resp = session.get(url + 'repodata.json.bz2',
+        resp = session.get(url + 'repodata.json',
                            headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
-            cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
+            cache = json.loads(resp.content)
             add_http_value_to_dict(resp, 'Etag', cache, '_etag')
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
-        raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
+        raise RuntimeError("Invalid index file: %srepodata.json: %s" %
                            (remove_binstar_tokens(url), e))
 
     except requests.exceptions.HTTPError as e:
