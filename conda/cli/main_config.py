@@ -8,12 +8,14 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 
-from .common import (Completer, add_parser_json, error_and_exit, exception_and_exit,
-                     stdout_json_success)
+from .common import (Completer, add_parser_json, stdout_json_success)
 from ..compat import string_types
 from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
                       user_rc_path, rc_other)
 from ..utils import yaml_load, yaml_dump
+from ..exceptions import (CondaTypeError, CondaValueError, CondaException,
+                          CondaKeyError)
+
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -211,10 +213,7 @@ def execute(args, parser):
     try:
         execute_config(args, parser)
     except (CouldntParse, NotImplementedError) as e:
-        if args.json:
-            exception_and_exit(e, json=True)
-        else:
-            raise
+        raise CondaException(e, args.json)
 
 
 def execute_config(args, parser):
@@ -277,9 +276,9 @@ def execute_config(args, parser):
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
             if key not in rc_list_keys:
-                error_and_exit("key must be one of %s, not %r" %
-                               (', '.join(rc_list_keys), key), json=args.json,
-                               error_type="ValueError")
+                raise CondaValueError("key must be one of %s, not %r" %
+                                      (', '.join(rc_list_keys), key),
+                                      args.json)
             if not isinstance(rc_config.get(key, []), list):
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParse("key %r should be a list, not %s." % (key, bad))
@@ -305,33 +304,34 @@ def execute_config(args, parser):
         yamlitem = yaml_load(item)
         if key in set_bools:
             if not isinstance(yamlitem, bool):
-                error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
-                               json=args.json, error_type="TypeError")
+                raise CondaTypeError("Key: %s; %s is not a YAML boolean." %
+                                     (key, item), args.json)
             rc_config[key] = yamlitem
+
         elif key in set_strings:
             rc_config[key] = yamlitem
         else:
-            error_and_exit("Error key must be one of %s, not %s" %
-                           (', '.join(set_bools | set_strings), key), json=args.json,
-                           error_type="ValueError")
+            raise CondaValueError("Error key must be one of %s, not %s" %
+                                  (', '.join(set_bools | set_strings), key),
+                                  args.json)
 
     # Remove
     for key, item in args.remove:
         if key not in rc_config:
             if key != 'channels':
-                error_and_exit("key %r is not in the config file" % key, json=args.json,
-                               error_type="KeyError")
+                raise CondaKeyError("key %r is not in the config file" %
+                                    key, args.json)
             rc_config[key] = ['defaults']
         if item not in rc_config[key]:
-            error_and_exit("%r is not in the %r key of the config file" %
-                           (item, key), json=args.json, error_type="KeyError")
+            raise CondaKeyError("%r is not in the %r key of the config file" %
+                                (item, key), args.json)
         rc_config[key] = [i for i in rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in rc_config:
-            error_and_exit("key %r is not in the config file" % key, json=args.json,
-                           error_type="KeyError")
+            raise CondaKeyError("key %r is not in the config file" %
+                                key, args.json)
         del rc_config[key]
 
     # config.rc_keys

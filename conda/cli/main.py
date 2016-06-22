@@ -39,6 +39,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import importlib
+from ..exceptions import CommandNotFoundError, CondaRuntimeError, CondaException
 
 def main():
     if len(sys.argv) > 1:
@@ -48,11 +49,12 @@ def main():
             activate.main()
             return
         if argv1 in ('activate', 'deactivate'):
-            sys.stderr.write("Error: '%s' is not a conda command.\n" % argv1)
+
+            message = "Error: '%s' is not a conda command.\n" % argv1
             if sys.platform != 'win32':
-                sys.stderr.write('Did you mean "source %s" ?\n' %
-                                 ' '.join(sys.argv[1:]))
-            sys.exit(1)
+                message += ' Did you mean "source %s" ?\n' % ' '.join(sys.argv[1:])
+
+            raise CommandNotFoundError(message)
 
     if len(sys.argv) == 1:
         sys.argv.append('-h')
@@ -134,13 +136,9 @@ def args_func(args, p):
         if isinstance(exit_code, int):
             return exit_code
     except RuntimeError as e:
-        if 'maximum recursion depth exceeded' in str(e):
-            print_issue_message(e, use_json=use_json)
-            raise
-        common.error_and_exit(str(e), json=use_json)
+        raise CondaRuntimeError(e, use_json)
     except Exception as e:
-        print_issue_message(e, use_json=use_json)
-        raise  # as if we did not catch it
+        raise CondaException(e, use_json)
 
 
 def print_issue_message(e, use_json=False):
