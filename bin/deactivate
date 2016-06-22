@@ -3,11 +3,9 @@
 # Determine the directory containing this script
 if [[ -n $BASH_VERSION ]]; then
     _SCRIPT_LOCATION=${BASH_SOURCE[0]}
-    export PROMPT_VAR="PS1"
     SHELL="bash"
 elif [[ -n $ZSH_VERSION ]]; then
     _SCRIPT_LOCATION=${funcstack[1]}
-    export PROMPT_VAR="PROMPT"
     SHELL="zsh"
 else
     echo "Only bash and zsh are supported"
@@ -72,8 +70,8 @@ if (( $? == 0 )); then
     unset CONDA_ENV_PATH
     export PATH="$CONDA_PATH_BACKUP"
     unset CONDA_PATH_BACKUP
-    export PS1="$CONDA_OLD_PS1"
-    unset CONDA_OLD_PS1
+    export PS1="$CONDA_PS1_BACKUP"
+    unset CONDA_PS1_BACKUP
 else
     return $?
 fi
