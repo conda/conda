@@ -213,13 +213,12 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     messages(state['prefix'])
 
 
-
 class ProgressBar:
     """
         A class for download progress bar using click progress bar
         Mainly using click progress bar
         Use blocking queue to update the progress bar
-        length : length of progress bar, for download, it is the size of all packages to be downloaded
+        length : length of progress bar, for download, it is the size of all packages
         label : The label of download bar
         num : number of packages to be downloaded
     """
