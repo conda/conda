@@ -84,7 +84,7 @@ be found in the default channel is ``json-c``. To install this package you will 
 
 .. code-block:: bash
 
-    conda config --add channel jlaura
+    conda config --add channels jlaura
 
 Now that you have identified that all of the dependent packages can be installed the next step
 is to write the conda recipe.
