@@ -119,14 +119,11 @@ def main():
     shelldict = shells[shell]
     if sys.argv[1] == '..activate':
         path = get_path(shelldict)
-        if len(sys.argv) == 3 or sys.argv[3].lower() == root_env_name.lower():
-            binpath = binpath_from_arg(root_env_name, shelldict=shelldict)
-            rootpath = None
-        elif len(sys.argv) == 4:
+        if len(sys.argv) == 4:
             binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
             rootpath = binpath_from_arg(root_env_name, shelldict=shelldict)
         else:
-            sys.exit("Error: did not expect more than one argument")
+            sys.exit("Error: ..activate expected exactly two arguments: shell and env name")
         pathlist_str = pathlist_to_str(binpath)
         sys.stderr.write("prepending %s to PATH\n" % shelldict['path_to'](pathlist_str))
 
@@ -145,7 +142,7 @@ def main():
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 4:
-            sys.argv.append(root_env_name)
+            sys.exit("Invalid arguments to checkenv.  Need shell and env name/path")
         if len(sys.argv) > 4:
             sys.exit("Error: did not expect more than one argument.")
         if sys.argv[3].lower() == root_env_name.lower():
