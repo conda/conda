@@ -45,6 +45,7 @@ import random
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
+
 on_win = bool(sys.platform == "win32")
 
 try:
@@ -776,7 +777,6 @@ def rm_fetched(dist):
     Checks to see if the requested package is in the cache; and if so, it removes both
     the package itself and its extracted contents.
     """
-
     rec = package_cache().get(dist)
     if rec is None:
         return
@@ -933,17 +933,13 @@ def linked_data(prefix):
     """
     # Manually memoized so it can be updated
     recs = linked_data_.get(prefix)
-    json_files = []
     if recs is None:
         recs = linked_data_[prefix] = {}
         meta_dir = join(prefix, 'conda-meta')
         if isdir(meta_dir):
             for fn in os.listdir(meta_dir):
                 if fn.endswith('.json'):
-                    json_files.append(fn[:-5])
-
-        for fn in json_files:
-            load_linked_data(prefix, fn)
+                    load_linked_data(prefix, fn[:-5])
     return recs
 
 

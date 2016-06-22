@@ -311,7 +311,9 @@ def fetch_pkg(info, bar=None, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
+
     session = session or CondaSession()
+
     fn = info['fn']
     url = info.get('url')
     if url is None:
@@ -412,6 +414,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, bar=None,
                         # update n with actual bytes read
                     n = resp.raw.tell()
                     if size and 0 <= n <= size:
+                        # update the download bar with n
                         if bar:
                             bar.put(n, False)
 

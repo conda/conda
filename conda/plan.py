@@ -586,11 +586,9 @@ def revert_actions(prefix, revision=-1):
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    import time
-    start = time.time()
     with History(actions[inst.PREFIX]):
         inst.execute_instructions(plan, index, verbose)
-    print("overall executiong is ,", time.time() - start )
+
 
 def update_old_plan(old_plan):
     """

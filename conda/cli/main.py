@@ -40,7 +40,6 @@ from __future__ import print_function, division, absolute_import
 import sys
 import importlib
 
-
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
