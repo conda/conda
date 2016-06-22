@@ -42,14 +42,18 @@ instead of 'activate envname'.
     exit 1
 fi
 
-"$_CONDA_DIR/conda" ..checkenv $SHELL$EXT "$@"
+if [ "$#" -eq "0" ]; then
+    args=('root')
+else
+    args=$@
+fi
+
+"$_CONDA_DIR/conda" ..checkenv $SHELL$EXT "$args"
 if (( $? != 0 )); then
     return 1
 fi
 
 # Ensure we deactivate any scripts from the old env
-#   Note: this empties $@.  Preserve a copy.
-args=$@
 source "$_CONDA_DIR/deactivate"
 
 _NEW_PATH=$("$_CONDA_DIR/conda" ..activate $SHELL$EXT "$args")
