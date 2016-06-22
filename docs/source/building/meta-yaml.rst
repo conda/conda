@@ -16,6 +16,7 @@ NOTE: All headers should appear exactly once. If they appear multiple times, onl
 the last will be remembered. For example, the "package:" header should only appear 
 once in the file.
 
+
 Package section
 ---------------
 
@@ -529,6 +530,18 @@ For example, to store recipe maintainer information, one could do:
      - name of maintainer
 
 
+Templating with Jinja
+---------------------
+
+Conda build supports Jinja templating in the ``meta.yaml`` file.
+
+See the `Jinja2 template documentation <http://jinja.pocoo.org/docs/dev/templates/>`_
+for more information.
+
+Jinja templates are evaluated during the build process. To retrieve a fully rendered ``meta.yaml``
+use the :doc:`../conda-render`.
+
+
 Preprocessing selectors
 -----------------------
 
@@ -536,6 +549,8 @@ In addition, you can add selectors to any line, which are used as part of a
 preprocessing stage. Before the yaml file is read, each selector is evaluated,
 and if it is False, the line that it is on is removed.  A selector is of the
 form ``# [<selector>]`` at the end of a line.
+
+NOTE: Preprocessing selectors are evaluated after Jinja templates.
 
 For example
 
