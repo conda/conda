@@ -260,21 +260,20 @@ NOTE: Conda does not check architecture or dependencies when installing from an 
 Saved environment variables
 ---------------------------
 
-Conda environments can include saved environment variables on Linux, macOS, and Windows. Suppose you want an environment 'analytics' to store a secret key needed to log in to a server and a path to a configuration file. Locate the directory for the conda environment, such as ``/home/jsmith/anaconda3/envs/analytics`` . Enter that directory and create these subdirectories and files::
+Conda environments can include saved environment variables on Linux, macOS, and Windows.
+
+Suppose you want an environment 'analytics' to store a secret key needed to log in to a server and a path to a configuration file. We will write a script named ``env_vars`` to do this.
+
+Linux and macOS
+~~~~~~~~~~~~~~~
+
+Locate the directory for the conda environment, such as ``/home/jsmith/anaconda3/envs/analytics`` . Enter that directory and create these subdirectories and files::
 
   cd /home/jsmith/anaconda3/envs/analytics
   mkdir -p ./etc/conda/activate.d
   mkdir -p ./etc/conda/deactivate.d
   touch ./etc/conda/activate.d/env_vars.sh
   touch ./etc/conda/deactivate.d/env_vars.sh
-
-On Windows, the equivalent is::
-
-  cd C:\Users\jsmith\Anaconda3\envs\analytics
-  mkdir .\etc\conda\activate.d
-  mkdir .\etc\conda\deactivate.d
-  type NUL > .\etc\conda\activate.d\env_vars.bat
-  type NUL > .\etc\conda\deactivate.d\env_vars.bat
 
 Edit the two files. ``./etc/conda/activate.d/env_vars.sh`` should have this::
 
@@ -283,11 +282,6 @@ Edit the two files. ``./etc/conda/activate.d/env_vars.sh`` should have this::
   export MY_KEY='secret-key-value'
   export MY_FILE=/path/to/my/file/
 
-(or the Windows equivalent ``.\etc\conda\activate.d\env_vars.bat``)::
-
-  set MY_KEY='secret-key-value'
-  set MY_FILE=/path/to/my/file/
-
 And ``./etc/conda/deactivate.d/env_vars.sh`` should have this::
 
   #!/bin/sh
@@ -295,12 +289,36 @@ And ``./etc/conda/deactivate.d/env_vars.sh`` should have this::
   unset MY_KEY
   unset MY_FILE
 
-(or the Windows equivalent ``.\etc\conda\deactivate.d\env_vars.bat``)::
+Now when you use ``source activate analytics`` the environment variables MY_KEY and MY_FILE will be set to the values you wrote into the file, and when you use ``source deactivate`` those variables will be erased.
+
+Windows
+~~~~~~~
+
+Locate the directory for the conda environment, such as ``C:\Users\jsmith\Anaconda3\envs\analytics`` . Enter that directory and create these subdirectories and files::
+
+  cd C:\Users\jsmith\Anaconda3\envs\analytics
+  mkdir .\etc\conda\activate.d
+  mkdir .\etc\conda\deactivate.d
+  type NUL > .\etc\conda\activate.d\env_vars.bat
+  type NUL > .\etc\conda\deactivate.d\env_vars.bat
+
+Edit the two files. ``.\etc\conda\activate.d\env_vars.bat`` should have this::
+
+  set MY_KEY='secret-key-value'
+  set MY_FILE=C:\path\to\my\file
+
+And ``.\etc\conda\deactivate.d\env_vars.bat`` should have this::
 
   set MY_KEY=
   set MY_FILE=
 
 Now when you use ``source activate analytics`` the environment variables MY_KEY and MY_FILE will be set to the values you wrote into the file, and when you use ``source deactivate`` those variables will be erased.
 
+More notes on environment variable scripts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These script files can be part of a conda package, in which case these environment variables become active when an environment containing that package is activated.
+
+Scripts can be given any name, but multiple packages may create script files, so be sure that you choose descriptive names for your scripts that are not used by other packages. One popular option is to give the script a name of the form packagename-scriptname.sh (or on Windows packagename-scriptname.bat).
 
 Next, we'll take a look at :doc:`/py2or3`.
