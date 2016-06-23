@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 import json
 import os
 import sys
+import bz2
 from contextlib import contextmanager
 from glob import glob
 from logging import getLogger, Handler
@@ -29,11 +30,12 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.compat import PY3, TemporaryDirectory
-from conda.config import bits
+from conda.compat import PY3, TemporaryDirectory, itervalues
+from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
-from conda.install import linked as install_linked, linked_data_, dist2dirname
-from conda.install import on_win
+from conda.install import linked as install_linked, linked_data_, dist2dirname, package_cache
+from conda.install import on_win, linked_data
+from conda.utils import url_path
 from tests.helpers import captured
 
 log = getLogger(__name__)
@@ -124,8 +126,9 @@ def make_temp_env(*packages):
     prefix_condarc = join(prefix, 'condarc')
     try:
         # try to clear any config that's been set by other tests
-        config.load_condarc(prefix_condarc)
-        run_command(Commands.CREATE, prefix, *packages)
+        if packages:
+            config.load_condarc(prefix_condarc)
+            run_command(Commands.CREATE, prefix, *packages)
         yield prefix
     finally:
         rmtree(prefix, ignore_errors=True)
@@ -238,16 +241,34 @@ class IntegrationTests(TestCase):
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
+            flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
+            # Regression test for 2812
+            # install from local channel
+            from conda.config import pkgs_dirs
+            flask_fname = flask_data['fn']
+            tar_old_path = join(pkgs_dirs[0], flask_fname)
+            for field in ('url', 'channel', 'schannel'):
+                del flask_data[field]
+            repodata = {'info': {}, 'packages':{flask_fname: flask_data}}
+            with make_temp_env() as channel:
+                subchan = join(channel, subdir)
+                channel = url_path(channel)
+                os.makedirs(subchan)
+                tar_new_path = join(subchan, flask_fname)
+                copyfile(tar_old_path, tar_new_path)
+                with open(join(subchan, 'repodata.json'), 'w') as f:
+                    f.write(json.dumps(repodata))
+                run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
+                assert_package_is_installed(prefix, channel + '::' + 'flask-')
+
             # regression test for #2626
             # install tarball with full path
-            from conda.config import pkgs_dirs
-            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
-            tar_new_path = join(prefix, basename(flask_tar_file))
-            copyfile(flask_tar_file, tar_new_path)
+            tar_new_path = join(prefix, flask_fname)
+            copyfile(tar_old_path, tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert_package_is_installed(prefix, 'flask-0')
 
@@ -262,7 +283,7 @@ class IntegrationTests(TestCase):
 
             # regression test for #2599
             linked_data_.clear()
-            flask_metadata = glob(join(prefix, 'conda-meta', 'flask-0.*.json'))[-1]
+            flask_metadata = glob(join(prefix, 'conda-meta', flask_fname[:-8] + '.json'))[-1]
             bad_metadata = join(prefix, 'conda-meta', 'flask.json')
             copyfile(flask_metadata, bad_metadata)
             assert not package_is_installed(prefix, 'flask', exact=True)
