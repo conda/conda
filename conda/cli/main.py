@@ -43,7 +43,7 @@ import importlib
 def main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
-        if argv1 in ('..activate', '..deactivate', '..checkenv', '..setps1'):
+        if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
             import conda.cli.activate as activate
             activate.main()
             return

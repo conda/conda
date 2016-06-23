@@ -269,7 +269,7 @@ def add_parser_install(p):
         action="store_true",
         dest="channel_priority",
         default=channel_priority,
-        help="Channel priority takes precedence over packaage version (default: %(default)s). "
+        help="Channel priority takes precedence over package version (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
     p.add_argument(
@@ -496,9 +496,9 @@ spec_pat = re.compile(r'''
 (?P<name>[^=<>!\s]+)               # package name
 \s*                                # ignore spaces
 (
-  (?P<cc>=[^=<>!]+(=[^=<>!]+)?)    # conda constraint
+  (?P<cc>=[^=]+(=[^=]+)?)          # conda constraint
   |
-  (?P<pc>[=<>!]{1,2}.+)            # new (pip-style) constraint(s)
+  (?P<pc>(?:[=!]=|[><]=?).+)       # new (pip-style) constraint(s)
 )?
 $                                  # end-of-line
 ''', re.VERBOSE)
