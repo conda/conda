@@ -406,7 +406,7 @@ def install(args, parser, command='install'):
             if not (command == 'update' and args.all):
                 try:
                     with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                        f.write('# %s specs: %s\n' % (command, specs))
+                        f.write('# %s specs: %s\n' % (command, ','.join(specs)))
                 except IOError as e:
                     if e.errno == errno.EACCES:
                         log.debug("Can't write the history file")
