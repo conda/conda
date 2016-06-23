@@ -99,6 +99,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         headers["If-Modified-Since"] = cache["_mod"]
     if 'anaconda.org' in url:
         headers['Accept-Encoding'] = 'gzip;q=1.0, identity;q=0.1'
+        headers['Content-Type'] = 'application/json'
         filename = 'repodata.json'
     else:
         filename = 'repodata.json.bz2'
