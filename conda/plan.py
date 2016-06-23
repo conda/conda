@@ -50,11 +50,11 @@ def display_actions(actions, index, show_channel_urls=None):
         show_channel_urls = config_show_channel_urls
 
     def channel_str(rec):
-        if 'schannel' in rec:
+        if rec.get('schannel'):
             return rec['schannel']
-        if 'url' in rec:
+        if rec.get('url'):
             return url_channel(rec['url'])[1]
-        if 'channel' in rec:
+        if rec.get('channel'):
             return canonical_channel_name(rec['channel'])
         return '<unknown>'
 
