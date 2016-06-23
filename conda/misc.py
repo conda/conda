@@ -72,12 +72,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, 
 
         # If not, determine the channel name from the URL
         if prefix is None:
-            _, schannel = url_channel(url)
+            channel, schannel = url_channel(url)
             prefix = '' if schannel == 'defaults' else schannel + '::'
         fn = prefix + fn
         dist = fn[:-8]
-        is_file = fn.startswith('file://')
-        # Add file to index so we'll see it later
+        is_file = schannel.startswith('file:') and schannel.endswith('/')
+        # Add explicit file to index so we'll see it later
         if is_file:
             index[fn] = {'fn': dist2filename(fn), 'url': url, 'md5': None}
 
