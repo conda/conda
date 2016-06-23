@@ -261,8 +261,7 @@ class IntegrationTests(TestCase):
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
                 with open(join(subchan, 'repodata.json'), 'w') as f:
-                    json_str = json.dumps(repodata)
-                    f.write(json_str.encode('utf-8'))
+                    f.write(json.dumps(repodata))
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
