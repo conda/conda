@@ -232,9 +232,9 @@ def add_unknown(index, priorities):
             continue
         if info['urls']:
             url = info['urls'][0]
-        elif 'url' in meta:
+        elif meta.get('url'):
             url = meta['url']
-        elif 'channel' in meta:
+        elif meta.get('channel'):
             url = meta['channel'].rstrip('/') + '/' + fname
         else:
             url = '<unknown>/' + fname
