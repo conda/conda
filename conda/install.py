@@ -138,28 +138,27 @@ if on_win:
             else:
                 raise
 
-        if 'cmd.exe' in shell.lower():
-            # bat file redirect
-            with open(dst+'.bat', 'w') as f:
-                f.write('@echo off\n"%s" %%*\n' % src)
+        # bat file redirect
+        with open(dst+'.bat', 'w') as f:
+            f.write('@echo off\n"%s" %%*\n' % src)
 
-        elif 'powershell' in shell.lower():
-            # TODO: probably need one here for powershell at some point
-            pass
+        # TODO: probably need one here for powershell at some point
 
-        else:
-            # This one is for bash/cygwin/msys
-            with open(dst, "w") as f:
-                f.write("#!/usr/bin/env bash \n")
-                if src.endswith("conda"):
-                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
-                else:
-                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
-            # Make the new file executable
-            # http://stackoverflow.com/a/30463972/1170370
-            mode = os.stat(dst).st_mode
-            mode |= (mode & 292) >> 2    # copy R bits to X
-            os.chmod(dst, mode)
+        # This one is for bash/cygwin/msys
+        # set default shell to bash.exe when not provided, as that's most common
+        if not shell:
+            shell = "bash.exe"
+        with open(dst, "w") as f:
+            f.write("#!/usr/bin/env bash \n")
+            if src.endswith("conda"):
+                f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+            else:
+                f.write('source %s "$@"' % shells[shell]['path_to'](src))
+        # Make the new file executable
+        # http://stackoverflow.com/a/30463972/1170370
+        mode = os.stat(dst).st_mode
+        mode |= (mode & 292) >> 2    # copy R bits to X
+        os.chmod(dst, mode)
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
@@ -570,7 +569,7 @@ def read_no_link(info_dir):
 
 
 # Should this be an API function?
-def symlink_conda(prefix, root_dir, shell):
+def symlink_conda(prefix, root_dir, shell=None):
     # do not symlink root env - this clobbers activate incorrectly.
     if normpath(prefix) == normpath(sys.prefix):
         return
