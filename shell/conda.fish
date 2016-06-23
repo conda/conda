@@ -87,12 +87,13 @@ function __conda_backup_prompt
     end
 end
 
-
 function __conda_echo_env
-    set_color normal
-    set_color -o green
-    echo -n (conda '..setps1' 'fish' $CONDA_DEFAULT_ENV)
-    set_color normal
+  set_color normal
+  echo -n '('
+  set_color -o green
+  echo -n $CONDA_DEFAULT_ENV
+  set_color normal
+  echo -n ') '
 end
 
 
@@ -180,17 +181,24 @@ function activate --description 'Activate a conda environment.'
     set -l NEW_PATH (conda '..activate' 'fish' $argv[1])
     if [ $status = 0 ]
         set -gx CONDA_BACKUP_PATH $PATH
-        # break up new path by spaces
-        set NEW_ARRAY (echo $NEW_PATH | tr " " "\n")
-        set -gx PATH $NEW_ARRAY[1] $PATH
-        set -gx CONDA_DEFAULT_ENV (echo $PATH[1] | sed 's|/bin$||g')
+        set -gx PATH $NEW_PATH $PATH
+        if [ (echo $argv[1] | grep '/') ]
+          pushd (dirname $argv[1])
+          set -gx CONDA_DEFAULT_ENV (pwd)/(basename $argv[1])
+          popd
+        else
+          set -gx CONDA_DEFAULT_ENV $argv[1]
+        end
 
         # check if there are any *.fish scripts in activate.d
         set -l activate_d $CONDA_DEFAULT_ENV/etc/conda/activate.d
         if test -d "$activate_d"
             . $activate_d/*.fish
         end
-        __conda_update_prompt activate
+
+        if [ (conda '..changeps1') = "1" ]
+          __conda_update_prompt activate
+        end
     else
         return $status
     end
