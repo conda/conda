@@ -14,8 +14,9 @@ fi
 _CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")
 
 case "$(uname -s)" in
-    CYGWIN*|MINGW32*|MSYS*)
+    CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
+        export MSYS2_ENV_CONV_EXCL=CONDA_PATH
         ;;
     *)
         EXT=""
@@ -47,7 +48,7 @@ if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" 
     (>&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
 instead of 'deactivate'.
 ")
-    "$_CONDA_DIR/conda" ..deactivate -h $SHELL$EXT
+    "$_CONDA_DIR/conda" ..deactivate $SHELL$EXT -h
     exit 1
 fi
 
