@@ -467,7 +467,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
         meta = json.load(fi)
     # add extra info, add to our intenral cache
     meta.update(extra_info)
-    if 'url' not in meta:
+    if not meta.get('url'):
         meta['url'] = read_url(dist)
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
@@ -890,6 +890,7 @@ def load_linked_data(prefix, dist, rec=None):
         if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
             url = rec['url'] = channel + '/' + fn
     channel, schannel = url_channel(url)
+    rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
     rec['link'] = rec.get('link') or True
