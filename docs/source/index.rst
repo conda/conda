@@ -83,54 +83,52 @@ complete list of changes.
 **Windows-only changes include:**
 
 * **Shortcuts are no longer installed by default on Windows.** Shortcuts can 
-now be installed with the --shortcuts option. Example 1: Install a shortcut 
-to Spyder with conda install spyder --shortcut Note if you have Anaconda 
-(not Miniconda), you already have this shortcut and Spyder. Example 2: 
-Install the open source package named console_shortcut. When you click 
-the shortcut icon, a terminal window will open with the environment 
-containing the console_shortcut package already activated. conda install 
-console_shortcut --shortcuts
+  now be installed with the --shortcuts option. Example 1: Install a shortcut 
+  to Spyder with conda install spyder --shortcut Note if you have Anaconda 
+  (not Miniconda), you already have this shortcut and Spyder. Example 2: 
+  Install the open source package named console_shortcut. When you click 
+  the shortcut icon, a terminal window will open with the environment 
+  containing the console_shortcut package already activated. conda install 
+  console_shortcut --shortcuts
 * **Skip binary replacement on Windows.** Linux & OS X have binaries that 
-are coded with library locations, and this information must sometimes be 
-replaced for relocatability, but Windows does not generally embed prefixes 
-in binaries, and was already relocatable. We skip binary replacement on 
-Windows.
+  are coded with library locations, and this information must sometimes be 
+  replaced for relocatability, but Windows does not generally embed prefixes 
+  in binaries, and was already relocatable. We skip binary replacement on 
+  Windows.
 
 **Notable changes for all systems Windows, OS X and Linux:**
 
 * **Channel order now matters.** The most significant conda change is that 
-when you add channels, channel order matters. If you have a list of channels 
-in a .condarc file, conda installs the package from the first channel where 
-it's available, even if it's available in a later channel with a higher 
-version number.
+  when you add channels, channel order matters. If you have a list of channels 
+  in a .condarc file, conda installs the package from the first channel where 
+  it's available, even if it's available in a later channel with a higher 
+  version number.
 * **No version downgrades.** Conda remove no longer performs version 
-downgrades on any remaining packages that might be suggested to resolve 
-dependency losses; the package will just be removed instead.
+  downgrades on any remaining packages that might be suggested to resolve 
+  dependency losses; the package will just be removed instead.
 * **New YAML parser/emitter.** PyYAML is replaced with Ruamel.yaml, 
-which gives more robust control over yaml document use. 
-`More info <http://yaml.readthedocs.io/en/latest/pyyaml.html>`_
+  which gives more robust control over yaml document use. 
+  `More info <http://yaml.readthedocs.io/en/latest/pyyaml.html>`_
 * **Script paths over 127 characters are now truncated (Linux, OS X 
-only).** For each package in an environment, conda creates a script 
-in that environment, and the first line of the script consists of “#!” 
-and the path to that environment’s Python interpreter. When these lines 
-were over 127 characters some errors were reported, so conda now checks 
-the length and replaces long lines with "#! /usr/bin/env python", which 
-uses the version of Python that comes first in the PATH variable. 
+  only).** For each package in an environment, conda creates a script 
+  in that environment, and the first line of the script consists of “#!” 
+  and the path to that environment’s Python interpreter. When these lines 
+  were over 127 characters some errors were reported, so conda now checks 
+  the length and replaces long lines with "#! /usr/bin/env python", which 
+  uses the version of Python that comes first in the PATH variable. 
 * **Changes to conda list command.** When looking for packages that 
-aren’t installed with conda, conda list now examines the Python 
-site-packages directory rather than relying on pip.
+  aren’t installed with conda, conda list now examines the Python 
+  site-packages directory rather than relying on pip.
 * **Changes to conda remove command.** The command  'conda remove --all' 
-now removes a conda environment without fetching information from a remote 
-server on the packages in the environment.
+  now removes a conda environment without fetching information from a remote 
+  server on the packages in the environment.
 * **Conda update can be turned off and on.** When turned off, conda will 
-not update itself unless the user manually issues a conda update command. 
-Previously conda updated any time a user updated or installed a package 
-in the root environment. Use the option 'conda config set auto_update_conda false'.
+  not update itself unless the user manually issues a conda update command. 
+  Previously conda updated any time a user updated or installed a package 
+  in the root environment. Use the option 'conda config set auto_update_conda false'.
 * **Improved support for BeeGFS.** BeeGFS is a parallel cluster file 
-system for performance and designed for very easy installation and 
-management. `More info <http://www.beegfs.com/content/documentation/>`_
+  system for performance and designed for very easy installation and 
+  management. `More info <http://www.beegfs.com/content/documentation/>`_
 
 See the `changelog <https://github.com/conda/conda/releases/tag/4.1.0>`_ for 
 a complete list of changes. 
-
-
