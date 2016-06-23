@@ -18,12 +18,12 @@ Conda is included in Anaconda and Miniconda. Conda is also included in the Conti
 of Anaconda, which provide on-site enterprise package and environment management for Python, R, Node.js, Java, and other application
 stacks. Conda is also available on pypi, although that approach may not be as up-to-date.
 
-* Miniconda is a small “bootstrap” version that includes only conda and conda-build, and installs Python. Over 720
+* Miniconda is a small "bootstrap" version that includes only conda and conda-build, and installs Python. Over 720
   scientific packages and their dependencies can be installed individually from the Continuum repository with
-  the “conda install” command.
+  the "conda install" command.
 * Anaconda includes conda, conda-build, Python, and over 150 automatically installed scientific packages and
   their dependencies. As with Miniconda, over 250 additional scientific packages can be installed individually with
-  the “conda install” command.
+  the "conda install" command.
 * pip install conda uses the released version on pypi.  This version allows you to create new conda environments using
   any python installation, and a new version of Python will then be installed into those environments.  These environments
   are still considered "Anaconda installations."
@@ -83,13 +83,13 @@ complete list of changes.
 **Windows-only changes include:**
 
 * **Shortcuts are no longer installed by default on Windows.** Shortcuts can 
-  now be installed with the --shortcuts option. Example 1: Install a shortcut 
-  to Spyder with conda install spyder --shortcut Note if you have Anaconda 
+  now be installed with the ``--shortcuts`` option. Example 1: Install a shortcut 
+  to Spyder with ``conda install spyder --shortcut``. Note if you have Anaconda 
   (not Miniconda), you already have this shortcut and Spyder. Example 2: 
-  Install the open source package named console_shortcut. When you click 
+  Install the open source package named ``console_shortcut``. When you click 
   the shortcut icon, a terminal window will open with the environment 
-  containing the console_shortcut package already activated. conda install 
-  console_shortcut --shortcuts
+  containing the ``console_shortcut`` package already activated. ``conda install 
+  console_shortcut --shortcuts``
 * **Skip binary replacement on Windows.** Linux & OS X have binaries that 
   are coded with library locations, and this information must sometimes be 
   replaced for relocatability, but Windows does not generally embed prefixes 
@@ -111,7 +111,7 @@ complete list of changes.
   `More on Ruamel <http://yaml.readthedocs.io/en/latest/pyyaml.html>`_
 * **Script paths over 127 characters are now truncated (Linux, OS X 
   only).** For each package in an environment, conda creates a script 
-  in that environment, and the first line of the script consists of “#!” 
+  in that environment, and the first line of the script consists of "#!" 
   and the path to that environment’s Python interpreter. When these lines 
   were over 127 characters some errors were reported, so conda now checks 
   the length and replaces long lines with "#! /usr/bin/env python", which 
@@ -119,13 +119,13 @@ complete list of changes.
 * **Changes to conda list command.** When looking for packages that 
   aren’t installed with conda, conda list now examines the Python 
   site-packages directory rather than relying on pip.
-* **Changes to conda remove command.** The command  'conda remove --all' 
+* **Changes to conda remove command.** The command  ``conda remove --all`` 
   now removes a conda environment without fetching information from a remote 
   server on the packages in the environment.
 * **Conda update can be turned off and on.** When turned off, conda will 
   not update itself unless the user manually issues a conda update command. 
   Previously conda updated any time a user updated or installed a package 
-  in the root environment. Use the option 'conda config set auto_update_conda false'.
+  in the root environment. Use the option ``conda config set auto_update_conda false``.
 * **Improved support for BeeGFS.** BeeGFS is a parallel cluster file 
   system for performance and designed for very easy installation and 
   management. `More on BeeGFS <http://www.beegfs.com/content/documentation/>`_
