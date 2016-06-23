@@ -181,11 +181,17 @@ def get_local_urls(clear_cache=True):
         pass
     return local_channel
 
-def get_default_urls():
+defaults_ = ['https://repo.continuum.io/pkgs/free',
+             'https://repo.continuum.io/pkgs/pro']
+
+def get_default_urls(merged=False):
     if 'default_channels' in sys_rc:
-        return sys_rc['default_channels']
-    return ['https://repo.continuum.io/pkgs/free',
-            'https://repo.continuum.io/pkgs/pro']
+        res = sys_rc['default_channels']
+        if merged:
+            res = list(res)
+            res.extend(c for c in defaults_ if c not in res)
+        return res
+    return defaults_
 
 def get_rc_urls():
     if rc.get('channels') is None:
@@ -237,7 +243,7 @@ def prioritize_channels(channels):
     return newchans
 
 def normalize_urls(urls, platform=None, offline_only=False):
-    defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls())
+    defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls(False))
     alias = None
     newurls = []
     while urls:
@@ -279,7 +285,7 @@ def canonical_channel_name(channel):
     if channel is None:
         return '<unknown>'
     channel = remove_binstar_tokens(channel).rstrip('/')
-    if any(channel.startswith(i) for i in get_default_urls()):
+    if any(channel.startswith(i) for i in get_default_urls(True)):
         return 'defaults'
     elif any(channel.startswith(i) for i in get_local_urls(clear_cache=False)):
         return 'local'

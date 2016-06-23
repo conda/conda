@@ -21,10 +21,14 @@ yaml = get_yaml()
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
 
-def _get_default_urls():
-    return ['http://repo.continuum.io/pkgs/free',
-            'http://repo.continuum.io/pkgs/pro']
-config.get_default_urls = _get_default_urls
+# unset 'default_channels' and override config.defaults_ so that 
+# get_default_channels has predictable behavior
+try:
+    del config.sys_rc['default_channels']
+except KeyError:
+    pass
+config.defaults_ = ['http://repo.continuum.io/pkgs/free',
+                    'http://repo.continuum.io/pkgs/pro']
 
 # unset CIO_TEST.  This is a Continuum-internal variable that draws packages from an internal server instead of
 #     repo.continuum.io
@@ -32,7 +36,6 @@ try:
     del os.environ['CIO_TEST']
 except KeyError:
     pass
-
 
 class TestConfig(unittest.TestCase):
 
