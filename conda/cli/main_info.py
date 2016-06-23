@@ -14,6 +14,7 @@ from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
 
+from ..compat import itervalues
 from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
                      handle_envs_list)
 
@@ -147,7 +148,7 @@ def execute(args, parser):
     from conda.config import (root_dir, get_channel_urls, subdir, pkgs_dirs,
                               root_writable, envs_dirs, default_prefix, rc_path,
                               user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
-                              platform)
+                              platform, offline)
     from conda.resolve import Resolve
     from conda.api import get_index
 
@@ -177,12 +178,24 @@ def execute(args, parser):
     options = 'envs', 'system', 'license'
 
     try:
+        from conda.install import linked_data
+        root_pkgs = linked_data(sys.prefix)
+    except:
+        root_pkgs = None
+
+    try:
         import requests
         requests_version = requests.__version__
     except ImportError:
         requests_version = "could not import"
     except Exception as e:
         requests_version = "Error %s" % e
+
+    try:
+        cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
+        conda_env_version = cenv[0]['version']
+    except:
+        conda_env_version = "not installed"
 
     try:
         import conda_build
@@ -193,11 +206,12 @@ def execute(args, parser):
     else:
         conda_build_version = conda_build.__version__
 
-    channels = get_channel_urls()
+    channels = get_channel_urls(offline=offline)
 
     info_dict = dict(
         platform=subdir,
         conda_version=conda.__version__,
+        conda_env_version=conda_env_version,
         conda_build_version=conda_build_version,
         root_prefix=root_dir,
         root_writable=root_writable,
@@ -209,6 +223,7 @@ def execute(args, parser):
         user_rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,
         is_foreign=bool(foreign),
+        offline=offline,
         envs=[],
         python_version='.'.join(map(str, sys.version_info)),
         requests_version=requests_version,
@@ -237,6 +252,7 @@ Current conda install:
 
              platform : %(platform)s
         conda version : %(conda_version)s
+    conda-env version : %(conda_env_version)s
   conda-build version : %(conda_build_version)s
        python version : %(python_version)s
      requests version : %(requests_version)s
@@ -246,6 +262,7 @@ Current conda install:
         package cache : %(_pkgs_dirs)s
          channel URLs : %(_channels)s
           config file : %(rc_path)s
+         offline mode : %(offline)s
     is foreign system : %(is_foreign)s
 """ % info_dict)
 

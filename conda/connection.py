@@ -21,7 +21,7 @@ import requests
 from . import __version__ as VERSION
 from .compat import urlparse
 from .config import platform as config_platform, ssl_verify, get_proxy_servers
-from .utils import gnu_get_libc_version, yaml_bool
+from .utils import gnu_get_libc_version
 
 RETRIES = 3
 
@@ -82,7 +82,7 @@ class CondaSession(requests.Session):
 
         self.headers['User-Agent'] = user_agent
 
-        self.verify = yaml_bool(ssl_verify, ssl_verify)
+        self.verify = ssl_verify
 
 
 class S3Adapter(requests.adapters.BaseAdapter):

@@ -69,18 +69,9 @@ class dotlog_on_return(object):
             return res
         return func
 
+
 @dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
-    if not ssl_verify:
-        try:
-            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
-        except ImportError:
-            pass
-        else:
-            warnings.simplefilter('ignore', InsecureRequestWarning)
-
-    session = session or CondaSession()
-
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
         with open(cache_path) as f:
@@ -91,31 +82,50 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if use_cache:
         return cache
 
+    if not ssl_verify:
+        try:
+            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+        except ImportError:
+            pass
+        else:
+            warnings.simplefilter('ignore', InsecureRequestWarning)
+
+    session = session or CondaSession()
+
     headers = {}
     if "_etag" in cache:
         headers["If-None-Match"] = cache["_etag"]
     if "_mod" in cache:
         headers["If-Modified-Since"] = cache["_mod"]
 
+    if 'repo.continuum.io' in url:
+        filename = 'repodata.json.bz2'
+    else:
+        headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
+        headers['Content-Type'] = 'application/json'
+        filename = 'repodata.json'
+
     try:
-        resp = session.get(url + 'repodata.json.bz2',
-                           headers=headers, proxies=session.proxies)
+        resp = session.get(url + filename, headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
-            cache = json.loads(bz2.decompress(resp.content).decode('utf-8'))
+            if filename.endswith('.bz2'):
+                json_str = bz2.decompress(resp.content).decode('utf-8')
+            else:
+                json_str = resp.content.decode('utf-8')
+            cache = json.loads(json_str)
             add_http_value_to_dict(resp, 'Etag', cache, '_etag')
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
-        raise RuntimeError("Invalid index file: %srepodata.json.bz2: %s" %
-                           (remove_binstar_tokens(url), e))
+        raise RuntimeError("Invalid index file: {0}{1}: {2}"
+                           .format(remove_binstar_tokens(url), filename, e))
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407:  # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         if e.response.status_code == 404:
             if url.startswith(DEFAULT_CHANNEL_ALIAS):
@@ -161,8 +171,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if "407" in str(e):  # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         msg = "Connection error: %s: %s\n" % (e, remove_binstar_tokens(url))
         stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
@@ -223,9 +232,9 @@ def add_unknown(index, priorities):
             continue
         if info['urls']:
             url = info['urls'][0]
-        elif 'url' in meta:
+        elif meta.get('url'):
             url = meta['url']
-        elif 'channel' in meta:
+        elif meta.get('channel'):
             url = meta['channel'].rstrip('/') + '/' + fname
         else:
             url = '<unknown>/' + fname

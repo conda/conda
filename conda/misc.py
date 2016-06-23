@@ -72,12 +72,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, 
 
         # If not, determine the channel name from the URL
         if prefix is None:
-            _, schannel = url_channel(url)
+            channel, schannel = url_channel(url)
             prefix = '' if schannel == 'defaults' else schannel + '::'
         fn = prefix + fn
         dist = fn[:-8]
-        is_file = fn.startswith('file://')
-        # Add file to index so we'll see it later
+        is_file = schannel.startswith('file:') and schannel.endswith('/')
+        # Add explicit file to index so we'll see it later
         if is_file:
             index[fn] = {'fn': dist2filename(fn), 'url': url, 'md5': None}
 
@@ -259,7 +259,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
     # Resolve URLs for packages that do not have URLs
     r = None
     index = {}
-    unknowns = [dist for dist, info in iteritems(drecs) if 'url' not in info]
+    unknowns = [dist for dist, info in iteritems(drecs) if not info.get('url')]
     notfound = []
     if unknowns:
         fetch_args = fetch_args or {}
@@ -335,7 +335,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
 
 
 def make_icon_url(info):
-    if 'channel' in info and 'icon' in info:
+    if info.get('channel') and info.get('icon'):
         base_url = dirname(info['channel'])
         icon_fn = info['icon']
         # icon_cache_path = join(pkgs_dir, 'cache', icon_fn)

@@ -41,7 +41,6 @@ import sys
 import tarfile
 import time
 import traceback
-import random
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, relpath, normpath)
 
@@ -139,28 +138,27 @@ if on_win:
             else:
                 raise
 
-        if 'cmd.exe' in shell.lower():
-            # bat file redirect
-            with open(dst+'.bat', 'w') as f:
-                f.write('@echo off\n"%s" %%*\n' % src)
+        # bat file redirect
+        with open(dst+'.bat', 'w') as f:
+            f.write('@echo off\n"%s" %%*\n' % src)
 
-        elif 'powershell' in shell.lower():
-            # TODO: probably need one here for powershell at some point
-            pass
+        # TODO: probably need one here for powershell at some point
 
-        else:
-            # This one is for bash/cygwin/msys
-            with open(dst, "w") as f:
-                f.write("#!/usr/bin/env bash \n")
-                if src.endswith("conda"):
-                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
-                else:
-                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
-            # Make the new file executable
-            # http://stackoverflow.com/a/30463972/1170370
-            mode = os.stat(dst).st_mode
-            mode |= (mode & 292) >> 2    # copy R bits to X
-            os.chmod(dst, mode)
+        # This one is for bash/cygwin/msys
+        # set default shell to bash.exe when not provided, as that's most common
+        if not shell:
+            shell = "bash.exe"
+        with open(dst, "w") as f:
+            f.write("#!/usr/bin/env bash \n")
+            if src.endswith("conda"):
+                f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+            else:
+                f.write('source %s "$@"' % shells[shell]['path_to'](src))
+        # Make the new file executable
+        # http://stackoverflow.com/a/30463972/1170370
+        mode = os.stat(dst).st_mode
+        mode |= (mode & 292) >> 2    # copy R bits to X
+        os.chmod(dst, mode)
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
@@ -227,6 +225,10 @@ def warn_failed_remove(function, path, exc_info):
 
 def exp_backoff_fn(fn, *args):
     """Mostly for retrying file operations that fail on Windows due to virus scanners"""
+    if not on_win:
+        return fn(*args)
+    import random
+
     max_retries = 5
     for n in range(max_retries):
         try:
@@ -464,7 +466,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
         meta = json.load(fi)
     # add extra info, add to our intenral cache
     meta.update(extra_info)
-    if 'url' not in meta:
+    if not meta.get('url'):
         meta['url'] = read_url(dist)
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
@@ -567,7 +569,7 @@ def read_no_link(info_dir):
 
 
 # Should this be an API function?
-def symlink_conda(prefix, root_dir, shell):
+def symlink_conda(prefix, root_dir, shell=None):
     # do not symlink root env - this clobbers activate incorrectly.
     if normpath(prefix) == normpath(sys.prefix):
         return
@@ -875,14 +877,19 @@ def load_linked_data(prefix, dist, rec=None):
     else:
         linked_data(prefix)
     url = rec.get('url')
-    if 'fn' not in rec:
-        rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
-    if not url and 'channel' in rec:
-        url = rec['url'] = rec['channel'] + rec['fn']
-    if rec['fn'][:-8] != dname:
+    fn = rec.get('fn')
+    if not fn:
+        fn = rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
+    if fn[:-8] != dname:
         log.debug('Ignoring invalid package metadata file: %s' % meta_file)
         return None
+    channel = rec.get('channel')
+    if channel:
+        channel = channel.rstrip('/')
+        if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
+            url = rec['url'] = channel + '/' + fn
     channel, schannel = url_channel(url)
+    rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
     rec['link'] = rec.get('link') or True
@@ -939,7 +946,6 @@ def linked_data(prefix):
                 if fn.endswith('.json'):
                     load_linked_data(prefix, fn[:-5])
     return recs
-
 
 def linked(prefix):
     """
@@ -1085,9 +1091,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                           (src, dst, lt, e))
 
-        if name_dist(dist) == '_cache':
-            return
-
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
             try:
@@ -1218,6 +1221,7 @@ def duplicates_to_remove(dist_metas, keep_dists):
 
 def main():
     # This CLI is only invoked from the self-extracting shell installers
+    global pkgs_dirs
     from optparse import OptionParser
 
     p = OptionParser(description="conda link tool used by installer")
@@ -1244,7 +1248,7 @@ def main():
 
     prefix = opts.prefix
     pkgs_dir = join(prefix, 'pkgs')
-    pkgs_dirs[0] = [pkgs_dir]
+    pkgs_dirs = [pkgs_dir]
     if opts.verbose:
         print("prefix: %r" % prefix)
 
@@ -1252,9 +1256,10 @@ def main():
         idists = list(yield_lines(join(prefix, opts.file)))
     else:
         idists = sorted(extracted())
+    assert idists
 
     linktype = (LINK_HARD
-                if idists and try_hard_link(pkgs_dir, prefix, idists[0]) else
+                if try_hard_link(pkgs_dir, prefix, idists[0]) else
                 LINK_COPY)
     if opts.verbose:
         print("linktype: %s" % link_name_map[linktype])

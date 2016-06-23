@@ -7,7 +7,6 @@ from .exceptions import InvalidInstruction
 from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
                       link, unlink, symlink_conda, name_dist)
-from .utils import find_parent_shell
 
 
 log = getLogger(__name__)
@@ -85,7 +84,7 @@ def UNLINK_CMD(state, arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    symlink_conda(state['prefix'], arg, find_parent_shell(path=False))
+    symlink_conda(state['prefix'], arg)
 
 # Map instruction to command (a python function)
 commands = {

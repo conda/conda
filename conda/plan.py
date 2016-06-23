@@ -50,11 +50,11 @@ def display_actions(actions, index, show_channel_urls=None):
         show_channel_urls = config_show_channel_urls
 
     def channel_str(rec):
-        if 'schannel' in rec:
+        if rec.get('schannel'):
             return rec['schannel']
-        if 'url' in rec:
+        if rec.get('url'):
             return url_channel(rec['url'])[1]
-        if 'channel' in rec:
+        if rec.get('channel'):
             return canonical_channel_name(rec['channel'])
         return '<unknown>'
 
@@ -180,7 +180,8 @@ def display_actions(actions, index, show_channel_urls=None):
             newver = P0.version < P1.version
             oldver = P0.version > P1.version
         oldbld = P0.build_number > P1.build_number
-        if channel_priority and pri1 < pri0 and (oldver or not newver and oldbld):
+        newbld = P0.build_number < P1.build_number
+        if channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
             channeled.add(pkg)
         elif newver:
             updated.add(pkg)
@@ -442,6 +443,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     if auto_update_conda and is_root_prefix(prefix):
         specs.append('conda')
+        specs.append('conda-env')
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)

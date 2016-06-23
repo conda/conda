@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 import json
 import os
 import sys
+import bz2
 from contextlib import contextmanager
 from glob import glob
 from logging import getLogger, Handler
@@ -14,20 +15,27 @@ from subprocess import check_call, Popen, PIPE
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+from json import loads as json_loads
 
 import pytest
+from requests import Session
+from requests.adapters import BaseAdapter
 
 from conda import config
 from conda.cli import conda_argparse
+from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
 from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
+from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.compat import PY3, TemporaryDirectory
-from conda.config import pkgs_dirs, bits
-from conda.install import linked as install_linked, linked_data_, dist2dirname
-from conda.install import on_win
+from conda.compat import PY3, TemporaryDirectory, itervalues
+from conda.config import bits, subdir
+from conda.connection import LocalFSAdapter
+from conda.install import linked as install_linked, linked_data_, dist2dirname, package_cache
+from conda.install import on_win, linked_data
+from conda.utils import url_path
 from tests.helpers import captured
 
 log = getLogger(__name__)
@@ -66,18 +74,22 @@ def reenable_dotlog(handlers):
 
 
 class Commands:
-    INSTALL = "install"
-    UPDATE = "update"
-    REMOVE = "remove"
+    CONFIG = "config"
     CREATE = "create"
+    INSTALL = "install"
     LIST = "list"
+    REMOVE = "remove"
+    SEARCH = "search"
+    UPDATE = "update"
 
 
 parser_config = {
+    Commands.CONFIG: config_configure_parser,
     Commands.CREATE: create_configure_parser,
     Commands.INSTALL: install_configure_parser,
     Commands.LIST: list_configure_parser,
     Commands.REMOVE: remove_configure_parser,
+    Commands.SEARCH: search_configure_parser,
     Commands.UPDATE: update_configure_parser,
 }
 
@@ -89,27 +101,78 @@ def run_command(command, prefix, *arguments):
 
     prefix = escape_for_winpath(prefix)
     arguments = list(map(escape_for_winpath, arguments))
-    flags = "" if command is Commands.LIST else "-y -q"
-    command_line = "{0} {1} -p {2} {3}".format(command, flags, prefix, " ".join(arguments))
+    if command is Commands.CONFIG:
+        command_line = "{0} --file {1} {2}".format(command, join(prefix, 'condarc'), " ".join(arguments))
+    elif command is Commands.SEARCH:
+        command_line = "{0} {1}".format(command, " ".join(arguments))
+    elif command is Commands.LIST:
+        command_line = "{0} -p {1} {2}".format(command, prefix, " ".join(arguments))
+    else:  # CREATE, INSTALL, REMOVE, UPDATE
+        command_line = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
     with captured(disallow_stderr=False) as c:
         args.func(args, p)
     print(c.stdout)
     print(c.stderr, file=sys.stderr)
+    if command is Commands.CONFIG:
+        reload_config(prefix)
     return c.stdout, c.stderr
 
 
 @contextmanager
 def make_temp_env(*packages):
     prefix = make_temp_prefix()
+    prefix_condarc = join(prefix, 'condarc')
     try:
         # try to clear any config that's been set by other tests
-        config.rc = config.load_condarc('')
-        run_command(Commands.CREATE, prefix, *packages)
+        if packages:
+            config.load_condarc(prefix_condarc)
+            run_command(Commands.CREATE, prefix, *packages)
         yield prefix
     finally:
         rmtree(prefix, ignore_errors=True)
+
+
+def reload_config(prefix):
+    prefix_condarc = join(prefix, 'condarc')
+    config.load_condarc(prefix_condarc)
+
+
+class EnforceUnusedAdapter(BaseAdapter):
+
+    def send(self, request, *args, **kwargs):
+        raise RuntimeError("EnforceUnusedAdapter called with url {0}".format(request.url))
+
+
+class OfflineCondaSession(Session):
+
+    timeout = None
+
+    def __init__(self, *args, **kwargs):
+        super(OfflineCondaSession, self).__init__()
+        unused_adapter = EnforceUnusedAdapter()
+        self.mount("http://", unused_adapter)
+        self.mount("https://", unused_adapter)
+        self.mount("ftp://", unused_adapter)
+        self.mount("s3://", unused_adapter)
+
+        # Enable file:// urls
+        self.mount("file://", LocalFSAdapter())
+
+
+@contextmanager
+def enforce_offline():
+    class NadaCondaSession(object):
+        def __init__(self, *args, **kwargs):
+            pass
+    import conda.connection
+    saved_conda_session = conda.connection.CondaSession
+    try:
+        conda.connection.CondaSession = OfflineCondaSession
+        yield
+    finally:
+        conda.connection.CondaSession = saved_conda_session
 
 
 def package_is_installed(prefix, package, exact=False):
@@ -178,15 +241,34 @@ class IntegrationTests(TestCase):
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
+            flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
+            # Regression test for 2812
+            # install from local channel
+            from conda.config import pkgs_dirs
+            flask_fname = flask_data['fn']
+            tar_old_path = join(pkgs_dirs[0], flask_fname)
+            for field in ('url', 'channel', 'schannel'):
+                del flask_data[field]
+            repodata = {'info': {}, 'packages':{flask_fname: flask_data}}
+            with make_temp_env() as channel:
+                subchan = join(channel, subdir)
+                channel = url_path(channel)
+                os.makedirs(subchan)
+                tar_new_path = join(subchan, flask_fname)
+                copyfile(tar_old_path, tar_new_path)
+                with open(join(subchan, 'repodata.json'), 'w') as f:
+                    f.write(json.dumps(repodata))
+                run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
+                assert_package_is_installed(prefix, channel + '::' + 'flask-')
+
             # regression test for #2626
             # install tarball with full path
-            flask_tar_file = glob(join(pkgs_dirs[0], 'flask-0.*.tar.bz2'))[-1]
-            tar_new_path = join(prefix, basename(flask_tar_file))
-            copyfile(flask_tar_file, tar_new_path)
+            tar_new_path = join(prefix, flask_fname)
+            copyfile(tar_old_path, tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)
             assert_package_is_installed(prefix, 'flask-0')
 
@@ -201,7 +283,7 @@ class IntegrationTests(TestCase):
 
             # regression test for #2599
             linked_data_.clear()
-            flask_metadata = glob(join(prefix, 'conda-meta', 'flask-0.*.json'))[-1]
+            flask_metadata = glob(join(prefix, 'conda-meta', flask_fname[:-8] + '.json'))[-1]
             bad_metadata = join(prefix, 'conda-meta', 'flask.json')
             copyfile(flask_metadata, bad_metadata)
             assert not package_is_installed(prefix, 'flask', exact=True)
@@ -266,6 +348,47 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "nomkl")
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+
+    @pytest.mark.timeout(300)
+    def test_clone_offline(self):
+        with make_temp_env("python flask=0.10.1") as prefix:
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python')
+
+            with enforce_offline():
+                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                    assert_package_is_installed(clone_prefix, 'flask-0.10.1')
+                    assert_package_is_installed(clone_prefix, 'python')
+
+    @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
+    @pytest.mark.timeout(600)
+    def test_clone_offline_multichannel_with_untracked(self):
+        with make_temp_env("python") as prefix:
+            assert_package_is_installed(prefix, 'python')
+            from conda.config import get_rc_urls
+            assert 'r' not in get_rc_urls()
+
+            # assert conda search cannot find rpy2
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert bool(json_obj) is False
+
+            run_command(Commands.CONFIG, prefix, "--add channels r")
+
+            # assert conda search cannot find rpy2
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert len(json_obj['rpy2']) > 1
+
+            run_command(Commands.INSTALL, prefix, "rpy2")
+            assert_package_is_installed(prefix, 'rpy2')
+            run_command(Commands.LIST, prefix)
+
+            with enforce_offline():
+                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                    assert_package_is_installed(clone_prefix, 'python')
+                    assert_package_is_installed(clone_prefix, 'rpy2')
+                    assert isfile(join(clone_prefix, 'condarc'))  # untracked file
 
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
