@@ -69,6 +69,7 @@ class dotlog_on_return(object):
             return res
         return func
 
+
 @dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
@@ -97,17 +98,16 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if "_mod" in cache:
         headers["If-Modified-Since"] = cache["_mod"]
     if 'anaconda.org' in url:
-        headers['Accept-Encoding'] = 'gzip'
+        headers['Accept-Encoding'] = 'gzip;q=1.0, identity;q=0.1'
         filename = 'repodata.json'
     else:
         filename = 'repodata.json.bz2'
 
     try:
-        resp = session.get(url + filename,
-                           headers=headers, proxies=session.proxies)
+        resp = session.get(url + filename, headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
-            if filename.endswith('bz2'):
+            if filename.endswith('.bz2'):
                 json_str = bz2.decompress(resp.content).decode('utf-8')
             else:
                 json_str = resp.content
@@ -123,8 +123,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if e.response.status_code == 407:  # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         if e.response.status_code == 404:
             if url.startswith(DEFAULT_CHANNEL_ALIAS):
@@ -170,8 +169,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if "407" in str(e):  # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
-            return fetch_repodata(url, cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         msg = "Connection error: %s: %s\n" % (e, remove_binstar_tokens(url))
         stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
