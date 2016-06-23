@@ -108,7 +108,7 @@ complete list of changes.
   dependency losses; the package will just be removed instead.
 * **New YAML parser/emitter.** PyYAML is replaced with Ruamel.yaml, 
   which gives more robust control over yaml document use. 
-  `More info <http://yaml.readthedocs.io/en/latest/pyyaml.html>`_
+  `More on Ruamel <http://yaml.readthedocs.io/en/latest/pyyaml.html>`_
 * **Script paths over 127 characters are now truncated (Linux, OS X 
   only).** For each package in an environment, conda creates a script 
   in that environment, and the first line of the script consists of “#!” 
@@ -128,7 +128,7 @@ complete list of changes.
   in the root environment. Use the option 'conda config set auto_update_conda false'.
 * **Improved support for BeeGFS.** BeeGFS is a parallel cluster file 
   system for performance and designed for very easy installation and 
-  management. `More info <http://www.beegfs.com/content/documentation/>`_
+  management. `More on BeeGFS <http://www.beegfs.com/content/documentation/>`_
 
 See the `changelog <https://github.com/conda/conda/releases/tag/4.1.0>`_ for 
 a complete list of changes. 
