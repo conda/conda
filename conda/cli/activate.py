@@ -7,7 +7,7 @@ import re
 import sys
 
 from conda.cli.common import find_prefix_name
-from conda.utils import (shells, run_in)
+from conda.utils import shells
 
 
 on_win = sys.platform == "win32"
@@ -105,7 +105,7 @@ def get_path(shelldict):
     This returns PATH in the native representation of the shell - not necessarily
     the native representation of the platform
     """
-    return run_in(shelldict["printpath"], shelldict)[0]
+    return os.getenv("CONDA_PATH")
 
 
 def main():
@@ -128,8 +128,8 @@ def main():
         sys.stderr.write("prepending %s to PATH\n" % shelldict['path_to'](pathlist_str))
 
         # Clear the root path if it is present
-        if rootpath:
-            path = path.replace(shelldict['pathsep'].join(rootpath), "")
+        #if rootpath:
+        #    path = path.replace(shelldict['pathsep'].join(rootpath), "")
 
         path = path.lstrip()
         # prepend our new entries onto the existing path and make sure that the separator is native
