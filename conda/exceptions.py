@@ -61,7 +61,7 @@ class CondaFileNotFoundError(CondaException, FileNotFoundError):
 class DirectoryNotFoundError(CondaException):
     def __init__(self, message, *args, **kwargs):
         msg = 'Directory not found: %s' % message
-        super(DirectoryNotFoundError, self).__init__(msg, *args, *kwargs)
+        super(DirectoryNotFoundError, self).__init__(msg, *args, **kwargs)
 
 
 class CondaEnvironmentError(CondaException, EnvironmentError):
