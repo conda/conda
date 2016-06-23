@@ -770,11 +770,15 @@ class Resolve(object):
         sdict = {}
         for s in specs:
             s = MatchSpec(s)  # needed for testing
-            sdict.setdefault(s.name, []).append(s)
-        for name, mss in iteritems(sdict):
+            rec = sdict.setdefault(s.name, [])
+            if s.target:
+                rec.append(s.target)
+        for name, targets in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
             pkey = None
             for nkey, npkg in pkgs:
+                if targets and any(npkg == t for t in targets):
+                    continue
                 if pkey is None:
                     iv = ib = 0
                 elif pkey[0] != nkey[0] or pkey[1] != nkey[1]:
@@ -1036,7 +1040,7 @@ class Resolve(object):
             solution, obj50 = C.minimize(eq_u, solution)
             dotlog.debug('Dependency update count: %d' % (obj50,))
 
-            # Remaining packages: maximize versions, then builds, then count
+            # Remaining packages: maximize versions, then builds
             eq_v, eq_b = r2.generate_version_metrics(C, speca)
             solution, obj5 = C.minimize(eq_v, solution)
             solution, obj6 = C.minimize(eq_b, solution)
