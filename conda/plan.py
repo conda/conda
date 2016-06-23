@@ -180,7 +180,8 @@ def display_actions(actions, index, show_channel_urls=None):
             newver = P0.version < P1.version
             oldver = P0.version > P1.version
         oldbld = P0.build_number > P1.build_number
-        if channel_priority and pri1 < pri0 and (oldver or not newver and oldbld):
+        newbld = P0.build_number < P1.build_number
+        if channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
             channeled.add(pkg)
         elif newver:
             updated.add(pkg)
