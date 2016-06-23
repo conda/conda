@@ -42,8 +42,10 @@ class TestSpecFromLine(unittest.TestCase):
         self.assertEqual(spec_from_line('foo'), 'foo')
         self.assertEqual(spec_from_line('foo=1.0'), 'foo 1.0')
         self.assertEqual(spec_from_line('foo=1.0*'), 'foo 1.0*')
+        self.assertEqual(spec_from_line('foo=1!1.0*'), 'foo 1!1.0*')
         self.assertEqual(spec_from_line('foo=1.0|1.2'), 'foo 1.0|1.2')
         self.assertEqual(spec_from_line('foo=1.0=2'), 'foo 1.0 2')
+        self.assertEqual(spec_from_line('foo=1!1.0=2'), 'foo 1!1.0 2')
 
     def test_pip_style(self):
         self.assertEqual(spec_from_line('foo>=1.0'), 'foo >=1.0')
@@ -52,6 +54,7 @@ class TestSpecFromLine(unittest.TestCase):
         self.assertEqual(spec_from_line('foo >= 1.0'), 'foo >=1.0')
         self.assertEqual(spec_from_line('foo > 1.0'), 'foo >1.0')
         self.assertEqual(spec_from_line('foo != 1.0'), 'foo !=1.0')
+        self.assertEqual(spec_from_line('foo != 1!1.0'), 'foo !=1!1.0')
         self.assertEqual(spec_from_line('foo <1.0'), 'foo <1.0')
         self.assertEqual(spec_from_line('foo >=1.0 , < 2.0'), 'foo >=1.0,<2.0')
 
