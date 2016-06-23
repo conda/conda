@@ -112,7 +112,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             if filename.endswith('.bz2'):
                 json_str = bz2.decompress(resp.content).decode('utf-8')
             else:
-                json_str = resp.content
+                json_str = resp.content.decode('utf-8')
             cache = json.loads(json_str)
             add_http_value_to_dict(resp, 'Etag', cache, '_etag')
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
