@@ -390,6 +390,25 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'rpy2')
                     assert isfile(join(clone_prefix, 'condarc'))  # untracked file
 
+    @pytest.mark.timeout(300)
+    def test_channel_order(self):
+        with make_temp_env("python pycosat") as prefix:
+            assert_package_is_installed(prefix, 'python')
+            assert_package_is_installed(prefix, 'pycosat')
+
+            run_command(Commands.CONFIG, prefix, "--add channels conda-forge")
+            from conda.config import get_rc_urls
+            assert get_rc_urls() == ['conda-forge', 'defaults']
+
+            stdout, stderr = run_command(Commands.UPDATE, prefix, '--all', '--dry-run')
+            superceded_split = stdout.split('SUPERCEDED')
+            assert len(superceded_split) == 2
+            assert 'pycosat' in superceded_split[1]
+
+            run_command(Commands.CONFIG, prefix, "--set channel_priority false")
+            stdout, stderr = run_command(Commands.UPDATE, prefix, '--all', '--dry-run')
+            assert 'pycosat' not in stdout
+
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_in_underscore_env_shows_message():

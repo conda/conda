@@ -68,7 +68,7 @@ if (( $? == 0 )); then
     fi
 
     unset CONDA_DEFAULT_ENV
-    unset CONDA_ENV_PATH
+    unset CONDA_PREFIX
     export PATH="$CONDA_PATH_BACKUP"
     unset CONDA_PATH_BACKUP
     export PS1="$CONDA_PS1_BACKUP"

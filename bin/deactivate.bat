@@ -32,6 +32,7 @@
             )
 
             @SET "CONDA_DEFAULT_ENV="
+            @SET "CONDA_PREFIX="
             @SET "PATH=%PATH%"
             @SET "PROMPT=%PROMPT%"
            )
