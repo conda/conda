@@ -8,11 +8,11 @@ import sys
 
 import pytest
 
-from conda.compat import TemporaryDirectory
+from conda.compat import TemporaryDirectory, PY3
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
 from conda.utils import path_identity, run_in, shells
-from conda.cli.activate import pathlist_to_str, binpath_from_arg
+from conda.cli.activate import pathlist_to_str, binpath_from_arg, on_win
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
 
@@ -563,7 +563,6 @@ def test_activate_from_env(shell):
         assert_equals(stdout.rstrip(), env_dirs[1], stderr)
 
 
-@pytest.mark.slow
 def test_deactivate_from_env(shell):
     """Tests whether the deactivate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
@@ -577,7 +576,7 @@ def test_deactivate_from_env(shell):
         assert_equals(stdout, u'', stderr)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_relative_path(shell):
     """
     current directory should be searched for environments
@@ -605,7 +604,7 @@ def test_activate_relative_path(shell):
         assert_equals(stdout.rstrip(), env_dir, stderr)
 
 
-@pytest.mark.slow
+@pytest.mark.skipif(not on_win, reason="only relevant on windows")
 def test_activate_does_not_leak_echo_setting(shell):
     """Test that activate's setting of echo to off does not disrupt later echo calls"""
 
@@ -622,9 +621,9 @@ def test_activate_does_not_leak_echo_setting(shell):
         assert_equals(stdout, u'ECHO is on.', stderr)
 
 
-@pytest.mark.slow
 def test_activate_non_ascii_char_in_path(shell):
-    pytest.xfail("subprocess with python 2.7 is broken with unicode")
+    if not PY3:
+        pytest.xfail("subprocess with python 2.7 is broken with unicode")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -636,7 +635,7 @@ def test_activate_non_ascii_char_in_path(shell):
         assert_equals(stdout, u'.', stderr)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_has_extra_env_vars(shell):
     """Test that environment variables in activate.d show up when activated"""
     shell_vars = _format_vars(shell)
