@@ -42,7 +42,7 @@ url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
 def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, index=None):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
+    actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
     linked = {name_dist(dist): dist for dist in install_linked(prefix)}
     fetch_args = fetch_args or {}
     index = index or {}
