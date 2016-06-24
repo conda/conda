@@ -1047,6 +1047,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
         os.makedirs(prefix)
 
     with Locked(prefix), Locked(source_dir):
+
         for f in files:
             src = join(source_dir, f)
             dst = join(prefix, f)
@@ -1109,7 +1110,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(prefix):
+    with Locked(prefix, dist):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)

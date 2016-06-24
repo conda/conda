@@ -22,6 +22,7 @@ import time
 from glob import glob
 from os.path import abspath, isdir, dirname
 from .compat import range
+
 from .exceptions import LockError
 
 LOCK_EXTENSION = 'conda_lock'
@@ -53,6 +54,7 @@ class Locked(object):
     """
     Context manager to handle locks.
     """
+
     def __init__(self, file_path, retries=10):
         """
         :param file_path: The file or directory to be locked
@@ -90,5 +92,7 @@ class Locked(object):
         raise LockError(LOCKSTR.format(last_glob_match))
 
     def __exit__(self, exc_type, exc_value, traceback):
+
         from .install import rm_rf
         rm_rf(self.lock_path)
+

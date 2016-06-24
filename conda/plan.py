@@ -12,7 +12,7 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import sys
-from collections import defaultdict
+from collections import defaultdict,  OrderedDict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
@@ -50,11 +50,11 @@ def display_actions(actions, index, show_channel_urls=None):
         show_channel_urls = config_show_channel_urls
 
     def channel_str(rec):
-        if rec.get('schannel'):
+        if 'schannel' in rec:
             return rec['schannel']
-        if rec.get('url'):
+        if 'url' in rec:
             return url_channel(rec['url'])[1]
-        if rec.get('channel'):
+        if 'channel' in rec:
             return canonical_channel_name(rec['channel'])
         return '<unknown>'
 
@@ -180,8 +180,7 @@ def display_actions(actions, index, show_channel_urls=None):
             newver = P0.version < P1.version
             oldver = P0.version > P1.version
         oldbld = P0.build_number > P1.build_number
-        newbld = P0.build_number < P1.build_number
-        if channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
+        if channel_priority and pri1 < pri0 and (oldver or not newver and oldbld):
             channeled.add(pkg)
         elif newver:
             updated.add(pkg)
@@ -243,6 +242,13 @@ def add_unlink(actions, dist):
         actions[inst.UNLINK] = []
     actions[inst.UNLINK].append(dist)
 
+def list2ordereddict(plan):
+    result = OrderedDict()
+    for op, arg in plan:
+        if op not in result:
+            result[op] = []
+        result[op].append(arg)
+    return result
 
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
@@ -275,17 +281,11 @@ def plan_from_actions(actions):
         if not actions[op]:
             log.debug("action {0} has None value".format(op))
             continue
-        if '_' not in op:
-            res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
-        elif op.startswith('RM_'):
-            res.append((inst.PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
-        if op in inst.progress_cmds:
-            res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
             log.debug("appending value {0} for action {1}".format(arg, op))
             res.append((op, arg))
 
-    return res
+    return list2ordereddict(res)
 
 
 # force_linked_actions has now been folded into this function, and is enabled by
@@ -445,6 +445,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     shortcuts=False):
     r = Resolve(index)
     linked = r.installed
+
+
+    if auto_update_conda and is_root_prefix(prefix):
+        specs.append('conda')
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
@@ -626,7 +630,7 @@ def update_old_plan(old_plan):
     Update an old plan object to work with
     `conda.instructions.execute_instructions`
     """
-    plan = []
+    plan = OrderedDict()
     for line in old_plan:
         if line.startswith('#'):
             continue
@@ -635,7 +639,9 @@ def update_old_plan(old_plan):
                                        " one argument" % line)
 
         instruction, arg = line.split(' ', 1)
-        plan.append((instruction, arg))
+        if instruction not in plan:
+            plan[instruction] = []
+        plan[instruction].append(arg)
     return plan
 
 
@@ -645,7 +651,6 @@ def execute_plan(old_plan, index=None, verbose=False):
     """
     plan = update_old_plan(old_plan)
     inst.execute_instructions(plan, index, verbose)
-
 
 if __name__ == '__main__':
     # for testing new revert_actions() only

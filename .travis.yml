@@ -2,11 +2,18 @@ sudo: false
 language: python
 python:
   - '2.7'
+<<<<<<< HEAD
   - '3.4'
+=======
+>>>>>>> merge commit for parallel download
   - '3.5'
 
 os:
   - linux
+<<<<<<< HEAD
+=======
+#  - osx
+>>>>>>> merge commit for parallel download
 
 addons:
   apt:
@@ -22,6 +29,7 @@ matrix:
   include:
     - python: '3.5'
       env: FLAKE8=true
+<<<<<<< HEAD
     - os: osx
       python: '3.5'
 
@@ -34,6 +42,18 @@ script:
   - bash ./utils/travis-run-script.sh
 
 sudo: false
+=======
+
+install:
+  - which -a python
+  - printenv
+  - pip install psutil ruamel.yaml pycosat pycrypto requests
+  - pip install flake8 pytest pytest-cov mock
+  - pip install auxlib pytest-timeout radon responses
+  - pip install click
+script:
+  - bash ./utils/travis-run-script.sh
+>>>>>>> merge commit for parallel download
 
 after_success:
   - pip install codecov
