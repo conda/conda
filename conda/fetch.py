@@ -98,7 +98,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if "_mod" in cache:
         headers["If-Modified-Since"] = cache["_mod"]
 
-    if 'repo.continuum.io' in url:
+    if 'repo.continuum.io' in url or url.startswith("file://"):
         filename = 'repodata.json.bz2'
     else:
         headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
