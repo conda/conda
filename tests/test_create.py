@@ -46,9 +46,9 @@ def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
-def make_temp_prefix():
+def make_temp_prefix(name=None):
     tempdir = gettempdir()
-    dirname = str(uuid4())[:8]
+    dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
     if exists(prefix):
         # rm here because create complains if directory exists
@@ -390,16 +390,15 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'rpy2')
                     assert isfile(join(clone_prefix, 'condarc'))  # untracked file
 
-
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-def test_shortcut_in_underscore_env_shows_message():
-    with TemporaryDirectory() as tmp:
-        cmd = ["conda", "create", '-y', '--shortcuts', '-p', join(tmp, '_conda'), "console_shortcut"]
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        output, error = p.communicate()
-        if PY3:
-            error = error.decode("UTF-8")
-        assert "Environment name starts with underscore '_'.  Skipping menu installation." in error
+    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    def test_shortcut_in_underscore_env_shows_message(self):
+        prefix = make_temp_prefix("_conda")
+        try:
+            config.load_condarc("")
+            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut", "--shortcuts")
+            assert "Environment name starts with underscore '_'.  Skipping menu installation." in stderr
+        finally:
+            rmtree(prefix, ignore_errors=True)
 
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
