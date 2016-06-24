@@ -74,10 +74,10 @@ if (( $? == 0 )); then
     else
         export CONDA_DEFAULT_ENV="$args"
     fi
-    # CONDA_ENV_PATH is always the full path to the activated environment.  It is not set
+    # CONDA_PREFIX is always the full path to the activated environment.  It is not set
     #    when no environment is active.
     # Legacy support: CONDA_DEFAULT_ENV is either env name or full path if given as path.
-    #    CONDA_ENV_PATH is always the full path, for consistency.
+    #    CONDA_PREFIX is always the full path, for consistency.
     #    Last date of change: 2016-06-21
     firstpath=${PATH%%:*}
     export CONDA_ENV_PATH="$(echo ${firstpath} | sed "s|/bin$||")" &>/dev/null
