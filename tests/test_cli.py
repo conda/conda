@@ -4,7 +4,6 @@ import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
 from conda.compat import text_type
-import conda.config as config
 
 from tests.helpers import capture_json_with_argv, assert_in
 
