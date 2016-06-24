@@ -1088,7 +1088,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
             try:
                 _link(src, dst, lt)
             except OSError as e:
-                log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                           (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
