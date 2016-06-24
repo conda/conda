@@ -16,7 +16,7 @@ from .install import (name_dist, linked as install_linked, is_fetched, is_extrac
 from .compat import iteritems, itervalues
 from .config import is_url, url_channel, root_dir, envs_dirs, subdir
 from .fetch import fetch_index
-from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
+from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, url_path as utils_url_path
