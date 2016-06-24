@@ -140,7 +140,7 @@ if on_win:
 
         # bat file redirect
         with open(dst+'.bat', 'w') as f:
-            f.write('@echo off\n"%s" %%*\n' % src)
+            f.write('@echo off\ncall "%s" %%*\n' % src)
 
         # TODO: probably need one here for powershell at some point
 
