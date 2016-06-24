@@ -42,7 +42,7 @@ import tarfile
 import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
-                     join, relpath, normpath)
+                     join, normpath)
 
 
 on_win = bool(sys.platform == "win32")
@@ -990,7 +990,6 @@ def move_path_to_trash(path):
     """
     # Try deleting the trash every time we use it.
     delete_trash()
-    from conda.config import root_dir
     import tempfile
 
     for pkg_dir in pkgs_dirs:
