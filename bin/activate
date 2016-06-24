@@ -90,7 +90,7 @@ if (( $? == 0 )); then
     fi
 
     # Load any of the scripts found $PREFIX/etc/conda/activate.d AFTER activation
-    _CONDA_D="${CONDA_DEFAULT_ENV}/etc/conda/activate.d"
+    _CONDA_D="${CONDA_PREFIX}/etc/conda/activate.d"
     if [[ -d "$_CONDA_D" ]]; then
         IFS=$(echo -en "\n\b")&>/dev/null  && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
     fi

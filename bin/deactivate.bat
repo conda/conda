@@ -25,8 +25,8 @@
 
 @ENDLOCAL & (
             REM Run any deactivate scripts
-            @IF EXIST "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d" (
-                @PUSHD "%CONDA_DEFAULT_ENV%\etc\conda\deactivate.d"
+            @IF EXIST "%CONDA_PREFIX%\etc\conda\deactivate.d" (
+                @PUSHD "%CONDA_PREFIX%\etc\conda\deactivate.d"
                 @FOR %%g IN (*.bat) DO @CALL "%%g"
                 @POPD
             )
