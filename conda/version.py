@@ -300,12 +300,19 @@ class VersionSpec(object):
             return spec
         self = object.__new__(cls)
         self.spec = spec
+        regex_split_pattern = r'(\^\S+?\$)'
         if isinstance(spec, tuple):
             self.match = self.all_match_ if spec[0] == 'all' else self.any_match_
-        elif spec.startswith("^") and spec.endswith("$"):
-            self.spec = spec
-            self.regex = re.compile(spec)
-            self.match = self.regex_match_
+        elif re.match(regex_split_pattern, spec):
+            m = re.match(regex_split_pattern, spec)
+            first = m.group()
+            operator = spec[m.end()] if len(spec) > m.end() else None
+            if operator is None:
+                self.spec = first
+                self.regex = re.compile(spec)
+                self.match = self.regex_match_
+            else:
+                return VersionSpec((operator, tuple(first, spec[m.end()+1:])))
         elif '|' in spec:
             return VersionSpec(('any', tuple(VersionSpec(s) for s in spec.split('|'))))
         elif ',' in spec:
