@@ -49,7 +49,7 @@
 )
 
 @REM always store the full path to the environment, since CONDA_DEFAULT_ENV varies
-@FOR /F "tokens=1 delims=;" %%i in ("%PATH%") DO @SET "CONDA_PREFIX=%%i"
+@FOR /F "tokens=1 delims=;" %%i in ("%NEW_PATH%") DO @SET "CONDA_PREFIX=%%i"
 
 @REM This persists env variables, which are otherwise local to this script right now.
 @endlocal & (
