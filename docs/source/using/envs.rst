@@ -312,7 +312,7 @@ And ``.\etc\conda\deactivate.d\env_vars.bat`` should have this::
   set MY_KEY=
   set MY_FILE=
 
-Now when you use ``source activate analytics`` the environment variables MY_KEY and MY_FILE will be set to the values you wrote into the file, and when you use ``source deactivate`` those variables will be erased.
+Now when you use ``activate analytics`` the environment variables MY_KEY and MY_FILE will be set to the values you wrote into the file, and when you use ``deactivate`` those variables will be erased.
 
 More notes on environment variable scripts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
