@@ -365,7 +365,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
 
     if retries is None:
         retries = RETRIES
-    with Locked(dst_dir):
+    with Locked(dst_dir, url.rsplit("/", 1)[1]):
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
