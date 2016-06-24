@@ -10,9 +10,9 @@ main_test() {
     hash -r
     conda info
     py.test --cov-report xml tests --shell=bash --shell=zsh -m "installed"
-    conda install -y -q conda-build
-    set +x
-    conda build conda.recipe
+    # conda install -y -q conda-build
+    # set +x
+    # conda build conda.recipe
 }
 
 flake8_test() {
