@@ -64,8 +64,8 @@
     @SET "CONDA_PREFIX=%CONDA_PREFIX%"
 
     @REM Run any activate scripts
-    @IF EXIST "%CONDA_NEW_ENV%\etc\conda\activate.d" (
-        @PUSHD "%CONDA_NEW_ENV%\etc\conda\activate.d"
+    @IF EXIST "%CONDA_PREFIX%\etc\conda\activate.d" (
+        @PUSHD "%CONDA_PREFIX%\etc\conda\activate.d"
         @FOR %%g in (*.bat) DO @CALL "%%g"
         @POPD
     )
