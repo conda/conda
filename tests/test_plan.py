@@ -4,7 +4,7 @@ import json
 import random
 import unittest
 from os.path import dirname, join
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 import pytest
 
@@ -868,7 +868,7 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
         old_plan = ['# plan', 'INSTRUCTION arg']
         new_plan = plan.update_old_plan(old_plan)
 
-        expected = [('INSTRUCTION', 'arg')]
+        expected = OrderedDict({'INSTRUCTION': ['arg']})
         self.assertEqual(new_plan, expected)
 
         with self.assertRaises(CondaException):
@@ -912,23 +912,16 @@ class PlanFromActionsTests(unittest.TestCase):
 
         conda_plan = plan.plan_from_actions(actions)
 
-        expected_plan = [
-            ('PREFIX', 'aprefix'),
-            ('PRINT', 'Linking packages ...'),
-            ('PROGRESS', '2'),
-            ('LINK', ipython),
-            ('LINK', menuinst),
-        ]
+        expected_plan = OrderedDict()
+        expected_plan['PREFIX'] = ['aprefix']
+        expected_plan['LINK'] =  [ipython, menuinst]
 
         if sys.platform == 'win32':
             # menuinst should be linked first
-            expected_plan = [
-                ('PREFIX', 'aprefix'),
-                ('LINK', menuinst),
-                ('PRINT', 'Linking packages ...'),
-                ('PROGRESS', '1'),
-                ('LINK', ipython),
-            ]
+            expected_plan = {
+                'PREFIX': 'aprefix',
+                'LINK': [menuinst, ipython]
+            }
 
             # last_two = expected_plan[-2:]
             # expected_plan[-2:] = last_two[::-1]

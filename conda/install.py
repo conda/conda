@@ -785,10 +785,10 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[url_path(fname)]
-        with Locked(dirname(fname)):
+        with Locked(dirname(fname), dist):
             rm_rf(fname)
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with Locked(dirname(fname), dist):
             rm_rf(fname)
     del package_cache_[dist]
 
@@ -819,7 +819,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with Locked(dirname(fname), dist):
             rm_rf(fname)
     if rec['files']:
         rec['dirs'] = []
@@ -837,7 +837,7 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
-    with Locked(pkgs_dir):
+    with Locked(pkgs_dir, dist):
         path = fname[:-8]
         temp_path = path + '.tmp'
         rm_rf(temp_path)
@@ -1062,7 +1062,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
 
-    with Locked(prefix), Locked(pkgs_dir):
+    with Locked(prefix, dist), Locked(pkgs_dir, dist):
         for f in files:
             src = join(source_dir, f)
             dst = join(prefix, f)
@@ -1089,7 +1089,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 _link(src, dst, lt)
             except OSError as e:
                 sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                          (src, dst, lt, e))
+                         (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
@@ -1134,7 +1134,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(prefix):
+    with Locked(prefix, dist):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
