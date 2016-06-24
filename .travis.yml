@@ -1,5 +1,5 @@
+sudo: false
 language: python
-
 python:
   - '2.7'
   - '3.5'
@@ -22,6 +22,11 @@ env:
 #    - PY_VERSION=3.4
 #    - PY_VERSION=3.5
 
+matrix:
+  include:
+    - python: '3.5'
+      env: FLAKE8=true
+
 install:
   - which -a python
   - printenv
@@ -34,17 +39,7 @@ install:
   - pip install auxlib pytest-timeout radon responses
 
 script:
-  - export PYTHONHASHSEED=$(python -c "import random as r; print(r.randint(0,4294967296))")
-  - echo $PYTHONHASHSEED
-  - py.test --cov-report xml tests --shell=bash --shell=zsh -m "not installed"
-  - python setup.py install
-  - conda info
-  - py.test --cov-report xml tests --shell=bash --shell=zsh -m "installed"
-  - conda install conda-build
-  - conda build conda.recipe
-#  - flake8 --statistics
-
-sudo: false
+  - bash ./utils/travis-run-script.sh
 
 after_success:
   - pip install codecov
