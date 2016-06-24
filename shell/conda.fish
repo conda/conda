@@ -146,7 +146,7 @@ end
 function deactivate --description 'Deactivate the current conda environment.'
     if set -q CONDA_DEFAULT_ENV  # don't deactivate the root environment
           # check if there are any *.fish scripts in deactivate.d
-          set -l deactivate_d $CONDA_DEFAULT_ENV/etc/conda/deactivate.d
+          set -l deactivate_d $CONDA_PREFIX/etc/conda/deactivate.d
           if test -d "$deactivate_d"
               source $deactivate_d/*.fish
           end
@@ -195,7 +195,7 @@ function activate --description 'Activate a conda environment.'
         set -gx CONDA_PREFIX (echo $PATH[1] | sed 's|/bin$||g')
 
         # check if there are any *.fish scripts in activate.d
-        set -l activate_d $CONDA_DEFAULT_ENV/etc/conda/activate.d
+        set -l activate_d $CONDA_PREFIX/etc/conda/activate.d
         if test -d "$activate_d"
             . $activate_d/*.fish
         end
