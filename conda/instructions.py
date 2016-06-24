@@ -131,7 +131,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         arg = [arg] if not isinstance(arg, list) else arg
 
         # Done in serial
-        if instruction not in progress_cmds:
+        if instruction in progress_cmds:
             if cmd == PREFIX_CMD:
                 cmd(state, arg[0])
             else:
