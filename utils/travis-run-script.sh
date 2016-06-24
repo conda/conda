@@ -12,12 +12,12 @@ main_test() {
     conda build conda.recipe
 }
 
-flake8() {
+flake8_test() {
     flake8 --statistics
 }
 
 if [[ $FLAKE8 == true ]]; then
-    flake8
+    flake8_test
 else
     main_test
 fi
