@@ -153,6 +153,7 @@ function deactivate --description 'Deactivate the current conda environment.'
           set -gx PATH $CONDA_BACKUP_PATH
           set -e CONDA_DEFAULT_ENV
           set -e CONDA_BACKUP_PATH
+          set -e CONDA_PREFIX
           __conda_update_prompt deactivate
     end
     # return 0
@@ -189,6 +190,9 @@ function activate --description 'Activate a conda environment.'
         else
           set -gx CONDA_DEFAULT_ENV $argv[1]
         end
+
+        # Always store the full prefix path as CONDA_PREFIX
+        set -gx CONDA_PREFIX (echo $PATH[1] | sed 's|/bin$||g')
 
         # check if there are any *.fish scripts in activate.d
         set -l activate_d $CONDA_DEFAULT_ENV/etc/conda/activate.d

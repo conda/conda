@@ -48,6 +48,9 @@
     SET "PROMPT=(%CONDA_NEW_ENV%) %PROMPT%"
 )
 
+@REM always store the full path to the environment, since CONDA_DEFAULT_ENV varies
+@FOR /F "tokens=1 delims=;" %%i in ("%PATH%") DO @SET "CONDA_PREFIX=%%i"
+
 @REM This persists env variables, which are otherwise local to this script right now.
 @endlocal & (
     @REM Used for deactivate, to make sure we restore original state after deactivation
@@ -56,6 +59,7 @@
     @SET "PROMPT=%PROMPT%"
     @SET "PATH=%NEW_PATH%;%PATH%"
     @SET "CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%"
+    @SET "CONDA_PREFIX=%CONDA_PREFIX%"
 
     @REM Run any activate scripts
     @IF EXIST "%CONDA_NEW_ENV%\etc\conda\activate.d" (
