@@ -322,7 +322,7 @@ Allowed channels are:
     return index
 
 
-def fetch_pkg(info, dst_dir=None, session=None):
+def fetch_pkg(info, bar=None, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
@@ -338,7 +338,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         dst_dir = find_new_location(fn[:-8])[0]
     path = join(dst_dir, fn)
 
-    download(url, path, session=session, md5=info['md5'], urlstxt=True)
+    download(url, path, session=session, md5=info['md5'], urlstxt=True, bar=bar)
     if info.get('sig'):
         from .signature import verify, SignatureError
 
@@ -346,7 +346,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/')) + '/' + fn2
         log.debug("signature url=%r" % url)
-        download(url, join(dst_dir, fn2), session=session)
+        download(url, join(dst_dir, fn2), session=session, bar=bar)
         try:
             if verify(path):
                 return
@@ -355,6 +355,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
         raise SignatureError("Error: Signature for '%s' is invalid." %
                              (basename(path)))
+
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
@@ -378,6 +379,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     if retries is None:
         retries = RETRIES
 
+
     with Locked(dst_path):
         rm_rf(dst_path)
         try:
@@ -388,7 +390,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 handle_proxy_407(url, session)
                 # Try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
+                                urlstxt=urlstxt, bar=bar, retries=retries)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise RuntimeError(msg)
@@ -403,7 +405,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 handle_proxy_407(url, session)
                 # try again
                 return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
+                                urlstxt=urlstxt, bar=bar, retries=retries)
+
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
@@ -415,26 +418,29 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
-            fn = basename(dst_path)
-            getLogger('fetch.start').info((fn[:14], size))
 
         if md5:
             h = hashlib.new('md5')
         try:
             with open(pp, 'wb') as fo:
-                index = 0
-                for chunk in resp.iter_content(2**14):
-                    index += len(chunk)
+                more = True
+                while more:
+                    # Use resp.raw so that requests doesn't decode gz files
+                    chunk = resp.raw.read(2**14)
+                    if not chunk:
+                        more = False
                     try:
                         fo.write(chunk)
                     except IOError:
                         raise RuntimeError("Failed to write to %r." % pp)
-
                     if md5:
                         h.update(chunk)
-
-                    if size and 0 <= index <= size:
-                        getLogger('fetch.update').info(index)
+                        # update n with actual bytes read
+                    n = resp.raw.tell()
+                    if size and 0 <= n <= size:
+                        # update the download bar with n
+                        if bar:
+                            bar.put(n, False)
 
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
@@ -443,9 +449,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
-
-        if size:
-            getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
             if retries:
@@ -465,7 +468,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
 
         if urlstxt:
             add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
-
+        return None
 
 class TmpDownload(object):
     """
