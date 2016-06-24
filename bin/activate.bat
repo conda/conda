@@ -38,10 +38,12 @@
 @SET "CONDA_PATH_BACKUP=%PATH%"
 @REM Activate the new environment
 @FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "NEW_PATH=%%i"
+@IF errorlevel 1 exit /b 1
 
 @REM take a snapshot of pristine state for later
 @SET "CONDA_PS1_BACKUP=%PROMPT%"
 @FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..changeps1') DO @SET "CHANGE_PROMPT=%%i"
+@IF errorlevel 1 exit /b 1
 
 :: if our prompt var does not contain reference to CONDA_DEFAULT_ENV, set prompt
 @IF "%CHANGE_PROMPT%" == "1" @IF "x%PROMPT:CONDA_DEFAULT_ENV=%" == "x%PROMPT%" (
