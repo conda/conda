@@ -918,11 +918,9 @@ class PlanFromActionsTests(unittest.TestCase):
 
         if sys.platform == 'win32':
             # menuinst should be linked first
-            expected_plan = {
-                'PREFIX': 'aprefix',
-                'LINK': [menuinst, ipython]
-            }
-
+            expected_plan = OrderedDict()
+            expected_plan['PREFIX'] = ['aprefix']
+            expected_plan['LINK'] =  [ipython, menuinst]
             # last_two = expected_plan[-2:]
             # expected_plan[-2:] = last_two[::-1]
 
