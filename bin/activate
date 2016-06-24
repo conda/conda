@@ -80,7 +80,7 @@ if (( $? == 0 )); then
     #    CONDA_PREFIX is always the full path, for consistency.
     #    Last date of change: 2016-06-21
     firstpath=${PATH%%:*}
-    export CONDA_ENV_PATH="$(echo ${firstpath} | sed "s|/bin$||")" &>/dev/null
+    export CONDA_PREFIX="$(echo ${firstpath} | sed "s|/bin$||")" &>/dev/null
 
     # if CONDA_DEFAULT_ENV not in PS1, prepend it with parentheses
     if [ $("$_CONDA_DIR/conda" ..changeps1) = "1" ]; then
