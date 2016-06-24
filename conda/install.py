@@ -1089,7 +1089,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 _link(src, dst, lt)
             except OSError as e:
                 sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                          (src, dst, lt, e))
+                         (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
