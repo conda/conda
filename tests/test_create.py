@@ -110,6 +110,7 @@ def run_command(command, prefix, *arguments):
     else:  # CREATE, INSTALL, REMOVE, UPDATE
         command_line = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
 
+    print("COMMAND>> ", command_line)
     args = p.parse_args(split(command_line))
     with captured(disallow_stderr=False) as c:
         args.func(args, p)
