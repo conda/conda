@@ -17,10 +17,6 @@ env:
   global:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
-#  matrix:
-#    - PY_VERSION=2.7
-#    - PY_VERSION=3.4
-#    - PY_VERSION=3.5
 
 matrix:
   include:
@@ -30,10 +26,6 @@ matrix:
 install:
   - which -a python
   - printenv
-#  - source ./utils/travis-bootstrap-conda.sh
-#  - conda install psutil ruamel_yaml
-#  - conda install flake8 pytest pytest-cov mock
-#  - conda install pip
   - pip install psutil ruamel.yaml pycosat pycrypto requests
   - pip install flake8 pytest pytest-cov mock
   - pip install auxlib pytest-timeout radon responses
@@ -44,4 +36,3 @@ script:
 after_success:
   - pip install codecov
   - codecov --env PY_VERSION
-  # - travis_build_and_upload
