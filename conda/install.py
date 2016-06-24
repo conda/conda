@@ -233,7 +233,7 @@ def exp_backoff_fn(fn, *args):
     for n in range(max_retries):
         try:
             result = fn(*args)
-        except EnvironmentError as e:
+        except (OSError, IOError) as e:
             log.debug(repr(e))
             if e.errno in (errno.EPERM, errno.EACCES):
                 if n == max_retries-1:
