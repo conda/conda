@@ -62,7 +62,7 @@ fi
 
 if (( $? == 0 )); then
     # Inverse of activation: run deactivate scripts prior to deactivating env
-    _CONDA_D="${CONDA_DEFAULT_ENV}/etc/conda/deactivate.d"
+    _CONDA_D="${CONDA_PREFIX}/etc/conda/deactivate.d"
     if [[ -d $_CONDA_D ]]; then
         IFS=$(echo -en "\n\b") && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
     fi
