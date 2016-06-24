@@ -395,8 +395,10 @@ class IntegrationTests(TestCase):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         try:
             config.load_condarc("")
-            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut", "--shortcuts")
-            assert "Environment name starts with underscore '_'.  Skipping menu installation." in stderr
+            stdout, stderr = run_command(Commands.CREATE, prefix,
+                                         "console_shortcut", "--shortcuts")
+            assert ("Environment name starts with underscore '_'.  "
+                    "Skipping menu installation." in stderr)
         finally:
             rmtree(prefix, ignore_errors=True)
 
@@ -421,19 +423,23 @@ class IntegrationTests(TestCase):
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
                                           "".format(sys.version_info.major, config.bits))
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
 
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         try:
-            with make_temp_env("console_shortcut", "--shortcuts") as prefix:
-                assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
-                                               "Contents of dir:\n"
-                                               "{0}".format(os.listdir(shortcut_dir)))
+            config.load_condarc("")
+            run_command(Commands.CREATE, prefix, "console_shortcut", "--shortcuts")
+            assert package_is_installed(prefix, 'console_shortcut')
+            assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
+                                           "Contents of dir:\n"
+                                           "{0}".format(os.listdir(shortcut_dir)))
 
-                # make sure that cleanup without specifying --shortcuts still removes shortcuts
-                run_command(Commands.REMOVE, prefix, 'console_shortcut')
-                assert not package_is_installed(prefix, 'console_shortcut')
-                assert not isfile(shortcut_file)
+            # make sure that cleanup without specifying --shortcuts still removes shortcuts
+            run_command(Commands.REMOVE, prefix, 'console_shortcut')
+            assert not package_is_installed(prefix, 'console_shortcut')
+            assert not isfile(shortcut_file)
         finally:
+            rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
@@ -445,19 +451,23 @@ class IntegrationTests(TestCase):
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
                                           "".format(sys.version_info.major, config.bits))
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
 
-        # kill shortcut from any other misbehaving test
-        if isfile(shortcut_file):
-            os.remove(shortcut_file)
-
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         assert not isfile(shortcut_file)
 
-        # not including --shortcuts, should not get shortcuts installed
-        with make_temp_env("console_shortcut") as prefix:
-            # make sure it didn't get created
+        try:
+            # not including --shortcuts, should not get shortcuts installed
+            config.load_condarc("")
+            run_command(Commands.CREATE, prefix, "console_shortcut")
+            assert package_is_installed(prefix, 'console_shortcut')
             assert not isfile(shortcut_file)
 
-            # make sure that cleanup does not barf trying to remove non-existent shortcuts
+            # make sure that cleanup without specifying --shortcuts still removes shortcuts
             run_command(Commands.REMOVE, prefix, 'console_shortcut')
             assert not package_is_installed(prefix, 'console_shortcut')
+            assert not isfile(shortcut_file)
+        finally:
+            rmtree(prefix, ignore_errors=True)
+            if isfile(shortcut_file):
+                os.remove(shortcut_file)
