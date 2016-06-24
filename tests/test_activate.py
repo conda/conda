@@ -126,7 +126,7 @@ def bash_profile(request):
     return request  # provide the fixture value
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_test1(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -144,7 +144,7 @@ def test_activate_test1(shell):
                  stdout, shell)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_env_from_env_with_root_activate(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -160,7 +160,7 @@ def test_activate_env_from_env_with_root_activate(shell):
         assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shelldict=shells[shell])), stdout)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_bad_directory(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -177,7 +177,7 @@ def test_activate_bad_directory(shell):
         assert_not_in(env_dirs[2], stdout)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_bad_env_keeps_existing_good_env(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -191,7 +191,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
         assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),stdout)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_deactivate(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -206,7 +206,7 @@ def test_activate_deactivate(shell):
         assert_equals(stdout, u"%s" % shell_vars['base_path'])
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_root(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -244,7 +244,7 @@ def test_activate_root_env_from_other_env(shell):
         assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])), stdout)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_wrong_args(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -259,7 +259,7 @@ def test_wrong_args(shell):
         assert_equals(stdout, shell_vars['base_path'], stderr)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_help(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -302,7 +302,8 @@ def test_activate_help(shell):
         else:
             assert_in("Usage: source deactivate", stderr)
 
-@pytest.mark.slow
+
+@pytest.mark.installed
 def test_activate_symlinking(shell):
     """Symlinks or bat file redirects are created at activation time.  Make sure that the
     files/links exist, and that they point where they should."""
@@ -352,7 +353,7 @@ def test_activate_symlinking(shell):
             run_in('chmod 777 "{prefix_bin_path}"'.format(prefix_bin_path=prefix_bin_path), shell)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_PS1(shell, bash_profile):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -419,7 +420,6 @@ def test_PS1(shell, bash_profile):
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
 
-@pytest.mark.slow
 def test_PS1_no_changeps1(shell, bash_profile):
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
@@ -474,7 +474,7 @@ def test_PS1_no_changeps1(shell, bash_profile):
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_CONDA_DEFAULT_ENV(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -546,7 +546,8 @@ def test_CONDA_DEFAULT_ENV(shell):
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, '', stderr)
 
-@pytest.mark.slow
+
+@pytest.mark.installed
 def test_activate_from_env(shell):
     """Tests whether the activate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
