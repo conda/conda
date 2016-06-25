@@ -467,3 +467,17 @@ def test_shortcut_absent_does_not_barf_on_uninstall():
 
         # make sure that cleanup does not barf trying to remove non-existent shortcuts
         check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+
+
+def test_symlinks_created_with_env():
+    bindir = 'Scripts' if on_win else 'bin'
+
+    with TemporaryDirectory() as tmp:
+        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "python=2.7"])
+        assert isfile(join(tmp, 'conda', bindir, 'activate'))
+        assert isfile(join(tmp, 'conda', bindir, 'deactivate'))
+        assert isfile(join(tmp, 'conda', bindir, 'conda'))
+        if on_win:
+            assert isfile(join(tmp, 'conda', bindir, 'activate.bat'))
+            assert isfile(join(tmp, 'conda', bindir, 'deactivate.bat'))
+            assert isfile(join(tmp, 'conda', bindir, 'conda.bat'))
