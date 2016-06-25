@@ -260,8 +260,8 @@ class IntegrationTests(TestCase):
                 os.makedirs(subchan)
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
-                with open(join(subchan, 'repodata.json'), 'w') as f:
-                    f.write(json.dumps(repodata))
+                with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
+                    f.write(json.dumps(repodata).encode('utf-8'))
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
