@@ -42,7 +42,7 @@ import tarfile
 import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
-                     join, relpath, normpath)
+                     join, normpath)
 
 
 on_win = bool(sys.platform == "win32")
@@ -963,28 +963,9 @@ def is_linked(prefix, dist):
     return load_meta(prefix, dist)
 
 
-def _get_trash_dir(pkg_dir):
-    unc_prefix = u'\\\\?\\' if on_win else ''
-    return unc_prefix + join(pkg_dir, '.trash')
-
-
-def _safe_relpath(path, start_path):
-    """
-    Used in the move_to_trash flow. Ensures that the result does not
-    start with any '..' which would allow to escape the trash folder
-    (and root prefix) and potentially ruin the user's system.
-    """
-    result = normpath(relpath(path, start_path))
-    parts = result.rsplit(os.sep)
-    for idx, part in enumerate(parts):
-        if part != u'..':
-            return os.sep.join(parts[idx:])
-    return u''
-
-
 def delete_trash(prefix=None):
     for pkg_dir in pkgs_dirs:
-        trash_dir = _get_trash_dir(pkg_dir)
+        trash_dir = join(pkg_dir, '.trash')
         try:
             log.debug("Trying to delete the trash dir %s" % trash_dir)
             rm_rf(trash_dir, max_retries=1, trash=False)
@@ -1009,11 +990,10 @@ def move_path_to_trash(path):
     """
     # Try deleting the trash every time we use it.
     delete_trash()
-    from conda.config import root_dir
+    import tempfile
 
     for pkg_dir in pkgs_dirs:
-        import tempfile
-        trash_dir = _get_trash_dir(pkg_dir)
+        trash_dir = join(pkg_dir, '.trash')
 
         try:
             os.makedirs(trash_dir)
@@ -1021,25 +1001,17 @@ def move_path_to_trash(path):
             if e1.errno != errno.EEXIST:
                 continue
 
-        trash_dir = tempfile.mkdtemp(dir=trash_dir)
-        trash_dir = join(trash_dir, _safe_relpath(os.path.dirname(path), root_dir))
+        trash_file = tempfile.mktemp(dir=trash_dir)
 
         try:
-            os.makedirs(trash_dir)
-        except OSError as e2:
-            if e2.errno != errno.EEXIST:
-                continue
-
-        try:
-            shutil.move(path, trash_dir)
+            shutil.move(path, trash_file)
         except OSError as e:
-            log.debug("Could not move %s to %s (%s)" % (path, trash_dir, e))
+            log.debug("Could not move %s to %s (%s)" % (path, trash_file, e))
         else:
             delete_linked_data_any(path)
-            return True
+            return trash_file
 
     log.debug("Could not move %s to trash" % path)
-    return False
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
