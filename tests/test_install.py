@@ -112,28 +112,6 @@ class FileTests(unittest.TestCase):
                 b'\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0'
             )
 
-    def test_trash_long_paths(self):
-        pkg_dir = config.pkgs_dirs[0]
-        longfoldername="trash_with_a_very_very_long_and_silly_name_indeed"
-        tmpdir=pkg_dir
-        for i in range(8):
-            tmpdir = join(tmpdir, longfoldername)
-            if not i:
-                toptmpdir = tmpdir
-        tmpfile = join(tmpdir, 'tempfile')
-        makedirs(tmpdir)
-        with open(tmpfile, 'w') as fo:
-            fo.write('trashy')
-        delete_trash(config.pkgs_dirs[0])
-        delete_trash(config.pkgs_dirs[0])
-        dest = move_path_to_trash(toptmpdir)
-        assert dest is not None
-        assert not exists(tmpfile)
-        assert exists(dest)
-        delete_trash(config.pkgs_dirs[0])
-        delete_trash(config.pkgs_dirs[0])
-        assert not exists(dest)
-
     def test_trash_outside_prefix(self):
         from conda.config import root_dir
         tmp_dir = tempfile.mkdtemp()
