@@ -14,7 +14,7 @@ from conda import install, config
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, duplicates_to_remove, dist2quad,
                            dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
-                           delete_trash, move_path_to_trash, _get_trash_dir, on_win)
+                           delete_trash, move_path_to_trash, on_win)
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
@@ -111,30 +111,6 @@ class FileTests(unittest.TestCase):
                 data,
                 b'\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0'
             )
-
-    def test_trash_long_paths(self):
-        unc_prefix = u'\\\\?\\' if platform == 'win32' else ''
-        pkg_dir = config.pkgs_dirs[0]
-        longfoldername="trash_with_a_very_very_long_and_silly_name_indeed"
-        tmpdir=pkg_dir
-        for i in range(6):
-            tmpdir = join(tmpdir, longfoldername)
-            if not i:
-                toptmpdir = tmpdir
-        tmpfile = join(tmpdir, self.tmpfname)
-        makedirs(unc_prefix + tmpdir)
-        with open(unc_prefix + tmpfile, 'w') as fo:
-            fo.write('trashy')
-        delete_trash(config.pkgs_dirs[0])
-        delete_trash(config.pkgs_dirs[0])
-        move_path_to_trash(toptmpdir)
-        trash = _get_trash_dir(config.pkgs_dirs[0])
-        contents = [basename(dp) for dp, dn, fn in walk(trash)]
-        self.assertIn(longfoldername, contents)
-        delete_trash(config.pkgs_dirs[0])
-        delete_trash(config.pkgs_dirs[0])
-        contents = [basename(dp) for dp, dn, fn in walk(trash)]
-        self.assertTrue(longfoldername not in contents)
 
     def test_trash_outside_prefix(self):
         from conda.config import root_dir
