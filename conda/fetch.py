@@ -24,7 +24,8 @@ from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
                      ssl_verify, rc, prioritize_channels, url_channel)
 from .connection import CondaSession, unparse_url, RETRIES
-from .install import add_cached_package, find_new_location, package_cache, dist2pair
+from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
+                      rm_rf, exp_backoff_fn)
 from .lock import Locked
 from .utils import memoized
 
@@ -366,6 +367,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
     if retries is None:
         retries = RETRIES
     with Locked(dst_dir):
+
+        rm_rf(dst_path)
+
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
@@ -447,7 +451,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
                                % (url, h.hexdigest(), md5))
 
         try:
-            os.rename(pp, dst_path)
+            exp_backoff_fn(os.rename, pp, dst_path)
         except OSError as e:
             raise RuntimeError("Could not rename %r to %r: %r" %
                                (pp, dst_path, e))
