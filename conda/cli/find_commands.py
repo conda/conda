@@ -2,7 +2,6 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import re
-import subprocess
 import sys
 from os.path import isdir, isfile, join, expanduser
 
@@ -62,33 +61,3 @@ def find_commands(include_others=True):
             if m:
                 res.add(m.group(1))
     return sorted(res)
-
-
-def filter_descr(cmd):
-    args = [find_executable('conda-' + cmd), '--help']
-    if not args[0]:
-        print('failed: %s (could not find executable)' % (cmd))
-        return
-    try:
-        output = subprocess.check_output(args)
-    except (OSError, subprocess.CalledProcessError):
-        print('failed: %s' % (' '.join(args)))
-        return
-    pat = re.compile(r'(\r?\n){2}(.*?)(\r?\n){2}', re.DOTALL)
-    m = pat.search(output.decode('utf-8'))
-    descr = ['<could not extract description>'] if m is None else m.group(2).splitlines()
-    # XXX: using some stuff from textwrap would be better here, as it gets
-    # longer than 80 characters
-    print('    %-12s %s' % (cmd, descr[0]))
-    for d in descr[1:]:
-        print('                 %s' % d)
-
-
-def help():
-    print("\nother commands:")
-    for cmd in find_commands():
-        filter_descr(cmd)
-
-
-if __name__ == '__main__':
-    help()
