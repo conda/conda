@@ -29,14 +29,15 @@ def get_site_packages_dir(installed_pkgs):
 
 def get_egg_info_files(sp_dir):
     for fn in os.listdir(sp_dir):
-        if not fn.endswith(('.egg', '.egg-info')):
+        if not fn.endswith(('.egg', '.egg-info', '.dist-info')):
             continue
         path = join(sp_dir, fn)
         if isfile(path):
             yield path
         elif isdir(path):
             for path2 in [join(path, 'PKG-INFO'),
-                          join(path, 'EGG-INFO', 'PKG-INFO')]:
+                          join(path, 'EGG-INFO', 'PKG-INFO'),
+                          join(path, 'METADATA')]:
                 if isfile(path2):
                     yield path2
 
@@ -54,7 +55,7 @@ def parse_egg_info(path):
             key = m.group(1).lower()
             info[key] = m.group(2)
         try:
-            return '%(name)s-%(version)s-<egg_info>' % info
+            return '%(name)s-%(version)s-<pip>' % info
         except KeyError:
             pass
     return None
