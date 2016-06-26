@@ -240,7 +240,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.timeout(300)
     def test_list_with_pip_wheel(self):
         with make_temp_env("python=3 pip") as prefix:
-            check_call(PYTHON_BINARY + " -m pip install --only-binary flask flask==0.10.1",
+            check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
