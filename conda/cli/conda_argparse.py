@@ -158,8 +158,10 @@ Error: You need to install conda-build in order to use the 'conda %s'
         super(ArgumentParser, self).print_help()
 
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
-            from .find_commands import help
-            help()
+            print("""
+other commands, such as "conda build", are avaialble when additional conda
+packages (e.g. conda-build) are installed
+""")
 
     def parse_args(self, *args, **kwargs):
         if argcomplete:
