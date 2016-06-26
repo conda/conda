@@ -230,11 +230,21 @@ class IntegrationTests(TestCase):
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:
-            check_call(PYTHON_BINARY + " -m pip install --egg --no-use-wheel flask==0.10.1",
+            check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<egg_info>") for line in stdout_lines
+            assert any(line.endswith("<pip>") for line in stdout_lines
+                       if line.lower().startswith("flask"))
+
+    @pytest.mark.timeout(300)
+    def test_list_with_pip_wheel(self):
+        with make_temp_env("python=3 pip") as prefix:
+            check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
+                       cwd=prefix, shell=True)
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            assert any(line.endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
     @pytest.mark.timeout(300)
