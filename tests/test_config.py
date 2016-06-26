@@ -240,8 +240,8 @@ channel_alias: http://alpha.conda.anaconda.org
 --set always_yes True
 --set changeps1 False
 --set channel_alias http://alpha.conda.anaconda.org
---add channels 'defaults'
---add channels 'test'
+--add channels 'defaults'   # lowest priority
+--add channels 'test'   # highest priority
 --add create_default_packages 'numpy'
 --add create_default_packages 'ipython'\
 """
@@ -251,8 +251,8 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'channels')
 
         assert stdout == """\
---add channels 'defaults'
---add channels 'test'\
+--add channels 'defaults'   # lowest priority
+--add channels 'test'   # highest priority\
 """
         assert stderr == ""
 
@@ -269,8 +269,8 @@ channel_alias: http://alpha.conda.anaconda.org
 
         assert stdout == """\
 --set changeps1 False
---add channels 'defaults'
---add channels 'test'\
+--add channels 'defaults'   # lowest priority
+--add channels 'test'   # highest priority\
 """
         assert stderr == ""
 
@@ -326,12 +326,12 @@ always_yes: yes
 
     with make_temp_condarc(condarc) as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--get')
-
+        print(stdout)
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
---add channels 'defaults'
---add channels 'test'
+--add channels 'defaults'   # lowest priority
+--add channels 'test'   # highest priority
 --add create_default_packages 'numpy'
 --add create_default_packages 'ipython'\
 """
