@@ -76,13 +76,50 @@ Requirements
 * pyyaml
 * requests
 
-What's new in conda 4.1.0?
---------------------------
+What's new in conda 4.1?
+------------------------
 
 This release contains many small bug fixes for all operating systems, and a few 
 special fixes for Windows behavior. The 
 `changelog <https://github.com/conda/conda/releases/tag/4.1.0>`_ contains a 
 complete list of changes. 
+
+**Notable changes for all systems Windows, OS X and Linux:**
+
+* **Channel order now matters.** The most significant conda change is that 
+  when you add channels, channel order matters. If you have a list of channels 
+  in a .condarc file, conda installs the package from the first channel where 
+  it's available, even if it's available in a later channel with a higher 
+  version number.
+* **No version downgrades.** Conda remove no longer performs version 
+  downgrades on any remaining packages that might be suggested to resolve 
+  dependency losses; the package will just be removed instead.
+* **New YAML parser/emitter.** PyYAML is replaced with ruamel.yaml, 
+  which gives more robust control over yaml document use. 
+  `More on ruamel.yaml <http://yaml.readthedocs.io/en/latest/>`_
+* **Shebang lines over 127 characters are now truncated (Linux, OS X 
+  only).** `Shebangs <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_ are
+  the first line of the many executable scripts that tell the operating 
+  system how to execute the program.  They start with ``#!``. Most OSes
+  don't support these lines over 127 characters, so conda now checks 
+  the length and replaces the full interpreter path in long lines with 
+  ``/usr/bin/env``. When you're working in a conda environment that
+  is deeply under many directories, or you otherwise have long paths
+  to your conda environment, make sure you activate that environment
+  now.
+* **Changes to conda list command.** When looking for packages that 
+  aren’t installed with conda, conda list now examines the Python 
+  site-packages directory rather than relying on pip.
+* **Changes to conda remove command.** The command  ``conda remove --all`` 
+  now removes a conda environment without fetching information from a remote 
+  server on the packages in the environment.
+* **Conda update can be turned off and on.** When turned off, conda will 
+  not update itself unless the user manually issues a conda update command. 
+  Previously conda updated any time a user updated or installed a package 
+  in the root environment. Use the option ``conda config set auto_update_conda false``.
+* **Improved support for BeeGFS.** BeeGFS is a parallel cluster file 
+  system for performance and designed for easy installation and 
+  management. `More on BeeGFS <http://www.beegfs.com/content/documentation/>`_
 
 **Windows-only changes include:**
 
@@ -100,39 +137,7 @@ complete list of changes.
   in binaries, and was already relocatable. We skip binary replacement on 
   Windows.
 
-**Notable changes for all systems Windows, OS X and Linux:**
 
-* **Channel order now matters.** The most significant conda change is that 
-  when you add channels, channel order matters. If you have a list of channels 
-  in a .condarc file, conda installs the package from the first channel where 
-  it's available, even if it's available in a later channel with a higher 
-  version number.
-* **No version downgrades.** Conda remove no longer performs version 
-  downgrades on any remaining packages that might be suggested to resolve 
-  dependency losses; the package will just be removed instead.
-* **New YAML parser/emitter.** PyYAML is replaced with Ruamel.yaml, 
-  which gives more robust control over yaml document use. 
-  `More on Ruamel <http://yaml.readthedocs.io/en/latest/pyyaml.html>`_
-* **Script paths over 127 characters are now truncated (Linux, OS X 
-  only).** For each package in an environment, conda creates a script 
-  in that environment, and the first line of the script consists of "#!" 
-  and the path to that environment’s Python interpreter. When these lines 
-  were over 127 characters some errors were reported, so conda now checks 
-  the length and replaces long lines with "#! /usr/bin/env python", which 
-  uses the version of Python that comes first in the PATH variable. 
-* **Changes to conda list command.** When looking for packages that 
-  aren’t installed with conda, conda list now examines the Python 
-  site-packages directory rather than relying on pip.
-* **Changes to conda remove command.** The command  ``conda remove --all`` 
-  now removes a conda environment without fetching information from a remote 
-  server on the packages in the environment.
-* **Conda update can be turned off and on.** When turned off, conda will 
-  not update itself unless the user manually issues a conda update command. 
-  Previously conda updated any time a user updated or installed a package 
-  in the root environment. Use the option ``conda config set auto_update_conda false``.
-* **Improved support for BeeGFS.** BeeGFS is a parallel cluster file 
-  system for performance and designed for very easy installation and 
-  management. `More on BeeGFS <http://www.beegfs.com/content/documentation/>`_
 
 See the `changelog <https://github.com/conda/conda/releases/tag/4.1.0>`_ for 
 a complete list of changes. 
