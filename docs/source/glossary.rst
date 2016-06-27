@@ -5,7 +5,7 @@ Glossary
 Please see also the :doc:`/using/cheatsheet`.
 
 .condarc: 
-  Conda Runtime Configuration file, an OPTIONAL YAML file which allows users to configure many aspects of conda, such as which channels it searches for packages, proxy settings, environment directories, etc. A .condarc file is not included by default, but when you use the ‘conda config’ command it is automatically created in the user’s home directory. The .condarc file can also be located in a root environment, in which case it overrides any in the home directory.  See :doc:`conda configuration </config>` documentation for more information. 
+  Conda Runtime Configuration file, an optional YAML file which allows users to configure many aspects of conda, such as which channels it searches for packages, proxy settings, environment directories, etc. A .condarc file is not included by default, but when you use the ‘conda config’ command it is automatically created in the user’s home directory. The .condarc file can also be located in a root environment, in which case it overrides any in the home directory.  See :doc:`conda configuration </config>` documentation for more information. 
 
 Activate/deactivate environment: 
   Conda commands used to switch or move between installed environments. Activate prepends the path of your current environment to PATH environment variable so you do not need to type it each time, and deactivate removes it. Even when an environment is not activated, programs in that environment can still be executed by specifying their path directly, as in ‘~/anaconda/envs/envname/bin/program_name’. When an environment is activated, you can just use ‘program_name’.
@@ -24,9 +24,6 @@ Channels:
 
 Conda: 
   The package and environment manager program bundled with Anaconda that installs and updates conda packages and their dependencies. Also lets you easily switch between conda environments on your local computer.
-
-Conda configuration file (or .condarc): 
-  An optional runtime configuration YAML file which allows users to configure many aspects of conda, such as which channels it searches for packages, proxy settings, environment directories, etc. A .condarc file is not included by default, but when you use the ‘conda config’ command it is automatically created in the user’s home directory. The .condarc file can also be located in a root environment, in which case it overrides any in the home directory.  See :doc:`conda configuration </config>` documentation for more information. 
 
 Conda environment:  
   A folder or directory that contains a specific collection of conda packages and their dependencies, so they can be maintained and run separately without interference from each other. For example, you may use one conda environment for only Python 2 and Python 2 packages, maintain another conda environment with only Python 3 and Python 3 packages, and another for R language packages. Environments can be created via the command line or via an environment specification file with the name your-environment-name.yml, or from the graphical user interface of Anaconda Navigator.
