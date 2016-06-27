@@ -182,7 +182,7 @@ def find_lock():
         if not os.path.exists(dir):
             continue
         for dn in os.listdir(dir):
-            if os.path.isdir(join(dir, dn)) and dn.startswith(LOCKFN):
+            if os.path.isdir(join(dir, dn)) and dn.endswith(LOCKFN):
                 path = join(dir, dn)
                 yield path
 
