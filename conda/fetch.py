@@ -373,7 +373,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
 
     with FileLock(dst_path):
         rm_rf(dst_path)
-
         try:
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
             resp.raise_for_status()
