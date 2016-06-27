@@ -30,7 +30,7 @@ install:
   - pip install psutil ruamel.yaml pycosat pycrypto requests
   - pip install flake8 pytest pytest-cov mock
   - pip install auxlib pytest-timeout radon responses
-
+  - pip install click
 script:
   - bash ./utils/travis-run-script.sh
 
