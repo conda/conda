@@ -86,6 +86,9 @@ def main():
         metavar='command',
         dest='cmd',
     )
+    # http://bugs.python.org/issue9253
+    # http://stackoverflow.com/a/18283730/1599393
+    sub_parsers.required = True
 
     main_modules = ["info", "help", "list", "search", "create", "install", "update",
                     "remove", "config", "clean"]
