@@ -28,7 +28,7 @@ from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
 from .connection import CondaSession, unparse_url, RETRIES
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
                       rm_rf, exp_backoff_fn)
-from .lock import Locked
+from .lock import FileLock as Locked
 from .utils import memoized
 from .exceptions import ProxyError, ChannelNotAllowed
 
@@ -371,7 +371,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
 
     if retries is None:
         retries = RETRIES
-    with Locked(dst_dir):
+    with Locked(join(dst_dir, url.rsplit("/", 1)[1][:-8])):
 
         rm_rf(dst_path)
 
