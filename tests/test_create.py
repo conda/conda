@@ -1,25 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+import bz2
 import json
 import os
+import pytest
 import sys
-import bz2
 from contextlib import contextmanager
 from glob import glob
+from json import loads as json_loads
 from logging import getLogger, Handler
-from os.path import exists, isdir, isfile, join, relpath, basename
+from os.path import exists, isdir, isfile, join, relpath, basename, islink
+from requests import Session
+from requests.adapters import BaseAdapter
 from shlex import split
 from shutil import rmtree, copyfile
-from subprocess import check_call, Popen, PIPE
+from subprocess import check_call
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
-from json import loads as json_loads
-
-import pytest
-from requests import Session
-from requests.adapters import BaseAdapter
 
 from conda import config
 from conda.cli import conda_argparse
@@ -30,10 +29,10 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.compat import PY3, TemporaryDirectory, itervalues
+from conda.compat import itervalues
 from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
-from conda.install import linked as install_linked, linked_data_, dist2dirname, package_cache
+from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win, linked_data
 from conda.utils import url_path
 from tests.helpers import captured
@@ -300,21 +299,25 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.')
 
     @pytest.mark.timeout(600)
-    def test_install_python2(self):
+    def test_install_python2_and_env_symlinks(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
 
             # test symlinks created with env
             bindir = 'Scripts' if on_win else 'bin'
-            assert isfile(join(prefix, bindir, 'activate'))
-            assert isfile(join(prefix, bindir, 'deactivate'))
-            assert isfile(join(prefix, bindir, 'conda'))
+            print(os.listdir(join(prefix, bindir)))
             if on_win:
+                assert isfile(join(prefix, bindir, 'activate'))
+                assert isfile(join(prefix, bindir, 'deactivate'))
+                assert isfile(join(prefix, bindir, 'conda'))
                 assert isfile(join(prefix, bindir, 'activate.bat'))
                 assert isfile(join(prefix, bindir, 'deactivate.bat'))
                 assert isfile(join(prefix, bindir, 'conda.bat'))
-
+            else:
+                assert islink(join(prefix, bindir, 'activate'))
+                assert islink(join(prefix, bindir, 'deactivate'))
+                assert islink(join(prefix, bindir, 'conda'))
 
     @pytest.mark.timeout(300)
     def test_remove_all(self):
