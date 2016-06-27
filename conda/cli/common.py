@@ -17,7 +17,7 @@ from ..resolve import MatchSpec
 from ..utils import memoize
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
                           CondaValueError, CondaFileIOError, TooFewArgumentsError,
-                          CondaException)
+                          CondaError)
 
 class Completer(object):
     """
@@ -592,7 +592,7 @@ def get_index_trap(*args, **kwargs):
         return get_index(*args, **kwargs)
     except BaseException as e:
         if json:
-            raise CondaException(e, json)
+            raise CondaError(e, json)
         else:
             raise
 

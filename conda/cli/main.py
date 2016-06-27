@@ -39,9 +39,10 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import importlib
-from ..exceptions import CommandNotFoundError, CondaRuntimeError, CondaException
+from ..exceptions import CommandNotFoundError, CondaRuntimeError, CondaError
 
-def main():
+
+def _main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
         if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
@@ -127,6 +128,14 @@ def main():
         return exit_code
 
 
+def main():
+    try:
+        return _main()
+    except CondaError as e:
+        print(repr(e), file=sys.stderr)
+        return 1
+
+
 def args_func(args, p):
     from conda.cli import common
 
@@ -138,7 +147,7 @@ def args_func(args, p):
     except RuntimeError as e:
         raise CondaRuntimeError(e, use_json)
     except Exception as e:
-        raise CondaException(e, use_json)
+        raise CondaError(e, use_json)
 
 
 if __name__ == '__main__':
