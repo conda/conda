@@ -28,9 +28,10 @@ LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
 # programs can look for it.
-LOCKSTR = """
+
+LOCKSTR = """\
 LOCKERROR: It looks like conda is already doing something.
-The lock {0} was found. Wait for it to finish before continuing.
+The lock %s was found. Wait for it to finish before continuing.
 If you are sure that conda is not running, remove it and try again.
 You can also use: $ conda clean --lock
 """
@@ -72,7 +73,6 @@ class FileLock(object):
         last_glob_match = None
 
         for _ in range(self.retries + 1):
-
             # search, whether there is process already locked on this file
             glob_result = glob(self.lock_file_glob_str)
             if glob_result:
@@ -80,8 +80,6 @@ class FileLock(object):
                 log.debug("Sleeping for %s seconds\n" % sleep_time)
 
                 time.sleep(sleep_time / 10)
-                sleep_time *= 2
-                last_glob_match = glob_result
             else:
                 touch(self.lock_file_path)
                 return self
@@ -114,6 +112,5 @@ class DirectoryLock(FileLock):
         assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
         assert os.access(self.directory_path,
                          os.W_OK), "{0} not writable".format(self.directory_path)
-
 
 Locked = DirectoryLock

@@ -774,6 +774,7 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
+
     path = fname[:-8]
     with FileLock(path):
         temp_path = path + '.tmp'
