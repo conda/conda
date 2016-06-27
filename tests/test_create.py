@@ -50,10 +50,8 @@ def make_temp_prefix(name=None):
     tempdir = gettempdir()
     dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
-    if exists(prefix):
-        # rm here because create complains if directory exists
-        rmtree(prefix)
-    assert isdir(tempdir)
+    os.makedirs(prefix)
+    assert isdir(prefix)
     return prefix
 
 
@@ -519,3 +517,4 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
+
