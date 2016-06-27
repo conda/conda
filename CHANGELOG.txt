@@ -10,6 +10,24 @@
   * remove excess output from conda --help, #2872
 
 
+2016-06-27   4.1.4:
+-------------------
+  * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859
+  * fix exp backoff on Windows, #2860
+  * fix #2845 URL for local file repos, #2862
+  * fix #2764 restore full path var on win; create to CONDA_PREFIX env var, #2848
+  * fix #2754 improve listing pip installed packages, #2873
+  * address #2841 add lowest and highest priority indication to channel config output, #2875
+  * add SYMLINK_CONDA to planned instructions, #2861
+  * use CONDA_PREFIX, not CONDA_DEFAULT_ENV for activate.d, #2856
+  * call scripts with redirect on win; more error checking to activate, #2852
+
+
+2016-06-27  4.0.10:
+-------------------
+  * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859 via #2878
+
+
 2016-06-23   4.1.3:
 -------------------
   * ensure conda-env auto update, along with conda, #2772
@@ -57,6 +75,11 @@
   * fix #2700 conda list UnicodeDecodeError, #2706
 
 
+2016-06-15  4.0.9:
+------------------
+  * add auto_update_conda config parameter, #2686
+
+
 2016-06-14   4.1.0:
 -------------------
   * clean up activate and deactivate scripts, moving back to conda repo, #1727,
@@ -91,11 +114,6 @@
   * allow track_features to be a string *or* a list in .condarc, #2541
   * fix #2415 infinite recursion in invalid_chains, #2566
   * allow channel_alias to be different than binstar, #2564
-
-
-2016-06-15  4.0.9:
-------------------
-  * add auto_update_conda config parameter, #2686
 
 
 2016-06-03   4.0.8:

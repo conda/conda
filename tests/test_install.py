@@ -1,21 +1,18 @@
-from contextlib import contextmanager
+import pytest
 import random
 import shutil
 import stat
 import tempfile
 import unittest
-from sys import platform
+from contextlib import contextmanager
+from os import makedirs
 from os.path import join, basename, relpath, exists
-from os import makedirs, walk
 
-import pytest
-
-from conda import install, config
+from conda import install
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, duplicates_to_remove, dist2quad,
                            dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
-                           delete_trash, move_path_to_trash, on_win)
-
+                           move_path_to_trash, on_win)
 from .decorators import skip_if_no_mock
 from .helpers import mock
 

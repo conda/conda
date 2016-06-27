@@ -16,7 +16,7 @@ from .install import (name_dist, linked as install_linked, is_fetched, is_extrac
 from .compat import iteritems, itervalues
 from .config import is_url, url_channel, root_dir, envs_dirs, subdir
 from .fetch import fetch_index
-from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
+from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, url_path as utils_url_path
@@ -42,7 +42,7 @@ url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
 def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, index=None):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
+    actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
     linked = {name_dist(dist): dist for dist in install_linked(prefix)}
     fetch_args = fetch_args or {}
     index = index or {}

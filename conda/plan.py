@@ -267,10 +267,13 @@ def plan_from_actions(actions):
                         pkgs.append(pkg)
                 actions[op] = pkgs
 
+    log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
         if op not in actions:
+            log.debug("action {0} not in actions".format(op))
             continue
         if not actions[op]:
+            log.debug("action {0} has None value".format(op))
             continue
         if '_' not in op:
             res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
@@ -279,6 +282,7 @@ def plan_from_actions(actions):
         if op in inst.progress_cmds:
             res.append((inst.PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
+            log.debug("appending value {0} for action {1}".format(arg, op))
             res.append((op, arg))
 
     return res
@@ -291,7 +295,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.EXTRACT, inst.UNLINK, inst.LINK)
+                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
     for dist in dists:
         fetched_in = is_fetched(dist)
         extracted_in = is_extracted(dist)

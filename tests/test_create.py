@@ -230,11 +230,21 @@ class IntegrationTests(TestCase):
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:
-            check_call(PYTHON_BINARY + " -m pip install --egg --no-use-wheel flask==0.10.1",
+            check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<egg_info>") for line in stdout_lines
+            assert any(line.endswith("<pip>") for line in stdout_lines
+                       if line.lower().startswith("flask"))
+
+    @pytest.mark.timeout(300)
+    def test_list_with_pip_wheel(self):
+        with make_temp_env("python=3 pip") as prefix:
+            check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
+                       cwd=prefix, shell=True)
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            assert any(line.endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
     @pytest.mark.timeout(300)
@@ -260,8 +270,8 @@ class IntegrationTests(TestCase):
                 os.makedirs(subchan)
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
-                with open(join(subchan, 'repodata.json'), 'w') as f:
-                    f.write(json.dumps(repodata))
+                with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
+                    f.write(json.dumps(repodata).encode('utf-8'))
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
@@ -471,3 +481,17 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
+
+
+def test_symlinks_created_with_env():
+    bindir = 'Scripts' if on_win else 'bin'
+
+    with TemporaryDirectory() as tmp:
+        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "python=2.7"])
+        assert isfile(join(tmp, 'conda', bindir, 'activate'))
+        assert isfile(join(tmp, 'conda', bindir, 'deactivate'))
+        assert isfile(join(tmp, 'conda', bindir, 'conda'))
+        if on_win:
+            assert isfile(join(tmp, 'conda', bindir, 'activate.bat'))
+            assert isfile(join(tmp, 'conda', bindir, 'deactivate.bat'))
+            assert isfile(join(tmp, 'conda', bindir, 'conda.bat'))
