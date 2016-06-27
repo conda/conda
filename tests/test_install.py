@@ -324,7 +324,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path)
+                install.rm_rf(some_path, trash=False)
         self.assertEqual(6, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -334,7 +334,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path, max_retries=max_retries)
+                install.rm_rf(some_path, max_retries=max_retries, trash=False)
         self.assertEqual(max_retries + 1, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -342,7 +342,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = [OSError, OSError, None]
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            install.rm_rf(some_path, trash=False)
         self.assertEqual(3, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -352,7 +352,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
                 install.rm_rf(self.generate_random_path,
-                              max_retries=max_retries)
+                              max_retries=max_retries, trash=False)
 
         expected = [mock.call(i) for i in range(max_retries)]
         mocks['sleep'].assert_has_calls(expected)
@@ -364,7 +364,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError(random_path)
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
-                install.rm_rf(random_path, max_retries=max_retries)
+                install.rm_rf(random_path, max_retries=max_retries, trash=False)
 
         log_template = "\n".join([
             "Unable to delete %s" % random_path,
@@ -381,7 +381,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks(on_win=True) as mocks:
             random_path = self.generate_random_path
             mocks['rmtree'].side_effect = [OSError, None]
-            install.rm_rf(random_path)
+            install.rm_rf(random_path, trash=False)
 
         expected_call_list = [
             mock.call(random_path, ignore_errors=False, onerror=warn_failed_remove),
