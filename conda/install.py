@@ -39,6 +39,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
