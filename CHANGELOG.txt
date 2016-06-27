@@ -1,3 +1,15 @@
+2016-07-XX   4.2.0 (unreleased):
+--------------------------------
+  * remove conda init, #2759
+  * remove conda package and conda bundle, #2760
+  * remove support for ftp:// repos, #2776
+  * force use of ruamel_yaml, #2762
+  * remove dead code, #2761
+  * exit on link error instead of logging it, #2639
+  * clean up requests usage for fetching packages, #2755
+  * remove excess output from conda --help, #2872
+
+
 2016-06-23   4.1.3:
 -------------------
   * ensure conda-env auto update, along with conda, #2772
