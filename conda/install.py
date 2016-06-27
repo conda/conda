@@ -786,6 +786,7 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[url_path(fname)]
+
         with Locked(fname):
             rm_rf(fname)
     for fname in rec['dirs']:
@@ -839,6 +840,7 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
+
     path = fname[:-8]
     with Locked(path):
         temp_path = path + '.tmp'
@@ -1109,7 +1111,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(prefix):
+    with Locked(join(prefix, dist)):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
