@@ -16,21 +16,23 @@ globally (such as downloading packages).
 We don't raise an error if the lock is named with the current PID
 """
 from __future__ import absolute_import, division, print_function
-import logging
+
 import os
+import logging
 import time
 from glob import glob
 from os.path import abspath, isdir, dirname
 from .compat import range
 from .exceptions import LockError
-
 LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
 # programs can look for it.
-LOCKSTR = """
+
+LOCKSTR = """\
 LOCKERROR: It looks like conda is already doing something.
-The lock {0} was found. Wait for it to finish before continuing.
+The lock %s was found. Wait for it to finish before continuing.
+>>>>>>> change test case and refactor filelock
 If you are sure that conda is not running, remove it and try again.
 You can also use: $ conda clean --lock
 """
@@ -53,6 +55,7 @@ class FileLock(object):
     """
     Context manager to handle locks.
     """
+
     def __init__(self, file_path, retries=10):
         """
         :param file_path: The file or directory to be locked
@@ -65,7 +68,6 @@ class FileLock(object):
     def __enter__(self):
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
         assert "::" not in self.file_path, self.file_path
-
         sleep_time = 1
         self.lock_path = "{0}.pid{1}.{2}".format(self.file_path, os.getpid(), LOCK_EXTENSION)
         lock_glob_str = "{0}.pid*.{1}".format(self.file_path, LOCK_EXTENSION)
@@ -94,7 +96,3 @@ class FileLock(object):
         rm_rf(self.lock_path)
 
 
-def Locked(*args, **kwargs):
-    from warnings import warn
-    warn("Locked class has been deprecated as FileLock!")
-    return FileLock(*args, **kwargs)
