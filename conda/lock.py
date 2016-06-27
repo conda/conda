@@ -28,9 +28,10 @@ LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
 # programs can look for it.
-LOCKSTR = """
+
+LOCKSTR = """\
 LOCKERROR: It looks like conda is already doing something.
-The lock {0} was found. Wait for it to finish before continuing.
+The lock %s was found. Wait for it to finish before continuing.
 If you are sure that conda is not running, remove it and try again.
 You can also use: $ conda clean --lock
 """
@@ -65,11 +66,11 @@ class FileLock(object):
     def __enter__(self):
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
         assert "::" not in self.file_path, self.file_path
-
         sleep_time = 1
         self.lock_path = "{0}.pid{1}.{2}".format(self.file_path, os.getpid(), LOCK_EXTENSION)
         lock_glob_str = "{0}.pid*.{1}".format(self.file_path, LOCK_EXTENSION)
         last_glob_match = None
+
 
         for q in range(self.retries + 1):
 
@@ -80,14 +81,13 @@ class FileLock(object):
                 log.debug("Sleeping for %s seconds\n" % sleep_time)
 
                 time.sleep(sleep_time / 10)
-                sleep_time *= 2
-                last_glob_match = glob_result
             else:
                 touch(self.lock_path)
                 return self
 
         stdoutlog.error("Exceeded max retries, giving up")
         raise LockError(LOCKSTR.format(last_glob_match))
+
 
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
@@ -98,3 +98,4 @@ def Locked(*args, **kwargs):
     from warnings import warn
     warn("Locked class has been deprecated as FileLock!")
     return FileLock(*args, **kwargs)
+
