@@ -5,6 +5,7 @@
   * fix #2845 URL for local file repos, #2862
   * fix #2764 restore full path var on win; create to CONDA_PREFIX env var, #2848
   * fix #2754 improve listing pip installed packages, #2873
+  * change root prefix detection to avoid clobbering root activate scripts, #2880
   * address #2841 add lowest and highest priority indication to channel config output, #2875
   * add SYMLINK_CONDA to planned instructions, #2861
   * use CONDA_PREFIX, not CONDA_DEFAULT_ENV for activate.d, #2856
