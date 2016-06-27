@@ -21,6 +21,8 @@ from .exceptions import ProxyError
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
+output_json = False
+
 default_python = '%d.%d' % sys.version_info[:2]
 # CONDA_FORCE_32BIT should only be used when running conda-build (in order
 # to build 32-bit packages on a 64-bit system).  We don't want to mention it

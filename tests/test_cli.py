@@ -4,6 +4,7 @@ import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
 from conda.compat import text_type
+from conda.exceptions import CondaValueError
 
 from tests.helpers import capture_json_with_argv, assert_in
 
@@ -24,7 +25,7 @@ class TestArg2Spec(unittest.TestCase):
         self.assertEqual(arg2spec('numpy >=1.9'), 'numpy >=1.9')
 
     def test_invalid(self):
-        self.assertRaises(SystemExit, arg2spec, '!xyz 1.3')
+        self.assertRaises(CondaValueError, arg2spec, '!xyz 1.3')
 
 
 class TestSpecFromLine(unittest.TestCase):
@@ -41,10 +42,8 @@ class TestSpecFromLine(unittest.TestCase):
         self.assertEqual(spec_from_line('foo'), 'foo')
         self.assertEqual(spec_from_line('foo=1.0'), 'foo 1.0')
         self.assertEqual(spec_from_line('foo=1.0*'), 'foo 1.0*')
-        self.assertEqual(spec_from_line('foo=1!1.0*'), 'foo 1!1.0*')
         self.assertEqual(spec_from_line('foo=1.0|1.2'), 'foo 1.0|1.2')
         self.assertEqual(spec_from_line('foo=1.0=2'), 'foo 1.0 2')
-        self.assertEqual(spec_from_line('foo=1!1.0=2'), 'foo 1!1.0 2')
 
     def test_pip_style(self):
         self.assertEqual(spec_from_line('foo>=1.0'), 'foo >=1.0')
@@ -53,7 +52,6 @@ class TestSpecFromLine(unittest.TestCase):
         self.assertEqual(spec_from_line('foo >= 1.0'), 'foo >=1.0')
         self.assertEqual(spec_from_line('foo > 1.0'), 'foo >1.0')
         self.assertEqual(spec_from_line('foo != 1.0'), 'foo !=1.0')
-        self.assertEqual(spec_from_line('foo != 1!1.0'), 'foo !=1!1.0')
         self.assertEqual(spec_from_line('foo <1.0'), 'foo <1.0')
         self.assertEqual(spec_from_line('foo >=1.0 , < 2.0'), 'foo >=1.0,<2.0')
 
@@ -132,7 +130,7 @@ class TestJson(unittest.TestCase):
         #
         # res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
         #                              '--force', '--json')
-        # self.assertJsonSuccess(res)
+        # self.assertJsonSuccess(res)q
         #
         # res = capture_json_with_argv('conda', 'config', '--remove-key', 'use_pip',
         #                              '--force', '--json')

@@ -354,7 +354,7 @@ environment does not exist: %s
         # Unsatisfiable package specifications/no such revision/import error
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError('', e, args.json)
-        raise CondaException('UnsatisfiableSpecifications', e, args.json)
+        raise CondaError('UnsatisfiableSpecifications', e, args.json)
 
     if nothing_to_do(actions):
         from .main_list import print_packages
