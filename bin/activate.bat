@@ -38,15 +38,20 @@
 @SET "CONDA_PATH_BACKUP=%PATH%"
 @REM Activate the new environment
 @FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "NEW_PATH=%%i"
+@IF errorlevel 1 exit /b 1
 
 @REM take a snapshot of pristine state for later
 @SET "CONDA_PS1_BACKUP=%PROMPT%"
 @FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..changeps1') DO @SET "CHANGE_PROMPT=%%i"
+@IF errorlevel 1 exit /b 1
 
 :: if our prompt var does not contain reference to CONDA_DEFAULT_ENV, set prompt
 @IF "%CHANGE_PROMPT%" == "1" @IF "x%PROMPT:CONDA_DEFAULT_ENV=%" == "x%PROMPT%" (
     SET "PROMPT=(%CONDA_NEW_ENV%) %PROMPT%"
 )
+
+@REM always store the full path to the environment, since CONDA_DEFAULT_ENV varies
+@FOR /F "tokens=1 delims=;" %%i in ("%NEW_PATH%") DO @SET "CONDA_PREFIX=%%i"
 
 @REM This persists env variables, which are otherwise local to this script right now.
 @endlocal & (
@@ -56,10 +61,11 @@
     @SET "PROMPT=%PROMPT%"
     @SET "PATH=%NEW_PATH%;%PATH%"
     @SET "CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%"
+    @SET "CONDA_PREFIX=%CONDA_PREFIX%"
 
     @REM Run any activate scripts
-    @IF EXIST "%CONDA_NEW_ENV%\etc\conda\activate.d" (
-        @PUSHD "%CONDA_NEW_ENV%\etc\conda\activate.d"
+    @IF EXIST "%CONDA_PREFIX%\etc\conda\activate.d" (
+        @PUSHD "%CONDA_PREFIX%\etc\conda\activate.d"
         @FOR %%g in (*.bat) DO @CALL "%%g"
         @POPD
     )

@@ -140,7 +140,7 @@ if on_win:
 
         # bat file redirect
         with open(dst+'.bat', 'w') as f:
-            f.write('@echo off\n"%s" %%*\n' % src)
+            f.write('@echo off\ncall "%s" %%*\n' % src)
 
         # TODO: probably need one here for powershell at some point
 
@@ -227,17 +227,20 @@ def exp_backoff_fn(fn, *args):
     """Mostly for retrying file operations that fail on Windows due to virus scanners"""
     if not on_win:
         return fn(*args)
-    import random
 
+    import random
     max_retries = 5
     for n in range(max_retries):
         try:
             result = fn(*args)
-        except Exception as e:
+        except (OSError, IOError) as e:
             log.debug(repr(e))
-            if n == max_retries-1:
+            if e.errno in (errno.EPERM, errno.EACCES):
+                if n == max_retries-1:
+                    raise
+                time.sleep(((2 ** n) + random.random()) * 1e-3)
+            else:
                 raise
-            time.sleep((2 ** n) + (random.randint(0, 1000) / 1000))
         else:
             return result
 
@@ -992,6 +995,7 @@ def move_path_to_trash(path):
     delete_trash()
     import tempfile
 
+    from conda.config import pkgs_dirs
     for pkg_dir in pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
 
