@@ -305,6 +305,17 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
 
+            # test symlinks created with env
+            bindir = 'Scripts' if on_win else 'bin'
+            assert isfile(join(prefix, bindir, 'activate'))
+            assert isfile(join(prefix, bindir, 'deactivate'))
+            assert isfile(join(prefix, bindir, 'conda'))
+            if on_win:
+                assert isfile(join(prefix, bindir, 'activate.bat'))
+                assert isfile(join(prefix, bindir, 'deactivate.bat'))
+                assert isfile(join(prefix, bindir, 'conda.bat'))
+
+
     @pytest.mark.timeout(300)
     def test_remove_all(self):
         with make_temp_env("python=2") as prefix:
@@ -481,17 +492,3 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
-
-
-def test_symlinks_created_with_env():
-    bindir = 'Scripts' if on_win else 'bin'
-
-    with TemporaryDirectory() as tmp:
-        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "python=2.7"])
-        assert isfile(join(tmp, 'conda', bindir, 'activate'))
-        assert isfile(join(tmp, 'conda', bindir, 'deactivate'))
-        assert isfile(join(tmp, 'conda', bindir, 'conda'))
-        if on_win:
-            assert isfile(join(tmp, 'conda', bindir, 'activate.bat'))
-            assert isfile(join(tmp, 'conda', bindir, 'deactivate.bat'))
-            assert isfile(join(tmp, 'conda', bindir, 'conda.bat'))
