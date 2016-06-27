@@ -50,10 +50,8 @@ def make_temp_prefix(name=None):
     tempdir = gettempdir()
     dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
-    if exists(prefix):
-        # rm here because create complains if directory exists
-        rmtree(prefix)
-    assert isdir(tempdir)
+    os.makedirs(prefix)
+    assert isdir(prefix)
     return prefix
 
 
@@ -482,16 +480,3 @@ class IntegrationTests(TestCase):
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
-
-def test_symlinks_created_with_env():
-    bindir = 'Scripts' if on_win else 'bin'
-
-    with TemporaryDirectory() as tmp:
-        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "python=2.7"])
-        assert isfile(join(tmp, 'conda', bindir, 'activate'))
-        assert isfile(join(tmp, 'conda', bindir, 'deactivate'))
-        assert isfile(join(tmp, 'conda', bindir, 'conda'))
-        if on_win:
-            assert isfile(join(tmp, 'conda', bindir, 'activate.bat'))
-            assert isfile(join(tmp, 'conda', bindir, 'deactivate.bat'))
-            assert isfile(join(tmp, 'conda', bindir, 'conda.bat'))
