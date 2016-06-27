@@ -257,13 +257,19 @@ def execute_config(args, parser):
 
             if isinstance(rc_config[key], (bool, string_types)):
                 print("--set", key, rc_config[key])
-            else:
+            else:  # assume the key is a list-type
                 # Note, since conda config --add prepends, these are printed in
                 # the reverse order so that entering them in this order will
                 # recreate the same file
-                for item in reversed(rc_config.get(key, [])):
+                items = rc_config.get(key, [])
+                numitems = len(items)
+                for q, item in enumerate(reversed(items)):
                     # Use repr so that it can be pasted back in to conda config --add
-                    print("--add", key, repr(item))
+                    if key == "channels" and q in (0, numitems-1):
+                        print("--add", key, repr(item),
+                              "  # lowest priority" if q == 0 else "  # highest priority")
+                    else:
+                        print("--add", key, repr(item))
 
     # Add, append
     for arg, prepend in zip((args.add, args.append), (True, False)):
