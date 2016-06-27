@@ -993,8 +993,8 @@ def move_path_to_trash(path):
     """
     # Try deleting the trash every time we use it.
     delete_trash()
-    import tempfile
 
+    from conda.config import pkgs_dirs
     for pkg_dir in pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
 
