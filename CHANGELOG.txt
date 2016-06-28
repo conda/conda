@@ -1,6 +1,7 @@
-2016-06-27  4.0.10:
--------------------
+2016-0X-XX  4.0.10 (unreleased):
+--------------------------------
   * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859 via #2878
+  * fix some permissions errors with more aggressive use of move_path_to_trash, #2882 via #2894
 
 
 2016-06-15  4.0.9:
