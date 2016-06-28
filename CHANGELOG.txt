@@ -1,3 +1,9 @@
+2016-0X-XX  4.0.10 (unreleased):
+--------------------------------
+  * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859 via #2878
+  * fix some permissions errors with more aggressive use of move_path_to_trash, #2882 via #2894
+
+
 2016-06-27   4.1.4:
 -------------------
   * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859
@@ -10,11 +16,6 @@
   * add SYMLINK_CONDA to planned instructions, #2861
   * use CONDA_PREFIX, not CONDA_DEFAULT_ENV for activate.d, #2856
   * call scripts with redirect on win; more error checking to activate, #2852
-
-
-2016-06-27  4.0.10:
--------------------
-  * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859 via #2878
 
 
 2016-06-23   4.1.3:
