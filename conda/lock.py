@@ -21,7 +21,7 @@ import logging
 import os
 import time
 from glob import glob
-from os.path import abspath, isdir, join, dirname
+from os.path import abspath, isdir, dirname
 from .compat import range
 from .exceptions import LockError
 
@@ -95,4 +95,3 @@ class FileLock(object):
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
         rm_rf(self.lock_path)
-
