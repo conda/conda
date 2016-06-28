@@ -1021,7 +1021,7 @@ def move_path_to_trash(path, preclean=True):
                 rm_rf(trash_file, max_retries=1, trash=False)
             return True
 
-    return None
+    return False
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
