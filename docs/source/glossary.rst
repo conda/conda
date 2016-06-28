@@ -38,7 +38,7 @@ Metapackage:
   A conda package that only lists dependencies, and does not include any functional programs of libraries itself. The metapackage may contain links to software files that will be automatically downloaded when executed. An example of a metapackage is ‘anaconda’, which collects together all the packages in the Anaconda installer, thus, ‘conda create -n envname anaconda’ will create an environment that exactly matches what would be created from the Anaconda installer. 
 
 Miniconda: 
-  A minimal installer for conda. Like Anaconda, Miniconda is a free software package that includes the Anaconda distribution and the conda package and environment manager, but Miniconda does not include any packages other than those dependencies needed to install it. After Miniconda is installed, additional conda packages may be installed directly from the command line with ‘conda install’. See also Anaconda and conda.
+  A minimal installer for conda. Like Anaconda, Miniconda is a free software package that includes the Anaconda distribution of Python and the conda package and environment manager and the packages they depend on, but Miniconda does not include any other packages. After Miniconda is installed, additional conda packages may be installed directly from the command line with 'conda install'. See also Anaconda and conda.
 
 Noarch package:
   A conda package that contains nothing specific to any system architecture, so it may be installed from any system. When conda does a search for packages on any system in a channel, conda always checks both the system-specific subdirectory, for example, "linux-64" *and* the ``noarch`` directory. 
