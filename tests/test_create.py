@@ -434,38 +434,6 @@ class IntegrationTests(TestCase):
             pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
             assert pycosat_tuple[3] == 'conda-forge'
 
-    @pytest.mark.timeout(300)
-    def test_channel_order_channel_priority_false(self):
-        with make_temp_env("python=3 pycosat==0.6.1") as prefix:
-            assert_package_is_installed(prefix, 'python')
-            assert_package_is_installed(prefix, 'pycosat')
-
-            # add conda-forge channel
-            run_command(Commands.CONFIG, prefix, "--add channels conda-forge")
-            from conda.config import get_rc_urls
-            assert get_rc_urls() == ['conda-forge', 'defaults']
-
-            # set channel_priority false
-            run_command(Commands.CONFIG, prefix, "--set channel_priority false")
-            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get channel_priority")
-            assert stdout.strip() == "--set channel_priority False", stdout.strip()
-
-            # update --all
-            update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
-
-            # pycosat should not be update output at all
-            assert 'pycosat' not in update_stdout, update_stdout
-
-            # python sys.version should show Continuum Analytics python
-            sys_version = check_output('{0} -c "import sys; print(sys.version)"'
-                                       ''.format(join(prefix, PYTHON_BINARY)), shell=True)
-            sys_version = sys_version.decode('utf-8')
-            assert "Continuum Analytics, Inc" in sys_version, sys_version
-
-            # conda list should show pycosat from defaults channel
-            pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
-            assert len(pycosat_tuple) == 3, pycosat_tuple
-
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_in_underscore_env_shows_message():
