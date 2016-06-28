@@ -350,7 +350,7 @@ environment does not exist: %s
 
             error_message = ''.join(error_message)
 
-            raise PackageNotFoundError(error_message, e, args.json)
+            raise PackageNotFoundError(error_message, args.json)
 
     except (Unsatisfiable, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
