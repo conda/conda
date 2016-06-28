@@ -214,7 +214,7 @@ def execute(args, parser):
                 stdout_json(h.object_log())
         else:
             raise CondaFileNotFoundError("No revision log found: %s\n" % h.path,
-                                         json)
+                                         args.json)
         return
 
     if args.explicit:

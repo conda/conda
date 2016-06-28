@@ -89,11 +89,16 @@ Disable the 'show_channel_urls' option:
     conda config --set show_channel_urls no
 """
 
+
 class CouldntParse(NotImplementedError):
     def __init__(self, reason):
-        self.args = ["""Could not parse the yaml file. Use -f to use the
+        self.args = ["""Error: Could not parse the yaml file. Use -f to use the
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: %s""" % reason]
+
+    def __repr__(self):
+        return self.args[0]
+
 
 class SingleValueKey(Completer):
     def _get_items(self):
@@ -101,9 +106,11 @@ class SingleValueKey(Completer):
                rc_string_keys + \
                ['yes', 'no', 'on', 'off', 'true', 'false']
 
+
 class ListKey(Completer):
     def _get_items(self):
         return rc_list_keys
+
 
 class BoolOrListKey(Completer):
     def __contains__(self, other):
@@ -111,6 +118,7 @@ class BoolOrListKey(Completer):
 
     def _get_items(self):
         return rc_list_keys + rc_bool_keys
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(

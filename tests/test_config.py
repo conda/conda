@@ -37,6 +37,7 @@ try:
 except KeyError:
     pass
 
+
 class TestConfig(unittest.TestCase):
 
     # These tests are mostly to ensure API stability
@@ -420,7 +421,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'disallow', 'python', '--force')
         assert stdout == ''
-        assert stderr == "Error: key 'disallow' is not in the config file"
+        assert stderr == "Key error: key 'disallow' is not in the config file"
 
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove-key', 'always_yes', '--force')
@@ -431,7 +432,7 @@ def test_config_command_remove_force():
             '--remove-key', 'always_yes', '--force')
 
         assert stdout == ''
-        assert stderr == "Error: key 'always_yes' is not in the config file"
+        assert stderr == "Key error: key 'always_yes' is not in the config file"
 
 
 # FIXME Break into multiple tests

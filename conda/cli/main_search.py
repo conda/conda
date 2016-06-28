@@ -148,7 +148,7 @@ def execute_search(args, parser):
                 pat = re.compile(regex, re.I)
             except re.error as e:
                 raise CondaValueError("'%s' is not a valid regex pattern (exception: %s)" %
-                                     (regex, e), args.json)
+                                      (regex, e), args.json)
 
     prefix = get_prefix(args)
 

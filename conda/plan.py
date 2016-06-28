@@ -561,7 +561,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                 raise RemoveError("'conda' cannot be removed from the root environment")
             else:
                 raise RemoveError("Error: this 'remove' command cannot be executed because it\n"
-                       "would require removing 'conda' dependencies")
+                                  "would require removing 'conda' dependencies")
         add_unlink(actions, old_fn)
 
     return actions

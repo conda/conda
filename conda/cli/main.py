@@ -39,7 +39,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import importlib
-from ..exceptions import CommandNotFoundError, CondaRuntimeError, CondaError
+from ..exceptions import conda_exception_handler
 
 
 def _main():
@@ -113,6 +113,8 @@ def _main():
     sub_parsers.completer = completer
     args = p.parse_args()
 
+    conda.config.output_json = args.json
+
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
         for logger in logging.Logger.manager.loggerDict:
@@ -123,31 +125,32 @@ def _main():
         logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
 
-    exit_code = args_func(args, p)
+    exit_code = args.func(args, p)
     if isinstance(exit_code, int):
         return exit_code
 
 
 def main():
-    try:
-        return _main()
-    except CondaError as e:
-        print(repr(e), file=sys.stderr)
-        return 1
+    # try:
+    #     return _main()
+    # except CondaError as e:
+    #      print(repr(e), file=sys.stderr)
+    #      return 1
+    return conda_exception_handler(_main)
 
 
-def args_func(args, p):
-    from conda.cli import common
-
-    use_json = getattr(args, 'json', False)
-    try:
-        exit_code = args.func(args, p)
-        if isinstance(exit_code, int):
-            return exit_code
-    except RuntimeError as e:
-        raise CondaRuntimeError(e, use_json)
-    except Exception as e:
-        raise CondaError(e, use_json)
+# def args_func(args, p):
+#     from conda.cli import common
+#
+#     use_json = getattr(args, 'json', False)
+#     try:
+#         exit_code = args.func(args, p)
+#         if isinstance(exit_code, int):
+#             return exit_code
+#     except RuntimeError as e:
+#         raise CondaRuntimeError(e, use_json)
+#     except Exception as e:
+#         raise CondaError(e, use_json)
 
 
 if __name__ == '__main__':
