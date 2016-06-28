@@ -445,14 +445,19 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     r = Resolve(index)
     linked = r.installed
 
-    if auto_update_conda and is_root_prefix(prefix):
-        specs.append('conda')
-        specs.append('conda-env')
-
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
         specs += pinned_specs
+
+    # Only add a conda spec if conda and conda-env are not in the specs.
+    if auto_update_conda and is_root_prefix(prefix):
+        mss = [MatchSpec(s) for s in specs if s.startswith('conda')]
+        mss = [ms for ms in mss if ms.name in ('conda', 'conda-env')]
+        if not mss:
+            from . import __version__ as conda_version
+            specs.append('conda >=' + conda_version)
+            specs.append('conda-env')
 
     must_have = {}
     if track_features:
