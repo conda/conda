@@ -6,7 +6,7 @@ class CondaError(Exception):
         super(CondaError, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return ' '.join([str(arg)+'\n' for arg in self.args if not isinstance(arg, bool)])
+        return ' '.join([str(arg) + '\n' for arg in self.args if not isinstance(arg, bool)])
 
 
 class InvalidInstruction(CondaError):
@@ -219,21 +219,52 @@ class CondaAssertionError(CondaError, AssertionError):
         super(CondaAssertionError, self).__init__(msg, *args, **kwargs)
 
 
+def print_exception(exception):
+    from conda.config import output_json
+    from conda.cli.common import stdout_json
+    from sys import stderr
+
+    message = repr(exception)
+
+    if output_json:
+        stdout_json(dict(error=message))
+    else:
+        stderr.write(message)
+
+
+def print_unexpected_error_message(e):
+    from conda.config import output_json
+    message = ''
+    if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
+        message = """\
+An unexpected error has occurred, please consider sending the
+following traceback to the conda GitHub issue tracker at:
+
+    https://github.com/conda/conda/issues
+
+Include the output of the command 'conda info' in your report.
+
+"""
+    print(message)
+
+    import traceback
+    import sys
+    if output_json:
+        from conda.cli.common import stdout_json
+        stdout_json(dict(error=traceback.format_exc()))
+    else:
+        traceback.print_exc()
+
+
 def conda_exception_handler(func, *args, **kwargs):
     try:
         return_value = func(*args, **kwargs)
         if isinstance(return_value, int):
             return return_value
+
     except CondaError as e:
-        from conda.config import output_json
-        from conda.cli.common import stdout_json
-        from sys import stderr
-
-        message = repr(e)
-
-        if output_json:
-            stdout_json(dict(error=message))
-        else:
-            stderr.write(message)
-
+        print_exception(e)
+        return 1
+    except Exception as e:
+        print_unexpected_error_message(e)
         return 1
