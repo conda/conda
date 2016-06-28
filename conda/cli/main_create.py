@@ -6,6 +6,9 @@
 
 from __future__ import print_function, division, absolute_import
 
+from conda.cli.main import main
+from conda.cli import main
+
 from .common import add_parser_install, add_parser_json
 from .install import install
 from conda.install import on_win
@@ -22,6 +25,7 @@ Examples:
     conda create -n myenv sqlite
 
 """
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(

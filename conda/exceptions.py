@@ -5,6 +5,9 @@ class CondaError(Exception):
     def __init__(self, *args, **kwargs):
         super(CondaError, self).__init__(*args, **kwargs)
 
+    def __repr__(self):
+        return ' '.join([repr(arg) for arg in self.args if not isinstance(arg, bool)])
+
 
 class InvalidInstruction(CondaError):
     def __init__(self, instruction, *args, **kwargs):
@@ -131,8 +134,11 @@ class CondaFileIOError(CondaIOError):
 
 class CondaKeyError(CondaError, KeyError):
     def __init__(self, message, *args, **kwargs):
-        msg = 'Key error: %s' % message
-        super(CondaKeyError, self).__init__(msg, *args, **kwargs)
+        self.msg = 'Key error: %s' % message
+        super(CondaKeyError, self).__init__(self.msg, *args, **kwargs)
+
+    def __repr__(self):
+        return self.msg
 
 
 class ChannelError(CondaError):
@@ -211,3 +217,23 @@ class CondaAssertionError(CondaError, AssertionError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Assertion error: %s' % message
         super(CondaAssertionError, self).__init__(msg, *args, **kwargs)
+
+
+def conda_exception_handler(func, *args, **kwargs):
+    try:
+        return_value = func(*args, **kwargs)
+        if isinstance(return_value, int):
+            return return_value
+    except CondaError as e:
+        from conda.config import output_json
+        from conda.cli.common import stdout_json
+        from sys import stderr
+
+        message = repr(e)
+
+        if output_json:
+            stdout_json(dict(error=message))
+        else:
+            stderr.write(message)
+
+        return 1
