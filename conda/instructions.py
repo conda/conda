@@ -119,7 +119,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         setup_verbose_handlers()
 
     state = {'i': None, 'prefix': root_dir, 'index': index}
-
+    print(plan)
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
