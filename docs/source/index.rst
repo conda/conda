@@ -22,7 +22,7 @@ Conda is included in Anaconda and Miniconda. Conda is also included in the Conti
 of Anaconda, which provide on-site enterprise package and environment management for Python, R, Node.js, Java, and other application
 stacks. Conda is also available on pypi, although that approach may not be as up-to-date.
 
-* Miniconda is a small "bootstrap" version that includes only conda and conda-build, and installs Python. Over 720
+* Miniconda is a small "bootstrap" version that includes only conda, Python, and the packages they depend on. Over 720
   scientific packages and their dependencies can be installed individually from the Continuum repository with
   the "conda install" command.
 * Anaconda includes conda, conda-build, Python, and over 150 automatically installed scientific packages and
