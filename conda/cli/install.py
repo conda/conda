@@ -296,7 +296,7 @@ environment does not exist: %s
                                           update_deps=args.update_deps,
                                           shortcuts=shortcuts)
     except NoPackagesFound as e:
-        error_message = e.args[0]
+        error_message = [e.args[0]]
 
         if isupdate and args.all:
             # Packages not found here just means they were installed but
@@ -328,25 +328,27 @@ environment does not exist: %s
                 if not close:
                     continue
                 if nfound == 0:
-                    error_message += "\n\nClose matches found; did you mean one of these?\n"
-                error_message += "\n    %s: %s" % (pkg, ', '.join(close))
+                    error_message.append("\n\nClose matches found; did you mean one of these?\n")
+                error_message.append("\n    %s: %s" % (pkg, ', '.join(close)))
                 nfound += 1
-            error_message += '\n\nYou can search for packages on anaconda.org with'
-            error_message += '\n\n    anaconda search -t conda %s' % pkg
+            error_message.append('\n\nYou can search for packages on anaconda.org with')
+            error_message.append('\n\n    anaconda search -t conda %s' % pkg)
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
-                error_message += '\n\n(and similarly for the other packages)'
+                error_message.append('\n\n(and similarly for the other packages)')
 
             if not find_executable('anaconda', include_others=False):
-                error_message += '\n\nYou may need to install the anaconda-client'
-                error_message += ' command line client with'
-                error_message += '\n\n    conda install anaconda-client'
+                error_message.append('\n\nYou may need to install the anaconda-client')
+                error_message.append(' command line client with')
+                error_message.append('\n\n    conda install anaconda-client')
 
             pinned_specs = get_pinned_specs(prefix)
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
-                error_message += "\n\nNote that you have pinned specs in %s:" % path
-                error_message += "\n\n    %r" % pinned_specs
+                error_message.append("\n\nNote that you have pinned specs in %s:" % path)
+                error_message.append("\n\n    %r" % pinned_specs)
+
+            error_message = ''.join(error_message)
 
             raise PackageNotFoundError(error_message, e, args.json)
 

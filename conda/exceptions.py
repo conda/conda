@@ -6,7 +6,7 @@ class CondaError(Exception):
         super(CondaError, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return ' '.join([repr(arg) for arg in self.args if not isinstance(arg, bool)])
+        return ' '.join([str(arg)+'\n' for arg in self.args if not isinstance(arg, bool)])
 
 
 class InvalidInstruction(CondaError):
