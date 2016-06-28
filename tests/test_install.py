@@ -5,9 +5,8 @@ import stat
 import tempfile
 import unittest
 from sys import platform
-from os.path import join, basename, relpath, exists
-from os import makedirs, walk
-
+from os import makedirs
+from os.path import join, basename, relpath, exists, dirname
 
 from conda import install, config
 from conda.install import (PaddingError, binary_replace, update_prefix,
@@ -166,6 +165,11 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             yield unlink
 
     @contextmanager
+    def generate_mock_rename(self):
+        with patch.object(install.os, 'rename') as rename:
+            yield rename
+
+    @contextmanager
     def generate_mock_rmtree(self):
         with patch.object(install.shutil, 'rmtree') as rmtree:
             yield rmtree
@@ -198,23 +202,25 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             with self.generate_mock_isfile(isfile) as mock_isfile:
                 with self.generate_mock_os_access(os_access) as mock_os_access:
                     with self.generate_mock_isdir(isdir) as mock_isdir:
-                        with self.generate_mock_unlink() as mock_unlink:
-                            with self.generate_mock_rmtree() as mock_rmtree:
-                                with self.generate_mock_sleep() as mock_sleep:
-                                    with self.generate_mock_log() as mock_log:
-                                        with self.generate_mock_on_win(on_win):
-                                            with self.generate_mock_check_call() as check_call:
-                                                yield {
-                                                    'islink': mock_islink,
-                                                    'isfile': mock_isfile,
-                                                    'isdir': mock_isdir,
-                                                    'os_access': mock_os_access,
-                                                    'unlink': mock_unlink,
-                                                    'rmtree': mock_rmtree,
-                                                    'sleep': mock_sleep,
-                                                    'log': mock_log,
-                                                    'check_call': check_call,
-                                            }
+                        with self.generate_mock_rename() as mock_rename:
+                            with self.generate_mock_unlink() as mock_unlink:
+                                with self.generate_mock_rmtree() as mock_rmtree:
+                                    with self.generate_mock_sleep() as mock_sleep:
+                                        with self.generate_mock_log() as mock_log:
+                                            with self.generate_mock_on_win(on_win):
+                                                with self.generate_mock_check_call() as check_call:
+                                                    yield {
+                                                        'islink': mock_islink,
+                                                        'isfile': mock_isfile,
+                                                        'isdir': mock_isdir,
+                                                        'os_access': mock_os_access,
+                                                        'unlink': mock_unlink,
+                                                        'rename': mock_rename,
+                                                        'rmtree': mock_rmtree,
+                                                        'sleep': mock_sleep,
+                                                        'log': mock_log,
+                                                        'check_call': check_call,
+                                                }
 
     def generate_directory_mocks(self, on_win=False):
         return self.generate_mocks(islink=False, isfile=False, isdir=True,
@@ -240,6 +246,18 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
+
+    @skip_if_no_mock
+    def test_calls_rename_if_unlink_fails(self):
+        with self.generate_mocks() as mocks:
+            mocks['unlink'].side_effect = OSError
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        assert mocks['unlink'].call_count > 1
+        assert mocks['rename'].call_count == 1
+        rename_args = mocks['rename'].call_args[0]
+        assert rename_args[0] == mocks['unlink'].call_args_list[0][0][0]
+        assert dirname(rename_args[1]) == mocks['unlink'].call_args_list[1][0][0]
 
     @skip_if_no_mock
     def test_calls_unlink_on_os_access_false(self):
@@ -292,6 +310,25 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             some_path, onerror=warn_failed_remove, ignore_errors=False)
 
     @skip_if_no_mock
+    def test_calls_rmtree_and_rename_on_win(self):
+        with self.generate_directory_mocks(on_win=True) as mocks:
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        assert mocks['rename'].call_count == 1
+        assert mocks['rmtree'].call_count == 1
+        assert mocks['rename'].call_args[0][1] == mocks['rmtree'].call_args[0][0]
+
+    @skip_if_no_mock
+    def test_calls_rmtree_and_rename_on_unix(self):
+        with self.generate_directory_mocks() as mocks:
+            mocks['rmtree'].side_effect = OSError
+            some_path = self.generate_random_path
+            install.rm_rf(some_path)
+        assert mocks['rename'].call_count == 1
+        assert mocks['rmtree'].call_count > 1
+        assert dirname(mocks['rename'].call_args[0][1]) == mocks['rmtree'].call_args[0][0]
+
+    @skip_if_no_mock
     def test_calls_rmtree_only_once_on_success(self):
         with self.generate_directory_mocks() as mocks:
             some_path = self.generate_random_path
@@ -300,11 +337,12 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
 
     @skip_if_no_mock
     def test_raises_final_exception_if_it_cant_remove(self):
-        with self.generate_directory_mocks() as mocks:
+        with self.generate_directory_mocks(on_win=True) as mocks:
             mocks['rmtree'].side_effect = OSError
+            mocks['rename'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path)
+                install.rm_rf(some_path, trash=False)
 
     @skip_if_no_mock
     def test_retries_six_times_to_ensure_it_cant_really_remove(self):
@@ -312,7 +350,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path)
+                install.rm_rf(some_path, trash=False)
         self.assertEqual(6, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -322,7 +360,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path, max_retries=max_retries)
+                install.rm_rf(some_path, max_retries=max_retries, trash=False)
         self.assertEqual(max_retries + 1, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -330,7 +368,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = [OSError, OSError, None]
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            install.rm_rf(some_path, trash=False)
         self.assertEqual(3, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -340,7 +378,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
                 install.rm_rf(self.generate_random_path,
-                              max_retries=max_retries)
+                              max_retries=max_retries, trash=False)
 
         expected = [mock.call(i) for i in range(max_retries)]
         mocks['sleep'].assert_has_calls(expected)
@@ -352,7 +390,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError(random_path)
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
-                install.rm_rf(random_path, max_retries=max_retries)
+                install.rm_rf(random_path, max_retries=max_retries, trash=False)
 
         log_template = "\n".join([
             "Unable to delete %s" % random_path,
@@ -369,7 +407,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks(on_win=True) as mocks:
             random_path = self.generate_random_path
             mocks['rmtree'].side_effect = [OSError, None]
-            install.rm_rf(random_path)
+            install.rm_rf(random_path, trash=False)
 
         expected_call_list = [
             mock.call(random_path, ignore_errors=False, onerror=warn_failed_remove),
