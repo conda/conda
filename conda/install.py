@@ -39,6 +39,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
@@ -574,7 +575,8 @@ def read_no_link(info_dir):
 # Should this be an API function?
 def symlink_conda(prefix, root_dir, shell=None):
     # do not symlink root env - this clobbers activate incorrectly.
-    if normpath(prefix) == normpath(sys.prefix):
+    # prefix should always be longer than, or outside the root dir.
+    if normpath(prefix) in normpath(root_dir):
         return
     if on_win:
         where = 'Scripts'
