@@ -41,7 +41,6 @@ import sys
 import tarfile
 import tempfile
 import time
-import tempfile
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath)
