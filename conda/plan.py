@@ -17,6 +17,7 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
 from . import instructions as inst
+from .compat import iteritems, itervalues
 from .config import (always_copy as config_always_copy, channel_priority,
                      show_channel_urls as config_show_channel_urls, is_offline,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
@@ -24,8 +25,8 @@ from .config import (always_copy as config_always_copy, channel_priority,
 from .exceptions import CondaException
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
-                      is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
-                      LINK_SOFT, try_hard_link, rm_rf)
+                      is_extracted, find_new_location, dist2filename, LINK_COPY,
+                      LINK_SOFT, try_hard_link, rm_rf, linked_data)
 from .resolve import MatchSpec, Resolve, Package
 from .utils import md5_file, human_bytes
 
@@ -111,10 +112,16 @@ def display_actions(actions, index, show_channel_urls=None):
                        schannel='<unknown>',
                        build_number=int(build) if build.isdigit() else 0)
         pkg = rec['name']
-        channels[pkg][0] = channel_str(rec)
-        packages[pkg][0] = rec['version'] + '-' + rec['build']
-        records[pkg][0] = Package(fkey, rec)
-        features[pkg][0] = rec.get('features', '')
+        if packages[pkg][0] != '':
+            channels[pkg][0] = ''
+            packages[pkg][0] = '<multiple>'
+            features[pkg][0] = ''
+            records[pkg][0] = None
+        else:
+            channels[pkg][0] = channel_str(rec)
+            packages[pkg][0] = rec['version'] + '-' + rec['build']
+            records[pkg][0] = Package(fkey, rec)
+            features[pkg][0] = rec.get('features', '')
 
     #                     Put a minimum length here---.    .--For the :
     #                                                 v    v
@@ -163,6 +170,9 @@ def display_actions(actions, index, show_channel_urls=None):
         newfmt[pkg] += lt
 
         P0 = records[pkg][0]
+        if P0 is None:
+            updated.add(pkg)
+            continue
         P1 = records[pkg][1]
         pri0 = P0.priority
         pri1 = P1.priority
@@ -241,7 +251,8 @@ def nothing_to_do(actions):
 def add_unlink(actions, dist):
     if inst.UNLINK not in actions:
         actions[inst.UNLINK] = []
-    actions[inst.UNLINK].append(dist)
+    if dist not in actions[inst.UNLINK]:
+        actions[inst.UNLINK].append(dist)
 
 
 def plan_from_actions(actions):
@@ -296,6 +307,17 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
                            inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+
+    dnames = set()
+    duplicates = set()
+    ldata = linked_data(prefix)
+    for dist, rec in iteritems(ldata):
+        (duplicates if rec['name'] in dnames else dnames).add(rec['name'])
+    if duplicates:
+        for dist in ldata.keys():
+            if ldata[dist]['name'] in duplicates:
+                add_unlink(actions, dist)
+
     for dist in dists:
         fetched_in = is_fetched(dist)
         extracted_in = is_extracted(dist)
@@ -313,7 +335,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             except KeyError:
                 sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
 
-        if not force and is_linked(prefix, dist):
+        if not force and dist in ldata and ldata[dist]['name'] not in duplicates:
             continue
 
         if extracted_in and force:
@@ -530,21 +552,20 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
     for old_fn in reversed(r.dependency_sort(linked)):
+        if old_fn != nlinked.get(r.package_name(old_fn), ''):
+            add_unlink(actions, old_fn)
+    for old_fn in actions.get(inst.UNLINK, []):
         dist = old_fn + '.tar.bz2'
-        name = r.package_name(dist)
-        if old_fn == nlinked.get(name, ''):
-            continue
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
             raise RuntimeError(msg % dist)
-        if name == 'conda' and name not in nlinked:
+        if r.package_name(dist) == 'conda':
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 sys.exit("Error: 'conda' cannot be removed from the root environment")
             else:
                 msg = ("Error: this 'remove' command cannot be executed because it\n"
                        "would require removing 'conda' dependencies")
                 sys.exit(msg)
-        add_unlink(actions, old_fn)
 
     return actions
 

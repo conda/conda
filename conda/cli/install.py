@@ -233,44 +233,6 @@ def install(args, parser, command='install'):
     ospecs = list(specs)
     add_defaults_to_specs(r, linked, specs, update=isupdate)
 
-    # Don't update packages that are already up-to-date
-    if isupdate and not (args.all or args.force):
-        orig_packages = args.packages[:]
-        installed_metadata = [is_linked(prefix, dist) for dist in linked]
-        for name in orig_packages:
-            vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
-            build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
-
-            try:
-                assert len(vers_inst) == 1, name
-                assert len(build_inst) == 1, name
-            except AssertionError as e:
-                if args.json:
-                    common.exception_and_exit(e, json=True)
-                else:
-                    raise
-
-            pkgs = sorted(r.get_pkgs(name))
-            if not pkgs:
-                # Shouldn't happen?
-                continue
-            latest = pkgs[-1]
-
-            if (latest.version == vers_inst[0] and
-                    latest.build_number == build_inst[0]):
-                args.packages.remove(name)
-        if not args.packages:
-            from .main_list import print_packages
-
-            if not args.json:
-                regex = '^(%s)$' % '|'.join(orig_packages)
-                print('# All requested packages already installed.')
-                print_packages(prefix, regex)
-            else:
-                common.stdout_json_success(
-                    message='All requested packages already installed.')
-            return
-
     if args.force:
         args.no_deps = True
 
