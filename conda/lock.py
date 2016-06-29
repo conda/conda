@@ -81,15 +81,8 @@ class FileLock(object):
         lock_glob_str = "{0}.pid*.{1}".format(self.file_path, LOCK_EXTENSION)
         last_glob_match = None
 
-<<<<<<< HEAD
-<<<<<<< HEAD
         for q in range(self.retries + 1):
-=======
-        while self.retries <= self.max_tries:
->>>>>>> change retries and lockerror
-=======
-        for q in range(self.retries + 1):
->>>>>>> update lock
+
             # search, whether there is process already locked on this file
             glob_result = glob(lock_glob_str)
             if glob_result:
@@ -104,15 +97,8 @@ class FileLock(object):
                 return self
 
         stdoutlog.error("Exceeded max retries, giving up")
-<<<<<<< HEAD
-<<<<<<< HEAD
         raise LockError(LOCKSTR.format(last_glob_match))
-=======
-        raise LockError(LOCKSTR % str(last_glob_match))
->>>>>>> change retries and lockerror
-=======
-        raise LockError(LOCKSTR.format(last_glob_match))
->>>>>>> update lock
+
 
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
