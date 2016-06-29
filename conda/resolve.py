@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from itertools import chain
 
-from .compat import iterkeys, itervalues, iteritems
+from .compat import iterkeys, itervalues, iteritems, string_types
 from .config import subdir, channel_priority, canonical_channel_name, track_features
 from .console import setup_handlers
 from .install import dist2quad
@@ -793,22 +793,28 @@ class Resolve(object):
                 pkey = nkey
         return eqv, eqb
 
-    def dependency_sort(self, must_have):
-        if not isinstance(must_have, dict):
-            must_have = {self.package_name(dist): dist for dist in must_have}
+    def dependency_sort(self, must_have_):
+        if not isinstance(must_have_, dict):
+            must_have = {}
+            for dist in must_have_:
+                must_have.setdefault(self.package_name(dist), []).append(dist)
+        else:
+            must_have = must_have_.copy()
+
         digraph = {}
-        for key, value in iteritems(must_have):
-            fn = value + '.tar.bz2'
-            if fn in self.index:
-                depends = set(ms.name for ms in self.ms_depends(fn))
-                digraph[key] = depends
+        for key, v in iteritems(must_have):
+            digraph[key] = set()
+            for value in ([v] if isinstance(v, string_types) else v):
+                fn = value + '.tar.bz2'
+                if fn in self.index:
+                    depends = set(ms.name for ms in self.ms_depends(fn))
+                    digraph[key].update(depends)
         sorted_keys = toposort(digraph)
-        must_have = must_have.copy()
+
         # Take all of the items in the sorted keys
         # Don't fail if the key does not exist
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
-        # Take any key that were not sorted
-        result.extend(must_have.values())
+        result.extend(itervalues(must_have))
         return result
 
     def explicit(self, specs):
@@ -870,11 +876,14 @@ class Resolve(object):
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
         if not installed:
-            return None, []
+            return None, [], set()
         xtra = []
         dists = {}
         specs = []
+        dnames = {}
         for fn in installed:
+            name = self.package_name(fn)
+            dnames.setdefault(name, []).append(fn)
             rec = self.index.get(fn)
             if rec is None:
                 xtra.append(fn)
@@ -883,6 +892,11 @@ class Resolve(object):
                 specs.append(MatchSpec(' '.join(self.package_quad(fn)[:3])))
         if xtra:
             log.debug('Packages missing from index: %s' % ', '.join(xtra))
+        duplicates = set(self.package_name(rec[0]) for rec in itervalues(dnames) if len(rec) > 1)
+        if duplicates:
+            log.debug('Duplicate packages installed: %s' % ', '.join(sorted(duplicates)))
+            xtra = [fn for fn in xtra if fn not in self.package_name(fn) not in duplicates]
+            specs = [ms for ms in specs if ms.name not in duplicates]
         r2 = Resolve(dists, True, True)
         C = r2.gen_clauses(specs)
         constraints = r2.generate_spec_constraints(C, specs)
@@ -892,14 +906,14 @@ class Resolve(object):
             log.debug('Package set caused an unexpected error, assuming a conflict')
             solution = None
         limit = None
-        if not solution or xtra:
+        if not solution or xtra or duplicates:
             def get_(name, snames):
                 if name not in snames:
                     snames.add(name)
                     for fn in self.groups.get(name, []):
                         for ms in self.ms_depends(fn):
                             get_(ms.name, snames)
-            snames = set()
+            snames = set(duplicates)
             for spec in new_specs:
                 get_(MatchSpec(spec).name, snames)
             xtra = [x for x in xtra if x not in snames]
@@ -911,7 +925,7 @@ class Resolve(object):
                     ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s' % ', '.join(xtra))
-        return limit, xtra
+        return limit, xtra, duplicates
 
     def restore_bad(self, pkgs, preserve):
         if preserve:
@@ -922,12 +936,12 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
-        limit, preserve = self.bad_installed(installed, specs)
+        limit, preserve, duplicates = self.bad_installed(installed, specs)
         for pkg in installed:
             if pkg not in self.index:
                 continue
             name, version, build, schannel = self.package_quad(pkg)
-            if name in snames or limit is not None and name not in limit:
+            if name in snames or name in duplicates or limit is not None and name not in limit:
                 continue
             # If update_deps=True, set the target package in MatchSpec so that
             # the solver can minimize the version change. If update_deps=False,
@@ -937,6 +951,7 @@ class Resolve(object):
             else:
                 spec = MatchSpec('%s %s %s' % (name, version, build))
             specs.append(spec)
+        specs.extend(duplicates - snames)
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
@@ -950,12 +965,15 @@ class Resolve(object):
         specs = [s if ' ' in s else s + ' @ @' for s in specs]
         specs = [MatchSpec(s, optional=True) for s in specs]
         snames = {s.name for s in specs}
-        limit, _ = self.bad_installed(installed, specs)
+        limit, _, duplicates = self.bad_installed(installed, specs)
         preserve = []
         for pkg in installed:
             nm, ver, build, schannel = self.package_quad(pkg)
             if nm in snames:
                 continue
+            elif nm in duplicates:
+                specs.append(MatchSpec(nm, optional=True))
+                snames.add(nm)
             elif limit is not None:
                 preserve.append(pkg)
             elif ver:

@@ -932,6 +932,11 @@ def test_update_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]
 
+    # Test accidentally duplicated packages
+    installed2 = installed + ['sqlite-3.9.2-0.tar.bz2', 'six-1.10.0-py27_0.tar.bz2']
+    installed3 = r.install([], installed=installed2)
+    assert installed == installed3
+
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
     # to get the latest version of pandas, so it stays put.
