@@ -136,10 +136,6 @@ def test_activate_test1(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stderr, u'prepending {envpaths} to PATH'\
-                        .format(envpaths=pathlist_to_str(_envpaths(envs, 'test 1',
-                                                                   shelldict=shells[shell]),
-                                                         escape_backslashes=True)), shell)
         assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),
                  stdout, shell)
 
@@ -155,8 +151,6 @@ def test_activate_env_from_env_with_root_activate(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stderr, u'prepending {envpaths2} to PATH'\
-            .format(envpaths2=pathlist_to_str(_envpaths(envs, 'test 2', shelldict=shells[shell]))))
         assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shelldict=shells[shell])), stdout)
 
 
@@ -308,16 +302,6 @@ def test_activate_symlinking(shell):
     files/links exist, and that they point where they should."""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert_equals(stderr, u'prepending {envpaths1} to PATH'\
-                .format(syspath=pathlist_to_str(_envpaths(root_dir, shelldict=shells[shell])),
-                        envpaths1=shells[shell]["path_to"](pathlist_to_str(_envpaths(envs,
-                                                                                     'test 1',
-                                                                                     shelldict=shells[shell])))))
-
         where = 'Scripts' if sys.platform == 'win32' else 'bin'
         for env in gen_test_env_paths(envs, shell)[:2]:
             scripts = ["conda", "activate", "deactivate"]
