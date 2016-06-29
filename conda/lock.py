@@ -29,10 +29,9 @@ LOCK_EXTENSION = 'conda_lock'
 # Keep the string "LOCKERROR" in this string so that external
 # programs can look for it.
 
-
 LOCKSTR = """
 LOCKERROR: It looks like conda is already doing something.
-The lock %s was found. Wait for it to finish before continuing.
+The lock {0} was found. Wait for it to finish before continuing.
 If you are sure that conda is not running, remove it and try again.
 You can also use: $ conda clean --lock
 """
@@ -41,15 +40,6 @@ stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
 
 
-def touch(file_name, times=None):
-    """ Touch function like touch in Unix shell
-    :param file_name: the name of file
-    :param times: the access and modified time
-    Examples:
-        touch("hello_world.py")
-    """
-    with open(file_name, 'a'):
-        os.utime(file_name, times)
 
 def preprocess_name(path):
     if "https:" in path:
@@ -65,7 +55,6 @@ class FileLock(object):
     Context manager to handle locks.
     """
     def __init__(self, file_path, retries=10):
-
         """
         :param file_path: The file or directory to be locked
         :param retries: max number of retries
@@ -73,8 +62,7 @@ class FileLock(object):
         """
         file_path = preprocess_name(file_path)
         self.file_path = abspath(file_path)
-        self.retries = 0
-        self.max_tries = max_tries
+        self.retries = retries
 
     def __enter__(self):
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
@@ -92,15 +80,14 @@ class FileLock(object):
                 log.debug("Sleeping for %s seconds\n" % sleep_time)
 
                 time.sleep(sleep_time / 10)
+                sleep_time *= 2
+                last_glob_match = glob_result
             else:
                 touch(self.lock_path)
                 return self
 
-            self.retries += 1
-
         stdoutlog.error("Exceeded max retries, giving up")
         raise LockError(LOCKSTR.format(last_glob_match))
-
 
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
