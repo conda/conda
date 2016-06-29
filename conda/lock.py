@@ -17,6 +17,7 @@ We don't raise an error if the lock is named with the current PID
 """
 from __future__ import absolute_import, division, print_function
 
+
 import os
 import logging
 import time
@@ -103,4 +104,3 @@ class FileLock(object):
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
         rm_rf(self.lock_path)
-
