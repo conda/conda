@@ -666,6 +666,37 @@ def test_activate_has_extra_env_vars(shell):
         # period here is because when var is blank, windows prints out the current echo setting.
         assert_equals(stdout, u'.', stderr)
 
+
+@pytest.mark.slow
+def test_activate_keeps_PATH_order(shell):
+    if sys.platform != "win32" or shell != "cmd.exe":
+        pytest.xfail("test only implemented for cmd.exe on win")
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        commands = (shell_vars['command_setup'] + """
+        @set "PATH=somepath;CONDA_PATH_PLACEHOLDER;%PATH%"
+        @call "{syspath}{binpath}activate.bat"
+        {printpath}
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert stdout.startswith("somepath;" + sys.prefix)
+
+@pytest.mark.slow
+def test_deactivate_placeholder(shell):
+    if sys.platform != "win32" or shell != "cmd.exe":
+        pytest.xfail("test only implemented for cmd.exe on win")
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        commands = (shell_vars['command_setup'] + """
+        @set "PATH=flag;%PATH%"
+        @call "{syspath}{binpath}activate.bat"
+        @call "{syspath}{binpath}deactivate.bat" "hold"
+        {printpath}
+        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert stdout.startswith("CONDA_PATH_PLACEHOLDER;flag")
+
+
 # This test depends on files that are copied/linked in the conda recipe.  It is unfortunately not going to run after
 #    a setup.py install step
 # @pytest.mark.slow
