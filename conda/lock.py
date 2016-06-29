@@ -23,7 +23,6 @@ from glob import glob
 from os.path import abspath, isdir, dirname
 from .compat import range
 from .exceptions import LockError
-
 LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
@@ -106,4 +105,3 @@ def Locked(*args, **kwargs):
     from warnings import warn
     warn("Locked class has been deprecated as FileLock!")
     return FileLock(*args, **kwargs)
-
