@@ -28,10 +28,9 @@ LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
 # programs can look for it.
-
-LOCKSTR = """\
+LOCKSTR = """
 LOCKERROR: It looks like conda is already doing something.
-The lock %s was found. Wait for it to finish before continuing.
+The lock {0} was found. Wait for it to finish before continuing.
 If you are sure that conda is not running, remove it and try again.
 You can also use: $ conda clean --lock
 """
@@ -80,6 +79,8 @@ class FileLock(object):
                 log.debug("Sleeping for %s seconds\n" % sleep_time)
 
                 time.sleep(sleep_time / 10)
+                sleep_time *= 2
+                last_glob_match = glob_result
             else:
                 touch(self.lock_file_path)
                 return self
