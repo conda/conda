@@ -1,5 +1,5 @@
-2016-0X-XX  4.1.5 (unreleased):
---------------------------------
+2016-06-29  4.1.5:
+------------------
 * more conservative auto updates of conda #2900
 * fix some permissions errors with more aggressive use of move_path_to_trash, #2882
 * fix #2891 error if allow_other_channels setting is used, #2896
