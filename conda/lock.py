@@ -20,13 +20,31 @@ from __future__ import absolute_import, division, print_function
 import logging
 import os
 import time
+from glob import glob
+from os.path import abspath, isdir, join
 
+from conda.install import rm_rf
+from .compat import range
 from .exceptions import LockError
 
 LOCKFN = '.conda_lock'
 
+# Keep the string "LOCKERROR" in this string so that external
+# programs can look for it.
+LOCKSTR = """\
+LOCKERROR: It looks like conda is already doing something.
+The lock %s was found. Wait for it to finish before continuing.
+If you are sure that conda is not running, remove it and try again.
+You can also use: $ conda clean --lock
+"""
 
 stdoutlog = logging.getLogger('stdoutlog')
+log = logging.getLogger(__name__)
+
+def touch(fname, times=None):
+    # http://stackoverflow.com/a/1160227/2127762
+    with open(fname, 'a'):
+        os.utime(fname, times)
 
 
 class Locked(object):
@@ -36,22 +54,16 @@ class Locked(object):
     def __init__(self, path, retries=10):
         self.path = path
         self.end = "-" + str(os.getpid())
-        self.lock_path = os.path.join(self.path, LOCKFN + self.end)
+        self.lock_path = join(self.path, LOCKFN + self.end)
         self.retries = retries
 
     def __enter__(self):
-        # Keep the string "LOCKERROR" in this string so that external
-        # programs can look for it.
-        lockstr = ("""\
-    LOCKERROR: It looks like conda is already doing something.
-    The lock %s was found. Wait for it to finish before continuing.
-    If you are sure that conda is not running, remove it and try again.
-    You can also use: $ conda clean --lock\n""")
+
         sleeptime = 1
 
         for _ in range(self.retries):
-            if os.path.isdir(self.lock_path):
-                stdoutlog.info(lockstr % self.lock_path)
+            if isdir(self.lock_path):
+                stdoutlog.info(LOCKSTR % self.lock_path)
                 stdoutlog.info("Sleeping for %s seconds\n" % sleeptime)
 
                 time.sleep(sleeptime)
@@ -61,7 +73,7 @@ class Locked(object):
                 return self
 
         stdoutlog.error("Exceeded max retries, giving up")
-        raise LockError(lockstr % self.lock_path)
+        raise LockError(LOCKSTR % self.lock_path)
 
     def __exit__(self, exc_type, exc_value, traceback):
         try:
@@ -69,3 +81,36 @@ class Locked(object):
             os.rmdir(self.path)
         except OSError:
             pass
+
+
+class FileLock(object):
+    """
+    Context manager to handle locks.
+    """
+    def __init__(self, filepath, retries=10):
+        self.filepath = abspath(filepath)
+        self.retries = retries
+
+    def __enter__(self):
+        sleeptime = 1
+        self.lockpath = "{0}.pid{1}.{2}".format(self.filepath, os.getpid(), LOCKFN)
+        lockglobstr = "{0}.pid*.{2}".format(self.filepath, LOCKFN)
+        lastglobmatch = None
+        for _ in range(self.retries):
+            globresult = glob(lockglobstr)
+            if globresult:
+                stdoutlog.info(LOCKSTR % globresult[0])
+                stdoutlog.info("Sleeping for %s seconds\n" % sleeptime)
+
+                time.sleep(sleeptime/10)
+                sleeptime *= 2
+                lastglobmatch = globresult
+            else:
+                touch(lockpath)
+                return self
+
+        stdoutlog.error("Exceeded max retries, giving up")
+        raise LockError(LOCKSTR % lastglobmatch[0])
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        rm_rf(self.lockpath)
