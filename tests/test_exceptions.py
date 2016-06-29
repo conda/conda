@@ -56,3 +56,5 @@ class CondaErrorTestCase(unittest.TestCase):
         self.assertNotIn('True', repr(err))
         self.assertNotIn('False', str(err))
         self.assertNotIn('True', str(err))
+
+
