@@ -59,11 +59,13 @@ def preprocess_name(path):
     else:
         return path
 
+
 class FileLock(object):
     """
     Context manager to handle locks.
     """
     def __init__(self, file_path, retries=10):
+
         """
         :param file_path: The file or directory to be locked
         :param retries: max number of retries
@@ -71,7 +73,8 @@ class FileLock(object):
         """
         file_path = preprocess_name(file_path)
         self.file_path = abspath(file_path)
-        self.retries = retries
+        self.retries = 0
+        self.max_tries = max_tries
 
     def __enter__(self):
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
@@ -81,9 +84,7 @@ class FileLock(object):
         lock_glob_str = "{0}.pid*.{1}".format(self.file_path, LOCK_EXTENSION)
         last_glob_match = None
 
-
         for q in range(self.retries + 1):
-
             # search, whether there is process already locked on this file
             glob_result = glob(lock_glob_str)
             if glob_result:
@@ -94,6 +95,8 @@ class FileLock(object):
             else:
                 touch(self.lock_path)
                 return self
+
+            self.retries += 1
 
         stdoutlog.error("Exceeded max retries, giving up")
         raise LockError(LOCKSTR.format(last_glob_match))
