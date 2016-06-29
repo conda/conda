@@ -405,7 +405,7 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if choice == 'yes':
         return True
     if exit_no:
-        raise CondaSystemExit
+        raise CondaSystemExit('Exiting')
     return False
 
 # --------------------------------------------------------------------

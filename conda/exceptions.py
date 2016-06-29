@@ -137,9 +137,6 @@ class CondaKeyError(CondaError, KeyError):
         self.msg = 'Key error: %s' % message
         super(CondaKeyError, self).__init__(self.msg, *args, **kwargs)
 
-    def __repr__(self):
-        return self.msg
-
 
 class ChannelError(CondaError):
     def __init__(self, message, *args, **kwargs):

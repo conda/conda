@@ -211,6 +211,10 @@ def execute_search(args, parser):
             old = name
         names = new_names
 
+    import pdb; pdb.set_trace()
+    if not names:
+        print('No packages found with name: "' + args.regex + '"')
+
     for name, pkgs in names:
         if args.reverse_dependency:
             disp_name = pkgs[0].name

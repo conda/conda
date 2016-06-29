@@ -44,6 +44,7 @@ Examples:
 uninstall_help = "Alias for conda remove.  See conda remove --help."
 log = logging.getLogger(__name__)
 
+
 def configure_parser(sub_parsers, name='remove'):
     if name == 'remove':
         p = sub_parsers.add_parser(
@@ -110,7 +111,8 @@ def execute(args, parser):
 
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
-                       '       try "conda remove -h" for more details', json)
+                              '       try "conda remove -h" for more details',
+                              args.json)
 
     prefix = get_prefix(args)
     if args.all and prefix == default_prefix:
