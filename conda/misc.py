@@ -69,14 +69,18 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, 
         prefix = pkg_path = dir_path = None
         if url.startswith('file://'):
             prefix = cached_url(url)
+            if prefix is not None:
+                schannel = 'defaults' if prefix == '' else prefix[:-2]
+                is_file = False
 
         # If not, determine the channel name from the URL
         if prefix is None:
             channel, schannel = url_channel(url)
+            is_file = schannel.startswith('file:') and schannel.endswith('/')
             prefix = '' if schannel == 'defaults' else schannel + '::'
+
         fn = prefix + fn
         dist = fn[:-8]
-        is_file = schannel.startswith('file:') and schannel.endswith('/')
         # Add explicit file to index so we'll see it later
         if is_file:
             index[fn] = {'fn': dist2filename(fn), 'url': url, 'md5': None}
