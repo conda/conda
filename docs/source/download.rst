@@ -55,24 +55,24 @@ What version of Python should I choose?
 What about cryptographic hash verification?
 -------------------------------------------
 
-MD5 checksums are available for both `Miniconda <http://repo.continuum.io/miniconda/>`_ and `Anaconda <http://continuum.io/md5>`_.
+MD5 checksums are available for `Miniconda <http://repo.continuum.io/miniconda/>`_ and both MD5 and SHA-256 checksums are available for `Anaconda <https://docs.continuum.io/anaconda/hashes/index>`_.
 
 Download the package and before installing verify it as follows:
 
-**Linux:** ``md5sum filename``
+**Linux:** ``md5sum filename`` or ``sha256sum filename``
 
 NOTE: Replace "filename" with the actual path and name of the downloaded package file.
 
-**OS X:** ``md5 filename``
+**OS X:** ``md5 filename`` or ``shasum -a 256 filename``
 
 NOTE: Replace "filename" with the actual path and name of the downloaded package file.
 
 **Windows:**
 
-Use the free online verifier tool on the Microsoft website: https://support.microsoft.com/en-us/kb/841290 
+Use the free online verifier tool on the Microsoft website: https://gallery.technet.microsoft.com/PowerShell-File-Checksum-e57dcd67
 
 Download and extract the file, then open a Command Prompt window. 
 
-Navigate to the file, then enter the command ``fciv.exe C:\path\to\file.ext``
+Navigate to the file, then enter the command ``Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm MD5 -Online`` or ``Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online``
 
 NOTE: Replace "C:\\path\\to\\file.ext" with the actual path, filename and extension. 
