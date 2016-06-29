@@ -214,6 +214,10 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, 'flask=0.10')
             assert_package_is_installed(prefix, 'flask-0.10.1')
 
+            # Test force reinstall
+            run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+
             run_command(Commands.UPDATE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'flask')
@@ -255,11 +259,32 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
-            # Regression test for 2812
-            # install from local channel
             from conda.config import pkgs_dirs
             flask_fname = flask_data['fn']
             tar_old_path = join(pkgs_dirs[0], flask_fname)
+
+            # regression test for #2886 (part 1 of 2)
+            # install tarball from package cache, default channel
+            run_command(Commands.INSTALL, prefix, tar_old_path)
+            assert_package_is_installed(prefix, 'flask-0.')
+
+            # regression test for #2626
+            # install tarball with full path, outside channel
+            tar_new_path = join(prefix, flask_fname)
+            copyfile(tar_old_path, tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert_package_is_installed(prefix, 'flask-0')
+
+            # regression test for #2626
+            # install tarball with relative path, outside channel
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            tar_new_path = relpath(tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert_package_is_installed(prefix, 'flask-0.')
+
+            # Regression test for 2812
+            # install from local channel
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
             repodata = {'info': {}, 'packages':{flask_fname: flask_data}}
@@ -274,21 +299,12 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
-            # regression test for #2626
-            # install tarball with full path
-            tar_new_path = join(prefix, flask_fname)
-            copyfile(tar_old_path, tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert_package_is_installed(prefix, 'flask-0')
-
+            # regression test for #2886 (part 2 of 2)
+            # install tarball from package cache, local channel
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0')
-
-            # regression test for #2626
-            # install tarball with relative path
-            tar_new_path = relpath(tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert_package_is_installed(prefix, 'flask-0.')
+            run_command(Commands.INSTALL, prefix, tar_old_path)
+            assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
             # regression test for #2599
             linked_data_.clear()

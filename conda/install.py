@@ -39,6 +39,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
@@ -54,6 +55,8 @@ try:
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
+    pkgs_dirs = [sys.prefix]
+
     class Locked(object):
         def __init__(self, *args, **kwargs):
             pass
@@ -248,10 +251,8 @@ def exp_backoff_fn(fn, *args):
 def rm_rf(path, max_retries=5, trash=True):
     """
     Completely delete path
-
     max_retries is the number of times to retry on failure. The default is
     5. This only applies to deleting a directory.
-
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
     if islink(path) or isfile(path):
@@ -260,16 +261,25 @@ def rm_rf(path, max_retries=5, trash=True):
         # islink('/path/to/dead-link') is True.
         try:
             os.unlink(path)
+            return
         except (OSError, IOError):
             log.warn("Cannot remove, permission denied: {0}".format(path))
+            if trash and move_path_to_trash(path):
+                return
 
     elif isdir(path):
+        # On Windows, always move to trash first.
+        if trash and on_win and move_path_to_trash(path, preclean=False):
+            return
+
         try:
             for i in range(max_retries):
                 try:
                     shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
                     return
                 except OSError as e:
+                    if trash and move_path_to_trash(path):
+                        return
                     msg = "Unable to delete %s\n%s\n" % (path, e)
                     if on_win:
                         try:
@@ -287,16 +297,6 @@ def rm_rf(path, max_retries=5, trash=True):
                         else:
                             if not isdir(path):
                                 return
-
-                        if trash:
-                            try:
-                                move_path_to_trash(path)
-                                if not isdir(path):
-                                    return
-                            except OSError as e2:
-                                raise
-                                msg += "Retry with onerror failed (%s)\n" % e2
-
                     log.debug(msg + "Retrying after %s seconds..." % i)
                     time.sleep(i)
             # Final time. pass exceptions to caller.
@@ -305,6 +305,7 @@ def rm_rf(path, max_retries=5, trash=True):
             # If path was removed, ensure it's not in linked_data_
             if not isdir(path):
                 delete_linked_data_any(path)
+
 
 def rm_empty_dir(path):
     """
@@ -574,7 +575,8 @@ def read_no_link(info_dir):
 # Should this be an API function?
 def symlink_conda(prefix, root_dir, shell=None):
     # do not symlink root env - this clobbers activate incorrectly.
-    if normpath(prefix) == normpath(sys.prefix):
+    # prefix should always be longer than, or outside the root dir.
+    if normpath(prefix) in normpath(root_dir):
         return
     if on_win:
         where = 'Scripts'
@@ -969,6 +971,8 @@ def is_linked(prefix, dist):
 def delete_trash(prefix=None):
     for pkg_dir in pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
+        if not isdir(trash_dir):
+            continue
         try:
             log.debug("Trying to delete the trash dir %s" % trash_dir)
             rm_rf(trash_dir, max_retries=1, trash=False)
@@ -987,15 +991,14 @@ def move_to_trash(prefix, f, tempdir=None):
     return move_path_to_trash(join(prefix, f) if f else prefix)
 
 
-def move_path_to_trash(path):
+def move_path_to_trash(path, preclean=True):
     """
     Move a path to the trash
     """
     # Try deleting the trash every time we use it.
-    delete_trash()
-    import tempfile
+    if preclean:
+        delete_trash()
 
-    from conda.config import pkgs_dirs
     for pkg_dir in pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
 
@@ -1008,14 +1011,17 @@ def move_path_to_trash(path):
         trash_file = tempfile.mktemp(dir=trash_dir)
 
         try:
-            shutil.move(path, trash_file)
+            os.rename(path, trash_file)
         except OSError as e:
             log.debug("Could not move %s to %s (%s)" % (path, trash_file, e))
         else:
+            log.debug("Moved to trash: %s" % (path,))
             delete_linked_data_any(path)
-            return trash_file
+            if not preclean:
+                rm_rf(trash_file, max_retries=1, trash=False)
+            return True
 
-    log.debug("Could not move %s to trash" % path)
+    return False
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
@@ -1047,17 +1053,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 os.makedirs(dst_dir)
             if os.path.exists(dst):
                 log.warn("file already exists: %r" % dst)
-                try:
-                    os.unlink(dst)
-                except OSError:
-                    log.error('failed to unlink: %r' % dst)
-                    if on_win:
-                        try:
-                            move_path_to_trash(dst)
-                        except ImportError:
-                            # This shouldn't be an issue in the installer anyway
-                            pass
-
+                rm_rf(dst)
             lt = linktype
             if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
@@ -1121,18 +1117,7 @@ def unlink(prefix, dist):
         for f in meta['files']:
             dst = join(prefix, f)
             dst_dirs1.add(dirname(dst))
-            try:
-                os.unlink(dst)
-            except OSError:  # file might not exist
-                log.debug("could not remove file: '%s'" % dst)
-                if on_win and os.path.exists(join(prefix, f)):
-                    try:
-                        log.debug("moving to trash")
-                        move_path_to_trash(dst)
-                    except ImportError:
-                        # This shouldn't be an issue in the installer anyway
-                        #   but it can potentially happen with importing conda.config
-                        log.debug("cannot import conda.config; probably not an issue")
+            rm_rf(dst)
 
         # remove the meta-file last
         delete_linked_data(prefix, dist, delete=True)
