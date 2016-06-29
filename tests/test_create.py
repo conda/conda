@@ -232,6 +232,34 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-3')
 
     @pytest.mark.timeout(300)
+    def test_create_duplicate_packages(self):
+        # Create an environment with two different versions of the same package.
+        # Make sure that conda can properly handle this
+        with make_temp_env("python=3") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'python-3')
+
+            for attempt in range(2):
+                xz_metadata = glob(join(prefix, 'conda-meta', 'xz-*.json'))[-1]
+                xz_linked1 = basename(xz_metadata)[:-5]
+                copyfile(xz_metadata, xz_metadata + '.tmp')
+                run_command(Commands.INSTALL, prefix, 'xz<' + xz_linked1.rsplit('-', 2)[1])
+                assert_package_is_installed(prefix, 'xz')
+                xz_linked2 = basename(glob(join(prefix, 'conda-meta', 'xz-*.json'))[-1])[:-5]
+                assert xz_linked1 != xz_linked2
+                os.rename(xz_metadata + '.tmp', xz_metadata)
+                linked_data_.clear()
+
+                if attempt == 0:
+                    run_command(Commands.UPDATE, prefix, 'python')
+                    xz_metadata = glob(join(prefix, 'conda-meta', 'xz-*.json'))
+                    assert len(xz_metadata) == 1
+                    assert basename(xz_metadata[0])[:-5] == xz_linked1
+                else:
+                    run_command(Commands.REMOVE, prefix, 'xz')
+                    assert not package_is_installed(prefix, 'xz')
+
+    @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",

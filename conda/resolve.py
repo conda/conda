@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from itertools import chain
 
-from .compat import iterkeys, itervalues, iteritems
+from .compat import iterkeys, itervalues, iteritems, string_types
 from .config import subdir, channel_priority, canonical_channel_name, track_features
 from .console import setup_handlers
 from .install import dist2quad
@@ -663,6 +663,8 @@ class Resolve(object):
         return set(self.index[fkey].get('track_features', '').split())
 
     def package_quad(self, fkey):
+        if not fkey.endswith('.tar.bz2'):
+            fkey += '.tar.bz2'
         rec = self.index.get(fkey, None)
         if rec is None:
             return dist2quad(fkey.rsplit('[', 1)[0].rsplit('/', 1)[-1])
@@ -709,7 +711,7 @@ class Resolve(object):
         C.name_var(m, name)
         return name
 
-    def gen_clauses(self, specs):
+    def gen_clauses(self, specs=()):
         C = Clauses()
 
         # Creates a variable that represents the proposition:
@@ -793,22 +795,28 @@ class Resolve(object):
                 pkey = nkey
         return eqv, eqb
 
-    def dependency_sort(self, must_have):
-        if not isinstance(must_have, dict):
-            must_have = {self.package_name(dist): dist for dist in must_have}
+    def dependency_sort(self, must_have_):
+        if not isinstance(must_have_, dict):
+            must_have = {}
+            for dist in must_have_:
+                must_have.setdefault(self.package_name(dist), []).append(dist)
+        else:
+            must_have = must_have_.copy()
+
         digraph = {}
-        for key, value in iteritems(must_have):
-            fn = value + '.tar.bz2'
-            if fn in self.index:
-                depends = set(ms.name for ms in self.ms_depends(fn))
-                digraph[key] = depends
+        for key, v in iteritems(must_have):
+            digraph[key] = set()
+            for value in ([v] if isinstance(v, string_types) else v):
+                fn = value + '.tar.bz2'
+                if fn in self.index:
+                    depends = set(ms.name for ms in self.ms_depends(fn))
+                    digraph[key].update(depends)
         sorted_keys = toposort(digraph)
-        must_have = must_have.copy()
+
         # Take all of the items in the sorted keys
         # Don't fail if the key does not exist
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
-        # Take any key that were not sorted
-        result.extend(must_have.values())
+        result.extend(itervalues(must_have))
         return result
 
     def explicit(self, specs):
@@ -869,49 +877,63 @@ class Resolve(object):
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
+        duplicates = set()
         if not installed:
-            return None, []
-        xtra = []
+            return None, (), duplicates
+
         dists = {}
-        specs = []
+        missing = []
+        dnames = set()
         for fn in installed:
+            name = self.package_name(fn)
+            (duplicates if name in dnames else dnames).add(name)
             rec = self.index.get(fn)
-            if rec is None:
-                xtra.append(fn)
-            else:
+            if rec is not None:
                 dists[fn] = rec
-                specs.append(MatchSpec(' '.join(self.package_quad(fn)[:3])))
-        if xtra:
-            log.debug('Packages missing from index: %s' % ', '.join(xtra))
-        r2 = Resolve(dists, True, True)
-        C = r2.gen_clauses(specs)
-        constraints = r2.generate_spec_constraints(C, specs)
+            else:
+                missing.append(fn)
+        if missing:
+            log.debug('Packages missing from index: %s' % ', '.join(sorted(missing)))
+        if duplicates:
+            dupfns = list(sorted(fn for fn in installed if self.package_name(fn) in duplicates))
+            stderrlog.warn('WARNING: duplicate packages detected in the environment:\n  - %s\n'
+                           'Specifications will be adjusted to correct this.\n' %
+                           ('\n  - '. join(dupfns),))
+            missing = [fn for fn in missing if self.package_name(fn) not in duplicates]
+        if missing or duplicates:
+            snames = duplicates.copy()
+            snames.update(self.package_name(fn) for fn in missing)
+            for name in snames:
+                dists.update({fn: self.index[fn] for fn in self.groups.get(name, [])})
+        else:
+            snames = set()
+        r2 = Resolve(dists)
+        C = r2.gen_clauses()
+        constraints = r2.generate_spec_constraints(C, map(MatchSpec, dnames))
         try:
             solution = C.sat(constraints)
         except TypeError:
             log.debug('Package set caused an unexpected error, assuming a conflict')
             solution = None
-        limit = None
-        if not solution or xtra:
-            def get_(name, snames):
-                if name not in snames:
-                    snames.add(name)
-                    for fn in self.groups.get(name, []):
-                        for ms in self.ms_depends(fn):
-                            get_(ms.name, snames)
-            snames = set()
-            for spec in new_specs:
-                get_(MatchSpec(spec).name, snames)
-            xtra = [x for x in xtra if x not in snames]
-            if xtra or not (solution or all(s.name in snames for s in specs)):
-                limit = set(s.name for s in specs if s.name in snames)
-                xtra = [fn for fn in installed if self.package_name(fn) not in snames]
-                log.debug(
-                    'Limiting solver to the following packages: %s' %
-                    ', '.join(limit))
-        if xtra:
-            log.debug('Packages to be preserved: %s' % ', '.join(xtra))
-        return limit, xtra
+        if solution:
+            return None, (), duplicates
+
+        def get_(name, snames):
+            if name not in snames:
+                snames.add(name)
+                for fn in self.groups.get(name, []):
+                    for ms in self.ms_depends(fn):
+                        get_(ms.name, snames)
+        for spec in new_specs:
+            get_(MatchSpec(spec).name, snames)
+        xtra = [fn for fn in installed if self.package_name(fn) not in snames]
+        if not xtra:
+            return None, (), duplicates
+
+        log.debug(
+            'Limiting solver to the following packages: %s' % ', '.join(snames))
+        log.debug('Packages to be preserved: %s' % ', '.join(xtra))
+        print(snames, xtra, duplicates)
 
     def restore_bad(self, pkgs, preserve):
         if preserve:
@@ -922,7 +944,10 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
-        limit, preserve = self.bad_installed(installed, specs)
+        limit, preserve, duplicates = self.bad_installed(installed, specs)
+        for name in duplicates - snames:
+            specs.append(MatchSpec(name, optional=True))
+            snames.add(name)
         for pkg in installed:
             if pkg not in self.index:
                 continue
@@ -950,12 +975,15 @@ class Resolve(object):
         specs = [s if ' ' in s else s + ' @ @' for s in specs]
         specs = [MatchSpec(s, optional=True) for s in specs]
         snames = {s.name for s in specs}
-        limit, _ = self.bad_installed(installed, specs)
+        limit, _, duplicates = self.bad_installed(installed, specs)
         preserve = []
         for pkg in installed:
             nm, ver, build, schannel = self.package_quad(pkg)
             if nm in snames:
                 continue
+            elif nm in duplicates:
+                specs.append(MatchSpec(nm, optional=True))
+                snames.add(nm)
             elif limit is not None:
                 preserve.append(pkg)
             elif ver:
