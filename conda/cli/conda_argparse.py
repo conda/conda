@@ -130,8 +130,8 @@ class ArgumentParser(argparse.ArgumentParser):
                     if not executable:
                         if cmd in build_commands:
                             raise CommandNotFoundError('''
-                            Error: You need to install conda-build in order to
-                            use the "conda %s" command.''' % cmd)
+Error: You need to install conda-build in order to
+use the "conda %s" command.''' % cmd)
                         else:
                             message = "Error: Could not locate 'conda-%s'" % cmd
                             possibilities = (set(argument.choices.keys()) |

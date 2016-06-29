@@ -12,6 +12,7 @@ from .install import dist2quad
 from .logic import minimal_unsatisfiable_subset, Clauses
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
+from .exceptions import CondaError
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -19,11 +20,12 @@ stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
 
+
 def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
 
 
-class Unsatisfiable(RuntimeError):
+class Unsatisfiable(CondaError, RuntimeError):
     '''An exception to report unsatisfiable dependencies.
 
     Args:
@@ -80,7 +82,7 @@ Use "conda info <package>" to see the dependencies for each package.'''
         super(Unsatisfiable, self).__init__(msg)
 
 
-class NoPackagesFound(RuntimeError):
+class NoPackagesFound(CondaError, RuntimeError):
     '''An exception to report that requested packages are missing.
 
     Args:

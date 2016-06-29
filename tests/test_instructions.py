@@ -31,7 +31,6 @@ class TestHandler(Handler):
         self.records.append((record.name, record.msg))
 
 
-
 class TestExecutePlan(unittest.TestCase):
 
     def test_invalid_instruction(self):
