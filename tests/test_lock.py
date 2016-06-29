@@ -1,7 +1,12 @@
 import pytest
 from os.path import basename, join
+<<<<<<< HEAD
 from conda.lock import Locked, LOCKSTR, LOCK_EXTENSION, LockError
 from conda.install import on_win
+=======
+from conda.lock import FileLock, LOCKSTR, LOCK_EXTENSION, LockError
+
+>>>>>>> update lock
 
 def test_filelock_passes(tmpdir):
     package_name = "conda_file1"
@@ -23,6 +28,7 @@ def test_filelock_locks(tmpdir):
         assert tmpdir.join(path).exists()
 
         with pytest.raises(LockError) as execinfo:
+<<<<<<< HEAD
             with Locked(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
             assert lock2.lock_path == lock1.lock_path
@@ -30,6 +36,13 @@ def test_filelock_locks(tmpdir):
         if not on_win:
             assert "LOCKERROR" in str(execinfo.value)
             assert "conda is already doing something" in str(execinfo.value)
+=======
+            with FileLock(tmpfile, retries=1) as lock2:
+                assert False  # this should never happen
+            assert lock2.lock_path == lock1.lock_path
+        assert "LOCKERROR" in execinfo.value.message
+        assert "conda is already doing something" in execinfo.value.message
+>>>>>>> update lock
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
     # lock should clean up after itself
@@ -46,6 +59,7 @@ def test_filelock_folderlocks(tmpdir):
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
         with pytest.raises(LockError) as execinfo:
+<<<<<<< HEAD
             with Locked(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
             assert lock2.lock_path == lock1.lock_path
@@ -54,6 +68,14 @@ def test_filelock_folderlocks(tmpdir):
             assert "LOCKERROR" in str(execinfo.value)
             assert "conda is already doing something" in str(execinfo.value)
             assert lock1.lock_path in str(execinfo.value)
+=======
+            with FileLock(tmpfile, retries=1) as lock2:
+                assert False  # this should never happen
+            assert lock2.lock_path == lock1.lock_path
+        assert "LOCKERROR" in execinfo.value.message
+        assert "conda is already doing something" in execinfo.value.message
+        assert lock1.lock_path in execinfo.value.message
+>>>>>>> update lock
 
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
@@ -86,10 +108,16 @@ def test_lock_thread(tmpdir):
 
 
 def lock_thread_retries(tmpdir, file_path):
+<<<<<<< HEAD
     with pytest.raises(LockError) as execinfo:
         with Locked(file_path, retries=0):
             assert False  # should never enter here, since max_tires is 0
         assert  "LOCKERROR" in str(execinfo.value)
+=======
+    with FileLock(file_path, retries=0):
+        assert False  # should never enter here, since max_tires is 0
+
+>>>>>>> update lock
 
 def test_lock_retries(tmpdir):
 
