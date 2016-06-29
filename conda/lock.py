@@ -28,6 +28,7 @@ LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
 # programs can look for it.
+
 LOCKSTR = """
 LOCKERROR: It looks like conda is already doing something.
 The lock {0} was found. Wait for it to finish before continuing.
@@ -37,7 +38,6 @@ You can also use: $ conda clean --lock
 
 stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
-
 
 def touch(file_name, times=None):
     """ Touch function like touch in Unix shell
@@ -49,19 +49,27 @@ def touch(file_name, times=None):
     with open(file_name, 'a'):
         os.utime(file_name, times)
 
-
+def preprocess_name(path):
+    if "https:" in path:
+        return path.split("https:")[0]+path.rsplit("/", 1)[1]
+    elif "file" in path:
+        return path.split("file:")[0] + path.rsplit("/", 1)[1]
+    else:
+        return path
 class FileLock(object):
     """
     Context manager to handle locks.
     """
-    def __init__(self, file_path, retries=10):
+    def __init__(self, file_path, max_tries=10):
         """
         :param file_path: The file or directory to be locked
         :param retries: max number of retries
         :return:
         """
+        file_path = preprocess_name(file_path)
         self.file_path = abspath(file_path)
-        self.retries = retries
+        self.retries = 0
+        self.max_tries = max_tries
 
     def __enter__(self):
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
@@ -72,7 +80,11 @@ class FileLock(object):
         lock_glob_str = "{0}.pid*.{1}".format(self.file_path, LOCK_EXTENSION)
         last_glob_match = None
 
+<<<<<<< HEAD
         for q in range(self.retries + 1):
+=======
+        while self.retries <= self.max_tries:
+>>>>>>> change retries and lockerror
             # search, whether there is process already locked on this file
             glob_result = glob(lock_glob_str)
             if glob_result:
@@ -86,8 +98,14 @@ class FileLock(object):
                 touch(self.lock_path)
                 return self
 
+            self.retries += 1
+
         stdoutlog.error("Exceeded max retries, giving up")
+<<<<<<< HEAD
         raise LockError(LOCKSTR.format(last_glob_match))
+=======
+        raise LockError(LOCKSTR % str(last_glob_match))
+>>>>>>> change retries and lockerror
 
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
