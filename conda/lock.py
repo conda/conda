@@ -23,7 +23,6 @@ from glob import glob
 from os.path import abspath, isdir, dirname, basename, join
 from .compat import range
 from .exceptions import LockError
-
 LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
