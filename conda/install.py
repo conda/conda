@@ -241,7 +241,7 @@ def exp_backoff_fn(fn, *args):
             if e.errno in (errno.EPERM, errno.EACCES):
                 if n == max_retries-1:
                     raise
-                time.sleep(((2 ** n) + random.random()) * 1e-3)
+                time.sleep(((2 ** n) + random.random()) * 1e-1)
             else:
                 raise
         else:
