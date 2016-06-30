@@ -62,7 +62,7 @@ def check_prefix(prefix, json=False):
         common.error_and_exit(error, json=json, error_type="ValueError")
 
 
-def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
+def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
@@ -84,7 +84,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, fetch_args=None):
         actions, untracked_files = clone_env(src_prefix, dst_prefix,
                                              verbose=not json,
                                              quiet=quiet,
-                                             fetch_args=fetch_args)
+                                             index_args=index_args)
 
     if json:
         common.stdout_json_success(
@@ -169,13 +169,21 @@ def install(args, parser, command='install'):
     common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
+    index_args = {
+        'use_cache': args.use_index_cache,
+        'channel_urls': args.channel or (),
+        'unknown': args.unknown,
+        'prepend': not args.override_channels,
+        'use_local': args.use_local,
+        'offline': args.offline
+    }
 
     specs = []
     if args.file:
         for fpath in args.file:
             specs.extend(common.specs_from_url(fpath, json=args.json))
         if '@EXPLICIT' in specs:
-            explicit(specs, prefix, verbose=not args.quiet)
+            explicit(specs, prefix, verbose=not args.quiet, index_args=index_args)
             return
     elif getattr(args, 'all', False):
         if not linked:
@@ -213,23 +221,16 @@ def install(args, parser, command='install'):
             common.error_and_exit('did not expect any arguments for --clone',
                                   json=args.json,
                                   error_type="ValueError")
-        clone(args.clone, prefix, json=args.json, quiet=args.quiet,
-              fetch_args={'use_cache': args.use_index_cache,
-                          'unknown': args.unknown})
+        clone(args.clone, prefix, json=args.json, quiet=args.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
         if not args.json:
             print_activate(args.name if args.name else prefix)
         return
 
-    index = common.get_index_trap(channel_urls=channel_urls,
-                                  prepend=not args.override_channels,
-                                  use_local=args.use_local,
-                                  use_cache=args.use_index_cache,
-                                  unknown=args.unknown,
-                                  json=args.json,
-                                  offline=args.offline,
-                                  prefix=prefix)
+    index_args.update({'json': args.json, 'prefix': prefix})
+    index = common.get_index_trap(**index_args)
+
     r = Resolve(index)
     ospecs = list(specs)
     add_defaults_to_specs(r, linked, specs, update=isupdate)
