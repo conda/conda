@@ -55,7 +55,7 @@ class CommandNotFoundError(CommandError):
         super(CommandNotFoundError, self).__init__(msg, *args, **kwargs)
 
 
-class CondaFileNotFoundError(CondaError, FileNotFoundError):
+class CondaFileNotFoundError(CondaError, OSError):
     def __init__(self, message, *args, **kwargs):
         msg = "File not found: %s" % message
         super(CondaFileNotFoundError, self).__init__(msg, *args, **kwargs)
