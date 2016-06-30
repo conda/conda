@@ -49,15 +49,6 @@ def touch(file_name, times=None):
         os.utime(file_name, times)
 
 
-def preprocess_name(path):
-    if "https:" in path:
-        return path.split("https:")[0]+path.rsplit("/", 1)[1]
-    elif "file" in path:
-        return path.split("file:")[0] + path.rsplit("/", 1)[1]
-    else:
-        return path
-
-
 class FileLock(object):
     """
     Context manager to handle locks.
@@ -68,7 +59,6 @@ class FileLock(object):
         :param retries: max number of retries
         :return:
         """
-        file_path = preprocess_name(file_path)
         self.file_path = abspath(file_path)
         self.retries = retries
 

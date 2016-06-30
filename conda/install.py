@@ -791,10 +791,10 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[url_path(fname)]
-        with Locked(join(dirname(fname), dist)):
+        with Locked(fname):
             rm_rf(fname)
     for fname in rec['dirs']:
-        with Locked(join(dirname(fname), dist)):
+        with Locked(fname):
             rm_rf(fname)
     del package_cache_[dist]
 
@@ -825,7 +825,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with Locked(join(dirname(fname), dist)):
+        with Locked(fname):
             rm_rf(fname)
     if rec['files']:
         rec['dirs'] = []
@@ -834,6 +834,7 @@ def rm_extracted(dist):
 
 
 def extract(dist):
+
     """
     Extract a package, i.e. make a package available for linkage. We assume
     that the compressed package is located in the packages directory.
@@ -843,8 +844,8 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
-    with Locked(join(pkgs_dir, dist)):
-        path = fname[:-8]
+    path = fname[:-8]
+    with Locked(path):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
         with tarfile.open(fname) as t:
@@ -1050,24 +1051,26 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
     if not isdir(prefix):
         os.makedirs(prefix)
 
-    with Locked(join(prefix, dist)), Locked(join(pkgs_dir, dist)):
+    with Locked(prefix):
         for f in files:
             src = join(source_dir, f)
-            dst = join(prefix, f)
-            dst_dir = dirname(dst)
-            if not isdir(dst_dir):
-                os.makedirs(dst_dir)
-            if os.path.exists(dst):
-                log.warn("file already exists: %r" % dst)
-                rm_rf(dst)
-            lt = linktype
-            if f in has_prefix_files or f in no_link or islink(src):
-                lt = LINK_COPY
-            try:
-                _link(src, dst, lt)
-            except OSError as e:
-                sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                         (src, dst, lt, e))
+            with Locked(src):
+                dst = join(prefix, f)
+                dst_dir = dirname(dst)
+                if not isdir(dst_dir):
+                    os.makedirs(dst_dir)
+                if os.path.exists(dst):
+                    log.warn("file already exists: %r" % dst)
+                    rm_rf(dst)
+                lt = linktype
+                if f in has_prefix_files or f in no_link or islink(src):
+                    lt = LINK_COPY
+                with Locked(dst):
+                    try:
+                        _link(src, dst, lt)
+                    except OSError as e:
+                        sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                                 (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
@@ -1112,7 +1115,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(join(prefix, dist)):
+    with Locked(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
