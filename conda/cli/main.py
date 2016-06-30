@@ -131,26 +131,7 @@ def _main():
 
 
 def main():
-    # try:
-    #     return _main()
-    # except CondaError as e:
-    #      print(repr(e), file=sys.stderr)
-    #      return 1
     return conda_exception_handler(_main)
-
-
-# def args_func(args, p):
-#     from conda.cli import common
-#
-#     use_json = getattr(args, 'json', False)
-#     try:
-#         exit_code = args.func(args, p)
-#         if isinstance(exit_code, int):
-#             return exit_code
-#     except RuntimeError as e:
-#         raise CondaRuntimeError(e, use_json)
-#     except Exception as e:
-#         raise CondaError(e, use_json)
 
 
 if __name__ == '__main__':
