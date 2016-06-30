@@ -355,7 +355,7 @@ class IntegrationTests(TestCase):
                 json.dump(data, f)
             linked_data_.clear()
 
-            with make_temp_env("--clone", prefix) as clone_prefix:
+            with make_temp_env("-c conda-forge --clone", prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
