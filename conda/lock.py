@@ -51,31 +51,22 @@ def touch(file_name, times=None):
         os.utime(file_name, times)
 
 
-def preprocess_name(path):
-    if "https:" in path:
-        return path.split("https:")[0]+path.rsplit("/", 1)[1]
-    elif "file" in path:
-        return path.split("file:")[0] + path.rsplit("/", 1)[1]
-    else:
-        return path
-
-
 class FileLock(object):
     """
     Context manager to handle locks.
     """
     def __init__(self, file_path, retries=10):
         """
-        :param filepath: The file or directory to be locked
+        :param file_path: The file or directory to be locked
         :param retries: max number of retries
         :return:
         """
-        file_path = preprocess_name(file_path)
         self.file_path = abspath(file_path)
         self.retries = retries
 
     def __enter__(self):
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
+        assert "::" not in self.file_path, self.file_path
 
         sleep_time = 1
         self.lock_path = "{0}.pid{1}.{2}".format(self.file_path, os.getpid(), LOCK_EXTENSION)

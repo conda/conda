@@ -352,6 +352,8 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,
              retries=None):
+    assert "::" not in str(url), url
+    assert "::" not in str(dst_path), str(dst_path)
     pp = dst_path + '.part'
     dst_dir = dirname(dst_path)
     session = session or CondaSession()
@@ -366,8 +368,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False,
 
     if retries is None:
         retries = RETRIES
-    with Locked(join(dst_dir, url.rsplit("/", 1)[1][:-8])):
-
+    with Locked(dst_path):
         rm_rf(dst_path)
 
         try:
