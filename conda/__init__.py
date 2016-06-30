@@ -6,7 +6,7 @@
 """OS-agnostic, system-level binary package manager."""
 from __future__ import absolute_import, division, print_function
 
-from auxlib.packaging import get_version
+from ._vendor.auxlib.packaging import get_version
 
 __all__ = [
     "__name__", "__version__", "__author__",
