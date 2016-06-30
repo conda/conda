@@ -348,7 +348,7 @@ class IntegrationTests(TestCase):
             fn = glob(join(prefix, 'conda-meta', 'python-3.5*.json'))[-1]
             with open(fn) as f:
                 data = json.load(f)
-            for field in ('url', 'channel', 'schannel'):
+            for field in ('url', 'channel', 'schannel', 'build_number'):
                 if field in data:
                     del data[field]
             with open(fn, 'w') as f:
