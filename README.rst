@@ -2,8 +2,6 @@
    conda.pydata.org. If you update this file, be sure to cd to the web
    directory and run ``make html; make live``
 
-.. |br| raw:: html
-
 .. image:: https://s3.amazonaws.com/conda-dev/conda_logo.svg
    :alt: Conda Logo
 
@@ -33,7 +31,7 @@
    :alt: Join the chat at https://gitter.im/conda/conda
    :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
-|br|
+
 
 .. image:: https://s3.amazonaws.com/conda-dev/conda-signup-button.svg
    :alt: Join the Conda Announcment List
