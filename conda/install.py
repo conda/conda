@@ -1116,7 +1116,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(join(prefix, dist)):
+    with Locked(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)

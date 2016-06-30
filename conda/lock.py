@@ -38,15 +38,15 @@ You can also use: $ conda clean --lock
 stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
 
-
-
-def preprocess_name(path):
-    if "https:" in path:
-        return path.split("https:")[0]+path.rsplit("/", 1)[1]
-    elif "file" in path:
-        return path.split("file:")[0] + path.rsplit("/", 1)[1]
-    else:
-        return path
+def touch(file_name, times=None):
+    """ Touch function like touch in Unix shell
+    :param file_name: the name of file
+    :param times: the access and modified time
+    Examples:
+        touch("hello_world.py")
+    """
+    with open(file_name, 'a'):
+        os.utime(file_name, times)
 
 
 class FileLock(object):
@@ -59,7 +59,6 @@ class FileLock(object):
         :param retries: max number of retries
         :return:
         """
-        file_path = preprocess_name(file_path)
         self.file_path = abspath(file_path)
         self.retries = retries
 
