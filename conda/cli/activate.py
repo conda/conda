@@ -107,7 +107,6 @@ def main():
         if len(sys.argv) != 4:
             sys.exit("Error: ..activate expected exactly two arguments: shell and env name")
         binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
-        pathlist_str = pathlist_to_str(binpath)
 
         # prepend our new entries onto the existing path and make sure that the separator is native
         path = shelldict['pathsep'].join(binpath)
