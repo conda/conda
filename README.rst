@@ -33,7 +33,7 @@
 
 |
 
-.. image:: https://s3.amazonaws.com/conda-dev/conda-signup-button.svg
+.. image:: https://s3.amazonaws.com/conda-dev/conda-announce-signup-button.svg
    :alt: Join the Conda Announcment List
    :target: https://conda.pydata.org/docs
 
