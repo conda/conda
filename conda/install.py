@@ -356,7 +356,6 @@ def read_has_prefix(path):
     return res
 
 
-
 def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
@@ -1070,7 +1069,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
                 update_prefix(join(prefix, f), prefix, placeholder, mode)
             except PaddingError:
                 raise PaddingError("ERROR: placeholder '%s' too short in: %s\n" %
-                         (placeholder, dist))
+                                   (placeholder, dist))
 
         # make sure that the child environment behaves like the parent,
         #    wrt user/system install on win

@@ -18,7 +18,11 @@ from os.path import isdir, join, basename, exists, abspath
 from ..cli import common
 from ..cli.find_commands import find_executable
 from ..config import create_default_packages, force_32bit, root_env_name
-from ..exceptions import *
+from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotFoundError,
+                          CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
+                          CondaAssertionError, CondaOSError, CondaImportError,
+                          CondaError, DryRunExit, LockError, CondaRuntimeError,
+                          CondaSystemExit)
 from ..install import linked as install_linked
 from ..install import name_dist, is_linked
 from ..misc import explicit, clone_env, append_env, touch_nonadmin
@@ -26,6 +30,7 @@ from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defau
                     display_actions, revert_actions, nothing_to_do, execute_actions)
 from ..resolve import NoPackagesFound, Unsatisfiable, Resolve
 from ..utils import find_parent_shell
+
 
 log = logging.getLogger(__name__)
 

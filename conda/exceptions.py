@@ -245,7 +245,6 @@ Include the output of the command 'conda info' in your report.
     print(message)
 
     import traceback
-    import sys
     if output_json:
         from conda.cli.common import stdout_json
         stdout_json(dict(error=traceback.format_exc()))
