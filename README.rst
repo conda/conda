@@ -32,12 +32,14 @@
    :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
 
+|
 
 .. image:: https://s3.amazonaws.com/conda-dev/conda-signup-button.svg
    :alt: Join the Conda Announcment List
    :target: https://conda.pydata.org/docs
    :align: center
 
+|
 
 Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
