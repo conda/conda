@@ -15,7 +15,7 @@ from ..config import subdir, canonical_channel_name
 from ..install import dist2quad
 from ..misc import make_icon_url
 from ..resolve import NoPackagesFound, Package
-from ..exceptions import CondaValueError
+from ..exceptions import CondaValueError, PackageNotFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
