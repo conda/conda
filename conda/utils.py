@@ -10,10 +10,10 @@ import os
 import re
 import subprocess
 import tempfile
-from .exceptions import CondaImportError
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
+
 
 class memoized(object):
     """Decorator. Caches a function's return value each time it is called.

@@ -534,7 +534,7 @@ def specs_from_url(url, json=False):
                     raise CondaValueError("could not parse '%s' in: %s" %
                                           (line, url), json)
                 specs.append(spec)
-        except IOError:
+        except IOError as e:
             raise CondaFileIOError('cannot open file: %s' % path, json, e)
     return specs
 

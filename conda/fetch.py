@@ -352,7 +352,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
             raise
 
         raise SignatureError("Error: Signature for '%s' is invalid." %
-                            (basename(path)))
+                             (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False,

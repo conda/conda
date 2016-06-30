@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-import sys
 import base64
 from os.path import abspath, expanduser, isfile, join
 from .exceptions import CondaImportError

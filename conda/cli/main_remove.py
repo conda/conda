@@ -141,7 +141,8 @@ def execute(args, parser):
     elif args.all:
         if plan.is_root_prefix(prefix):
             raise CondaEnvironmentError('cannot remove root environment,\n'
-                           '       add -n NAME or -p PREFIX option', args.json)
+                                        '       add -n NAME or -p PREFIX option',
+                                        args.json)
         actions = {inst.PREFIX: prefix}
         for fkey in sorted(iterkeys(index)):
             plan.add_unlink(actions, fkey[:-8])
@@ -165,7 +166,7 @@ def execute(args, parser):
                 })
             return
         raise PackageNotFoundError('no packages found to remove from '
-                       'environment: %s' % prefix, args.json)
+                                   'environment: %s' % prefix, args.json)
 
     if not args.json:
         print()
