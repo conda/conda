@@ -15,7 +15,6 @@ from .install import (name_dist, linked as install_linked, is_fetched, is_extrac
                       linked_data, find_new_location, cached_url, dist2filename)
 from .compat import iteritems, itervalues
 from .config import is_url, url_channel, root_dir, envs_dirs, subdir
-from .fetch import fetch_index
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
@@ -39,12 +38,12 @@ def conda_installed_files(prefix, exclude_self_build=False):
 url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
                      r'(?P<fn>[^/\\#]+\.tar\.bz2)'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')
-def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, index=None):
+def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, index=None):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
     linked = {name_dist(dist): dist for dist in install_linked(prefix)}
-    fetch_args = fetch_args or {}
+    index_args = index_args or {}
     index = index or {}
     verifies = []
     channels = {}
@@ -120,7 +119,11 @@ def explicit(specs, prefix, verbose=False, force_extract=True, fetch_args=None, 
 
     # Pull the repodata for channels we are using
     if channels:
-        index.update(fetch_index(channels, **fetch_args))
+        index_args = index_args or {}
+        index_args = index_args.copy()
+        index_args['prepend'] = False
+        index_args['channel_urls'] = channels
+        index.update(get_index(**index_args))
 
     # Finish the MD5 verification
     for fn, md5 in verifies:
@@ -229,7 +232,7 @@ def append_env(prefix):
         pass
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
+def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     """
     clone existing prefix1 into new prefix2
     """
@@ -266,8 +269,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
     unknowns = [dist for dist, info in iteritems(drecs) if not info.get('url')]
     notfound = []
     if unknowns:
-        fetch_args = fetch_args or {}
-        index = get_index(**fetch_args)
+        index_args = index_args or {}
+        index = get_index(**index_args)
         r = Resolve(index, sort=True)
         for dist in unknowns:
             name = name_dist(dist)
@@ -334,7 +337,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, fetch_args=None):
         shutil.copystat(src, dst)
 
     actions = explicit(urls, prefix2, verbose=not quiet, index=index,
-                       force_extract=False, fetch_args=fetch_args)
+                       force_extract=False, index_args=index_args)
     return actions, untracked_files
 
 

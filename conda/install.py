@@ -43,7 +43,7 @@ import tempfile
 import time
 import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
-                     join, normpath)
+                     join, normpath, normcase)
 
 
 on_win = bool(sys.platform == "win32")
@@ -241,7 +241,7 @@ def exp_backoff_fn(fn, *args):
             if e.errno in (errno.EPERM, errno.EACCES):
                 if n == max_retries-1:
                     raise
-                time.sleep(((2 ** n) + random.random()) * 1e-3)
+                time.sleep(((2 ** n) + random.random()) * 1e-1)
             else:
                 raise
         else:
@@ -576,7 +576,7 @@ def read_no_link(info_dir):
 def symlink_conda(prefix, root_dir, shell=None):
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
-    if normpath(prefix) in normpath(root_dir):
+    if normcase(normpath(prefix)) in normcase(normpath(root_dir)):
         return
     if on_win:
         where = 'Scripts'
