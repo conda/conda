@@ -7,7 +7,7 @@ python:
 
 os:
   - linux
-  # - osx
+  - osx
 
 addons:
   apt:
