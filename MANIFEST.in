@@ -4,5 +4,5 @@ include MANIFEST.in
 include README.rst
 include setup.cfg
 include setup.py
-include auxlib/*
 include shell/*
+recursive-include conda *.py
