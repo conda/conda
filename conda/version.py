@@ -273,8 +273,14 @@ class VersionOrder(object):
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
 version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
+regex_split_re = re.compile(r'(\^\S+?\$)')
+regex_split_converter = {
+    '|': 'any',
+    ',': 'all',
+}
 opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
           '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
+
 
 class VersionSpec(object):
     def exact_match_(self, vspec):
@@ -300,11 +306,10 @@ class VersionSpec(object):
             return spec
         self = object.__new__(cls)
         self.spec = spec
-        regex_split_pattern = r'(\^\S+?\$)'
         if isinstance(spec, tuple):
             self.match = self.all_match_ if spec[0] == 'all' else self.any_match_
-        elif re.match(regex_split_pattern, spec):
-            m = re.match(regex_split_pattern, spec)
+        elif regex_split_re.match(spec):
+            m = regex_split_re.match(spec)
             first = m.group()
             operator = spec[m.end()] if len(spec) > m.end() else None
             if operator is None:
@@ -312,7 +317,8 @@ class VersionSpec(object):
                 self.regex = re.compile(spec)
                 self.match = self.regex_match_
             else:
-                return VersionSpec((operator, tuple(first, spec[m.end()+1:])))
+                return VersionSpec((regex_split_converter[operator],
+                                    tuple(VersionSpec(s) for s in (first, spec[m.end()+1:]))))
         elif '|' in spec:
             return VersionSpec(('any', tuple(VersionSpec(s) for s in spec.split('|'))))
         elif ',' in spec:
