@@ -345,6 +345,7 @@ class IntegrationTests(TestCase):
             assert not exists(prefix)
 
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.xfail(reason="pending resolution of #2926")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
@@ -368,7 +369,7 @@ class IntegrationTests(TestCase):
                 json.dump(data, f)
             linked_data_.clear()
 
-            with make_temp_env("--clone", prefix) as clone_prefix:
+            with make_temp_env("-c conda-forge --clone", prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
