@@ -8,6 +8,11 @@
   * exit on link error instead of logging it, #2639
   * clean up requests usage for fetching packages, #2755
   * remove excess output from conda --help, #2872
+  * remove auxlib from project root, #2931
+  * vendor requests v2.10.0, #2930
+  * vendor auxlib 0.0.40, #2932
+  * expose full regex power for version specifications, #2933
+  * convert to using vendored auxlib, #2943
 
 
 2016-0X-XX  4.1.5 (unreleased):
