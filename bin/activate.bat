@@ -4,11 +4,12 @@
 @setlocal enabledelayedexpansion
 
 @set "CONDA_NEW_ENV=%~1"
+@SET "CONDA_EXE=%~dp0\..\Scripts\conda.exe"
 
 :: this finds either --help or -h and shows the help text
 @CALL ECHO "%~1"| @%SystemRoot%\System32\find.exe /I "-h" 1>NUL
 @IF NOT ERRORLEVEL 1 (
-    @call "%~dp0\..\Scripts\conda.exe" ..activate "cmd.exe" -h
+    @call "%CONDA_EXE%" ..activate "cmd.exe" -h
 ) else (
     :: reset errorlevel to 0
     cmd /c "exit /b 0"
@@ -25,17 +26,16 @@
     @set CONDA_NEW_ENV=root
 :skipmissingarg
 
-@SET "CONDA_EXE=%~dp0\..\Scripts\conda.exe"
 
 @REM Ensure that path or name passed is valid before deactivating anything
 @CALL "%CONDA_EXE%" ..checkenv "cmd.exe" "%CONDA_NEW_ENV%"
 @IF errorlevel 1 exit /b 1
 
-@call "%~dp0\deactivate.bat"
+@REM The argument here tells the deactivate script to leave a placeholder for us when it removes PATH entries,
+@REM    so that we can put our new path entries back in the same place
+@call "%~dp0\deactivate.bat" "hold"
 @if errorlevel 1 exit /b 1
 
-@REM take a snapshot of pristine state for later
-@SET "CONDA_PATH_BACKUP=%PATH%"
 @REM Activate the new environment
 @FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..activate "cmd.exe" "%CONDA_NEW_ENV%"') DO @SET "NEW_PATH=%%i"
 @IF errorlevel 1 exit /b 1
@@ -53,13 +53,22 @@
 @REM always store the full path to the environment, since CONDA_DEFAULT_ENV varies
 @FOR /F "tokens=1 delims=;" %%i in ("%NEW_PATH%") DO @SET "CONDA_PREFIX=%%i"
 
+@REM look if the deactivate script left a placeholder for us.
+@IF "x%PATH%" == "x%PATH:CONDA_PATH_PLACEHOLDER=%" (
+    @REM If it did not, prepend NEW_PATH
+    @SET "PATH=%NEW_PATH%;%PATH%"
+) ELSE (
+    @REM If it did, replace it with our NEW_PATH
+    @REM    Delayed expansion used here to do replacement with value of NEW_PATH
+    @CALL SET "PATH=%%PATH:CONDA_PATH_PLACEHOLDER=!NEW_PATH!%%"
+)
+
 @REM This persists env variables, which are otherwise local to this script right now.
 @endlocal & (
     @REM Used for deactivate, to make sure we restore original state after deactivation
-    @SET "CONDA_PATH_BACKUP=%CONDA_PATH_BACKUP%"
     @SET "CONDA_PS1_BACKUP=%CONDA_PS1_BACKUP%"
     @SET "PROMPT=%PROMPT%"
-    @SET "PATH=%NEW_PATH%;%PATH%"
+    @SET "PATH=%PATH%"
     @SET "CONDA_DEFAULT_ENV=%CONDA_NEW_ENV%"
     @SET "CONDA_PREFIX=%CONDA_PREFIX%"
 
