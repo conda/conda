@@ -69,8 +69,6 @@ setup(
     },
     install_requires=[
         'pycosat >=0.6.1',
-        'pyyaml',
-        'requests',
     ],
     entry_points={
         'console_scripts': [
