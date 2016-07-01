@@ -451,13 +451,20 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         specs += pinned_specs
 
     # Only add a conda spec if conda and conda-env are not in the specs.
-    if auto_update_conda and is_root_prefix(prefix):
-        mss = [MatchSpec(s) for s in specs if s.startswith('conda')]
-        mss = [ms for ms in mss if ms.name in ('conda', 'conda-env')]
-        if not mss:
+    root_only = ('conda', 'conda-env')
+    mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
+    mss = [ms for ms in mss if ms.name in root_only]
+    if is_root_prefix(prefix):
+        if auto_update_conda and not mss:
             from . import __version__ as conda_version
             specs.append('conda >=' + conda_version)
             specs.append('conda-env')
+    elif basename(prefix).startswith('_'):
+        # anything (including conda) can be installed into environments
+        # starting with '_', mainly to allow conda-build to build conda
+        pass
+    elif mss:
+        sys.exit("Error: 'conda' can only be installed into the root environment")
 
     must_have = {}
     if track_features:
@@ -480,11 +487,22 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         # anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
         pass
-    else:
-        # disallow conda from being installed into all other environments
-        if 'conda' in must_have or 'conda-env' in must_have:
-            sys.exit("Error: 'conda' can only be installed into the "
-                     "root environment")
+    elif any(s in must_have for s in root_only):
+        # the solver scheduled an install of conda, but it wasn't in the
+        # specs, so it must have been a dependency.
+        specs = [s for s in specs if r.depends_on(s, root_only)]
+        if specs:
+            sys.exit("""\
+Error: the following specs depend on 'conda' and can only be installed
+into the root environment: %s""" % (' '.join(specs),))
+        linked = [r.package_name(s) for s in linked]
+        linked = [s for s in linked if r.depends_on(s, root_only)]
+        if linked:
+            sys.exit("""\
+Error: one or more of the packages already installed depend on 'conda'
+and should only be installed in the root environment: %s
+These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
+        sys.exit("Error: 'conda' can only be installed into the root environment")
 
     smh = r.dependency_sort(must_have)
 

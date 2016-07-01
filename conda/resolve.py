@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from itertools import chain
 
-from .compat import iterkeys, itervalues, iteritems
+from .compat import iterkeys, itervalues, iteritems, string_types
 from .config import subdir, channel_priority, canonical_channel_name, track_features
 from .console import setup_handlers
 from .install import dist2quad
@@ -637,9 +637,11 @@ class Resolve(object):
 
     def depends_on(self, spec, target):
         touched = set()
+        if isinstance(target, string_types):
+            target = (target,)
 
         def depends_on_(spec):
-            if spec.name == target:
+            if spec.name in target:
                 return True
             if spec.name in touched:
                 return False
