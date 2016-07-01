@@ -32,6 +32,7 @@ from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.compat import itervalues
 from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
+from conda.exceptions import CondaError
 from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win, linked_data
 from conda.utils import url_path
@@ -230,13 +231,11 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
 
-            sout, serr = run_command(Commands.INSTALL, prefix, 'conda')
+            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'conda')
             assert not package_is_installed(prefix, 'conda')
-            assert 'Error:' in serr
 
-            sout, serr = run_command(Commands.INSTALL, prefix, 'constructor')
+            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor')
             assert not package_is_installed(prefix, 'constructor')
-            assert 'Error:' in serr
 
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
