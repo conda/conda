@@ -48,7 +48,7 @@ class TestImportAllConda(unittest.TestCase):
         self._test_import('cli')
 
     def test_import_progressbar(self):
-        self._test_import('progressbar')
+        self._test_import('_vendor')
 
 
 if __name__ == '__main__':
