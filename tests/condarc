@@ -14,6 +14,10 @@ channels:
 
 channel_alias: https://your.repo/
 
+# Disable binstar token addition
+
+add_binstar_token: False
+
 # Proxy settings: http://[username]:[password]@[server]:[port]
 proxy_servers:
     http: http://user:pass@corp.com:8080
