@@ -168,7 +168,6 @@ def install(args, parser, command='install'):
 
     common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args)
-    channel_urls = args.channel or ()
     index_args = {
         'use_cache': args.use_index_cache,
         'channel_urls': args.channel or (),
