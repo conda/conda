@@ -39,8 +39,10 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import importlib
+from ..exceptions import conda_exception_handler, CommandNotFoundError
 
-def main():
+
+def _main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
         if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
@@ -48,11 +50,12 @@ def main():
             activate.main()
             return
         if argv1 in ('activate', 'deactivate'):
-            sys.stderr.write("Error: '%s' is not a conda command.\n" % argv1)
+
+            message = "Error: '%s' is not a conda command.\n" % argv1
             if sys.platform != 'win32':
-                sys.stderr.write('Did you mean "source %s" ?\n' %
-                                 ' '.join(sys.argv[1:]))
-            sys.exit(1)
+                message += ' Did you mean "source %s" ?\n' % ' '.join(sys.argv[1:])
+
+            raise CommandNotFoundError(message)
 
     if len(sys.argv) == 1:
         sys.argv.append('-h')
@@ -110,6 +113,8 @@ def main():
     sub_parsers.completer = completer
     args = p.parse_args()
 
+    conda.config.output_json = args.json
+
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
         for logger in logging.Logger.manager.loggerDict:
@@ -120,47 +125,14 @@ def main():
         logging.disable(logging.NOTSET)
         logging.basicConfig(level=logging.DEBUG)
 
-    exit_code = args_func(args, p)
+    exit_code = args.func(args, p)
     if isinstance(exit_code, int):
         return exit_code
 
 
-def args_func(args, p):
-    from conda.cli import common
+def main():
+    return conda_exception_handler(_main)
 
-    use_json = getattr(args, 'json', False)
-    try:
-        exit_code = args.func(args, p)
-        if isinstance(exit_code, int):
-            return exit_code
-    except RuntimeError as e:
-        if 'maximum recursion depth exceeded' in str(e):
-            print_issue_message(e, use_json=use_json)
-            raise
-        common.error_and_exit(str(e), json=use_json)
-    except Exception as e:
-        print_issue_message(e, use_json=use_json)
-        raise  # as if we did not catch it
-
-
-def print_issue_message(e, use_json=False):
-    from conda.cli import common
-    message = ""
-    if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-        message = """\
-An unexpected error has occurred, please consider sending the
-following traceback to the conda GitHub issue tracker at:
-
-    https://github.com/conda/conda/issues
-
-Include the output of the command 'conda info' in your report.
-
-"""
-    if use_json:
-        import traceback
-        common.error_and_exit(message + traceback.format_exc(),
-                              error_type="UnexpectedError", json=True)
-    print(message)
 
 if __name__ == '__main__':
     main()

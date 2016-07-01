@@ -79,6 +79,7 @@ def binpath_from_arg(arg, shelldict):
     # convert paths to shell-native paths
     return [shelldict['path_to'](path) for path in paths]
 
+
 def pathlist_to_str(paths, escape_backslashes=True):
     """
     Format a path list, e.g., of bin paths to be added or removed,

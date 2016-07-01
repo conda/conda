@@ -21,7 +21,7 @@ yaml = get_yaml()
 # use condarc from source tree to run these tests against
 config.rc_path = join(dirname(__file__), 'condarc')
 
-# unset 'default_channels' and override config.defaults_ so that 
+# unset 'default_channels' and override config.defaults_ so that
 # get_default_channels has predictable behavior
 try:
     del config.sys_rc['default_channels']
@@ -36,6 +36,7 @@ try:
     del os.environ['CIO_TEST']
 except KeyError:
     pass
+
 
 class TestConfig(unittest.TestCase):
 
@@ -201,7 +202,7 @@ channels:
         stdout, stderr = run_conda_command('config', '--file', rc, '--remove',
             'channels', 'defaults')
         assert stdout == ''
-        assert stderr == "Error: 'defaults' is not in the 'channels' key of the config file"
+        assert stderr == "Key error: 'defaults' is not in the 'channels' key of the config file"
 
     # Test creating a new file with --set
     with make_temp_condarc() as rc:
@@ -415,12 +416,12 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'channels', 'test', '--force')
         assert stdout == ''
-        assert stderr == "Error: 'test' is not in the 'channels' key of the config file"
+        assert stderr == "Key error: 'test' is not in the 'channels' key of the config file"
 
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'disallow', 'python', '--force')
         assert stdout == ''
-        assert stderr == "Error: key 'disallow' is not in the config file"
+        assert stderr == "Key error: key 'disallow' is not in the config file"
 
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove-key', 'always_yes', '--force')
@@ -431,7 +432,7 @@ def test_config_command_remove_force():
             '--remove-key', 'always_yes', '--force')
 
         assert stdout == ''
-        assert stderr == "Error: key 'always_yes' is not in the config file"
+        assert stderr == "Key error: key 'always_yes' is not in the config file"
 
 
 # FIXME Break into multiple tests

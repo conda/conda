@@ -20,7 +20,8 @@ from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, url_path as utils_url_path
 from .api import get_index
-
+from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
+                         PackageNotFoundError)
 
 def conda_installed_files(prefix, exclude_self_build=False):
     """
@@ -54,13 +55,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # Format: (url|path)(:#md5)?
         m = url_pat.match(spec)
         if m is None:
-            sys.exit('Could not parse explicit URL: %s' % spec)
+            raise ParseError('Could not parse explicit URL: %s' % spec)
         url_p, fn, md5 = m.group('url_p'), m.group('fn'), m.group('md5')
         if not is_url(url_p):
             if url_p is None:
                 url_p = curdir
             elif not isdir(url_p):
-                sys.exit('Error: file not found: %s' % join(url_p, fn))
+                raise CondaFileNotFoundError('file not found: %s' %
+                                             join(url_p, fn))
             url_p = utils_url_path(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
 
@@ -129,13 +131,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     for fn, md5 in verifies:
         info = index.get(fn)
         if info is None:
-            sys.exit("Error: no package '%s' in index" % fn)
+            raise PackageNotFoundError("no package '%s' in index" % fn)
         if md5 and 'md5' not in info:
             sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
         if md5 and info['md5'] != md5:
-            sys.exit(
-                'MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
-                % (fn, md5, info['md5']))
+            raise MD5MismatchError('MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
+                                   % (fn, md5, info['md5']))
 
     execute_actions(actions, index=index, verbose=verbose)
     return actions
