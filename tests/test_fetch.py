@@ -33,7 +33,6 @@ class TestFetchRepoData(unittest.TestCase):
 
 
 class TestTmpDownload(unittest.TestCase):
-
     def test_tmpDownload(self):
         url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
         with TmpDownload(url) as dst:
@@ -46,7 +45,6 @@ class TestTmpDownload(unittest.TestCase):
 
 
 class TestDownload(unittest.TestCase):
-
     def test_download_connectionerror(self):
         with pytest.raises(CondaRuntimeError) as execinfo:
             url = "http://240.0.0.0/"
