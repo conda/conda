@@ -5,8 +5,7 @@ import json
 import logging
 import sys
 
-from .progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
-                          ProgressBar)
+from ._vendor.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from .utils import memoized
 
 
