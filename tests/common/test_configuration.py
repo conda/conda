@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-from auxlib.ish import dals
 from os import environ
 from os import mkdir
 from os.path import join
+from pytest import raises
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
 
-from pytest import raises
-
+from conda._vendor.auxlib.ish import dals
+from conda.common.compat import (string_types, odict)
+from conda.common.configuration import (Configuration, SequenceParameter, PrimitiveParameter,
+                                        MapParameter, YamlRawParameter, load_raw_configs,
+                                        ParameterFlag, ValidationError)
 from conda.utils import yaml_load
-from condalib.common.compat import (string_types, odict)
-from condalib.common.configuration import (Configuration, SequenceParameter, PrimitiveParameter,
-                                           MapParameter, YamlRawParameter, load_raw_configs,
-                                           ParameterFlag, ValidationError)
 test_yaml_raw = {
     'file1': dals("""
         always_yes: no

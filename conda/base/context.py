@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
+
 from logging import getLogger
 
-from auxlib.ish import dals
-from auxlib.compat import string_types
-
+from conda._vendor.auxlib.compat import string_types
+from conda._vendor.auxlib.ish import dals
+from .constants import SEARCH_PATH
 from ..common.configuration import (Configuration as AppConfiguration, PrimitiveParameter,
                                     SequenceParameter, MapParameter)
-from .constants import SEARCH_PATH
 
 log = getLogger(__name__)
 
