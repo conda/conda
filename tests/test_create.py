@@ -50,10 +50,8 @@ def make_temp_prefix(name=None):
     tempdir = gettempdir()
     dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
-    if exists(prefix):
-        # rm here because create complains if directory exists
-        rmtree(prefix)
-    assert isdir(tempdir)
+    os.makedirs(prefix)
+    assert isdir(prefix)
     return prefix
 
 
@@ -351,6 +349,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
+
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.xfail(reason="pending resolution of #2926")
     @pytest.mark.timeout(600)
@@ -379,6 +378,7 @@ class IntegrationTests(TestCase):
             with make_temp_env("-c conda-forge --clone", prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
+
 
     @pytest.mark.timeout(600)
     def test_python2_pandas(self):
@@ -519,3 +519,4 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
+
