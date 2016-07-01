@@ -439,6 +439,7 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
+
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     shortcuts=False):
@@ -464,7 +465,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         # starting with '_', mainly to allow conda-build to build conda
         pass
     elif mss:
-        sys.exit("Error: 'conda' can only be installed into the root environment")
+        raise InstallError("Error: 'conda' can only be installed into the root environment")
 
     must_have = {}
     if track_features:

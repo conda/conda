@@ -40,7 +40,7 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
-from .exceptions import PaddingError, LinkError, ArgumentError
+from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
 
 
 on_win = bool(sys.platform == "win32")
@@ -1063,8 +1063,8 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
             try:
                 _link(src, dst, lt)
             except OSError as e:
-                sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)'
-                         % (src, dst, lt, e))
+                raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                                   (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
