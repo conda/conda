@@ -108,7 +108,7 @@ def main():
         shelldict = shells[shell]
     if sys.argv[1] == '..activate':
         if len(sys.argv) != 4:
-            raise ArgumentError("Error: ..activate expected exactly two arguments: shell and env name")
+            raise ArgumentError("..activate expected exactly two arguments: shell and env name")
         binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
 
         # prepend our new entries onto the existing path and make sure that the separator is native
@@ -121,7 +121,7 @@ def main():
         if len(sys.argv) < 4:
             raise ArgumentError("Invalid arguments to checkenv.  Need shell and env name/path")
         if len(sys.argv) > 4:
-            raise ArgumentError("Error: did not expect more than one argument.")
+            raise ArgumentError("did not expect more than one argument.")
         if sys.argv[3].lower() == root_env_name.lower():
             # no need to check root env and try to install a symlink there
             raise CondaSystemExit()
