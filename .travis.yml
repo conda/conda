@@ -1,0 +1,39 @@
+sudo: false
+language: python
+python:
+  - '2.7'
+  - '3.4'
+  - '3.5'
+
+os:
+  - linux
+  # - osx
+
+addons:
+  apt:
+    packages:
+    - zsh
+
+env:
+  global:
+    - PYTHONUNBUFFERED=yes
+    - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
+
+matrix:
+  include:
+    - python: '3.5'
+      env: FLAKE8=true
+
+install:
+  - which -a python
+  - printenv
+  - pip install psutil ruamel.yaml pycosat pycrypto requests
+  - pip install flake8 pytest pytest-cov mock
+  - pip install pytest-timeout radon responses
+
+script:
+  - bash ./utils/travis-run-script.sh
+
+after_success:
+  - pip install codecov
+  - codecov --env PY_VERSION
