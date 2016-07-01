@@ -1,2 +1,3 @@
-conda/progressbar/*
+conda-env/*
+conda/_vendor/*
 tests/*
