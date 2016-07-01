@@ -1,6 +1,7 @@
-2016-0X-XX  4.1.6 (unreleased):
--------------------------------
+2016-07-01  4.1.6:
+------------------
   * slow down exp backoff from 1 ms to 100 ms factor, #2944
+  * set max time on exp_backoff to ~6.5 sec,#2955
   * fix #2914 add/subtract from PATH; kill folder output text, #2917
   * normalize use of get_index behavior across clone/explicit, #2937
   * wrap root prefix check with normcase, #2938
