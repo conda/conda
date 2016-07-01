@@ -1,0 +1,10 @@
+*~
+*.pyc
+*.egg-info
+build/
+dist/
+docs/build
+MANIFEST
+__pycache__
+.idea/
+.cache/

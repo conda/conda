@@ -1,24 +1,39 @@
+sudo: false
 language: python
 python:
-- '2.7'
-- '3.4'
+  - '2.7'
+  - '3.4'
+  - '3.5'
+
+os:
+  - linux
+  # - osx
+
+addons:
+  apt:
+    packages:
+    - zsh
+
+env:
+  global:
+    - PYTHONUNBUFFERED=yes
+    - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
+
+matrix:
+  include:
+    - python: '3.5'
+      env: FLAKE8=true
+
 install:
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh
-  -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-  -O miniconda.sh; fi
-- bash miniconda.sh -b -p $HOME/miniconda
-- export PATH="$HOME/miniconda/bin:$PATH"
-- hash -r
-- conda config --set always_yes yes
-- conda --version
-- conda install anaconda-client nbformat mock nose
-- if [[ "$PYCOSAT" ]]; then conda install pycosat=$PYCOSAT; fi
-- python setup.py install
+  - which -a python
+  - printenv
+  - pip install psutil ruamel.yaml pycosat pycrypto requests
+  - pip install flake8 pytest pytest-cov mock
+  - pip install pytest-timeout radon responses
+
 script:
-- nosetests
-- conda env --help
-sudo: false
-notifications:
-  email: false
-  flowdock:
-    secure: QH1eDdrLEHrRQnBNNqITB1XoEiz0Dey0LzL1VZl06KJINRoOvDiM4uZU6pC7odU7r+Bwxv0YTqY6tZZDQSDwzJpLqyxX7KJwNwIgU13sD7NLGdh0Ll8o8fZOS0sIu6xsFKh7X0PPTTGV0FCYUrzft0drM8jjPCRV4Ayn5wlGc/g=
+  - bash ./utils/travis-run-script.sh
+
+after_success:
+  - pip install codecov
+  - codecov --env PY_VERSION

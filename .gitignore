@@ -4,7 +4,13 @@
 build/
 dist/
 docs/build
-MANIFEST
-__pycache__
-.idea/
 .cache/
+.idea/
+ve/
+MANIFEST
+.coverage
+coverage.xml
+.tox/
+junit.xml
+.version
+tmpfile.rc

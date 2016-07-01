@@ -1,30 +1,62 @@
 package:
-  name: conda-env
-  version: 2.5.0alpha
-
-build:
-  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
-  {% if environ.get('GIT_DESCRIBE_NUMBER', '0') == '0' %}string: py{{ environ.get('PY_VER').replace('.', '') }}_0
-  {% else %}string: py{{ environ.get('PY_VER').replace('.', '') }}_{{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}{% endif %}
-  preserve_egg_dir: yes
+  name: conda
 
 source:
-  git_url: ../
+  path: ../
+
+build:
+  # These are present when the new environment is created
+  # so we have to exempt them from the list of initial files
+  # for conda-build to realize they should be included.
+  always_include_files:
+    - bin/conda                 [unix]
+    - bin/activate              [unix]
+    - bin/deactivate            [unix]
+    - Scripts/activate.bat      [win]
+    - Scripts/deactivate.bat    [win]
+    # TODO: are these needed?  They currently break packaging, since these files don't exist yet at build time
+    # - Scripts/activate          [win]
+    # - Scripts/deactivate        [win]
+    # TODO: what about fish and powershell?
+
+  entry_points:
+    - conda = conda.cli:main
 
 requirements:
   build:
     - python
+    - conda-env
+    - menuinst  [win]
+    - pycosat >=0.6.1
+    - pyyaml
+    - ruamel_yaml
+    - requests
   run:
     - python
+    - conda-env
+    - menuinst  [win]
+    - pycosat >=0.6.1
+    - pyyaml
+    - ruamel_yaml
+    - requests
 
 test:
-  commands:
-    - conda env
-    - conda env -h
-    - conda env list -h
-    - conda env create -h
-    - conda env export -h
-    - conda env remove -h
+  # requires:
+  #   - pycrypto
+  #   - pytest
+  # commands:
+  #   - conda --version
+  #   - conda info
+  #   - pip install pytest-cov pytest-timeout
+  #   - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || pushd $SRC_DIR && make clean-all && popd
+  #   - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || py.test -c $SRC_DIR/setup.cfg $SRC_DIR/tests/ || true
+  #   # - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || pushd %SRC_DIR% && make clean-all && popd
+  #   - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || py.test -c %SRC_DIR%/setup.cfg %SRC_DIR%/tests/ || true
+  imports:
+    - conda
 
 about:
-  home: https://github.com/conda/conda-env/
+  home: http://conda.pydata.org/
+  license: BSD
+  license_file: LICENSE.txt
+  summary: OS-agnostic, system-level binary package manager.

@@ -1,0 +1,57 @@
+# This is a sample .condarc file
+
+# channel locations. These override conda defaults, i.e., conda will
+# search *only* the channels listed here, in the order given. Use "defaults" to
+# automatically include all default channels. Non-url channels will be
+# interpreted as binstar usernames (this can be changed by modifying the
+# channel_alias key; see below).
+channels:
+  - binstar_username
+  - http://some.custom/channel
+  - defaults
+
+# Alias to use for non-url channels used with the -c flag. Default is https://conda.binstar.org/
+
+channel_alias: https://your.repo/
+
+# Proxy settings: http://[username]:[password]@[server]:[port]
+proxy_servers:
+    http: http://user:pass@corp.com:8080
+    https: https://user:pass@corp.com:8080
+
+# directory in which conda root is located (used by `conda init`)
+root_dir: ~/.local/conda_root
+
+# directories in which environments are located
+envs_dirs:
+  - ~/my-envs
+  - /opt/anaconda/envs
+
+# implies always using the --yes option whenever asked to proceed
+always_yes: True
+
+# disallow soft-linking (default is allow_softlinks: True,
+#                        i.e. soft-link when possible)
+allow_softlinks: False
+
+# change ps1 when using activate (default True)
+changeps1: False
+
+# use pip when installing and listing packages (default True)
+use_pip: False
+
+# binstar.org upload (not defined here means ask)
+binstar_upload: True
+
+# when creating new environments add these packages by default
+create_default_packages:
+  - python
+  - pip
+
+# disallowed specification names
+disallow:
+  - anaconda
+
+# enable certain features to be tracked by default
+track_features:
+  - mkl

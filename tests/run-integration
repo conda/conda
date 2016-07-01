@@ -1,0 +1,20 @@
+#!/bin/bash
+set -eu
+
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$HERE/.."
+
+build() {
+    conda list | grep -q conda-build || conda install --yes conda-build > /dev/null
+    export GIT_DESCRIBE_TAG="0.0.0"
+    conda build conda.recipe > /dev/null
+}
+
+main() {
+    build
+    conda install --yes --channel kalefranz bats > /dev/null
+    conda install --yes --use-local conda=0.0.0
+    bats tests/integration
+}
+
+main
