@@ -124,7 +124,8 @@ class FileTests(unittest.TestCase):
 class remove_readonly_TestCase(unittest.TestCase):
     def test_takes_three_args(self):
         with self.assertRaises(TypeError):
-            install._remove_readonly()
+            install.\
+                _remove_readonly()
 
         with self.assertRaises(TypeError):
             install._remove_readonly(True)
@@ -489,20 +490,6 @@ def test_dist2():
                         assert dist2dirname(test) == dist_noprefix
                         assert dist2filename(test) == dist_noprefix + '.tar.bz2'
                         assert dist2filename(test, '') == dist_noprefix
-
-def test_standalone_import():
-    import sys
-    import conda.install
-    tmp_dir = tempfile.mkdtemp()
-    fname = conda.install.__file__.rstrip('co')
-    shutil.copyfile(fname, join(tmp_dir, basename(fname)))
-    opath = [tmp_dir]
-    opath.extend(s for s in sys.path if basename(s) not in ('conda', 'site-packages'))
-    opath, sys.path = sys.path, opath
-    try:
-        import install
-    finally:
-        sys.path = opath
 
 
 if __name__ == '__main__':
