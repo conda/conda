@@ -31,16 +31,9 @@ class TestFetchRepoData(unittest.TestCase):
             fetch_repodata(url)
             assert msg in str(execinfo)
 
-    def test_fetchrepodate_connectionerror(self):
-        with pytest.raises(RuntimeError) as execinfo:
-            url = "http://10.0.0.0/"
-            msg = "Connection error:"
-            filename = 'repodata.json'
-            fetch_repodata(url)
-            assert  msg in str(execinfo)
-
 
 class TestTmpDownload(unittest.TestCase):
+
     def test_tmpDownload(self):
         url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
         with TmpDownload(url) as dst:
@@ -53,6 +46,7 @@ class TestTmpDownload(unittest.TestCase):
 
 
 class TestDownload(unittest.TestCase):
+
     def test_download_connectionerror(self):
         with pytest.raises(CondaRuntimeError) as execinfo:
             url = "http://240.0.0.0/"
@@ -64,7 +58,6 @@ class TestDownload(unittest.TestCase):
     def test_download_httperror(self):
         with pytest.raises(CondaRuntimeError) as execinfo:
             url = DEFAULT_CHANNEL_ALIAS
-
             msg = "HTTPError:"
             responses.add(responses.GET, url, body='{"error": "not found"}', status=404,
                           content_type='application/json')

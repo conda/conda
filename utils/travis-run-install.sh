@@ -36,7 +36,7 @@ main_install() {
         *) ;;
     esac
 
-    python -m pip install psutil ruamel.yaml pycosat pycrypto
+    python -m pip install psutil ruamel.yaml pycosat pycrypto blessings
     case "${TRAVIS_PYTHON_VERSION:-PYTHON_VERSION}" in
       '2.7')
           python -m pip install -U enum34 futures

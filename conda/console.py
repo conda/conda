@@ -5,55 +5,7 @@ import json
 import logging
 import sys
 
-from ._vendor.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from .utils import memoized
-
-
-fetch_progress = ProgressBar(
-    widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
-             FileTransferSpeed()])
-
-progress = ProgressBar(widgets=['[%-20s]' % '', '', Bar(), ' ', Percentage()])
-
-
-class FetchProgressHandler(logging.Handler):
-
-    def emit(self, record):
-        if record.name == 'fetch.start':
-            filename, maxval = record.msg
-            fetch_progress.widgets[0] = filename
-            fetch_progress.maxval = maxval
-            fetch_progress.start()
-
-        elif record.name == 'fetch.update':
-            n = record.msg
-            fetch_progress.update(n)
-
-        elif record.name == 'fetch.stop':
-            fetch_progress.finish()
-
-
-class ProgressHandler(logging.Handler):
-
-    def emit(self, record):
-        try:
-            if record.name == 'progress.start':
-                progress.maxval = record.msg
-                progress.start()
-
-            elif record.name == 'progress.update':
-                name, n = record.msg
-                progress.widgets[0] = '[%-20s]' % name
-                if n == 0:
-                    # Make sure the widget gets updated
-                    progress.start()
-                progress.update(n)
-
-            elif record.name == 'progress.stop':
-                progress.widgets[0] = '[      COMPLETE      ]'
-                progress.finish()
-        except LookupError:
-            pass
 
 class JsonFetchProgressHandler(logging.Handler):
     def emit(self, record):
@@ -160,19 +112,9 @@ class SysStderrWriteHandler(logging.Handler):
         except IOError:
             pass
 
-_fetch_prog_handler = FetchProgressHandler()
-_prog_handler = ProgressHandler()
 
 @memoized  # to avoid setting up handlers more than once
 def setup_verbose_handlers():
-    fetch_prog_logger = logging.getLogger('fetch')
-    fetch_prog_logger.setLevel(logging.INFO)
-    fetch_prog_logger.addHandler(_fetch_prog_handler)
-
-    prog_logger = logging.getLogger('progress')
-    prog_logger.setLevel(logging.INFO)
-    prog_logger.addHandler(_prog_handler)
-
     print_logger = logging.getLogger('print')
     print_logger.setLevel(logging.INFO)
     print_logger.addHandler(PrintHandler())
@@ -192,8 +134,6 @@ def json_progress_bars():
     json_fetch_prog_handler = JsonFetchProgressHandler()
     json_prog_handler = JsonProgressHandler()
 
-    fetch_prog_logger.removeHandler(_fetch_prog_handler)
-    prog_logger.removeHandler(_prog_handler)
     fetch_prog_logger.addHandler(json_fetch_prog_handler)
     prog_logger.addHandler(json_prog_handler)
 
@@ -201,8 +141,6 @@ def json_progress_bars():
 
     fetch_prog_logger.removeHandler(json_fetch_prog_handler)
     prog_logger.removeHandler(json_prog_handler)
-    fetch_prog_logger.addHandler(_fetch_prog_handler)
-    prog_logger.addHandler(_prog_handler)
 
 @memoized
 def setup_handlers():

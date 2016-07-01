@@ -223,6 +223,8 @@ def typify(value, type_hint=None):
         else:
             raise NotImplementedError()
     elif type_hint is not None:
+        if isinstance(None, type_hint):
+            return None
         # coerce using the type hint, or use boolify for bool
         try:
             return boolify(value) if type_hint == bool else type_hint(value)

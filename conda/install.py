@@ -774,17 +774,11 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
-
     path = fname[:-8]
     with FileLock(path):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
-        from .fetch import check_size
         with tarfile.open(fname) as t:
-            size = 0
-            for m in t.getmembers():
-                size += m.size
-            check_size(pkgs_dir, size)
             t.extractall(path=temp_path)
         rm_rf(path)
         exp_backoff_fn(os.rename, temp_path, path)
