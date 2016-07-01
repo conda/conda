@@ -10,6 +10,8 @@ if 'develop' in sys.argv:
 else:
     from distutils.core import setup
 
+from setuptools import find_packages
+
 if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
@@ -60,9 +62,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=[
-        'conda',
-    ],
+    packages=find_packages(exclude=("tests", "conda-env", "build", "utils", ".tox")),
     cmdclass={
         'build_py': conda._vendor.auxlib.BuildPyCommand,
         'sdist': conda._vendor.auxlib.SDistCommand,

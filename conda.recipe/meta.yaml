@@ -25,6 +25,7 @@ build:
 requirements:
   build:
     - python
+    - setuptools
     - pycosat >=0.6.1
   run:
     - python
