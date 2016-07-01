@@ -189,10 +189,10 @@ def find_lock():
 
 
 def rm_lock(locks, verbose=True):
+    from ..install import rm_rf
     for path in locks:
         if verbose:
             print('removing: %s' % path)
-        from ..install import rm_rf
         rm_rf(path)
 
 
