@@ -1,1 +1,8 @@
-include versioneer.py README.rst
+include CHANGELOG.txt
+include LICENSE.txt
+include MANIFEST.in
+include README.rst
+include setup.cfg
+include setup.py
+include shell/*
+recursive-include conda *.py
