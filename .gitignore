@@ -1,0 +1,16 @@
+*~
+*.pyc
+*.egg-info
+build/
+dist/
+docs/build
+.cache/
+.idea/
+ve/
+MANIFEST
+.coverage
+coverage.xml
+.tox/
+junit.xml
+.version
+tmpfile.rc

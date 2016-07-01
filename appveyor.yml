@@ -1,0 +1,78 @@
+environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\tools\\appveyor\\run_with_env.cmd"
+
+  matrix:
+    - PYTHON: "C:\\Python35_64"
+      PYTHON_VERSION: "3.5"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python27_64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+
+    # - PYTHON: "C:\\Python34_64"
+    #   PYTHON_VERSION: "3.4"
+    #   PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python35_32"
+      PYTHON_VERSION: "3.5"
+      PYTHON_ARCH: "32"
+
+    # - PYTHON: "C:\\Python27_32"
+    #   PYTHON_VERSION: "2.7"
+    #   PYTHON_ARCH: "32"
+
+    # - PYTHON: "C:\\Python34_32"
+    #   PYTHON_VERSION: "3.4"
+    #   PYTHON_ARCH: "32"
+
+init:
+  - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOME%
+
+install:
+  # If there is a newer build queued for the same PR, cancel this one.
+  # The AppVeyor 'rollout builds' option is supposed to serve the same
+  # purpose but it is problematic because it tends to cancel builds pushed
+  # directly to master instead of just PR builds (or the converse).
+  # credits: JuliaLang developers.
+  - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
+      https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
+      Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
+        throw "There are newer queued builds for this pull request, failing early." }
+  # - utils/win_build_env.cmd
+  - powershell ./utils/install.ps1
+  # set PATH for current shell
+  - set "ANACONDA_PATH=%PYTHON%;%PYTHON%/Scripts;%$PYTHON%/Library/bin;%$PYTHON%/Library/usr/bin;%$PYTHON%/Library/mingw-64/bin"
+  - setx ANACONDA_PATH "%ANACONDA_PATH%"
+  - set "PATH=%ANACONDA_PATH%;%PATH%"
+  # this one is user-local, and affects new shells
+  - setx PATH "%ANACONDA_PATH%"
+  - conda info
+  - conda config --set always_yes yes
+  - conda install --force --no-deps -q conda psutil ruamel_yaml requests
+  # - conda info python
+  - python -c "import sys; print(sys.version)"
+  - python -c "import sys; print(sys.executable)"
+  - python -c "import sys; print(sys.prefix)"
+  - conda install -q python=%PYTHON_VERSION%
+  - conda install -q pytest requests mock
+  - conda install -q pycrypto pyflakes pycosat
+  - conda install -q git menuinst
+  - pip install flake8 pytest-cov pytest-timeout responses
+  - python --version
+  - python -c "import struct; print(struct.calcsize('P') * 8)"
+  - python setup.py install --old-and-unmanageable
+
+# Not a .NET project, we build scikit-image in the install step instead
+build: false
+
+test_script:
+  - py.test --cov-report xml tests --shell=cmd.exe --shell=bash.exe
+
+on_success:
+  - pip install codecov
+  - codecov --env PYTHON_VERSION
