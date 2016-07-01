@@ -106,7 +106,10 @@ rc_other = [
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 local_channel = []
-rc = root_dir = root_writable = BINSTAR_TOKEN_PAT = channel_alias = None
+root_dir = root_writable = None
+offline = offline_ = False
+add_anaconda_token = ADD_BINSTAR_TOKEN
+rc = {}
 
 def get_rc_path():
     path = os.getenv('CONDARC')
@@ -184,8 +187,9 @@ def get_local_urls(clear_cache=True):
         pass
     return local_channel
 
-defaults_ = ['https://repo.continuum.io/pkgs/free',
-             'https://repo.continuum.io/pkgs/pro']
+defaults_ = [
+    'https://repo.continuum.io/pkgs/free',
+    'https://repo.continuum.io/pkgs/pro']
 
 def get_default_urls(merged=False):
     if 'default_channels' in sys_rc:
@@ -208,23 +212,51 @@ def is_url(url):
         p = urlparse.urlparse(url)
         return p.netloc != "" or p.scheme == "file"
 
-def binstar_channel_alias(channel_alias):
-    if channel_alias.startswith('file:/'):
-        return channel_alias
-    if rc.get('add_anaconda_token',
-              rc.get('add_binstar_token', ADD_BINSTAR_TOKEN)):
-        try:
-            from binstar_client.utils import get_binstar
-            bs = get_binstar()
-            bs_domain = bs.domain.replace("api", "conda").rstrip('/') + '/'
-            if channel_alias.startswith(bs_domain) and bs.token:
-                channel_alias += 't/%s/' % bs.token
-        except ImportError:
-            log.debug("Could not import binstar")
-            pass
-        except Exception as e:
-            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
-    return channel_alias
+
+def init_binstar(offline=False):
+    global binstar_client, binstar_domain, binstar_domain_tok
+    global binstar_regex, BINSTAR_TOKEN_PAT
+    if binstar_client is not None:
+        return
+    elif offline or offline_:
+        binstar_client = ()
+        return
+    try:
+        from binstar_client.utils import get_binstar
+        binstar_client = get_binstar()
+    except ImportError:
+        log.debug("Could not import binstar")
+        binstar_client = ()
+        return
+    except Exception as e:
+        stderrlog.info("Warning: could not import binstar_client (%s)" % e)
+    binstar_domain = binstar_client.domain.replace("api", "conda").rstrip('/') + '/'
+    if add_anaconda_token:
+        binstar_domain_tok = binstar_domain + 't/%s/' % (binstar_client.token,)
+    binstar_regex = (r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
+                     re.escape(binstar_domain[:-1]))
+    BINSTAR_TOKEN_PAT = re.compile(binstar_regex)
+
+
+def channel_prefix(token=False, offline=False):
+    global channel_alias, channel_alias_tok
+    if channel_alias is None or (channel_alias_tok is None and token):
+        init_binstar(offline)
+        if channel_alias is None or channel_alias == binstar_domain:
+            channel_alias = binstar_domain
+            channel_alias_tok = binstar_domain_tok
+        if channel_alias is None:
+            channel_alias = DEFAULT_CHANNEL_ALIAS
+    if channel_alias_tok is None:
+        channel_alias_tok = channel_alias
+    return channel_alias_tok if token and add_anaconda_token else channel_alias
+
+def add_binstar_tokens(url):
+    if binstar_domain_tok and url.startswith(binstar_domain):
+        url2 = BINSTAR_TOKEN_PAT.sub(r'\1', url)
+        if url2 == url:
+            return binstar_domain_tok + url.split(binstar_domain, 1)[1]
+    return url
 
 def hide_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
@@ -245,9 +277,9 @@ def prioritize_channels(channels):
             lastchan = channel_s
     return newchans
 
-def normalize_urls(urls, platform=None, offline_only=False):
+def normalize_urls(urls, platform=None, offline=False):
+    offline = offline or offline_
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls(False))
-    alias = None
     newurls = []
     while urls:
         url = urls[0]
@@ -264,10 +296,10 @@ def normalize_urls(urls, platform=None, offline_only=False):
         for url0 in t_urls:
             url0 = url0.rstrip('/')
             if not is_url(url0):
-                if alias is None:
-                    alias = binstar_channel_alias(channel_alias)
-                url0 = alias + url0
-            if offline_only and not url0.startswith('file:'):
+                url0 = channel_prefix(True, offline) + url0
+            else:
+                url0 = add_binstar_tokens(url0)
+            if offline and not url0.startswith('file:'):
                 continue
             for plat in (platform or subdir, 'noarch'):
                 newurls.append('%s/%s/' % (url0, plat))
@@ -292,9 +324,8 @@ def canonical_channel_name(channel):
         return 'defaults'
     elif any(channel.startswith(i) for i in get_local_urls(clear_cache=False)):
         return 'local'
-    elif channel.startswith('http://filer/'):
-        return 'filer'
-    elif channel.startswith(channel_alias):
+    channel_alias = channel_prefix(False)
+    if channel.startswith(channel_alias):
         return channel.split(channel_alias, 1)[1]
     elif channel.startswith('http:/'):
         channel2 = 'https' + channel[4:]
@@ -342,8 +373,10 @@ def get_proxy_servers():
     raise ProxyError('proxy_servers setting not a mapping')
 
 
-def load_condarc(path):
-    rc = load_condarc_(path)
+def load_condarc(path=None):
+    global rc
+    if path is not None:
+        rc = load_condarc_(path)
 
     root_dir = abspath(expanduser(os.getenv('CONDA_ROOT', rc.get('root_dir', sys.prefix))))
     root_writable = try_write(root_dir)
@@ -379,16 +412,18 @@ def load_condarc(path):
     except IOError:
         foreign = [] if isdir(join(root_dir, 'conda-meta')) else ['python']
 
-    channel_alias = rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS)
+    binstar_regex = r'((:?binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
+    BINSTAR_TOKEN_PAT = re.compile(binstar_regex)
+    channel_alias = rc.get('channel_alias', None)
     if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
         channel_alias = sys_rc['channel_alias']
+    if channel_alias is not None:
+        channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
+    channel_alias_tok = binstar_client = binstar_domain = binstar_domain_tok = None
 
-    channel_alias = channel_alias.rstrip('/')
-    _binstar = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
-    BINSTAR_TOKEN_PAT = re.compile(_binstar % re.escape(channel_alias))
-    channel_alias = BINSTAR_TOKEN_PAT.sub(r'\1', channel_alias + '/')
-
-    offline = bool(rc.get('offline', False))
+    offline = offline_ = bool(rc.get('offline', False))
+    add_anaconda_token = rc.get('add_anaconda_token',
+                                rc.get('add_binstar_token', ADD_BINSTAR_TOKEN))
 
     add_pip_as_python_dependency = bool(rc.get('add_pip_as_python_dependency', True))
     always_yes = bool(rc.get('always_yes', False))

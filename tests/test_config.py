@@ -19,16 +19,12 @@ from tests.helpers import run_conda_command
 yaml = get_yaml()
 
 # use condarc from source tree to run these tests against
-config.rc_path = join(dirname(__file__), 'condarc')
 
-# unset 'default_channels' and override config.defaults_ so that
-# get_default_channels has predictable behavior
+# unset 'default_channels' so get_default_channels has predictable behavior
 try:
     del config.sys_rc['default_channels']
 except KeyError:
     pass
-config.defaults_ = ['http://repo.continuum.io/pkgs/free',
-                    'http://repo.continuum.io/pkgs/pro']
 
 # unset CIO_TEST.  This is a Continuum-internal variable that draws packages from an internal server instead of
 #     repo.continuum.io
@@ -42,13 +38,18 @@ class TestConfig(unittest.TestCase):
 
     # These tests are mostly to ensure API stability
 
-    def __init__(self, *args, **kwargs):
-        config.rc = config.load_condarc(config.rc_path)
-        # Otherwise normalization tests will fail if the user is logged into
-        # binstar.
-        config.rc['add_binstar_token'] = False
-        config.channel_alias = config.rc['channel_alias']
-        super(TestConfig, self).__init__(*args, **kwargs)
+    def setUp(self):
+        # Load the test condarc file
+        self.rc = config.rc.copy()
+        self.rc_path = config.rc_path
+        config.rc_path = join(dirname(__file__), 'condarc')
+        config.load_condarc(config.rc_path)
+
+    def tearDown(self):
+        # Restore original condarc
+        config.rc = self.rc
+        config.rc_path = self.rc_path
+        config.load_condarc()
 
     def test_globals(self):
         self.assertTrue(config.root_dir)
@@ -86,32 +87,33 @@ class TestConfig(unittest.TestCase):
             'file:///Users/username/repo', 'username'
             ], 'osx-64')
         assert normurls == [
-             'http://repo.continuum.io/pkgs/free/osx-64/',
-             'http://repo.continuum.io/pkgs/free/noarch/',
-             'http://repo.continuum.io/pkgs/pro/osx-64/',
-             'http://repo.continuum.io/pkgs/pro/noarch/',
+             'https://repo.continuum.io/pkgs/free/osx-64/',
+             'https://repo.continuum.io/pkgs/free/noarch/',
+             'https://repo.continuum.io/pkgs/pro/osx-64/',
+             'https://repo.continuum.io/pkgs/pro/noarch/',
              'https://your.repo/binstar_username/osx-64/',
              'https://your.repo/binstar_username/noarch/',
              'http://some.custom/channel/osx-64/',
              'http://some.custom/channel/noarch/',
-             'http://repo.continuum.io/pkgs/free/osx-64/',
-             'http://repo.continuum.io/pkgs/free/noarch/',
-             'http://repo.continuum.io/pkgs/pro/osx-64/',
-             'http://repo.continuum.io/pkgs/pro/noarch/',
+             'https://repo.continuum.io/pkgs/free/osx-64/',
+             'https://repo.continuum.io/pkgs/free/noarch/',
+             'https://repo.continuum.io/pkgs/pro/osx-64/',
+             'https://repo.continuum.io/pkgs/pro/noarch/',
              'https://conda.anaconda.org/username/osx-64/',
              'https://conda.anaconda.org/username/noarch/',
              'file:///Users/username/repo/osx-64/',
              'file:///Users/username/repo/noarch/',
              'https://your.repo/username/osx-64/',
              'https://your.repo/username/noarch/']
+
         priurls = config.prioritize_channels(normurls)
         assert dict(priurls) == {
              'file:///Users/username/repo/noarch/': ('file:///Users/username/repo', 5),
              'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo', 5),
-             'http://repo.continuum.io/pkgs/free/noarch/': ('defaults', 1),
-             'http://repo.continuum.io/pkgs/free/osx-64/': ('defaults', 1),
-             'http://repo.continuum.io/pkgs/pro/noarch/': ('defaults', 1),
-             'http://repo.continuum.io/pkgs/pro/osx-64/': ('defaults', 1),
+             'https://repo.continuum.io/pkgs/free/noarch/': ('defaults', 1),
+             'https://repo.continuum.io/pkgs/free/osx-64/': ('defaults', 1),
+             'https://repo.continuum.io/pkgs/pro/noarch/': ('defaults', 1),
+             'https://repo.continuum.io/pkgs/pro/osx-64/': ('defaults', 1),
              'http://some.custom/channel/noarch/': ('http://some.custom/channel', 3),
              'http://some.custom/channel/osx-64/': ('http://some.custom/channel', 3),
              'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 4),
@@ -120,6 +122,26 @@ class TestConfig(unittest.TestCase):
              'https://your.repo/binstar_username/osx-64/': ('binstar_username', 2),
              'https://your.repo/username/noarch/': ('username', 6),
              'https://your.repo/username/osx-64/': ('username', 6)}
+
+        normurls = config.normalize_urls([
+            'defaults', 'system', 'https://conda.anaconda.org/username',
+            'file:///Users/username/repo', 'username'
+            ], 'osx-64', offline=True)
+        assert normurls == [
+             'file:///Users/username/repo/osx-64/',
+             'file:///Users/username/repo/noarch/']
+
+        # If config.rc['offline'] is True, then it doesn't matter what the offline
+        # argument is normalize_urls
+        config.rc['offline'] = True
+        config.load_condarc()
+        normurls = config.normalize_urls([
+            'defaults', 'system', 'https://conda.anaconda.org/username',
+            'file:///Users/username/repo', 'username'
+            ], 'osx-64', offline=False)
+        assert normurls == [
+             'file:///Users/username/repo/osx-64/',
+             'file:///Users/username/repo/noarch/']
 
 
 @contextmanager
