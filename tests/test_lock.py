@@ -1,7 +1,7 @@
 import pytest
 from os.path import basename, join
 from conda.lock import FileLock, LOCKSTR, LOCK_EXTENSION, LockError
-
+from conda.install import on_win
 
 def test_filelock_passes(tmpdir):
     package_name = "conda_file1"
@@ -26,8 +26,10 @@ def test_filelock_locks(tmpdir):
             with FileLock(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
             assert lock2.lock_path == lock1.lock_path
-        assert "LOCKERROR" in execinfo.value.message
-        assert "conda is already doing something" in execinfo.value.message
+
+        if not on_win:
+            assert "LOCKERROR" in execinfo.value.message
+            assert "conda is already doing something" in execinfo.value.message
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
     # lock should clean up after itself
@@ -47,9 +49,11 @@ def test_filelock_folderlocks(tmpdir):
             with FileLock(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
             assert lock2.lock_path == lock1.lock_path
-        assert "LOCKERROR" in execinfo.value.message
-        assert "conda is already doing something" in execinfo.value.message
-        assert lock1.lock_path in execinfo.value.message
+
+        if not on_win:
+            assert "LOCKERROR" in execinfo.value.message
+            assert "conda is already doing something" in execinfo.value.message
+            assert lock1.lock_path in execinfo.value.message
 
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
