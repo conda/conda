@@ -16,15 +16,14 @@ globally (such as downloading packages).
 We don't raise an error if the lock is named with the current PID
 """
 from __future__ import absolute_import, division, print_function
-
-
-import os
 import logging
+import os
 import time
 from glob import glob
 from os.path import abspath, isdir, dirname
 from .compat import range
 from .exceptions import LockError
+
 LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external

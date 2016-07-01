@@ -30,6 +30,7 @@ def test_filelock_locks(tmpdir):
         if not on_win:
             assert "LOCKERROR" in str(execinfo.value)
             assert "conda is already doing something" in str(execinfo.value)
+
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
     # lock should clean up after itself
