@@ -18,7 +18,7 @@ from conda.resolve import Resolve
 
 # FIXME This should be a relative import
 from tests.helpers import captured
-from conda.exceptions import CondaException
+from conda.exceptions import CondaError
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
@@ -871,7 +871,7 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
         expected = [('INSTRUCTION', 'arg')]
         self.assertEqual(new_plan, expected)
 
-        with self.assertRaises(CondaException):
+        with self.assertRaises(CondaError):
             plan.update_old_plan(['INVALID'])
 
     def test_execute_plan(self):

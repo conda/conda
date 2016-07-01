@@ -8,13 +8,14 @@ from __future__ import print_function, division, absolute_import
 
 from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
                      add_parser_use_index_cache, add_parser_offline, add_parser_channels,
-                     add_parser_json, add_parser_use_local, exception_and_exit, error_and_exit,
+                     add_parser_json, add_parser_use_local,
                      ensure_use_local, ensure_override_channels_requires_channel,
                      get_index_trap, get_prefix, stdout_json, disp_features)
 from ..config import subdir, canonical_channel_name
 from ..install import dist2quad
 from ..misc import make_icon_url
 from ..resolve import NoPackagesFound, Package
+from ..exceptions import CondaValueError, PackageNotFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -122,7 +123,7 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFound as e:
-        exception_and_exit(e, json=args.json)
+        raise PackageNotFoundError('', e, args.json)
 
 def execute_search(args, parser):
     import re
@@ -146,11 +147,8 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
-                error_and_exit(
-                    "'%s' is not a valid regex pattern (exception: %s)" %
-                    (regex, e),
-                    json=args.json,
-                    error_type="ValueError")
+                raise CondaValueError("'%s' is not a valid regex pattern (exception: %s)" %
+                                      (regex, e), args.json)
 
     prefix = get_prefix(args)
 

@@ -11,9 +11,9 @@ import re
 import subprocess
 import tempfile
 
-
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
+
 
 class memoized(object):
     """Decorator. Caches a function's return value each time it is called.

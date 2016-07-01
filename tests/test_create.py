@@ -355,7 +355,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.xfail(reason="pending resolution of #2926")
     @pytest.mark.timeout(600)
-    def test_dash_c_usage_replacing_python(self):
+    def ash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
