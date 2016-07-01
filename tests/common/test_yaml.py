@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
+
 from logging import getLogger
 
-from auxlib.ish import dals
-
-from condalib.common.yaml import yaml_dump, yaml_load
+from conda._vendor.auxlib.ish import dals
+from conda.common.yaml import yaml_dump, yaml_load
 
 log = getLogger(__name__)
 

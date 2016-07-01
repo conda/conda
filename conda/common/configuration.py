@@ -2,10 +2,6 @@
 from __future__ import absolute_import, division, print_function
 
 from abc import ABCMeta, abstractmethod
-from auxlib.collection import first, last, call_each, frozendict
-from auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
-from auxlib.path import expand
-from auxlib.type_coercion import typify_data_structure
 from collections import namedtuple, Mapping
 from enum import Enum
 from glob import glob
@@ -18,6 +14,10 @@ from toolz.dicttoolz import merge
 from toolz.functoolz import excepts
 from toolz.itertoolz import concat, unique, concatv
 
+from conda._vendor.auxlib.collection import first, last, frozendict
+from conda._vendor.auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
+from conda._vendor.auxlib.path import expand
+from conda._vendor.auxlib.type_coercion import typify_data_structure
 from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
                      text_type, odict, string_types, isiterable)
 from .yaml import yaml_load
@@ -473,7 +473,7 @@ class Configuration(object):
                 try:
                     match = parameter._pull_match_from_single_raw(raw_parameters, filepath)
                 except ValidationError as e:
-                    self._validation_errors[match] =
+                    self._validation_errors[match] = ""
                     print("The parameter '{0}' has invalid value '{1}' in {2}.\n{3}"
                           .format(key, raw_parameters[key].value, filepath, text_type(e)))
                     continue
