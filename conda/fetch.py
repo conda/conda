@@ -174,13 +174,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
-
         msg = "Connection error: %s: %s\n" % (e, remove_binstar_tokens(url))
         stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
         log.debug(msg)
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
 
+        raise ConnectionError(msg)
     cache['_url'] = remove_binstar_tokens(url)
     try:
         with open(cache_path, 'w') as fo:

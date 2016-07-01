@@ -38,7 +38,6 @@ class TestFetchRepoData(unittest.TestCase):
             fetch_repodata(url)
             assert  msg in str(execinfo)
 
-
 class TestTmpDownload(unittest.TestCase):
 
     def test_tmpDownload(self):
@@ -53,7 +52,6 @@ class TestTmpDownload(unittest.TestCase):
 
 
 class TestDownload(unittest.TestCase):
-
     def test_download_connectionerror(self):
         with pytest.raises(RuntimeError) as execinfo:
             url = "http://10.0.0.0/"
