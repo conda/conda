@@ -3,16 +3,20 @@
   * remove conda init, #2759
   * remove conda package and conda bundle, #2760
   * remove support for ftp:// repos, #2776
+  * project structure enhancement, #2929
   * force use of ruamel_yaml, #2762
   * remove dead code, #2761
   * exit on link error instead of logging it, #2639
   * clean up requests usage for fetching packages, #2755
   * remove excess output from conda --help, #2872
   * remove auxlib from project root, #2931
-  * vendor requests v2.10.0, #2930
-  * vendor auxlib 0.0.40, #2932
+  * vendor requests v2.10.0, #2930, #2949
+  * vendor auxlib 0.0.40, #2932, #2943
   * expose full regex power for version specifications, #2933
-  * convert to using vendored auxlib, #2943
+  * move progressbar to vendor directory, #2951
+  * merge conda-env into conda, #2950, #2952, #2954
+  * better error behavior if conda is spec'd for a non-root environment, #2956
+  * fix conda.recipe for new quirks with conda-build, #2959
 
 
 2016-0X-XX  4.1.6 (unreleased):
