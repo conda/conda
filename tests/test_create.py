@@ -230,6 +230,14 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
 
+            sout, serr = run_command(Commands.INSTALL, prefix, 'conda')
+            assert not package_is_installed(prefix, 'conda')
+            assert 'Error:' in serr
+
+            sout, serr = run_command(Commands.INSTALL, prefix, 'constructor')
+            assert not package_is_installed(prefix, 'constructor')
+            assert 'Error:' in serr
+
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:
