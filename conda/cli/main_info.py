@@ -184,8 +184,7 @@ def execute(args, parser):
         root_pkgs = None
 
     try:
-        import requests
-        requests_version = requests.__version__
+        from .._vendor.requests import __version__ as requests_version
     except ImportError:
         requests_version = "could not import"
     except Exception as e:
