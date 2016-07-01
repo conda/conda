@@ -232,16 +232,18 @@ def exp_backoff_fn(fn, *args):
         return fn(*args)
 
     import random
-    max_retries = 5
-    for n in range(max_retries):
+    # with max_tries = 5, max total time ~= 3.2 sec
+    # with max_tries = 6, max total time ~= 6.5 sec
+    max_tries = 6
+    for n in range(max_tries):
         try:
             result = fn(*args)
         except (OSError, IOError) as e:
             log.debug(repr(e))
             if e.errno in (errno.EPERM, errno.EACCES):
-                if n == max_retries-1:
+                if n == max_tries-1:
                     raise
-                time.sleep(((2 ** n) + random.random()) * 1e-1)
+                time.sleep(((2 ** n) + random.random()) * 0.1)
             else:
                 raise
         else:
