@@ -41,7 +41,11 @@ def get_index(channel_urls=(), prepend=True, platform=None,
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
                 info.setdefault('depends', [])
-                info['priority'] = priority
+                # If we're here for a package whose channel matches the index,
+                # it means the package was removed from the index. So we set peg
+                # the priority level to its highest level to encourage removal.
+                info['priority'] = maxp
+                info['missing'] = priority != maxp
                 index[key] = info
     return index
 

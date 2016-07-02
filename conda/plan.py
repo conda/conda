@@ -17,6 +17,7 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
 from . import instructions as inst
+from .compat import iteritems, itervalues
 from .config import (always_copy as config_always_copy, channel_priority,
                      show_channel_urls as config_show_channel_urls,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
@@ -24,8 +25,8 @@ from .config import (always_copy as config_always_copy, channel_priority,
 from .exceptions import TooFewArgumentsError, InstallError, RemoveError, CondaIndexError
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
-                      is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
-                      LINK_SOFT, try_hard_link, rm_rf)
+                      is_extracted, find_new_location, dist2filename, LINK_COPY,
+                      LINK_SOFT, try_hard_link, rm_rf, linked_data)
 from .resolve import MatchSpec, Resolve, Package
 from .utils import md5_file, human_bytes
 
@@ -296,6 +297,16 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
                            inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+
+    dnames = {}
+    ldata = linked_data(prefix)
+    for dist, rec in iteritems(ldata):
+        dnames.setdefault(rec['name'], []).append(dist)
+    duplicates = set()
+    for rec in itervalues(dnames):
+        if len(rec) > 1:
+            duplicates.update(rec)
+
     for dist in dists:
         fetched_in = is_fetched(dist)
         extracted_in = is_extracted(dist)
@@ -313,10 +324,11 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             except KeyError:
                 sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
 
-        if not force and is_linked(prefix, dist):
+        tforce = force or dist in duplicates
+        if not tforce and dist in ldata:
             continue
 
-        if extracted_in and force:
+        if extracted_in and tforce:
             # Always re-extract in the force case
             actions[inst.RM_EXTRACTED].append(dist)
             extracted_in = None
@@ -545,13 +557,23 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
 
-    linked = {r.package_name(fn): fn[:-8] for fn in linked}
-
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
-    for old_fn in reversed(r.dependency_sort(linked)):
-        dist = old_fn + '.tar.bz2'
-        name = r.package_name(dist)
-        if old_fn == nlinked.get(name, ''):
+
+    olinked = {}
+    for fn in linked:
+        olinked.setdefault(r.package_name(fn), []).append(fn[:-8])
+    olinked = reversed(r.dependency_sort(olinked))
+
+    for old_fns in olinked:
+        name = r.package_name(old_fns[0] + '.tar.bz2')
+        oname = nlinked.get(name, '')
+        if len(old_fns) > 1:
+            for old_fn in old_fns:
+                if old_fn != oname:
+                    add_unlink(actions, old_fn)
+            continue
+        old_fn = old_fns[0]
+        if old_fn == oname:
             continue
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
