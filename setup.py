@@ -5,12 +5,11 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 import os
 import sys
+from setuptools import find_packages
 if 'develop' in sys.argv:
     from setuptools import setup
 else:
     from distutils.core import setup
-
-from setuptools import find_packages
 
 if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
