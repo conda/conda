@@ -16,7 +16,7 @@ from os.path import exists, expanduser, join
 
 from ..compat import itervalues
 from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
-                     handle_envs_list)
+                     handle_envs_list, add_parser_offline)
 
 help = "Display information about current conda install."
 
@@ -35,6 +35,7 @@ def configure_parser(sub_parsers):
         epilog=example,
     )
     add_parser_json(p)
+    add_parser_offline(p)
     p.add_argument(
         '-a', "--all",
         action="store_true",
@@ -148,7 +149,7 @@ def execute(args, parser):
     from conda.config import (root_dir, get_channel_urls, subdir, pkgs_dirs,
                               root_writable, envs_dirs, default_prefix, rc_path,
                               user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
-                              platform, offline)
+                              platform, offline_keep, offline)
     from conda.resolve import Resolve
     from conda.cli.main_init import is_initialized
     from conda.api import get_index
@@ -207,7 +208,7 @@ def execute(args, parser):
     else:
         conda_build_version = conda_build.__version__
 
-    channels = get_channel_urls(offline=offline)
+    channels = list(filter(offline_keep, get_channel_urls()))
 
     info_dict = dict(
         platform=subdir,
