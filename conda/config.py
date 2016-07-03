@@ -66,7 +66,6 @@ rc_list_keys = [
     'default_channels',
 ]
 
-# NOTE: offline mode assumes that this starts with 'https:/'
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
 ADD_BINSTAR_TOKEN = True
@@ -105,7 +104,7 @@ user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 local_channel = []
 root_dir = root_writable = None
-offline = offline_ = False
+offline = False
 add_anaconda_token = ADD_BINSTAR_TOKEN
 rc = {}
 
@@ -210,18 +209,30 @@ def is_url(url):
         p = urlparse.urlparse(url)
         return p.netloc != "" or p.scheme == "file"
 
+def offline_keep(url):
+    return not offline or not is_url(url) or url.startswith('file:/')
 
-def init_binstar(offline=False):
+class OfflineBinstar(object):
+    def __init__(self, token, domain, verify):
+        self.token = token
+        self.domain = domain
+        self.verify = verify
+
+class OfflineBinstarArgs(object):
+    def __init__(self):
+        self.log_level = 0
+
+def init_binstar():
     global binstar_client, binstar_domain, binstar_domain_tok
     global binstar_regex, BINSTAR_TOKEN_PAT
     if binstar_domain is not None:
         return
-    if offline or offline_:
-        binstar_client = ()
     elif binstar_client is None:
         try:
             from binstar_client.utils import get_binstar
-            binstar_client = get_binstar()
+            binstar_client = get_binstar(
+                args=OfflineBinstarArgs() if offline else None,
+                cls=OfflineBinstar if offline else None)
         except ImportError:
             log.debug("Could not import binstar")
             binstar_client = ()
@@ -239,10 +250,10 @@ def init_binstar(offline=False):
     BINSTAR_TOKEN_PAT = re.compile(binstar_regex)
 
 
-def channel_prefix(token=False, offline=False):
+def channel_prefix(token=False):
     global channel_alias, channel_alias_tok
     if channel_alias is None or (channel_alias_tok is None and token):
-        init_binstar(offline)
+        init_binstar()
         if channel_alias is None or channel_alias == binstar_domain:
             channel_alias = binstar_domain
             channel_alias_tok = binstar_domain_tok
@@ -279,8 +290,7 @@ def prioritize_channels(channels):
             newchans[channel] = (channel_s, schans[channel_s])
     return newchans
 
-def normalize_urls(urls, platform=None, offline=False):
-    offline = offline or offline_
+def normalize_urls(urls, platform=None):
     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls(False))
     newurls = []
     while urls:
@@ -298,16 +308,14 @@ def normalize_urls(urls, platform=None, offline=False):
         for url0 in t_urls:
             url0 = url0.rstrip('/')
             if not is_url(url0):
-                url0 = channel_prefix(True, offline) + url0
+                url0 = channel_prefix(True) + url0
             else:
                 url0 = add_binstar_tokens(url0)
-            if offline and not url0.startswith('file:'):
-                continue
             for plat in (platform or subdir, 'noarch'):
                 newurls.append('%s/%s/' % (url0, plat))
     return newurls
 
-def get_channel_urls(platform=None, offline=False):
+def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
         import cio_test
         base_urls = cio_test.base_urls
@@ -315,7 +323,7 @@ def get_channel_urls(platform=None, offline=False):
         base_urls = ['system']
     else:
         base_urls = ['defaults']
-    res = normalize_urls(base_urls, platform, offline)
+    res = normalize_urls(base_urls, platform)
     return res
 
 def canonical_channel_name(channel):
@@ -423,7 +431,7 @@ def load_condarc(path=None):
         channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
     channel_alias_tok = binstar_client = binstar_domain = binstar_domain_tok = None
 
-    offline = offline_ = bool(rc.get('offline', False))
+    offline = bool(rc.get('offline', False))
     add_anaconda_token = rc.get('add_anaconda_token',
                                 rc.get('add_binstar_token', ADD_BINSTAR_TOKEN))
 

@@ -173,8 +173,7 @@ def install(args, parser, command='install'):
         'channel_urls': args.channel or (),
         'unknown': args.unknown,
         'prepend': not args.override_channels,
-        'use_local': args.use_local,
-        'offline': args.offline
+        'use_local': args.use_local
     }
 
     specs = []

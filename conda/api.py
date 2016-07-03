@@ -8,8 +8,7 @@ from .resolve import Resolve
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_local=False, use_cache=False, unknown=False,
-              offline=False, prefix=None):
+              use_local=False, use_cache=False, unknown=False, prefix=False):
     """
     Return the index of packages available on the channels
 
@@ -46,7 +45,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     return index
 
 
-def get_package_versions(package, offline=False):
+def get_package_versions(package):
     index = get_index()
     r = Resolve(index)
     return r.get_pkgs(package, emptyok=True)

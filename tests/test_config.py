@@ -162,20 +162,6 @@ class TestConfig(unittest.TestCase):
            'https://your.repo/username/osx-64/': ('username', 8)
         }
 
-        normurls = config.normalize_urls(channel_urls, platform, offline=True)
-        assert normurls == [
-             'file:///Users/username/repo/osx-64/',
-             'file:///Users/username/repo/noarch/']
-
-        # If config.rc['offline'] is True, then it doesn't matter what the offline
-        # argument is normalize_urls
-        config.rc['offline'] = True
-        config.load_condarc()
-        normurls = config.normalize_urls(channel_urls, platform, offline=False)
-        assert normurls == [
-             'file:///Users/username/repo/osx-64/',
-             'file:///Users/username/repo/noarch/']
-
         # Delete the channel alias so now the short channels point to binstar
         del config.rc['channel_alias']
         config.rc['offline'] = False
