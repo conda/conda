@@ -89,7 +89,6 @@ class FileLock(object):
         stdoutlog.error("Exceeded max retries, giving up")
         raise LockError(LOCKSTR.format(last_glob_match))
 
-
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
         rm_rf(self.lock_path)
