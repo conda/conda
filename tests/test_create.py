@@ -299,12 +299,33 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
+                run_command(Commands.REMOVE, prefix, 'flask')
+                assert not package_is_installed(prefix, 'flask-0')
+
+                # Regression test for 2970
+                # install from build channel as a tarball
+                conda_bld = join(sys.prefix, 'conda-bld')
+                conda_bld_sub = join(conda_bld, subdir)
+
+                tar_bld_path = join(conda_bld_sub, flask_fname)
+                if os.path.exists(conda_bld):
+                    try:
+                        os.rename(tar_new_path, tar_bld_path)
+                    except OSError:
+                        pass
+                else:
+                    os.makedirs(conda_bld)
+                    os.rename(subchan, conda_bld_sub)
+                run_command(Commands.INSTALL, prefix, tar_bld_path)
+                assert_package_is_installed(prefix, 'flask-')
+
             # regression test for #2886 (part 2 of 2)
             # install tarball from package cache, local channel
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0')
             run_command(Commands.INSTALL, prefix, tar_old_path)
-            assert_package_is_installed(prefix, channel + '::' + 'flask-')
+            # The last install was from the `local::` channel
+            assert_package_is_installed(prefix, 'flask-')
 
             # regression test for #2599
             linked_data_.clear()
