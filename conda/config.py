@@ -10,7 +10,7 @@ import logging
 import os
 import re
 import sys
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from os.path import abspath, expanduser, isfile, isdir, join
 from platform import machine
 
@@ -209,20 +209,13 @@ def is_url(url):
         p = urlparse.urlparse(url)
         return p.netloc != "" or p.scheme == "file"
 
+def is_offline():
+    return offline
+
 def offline_keep(url):
     return not offline or not is_url(url) or url.startswith('file:/')
 
-class OfflineBinstar(object):
-    def __init__(self, token, domain, verify):
-        self.token = token
-        self.domain = domain
-        self.verify = verify
-
-class OfflineBinstarArgs(object):
-    def __init__(self):
-        self.log_level = 0
-
-def init_binstar():
+def init_binstar(quiet=False):
     global binstar_client, binstar_domain, binstar_domain_tok
     global binstar_regex, BINSTAR_TOKEN_PAT
     if binstar_domain is not None:
@@ -230,9 +223,9 @@ def init_binstar():
     elif binstar_client is None:
         try:
             from binstar_client.utils import get_binstar
-            binstar_client = get_binstar(
-                args=OfflineBinstarArgs() if offline else None,
-                cls=OfflineBinstar if offline else None)
+            # Turn off output in offline mode so people don't think we're going online
+            args = namedtuple('args', 'log_level')(0) if quiet or offline else None
+            binstar_client = get_binstar(args)
         except ImportError:
             log.debug("Could not import binstar")
             binstar_client = ()
