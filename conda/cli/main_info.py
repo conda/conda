@@ -149,10 +149,13 @@ def execute(args, parser):
     from conda.config import (root_dir, get_channel_urls, subdir, pkgs_dirs,
                               root_writable, envs_dirs, default_prefix, rc_path,
                               user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
-                              platform, offline_keep, offline)
+                              platform, offline_keep, is_offline, init_binstar)
     from conda.resolve import Resolve
     from conda.cli.main_init import is_initialized
     from conda.api import get_index
+
+    # Quietly initialize binstar to drop the API info
+    init_binstar(True)
 
     if args.root:
         if args.json:
@@ -208,7 +211,19 @@ def execute(args, parser):
     else:
         conda_build_version = conda_build.__version__
 
-    channels = list(filter(offline_keep, get_channel_urls()))
+    channels = get_channel_urls()
+
+    if args.unsafe_channels:
+        if not args.json:
+            print("\n".join(channels))
+        else:
+            print(json.dumps({"channels": channels}))
+        return 0
+
+    channels = list(map(hide_binstar_tokens, channels))
+    if not args.json:
+        channels = [c + ('' if offline_keep(c) else '  (offline)')
+                    for c in channels]
 
     info_dict = dict(
         platform=subdir,
@@ -225,21 +240,12 @@ def execute(args, parser):
         user_rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,
         is_foreign=bool(foreign),
-        offline=offline,
+        offline=is_offline(),
         envs=[],
         python_version='.'.join(map(str, sys.version_info)),
         requests_version=requests_version,
     )
 
-    if args.unsafe_channels:
-        if not args.json:
-            print("\n".join(info_dict["channels"]))
-        else:
-            print(json.dumps({"channels": info_dict["channels"]}))
-        return 0
-    else:
-        info_dict['channels'] = [hide_binstar_tokens(c) for c in
-                                 info_dict['channels']]
     if args.all or args.json:
         for option in options:
             setattr(args, option, True)
