@@ -269,6 +269,9 @@ def hide_binstar_tokens(url):
 def remove_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1', url)
 
+# Maximum priority, reserved for packages we really want to remove
+MAX_PRIORITY = 10000
+
 def prioritize_channels(channels):
     newchans = OrderedDict()
     priority = 0
@@ -278,8 +281,7 @@ def prioritize_channels(channels):
         if channel not in newchans:
             channel_s = canonical_channel_name(channel.rsplit('/', 2)[0])
             if channel_s not in schans:
-                priority += 1
-                schans[channel_s] = priority
+                schans[channel_s] = priority = min(priority + 1, MAX_PRIORITY - 1)
             newchans[channel] = (channel_s, schans[channel_s])
     return newchans
 

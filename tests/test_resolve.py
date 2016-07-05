@@ -5,6 +5,7 @@ from os.path import dirname, join
 
 import pytest
 
+from conda.config import MAX_PRIORITY
 from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 from conda import config
@@ -817,12 +818,37 @@ def test_broken_install():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']
-    installed[1] = 'numpy-1.7.1-py33_p0.tar.bz2'
-    installed.append('notarealpackage-2.0-0.tar.bz2')
-    assert r.install([], installed) == installed
-    installed2 = r.install(['numpy'], installed)
-    installed3 = r.remove(['pandas'], installed)
-    assert set(installed3) == set(installed[:3] + installed[4:])
+
+    # Add a fake package and an incompatible numpy
+    installed2 = list(installed)
+    installed2[1] = 'numpy-1.7.1-py33_p0.tar.bz2'
+    installed2.append('notarealpackage-2.0-0.tar.bz2')
+    assert r.install([], installed2) == installed2
+    installed3 = r.install(['numpy'], installed2)
+    installed4 = r.remove(['pandas'], installed2)
+    assert set(installed4) == set(installed2[:3] + installed2[4:])    
+
+    # Remove the installed version of pandas from the index
+    index2 = index.copy()
+    rec = index2['pandas-0.11.0-np16py27_1.tar.bz2']
+    index2['pandas-0.11.0-np16py27_1.tar.bz2'] = rec = rec.copy()
+    rec['priority'] = MAX_PRIORITY
+    r2 = Resolve(index2)
+    installed2 = r2.install(['pandas', 'python 2.7*', 'numpy 1.6*'], installed)
+    assert installed2 == [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.10.1-np16py27_0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.11.0-np16py27_3.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2']
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
