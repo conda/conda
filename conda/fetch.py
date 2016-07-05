@@ -28,7 +28,7 @@ from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
 from .connection import CondaSession, unparse_url, RETRIES
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
                       rm_rf, exp_backoff_fn)
-from .lock import FileLock as Locked
+from .lock import Locked as Locked
 from .utils import memoized
 from .exceptions import ProxyError, ChannelNotAllowed
 

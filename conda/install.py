@@ -52,7 +52,7 @@ on_win = bool(sys.platform == "win32")
 
 
 try:
-    from conda.lock import FileLock as Locked
+    from conda.lock import Locked as Locked
     from conda.utils import win_path_to_unix, url_path
     from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
 except ImportError:
