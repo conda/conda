@@ -85,9 +85,8 @@ class DryRunExit(CondaError):
 
 
 class CondaSystemExit(CondaError, SystemExit):
-    def __init__(self, message, *args, **kwargs):
-        msg = 'Exiting: %s\n' % message
-        super(CondaSystemExit, self).__init__(msg, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super(CondaSystemExit, self).__init__(*args, **kwargs)
 
 
 class SubprocessExit(CondaError):
