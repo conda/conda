@@ -163,7 +163,7 @@ class CrossPlatformStLink(object):
 def find_lock():
     from os.path import join
 
-    from conda.lock import LOCKFN
+    from conda.lock import LOCK_EXTENSION
 
     lock_dirs = config_pkgs_dirs[:]
     lock_dirs += [root_dir]
@@ -183,16 +183,17 @@ def find_lock():
         if not os.path.exists(dir):
             continue
         for dn in os.listdir(dir):
-            if os.path.isdir(join(dir, dn)) and dn.startswith(LOCKFN):
+            if os.path.exists(join(dir, dn)) and dn.endswith(LOCK_EXTENSION):
                 path = join(dir, dn)
                 yield path
 
 
 def rm_lock(locks, verbose=True):
+    from ..install import rm_rf
     for path in locks:
         if verbose:
             print('removing: %s' % path)
-        os.rmdir(path)
+        rm_rf(path)
 
 
 def find_tarballs():
