@@ -348,7 +348,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         try:
             if verify(path):
                 return
-        except SignatureError as e:
+        except SignatureError:
             raise
 
         raise SignatureError("Error: Signature for '%s' is invalid." %
