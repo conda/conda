@@ -14,6 +14,7 @@ main_install() {
           pip install enum34 futures
           ;;
       *) ;;
+    esac
 }
 
 
