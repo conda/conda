@@ -69,7 +69,7 @@ install:
 build: false
 
 test_script:
-  - py.test --cov-report xml tests/condalib
+  - py.test --cov-report xml tests/conda
 
 on_success:
   - pip install codecov coveralls scrutinizer-ocular
