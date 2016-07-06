@@ -30,7 +30,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.compat import PY3, TemporaryDirectory, itervalues
+from conda.compat import PY3, itervalues
 from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
 from conda.install import linked as install_linked, linked_data_, dist2dirname, package_cache
@@ -123,11 +123,10 @@ def run_command(command, prefix, *arguments):
 @contextmanager
 def make_temp_env(*packages):
     prefix = make_temp_prefix()
-    prefix_condarc = join(prefix, 'condarc')
     try:
         # try to clear any config that's been set by other tests
         if packages:
-            config.load_condarc(prefix_condarc)
+            config.load_condarc(join(prefix, 'condarc'))
             run_command(Commands.CREATE, prefix, *packages)
         yield prefix
     finally:
@@ -420,7 +419,7 @@ class IntegrationTests(TestCase):
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_in_underscore_env_shows_message():
-    with TemporaryDirectory() as tmp:
+    with make_temp_env() as tmp:
         cmd = ["conda", "create", '-y', '--shortcuts', '-p', join(tmp, '_conda'), "console_shortcut"]
         p = Popen(cmd, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
@@ -431,7 +430,7 @@ def test_shortcut_in_underscore_env_shows_message():
 
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_not_attempted_without_shortcuts_arg():
-    with TemporaryDirectory() as tmp:
+    with make_temp_env() as tmp:
         cmd = ["conda", "create", '-y', '-p', join(tmp, '_conda'), "console_shortcut"]
         p = Popen(cmd, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
@@ -445,7 +444,7 @@ def test_shortcut_not_attempted_without_shortcuts_arg():
 @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
 def test_shortcut_creation_installs_shortcut():
     from menuinst.win32 import dirs as win_locations
-    with TemporaryDirectory() as tmp:
+    with make_temp_env() as tmp:
         check_call(["conda", "create", '-y', '--shortcuts', '-p',
                     join(tmp, 'conda'), "console_shortcut"])
 
@@ -485,7 +484,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall():
 
     assert not isfile(shortcut_file)
 
-    with TemporaryDirectory() as tmp:
+    with make_temp_env() as tmp:
         # not including --shortcuts, should not get shortcuts installed
         check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
 
@@ -499,7 +498,7 @@ def test_shortcut_absent_does_not_barf_on_uninstall():
 def test_symlinks_created_with_env():
     bindir = 'Scripts' if on_win else 'bin'
 
-    with TemporaryDirectory() as tmp:
+    with make_temp_env() as tmp:
         check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "python=2.7"])
         assert isfile(join(tmp, 'conda', bindir, 'activate'))
         assert isfile(join(tmp, 'conda', bindir, 'deactivate'))
