@@ -124,7 +124,7 @@ def main():
             raise ArgumentError("did not expect more than one argument.")
         if sys.argv[3].lower() == root_env_name.lower():
             # no need to check root env and try to install a symlink there
-            raise CondaSystemExit()
+            raise CondaSystemExit
 
         # this should throw an error and exit if the env or path can't be found.
         try:
