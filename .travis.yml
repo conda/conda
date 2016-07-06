@@ -26,13 +26,13 @@ matrix:
 
 install:
   - which -a python
-  - printenv
-  - pip install psutil ruamel.yaml pycosat pycrypto requests
-  - pip install flake8 pytest pytest-cov mock
-  - pip install pytest-timeout radon responses
+  - env | sort
+  - bash ./utils/travis-run-install.sh
 
 script:
   - bash ./utils/travis-run-script.sh
+
+sudo: false
 
 after_success:
   - pip install codecov
