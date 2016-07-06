@@ -39,6 +39,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 import importlib
+
 from ..exceptions import conda_exception_handler, CommandNotFoundError
 
 
@@ -131,6 +132,7 @@ def _main():
 
 
 def main():
+    print('in cli/main/main()', __name__)
     return conda_exception_handler(_main)
 
 
