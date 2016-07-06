@@ -15,6 +15,7 @@ from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
 from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
+from .. import config
 
 
 class Completer(object):
@@ -72,8 +73,7 @@ class Packages(Completer):
         call_dict = dict(channel_urls=args.channel or (),
                          use_cache=True,
                          prepend=not args.override_channels,
-                         unknown=args.unknown,
-                         offline=args.offline)
+                         unknown=args.unknown)
         if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
@@ -310,14 +310,19 @@ def add_parser_use_local(p):
         help="Use locally built packages.",
     )
 
+class OfflineAction(argparse.Action):
+    def __call__(self, *args, **kwargs):
+        config.offline = True
+
 def add_parser_offline(p):
+    global offline
     p.add_argument(
         "--offline",
-        action="store_true",
-        default=False,
+        action=OfflineAction,
+        default=config.offline,
         help="Offline mode, don't connect to the Internet.",
+        nargs=0
     )
-
 
 def add_parser_no_pin(p):
     p.add_argument(
