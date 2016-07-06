@@ -132,7 +132,6 @@ def _main():
 
 
 def main():
-    print('in cli/main/main()', __name__)
     return conda_exception_handler(_main)
 
 
