@@ -45,8 +45,9 @@ from .exceptions import PaddingError, LinkError, ArgumentError
 
 on_win = bool(sys.platform == "win32")
 
+
 try:
-    from conda.lock import Locked
+    from conda.lock import Locked as Locked
     from conda.utils import win_path_to_unix, url_path
     from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
 except ImportError:
@@ -785,10 +786,10 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[url_path(fname)]
-        with Locked(dirname(fname)):
+        with Locked(fname):
             rm_rf(fname)
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with Locked(fname):
             rm_rf(fname)
     del package_cache_[dist]
 
@@ -819,7 +820,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with Locked(fname):
             rm_rf(fname)
     if rec['files']:
         rec['dirs'] = []
@@ -828,6 +829,7 @@ def rm_extracted(dist):
 
 
 def extract(dist):
+
     """
     Extract a package, i.e. make a package available for linkage. We assume
     that the compressed package is located in the packages directory.
@@ -837,8 +839,8 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
-    with Locked(pkgs_dir):
-        path = fname[:-8]
+    path = fname[:-8]
+    with Locked(path):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
         with tarfile.open(fname) as t:
@@ -1039,7 +1041,12 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
 
-    with Locked(prefix), Locked(pkgs_dir):
+    # for the lock issue
+    # may run into lock if prefix not exist
+    if not isdir(prefix):
+        os.makedirs(prefix)
+
+    with Locked(prefix), Locked(source_dir):
         for f in files:
             src = join(source_dir, f)
             dst = join(prefix, f)
@@ -1052,11 +1059,12 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
             lt = linktype
             if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
+
             try:
                 _link(src, dst, lt)
             except OSError as e:
-                sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                         (src, dst, lt, e))
+                sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)'
+                         % (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]

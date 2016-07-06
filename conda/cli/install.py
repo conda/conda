@@ -61,6 +61,8 @@ def check_prefix(prefix, json=False):
     if name == root_env_name:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
+        if isdir(prefix) and not os.listdir(prefix):
+            return None
         error = "prefix already exists: %s" % prefix
 
     if error:
