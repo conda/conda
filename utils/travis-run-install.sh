@@ -3,7 +3,7 @@ set -x
 
 
 flake8_install() {
-    pip install flake8
+    pip install -U flake8
 }
 
 
@@ -11,7 +11,7 @@ main_install() {
     pip install psutil ruamel.yaml pycosat pycrypto
     case $TRAVIS_PYTHON in
       '2.7')
-          pip install enum34 futures
+          pip install -U enum34 futures
           ;;
       *) ;;
     esac
@@ -19,7 +19,7 @@ main_install() {
 
 
 test_install() {
-    pip install mock pytest pytest-cov pytest-timeout radon responses
+    pip install -U mock pytest pytest-cov pytest-timeout radon responses
 }
 
 
