@@ -113,10 +113,17 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         resp = session.get(url + filename, headers=headers, proxies=session.proxies)
         resp.raise_for_status()
         if resp.status_code != 304:
+            lock = None
+            if url.startswith("file://"):
+                pkg_file = urlparse.urlparse(url)
+                pkg_file = os.path.abspath(os.path.join(pkg_file.netloc, pkg_file.path))
+                lock = Locked(os.path.dirname(pkg_file))
             if filename.endswith('.bz2'):
                 json_str = bz2.decompress(resp.content).decode('utf-8')
             else:
                 json_str = resp.content.decode('utf-8')
+            if lock:
+                del lock
             cache = json.loads(json_str)
             add_http_value_to_dict(resp, 'Etag', cache, '_etag')
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
