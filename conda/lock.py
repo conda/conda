@@ -49,7 +49,7 @@ def touch(file_name, times=None):
         os.utime(file_name, times)
 
 
-class Locked(object):
+class FileLock(object):
     """
     Context manager to handle locks.
     """
@@ -92,3 +92,9 @@ class Locked(object):
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
         rm_rf(self.lock_path)
+
+
+def Locked(*args, **kwargs):
+    from warnings import warn
+    warn("Locked class has been deprecated as Filelock!")
+    return FileLock(*args, **kwargs)
