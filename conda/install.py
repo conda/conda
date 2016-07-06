@@ -1051,26 +1051,25 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
     if not isdir(prefix):
         os.makedirs(prefix)
 
-    with Locked(prefix):
+    with Locked(prefix), Locked(source_dir):
         for f in files:
             src = join(source_dir, f)
-            with Locked(src):
-                dst = join(prefix, f)
-                dst_dir = dirname(dst)
-                if not isdir(dst_dir):
-                    os.makedirs(dst_dir)
-                if os.path.exists(dst):
-                    log.warn("file already exists: %r" % dst)
-                    rm_rf(dst)
-                lt = linktype
-                if f in has_prefix_files or f in no_link or islink(src):
-                    lt = LINK_COPY
-                with Locked(dst):
-                    try:
-                        _link(src, dst, lt)
-                    except OSError as e:
-                        sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                                 (src, dst, lt, e))
+            dst = join(prefix, f)
+            dst_dir = dirname(dst)
+            if not isdir(dst_dir):
+                os.makedirs(dst_dir)
+            if os.path.exists(dst):
+                log.warn("file already exists: %r" % dst)
+                rm_rf(dst)
+            lt = linktype
+            if f in has_prefix_files or f in no_link or islink(src):
+                lt = LINK_COPY
+
+            try:
+                _link(src, dst, lt)
+            except OSError as e:
+                sys.exit('failed to link (src=%r, dst=%r, type=%r, error=%r)'
+                         % (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
