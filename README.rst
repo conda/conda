@@ -13,7 +13,7 @@
 
 .. image:: https://ci.appveyor.com/api/projects/status/v6fl568drifhia2d/branch/master?svg=true
    :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ContinuumAnalyticsOSS/conda/branch/master
+   :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda/branch/master
 
 .. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
    :alt: Codecov Status
