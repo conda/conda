@@ -58,7 +58,6 @@ def preprocess_name(path):
     else:
         return path
 
-
 class FileLock(object):
     """
     Context manager to handle locks.
@@ -108,3 +107,4 @@ def Locked(*args, **kwargs):
     from warnings import warn
     warn("Locked class has been deprecated as FileLock!")
     return FileLock(*args, **kwargs)
+
