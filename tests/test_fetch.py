@@ -31,6 +31,14 @@ class TestFetchRepoData(unittest.TestCase):
             fetch_repodata(url)
             assert msg in str(execinfo)
 
+    def test_fetchrepodate_connectionerror(self):
+        with pytest.raises(ConnectionError) as execinfo:
+            url = "http://10.0.0.0/"
+            msg = "Connection error:"
+            filename = 'repodata.json'
+            fetch_repodata(url)
+            assert  msg in str(execinfo)
+
 
 class TestTmpDownload(unittest.TestCase):
     def test_tmpDownload(self):
@@ -56,6 +64,7 @@ class TestDownload(unittest.TestCase):
     def test_download_httperror(self):
         with pytest.raises(CondaRuntimeError) as execinfo:
             url = DEFAULT_CHANNEL_ALIAS
+
             msg = "HTTPError:"
             responses.add(responses.GET, url, body='{"error": "not found"}', status=404,
                           content_type='application/json')
