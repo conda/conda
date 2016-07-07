@@ -63,13 +63,13 @@ install:
   - pip install flake8 pytest-cov pytest-timeout responses
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
-#  - python setup.py install --old-and-unmanageable
+  - python setup.py install --old-and-unmanageable
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
 
 test_script:
-  - py.test --cov-report xml tests/conda
+  - py.test --cov-report xml tests --shell=cmd.exe --shell=bash.exe
 
 on_success:
   - pip install codecov coveralls scrutinizer-ocular
