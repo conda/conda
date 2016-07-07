@@ -217,6 +217,10 @@ def is_url(url):
         p = urlparse.urlparse(url)
         return p.netloc != "" or p.scheme == "file"
 
+def set_offline():
+    global offline
+    offline = True
+
 def is_offline():
     return offline
 
