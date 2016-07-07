@@ -50,7 +50,7 @@ def touch(file_name, times=None):
         os.utime(file_name, times)
 
 
-class FileLock(object):
+class Locked(object):
     """
     Context manager to handle locks.
     """
