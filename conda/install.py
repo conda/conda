@@ -1050,9 +1050,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
 
     # for the lock issue
     # may run into lock if prefix not exist
-    if not isdir(prefix):
-        os.makedirs(prefix)
-
     with Locked(prefix), Locked(source_dir):
         for f in files:
             src = join(source_dir, f)

@@ -7,10 +7,16 @@ from .exceptions import InvalidInstruction
 from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
                       link, unlink, symlink_conda, name_dist)
-from os import access, W_OK
-from os.path import  join
-from .exceptions import CondaFileIOError
+from os import access, W_OK, makedirs
+from os.path import join, isdir
+from .exceptions import CondaFileIOError, CondaIOError
+
 from .install import load_meta
+from blessings import Terminal
+from ._vendor.progressive.bar import Bar
+from ._vendor.progressive.tree import ProgressTree, Value, BarDescriptor
+
+
 log = getLogger(__name__)
 
 # op codes
@@ -38,6 +44,8 @@ action_codes = (
 )
 
 
+update_bar = {}
+bar_length = 100
 def PREFIX_CMD(state, arg):
     state['prefix'] = arg
 
@@ -122,6 +130,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
     checked = False
+    downloaded = False
+    to_download = []
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
@@ -140,6 +150,16 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             check_link_unlink(state, plan)
             checked = True
 
+        # a hack to current implementation
+        if cmd == FETCH_CMD:
+            to_download.append(arg)
+            continue
+
+        if cmd == EXTRACT_CMD and not downloaded:
+            parallel_download(state, to_download)
+            downloaded = True
+            PRINT_CMD(state, "Extracting packages ...")
+
         cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
@@ -149,6 +169,56 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     messages(state['prefix'])
 
+
+def parallel_download(state, arg_list):
+    try:
+        import concurrent.futures
+        executor = concurrent.futures.ThreadPoolExecutor(10)
+    except (ImportError, RuntimeError):
+        for arg in arg_list:
+            FETCH_CMD(state, arg)
+    else:
+
+        bd_defaults = dict(type=Bar, kwargs=dict(max_value=bar_length))
+        general_label = "Fetching Packages "
+        general_label, new_arg_list = pretty_label(general_label, arg_list)
+        test_d = {general_label: {}}
+        leaf_values = {}
+        for arg in new_arg_list:
+            url = state['index'][arg.strip() + '.tar.bz2'].get('url')
+            leaf_values[url] = Value(0)
+            test_d[general_label][arg] = BarDescriptor(value=leaf_values[url], **bd_defaults)
+            update_bar[url] = Value(0)
+
+        t = Terminal()
+        # Initialize a ProgressTree instance
+        n = ProgressTree(term=t)
+        # We'll use the make_room method to make sure the terminal
+        #   is filled out with all the room we need
+        n.make_room(test_d)
+        from threading import Thread
+        th = Thread(target=download_job, args=(state, arg_list, executor))
+        th.start()
+        while not all(leaf_values[val].value == bar_length for val in leaf_values):
+            n.cursor.restore()
+            for val in leaf_values:
+                leaf_values[val].value = update_bar[val].value
+            n.draw(test_d, BarDescriptor(bd_defaults))
+        th.join()
+
+
+def pretty_label(general_label, arg_list):
+    max_length = len(general_label)
+    for arg in arg_list:
+        if len(arg) > max_length:
+            max_length = len(arg)
+    max_length += 2
+    general_label += "".join([" "] * (max_length - len(general_label)))
+    new_list = []
+    for arg in arg_list:
+        new_list.append(arg + str("".join([" "] * (max_length - len(arg)))))
+
+    return general_label, new_list
 
 def get_link_package(plan):
     link_list = []
@@ -173,6 +243,12 @@ def check_link_unlink(state, plan):
     # check for permission
     # the folder may not exist now, just check whether can write to prefix
     prefix = state['prefix']
+    if not isdir(prefix):
+        try:
+            makedirs(prefix)
+        except IOError:
+            raise CondaIOError("Could not create directory for {0}".format(prefix))
+
     w_permission = access(prefix, W_OK)
 
     if not w_permission:
@@ -186,3 +262,16 @@ def check_link_unlink(state, plan):
             w_permission = access(dst, W_OK)
             if not w_permission:
                 raise CondaFileIOError(dst)
+
+
+def download_job(state, arg_list, executor):
+    try:
+        for arg in arg_list:
+            executor.submit(FETCH_CMD, state, arg)
+    finally:
+        executor.shutdown(wait=True)
+        from .install import package_cache
+        for arg in arg_list:
+             assert arg in package_cache()
+
+

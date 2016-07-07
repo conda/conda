@@ -28,7 +28,6 @@ LOCK_EXTENSION = 'conda_lock'
 
 # Keep the string "LOCKERROR" in this string so that external
 # programs can look for it.
-
 LOCKSTR = """
 LOCKERROR: It looks like conda is already doing something.
 The lock {0} was found. Wait for it to finish before continuing.
@@ -50,7 +49,8 @@ def touch(file_name, times=None):
         os.utime(file_name, times)
 
 
-class FileLock(object):
+
+class Locked(object):
     """
     Context manager to handle locks.
     """
@@ -66,12 +66,14 @@ class FileLock(object):
     def __enter__(self):
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
         assert "::" not in self.file_path, self.file_path
+
         sleep_time = 1
         self.lock_path = "{0}.pid{1}.{2}".format(self.file_path, os.getpid(), LOCK_EXTENSION)
         lock_glob_str = "{0}.pid*.{1}".format(self.file_path, LOCK_EXTENSION)
         last_glob_match = None
 
         for q in range(self.retries + 1):
+
             # search, whether there is process already locked on this file
             glob_result = glob(lock_glob_str)
             if glob_result:
@@ -91,11 +93,4 @@ class FileLock(object):
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
         rm_rf(self.lock_path)
-
-
-def Locked(*args, **kwargs):
-    from warnings import warn
-    warn("Locked class has been deprecated as FileLock!")
-    return FileLock(*args, **kwargs)
-
 

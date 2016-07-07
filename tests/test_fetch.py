@@ -38,6 +38,7 @@ class TestFetchRepoData(unittest.TestCase):
             fetch_repodata(url)
             assert  msg in str(execinfo)
 
+
 class TestTmpDownload(unittest.TestCase):
 
     def test_tmpDownload(self):
