@@ -1,7 +1,7 @@
 import copy
 import operator
-from toolz.compatibility import (map, zip, iteritems, iterkeys, itervalues,
-                                 reduce)
+from .compatibility import (map, zip, iteritems, iterkeys, itervalues,
+                            reduce)
 
 __all__ = ('merge', 'merge_with', 'valmap', 'keymap', 'itemmap',
            'valfilter', 'keyfilter', 'itemfilter',
