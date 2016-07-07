@@ -36,9 +36,10 @@ requests:
 # VERSION=0.8.0 make toolz
 toolz:
 	git clone https://github.com/pytoolz/toolz.git --single-branch --branch $(VERSION) \
- 	    && rm -rf conda/_vendor/toolz \
- 	    && mv toolz/toolz conda/_vendor/ \
- 	    && rm -rf toolz
+	    && rm -rf conda/_vendor/toolz \
+	    && mv toolz/toolz conda/_vendor/ \
+	    && rm -rf toolz
+	rm -rf conda/_vendor/toolz/curried conda/_vendor/toolz/sandbox conda/_vendor/toolz/tests
 
 
 .PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib requests toolz
