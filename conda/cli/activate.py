@@ -124,7 +124,8 @@ def main():
             raise ArgumentError("did not expect more than one argument.")
         if sys.argv[3].lower() == root_env_name.lower():
             # no need to check root env and try to install a symlink there
-            raise CondaSystemExit
+            sys.exit(0)
+            # raise CondaSystemExit
 
         # this should throw an error and exit if the env or path can't be found.
         try:
@@ -143,7 +144,8 @@ def main():
                        .format(sys.argv[2]))
                 raise CondaEnvironmentError(msg, e)
             raise
-        raise CondaSystemExit
+        sys.exit(0)
+        # raise CondaSystemExit
     elif sys.argv[1] == '..changeps1':
         from conda.config import changeps1
         path = int(changeps1)
