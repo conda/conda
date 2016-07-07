@@ -2,7 +2,6 @@ import responses
 import unittest
 from conda.fetch import fetch_repodata, TmpDownload, download
 from conda.config import DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens
-from conda._vendor.requests.packages.urllib3.connection import ConnectionError
 import pytest
 from os.path import exists, isfile
 from tempfile import mktemp
@@ -32,7 +31,7 @@ class TestFetchRepoData(unittest.TestCase):
             assert not res
 
     def test_fetchrepodate_connectionerror(self):
-        with pytest.raises(ConnectionError) as execinfo:
+        with pytest.raises(RuntimeError) as execinfo:
             url = "http://10.0.0.0/"
             msg = "Connection error:"
             filename = 'repodata.json'

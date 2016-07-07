@@ -181,7 +181,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
 
-        raise ConnectionError(msg)
+        raise RuntimeError(msg)
     cache['_url'] = remove_binstar_tokens(url)
     try:
         with open(cache_path, 'w') as fo:
