@@ -228,12 +228,12 @@ class Parameter(object):
         return self._names
 
     def _pull_match_from_single_raw(self, raw_parameters, filepath):
-        keys = self.names & raw_parameters.keys()
+        keys = self.names & set(raw_parameters.keys())
         numkeys = len(keys)
         if numkeys == 0:
             return NO_MATCH
         elif numkeys == 1:
-            key = keys.pop()
+            key, = keys
             raw_value = raw_parameters[key]
             try:
                 typed_value = typify_data_structure(raw_value.value, self._element_type)
