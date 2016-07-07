@@ -181,6 +181,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         log.debug(msg)
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
+
         raise CondaRuntimeError(msg)
     cache['_url'] = url
     try:

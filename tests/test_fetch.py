@@ -32,7 +32,7 @@ class TestFetchRepoData(unittest.TestCase):
             assert msg in str(execinfo)
 
     def test_fetchrepodate_connectionerror(self):
-        with pytest.raises(ConnectionError) as execinfo:
+        with pytest.raises(RuntimeError) as execinfo:
             url = "http://10.0.0.0/"
             msg = "Connection error:"
             filename = 'repodata.json'
