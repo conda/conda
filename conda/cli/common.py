@@ -11,13 +11,14 @@ from os.path import abspath, basename, expanduser, isdir, join
 from .. import console
 from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
                       channel_priority, show_channel_urls, always_yes, root_env_name,
-                      root_dir, root_writable, disallow)
+                      root_dir, root_writable, disallow, offline as config_offline)
 from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
                           CondaValueError, CondaFileIOError, TooFewArgumentsError,
                           CondaError)
+
 
 class Completer(object):
     """
@@ -74,8 +75,7 @@ class Packages(Completer):
         call_dict = dict(channel_urls=args.channel or (),
                          use_cache=True,
                          prepend=not args.override_channels,
-                         unknown=args.unknown,
-                         offline=args.offline)
+                         unknown=args.unknown)
         if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
@@ -312,14 +312,19 @@ def add_parser_use_local(p):
         help="Use locally built packages.",
     )
 
+class OfflineAction(argparse.Action):
+    def __call__(self, *args, **kwargs):
+        config_offline = True
+
 def add_parser_offline(p):
+    global offline
     p.add_argument(
         "--offline",
-        action="store_true",
-        default=False,
+        action=OfflineAction,
+        default=config_offline,
         help="Offline mode, don't connect to the Internet.",
+        nargs=0
     )
-
 
 def add_parser_no_pin(p):
     p.add_argument(

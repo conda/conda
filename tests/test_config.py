@@ -17,18 +17,15 @@ from conda.utils import get_yaml
 from tests.helpers import run_conda_command
 
 yaml = get_yaml()
+testrc = config.load_condarc_(join(dirname(__file__), 'condarc'))
 
 # use condarc from source tree to run these tests against
-config.rc_path = join(dirname(__file__), 'condarc')
 
-# unset 'default_channels' and override config.defaults_ so that
-# get_default_channels has predictable behavior
+# unset 'default_channels' so get_default_channels has predictable behavior
 try:
     del config.sys_rc['default_channels']
 except KeyError:
     pass
-config.defaults_ = ['http://repo.continuum.io/pkgs/free',
-                    'http://repo.continuum.io/pkgs/pro']
 
 # unset CIO_TEST.  This is a Continuum-internal variable that draws packages from an internal server instead of
 #     repo.continuum.io
@@ -38,17 +35,27 @@ except KeyError:
     pass
 
 
+class BinstarTester(object):
+    def __init__(self, domain=None, token=None):
+       self.domain = domain or 'https://mybinstar.com'
+       self.token = token or '01234abcde'
+
+
 class TestConfig(unittest.TestCase):
 
     # These tests are mostly to ensure API stability
 
-    def __init__(self, *args, **kwargs):
-        config.rc = config.load_condarc(config.rc_path)
-        # Otherwise normalization tests will fail if the user is logged into
-        # binstar.
-        config.rc['add_binstar_token'] = False
-        config.channel_alias = config.rc['channel_alias']
-        super(TestConfig, self).__init__(*args, **kwargs)
+    def setUp(self):
+        # Load the test condarc file
+        self.rc, config.rc = config.rc, testrc
+        config.load_condarc()
+        config.binstar_client = BinstarTester()
+        config.init_binstar()
+
+    def tearDown(self):
+        # Restore original condarc
+        config.rc = self.rc
+        config.load_condarc()
 
     def test_globals(self):
         self.assertTrue(config.root_dir)
@@ -79,48 +86,180 @@ class TestConfig(unittest.TestCase):
         current_platform = config.subdir
         assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert config.rc.get('channel_alias') == 'https://your.repo/'
-        assert config.channel_alias == 'https://your.repo/'
+        assert config.channel_prefix(False) == 'https://your.repo/'
+        assert config.binstar_domain == 'https://mybinstar.com/'
+        assert config.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
 
-        normurls = config.normalize_urls([
-            'defaults', 'system', 'https://conda.anaconda.org/username',
-            'file:///Users/username/repo', 'username'
-            ], 'osx-64')
+        channel_urls = [
+            'defaults', 'system', 
+            'https://conda.anaconda.org/username',
+            'file:///Users/username/repo', 
+            'https://mybinstar.com/t/5768wxyz/test2', 
+            'https://mybinstar.com/test', 
+            'https://conda.anaconda.org/t/abcdefgh/username', 
+            'username'
+        ]
+        platform = 'osx-64'
+
+        normurls = config.normalize_urls(channel_urls, platform)
         assert normurls == [
-             'http://repo.continuum.io/pkgs/free/osx-64/',
-             'http://repo.continuum.io/pkgs/free/noarch/',
-             'http://repo.continuum.io/pkgs/pro/osx-64/',
-             'http://repo.continuum.io/pkgs/pro/noarch/',
-             'https://your.repo/binstar_username/osx-64/',
-             'https://your.repo/binstar_username/noarch/',
-             'http://some.custom/channel/osx-64/',
-             'http://some.custom/channel/noarch/',
-             'http://repo.continuum.io/pkgs/free/osx-64/',
-             'http://repo.continuum.io/pkgs/free/noarch/',
-             'http://repo.continuum.io/pkgs/pro/osx-64/',
-             'http://repo.continuum.io/pkgs/pro/noarch/',
-             'https://conda.anaconda.org/username/osx-64/',
-             'https://conda.anaconda.org/username/noarch/',
-             'file:///Users/username/repo/osx-64/',
-             'file:///Users/username/repo/noarch/',
-             'https://your.repo/username/osx-64/',
-             'https://your.repo/username/noarch/']
+           # defaults
+           'https://repo.continuum.io/pkgs/free/osx-64/',
+           'https://repo.continuum.io/pkgs/free/noarch/',
+           'https://repo.continuum.io/pkgs/pro/osx-64/',
+           'https://repo.continuum.io/pkgs/pro/noarch/',
+           # system (condarc)
+           'https://your.repo/binstar_username/osx-64/',
+           'https://your.repo/binstar_username/noarch/',
+           'http://some.custom/channel/osx-64/',
+           'http://some.custom/channel/noarch/',
+           # defaults is repeated in condarc; that's OK
+           'https://repo.continuum.io/pkgs/free/osx-64/',
+           'https://repo.continuum.io/pkgs/free/noarch/',
+           'https://repo.continuum.io/pkgs/pro/osx-64/',
+           'https://repo.continuum.io/pkgs/pro/noarch/',
+           # conda.anaconda.org is not our default binstar clinet
+           'https://conda.anaconda.org/username/osx-64/',
+           'https://conda.anaconda.org/username/noarch/',
+           'file:///Users/username/repo/osx-64/',
+           'file:///Users/username/repo/noarch/',
+           # mybinstar.com is not channel_alias, but we still add tokens
+           'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
+           'https://mybinstar.com/t/5768wxyz/test2/noarch/',
+           # token already supplied, do not change/remove it
+           'https://mybinstar.com/t/01234abcde/test/osx-64/',
+           'https://mybinstar.com/t/01234abcde/test/noarch/',
+           # we do not remove tokens from conda.anaconda.org
+           'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
+           'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
+           # short channel; add channel_alias
+           'https://your.repo/username/osx-64/',
+           'https://your.repo/username/noarch/']
+
         priurls = config.prioritize_channels(normurls)
         assert dict(priurls) == {
-             'file:///Users/username/repo/noarch/': ('file:///Users/username/repo', 5),
-             'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo', 5),
-             'http://repo.continuum.io/pkgs/free/noarch/': ('defaults', 1),
-             'http://repo.continuum.io/pkgs/free/osx-64/': ('defaults', 1),
-             'http://repo.continuum.io/pkgs/pro/noarch/': ('defaults', 1),
-             'http://repo.continuum.io/pkgs/pro/osx-64/': ('defaults', 1),
-             'http://some.custom/channel/noarch/': ('http://some.custom/channel', 3),
-             'http://some.custom/channel/osx-64/': ('http://some.custom/channel', 3),
-             'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 4),
-             'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username', 4),
-             'https://your.repo/binstar_username/noarch/': ('binstar_username', 2),
-             'https://your.repo/binstar_username/osx-64/': ('binstar_username', 2),
-             'https://your.repo/username/noarch/': ('username', 6),
-             'https://your.repo/username/osx-64/': ('username', 6)}
+           # defaults appears twice, keep higher priority
+           'https://repo.continuum.io/pkgs/free/noarch/': ('defaults', 1),
+           'https://repo.continuum.io/pkgs/free/osx-64/': ('defaults', 1),
+           'https://repo.continuum.io/pkgs/pro/noarch/': ('defaults', 1),
+           'https://repo.continuum.io/pkgs/pro/osx-64/': ('defaults', 1),
+           'https://your.repo/binstar_username/noarch/': ('binstar_username', 2),
+           'https://your.repo/binstar_username/osx-64/': ('binstar_username', 2),
+           'http://some.custom/channel/noarch/': ('http://some.custom/channel', 3),
+           'http://some.custom/channel/osx-64/': ('http://some.custom/channel', 3),
+           'https://conda.anaconda.org/t/abcdefgh/username/noarch/': ('https://conda.anaconda.org/username', 4),
+           'https://conda.anaconda.org/t/abcdefgh/username/osx-64/': ('https://conda.anaconda.org/username', 4),
+           'file:///Users/username/repo/noarch/': ('file:///Users/username/repo', 5),
+           'file:///Users/username/repo/osx-64/': ('file:///Users/username/repo', 5),
+           # the tokenized version came first, but we still give it the same priority
+           'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 4),
+           'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username', 4),
+           'https://mybinstar.com/t/5768wxyz/test2/noarch/': ('https://mybinstar.com/test2', 6),
+           'https://mybinstar.com/t/5768wxyz/test2/osx-64/': ('https://mybinstar.com/test2', 6),
+           'https://mybinstar.com/t/01234abcde/test/noarch/': ('https://mybinstar.com/test', 7),
+           'https://mybinstar.com/t/01234abcde/test/osx-64/': ('https://mybinstar.com/test', 7),
+           'https://your.repo/username/noarch/': ('username', 8),
+           'https://your.repo/username/osx-64/': ('username', 8)
+        }
 
+        # Delete the channel alias so now the short channels point to binstar
+        del config.rc['channel_alias']
+        config.rc['offline'] = False
+        config.load_condarc()
+        config.binstar_client = BinstarTester()
+        normurls = config.normalize_urls(channel_urls, platform)
+        # all your.repo references should be changed to mybinstar.com
+        assert normurls == [
+           'https://repo.continuum.io/pkgs/free/osx-64/',
+           'https://repo.continuum.io/pkgs/free/noarch/',
+           'https://repo.continuum.io/pkgs/pro/osx-64/',
+           'https://repo.continuum.io/pkgs/pro/noarch/',
+           'https://mybinstar.com/t/01234abcde/binstar_username/osx-64/',
+           'https://mybinstar.com/t/01234abcde/binstar_username/noarch/',
+           'http://some.custom/channel/osx-64/',
+           'http://some.custom/channel/noarch/',
+           'https://repo.continuum.io/pkgs/free/osx-64/',
+           'https://repo.continuum.io/pkgs/free/noarch/',
+           'https://repo.continuum.io/pkgs/pro/osx-64/',
+           'https://repo.continuum.io/pkgs/pro/noarch/',
+           'https://conda.anaconda.org/username/osx-64/',
+           'https://conda.anaconda.org/username/noarch/',
+           'file:///Users/username/repo/osx-64/',
+           'file:///Users/username/repo/noarch/',
+           'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
+           'https://mybinstar.com/t/5768wxyz/test2/noarch/',
+           'https://mybinstar.com/t/01234abcde/test/osx-64/',
+           'https://mybinstar.com/t/01234abcde/test/noarch/',
+           'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
+           'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
+           'https://mybinstar.com/t/01234abcde/username/osx-64/',
+           'https://mybinstar.com/t/01234abcde/username/noarch/'
+        ]
+
+        # Turn off add_anaconda_token
+        config.rc['add_binstar_token'] = False
+        config.load_condarc()
+        config.binstar_client = BinstarTester()
+        normurls = config.normalize_urls(channel_urls, platform)
+        # tokens should not be added (but supplied tokens are kept)
+        assert normurls == [
+           'https://repo.continuum.io/pkgs/free/osx-64/',
+           'https://repo.continuum.io/pkgs/free/noarch/',
+           'https://repo.continuum.io/pkgs/pro/osx-64/',
+           'https://repo.continuum.io/pkgs/pro/noarch/',
+           'https://mybinstar.com/binstar_username/osx-64/',
+           'https://mybinstar.com/binstar_username/noarch/',
+           'http://some.custom/channel/osx-64/',
+           'http://some.custom/channel/noarch/',
+           'https://repo.continuum.io/pkgs/free/osx-64/',
+           'https://repo.continuum.io/pkgs/free/noarch/',
+           'https://repo.continuum.io/pkgs/pro/osx-64/',
+           'https://repo.continuum.io/pkgs/pro/noarch/',
+           'https://conda.anaconda.org/username/osx-64/',
+           'https://conda.anaconda.org/username/noarch/',
+           'file:///Users/username/repo/osx-64/',
+           'file:///Users/username/repo/noarch/',
+           'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
+           'https://mybinstar.com/t/5768wxyz/test2/noarch/',
+           'https://mybinstar.com/test/osx-64/',
+           'https://mybinstar.com/test/noarch/',
+           'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
+           'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
+           'https://mybinstar.com/username/osx-64/',
+           'https://mybinstar.com/username/noarch/'
+        ]
+
+        # Disable binstar client altogether
+        config.load_condarc()
+        config.binstar_client = ()
+        normurls = config.normalize_urls(channel_urls, platform)
+        # should drop back to conda.anaconda.org
+        assert normurls == [
+          'https://repo.continuum.io/pkgs/free/osx-64/',
+          'https://repo.continuum.io/pkgs/free/noarch/',
+          'https://repo.continuum.io/pkgs/pro/osx-64/',
+          'https://repo.continuum.io/pkgs/pro/noarch/',
+          'https://conda.anaconda.org/binstar_username/osx-64/',
+          'https://conda.anaconda.org/binstar_username/noarch/',
+          'http://some.custom/channel/osx-64/',
+          'http://some.custom/channel/noarch/',
+          'https://repo.continuum.io/pkgs/free/osx-64/',
+          'https://repo.continuum.io/pkgs/free/noarch/',
+          'https://repo.continuum.io/pkgs/pro/osx-64/',
+          'https://repo.continuum.io/pkgs/pro/noarch/',
+          'https://conda.anaconda.org/username/osx-64/',
+          'https://conda.anaconda.org/username/noarch/',
+          'file:///Users/username/repo/osx-64/',
+          'file:///Users/username/repo/noarch/',
+          'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
+          'https://mybinstar.com/t/5768wxyz/test2/noarch/',
+          'https://mybinstar.com/test/osx-64/',
+          'https://mybinstar.com/test/noarch/',
+          'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
+          'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
+          'https://conda.anaconda.org/username/osx-64/',
+          'https://conda.anaconda.org/username/noarch/'
+        ]
 
 @contextmanager
 def make_temp_condarc(value=None):
