@@ -1,10 +1,10 @@
 import responses
 import unittest
-from conda.fetch import fetch_repodata, TmpDownload
-from conda.config import DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens, rc
+from conda.fetch import fetch_repodata, TmpDownload, download
+from conda.config import DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens
 import pytest
 from os.path import exists, isfile
-
+from tempfile import mktemp
 
 class TestFetchRepoData(unittest.TestCase):
     @responses.activate
@@ -30,6 +30,14 @@ class TestFetchRepoData(unittest.TestCase):
             res = fetch_repodata(url)
             assert not res
 
+    def test_fetchrepodate_connectionerror(self):
+        with pytest.raises(RuntimeError) as execinfo:
+            url = "http://10.0.0.0/"
+            msg = "Connection error:"
+            filename = 'repodata.json'
+            fetch_repodata(url)
+            assert  msg in str(execinfo)
+
 
 class TestTmpDownload(unittest.TestCase):
 
@@ -45,4 +53,20 @@ class TestTmpDownload(unittest.TestCase):
 
 
 class TestDownload(unittest.TestCase):
-    pass
+
+    def test_download_connectionerror(self):
+        with pytest.raises(RuntimeError) as execinfo:
+            url = "http://10.0.0.0/"
+            msg = "Connection error:"
+            download(url, mktemp())
+            assert msg in str(execinfo)
+
+    @responses.activate
+    def test_download_httperror(self):
+        with pytest.raises(RuntimeError) as execinfo:
+            url = "http://www.google.com/noarch"
+            msg = "HTTPError:"
+            responses.add(responses.GET, url, body='{"error": "not found"}', status=404,
+                          content_type='application/json')
+            download(url, mktemp())
+            assert msg in str(execinfo)
