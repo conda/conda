@@ -3,9 +3,9 @@ from __future__ import absolute_import, division, print_function
 
 from logging import getLogger
 
-from conda._vendor.auxlib.compat import string_types
-from conda._vendor.auxlib.ish import dals
 from .constants import SEARCH_PATH
+from .._vendor.auxlib.compat import string_types
+from .._vendor.auxlib.ish import dals
 from ..common.configuration import (Configuration as AppConfiguration, PrimitiveParameter,
                                     SequenceParameter, MapParameter)
 
