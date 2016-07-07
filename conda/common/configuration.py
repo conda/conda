@@ -10,17 +10,17 @@ from logging import getLogger
 from os import environ, stat
 from os.path import join
 from stat import S_IFREG, S_IFDIR, S_IFMT
-from toolz.dicttoolz import merge
-from toolz.functoolz import excepts
-from toolz.itertoolz import concat, unique, concatv
 
-from conda._vendor.auxlib.collection import first, last, frozendict
-from conda._vendor.auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
-from conda._vendor.auxlib.path import expand
-from conda._vendor.auxlib.type_coercion import typify_data_structure
 from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
                      text_type, odict, string_types, isiterable)
 from .yaml import yaml_load
+from .._vendor.auxlib.collection import first, last, frozendict
+from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
+from .._vendor.auxlib.path import expand
+from .._vendor.auxlib.type_coercion import typify_data_structure
+from .._vendor.toolz.dicttoolz import merge
+from .._vendor.toolz.functoolz import excepts
+from .._vendor.toolz.itertoolz import concat, unique, concatv
 
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
