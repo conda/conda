@@ -29,7 +29,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.compat import itervalues
+from conda.compat import PY3, itervalues
 from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
 from conda.exceptions import CondaError
@@ -121,11 +121,10 @@ def run_command(command, prefix, *arguments):
 @contextmanager
 def make_temp_env(*packages):
     prefix = make_temp_prefix()
-    prefix_condarc = join(prefix, 'condarc')
     try:
         # try to clear any config that's been set by other tests
         if packages:
-            config.load_condarc(prefix_condarc)
+            config.load_condarc(join(prefix, 'condarc'))
             run_command(Commands.CREATE, prefix, *packages)
         yield prefix
     finally:
@@ -304,12 +303,33 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
+                run_command(Commands.REMOVE, prefix, 'flask')
+                assert not package_is_installed(prefix, 'flask-0')
+
+                # Regression test for 2970
+                # install from build channel as a tarball
+                conda_bld = join(sys.prefix, 'conda-bld')
+                conda_bld_sub = join(conda_bld, subdir)
+
+                tar_bld_path = join(conda_bld_sub, flask_fname)
+                if os.path.exists(conda_bld):
+                    try:
+                        os.rename(tar_new_path, tar_bld_path)
+                    except OSError:
+                        pass
+                else:
+                    os.makedirs(conda_bld)
+                    os.rename(subchan, conda_bld_sub)
+                run_command(Commands.INSTALL, prefix, tar_bld_path)
+                assert_package_is_installed(prefix, 'flask-')
+
             # regression test for #2886 (part 2 of 2)
             # install tarball from package cache, local channel
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0')
             run_command(Commands.INSTALL, prefix, tar_old_path)
-            assert_package_is_installed(prefix, channel + '::' + 'flask-')
+            # The last install was from the `local::` channel
+            assert_package_is_installed(prefix, 'flask-')
 
             # regression test for #2599
             linked_data_.clear()
@@ -465,7 +485,6 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
         from menuinst.win32 import dirs as win_locations
-
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
@@ -518,4 +537,3 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
-

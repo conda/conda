@@ -18,7 +18,7 @@ from os.path import abspath, basename, dirname, join, exists
 
 from . import instructions as inst
 from .config import (always_copy as config_always_copy, channel_priority,
-                     show_channel_urls as config_show_channel_urls,
+                     show_channel_urls as config_show_channel_urls, is_offline,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
                      track_features, foreign, url_channel, canonical_channel_name)
 from .exceptions import TooFewArgumentsError, InstallError, RemoveError, CondaIndexError
@@ -452,11 +452,11 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         specs += pinned_specs
 
     # Only add a conda spec if conda and conda-env are not in the specs.
-    root_only = ('conda', 'conda-env')
-    mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
-    mss = [ms for ms in mss if ms.name in root_only]
-    if is_root_prefix(prefix):
-        if auto_update_conda and not mss:
+    # Also skip this step if we're offline.
+    if auto_update_conda and not is_offline() and is_root_prefix(prefix):
+        mss = [MatchSpec(s) for s in specs if s.startswith('conda')]
+        mss = [ms for ms in mss if ms.name in ('conda', 'conda-env')]
+        if not mss:
             from . import __version__ as conda_version
             specs.append('conda >=' + conda_version)
             specs.append('conda-env')

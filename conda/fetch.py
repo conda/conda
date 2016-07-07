@@ -24,7 +24,7 @@ from ._vendor.requests.packages.urllib3.util import parse_url
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
-                     ssl_verify, rc, prioritize_channels, url_channel)
+                     ssl_verify, rc, prioritize_channels, url_channel, offline_keep)
 from .connection import CondaSession, unparse_url, RETRIES
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
                       rm_rf, exp_backoff_fn)
@@ -76,6 +76,8 @@ class dotlog_on_return(object):
 
 @dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
+    if not offline_keep(url):
+        return {'packages': {}}
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
         with open(cache_path) as f:
@@ -279,6 +281,7 @@ Allowed channels are:
   - %s
 """ % (url, '\n  - '.join(allowed_channels)))
 
+    urls = tuple(filter(offline_keep, channel_urls))
     try:
         import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(10)
@@ -287,10 +290,9 @@ Allowed channels are:
         # RuntimeError is thrown if number of threads are limited by OS
         session = CondaSession()
         repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                     for url in iterkeys(channel_urls)]
+                     for url in urls]
     else:
         try:
-            urls = tuple(channel_urls)
             futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
                                             session=CondaSession()) for url in urls)
             repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
@@ -355,10 +357,12 @@ def fetch_pkg(info, dst_dir=None, session=None):
                              (basename(path)))
 
 
-def download(url, dst_path, session=None, md5=None, urlstxt=False,
-             retries=None):
+def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
     assert "::" not in str(url), url
     assert "::" not in str(dst_path), str(dst_path)
+    if not offline_keep(url):
+        raise RuntimeError("Cannot download in offline mode: %s" % (url,))
+
     pp = dst_path + '.part'
     dst_dir = dirname(dst_path)
     session = session or CondaSession()

@@ -66,32 +66,32 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             url_p = utils_url_path(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
 
-        # See if the URL refers to a package in our cache
-        prefix = pkg_path = dir_path = None
-        if url.startswith('file://'):
-            prefix = cached_url(url)
-            if prefix is not None:
-                schannel = 'defaults' if prefix == '' else prefix[:-2]
-                is_file = False
-
-        # If not, determine the channel name from the URL
-        if prefix is None:
+        # is_local: if the tarball is stored locally (file://)
+        # is_cache: if the tarball is sitting in our cache
+        is_local = url.startswith('file://')
+        prefix = cached_url(url) if is_local else None
+        is_cache = prefix is not None
+        if is_cache:
+            # Channel information from the cache
+            schannel = 'defaults' if prefix == '' else prefix[:-2]
+        else:
+            # Channel information from the URL
             channel, schannel = url_channel(url)
-            is_file = schannel.startswith('file:') and schannel.endswith('/')
             prefix = '' if schannel == 'defaults' else schannel + '::'
 
         fn = prefix + fn
         dist = fn[:-8]
-        # Add explicit file to index so we'll see it later
-        if is_file:
-            index[fn] = {'fn': dist2filename(fn), 'url': url, 'md5': None}
+        # Add explicit file to index so we'll be sure to see it later
+        if is_local:
+            index[fn] = {'fn': dist2filename(fn), 'url': url, 'md5': md5}
+            verifies.append((fn, md5))
 
         pkg_path = is_fetched(dist)
         dir_path = is_extracted(dist)
 
         # Don't re-fetch unless there is an MD5 mismatch
-        # Also remove explicit tarballs from cache
-        if pkg_path and (is_file or md5 and md5_file(pkg_path) != md5):
+        # Also remove explicit tarballs from cache, unless the path *is* to the cache
+        if pkg_path and not is_cache and (is_local or md5 and md5_file(pkg_path) != md5):
             # This removes any extracted copies as well
             actions[RM_FETCHED].append(dist)
             pkg_path = dir_path = None
@@ -106,9 +106,9 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 _, conflict = find_new_location(dist)
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
-                if not is_file:
+                if not is_local:
                     if fn not in index or index[fn].get('not_fetched'):
-                        channels[url_p + '/'] = (schannel, 0)
+                        channels.add(channel)
                     verifies.append((dist + '.tar.bz2', md5))
                 actions[FETCH].append(dist)
             actions[EXTRACT].append(dist)
