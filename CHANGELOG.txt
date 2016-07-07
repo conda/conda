@@ -1,8 +1,8 @@
 2016-07-07  4.1.7:
 ------------------
-  * add msys2 channel to defaults on Windows #2999
+  * add msys2 channel to defaults on Windows, #2999
   * fix #2939 channel_alias issues; improve offline enforcement, #2964
-  * fix #2970, #2974 improve handling of file:// URLs inside channel #2976
+  * fix #2970, #2974 improve handling of file:// URLs inside channel, #2976
 
 
 2016-07-01  4.1.6:
