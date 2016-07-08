@@ -125,7 +125,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except ValueError as e:
         raise CondaRuntimeError("Invalid index file: {0}{1}: {2}"
-                           .format(remove_binstar_tokens(url), filename, e))
+                                .format(remove_binstar_tokens(url), filename, e))
 
     except HTTPError as e:
         if e.response.status_code == 407:  # Proxy Authentication Required
@@ -455,13 +455,13 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise CondaRuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
-                               % (url, h.hexdigest(), md5))
+                                    % (url, h.hexdigest(), md5))
 
         try:
             exp_backoff_fn(os.rename, pp, dst_path)
         except OSError as e:
             raise CondaRuntimeError("Could not rename %r to %r: %r" %
-                               (pp, dst_path, e))
+                                    (pp, dst_path, e))
 
         if urlstxt:
             add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
