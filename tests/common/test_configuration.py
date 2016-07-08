@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from os import environ
 from os import mkdir
@@ -254,7 +254,4 @@ class ConfigurationTests(TestCase):
         config.validate_all()
 
         config = TestConfiguration(load_from_string_data('bad_boolean_map'))
-        config.validate_all()
-
-        assert False
-        # raises(ValidationError, config.validate_all)
+        raises(ValidationError, config.validate_all)
