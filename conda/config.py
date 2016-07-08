@@ -18,6 +18,9 @@ from .compat import urlparse, string_types
 from .utils import try_write, yaml_load
 from .exceptions import ProxyError, CondaRuntimeError
 
+from conda.base.context import context, reset_context
+
+
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
@@ -145,6 +148,7 @@ def load_condarc_(path):
     if not path or not isfile(path):
         return {}
     with open(path) as f:
+        reset_context(path,)
         return yaml_load(f) or {}
 
 sys_rc = load_condarc_(sys_rc_path) if isfile(sys_rc_path) else {}
@@ -457,7 +461,7 @@ def load_condarc(path=None):
                                 rc.get('add_binstar_token', ADD_BINSTAR_TOKEN))
 
     add_pip_as_python_dependency = bool(rc.get('add_pip_as_python_dependency', True))
-    always_yes = bool(rc.get('always_yes', False))
+    always_yes = context.always_yes
     always_copy = bool(rc.get('always_copy', False))
     changeps1 = bool(rc.get('changeps1', True))
     use_pip = bool(rc.get('use_pip', True))

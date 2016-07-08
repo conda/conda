@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod
-from collections import namedtuple, Mapping
+from collections import defaultdict, namedtuple, Mapping, Set
 from enum import Enum
 from glob import glob
 from itertools import chain, takewhile
@@ -38,6 +38,13 @@ Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter', 'typed_value', 
 NO_MATCH = Match(None, None, None, None, None)
 
 
+class MultiValidationError(ValidationError):
+
+    def __init__(self, errors):
+        messages = "\n".join(repr(e) for e in errors)
+        super(MultiValidationError, self).__init__(None, msg=messages)
+
+
 class ParameterFlag(Enum):
     important = 'important'
     top = "top"
@@ -63,6 +70,8 @@ class ParameterFlag(Enum):
 def make_immutable(value):
     if isinstance(value, Mapping):
         return frozendict(value)
+    elif isinstance(value, Set):
+        return frozenset(value)
     elif isiterable(value):
         return tuple(value)
     else:
@@ -228,7 +237,7 @@ class Parameter(object):
         return self._names
 
     def _pull_match_from_single_raw(self, raw_parameters, filepath):
-        keys = self.names & set(raw_parameters.keys())
+        keys = self.names & frozenset(raw_parameters.keys())
         numkeys = len(keys)
         if numkeys == 0:
             return NO_MATCH
@@ -264,7 +273,10 @@ class Parameter(object):
             return instance._cache[self.name]
 
         matches = self._get_all_matches(instance)
-        if matches:
+        typing_errors = tuple(m.typing_error for m in matches if m.typing_error is not None)
+        if typing_errors:
+            raise MultiValidationError(typing_errors)
+        elif matches:
             result = self._merge(matches)
         else:
             result = self.default
@@ -307,7 +319,7 @@ class PrimitiveParameter(Parameter):
     def __init__(self, default, aliases=(), validation=None, parameter_type=None):
         """
         Args:
-            default (Mapping):  The parameter's default value.
+            default (Any):  The parameter's default value.
             aliases (Iterable[str]): Alternate names for the parameter.
             validation (callable): Given a parameter value as input, return a boolean indicating
                 validity, or alternately return a string describing an invalid value.
@@ -446,7 +458,7 @@ class Configuration(object):
         if app_name is not None:
             self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)
         self._cache = dict()
-        self._validation_errors = dict()
+        self._validation_errors = defaultdict(list)
 
     @classmethod
     def from_search_path(cls, search_path, app_name=None):
@@ -466,23 +478,43 @@ class Configuration(object):
         Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
 
     def validate_all(self):
-        # validate any raw data
-        for filepath, raw_parameters in iteritems(self.raw_data):
-            for key in self.parameter_names:
-                parameter = self.__class__.__dict__[key]
+        validation_errors = defaultdict(list)
+        for key in self.parameter_names:
+            parameter = self.__class__.__dict__[key]
+
+            matches = parameter._get_all_matches(self)
+            typing_errors = [m.typing_error for m in matches if m.typing_error is not None]
+
+            # if there are any typing errors, it's game over for this key
+            if typing_errors:
+                validation_errors[key] = typing_errors
+                continue
+
+            for match in matches:
                 try:
-                    match = parameter._pull_match_from_single_raw(raw_parameters, filepath)
+                    parameter.validate(self, match.typed_value)
                 except ValidationError as e:
-                    self._validation_errors[match] = ""
-                    print("The parameter '{0}' has invalid value '{1}' in {2}.\n{3}"
-                          .format(key, raw_parameters[key].value, filepath, text_type(e)))
-                    continue
-                if match is NO_MATCH:
-                    continue
-                v = parameter.validate(self, match.typed_value)
-                if v is not True:
-                    msg = ("The parameter '{0}' has invalid value '{1}' in {2}."
-                           .format(match.key, match.raw_parameter.value, match.filepath))
-                    if isinstance(v, string_types):
-                        msg += "\n{0}".format(v)
-                    print(msg)
+                    validation_errors[key].append(e)
+
+        if validation_errors:
+            raise MultiValidationError(validation_errors)
+
+
+        # for filepath, raw_parameters in iteritems(self.raw_data):
+
+                # try:
+                #     match = parameter._pull_match_from_single_raw(raw_parameters, filepath)
+                # except ValidationError as e:
+                #     self._validation_errors[match] = ""
+                #     print("The parameter '{0}' has invalid value '{1}' in {2}.\n{3}"
+                #           .format(key, raw_parameters[key].value, filepath, text_type(e)))
+                #     continue
+                # if match is NO_MATCH:
+                #     continue
+                # v = parameter.validate(self, match.typed_value)
+                # if v is not True:
+                #     msg = ("The parameter '{0}' has invalid value '{1}' in {2}."
+                #            .format(match.key, match.raw_parameter.value, match.filepath))
+                #     if isinstance(v, string_types):
+                #         msg += "\n{0}".format(v)
+                #     print(msg)

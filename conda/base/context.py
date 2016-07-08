@@ -38,6 +38,11 @@ class Context(AppConfiguration):
 context = Context.from_search_path(SEARCH_PATH)
 
 
+def reset_context(search_path):
+    global context
+    context = Context.from_search_path(search_path)
+
+
 def get_help_dict():
     # this is a function so that most of the time it's not evaluated and loaded into memory
     return {
