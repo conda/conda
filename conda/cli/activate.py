@@ -55,11 +55,11 @@ def prefix_from_arg(arg, shelldict):
         if isdir(abspath(native_path.strip("\""))):
             prefix = abspath(native_path.strip("\""))
         else:
-            raise ValueError('could not find environment: %s' % native_path)
+            raise CondaValueError('could not find environment: %s' % native_path)
     else:
         prefix = find_prefix_name(arg.replace('/', os.path.sep))
         if prefix is None:
-            raise ValueError('could not find environment: %s' % arg)
+            raise CondaValueError('could not find environment: %s' % arg)
     return prefix
 
 
@@ -152,7 +152,7 @@ def main():
 
     else:
         # This means there is a bug in main.py
-        raise ValueError("unexpected command")
+        raise CondaValueError("unexpected command")
 
     # This print is actually what sets the PATH or PROMPT variable.  The shell
     # script gets this value, and finishes the job.

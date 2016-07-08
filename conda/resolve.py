@@ -12,7 +12,7 @@ from .install import dist2quad
 from .logic import minimal_unsatisfiable_subset, Clauses
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
-from .exceptions import UnsatisfiableError, NoPackagesFoundError
+from .exceptions import UnsatisfiableError, NoPackagesFoundError, CondaValueError
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -39,14 +39,14 @@ class MatchSpec(object):
         spec, _, oparts = spec.partition('(')
         if oparts:
             if oparts.strip()[-1] != ')':
-                raise ValueError("Invalid MatchSpec: %s" % spec)
+                raise CondaValueError("Invalid MatchSpec: %s" % spec)
             for opart in oparts.strip()[:-1].split(','):
                 if opart == 'optional':
                     self.optional = True
                 elif opart.startswith('target='):
                     self.target = opart.split('=')[1].strip()
                 else:
-                    raise ValueError("Invalid MatchSpec: %s" % spec)
+                    raise CondaValueError("Invalid MatchSpec: %s" % spec)
         spec = self.spec = spec.strip()
         parts = spec.split()
         nparts = len(parts)

@@ -112,14 +112,14 @@ if on_win:
     def win_hard_link(src, dst):
         "Equivalent to os.link, using the win32 CreateHardLink call."
         if not CreateHardLink(dst, src, None):
-            raise OSError('win32 hard link failed')
+            raise CondaOSError('win32 hard link failed')
 
     def win_soft_link(src, dst):
         "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
         if CreateSymbolicLink is None:
-            raise OSError('win32 soft link not supported')
+            raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise OSError('win32 soft link failed')
+            raise CondaOSError('win32 soft link failed')
 
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
