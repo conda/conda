@@ -4,6 +4,7 @@ import operator as op
 import re
 
 from .compat import zip_longest, string_types, zip
+from .exceptions import CondaRuntimeError
 
 # normalized_version() is needed by conda-env
 # It is currently being pulled from resolve instead, but
@@ -326,7 +327,7 @@ class VersionSpec(object):
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
-                raise RuntimeError('Invalid version spec: %s' % spec)
+                raise CondaRuntimeError('Invalid version spec: %s' % spec)
             op, b = m.groups()
             self.op = opdict[op]
             self.cmp = VersionOrder(b)

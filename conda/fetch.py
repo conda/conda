@@ -30,7 +30,7 @@ from .install import (add_cached_package, find_new_location, package_cache, dist
                       rm_rf, exp_backoff_fn)
 from .lock import Locked as Locked
 from .utils import memoized
-from .exceptions import ProxyError, ChannelNotAllowed
+from .exceptions import ProxyError, ChannelNotAllowed, CondaRuntimeError
 
 
 log = getLogger(__name__)
@@ -124,7 +124,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
-        raise RuntimeError("Invalid index file: {0}{1}: {2}"
+        raise CondaRuntimeError("Invalid index file: {0}{1}: {2}"
                            .format(remove_binstar_tokens(url), filename, e))
 
     except HTTPError as e:
@@ -162,7 +162,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             msg = "HTTPError: %s: %s\n" % (e, remove_binstar_tokens(url))
 
         log.debug(msg)
-        raise RuntimeError(msg)
+        raise CondaRuntimeError(msg)
 
     except SSLError as e:
         msg = "SSL Error: %s\n" % e
@@ -183,7 +183,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
         log.debug(msg)
         if fail_unknown_host:
-            raise RuntimeError(msg)
+            raise CondaRuntimeError(msg)
 
     cache['_url'] = remove_binstar_tokens(url)
     try:
@@ -391,7 +391,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                                 urlstxt=urlstxt, retries=retries)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
-            raise RuntimeError(msg)
+            raise CondaRuntimeError(msg)
 
         except ConnectionError as e:
             # requests isn't so nice here. For whatever reason, https gives
@@ -407,10 +407,10 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
-            raise RuntimeError(msg)
+            raise CondaRuntimeError(msg)
 
         except IOError as e:
-            raise RuntimeError("Could not open '%s': %s" % (url, e))
+            raise CondaRuntimeError("Could not open '%s': %s" % (url, e))
 
         size = resp.headers.get('Content-Length')
         if size:
@@ -428,7 +428,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                     try:
                         fo.write(chunk)
                     except IOError:
-                        raise RuntimeError("Failed to write to %r." % pp)
+                        raise CondaRuntimeError("Failed to write to %r." % pp)
 
                     if md5:
                         h.update(chunk)
@@ -442,7 +442,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 log.debug("%s, trying again" % e)
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
-            raise RuntimeError("Could not open %r for writing (%s)." % (pp, e))
+            raise CondaRuntimeError("Could not open %r for writing (%s)." % (pp, e))
 
         if size:
             getLogger('fetch.stop').info(None)
@@ -454,13 +454,13 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                           "trying again" % (url, h.hexdigest(), md5))
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
-            raise RuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
+            raise CondaRuntimeError("MD5 sums mismatch for download: %s (%s != %s)"
                                % (url, h.hexdigest(), md5))
 
         try:
             exp_backoff_fn(os.rename, pp, dst_path)
         except OSError as e:
-            raise RuntimeError("Could not rename %r to %r: %r" %
+            raise CondaRuntimeError("Could not rename %r to %r: %r" %
                                (pp, dst_path, e))
 
         if urlstxt:
