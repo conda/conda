@@ -456,7 +456,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     root_only = ('conda', 'conda-env')
     mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
     mss = [ms for ms in mss if ms.name in root_only]
-    if root_only:
+    if is_root_prefix(prefix):
         if auto_update_conda and not is_offline() and not mss:
             from . import __version__ as conda_version
             specs.append('conda >=' + conda_version)
