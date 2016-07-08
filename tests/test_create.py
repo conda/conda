@@ -440,9 +440,14 @@ class IntegrationTests(TestCase):
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert bool(json_obj) is False
 
+            # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+            json_obj = json_loads(stdout)
+            assert json_obj['rc_path'] == join(prefix, 'condarc')
+            assert json_obj['get']['channels']
 
-            # assert conda search cannot find rpy2
+            # assert conda search can now find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj['rpy2']) > 1
