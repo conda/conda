@@ -453,10 +453,11 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     # Only add a conda spec if conda and conda-env are not in the specs.
     # Also skip this step if we're offline.
-    if auto_update_conda and not is_offline() and is_root_prefix(prefix):
-        mss = [MatchSpec(s) for s in specs if s.startswith('conda')]
-        mss = [ms for ms in mss if ms.name in ('conda', 'conda-env')]
-        if not mss:
+    root_only = ('conda', 'conda-env')
+    mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
+    mss = [ms for ms in mss if ms.name in root_only]
+    if is_root_prefix(prefix):
+        if auto_update_conda and not is_offline() and not mss:
             from . import __version__ as conda_version
             specs.append('conda >=' + conda_version)
             specs.append('conda-env')
