@@ -96,9 +96,10 @@ class TestConfig(unittest.TestCase):
         assert config.channel_prefix(False) == 'https://your.repo/'
         assert config.binstar_domain == 'https://mybinstar.com/'
         assert config.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
-
+        assert set(config.get_rc_urls()) == set(["binstar_username", "http://some.custom/channel"
+                                                    , "defaults"])
         channel_urls = [
-            'defaults', 'system', 
+            'defaults', 'system',
             'https://conda.anaconda.org/username',
             'file:///Users/username/repo', 
             'https://mybinstar.com/t/5768wxyz/test2', 
