@@ -119,6 +119,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     state = {'i': None, 'prefix': root_dir, 'index': index}
 
+    checked = False
     for instruction, arg in plan:
 
         log.debug(' %s(%r)' % (instruction, arg))
@@ -132,6 +133,11 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         if cmd is None:
             raise InvalidInstruction(instruction)
 
+        # check before link and unlink package
+        if cmd in [LINK_CMD, UNLINK_CMD] and not checked:
+            check_link_unlink(state, plan)
+            checked = True
+
         cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
@@ -140,3 +146,32 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             getLogger('progress.stop').info(None)
 
     messages(state['prefix'])
+
+
+def get_link_package(plan):
+    link_list = []
+    for instruction, arg in plan:
+        if instruction == LINK:
+            link_list.append(arg)
+    return link_list
+
+
+def get_unlink_package(plan):
+    unlink_list = []
+    for instruction, arg in plan:
+        if instruction == UNLINK:
+            unlink_list.append(arg)
+    return unlink_list
+
+
+def check_link_unlink(state, plan):
+    link_list = get_link_package(plan)
+    unlink_list = get_unlink_package(plan)
+
+    # check for link packages
+    for dist in link_list:
+        pass
+
+
+    for dist in unlink_list:
+        pass
