@@ -320,7 +320,7 @@ def add_parser_offline(p):
     p.add_argument(
         "--offline",
         action=OfflineAction,
-        default=is_offline(),
+        default=is_offline,
         help="Offline mode, don't connect to the Internet.",
         nargs=0
     )
