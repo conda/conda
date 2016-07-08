@@ -82,7 +82,7 @@ class CondaEnvironmentError(CondaError, EnvironmentError):
 
 class DryRunExit(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Dry run: exiting'
+        msg = 'Dry run: exiting\n'
         super(DryRunExit, self).__init__(msg, *args, **kwargs)
 
 
@@ -93,19 +93,19 @@ class CondaSystemExit(CondaError, SystemExit):
 
 class SubprocessExit(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Subprocess exiting: '
+        msg = 'Subprocess exiting\n'
         super(SubprocessExit, self).__init__(msg, *args, **kwargs)
 
 
 class PaddingError(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Padding error: '
+        msg = 'Padding error:\n'
         super(PaddingError, self).__init__(msg, *args, **kwargs)
 
 
 class LinkError(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Link error: '
+        msg = 'Link error\n'
         super(LinkError, self).__init__(msg, *args, **kwargs)
 
 
@@ -117,7 +117,8 @@ class CondaOSError(CondaError, OSError):
 
 class AlreadyInitializedError(CondaError):
     def __init__(self, message, *args, **kwargs):
-        super(AlreadyInitializedError, self).__init__(message, *args, **kwargs)
+        msg = message + '\n'
+        super(AlreadyInitializedError, self).__init__(msg, *args, **kwargs)
 
 
 class ProxyError(CondaError):
@@ -172,7 +173,7 @@ class CouldntParseError(ParseError):
     def __init__(self, reason, *args, **kwargs):
         self.args = ["""Error: Could not parse the yaml file. Use -f to use the
 yaml parser (this will remove any structure or comments from the existing
-.condarc file). Reason: %s""" % reason]
+.condarc file). Reason: %s\n""" % reason]
         super(CouldntParseError, self).__init__(self.args[0], *args, **kwargs)
 
     def __repr__(self):
@@ -202,7 +203,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
         Raises an exception with a formatted message detailing the
         missing packages and/or dependencies.
     '''
-    def __init__(self, bad_deps):
+    def __init__(self, bad_deps, *args, **kwargs):
         from .resolve import dashlist
         from .config import subdir
 
@@ -214,8 +215,8 @@ class NoPackagesFoundError(CondaError, RuntimeError):
         else:
             what = "Packages/dependencies"
         bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current %s channels: %s' % (what, subdir, bad_deps)
-        super(NoPackagesFoundError, self).__init__(msg)
+        msg = '%s missing in current %s channels: %s\n' % (what, subdir, bad_deps)
+        super(NoPackagesFoundError, self).__init__(msg, *args, **kwargs)
         self.pkgs = deps
 
 
@@ -232,7 +233,7 @@ class UnsatisfiableError(CondaError, RuntimeError):
         Raises an exception with a formatted message detailing the
         unsatisfiable specifications.
     '''
-    def __init__(self, bad_deps, chains=True):
+    def __init__(self, bad_deps, chains=True, *args, **kwargs):
         from .resolve import dashlist, MatchSpec
 
         bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
@@ -274,8 +275,8 @@ Use "conda info <package>" to see the dependencies for each package.'''
             msg = '''The following specifications were found to be incompatible with the
 others, or with the existing package set:%s
 Use "conda info <package>" to see the dependencies for each package.'''
-        msg = msg % dashlist(bad_deps)
-        super(UnsatisfiableError, self).__init__(msg)
+        msg = msg % dashlist(bad_deps) + '\n'
+        super(UnsatisfiableError, self).__init__(msg, *args, **kwargs)
 
 
 class InstallError(CondaError):
@@ -322,13 +323,13 @@ class CondaAssertionError(CondaError, AssertionError):
 
 class CondaHistoryError(CondaError):
     def __init__(self, message, *args, **kwargs):
-        msg = 'History error: %s' % message
+        msg = 'History error: %s\n' % message
         super(CondaHistoryError, self).__init__(msg, *args, **kwargs)
 
 
 class CondaSignatureError(CondaError):
     def __init__(self, message, *args, **kwargs):
-        msg = 'Signature error: %s' % message
+        msg = 'Signature error: %s\n' % message
         super(CondaSignatureError, self).__init__(msg, *args, **kwargs)
 
 
