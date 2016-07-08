@@ -30,7 +30,7 @@ from .install import (add_cached_package, find_new_location, package_cache, dist
                       rm_rf, exp_backoff_fn)
 from .lock import Locked as Locked
 from .utils import memoized
-from .exceptions import ProxyError, ChannelNotAllowed, CondaRuntimeError
+from .exceptions import ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError
 
 
 log = getLogger(__name__)
@@ -340,7 +340,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if info.get('sig'):
-        from .signature import verify, SignatureError
+        from .signature import verify
 
         fn2 = fn + '.sig'
         url = (info['channel'] if info['sig'] == '.' else
@@ -350,11 +350,11 @@ def fetch_pkg(info, dst_dir=None, session=None):
         try:
             if verify(path):
                 return
-        except SignatureError:
+        except CondaSignatureError:
             raise
 
-        raise SignatureError("Error: Signature for '%s' is invalid." %
-                             (basename(path)))
+        raise CondaSignatureError("Error: Signature for '%s' is invalid." %
+                                  (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):

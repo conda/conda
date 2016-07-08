@@ -23,7 +23,9 @@ class InvalidInstruction(CondaError):
 
 
 class LockError(CondaError, RuntimeError):
-    pass
+    def __init__(self, message, *args, **kwargs):
+        msg = "Lock error: %s" % message
+        super(LockError, self).__init__(msg, *args, **kwargs)
 
 
 class ArgumentError(CondaError):

@@ -22,7 +22,7 @@ from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotF
                           CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
                           CondaAssertionError, CondaOSError, CondaImportError,
                           CondaError, DryRunExit, LockError, CondaRuntimeError,
-                          CondaSystemExit, NoPackagesFoundError, UnsatisfiableError)
+                          CondaSystemExit, NoPackagesFoundError, UnsatisfiableError, CondaIOError)
 from ..install import linked as install_linked
 from ..install import name_dist, is_linked
 from ..misc import explicit, clone_env, append_env, touch_nonadmin
@@ -400,7 +400,7 @@ environment does not exist: %s
                     if e.errno == errno.EACCES:
                         log.debug("Can't write the history file")
                     else:
-                        raise
+                        raise CondaIOError("Can't write the history file")
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
