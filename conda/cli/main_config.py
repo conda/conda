@@ -14,7 +14,7 @@ from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
                       user_rc_path, rc_other)
 from ..utils import yaml_load, yaml_dump
 from ..exceptions import (CondaTypeError, CondaValueError, CondaError,
-                          CondaKeyError)
+                          CondaKeyError, CouldntParseError)
 
 
 descr = """
@@ -88,16 +88,6 @@ Disable the 'show_channel_urls' option:
 
     conda config --set show_channel_urls no
 """
-
-
-class CouldntParse(NotImplementedError):
-    def __init__(self, reason):
-        self.args = ["""Error: Could not parse the yaml file. Use -f to use the
-yaml parser (this will remove any structure or comments from the existing
-.condarc file). Reason: %s""" % reason]
-
-    def __repr__(self):
-        return self.args[0]
 
 
 class SingleValueKey(Completer):
@@ -220,7 +210,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
 def execute(args, parser):
     try:
         execute_config(args, parser)
-    except (CouldntParse, NotImplementedError) as e:
+    except (CouldntParseError, NotImplementedError) as e:
         raise CondaError(e, args.json)
 
 
@@ -289,7 +279,7 @@ def execute_config(args, parser):
                                       args.json)
             if not isinstance(rc_config.get(key, []), list):
                 bad = rc_config[key].__class__.__name__
-                raise CouldntParse("key %r should be a list, not %s." % (key, bad))
+                raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
             if key == 'default_channels' and rc_path != sys_rc_path:
                 msg = "'default_channels' is only configurable for system installs"
                 raise NotImplementedError(msg)

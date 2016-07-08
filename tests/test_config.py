@@ -602,7 +602,7 @@ channels:
                                            '--add', 'channels', 'test')
         assert stdout == ''
         assert stderr == """\
-Error: Could not parse the yaml file. Use -f to use the
+Parse error: Error: Could not parse the yaml file. Use -f to use the
 yaml parser (this will remove any structure or comments from the existing
 .condarc file). Reason: key 'channels' should be a list, not NoneType."""
         assert _read_test_condarc(rc) == condarc

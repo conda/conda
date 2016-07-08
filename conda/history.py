@@ -10,11 +10,9 @@ import warnings
 from os.path import isdir, isfile, join
 
 from .install import linked, dist2quad
+from .exceptions import CondaHistoryError
 
 log = logging.getLogger(__name__)
-
-class CondaHistoryException(Exception):
-    pass
 
 
 class CondaHistoryWarning(Warning):
@@ -85,7 +83,7 @@ class History(object):
             self.init_log_file()
             try:
                 last = self.get_state()
-            except CondaHistoryException as e:
+            except CondaHistoryError as e:
                 warnings.warn("Error in %s: %s" % (self.path, e),
                               CondaHistoryWarning)
                 return
@@ -169,7 +167,7 @@ class History(object):
                     elif s.startswith('+'):
                         cur.add(s[1:])
                     else:
-                        raise CondaHistoryException('Did not expect: %s' % s)
+                        raise CondaHistoryError('Did not expect: %s' % s)
             res.append((dt, cur.copy()))
         return res
 
