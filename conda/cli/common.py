@@ -11,7 +11,7 @@ from os.path import abspath, basename, expanduser, isdir, join
 from .. import console
 from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
                       channel_priority, show_channel_urls, always_yes, root_env_name,
-                      root_dir, root_writable, disallow, offline as config_offline)
+                      root_dir, root_writable, disallow, set_offline, is_offline)
 from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
@@ -314,14 +314,13 @@ def add_parser_use_local(p):
 
 class OfflineAction(argparse.Action):
     def __call__(self, *args, **kwargs):
-        config_offline = True
+        set_offline()
 
 def add_parser_offline(p):
-    global offline
     p.add_argument(
         "--offline",
         action=OfflineAction,
-        default=config_offline,
+        default=is_offline(),
         help="Offline mode, don't connect to the Internet.",
         nargs=0
     )
