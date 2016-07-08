@@ -10,7 +10,7 @@ import warnings
 from os.path import isdir, isfile, join
 
 from .install import linked, dist2quad
-from .exceptions import CondaHistoryError
+from .exceptions import CondaHistoryError, CondaIOError
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class History(object):
             if e.errno == errno.EACCES:
                 log.debug("Can't write the history file")
             else:
-                raise
+                raise CondaIOError(e)
 
     def parse(self):
         """

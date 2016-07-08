@@ -40,7 +40,7 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
-from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
+from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, CondaOSError
 
 
 on_win = bool(sys.platform == "win32")
@@ -208,7 +208,7 @@ def _link(src, dst, linktype=LINK_HARD):
         else:
             shutil.copy2(src, dst)
     else:
-        raise Exception("Did not expect linktype=%r" % linktype)
+        raise CondaError("Did not expect linktype=%r" % linktype)
 
 
 def _remove_readonly(func, path, excinfo):
