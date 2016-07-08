@@ -4,7 +4,7 @@ import operator as op
 import re
 
 from .compat import zip_longest, string_types, zip
-from .exceptions import CondaRuntimeError
+from .exceptions import CondaRuntimeError, CondaValueError
 
 # normalized_version() is needed by conda-env
 # It is currently being pulled from resolve instead, but
@@ -136,7 +136,7 @@ class VersionOrder(object):
         version = version.strip().rstrip().lower()
         # basic validity checks
         if version == '':
-            raise ValueError("Empty version string.")
+            raise CondaValueError("Empty version string.")
         invalid = not version_check_re.match(version)
         if invalid and '-' in version and '_' not in version:
             # Allow for dashes as long as there are no underscores
@@ -144,7 +144,7 @@ class VersionOrder(object):
             version = version.replace('-', '_')
             invalid = not version_check_re.match(version)
         if invalid:
-            raise ValueError(message + "invalid character(s).")
+            raise CondaValueError(message + "invalid character(s).")
         self.norm_version = version
 
         # find epoch
@@ -155,10 +155,10 @@ class VersionOrder(object):
         elif len(version) == 2:
             # epoch given, must be an integer
             if not version[0].isdigit():
-                raise ValueError(message + "epoch must be an integer.")
+                raise CondaValueError(message + "epoch must be an integer.")
             epoch = [version[0]]
         else:
-            raise ValueError(message + "duplicated epoch separator '!'.")
+            raise CondaValueError(message + "duplicated epoch separator '!'.")
 
         # find local version string
         version = version[-1].split('+')
@@ -169,7 +169,7 @@ class VersionOrder(object):
             # local version given
             self.local = version[1].replace('_', '.').split('.')
         else:
-            raise ValueError(message + "duplicated local version separator '+'.")
+            raise CondaValueError(message + "duplicated local version separator '+'.")
 
         # split version
         self.version = epoch + version[0].replace('_', '.').split('.')
@@ -180,7 +180,7 @@ class VersionOrder(object):
             for k in range(len(v)):
                 c = version_split_re.findall(v[k])
                 if not c:
-                    raise ValueError(message + "empty version component.")
+                    raise CondaValueError(message + "empty version component.")
                 for j in range(len(c)):
                     if c[j].isdigit():
                         c[j] = int(c[j])
