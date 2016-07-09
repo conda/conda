@@ -34,11 +34,14 @@ try:
 except KeyError:
     pass
 
+# Remove msys2 from defaults just for testing purposes
+if len(config.defaults_) > 2:
+    config.defaults_ = config.defaults_[:2]
 
 class BinstarTester(object):
-    def __init__(self, domain=None, token=None):
-       self.domain = domain or 'https://mybinstar.com'
-       self.token = token or '01234abcde'
+    def __init__(self, domain='https://mybinstar.com', token='01234abcde'):
+       self.domain = domain
+       self.token = token
 
 
 class TestConfig(unittest.TestCase):
@@ -196,10 +199,9 @@ class TestConfig(unittest.TestCase):
            'https://mybinstar.com/t/01234abcde/username/noarch/'
         ]
 
-        # Turn off add_anaconda_token
-        config.rc['add_binstar_token'] = False
+        # Delete the anaconda token
         config.load_condarc()
-        config.binstar_client = BinstarTester()
+        config.binstar_client = BinstarTester(token=None)
         normurls = config.normalize_urls(channel_urls, platform)
         # tokens should not be added (but supplied tokens are kept)
         assert normurls == [
@@ -228,6 +230,14 @@ class TestConfig(unittest.TestCase):
            'https://mybinstar.com/username/osx-64/',
            'https://mybinstar.com/username/noarch/'
         ]
+
+        # Turn off add_anaconda_token
+        config.rc['add_binstar_token'] = False
+        config.load_condarc()
+        config.binstar_client = BinstarTester()
+        normurls2 = config.normalize_urls(channel_urls, platform)
+        # tokens should not be added (but supplied tokens are kept)
+        assert normurls == normurls2
 
         # Disable binstar client altogether
         config.load_condarc()
