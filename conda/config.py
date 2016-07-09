@@ -343,7 +343,9 @@ use_pip = bool(rc.get('use_pip', True))
 binstar_upload = rc.get('anaconda_upload',
                         rc.get('binstar_upload', None)) # None means ask
 allow_softlinks = bool(rc.get('allow_softlinks', True))
-auto_update_conda = bool(rc.get('auto_update_conda', rc.get('self_update', True)))
+auto_update_conda = bool(rc.get('auto_update_conda',
+                                rc.get('self_update',
+                                       sys_rc.get('auto_update_conda', True))))
 # show channel URLs when displaying what is going to be downloaded
 show_channel_urls = rc.get(
         'show_channel_urls', None) # None means letting conda decide
