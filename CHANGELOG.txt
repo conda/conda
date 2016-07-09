@@ -1,3 +1,8 @@
+2016-07-09  4.1.8:
+------------------
+  * fix #3004 UNAUTHORIZED for url (null binstar token), #3008
+
+
 2016-07-07  4.1.7:
 ------------------
   * add msys2 channel to defaults on Windows, #2999
