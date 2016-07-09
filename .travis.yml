@@ -1,29 +1,32 @@
 sudo: false
-language: python
-python:
-  - '2.7'
-  - '3.4'
-  - '3.5'
-
-os:
-  - linux
-
-addons:
-  apt:
-    packages:
-    - zsh
 
 env:
   global:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
 
+addons:
+  apt:
+    packages:
+      - zsh
+
 matrix:
   include:
-    - python: '3.5'
-      env: FLAKE8=true
+#    - python: '2.7'
+#      os: linux
+#      language: python
+#    - python: '3.4'
+#      os: linux
+#      language: python
+#    - python: '3.5'
+#      os: linux
+#      language: python
+#    - python: '3.5'
+#      env: FLAKE8=true
+#      os: linux
+#      language: python
     - os: osx
-      python: '3.5'
+      env: PYTHON_VERSION=3.5
 
 install:
   - which -a python
