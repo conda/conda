@@ -21,7 +21,8 @@ from .config import (always_copy as config_always_copy, channel_priority,
                      show_channel_urls as config_show_channel_urls, is_offline,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
                      track_features, foreign, url_channel, canonical_channel_name)
-from .exceptions import TooFewArgumentsError, InstallError, RemoveError, CondaIndexError
+from .exceptions import (TooFewArgumentsError, InstallError, RemoveError, CondaIndexError,
+                         CondaRuntimeError)
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
                       is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
@@ -557,7 +558,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             continue
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
-            raise RuntimeError(msg % dist)
+            raise CondaRuntimeError(msg % dist)
         if name == 'conda' and name not in nlinked:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")

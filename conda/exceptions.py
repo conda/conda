@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
+from .compat import iteritems, iterkeys
+
 
 class CondaError(Exception):
     def __init__(self, *args, **kwargs):
@@ -21,7 +23,9 @@ class InvalidInstruction(CondaError):
 
 
 class LockError(CondaError, RuntimeError):
-    pass
+    def __init__(self, message, *args, **kwargs):
+        msg = "Lock error: %s" % message
+        super(LockError, self).__init__(msg, *args, **kwargs)
 
 
 class ArgumentError(CondaError):
@@ -80,7 +84,7 @@ class CondaEnvironmentError(CondaError, EnvironmentError):
 
 class DryRunExit(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Dry run: exiting'
+        msg = 'Dry run: exiting\n'
         super(DryRunExit, self).__init__(msg, *args, **kwargs)
 
 
@@ -91,19 +95,19 @@ class CondaSystemExit(CondaError, SystemExit):
 
 class SubprocessExit(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Subprocess exiting: '
+        msg = 'Subprocess exiting\n'
         super(SubprocessExit, self).__init__(msg, *args, **kwargs)
 
 
 class PaddingError(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Padding error: '
+        msg = 'Padding error:\n'
         super(PaddingError, self).__init__(msg, *args, **kwargs)
 
 
 class LinkError(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Link error: '
+        msg = 'Link error\n'
         super(LinkError, self).__init__(msg, *args, **kwargs)
 
 
@@ -115,7 +119,8 @@ class CondaOSError(CondaError, OSError):
 
 class AlreadyInitializedError(CondaError):
     def __init__(self, message, *args, **kwargs):
-        super(AlreadyInitializedError, self).__init__(message, *args, **kwargs)
+        msg = message + '\n'
+        super(AlreadyInitializedError, self).__init__(msg, *args, **kwargs)
 
 
 class ProxyError(CondaError):
@@ -166,6 +171,17 @@ class ParseError(CondaError):
         super(ParseError, self).__init__(msg, *args, **kwargs)
 
 
+class CouldntParseError(ParseError):
+    def __init__(self, reason, *args, **kwargs):
+        self.args = ["""Error: Could not parse the yaml file. Use -f to use the
+yaml parser (this will remove any structure or comments from the existing
+.condarc file). Reason: %s\n""" % reason]
+        super(CouldntParseError, self).__init__(self.args[0], *args, **kwargs)
+
+    def __repr__(self):
+        return self.args[0]
+
+
 class MD5MismatchError(CondaError):
     def __init__(self, message, *args, **kwargs):
         msg = 'MD5MismatchError: %s\n' % message
@@ -176,6 +192,93 @@ class PackageNotFoundError(CondaError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Package not found: %s\n' % message
         super(PackageNotFoundError, self).__init__(msg, *args, **kwargs)
+
+
+class NoPackagesFoundError(CondaError, RuntimeError):
+    '''An exception to report that requested packages are missing.
+
+    Args:
+        bad_deps: a list of tuples of MatchSpecs, assumed to be dependency
+        chains, from top level to bottom.
+
+    Returns:
+        Raises an exception with a formatted message detailing the
+        missing packages and/or dependencies.
+    '''
+    def __init__(self, bad_deps, *args, **kwargs):
+        from .resolve import dashlist
+        from .config import subdir
+
+        deps = set(q[-1].spec for q in bad_deps)
+        if all(len(q) > 1 for q in bad_deps):
+            what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
+        elif all(len(q) == 1 for q in bad_deps):
+            what = "Packages" if len(bad_deps) > 1 else "Package"
+        else:
+            what = "Packages/dependencies"
+        bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
+        msg = '%s missing in current %s channels: %s\n' % (what, subdir, bad_deps)
+        super(NoPackagesFoundError, self).__init__(msg, *args, **kwargs)
+        self.pkgs = deps
+
+
+class UnsatisfiableError(CondaError, RuntimeError):
+    '''An exception to report unsatisfiable dependencies.
+
+    Args:
+        bad_deps: a list of tuples of objects (likely MatchSpecs).
+        chains: (optional) if True, the tuples are interpreted as chains
+            of dependencies, from top level to bottom. If False, the tuples
+            are interpreted as simple lists of conflicting specs.
+
+    Returns:
+        Raises an exception with a formatted message detailing the
+        unsatisfiable specifications.
+    '''
+    def __init__(self, bad_deps, chains=True, *args, **kwargs):
+        from .resolve import dashlist, MatchSpec
+
+        bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
+        if chains:
+            chains = {}
+            for dep in sorted(bad_deps, key=len, reverse=True):
+                dep1 = [str(MatchSpec(s)).partition(' ') for s in dep[1:]]
+                key = (dep[0],) + tuple(v[0] for v in dep1)
+                vals = ('',) + tuple(v[2] for v in dep1)
+                found = False
+                for key2, csets in iteritems(chains):
+                    if key2[:len(key)] == key:
+                        for cset, val in zip(csets, vals):
+                            cset.add(val)
+                        found = True
+                if not found:
+                    chains[key] = [{val} for val in vals]
+            bad_deps = []
+            for key, csets in iteritems(chains):
+                deps = []
+                for name, cset in zip(key, csets):
+                    if '' not in cset:
+                        pass
+                    elif len(cset) == 1:
+                        cset.clear()
+                    else:
+                        cset.remove('')
+                        cset.add('*')
+                    if name[0] == '@':
+                        name = 'feature:' + name[1:]
+                    deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
+                chains[key] = ' -> '.join(deps)
+            bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
+            msg = '''The following specifications were found to be in conflict:%s
+Use "conda info <package>" to see the dependencies for each package.'''
+        else:
+            bad_deps = [sorted(dep) for dep in bad_deps]
+            bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
+            msg = '''The following specifications were found to be incompatible with the
+others, or with the existing package set:%s
+Use "conda info <package>" to see the dependencies for each package.'''
+        msg = msg % dashlist(bad_deps) + '\n'
+        super(UnsatisfiableError, self).__init__(msg, *args, **kwargs)
 
 
 class InstallError(CondaError):
@@ -218,6 +321,18 @@ class CondaAssertionError(CondaError, AssertionError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Assertion error: %s\n' % message
         super(CondaAssertionError, self).__init__(msg, *args, **kwargs)
+
+
+class CondaHistoryError(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = 'History error: %s\n' % message
+        super(CondaHistoryError, self).__init__(msg, *args, **kwargs)
+
+
+class CondaSignatureError(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = 'Signature error: %s\n' % message
+        super(CondaSignatureError, self).__init__(msg, *args, **kwargs)
 
 
 def print_exception(exception):

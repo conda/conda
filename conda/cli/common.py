@@ -598,7 +598,7 @@ def get_index_trap(*args, **kwargs):
         if json:
             raise CondaError(e, json)
         else:
-            raise
+            raise CondaError
 
 
 @contextlib.contextmanager

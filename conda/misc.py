@@ -21,7 +21,7 @@ from .resolve import Resolve, MatchSpec
 from .utils import md5_file, url_path as utils_url_path
 from .api import get_index
 from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
-                         PackageNotFoundError)
+                         PackageNotFoundError, CondaRuntimeError)
 
 def conda_installed_files(prefix, exclude_self_build=False):
     """
@@ -287,7 +287,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         what = "Package%s " % ('' if len(notfound) == 1 else 's')
         notfound = '\n'.join(' - ' + fn for fn in notfound)
         msg = '%s missing in current %s channels:%s' % (what, subdir, notfound)
-        raise RuntimeError(msg)
+        raise CondaRuntimeError(msg)
 
     # Assemble the URL and channel list
     urls = {}

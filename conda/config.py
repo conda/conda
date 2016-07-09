@@ -16,7 +16,7 @@ from platform import machine
 
 from .compat import urlparse, string_types
 from .utils import try_write, yaml_load
-from .exceptions import ProxyError
+from .exceptions import ProxyError, CondaRuntimeError
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -209,7 +209,7 @@ def get_rc_urls():
     if rc is None or rc.get('channels') is None:
         return []
     if 'system' in rc['channels']:
-        raise RuntimeError("system cannot be used in .condarc")
+        raise CondaRuntimeError("system cannot be used in .condarc")
     return rc['channels']
 
 def is_url(url):

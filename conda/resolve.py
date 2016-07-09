@@ -6,13 +6,13 @@ from collections import defaultdict
 from itertools import chain
 
 from .compat import iterkeys, itervalues, iteritems, string_types
-from .config import subdir, channel_priority, canonical_channel_name, track_features
+from .config import channel_priority, canonical_channel_name, track_features
 from .console import setup_handlers
 from .install import dist2quad
 from .logic import minimal_unsatisfiable_subset, Clauses
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
-from .exceptions import CondaError
+from .exceptions import UnsatisfiableError, NoPackagesFoundError, CondaValueError
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -23,88 +23,6 @@ setup_handlers()
 
 def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
-
-
-class Unsatisfiable(CondaError, RuntimeError):
-    '''An exception to report unsatisfiable dependencies.
-
-    Args:
-        bad_deps: a list of tuples of objects (likely MatchSpecs).
-        chains: (optional) if True, the tuples are interpreted as chains
-            of dependencies, from top level to bottom. If False, the tuples
-            are interpreted as simple lists of conflicting specs.
-
-    Returns:
-        Raises an exception with a formatted message detailing the
-        unsatisfiable specifications.
-    '''
-    def __init__(self, bad_deps, chains=True):
-        bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
-        if chains:
-            chains = {}
-            for dep in sorted(bad_deps, key=len, reverse=True):
-                dep1 = [str(MatchSpec(s)).partition(' ') for s in dep[1:]]
-                key = (dep[0],) + tuple(v[0] for v in dep1)
-                vals = ('',) + tuple(v[2] for v in dep1)
-                found = False
-                for key2, csets in iteritems(chains):
-                    if key2[:len(key)] == key:
-                        for cset, val in zip(csets, vals):
-                            cset.add(val)
-                        found = True
-                if not found:
-                    chains[key] = [{val} for val in vals]
-            bad_deps = []
-            for key, csets in iteritems(chains):
-                deps = []
-                for name, cset in zip(key, csets):
-                    if '' not in cset:
-                        pass
-                    elif len(cset) == 1:
-                        cset.clear()
-                    else:
-                        cset.remove('')
-                        cset.add('*')
-                    if name[0] == '@':
-                        name = 'feature:' + name[1:]
-                    deps.append('%s %s' % (name, '|'.join(sorted(cset))) if cset else name)
-                chains[key] = ' -> '.join(deps)
-            bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
-            msg = '''The following specifications were found to be in conflict:%s
-Use "conda info <package>" to see the dependencies for each package.'''
-        else:
-            bad_deps = [sorted(dep) for dep in bad_deps]
-            bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
-            msg = '''The following specifications were found to be incompatible with the
-others, or with the existing package set:%s
-Use "conda info <package>" to see the dependencies for each package.'''
-        msg = msg % dashlist(bad_deps)
-        super(Unsatisfiable, self).__init__(msg)
-
-
-class NoPackagesFound(CondaError, RuntimeError):
-    '''An exception to report that requested packages are missing.
-
-    Args:
-        bad_deps: a list of tuples of MatchSpecs, assumed to be dependency
-        chains, from top level to bottom.
-
-    Returns:
-        Raises an exception with a formatted message detailing the
-        missing packages and/or dependencies.
-    '''
-    def __init__(self, bad_deps):
-        deps = set(q[-1].spec for q in bad_deps)
-        if all(len(q) > 1 for q in bad_deps):
-            what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
-        elif all(len(q) == 1 for q in bad_deps):
-            what = "Packages" if len(bad_deps) > 1 else "Package"
-        else:
-            what = "Packages/dependencies"
-        bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current %s channels: %s' % (what, subdir, bad_deps)
-        super(NoPackagesFound, self).__init__(msg)
-        self.pkgs = deps
 
 
 class MatchSpec(object):
@@ -121,14 +39,14 @@ class MatchSpec(object):
         spec, _, oparts = spec.partition('(')
         if oparts:
             if oparts.strip()[-1] != ')':
-                raise ValueError("Invalid MatchSpec: %s" % spec)
+                raise CondaValueError("Invalid MatchSpec: %s" % spec)
             for opart in oparts.strip()[:-1].split(','):
                 if opart == 'optional':
                     self.optional = True
                 elif opart.startswith('target='):
                     self.target = opart.split('=')[1].strip()
                 else:
-                    raise ValueError("Invalid MatchSpec: %s" % spec)
+                    raise CondaValueError("Invalid MatchSpec: %s" % spec)
         spec = self.spec = spec.strip()
         parts = spec.split()
         nparts = len(parts)
@@ -453,7 +371,7 @@ class Resolve(object):
             if not self.valid(ms, filter):
                 bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
-            raise NoPackagesFound(bad_deps)
+            raise NoPackagesFoundError(bad_deps)
         return spec2, opts, feats
 
     def get_dists(self, specs):
@@ -591,7 +509,7 @@ class Resolve(object):
             stderrlog.info('...')
             hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
             save_unsat.update((ms,) for ms in hint)
-            raise Unsatisfiable(save_unsat)
+            raise UnsatisfiableError(save_unsat)
 
         dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
         return dists, list(map(MatchSpec, snames - {ms.name for ms in specs}))
@@ -679,7 +597,7 @@ class Resolve(object):
         ms = MatchSpec(ms)
         pkgs = [Package(fkey, self.index[fkey]) for fkey in self.find_matches(ms)]
         if not pkgs and not emptyok:
-            raise NoPackagesFound([(ms,)])
+            raise NoPackagesFoundError([(ms,)])
         return pkgs
 
     @staticmethod
@@ -1000,7 +918,7 @@ class Resolve(object):
                 eq_removal_count = r2.generate_removal_count(C, spec2)
                 solution, obj1 = C.minimize(eq_removal_count, solution)
                 specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
-                raise Unsatisfiable(specsol, False)
+                raise UnsatisfiableError(specsol, False)
 
             speco = []  # optional packages
             specr = []  # requested packages
