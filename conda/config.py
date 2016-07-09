@@ -248,7 +248,7 @@ def init_binstar(quiet=False):
         binstar_domain_tok = None
     else:
         binstar_domain = binstar_client.domain.replace("api", "conda").rstrip('/') + '/'
-        if add_anaconda_token:
+        if add_anaconda_token and binstar_client.token:
             binstar_domain_tok = binstar_domain + 't/%s/' % (binstar_client.token,)
     binstar_regex = (r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
                      re.escape(binstar_domain[:-1]))
@@ -448,7 +448,9 @@ def load_condarc(path=None):
     binstar_upload = rc.get('anaconda_upload',
                             rc.get('binstar_upload', None))  # None means ask
     allow_softlinks = bool(rc.get('allow_softlinks', True))
-    auto_update_conda = bool(rc.get('auto_update_conda', rc.get('self_update', True)))
+    auto_update_conda = bool(rc.get('auto_update_conda',
+                                    rc.get('self_update',
+                                           sys_rc.get('auto_update_conda', True))))
     # show channel URLs when displaying what is going to be downloaded
     show_channel_urls = rc.get('show_channel_urls', None)  # None means letting conda decide
     # set packages disallowed to be installed
