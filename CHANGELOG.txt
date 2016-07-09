@@ -3,6 +3,11 @@
   * fix #3004 UNAUTHORIZED for url (null binstar token), #3008
 
 
+2016-07-09  4.0.11:
+-------------------
+  * allow auto_update_conda from sysrc, #3015 via #3021
+
+
 2016-07-07  4.1.7:
 ------------------
   * add msys2 channel to defaults on Windows, #2999
