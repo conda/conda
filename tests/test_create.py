@@ -231,7 +231,7 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'conda')
             assert not package_is_installed(prefix, 'conda')
 
-            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor')
+            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
     @pytest.mark.timeout(300)

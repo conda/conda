@@ -14,7 +14,7 @@ from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
 from ..config import subdir, canonical_channel_name
 from ..install import dist2quad
 from ..misc import make_icon_url
-from ..resolve import NoPackagesFound, Package
+from ..resolve import NoPackagesFoundError, Package
 from ..exceptions import CondaValueError, PackageNotFoundError
 
 descr = """Search for packages and display their information. The input is a
@@ -122,7 +122,7 @@ package.""",
 def execute(args, parser):
     try:
         execute_search(args, parser)
-    except NoPackagesFound as e:
+    except NoPackagesFoundError as e:
         raise PackageNotFoundError('', e, args.json)
 
 def execute_search(args, parser):

@@ -22,15 +22,14 @@ from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotF
                           CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
                           CondaAssertionError, CondaOSError, CondaImportError,
                           CondaError, DryRunExit, LockError, CondaRuntimeError,
-                          CondaSystemExit)
+                          CondaSystemExit, NoPackagesFoundError, UnsatisfiableError, CondaIOError)
 from ..install import linked as install_linked
 from ..install import name_dist, is_linked
 from ..misc import explicit, clone_env, append_env, touch_nonadmin
 from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defaults_to_specs,
                     display_actions, revert_actions, nothing_to_do, execute_actions)
-from ..resolve import NoPackagesFound, Unsatisfiable, Resolve
+from ..resolve import Resolve
 from ..utils import find_parent_shell
-
 
 log = logging.getLogger(__name__)
 
@@ -301,7 +300,7 @@ environment does not exist: %s
                                           minimal_hint=args.alt_hint,
                                           update_deps=args.update_deps,
                                           shortcuts=shortcuts)
-    except NoPackagesFound as e:
+    except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
         if isupdate and args.all:
@@ -358,7 +357,7 @@ environment does not exist: %s
 
             raise PackageNotFoundError(error_message, args.json)
 
-    except (Unsatisfiable, SystemExit) as e:
+    except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError('', e, args.json)
@@ -401,7 +400,7 @@ environment does not exist: %s
                     if e.errno == errno.EACCES:
                         log.debug("Can't write the history file")
                     else:
-                        raise
+                        raise CondaIOError("Can't write the history file")
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:

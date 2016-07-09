@@ -40,7 +40,7 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
-from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
+from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, CondaOSError
 
 
 on_win = bool(sys.platform == "win32")
@@ -112,14 +112,14 @@ if on_win:
     def win_hard_link(src, dst):
         "Equivalent to os.link, using the win32 CreateHardLink call."
         if not CreateHardLink(dst, src, None):
-            raise OSError('win32 hard link failed')
+            raise CondaOSError('win32 hard link failed')
 
     def win_soft_link(src, dst):
         "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
         if CreateSymbolicLink is None:
-            raise OSError('win32 soft link not supported')
+            raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise OSError('win32 soft link failed')
+            raise CondaOSError('win32 soft link failed')
 
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
@@ -208,7 +208,7 @@ def _link(src, dst, linktype=LINK_HARD):
         else:
             shutil.copy2(src, dst)
     else:
-        raise Exception("Did not expect linktype=%r" % linktype)
+        raise CondaError("Did not expect linktype=%r" % linktype)
 
 
 def _remove_readonly(func, path, excinfo):
