@@ -142,8 +142,9 @@ if on_win:
                 raise
 
         # bat file redirect
-        with open(dst+'.bat', 'w') as f:
-            f.write('@echo off\ncall "%s" %%*\n' % src)
+        if not os.path.isfile(dst + '.bat'):
+            with open(dst + '.bat', 'w') as f:
+                f.write('@echo off\ncall "%s" %%*\n' % src)
 
         # TODO: probably need one here for powershell at some point
 
@@ -151,17 +152,20 @@ if on_win:
         # set default shell to bash.exe when not provided, as that's most common
         if not shell:
             shell = "bash.exe"
-        with open(dst, "w") as f:
-            f.write("#!/usr/bin/env bash \n")
-            if src.endswith("conda"):
-                f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
-            else:
-                f.write('source %s "$@"' % shells[shell]['path_to'](src))
-        # Make the new file executable
-        # http://stackoverflow.com/a/30463972/1170370
-        mode = os.stat(dst).st_mode
-        mode |= (mode & 292) >> 2    # copy R bits to X
-        os.chmod(dst, mode)
+
+        # technically these are "links" - but islink doesn't work on win
+        if not os.path.isfile(dst):
+            with open(dst, "w") as f:
+                f.write("#!/usr/bin/env bash \n")
+                if src.endswith("conda"):
+                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+                else:
+                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
+            # Make the new file executable
+            # http://stackoverflow.com/a/30463972/1170370
+            mode = os.stat(dst).st_mode
+            mode |= (mode & 292) >> 2    # copy R bits to X
+            os.chmod(dst, mode)
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
