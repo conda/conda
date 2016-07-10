@@ -223,6 +223,7 @@ def test_activate_root(shell):
         assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
 
 
+@pytest.mark.installed
 def test_activate_root_env_from_other_env(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
