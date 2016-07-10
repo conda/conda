@@ -31,10 +31,10 @@ matrix:
 install:
   - which -a python
   - env | sort
-  - bash ./utils/travis-run-install.sh
+  - source ./utils/travis-run-install.sh
 
 script:
-  - bash ./utils/travis-run-script.sh
+  - source ./utils/travis-run-script.sh
 
 sudo: false
 
