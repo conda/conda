@@ -39,7 +39,7 @@ script:
 sudo: false
 
 after_success:
-  - python -m pip install codecov coveralls scrutinizer-ocular
+  - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PY_VERSION
-  - ocular || true
   - coveralls || true
+  - ocular || true
