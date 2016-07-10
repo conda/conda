@@ -129,7 +129,7 @@ sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
 if (basename(sys.prefix) == '_conda' and
           basename(dirname(sys.prefix)) == 'envs'):
     home_in_root = False
-    root_prefix = abspath(dirname(dirname(sys.prefix)))
+    root_prefix = abspath(join(sys.prefix, '..', '..'))
     conda_prefix = sys.prefix
 else:
     home_in_root = True
