@@ -202,6 +202,8 @@ def execute(args, parser):
                      conda_version=conda.__version__,
                      conda_build_version=conda_build_version,
                      root_prefix=config.root_dir,
+                     conda_prefix=config.conda_prefix,
+                     home_in_root=config.home_in_root,
                      root_writable=config.root_writable,
                      pkgs_dirs=config.pkgs_dirs,
                      envs_dirs=config.envs_dirs,
@@ -242,6 +244,7 @@ Current conda install:
   conda-build version : %(conda_build_version)s
        python version : %(python_version)s
      requests version : %(requests_version)s
+  conda's environment : %(conda_prefix)s
      root environment : %(root_prefix)s  (%(_rtwro)s)
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
