@@ -41,5 +41,5 @@ sudo: false
 after_success:
   - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PY_VERSION
-  - ocular
-  - coveralls
+  - ocular || true
+  - coveralls || true
