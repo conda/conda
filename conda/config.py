@@ -10,7 +10,7 @@ import os
 import sys
 import logging
 from platform import machine
-from os.path import abspath, expanduser, isfile, isdir, join
+from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
 import re
 
 from conda.compat import urlparse
@@ -126,12 +126,17 @@ sys_rc = load_condarc(sys_rc_path) if isfile(sys_rc_path) else {}
 
 # ----- local directories -----
 
-# root_dir should only be used for testing, which is why don't mention it in
-# the documentation, to avoid confusion (it can really mess up a lot of
-# things)
-root_dir = abspath(expanduser(os.getenv('CONDA_ROOT',
-                                        rc.get('root_dir', sys.prefix))))
-root_writable = try_write(root_dir)
+if basename(sys.prefix) == '_conda':
+    assert basename(basename(sys.prefix)) == 'envs'
+    home_env = '_conda'
+    root_prefix = abspath(dirname(dirname(sys.prefix)))
+    conda_prefix = sys.prefix
+else:
+    home_env = 'root'
+    root_prefix = conda_prefix = abspath(sys.prefix)
+
+root_dir = root_prefix
+root_writable = try_write(root_prefix)
 root_env_name = 'root'
 
 def _default_envs_dirs():
