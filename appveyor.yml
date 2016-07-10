@@ -78,5 +78,5 @@ test_script:
 on_success:
   - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PYTHON_VERSION
-  - coveralls
+  - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN coveralls
   - ocular
