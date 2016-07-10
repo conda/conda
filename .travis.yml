@@ -12,19 +12,19 @@ addons:
 
 matrix:
   include:
-#    - python: '2.7'
-#      os: linux
-#      language: python
-#    - python: '3.4'
-#      os: linux
-#      language: python
-#    - python: '3.5'
-#      os: linux
-#      language: python
-#    - python: '3.5'
-#      env: FLAKE8=true
-#      os: linux
-#      language: python
+    - python: '2.7'
+      os: linux
+      language: python
+    - python: '3.4'
+      os: linux
+      language: python
+    - python: '3.5'
+      os: linux
+      language: python
+    - python: '3.5'
+      env: FLAKE8=true
+      os: linux
+      language: python
     - os: osx
       env: PYTHON_VERSION=3.5
 

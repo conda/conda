@@ -8,15 +8,15 @@ main_test() {
     python setup.py --version
     python setup.py install
     hash -r
-    conda info
+    python -m conda info
     python -m py.test --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
-    # conda install -y -q conda-build
+    # python -m conda install -y -q conda-build
     # set +x
-    # conda build conda.recipe
+    # python -m conda build conda.recipe
 }
 
 flake8_test() {
-    flake8 --statistics
+    python -m flake8 --statistics
 }
 
 which -a python
