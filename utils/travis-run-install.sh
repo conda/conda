@@ -39,7 +39,7 @@ main_install() {
     python -m pip install psutil ruamel.yaml pycosat pycrypto
     case "${TRAVIS_PYTHON_VERSION:-PYTHON_VERSION}" in
       '2.7')
-          $PYTHON_EXE -m pip install -U enum34 futures
+          python -m pip install -U enum34 futures
           ;;
       *) ;;
     esac
@@ -47,12 +47,12 @@ main_install() {
 
 
 flake8_extras() {
-    $PYTHON_EXE -m pip install -U flake8
+    python -m pip install -U flake8
 }
 
 
 test_extras() {
-    $PYTHON_EXE -m pip install -U mock pytest pytest-cov pytest-timeout radon responses
+    python -m pip install -U mock pytest pytest-cov pytest-timeout radon responses
 }
 
 
