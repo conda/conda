@@ -4,21 +4,23 @@ from __future__ import absolute_import, division, print_function
 import bz2
 import json
 import os
-import pytest
 import sys
 from contextlib import contextmanager
+from datetime import datetime
 from glob import glob
 from json import loads as json_loads
 from logging import getLogger, Handler
 from os.path import exists, isdir, isfile, join, relpath, basename, islink
-from requests import Session
-from requests.adapters import BaseAdapter
 from shlex import split
 from shutil import rmtree, copyfile
 from subprocess import check_call
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
+
+import pytest
+from requests import Session
+from requests.adapters import BaseAdapter
 
 from conda import config
 from conda.cli import conda_argparse
@@ -29,7 +31,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.compat import PY3, itervalues
+from conda.compat import itervalues
 from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
 from conda.exceptions import CondaError
@@ -427,6 +429,7 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
