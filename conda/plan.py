@@ -395,7 +395,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     r = Resolve(index)
     linked = install.linked(prefix)
 
-    if config.auto_update_conda and is_root_prefix(prefix):
+    if (config.home_in_root and config.auto_update_conda and
+                is_root_prefix(prefix)):
         specs.append('conda')
 
     if pinned:

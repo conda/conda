@@ -241,10 +241,10 @@ Current conda install:
 
              platform : %(platform)s
         conda version : %(conda_version)s
+ conda's home in root : %(home_in_root)s
   conda-build version : %(conda_build_version)s
        python version : %(python_version)s
      requests version : %(requests_version)s
-  conda's environment : %(conda_prefix)s
      root environment : %(root_prefix)s  (%(_rtwro)s)
   default environment : %(default_prefix)s
      envs directories : %(_envs_dirs)s
