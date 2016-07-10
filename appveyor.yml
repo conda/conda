@@ -4,6 +4,8 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\tools\\appveyor\\run_with_env.cmd"
+  COVERALLS_REPO_TOKEN:
+    secure: ZaE7K9EHorv40AjYhSuWtQeRAsMN1+QqPf7u8rOlvEY50kdaHj87Mh5GIDZgJBzj
 
   matrix:
     - PYTHON: "C:\\Python35_64"
@@ -74,5 +76,7 @@ test_script:
   - py.test --cov-report xml tests --shell=cmd.exe --shell=bash.exe
 
 on_success:
-  - pip install codecov
+  - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PYTHON_VERSION
+  # - coveralls && exit 0
+  # - ocular && exit 0
