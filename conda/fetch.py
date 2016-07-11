@@ -10,6 +10,7 @@ import getpass
 import hashlib
 import json
 import os
+import requests
 import shutil
 import tempfile
 import warnings
@@ -17,10 +18,6 @@ from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
 
-from ._vendor.requests.exceptions import SSLError, HTTPError
-from ._vendor.requests.packages.urllib3.connection import ConnectionError
-from ._vendor.requests.packages.urllib3.exceptions import InsecureRequestWarning
-from ._vendor.requests.packages.urllib3.util import parse_url
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
@@ -90,7 +87,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     if not ssl_verify:
         try:
-            InsecureRequestWarning
+            from requests.packages.urllib3.connectionpool import InsecureRequestWarning
         except ImportError:
             pass
         else:
@@ -127,7 +124,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         raise CondaRuntimeError("Invalid index file: {0}{1}: {2}"
                                 .format(remove_binstar_tokens(url), filename, e))
 
-    except HTTPError as e:
+    except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407:  # Proxy Authentication Required
             handle_proxy_407(url, session)
             # Try again
@@ -164,12 +161,12 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         log.debug(msg)
         raise CondaRuntimeError(msg)
 
-    except SSLError as e:
+    except requests.exceptions.SSLError as e:
         msg = "SSL Error: %s\n" % e
         stderrlog.info("SSL verification error: %s\n" % e)
         log.debug(msg)
 
-    except ConnectionError as e:
+    except requests.exceptions.ConnectionError as e:
         # requests isn't so nice here. For whatever reason, https gives this
         # error and http gives the above error. Also, there is no status_code
         # attribute here. We have to just check if it looks like 407.  See
@@ -201,7 +198,7 @@ def handle_proxy_407(url, session):
     """
     # We could also use HTTPProxyAuth, but this does not work with https
     # proxies (see https://github.com/kennethreitz/requests/issues/2061).
-    scheme = parse_url(url).scheme
+    scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
     if scheme not in session.proxies:
         raise ProxyError("""Could not find a proxy for %r. See
 http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
@@ -211,7 +208,7 @@ for more information on how to configure proxies.""" % scheme)
                             session.proxies[scheme], username, passwd)
 
 def add_username_and_pass_to_url(url, username, passwd):
-    urlparts = list(parse_url(url))
+    urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
     passwd = urllib_quote(passwd, '')
     urlparts[1] = username + ':' + passwd
     return unparse_url(urlparts)
@@ -383,7 +380,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
-        except HTTPError as e:
+        except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407:  # Proxy Authentication Required
                 handle_proxy_407(url, session)
                 # Try again
@@ -393,7 +390,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
             log.debug(msg)
             raise CondaRuntimeError(msg)
 
-        except ConnectionError as e:
+        except requests.exceptions.ConnectionError as e:
             # requests isn't so nice here. For whatever reason, https gives
             # this error and http gives the above error. Also, there is no
             # status_code attribute here.  We have to just check if it looks
