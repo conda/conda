@@ -16,12 +16,9 @@ import tempfile
 from io import BytesIO
 from logging import getLogger
 
+import requests
+
 from . import __version__ as VERSION
-from ._vendor.requests import Session, __version__ as REQUESTS_VERSION, Response
-from ._vendor.requests.adapters import HTTPAdapter, BaseAdapter
-from ._vendor.requests.hooks import dispatch_hook
-from ._vendor.requests.packages.urllib3.util import parse_url
-from ._vendor.requests.structures import CaseInsensitiveDict
 from .compat import urlparse
 from .config import platform as config_platform, ssl_verify, get_proxy_servers
 from .utils import gnu_get_libc_version
@@ -50,7 +47,7 @@ else:
     ver = platform.version()
 
 user_agent = _user_agent.format(conda_ver=VERSION,
-                                requests_ver=REQUESTS_VERSION,
+                                requests_ver=requests.__version__,
                                 python=platform.python_implementation(),
                                 py_ver=platform.python_version(),
                                 system=platform.system(), kernel=platform.release(),
@@ -59,7 +56,7 @@ if glibc_ver:
     user_agent += " glibc/{}".format(glibc_ver)
 
 
-class CondaSession(Session):
+class CondaSession(requests.Session):
 
     timeout = None
 
@@ -74,7 +71,7 @@ class CondaSession(Session):
 
         # Configure retries
         if retries:
-            http_adapter = HTTPAdapter(max_retries=retries)
+            http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
 
@@ -89,15 +86,16 @@ class CondaSession(Session):
         self.verify = ssl_verify
 
 
-class S3Adapter(BaseAdapter):
+class S3Adapter(requests.adapters.BaseAdapter):
 
     def __init__(self):
         super(S3Adapter, self).__init__()
         self._temp_file = None
 
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
+             proxies=None):
 
-        resp = Response()
+        resp = requests.models.Response()
         resp.status_code = 200
         resp.url = request.url
 
@@ -146,7 +144,7 @@ class S3Adapter(BaseAdapter):
         if key and key.exists:
             modified = key.last_modified
             content_type = key.content_type or "text/plain"
-            resp.headers = CaseInsensitiveDict({
+            resp.headers = requests.structures.CaseInsensitiveDict({
                 "Content-Type": content_type,
                 "Content-Length": key.size,
                 "Last-Modified": modified,
@@ -171,19 +169,20 @@ def url_to_S3_info(url):
     """
     Convert a S3 url to a tuple of bucket and key
     """
-    parsed_url = parse_url(url)
+    parsed_url = requests.packages.urllib3.util.url.parse_url(url)
     assert parsed_url.scheme == 's3', (
         "You can only use s3: urls (not %r)" % url)
     bucket, key = parsed_url.host, parsed_url.path
     return bucket, key
 
 
-class LocalFSAdapter(BaseAdapter):
+class LocalFSAdapter(requests.adapters.BaseAdapter):
 
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
+             proxies=None):
         pathname = url_to_path(request.url)
 
-        resp = Response()
+        resp = requests.models.Response()
         resp.status_code = 200
         resp.url = request.url
 
@@ -195,7 +194,7 @@ class LocalFSAdapter(BaseAdapter):
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
-            resp.headers = CaseInsensitiveDict({
+            resp.headers = requests.structures.CaseInsensitiveDict({
                 "Content-Type": content_type,
                 "Content-Length": stats.st_size,
                 "Last-Modified": modified,
@@ -251,7 +250,7 @@ def build_binary_response(request, data, code):
 def build_response(request, data, code, encoding):
     '''Builds a response object from the data returned by ftplib, using the
     specified encoding.'''
-    response = Response()
+    response = requests.Response()
 
     response.encoding = encoding
 
@@ -265,7 +264,7 @@ def build_response(request, data, code, encoding):
     response.raw.seek(0)
 
     # Run the response hook.
-    response = dispatch_hook('response', request.hooks, response)
+    response = requests.hooks.dispatch_hook('response', request.hooks, response)
     return response
 
 
