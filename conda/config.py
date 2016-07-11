@@ -16,7 +16,7 @@ from platform import machine
 
 from .compat import urlparse, string_types
 from .utils import try_write, yaml_load
-from .exceptions import ProxyError
+from .exceptions import ProxyError, CondaRuntimeError
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -209,7 +209,7 @@ def get_rc_urls():
     if rc is None or rc.get('channels') is None:
         return []
     if 'system' in rc['channels']:
-        raise RuntimeError("system cannot be used in .condarc")
+        raise CondaRuntimeError("system cannot be used in .condarc")
     return rc['channels']
 
 def is_url(url):
@@ -248,7 +248,7 @@ def init_binstar(quiet=False):
         binstar_domain_tok = None
     else:
         binstar_domain = binstar_client.domain.replace("api", "conda").rstrip('/') + '/'
-        if add_anaconda_token:
+        if add_anaconda_token and binstar_client.token:
             binstar_domain_tok = binstar_domain + 't/%s/' % (binstar_client.token,)
     binstar_regex = (r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
                      re.escape(binstar_domain[:-1]))
@@ -448,7 +448,9 @@ def load_condarc(path=None):
     binstar_upload = rc.get('anaconda_upload',
                             rc.get('binstar_upload', None))  # None means ask
     allow_softlinks = bool(rc.get('allow_softlinks', True))
-    auto_update_conda = bool(rc.get('auto_update_conda', rc.get('self_update', True)))
+    auto_update_conda = bool(rc.get('auto_update_conda',
+                                    rc.get('self_update',
+                                           sys_rc.get('auto_update_conda', True))))
     # show channel URLs when displaying what is going to be downloaded
     show_channel_urls = rc.get('show_channel_urls', None)  # None means letting conda decide
     # set packages disallowed to be installed

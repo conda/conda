@@ -2,59 +2,54 @@ sudo: false
 language: python
 python:
   - '2.7'
-<<<<<<< HEAD
   - '3.4'
-=======
->>>>>>> merge commit for parallel download
   - '3.5'
 
 os:
   - linux
-<<<<<<< HEAD
-=======
-#  - osx
->>>>>>> merge commit for parallel download
 
 addons:
   apt:
     packages:
     - zsh
-
 env:
   global:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
 
+addons:
+  apt:
+    packages:
+      - zsh
+
 matrix:
   include:
+    - python: '2.7'
+      os: linux
+      language: python
+    - python: '3.4'
+      os: linux
+      language: python
+    - python: '3.5'
+      os: linux
+      language: python
     - python: '3.5'
       env: FLAKE8=true
-<<<<<<< HEAD
     - os: osx
-      python: '3.5'
+      env: PYTHON_VERSION=3.5
 
 install:
   - which -a python
   - env | sort
-  - bash ./utils/travis-run-install.sh
+  - source ./utils/travis-run-install.sh
 
 script:
-  - bash ./utils/travis-run-script.sh
+  - source ./utils/travis-run-script.sh
 
 sudo: false
-=======
-
-install:
-  - which -a python
-  - printenv
-  - pip install psutil ruamel.yaml pycosat pycrypto requests
-  - pip install flake8 pytest pytest-cov mock
-  - pip install auxlib pytest-timeout radon responses
-  - pip install click
-script:
-  - bash ./utils/travis-run-script.sh
->>>>>>> merge commit for parallel download
 
 after_success:
-  - pip install codecov
+  - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PY_VERSION
+  - coveralls || true
+  - ocular || true

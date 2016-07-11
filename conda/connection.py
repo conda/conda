@@ -26,6 +26,7 @@ from .compat import urlparse
 from .config import platform as config_platform, ssl_verify, get_proxy_servers
 from .utils import gnu_get_libc_version
 
+
 RETRIES = 3
 
 log = getLogger(__name__)
@@ -235,11 +236,6 @@ def data_callback_factory(variable):
         return
 
     return callback
-
-
-class AuthError(Exception):
-    '''Denotes an error with authentication.'''
-    pass
 
 
 def build_text_response(request, data, code):

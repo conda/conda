@@ -32,6 +32,7 @@ import pycosat
 from itertools import chain, combinations
 
 from .compat import iteritems, string_types
+from .exceptions import CondaValueError
 
 dotlog = logging.getLogger('dotupdate')
 log = logging.getLogger(__name__)
@@ -623,7 +624,7 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
 
     clauses = tuple(clauses)
     if sat(clauses):
-        raise ValueError("Clauses are not unsatisfiable")
+        raise CondaValueError("Clauses are not unsatisfiable")
 
     def split(S):
         """
