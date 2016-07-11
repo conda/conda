@@ -26,6 +26,7 @@ from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defau
                     display_actions, revert_actions, nothing_to_do, execute_actions)
 from ..resolve import NoPackagesFound, Unsatisfiable, Resolve
 from ..utils import find_parent_shell
+from .. import config
 
 log = logging.getLogger(__name__)
 
@@ -297,7 +298,8 @@ environment does not exist: %s
                                   json=args.json,
                                   error_type="NoEnvironmentFound")
 
-    shortcuts = args.shortcuts if hasattr(args, "shortcuts") else None
+    if hasattr(args, 'shortcuts'):
+        config.shortcuts = args.shortcuts and config.shortcuts
 
     try:
         if isinstall and args.revision:
@@ -310,8 +312,7 @@ environment does not exist: %s
                                           pinned=args.pinned,
                                           always_copy=args.copy,
                                           minimal_hint=args.alt_hint,
-                                          update_deps=args.update_deps,
-                                          shortcuts=shortcuts)
+                                          update_deps=args.update_deps)
     except NoPackagesFound as e:
         error_message = e.args[0]
 
