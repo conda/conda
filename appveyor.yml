@@ -65,6 +65,7 @@ install:
   - conda install -q pycrypto pyflakes pycosat
   - conda install -q git menuinst
   - pip install flake8 pytest-cov pytest-timeout responses
+ pytest-timeout responses
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install --old-and-unmanageable

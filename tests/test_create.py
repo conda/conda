@@ -490,6 +490,7 @@ class IntegrationTests(TestCase):
         finally:
             rmtree(prefix, ignore_errors=True)
 
+
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
         from menuinst.win32 import dirs as win_locations

@@ -37,6 +37,7 @@ import tarfile
 import tempfile
 import time
 import traceback
+import random
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
@@ -140,6 +141,7 @@ if on_win:
                 raise
 
         # bat file redirect
+              # bat file redirect
         with open(dst+'.bat', 'w') as f:
             f.write('@echo off\ncall "%s" %%*\n' % src)
 
@@ -466,7 +468,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
         meta = json.load(fi)
     # add extra info, add to our intenral cache
     meta.update(extra_info)
-    if not meta.get('url'):
+    if 'url' not in meta:
         meta['url'] = read_url(dist)
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
@@ -569,7 +571,7 @@ def read_no_link(info_dir):
 
 
 # Should this be an API function?
-def symlink_conda(prefix, root_dir, shell=None):
+def symlink_conda(prefix, root_dir, shell):
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
     if normcase(normpath(prefix)) in normcase(normpath(root_dir)):
@@ -874,24 +876,21 @@ def load_linked_data(prefix, dist, rec=None):
         try:
             with open(meta_file) as fi:
                 rec = json.load(fi)
-        except IOError:
-            return None
+        except IOError as e:
+            log.debug("Could not open '%s'" % e)
+            raise
+
     else:
         linked_data(prefix)
     url = rec.get('url')
-    fn = rec.get('fn')
-    if not fn:
-        fn = rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
-    if fn[:-8] != dname:
+    if 'fn' not in rec:
+        rec['fn'] = url.rsplit('/', 1)[-1] if url else dname + '.tar.bz2'
+    if not url and 'channel' in rec:
+        url = rec['url'] = rec['channel'] + rec['fn']
+    if rec['fn'][:-8] != dname:
         log.debug('Ignoring invalid package metadata file: %s' % meta_file)
         return None
-    channel = rec.get('channel')
-    if channel:
-        channel = channel.rstrip('/')
-        if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
-            url = rec['url'] = channel + '/' + fn
     channel, schannel = url_channel(url)
-    rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
     rec['link'] = rec.get('link') or True
@@ -948,6 +947,7 @@ def linked_data(prefix):
                 if fn.endswith('.json'):
                     load_linked_data(prefix, fn[:-5])
     return recs
+
 
 def linked(prefix):
     """
@@ -1047,6 +1047,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
         os.makedirs(prefix)
 
     with Locked(prefix), Locked(source_dir):
+
         for f in files:
             src = join(source_dir, f)
             dst = join(prefix, f)
@@ -1109,7 +1110,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(prefix):
+    with Locked(prefix, dist):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)

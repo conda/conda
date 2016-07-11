@@ -1,5 +1,17 @@
 sudo: false
+language: python
+python:
+  - '2.7'
+  - '3.4'
+  - '3.5'
 
+os:
+  - linux
+
+addons:
+  apt:
+    packages:
+    - zsh
 env:
   global:
     - PYTHONUNBUFFERED=yes
@@ -23,8 +35,6 @@ matrix:
       language: python
     - python: '3.5'
       env: FLAKE8=true
-      os: linux
-      language: python
     - os: osx
       env: PYTHON_VERSION=3.5
 

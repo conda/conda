@@ -49,7 +49,6 @@ test:
 #    - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || py.test -c %SRC_DIR%/setup.cfg %SRC_DIR%/tests/ || true
 #  imports:
 #    - conda
-
 about:
   home: http://conda.pydata.org/
   license: BSD
