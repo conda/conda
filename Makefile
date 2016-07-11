@@ -25,14 +25,6 @@ auxlib:
 	    && rm -rf auxlib
 
 
-# VERSION=v2.10.0 make requests
-requests:
-	git clone https://github.com/kennethreitz/requests.git --single-branch --branch $(VERSION) \
- 	    && rm -rf conda/_vendor/requests \
- 	    && mv requests/requests conda/_vendor/ \
- 	    && rm -rf requests
-
-
 # VERSION=0.8.0 make toolz
 toolz:
 	git clone https://github.com/pytoolz/toolz.git --single-branch --branch $(VERSION) \
@@ -42,4 +34,4 @@ toolz:
 	rm -rf conda/_vendor/toolz/curried conda/_vendor/toolz/sandbox conda/_vendor/toolz/tests
 
 
-.PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib requests toolz
+.PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib toolz
