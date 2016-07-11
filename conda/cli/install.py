@@ -222,7 +222,7 @@ def install(args, parser, command='install'):
         return
 
     index = get_index(channel_urls=index_args['channel_urls'], prepend=index_args['prepend'],
-                      platform=index_args['platform'], use_local=index_args['use_local'],
+                      platform=None, use_local=index_args['use_local'],
                       use_cache=index_args['use_cache'], unknown=index_args['unknown'],
                       prefix=prefix)
     r = Resolve(index)
