@@ -3,7 +3,7 @@
   * remove conda init, #2759
   * remove conda package and conda bundle, #2760
   * remove support for ftp:// repos, #2776
-  * replace sys.exit with exceptions, #2899, #2993
+  * replace sys.exit with exceptions, #2899, #2993, #3016
   * start using finer-grained locking, #2962
   * project structure enhancement, #2929
   * force use of ruamel_yaml, #2762
@@ -12,6 +12,7 @@
   * exit on link error instead of logging it, #2639
   * clean up requests usage for fetching packages, #2755
   * remove excess output from conda --help, #2872
+  * remove os.remove in update_prefix, #3006
   * remove auxlib from project root, #2931
   * vendor requests v2.10.0, #2930, #2949
   * vendor auxlib 0.0.40, #2932, #2943
