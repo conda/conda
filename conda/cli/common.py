@@ -585,20 +585,8 @@ def get_index_trap(*args, **kwargs):
     JSON if necessary.
     """
     from ..api import get_index
-
-    if 'json' in kwargs:
-        json = kwargs['json']
-        del kwargs['json']
-    else:
-        json = False
-
-    try:
-        return get_index(*args, **kwargs)
-    except BaseException as e:
-        if json:
-            raise CondaError(e, json)
-        else:
-            raise CondaError
+    kwargs.pop('json')
+    return get_index(*args, **kwargs)
 
 
 @contextlib.contextmanager

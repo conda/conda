@@ -350,8 +350,7 @@ def print_exception(exception):
 
 def print_unexpected_error_message(e):
     from conda.config import output_json
-    message = ''
-    if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
+    if not output_json and e.__class__.__name__ not in ('ScannerError', 'ParserError'):
         message = """\
 An unexpected error has occurred, please consider sending the
 following traceback to the conda GitHub issue tracker at:
@@ -361,6 +360,8 @@ following traceback to the conda GitHub issue tracker at:
 Include the output of the command 'conda info' in your report.
 
 """
+    else:
+        message = ''
     print(message)
 
     import traceback
@@ -376,9 +377,11 @@ def conda_exception_handler(func, *args, **kwargs):
         return_value = func(*args, **kwargs)
         if isinstance(return_value, int):
             return return_value
-
+    except CondaRuntimeError as e:
+        print_unexpected_error_message(e)
+        return 1
     except CondaError as e:
-        print_exception(e)
+        print_unexpected_error_message(e)
         return 1
     except Exception as e:
         print_unexpected_error_message(e)
