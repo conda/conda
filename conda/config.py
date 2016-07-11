@@ -87,6 +87,7 @@ rc_bool_keys = [
     'allow_other_channels',
     'update_dependencies',
     'channel_priority',
+    'shortcuts',
 ]
 
 rc_string_keys = [
@@ -452,6 +453,7 @@ def load_condarc(path=None):
     create_default_packages = list(rc.get('create_default_packages', []))
     update_dependencies = bool(rc.get('update_dependencies', True))
     channel_priority = bool(rc.get('channel_priority', True))
+    shortcuts = bool(rc.get('shortcuts', True))
 
     # ssl_verify can be a boolean value or a filename string
     ssl_verify = rc.get('ssl_verify', True)
