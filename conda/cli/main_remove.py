@@ -11,17 +11,18 @@ import logging
 from argparse import RawDescriptionHelpFormatter
 from os.path import join
 
+from conda.api import get_index
 from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parser_no_pin,
                      add_parser_channels, add_parser_prefix, add_parser_quiet,
                      add_parser_no_use_index_cache, add_parser_use_index_cache,
                      add_parser_use_local, add_parser_offline, add_parser_pscheck,
                      InstalledPackages, get_prefix, check_write,
                      ensure_use_local, ensure_override_channels_requires_channel,
-                     get_index_trap, specs_from_args, names_in_specs, root_no_rm, stdout_json,
+                     specs_from_args, names_in_specs, root_no_rm, stdout_json,
                      confirm_yn)
+from ..compat import iteritems, iterkeys
 from ..config import default_prefix
 from ..console import json_progress_bars
-from ..compat import iteritems, iterkeys
 from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
                           CondaValueError)
 
@@ -126,12 +127,11 @@ def execute(args, parser):
         index = linked_data(prefix)
         index = {dist + '.tar.bz2': info for dist, info in iteritems(index)}
     else:
-        index = get_index_trap(channel_urls=channel_urls,
-                               prepend=not args.override_channels,
-                               use_local=args.use_local,
-                               use_cache=args.use_index_cache,
-                               json=args.json,
-                               prefix=prefix)
+        index = get_index(channel_urls=channel_urls,
+                          prepend=not args.override_channels,
+                          use_local=args.use_local,
+                          use_cache=args.use_index_cache,
+                          prefix=prefix)
     specs = None
     if args.features:
         features = set(args.package_names)

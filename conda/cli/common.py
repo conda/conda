@@ -12,12 +12,11 @@ from .. import console
 from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
                       channel_priority, show_channel_urls, always_yes, root_env_name,
                       root_dir, root_writable, disallow, set_offline, is_offline)
+from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
+                          CondaValueError, CondaFileIOError, TooFewArgumentsError)
 from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
-from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
-                          CondaValueError, CondaFileIOError, TooFewArgumentsError,
-                          CondaError)
 
 
 class Completer(object):

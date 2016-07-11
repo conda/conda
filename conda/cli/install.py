@@ -15,6 +15,7 @@ import tempfile
 from difflib import get_close_matches
 from os.path import isdir, join, basename, exists, abspath
 
+from conda.api import get_index
 from ..cli import common
 from ..cli.find_commands import find_executable
 from ..config import create_default_packages, force_32bit, root_env_name
@@ -220,9 +221,10 @@ def install(args, parser, command='install'):
             print_activate(args.name if args.name else prefix)
         return
 
-    index_args.update({'json': args.json, 'prefix': prefix})
-    index = common.get_index_trap(**index_args)
-
+    index = get_index(channel_urls=index_args['channel_urls'], prepend=index_args['prepend'],
+                      platform=index_args['platform'], use_local=index_args['use_local'],
+                      use_cache=index_args['use_cache'], unknown=index_args['unknown'],
+                      prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
     add_defaults_to_specs(r, linked, specs, update=isupdate)
