@@ -141,26 +141,27 @@ if on_win:
                 raise
 
         # bat file redirect
+              # bat file redirect
         with open(dst+'.bat', 'w') as f:
             f.write('@echo off\ncall "%s" %%*\n' % src)
 
-        elif 'powershell' in shell.lower():
-            # TODO: probably need one here for powershell at some point
-            pass
+        # TODO: probably need one here for powershell at some point
 
-        else:
-            # This one is for bash/cygwin/msys
-            with open(dst, "w") as f:
-                f.write("#!/usr/bin/env bash \n")
-                if src.endswith("conda"):
-                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
-                else:
-                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
-            # Make the new file executable
-            # http://stackoverflow.com/a/30463972/1170370
-            mode = os.stat(dst).st_mode
-            mode |= (mode & 292) >> 2    # copy R bits to X
-            os.chmod(dst, mode)
+        # This one is for bash/cygwin/msys
+        # set default shell to bash.exe when not provided, as that's most common
+        if not shell:
+            shell = "bash.exe"
+        with open(dst, "w") as f:
+            f.write("#!/usr/bin/env bash \n")
+            if src.endswith("conda"):
+                f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+            else:
+                f.write('source %s "$@"' % shells[shell]['path_to'](src))
+        # Make the new file executable
+        # http://stackoverflow.com/a/30463972/1170370
+        mode = os.stat(dst).st_mode
+        mode |= (mode & 292) >> 2    # copy R bits to X
+        os.chmod(dst, mode)
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
@@ -227,7 +228,6 @@ def warn_failed_remove(function, path, exc_info):
 
 def exp_backoff_fn(fn, *args):
     """Mostly for retrying file operations that fail on Windows due to virus scanners"""
-<<<<<<< HEAD
     if not on_win:
         return fn(*args)
 
@@ -236,10 +236,6 @@ def exp_backoff_fn(fn, *args):
     # with max_tries = 6, max total time ~= 6.5 sec
     max_tries = 6
     for n in range(max_tries):
-=======
-    max_retries = 5
-    for n in range(max_retries):
->>>>>>> PR for parallel downloading
         try:
             result = fn(*args)
         except (OSError, IOError) as e:
