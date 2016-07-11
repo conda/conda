@@ -6,16 +6,17 @@
 
 from __future__ import print_function, division, absolute_import
 
+from conda.api import get_index
 from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
                      add_parser_use_index_cache, add_parser_offline, add_parser_channels,
                      add_parser_json, add_parser_use_local,
                      ensure_use_local, ensure_override_channels_requires_channel,
-                     get_index_trap, get_prefix, stdout_json, disp_features)
+                     get_prefix, stdout_json, disp_features)
 from ..config import subdir, canonical_channel_name
+from ..exceptions import CondaValueError, PackageNotFoundError
 from ..install import dist2quad
 from ..misc import make_icon_url
 from ..resolve import NoPackagesFoundError, Package
-from ..exceptions import CondaValueError, PackageNotFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -164,10 +165,10 @@ def execute_search(args, parser):
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
-    index = get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
-                           platform=args.platform, use_local=args.use_local,
-                           use_cache=args.use_index_cache, prefix=prefix,
-                           unknown=args.unknown, json=args.json)
+    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels,
+                      platform=args.platform, use_local=args.use_local,
+                      use_cache=args.use_index_cache, prefix=prefix,
+                      unknown=args.unknown)
 
     r = Resolve(index)
 
