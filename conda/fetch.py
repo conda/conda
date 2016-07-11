@@ -182,6 +182,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
 
+
         raise CondaRuntimeError(msg)
     cache['_url'] = url
     try:
@@ -330,8 +331,6 @@ def fetch_pkg(info, dst_dir=None, session=None):
         dst_dir = find_new_location(fn[:-8])[0]
     path = join(dst_dir, fn)
 
-    check_size(dst_dir, info['size'])
-
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if info.get('sig'):
         from .signature import verify
@@ -374,6 +373,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
 
     with FileLock(dst_path):
         rm_rf(dst_path)
+
         try:
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
             resp.raise_for_status()
@@ -486,11 +486,3 @@ class TmpDownload(object):
     def __exit__(self, exc_type, exc_value, traceback):
         if self.tmp_dir:
             shutil.rmtree(self.tmp_dir)
-
-
-def check_size(path, size):
-    st = os.statvfs(path)
-    free = st.f_bavail * st.f_frsize
-    #print("The free is {0}, and the required is {1}".format(free, size))
-    if free < size:
-        raise CondaIOError("Not enough space for download")
