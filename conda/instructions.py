@@ -7,8 +7,10 @@ from .exceptions import InvalidInstruction
 from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
                       link, unlink, symlink_conda, name_dist)
-
-
+from os import access, W_OK
+from os.path import  join
+from .exceptions import CondaFileIOError
+from .install import load_meta
 log = getLogger(__name__)
 
 # op codes
@@ -165,13 +167,22 @@ def get_unlink_package(plan):
 
 
 def check_link_unlink(state, plan):
-    link_list = get_link_package(plan)
+
     unlink_list = get_unlink_package(plan)
 
-    # check for link packages
-    for dist in link_list:
-        pass
+    # check for permission
+    # the folder may not exist now, just check whether can write to prefix
+    prefix = state['prefix']
+    w_permission = access(prefix, W_OK)
 
+    if not w_permission:
+        raise CondaFileIOError(prefix)
 
     for dist in unlink_list:
-        pass
+
+        meta = load_meta(prefix, dist)
+        for f in meta['files']:
+            dst = join(prefix, f)
+            w_permission = access(dst, W_OK)
+            if not w_permission:
+                raise CondaFileIOError(dst)
