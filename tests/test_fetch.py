@@ -36,7 +36,7 @@ class TestFetchRepoData(unittest.TestCase):
             msg = "Connection error:"
             filename = 'repodata.json'
             fetch_repodata(url)
-            assert  msg in str(execinfo)
+            assert msg in str(execinfo)
 
 
 class TestTmpDownload(unittest.TestCase):
