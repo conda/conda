@@ -20,7 +20,7 @@ from os.path import basename, dirname, join
 
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
-                     hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
+                     hide_binstar_tokens, add_pip_as_python_dependency,
                      ssl_verify, rc, prioritize_channels, url_channel, offline_keep)
 from .connection import CondaSession, unparse_url, RETRIES, url_to_path
 from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
@@ -281,14 +281,6 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     stdoutlog.info("Fetching package metadata ...")
     if not isinstance(channel_urls, dict):
         channel_urls = prioritize_channels(channel_urls)
-    for url in iterkeys(channel_urls):
-        if allowed_channels and url not in allowed_channels:
-            raise ChannelNotAllowed("""
-Error: URL '%s' not in allowed channels.
-
-Allowed channels are:
-  - %s
-""" % (url, '\n  - '.join(allowed_channels)))
 
     urls = tuple(filter(offline_keep, channel_urls))
     try:
