@@ -43,11 +43,15 @@ In the ``kapsel.yml`` file you can define *commands* and
 For example, let's say you have a script named ``analyze.py``
 in your project directory along with a file ``kapsel.yml``:
 
+.. code-block:: yaml
+
   myproject/
      analyze.py
      kapsel.yml
 
 The file ``kapsel.yml`` tells conda how to run your project:
+
+.. code-block:: yaml
 
   commands:
     default:
@@ -67,6 +71,8 @@ Let's say your script requires a certain conda package to be
 installed. Add the ``redis-py`` package to ``kapsel.yml`` as a
 dependency:
 
+.. code-block:: yaml
+
   packages:
     - redis-py
 
@@ -79,6 +85,8 @@ data file that you don't want to put in source control and
 you don't want to email. You can add a requirement to be
 downloaded locally:
 
+.. code-block:: yaml
+
   downloads:
     MYDATAFILE:
       url: http://example.com/bigdatafile
@@ -89,6 +97,8 @@ downloaded if it hasn't been downloaded already, and the
 environment variable ``MYDATAFILE`` is set to the local
 filename of the data. In your ``analyze.py`` file you can write
 something like this:
+
+.. code-block:: python
 
    import os
    filename = os.getenv('MYDATAFILE')
@@ -115,6 +125,8 @@ name; ``conda kapsel run COMMAND_NAME`` runs the command named
 description of each command. To customize a command's description,
 add a ``description:`` field in ``kapsel.yml``, like this:
 
+.. code-block:: yaml
+
   commands:
     mycommand:
       unix: "python ${PROJECT_DIR}/analyze.py"
@@ -127,11 +139,15 @@ Environments and Channels
 You can configure packages in a top level ``packages``
 section of the ``kapsel.yml`` file, as we discussed earlier:
 
+.. code-block:: yaml
+
   packages:
     - redis-py
 
 You can also add specific conda channels to be searched for
 packages:
+
+.. code-block:: yaml
 
   channels:
     - conda-forge
@@ -140,6 +156,8 @@ packages:
 default. But if you prefer, you can have multiple named
 environments available in the ``envs`` directory. To do that,
 specify an ``env_specs:`` section of your ``kapsel.yml`` file:
+
+.. code-block:: yaml
 
   env_specs:
     default:
@@ -166,6 +184,8 @@ be instantiated as two environments, ``envs/default`` and
 
 To run a project using a specific env spec, use the ``--env-spec`` option:
 
+.. code-block:: bash
+
   conda kapsel run --env-spec myenvname
 
 https://github.com/Anaconda-Server/conda kapsel/issues/97
@@ -177,6 +197,8 @@ specs.
 
 The default environment spec can be specified for each command,
 like this:
+
+.. code-block:: yaml
 
   commands:
     mycommand:
@@ -190,6 +212,8 @@ pip packages
 
 Underneath any `packages:` section, you can add a `pip:`
 section with a list of pip requirement specifiers.
+
+.. code-block:: yaml
 
     packages:
        - condapackage1
@@ -207,6 +231,8 @@ When someone runs your project, ``conda kapsel`` asks
 them to set these variables.
 
 For example:
+
+.. code-block:: yaml
 
   variables:
     - AMAZON_EC2_USERNAME
@@ -231,6 +257,8 @@ encrypts the value that you enter when prompted.
 To force a variable to be encrypted or not encrypted, add the
 ``encrypted`` option to it in ``kapsel.yml``, like this:
 
+.. code-block:: yaml
+
   variables:
     # let's encrypt the password but not the username
     AMAZON_EC2_USERNAME: { encrypted: false }
@@ -252,6 +280,8 @@ its value to either ``null`` or ``{}``.
 
 For example::
 
+.. code-block:: yaml
+
   variables:
     FOO: "default_value_of_foo"
     BAR: null # no default for BAR
@@ -263,12 +293,14 @@ For example::
 
 
 Variables can have custom description strings
-======================================
+=============================================
 
 A variable can have a 'description' field, which will be used in UIs
 which display the variable.
 
 For example:
+
+.. code-block:: yaml
 
   variables:
     SALES_DB_PASSWORD: {
@@ -293,6 +325,8 @@ These variables always exist, so for example to get a
 file from your project directory, try this in your Python code
 (notebook or script):
 
+.. code-block:: python
+
   import os
   project_dir = os.getenv("PROJECT_DIR")
   my_file = os.path.join(project_dir, "my/file.txt")
@@ -306,6 +340,8 @@ can be provided to your code by using an environment variable.
 
 For example, you can add a services section to your ``kapsel.yml`` file:
 
+.. code-block:: yaml
+
   services:
     REDIS_URL: redis
 
@@ -314,10 +350,14 @@ offers to start a local instance of ``redis-server`` automatically.
 
 There is also a long form of the above service configuration:
 
+.. code-block:: yaml
+
   services:
     REDIS_URL: { type: redis }
 
 and you can set a default and any options a service may have:
+
+.. code-block:: yaml
 
   services:
     REDIS_URL:
@@ -334,6 +374,8 @@ File Downloads
 The ``downloads:`` section of the ``kapsel.yml`` file lets you define
 environment variables that point to downloaded files. For example:
 
+.. code-block:: yaml
+
   downloads:
     MYDATAFILE:
       url: http://example.com/bigdatafile
@@ -347,6 +389,8 @@ NOTE: The download is checked for integrity ONLY if you specify a hash.
 
 You can also specify a filename to download to, relative to your
 project directory. For example:
+
+.. code-block:: yaml
 
   downloads:
     MYDATAFILE:
@@ -364,12 +408,16 @@ To avoid the automated download, it's also possible for someone to
 run your project with an existing file path in the environment;
 on Linux or Mac, that looks like:
 
+.. code-block:: bash
+
   MYDATAFILE=/my/already/downloaded/file.csv conda kapsel run
 
 Conda can auto-unzip a zip file as it is downloaded.  This is the
 default if the the URL path ends in ".zip" unless the filename
 also ends in ".zip". For URLs that do not end in ".zip", or to
 change the default, you can specify the "unzip" flag:
+
+.. code-block:: yaml
 
   downloads:
     MYDATAFILE:
@@ -394,9 +442,13 @@ By default, Conda names your project with the same name as the
 directory in which it is located. You can give it a different name
 though in ``kapsel.yml``:
 
+.. code-block:: yaml
+
   name: myproject
 
 You can also have an icon file, relative to the project directory:
+
+.. code-block:: yaml
 
   icon: images/myicon.png
 
@@ -408,13 +460,19 @@ You can edit ``kapsel.yml`` with the ``conda kapsel`` command.
 
 To add a download to ``kapsel.yml``:
 
+.. code-block:: bash
+
   conda kapsel add-download MYFILE http://example.com/myfile
 
 To add a package:
 
+.. code-block:: bash
+
   conda kapsel add-packages redis-py
 
 To ask for a running Redis instance:
+
+.. code-block:: bash
 
   conda kapsel add-service redis
 
