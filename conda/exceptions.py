@@ -197,6 +197,12 @@ class PackageNotFoundError(CondaError):
         super(PackageNotFoundError, self).__init__(msg, *args, **kwargs)
 
 
+class CondaHTTPError(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = 'HTTP Error: %s\n' % message
+        super(CondaHTTPError, self).__init__(msg, *args, **kwargs)
+
+
 class NoPackagesFoundError(CondaError, RuntimeError):
     '''An exception to report that requested packages are missing.
 
@@ -352,7 +358,7 @@ def print_exception(exception):
 
 
 def get_info():
-    from StringIO import StringIO
+    from conda.compat import StringIO
     from contextlib import contextmanager
     from conda.cli import conda_argparse
     from conda.cli.main_info import configure_parser
