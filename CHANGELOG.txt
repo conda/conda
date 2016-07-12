@@ -6,6 +6,7 @@
   * replace sys.exit with exceptions, #2899, #2993, #3016
   * start using finer-grained locking, #2962
   * project structure enhancement, #2929
+  * add extra info to exception message #3045
   * force use of ruamel_yaml, #2762
   * remove dead code, #2761
   * remove legacy code in conda.install, #2969
@@ -14,14 +15,15 @@
   * remove excess output from conda --help, #2872
   * remove os.remove in update_prefix, #3006
   * remove auxlib from project root, #2931
-  * vendor requests v2.10.0, #2930, #2949
   * vendor auxlib 0.0.40, #2932, #2943
   * vendor toolz 0.8.0, #2994
+  * vendor boltons 16.4.1, #3046
   * expose full regex power for version specifications, #2933
   * move progressbar to vendor directory, #2951
   * merge conda-env into conda, #2950, #2952, #2954
   * better error behavior if conda is spec'd for a non-root environment, #2956
   * fix conda.recipe for new quirks with conda-build, #2959
+  * deprecate conda/lock.py Locked class, #2989
 
 
 2016-07-12  4.1.8:
