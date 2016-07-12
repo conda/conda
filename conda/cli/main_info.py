@@ -257,20 +257,20 @@ def execute(args, parser):
         print("""\
 Current conda install:
 
-             platform : %(platform)s
-        conda version : %(conda_version)s
-    conda-env version : %(conda_env_version)s
-  conda-build version : %(conda_build_version)s
-       python version : %(python_version)s
-     requests version : %(requests_version)s
-     root environment : %(root_prefix)s  (%(_rtwro)s)
-  default environment : %(default_prefix)s
-     envs directories : %(_envs_dirs)s
-        package cache : %(_pkgs_dirs)s
-         channel URLs : %(_channels)s
-          config file : %(rc_path)s
-         offline mode : %(offline)s
-    is foreign system : %(is_foreign)s
+               platform : %(platform)s
+          conda version : %(conda_version)s
+      conda-env version : %(conda_env_version)s
+    conda-build version : %(conda_build_version)s
+         python version : %(python_version)s
+       requests version : %(requests_version)s
+       root environment : %(root_prefix)s  (%(_rtwro)s)
+    default environment : %(default_prefix)s
+       envs directories : %(_envs_dirs)s
+          package cache : %(_pkgs_dirs)s
+           channel URLs : %(_channels)s
+            config file : %(rc_path)s
+           offline mode : %(offline)s
+      is foreign system : %(is_foreign)s
 """ % info_dict)
 
     if args.envs:
