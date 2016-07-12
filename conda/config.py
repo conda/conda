@@ -385,21 +385,6 @@ def url_channel(url):
         schannel = canonical_channel_name(channel)
     return channel, schannel
 
-# ----- allowed channels -----
-
-def get_allowed_channels():
-    if not isfile(sys_rc_path):
-        return None
-    if sys_rc.get('allow_other_channels', True):
-        return None
-    if 'channels' in sys_rc:
-        base_urls = ['system']
-    else:
-        base_urls = ['default']
-    return normalize_urls(base_urls)
-
-allowed_channels = get_allowed_channels()
-
 # ----- proxy -----
 
 def get_proxy_servers():
