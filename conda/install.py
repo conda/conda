@@ -600,7 +600,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
                 symlink_fn(root_file, prefix_file)
         except (IOError, OSError) as e:
             if (os.path.lexists(prefix_file) and
-                    (e.errno == errno.EPERM or e.errno == errno.EACCES)):
+                    (e.errno in [errno.EPERM, errno.EACCES, errno.EROFS])):
                 log.debug("Cannot symlink {0} to {1}. Ignoring since link already exists."
                           .format(root_file, prefix_file))
             else:
