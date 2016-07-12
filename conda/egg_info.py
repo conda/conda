@@ -13,12 +13,12 @@ from os.path import isdir, isfile, join
 from .compat import itervalues
 from .install import linked_data
 from .misc import rel_path
-
+from .utils import on_win
 
 def get_site_packages_dir(installed_pkgs):
     for info in itervalues(installed_pkgs):
         if info['name'] == 'python':
-            if sys.platform == 'win32':
+            if on_win:
                 stdlib_dir = 'Lib'
             else:
                 py_ver = info['version'][:3]

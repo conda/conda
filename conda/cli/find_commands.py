@@ -5,14 +5,14 @@ import re
 import sys
 from os.path import isdir, isfile, join, expanduser
 
-from ..utils import memoized
+from ..utils import memoized, on_win
 
 def find_executable(executable, include_others=True):
     # backwards compatibility
     global dir_paths
 
     if include_others:
-        if sys.platform == 'win32':
+        if on_win:
             dir_paths = [join(sys.prefix, 'Scripts'),
                          'C:\\cygwin\\bin']
         else:
@@ -23,7 +23,7 @@ def find_executable(executable, include_others=True):
     dir_paths.extend(os.environ['PATH'].split(os.pathsep))
 
     for dir_path in dir_paths:
-        if sys.platform == 'win32':
+        if on_win:
             for ext in ('.exe', '.bat', ''):
                 path = join(dir_path, executable + ext)
                 if isfile(path):
@@ -37,7 +37,7 @@ def find_executable(executable, include_others=True):
 @memoized
 def find_commands(include_others=True):
     if include_others:
-        if sys.platform == 'win32':
+        if on_win:
             dir_paths = [join(sys.prefix, 'Scripts'),
                          'C:\\cygwin\\bin']
         else:
@@ -45,7 +45,7 @@ def find_commands(include_others=True):
     else:
         dir_paths = []
 
-    if sys.platform == 'win32':
+    if on_win:
         pat = re.compile(r'conda-([\w\-]+)\.(exe|bat)$')
     else:
         pat = re.compile(r'conda-([\w\-]+)$')
