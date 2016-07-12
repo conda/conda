@@ -1,5 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
+import sys
+from traceback import format_exc
+
 from .compat import iteritems, iterkeys
 
 
@@ -348,28 +351,62 @@ def print_exception(exception):
         stderr.write(message)
 
 
+def get_info():
+    from StringIO import StringIO
+    from contextlib import contextmanager
+    from conda.cli import conda_argparse
+    from conda.cli.main_info import configure_parser
+
+    class CapturedText(object):
+        pass
+
+    @contextmanager
+    def captured():
+        stdout, stderr = sys.stdout, sys.stderr
+        sys.stdout = outfile = StringIO()
+        sys.stderr = errfile = StringIO()
+        c = CapturedText()
+        yield c
+        c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
+        sys.stdout, sys.stderr = stdout, stderr
+
+    p = conda_argparse.ArgumentParser()
+    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
+    configure_parser(sub_parsers)
+
+    from shlex import split
+    args = p.parse_args(split("info"))
+    with captured() as c:
+        args.func(args, p)
+    return c.stdout, c.stderr
+
+
 def print_unexpected_error_message(e):
+    traceback = format_exc()
+
     from conda.config import output_json
     if not output_json and e.__class__.__name__ not in ('ScannerError', 'ParserError'):
         message = """\
-An unexpected error has occurred, please consider sending the
-following traceback to the conda GitHub issue tracker at:
+An unexpected error has occurred.
+Please consider posting the following information to the
+conda GitHub issue tracker at:
 
     https://github.com/conda/conda/issues
-
-Include the output of the command 'conda info' in your report.
 
 """
     else:
         message = ''
     print(message)
+    info_stdout, info_stderr = get_info()
+    print(info_stdout if info_stdout else info_stderr)
+    print("`$ {0}`".format(' '.join(sys.argv)))
+    print('\n')
 
-    import traceback
     if output_json:
         from conda.cli.common import stdout_json
-        stdout_json(dict(error=traceback.format_exc()))
+        stdout_json(dict(error=traceback))
     else:
-        traceback.print_exc()
+        print('\n'.join('    ' + line for line in traceback.splitlines()))
 
 
 def conda_exception_handler(func, *args, **kwargs):
@@ -378,7 +415,7 @@ def conda_exception_handler(func, *args, **kwargs):
         if isinstance(return_value, int):
             return return_value
     except CondaRuntimeError as e:
-        print_exception(e)
+        print_unexpected_error_message(e)
         return 1
     except CondaError as e:
         print_exception(e)
