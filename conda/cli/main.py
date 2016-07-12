@@ -40,6 +40,7 @@ from __future__ import print_function, division, absolute_import
 import sys
 import importlib
 
+from conda.utils import on_win
 from ..exceptions import conda_exception_handler, CommandNotFoundError
 
 
@@ -53,7 +54,7 @@ def _main():
         if argv1 in ('activate', 'deactivate'):
 
             message = "Error: '%s' is not a conda command.\n" % argv1
-            if sys.platform != 'win32':
+            if not on_win:
                 message += ' Did you mean "source %s" ?\n' % ' '.join(sys.argv[1:])
 
             raise CommandNotFoundError(message)

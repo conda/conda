@@ -14,6 +14,8 @@ import tempfile
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
+on_win = bool(sys.platform == "win32")
+
 
 class memoized(object):
     """Decorator. Caches a function's return value each time it is called.
@@ -117,7 +119,7 @@ def md5_file(path):
 
 def url_path(path):
     path = abspath(path)
-    if sys.platform == 'win32':
+    if on_win:
         path = '/' + path.replace(':', '|').replace('\\', '/')
     return 'file://%s' % path
 
@@ -239,7 +241,7 @@ def find_parent_shell(path=False, max_stack_depth=10):
             stack_depth += 1
         else:
             # fallback defaults to system default
-            if sys.platform == 'win32':
+            if on_win:
                 return 'cmd.exe'
             else:
                 return 'bash'
@@ -308,7 +310,7 @@ msys2_shell_base = dict(
                         binpath="/Scripts/",  # mind the trailing slash.
 )
 
-if sys.platform == "win32":
+if on_win:
     shells = {
         # "powershell.exe": dict(
         #    echo="echo",
