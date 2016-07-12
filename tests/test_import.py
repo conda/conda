@@ -9,6 +9,7 @@ import os
 import sys
 import unittest
 import conda
+from conda.utils import on_win
 
 PREFIX = os.path.dirname(os.path.abspath(conda.__file__))
 
@@ -33,7 +34,7 @@ class TestImportAllConda(unittest.TestCase):
                 continue
             elif not fname.endswith('.py'):
                 continue
-            elif fname.startswith('windows') and sys.platform != 'win32':
+            elif fname.startswith('windows') and not on_win:
                 continue
             # Import
             modname = module_prefix + '.' + fname.split('.')[0]
