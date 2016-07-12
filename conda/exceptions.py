@@ -415,7 +415,7 @@ def conda_exception_handler(func, *args, **kwargs):
         if isinstance(return_value, int):
             return return_value
     except CondaRuntimeError as e:
-        print_exception(e)
+        print_unexpected_error_message(e)
         return 1
     except CondaError as e:
         print_exception(e)
