@@ -303,19 +303,19 @@ def test_config_command_basics():
         assert stdout == stderr == ''
         assert _read_test_condarc(rc) == """\
 channels:
-  - test
   - defaults
+  - test
 """
     with make_temp_condarc() as rc:
         # When defaults is explicitly given, it should not be added
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'channels', 'test', '--add', 'channels', 'defaults')
         assert stdout == ''
-        assert stderr == "Warning: 'defaults' already in 'channels' list, moving to the front"
+        assert stderr == "Warning: 'defaults' already in 'channels' list, moving to the bottom"
         assert _read_test_condarc(rc) == """\
 channels:
-  - defaults
   - test
+  - defaults
 """
     # Duplicate keys should not be added twice
     with make_temp_condarc() as rc:
@@ -325,11 +325,11 @@ channels:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
             'channels', 'test')
         assert stdout == ''
-        assert stderr == "Warning: 'test' already in 'channels' list, moving to the front"
+        assert stderr == "Warning: 'test' already in 'channels' list, moving to the bottom"
         assert _read_test_condarc(rc) == """\
 channels:
-  - test
   - defaults
+  - test
 """
 
     # Test append
@@ -340,7 +340,7 @@ channels:
         stdout, stderr = run_conda_command('config', '--file', rc, '--append',
             'channels', 'test')
         assert stdout == ''
-        assert stderr == "Warning: 'test' already in 'channels' list, moving to the back"
+        assert stderr == "Warning: 'test' already in 'channels' list, moving to the bottom"
         assert _read_test_condarc(rc) == """\
 channels:
   - defaults
@@ -394,10 +394,10 @@ channel_alias: http://alpha.conda.anaconda.org
 --set always_yes True
 --set changeps1 False
 --set channel_alias http://alpha.conda.anaconda.org
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority
---add create_default_packages 'numpy'
---add create_default_packages 'ipython'\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority
+--add create_default_packages 'ipython'
+--add create_default_packages 'numpy'\
 """
         assert stderr == "unknown key invalid_key"
 
@@ -405,8 +405,8 @@ channel_alias: http://alpha.conda.anaconda.org
         '--get', 'channels')
 
         assert stdout == """\
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority\
 """
         assert stderr == ""
 
@@ -423,8 +423,8 @@ channel_alias: http://alpha.conda.anaconda.org
 
         assert stdout == """\
 --set changeps1 False
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority\
 """
         assert stderr == ""
 
@@ -484,15 +484,22 @@ always_yes: yes
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority
---add create_default_packages 'numpy'
---add create_default_packages 'ipython'\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority
+--add create_default_packages 'ipython'
+--add create_default_packages 'numpy'\
 """
+        print(">>>>")
+        with open(rc, 'r') as fh:
+            print(fh.read())
 
-        stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-            'channels', 'mychannel')
+
+
+        stdout, stderr = run_conda_command('config', '--file', rc, '--prepend', 'channels', 'mychannel')
         assert stdout == stderr == ''
+
+        with open(rc, 'r') as fh:
+            print(fh.read())
 
         assert _read_test_condarc(rc) == """\
 channels:
