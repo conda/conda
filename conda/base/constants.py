@@ -54,3 +54,5 @@ SEARCH_PATH = (
     '$ENV/.condarc',
     '$ENV/.condaenv.yml',
 )
+
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'

@@ -27,33 +27,6 @@ stderrlog = logging.getLogger('stderrlog')
 output_json = False
 debug_on = False
 
-default_python = '%d.%d' % sys.version_info[:2]
-# CONDA_FORCE_32BIT should only be used when running conda-build (in order
-# to build 32-bit packages on a 64-bit system).  We don't want to mention it
-# in the documentation, because it can mess up a lot of things.
-force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
-
-# ----- operating system and architecture -----
-
-_sys_map = {
-    'linux2': 'linux',
-    'linux': 'linux',
-    'darwin': 'osx',
-    'win32': 'win',
-    'openbsd5': 'openbsd',
-}
-non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
-platform = _sys_map.get(sys.platform, 'unknown')
-bits = 8 * tuple.__itemsize__
-if force_32bit:
-    bits = 32
-
-if platform == 'linux' and machine() in non_x86_linux_machines:
-    arch_name = machine()
-    subdir = 'linux-%s' % arch_name
-else:
-    arch_name = {64: 'x86_64', 32: 'x86'}[bits]
-    subdir = '%s-%d' % (platform, bits)
 
 # ----- rc file -----
 
@@ -125,8 +98,7 @@ root_dir = root_prefix
 
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
-local_channel = []
-root_writable = None
+root_dir = root_writable = None
 offline = False
 add_anaconda_token = ADD_BINSTAR_TOKEN
 rc = {}
@@ -186,57 +158,14 @@ def pkgs_dir_from_envs_dir(envs_dir):
     else:
         return join(envs_dir, '.pkgs')
 
-# ----- channels -----
-
-# Note, get_*_urls() return unnormalized urls.
-
-def get_local_urls(clear_cache=True):
-    # remove the cache such that a refetch is made,
-    # this is necessary because we add the local build repo URL
-    if clear_cache:
-        from .fetch import fetch_index
-        fetch_index.cache = {}
-    if local_channel:
-        return local_channel
-    from os.path import exists
-    from .utils import path_to_url
-    try:
-        from conda_build.config import croot
-        if exists(croot):
-            local_channel.append(path_to_url(croot))
-    except ImportError:
-        pass
-    return local_channel
-
-
-defaults_ = [
-    'https://repo.continuum.io/pkgs/free',
-    'https://repo.continuum.io/pkgs/pro',
-]
-if platform == "win":
-    defaults_.append('https://repo.continuum.io/pkgs/msys2')
-
-
-def get_default_urls(merged=False):
-    if 'default_channels' in sys_rc:
-        res = sys_rc['default_channels']
-        if merged:
-            res = list(res)
-            res.extend(c for c in defaults_ if c not in res)
-        return res
-    return defaults_
-
-def get_rc_urls():
-    if rc is None or rc.get('channels') is None:
-        return []
-    if 'system' in rc['channels']:
-        raise CondaRuntimeError("system cannot be used in .condarc")
-    return rc['channels']
 
 def is_url(url):
     if url:
         p = urlparse.urlparse(url)
         return p.netloc != "" or p.scheme == "file"
+
+
+
 
 def set_offline():
     global offline
@@ -248,142 +177,8 @@ def is_offline():
 def offline_keep(url):
     return not offline or not is_url(url) or url.startswith('file:/')
 
-def init_binstar(quiet=False):
-    global binstar_client, binstar_domain, binstar_domain_tok
-    global binstar_regex, BINSTAR_TOKEN_PAT
-    if binstar_domain is not None:
-        return
-    elif binstar_client is None:
-        try:
-            from binstar_client.utils import get_binstar
-            # Turn off output in offline mode so people don't think we're going online
-            args = namedtuple('args', 'log_level')(0) if quiet or offline else None
-            binstar_client = get_binstar(args)
-        except ImportError:
-            log.debug("Could not import binstar")
-            binstar_client = ()
-        except Exception as e:
-            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
-    if binstar_client == ():
-        binstar_domain = DEFAULT_CHANNEL_ALIAS
-        binstar_domain_tok = None
-    else:
-        binstar_domain = binstar_client.domain.replace("api", "conda").rstrip('/') + '/'
-        if add_anaconda_token and binstar_client.token:
-            binstar_domain_tok = binstar_domain + 't/%s/' % (binstar_client.token,)
-    binstar_regex = (r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
-                     re.escape(binstar_domain[:-1]))
-    BINSTAR_TOKEN_PAT = re.compile(binstar_regex)
 
 
-def channel_prefix(token=False):
-    global channel_alias, channel_alias_tok
-    if channel_alias is None or (channel_alias_tok is None and token):
-        init_binstar()
-        if channel_alias is None or channel_alias == binstar_domain:
-            channel_alias = binstar_domain
-            channel_alias_tok = binstar_domain_tok
-        if channel_alias is None:
-            channel_alias = DEFAULT_CHANNEL_ALIAS
-    if channel_alias_tok is None:
-        channel_alias_tok = channel_alias
-    return channel_alias_tok if token and add_anaconda_token else channel_alias
-
-def add_binstar_tokens(url):
-    if binstar_domain_tok and url.startswith(binstar_domain):
-        url2 = BINSTAR_TOKEN_PAT.sub(r'\1', url)
-        if url2 == url:
-            return binstar_domain_tok + url.split(binstar_domain, 1)[1]
-    return url
-
-def hide_binstar_tokens(url):
-    return BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
-
-def remove_binstar_tokens(url):
-    return BINSTAR_TOKEN_PAT.sub(r'\1', url)
-
-def prioritize_channels(channels):
-    newchans = OrderedDict()
-    priority = 0
-    schans = {}
-    for channel in channels:
-        channel = channel.rstrip('/') + '/'
-        if channel not in newchans:
-            channel_s = canonical_channel_name(channel.rsplit('/', 2)[0])
-            if channel_s not in schans:
-                priority += 1
-                schans[channel_s] = priority
-            newchans[channel] = (channel_s, schans[channel_s])
-    return newchans
-
-def normalize_urls(urls, platform=None):
-    defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls(False))
-    newurls = []
-    while urls:
-        url = urls[0]
-        urls = urls[1:]
-        if url == "system" and rc_path:
-            urls = get_rc_urls() + urls
-            continue
-        elif url in ("defaults", "system"):
-            t_urls = defaults
-        elif url == "local":
-            t_urls = get_local_urls()
-        else:
-            t_urls = [url]
-        for url0 in t_urls:
-            url0 = url0.rstrip('/')
-            if not is_url(url0):
-                url0 = channel_prefix(True) + url0
-            else:
-                url0 = add_binstar_tokens(url0)
-            for plat in (platform or subdir, 'noarch'):
-                newurls.append('%s/%s/' % (url0, plat))
-    return newurls
-
-def get_channel_urls(platform=None):
-    if os.getenv('CIO_TEST'):
-        import cio_test
-        base_urls = cio_test.base_urls
-    elif 'channels' in rc:
-        base_urls = ['system']
-    else:
-        base_urls = ['defaults']
-    res = normalize_urls(base_urls, platform)
-    return res
-
-def canonical_channel_name(channel):
-    if channel is None:
-        return '<unknown>'
-    channel = remove_binstar_tokens(channel).rstrip('/')
-    if any(channel.startswith(i) for i in get_default_urls(True)):
-        return 'defaults'
-    elif any(channel.startswith(i) for i in get_local_urls(clear_cache=False)):
-        return 'local'
-    channel_alias = channel_prefix(False)
-    if channel.startswith(channel_alias):
-        return channel.split(channel_alias, 1)[1]
-    elif channel.startswith('http:/'):
-        channel2 = 'https' + channel[4:]
-        channel3 = canonical_channel_name(channel2)
-        return channel3 if channel3 != channel2 else channel
-    else:
-        return channel
-
-def url_channel(url):
-    parts = (url or '').rsplit('/', 2)
-    if len(parts) == 1:
-        return '<unknown>', '<unknown>'
-    if len(parts) == 2:
-        return parts[0], parts[0]
-    if url.startswith('file://') and parts[1] not in ('noarch', subdir):
-        # Explicit file-based URLs are denoted with a '/' in the schannel
-        channel = parts[0] + '/' + parts[1]
-        schannel = channel + '/'
-    else:
-        channel = parts[0]
-        schannel = canonical_channel_name(channel)
-    return channel, schannel
 
 # ----- proxy -----
 
@@ -431,15 +226,6 @@ def load_condarc(path=None):
             foreign = fi.read().split()
     except IOError:
         foreign = [] if isdir(join(root_dir, 'conda-meta')) else ['python']
-
-    binstar_regex = r'((:?binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
-    BINSTAR_TOKEN_PAT = re.compile(binstar_regex)
-    channel_alias = rc.get('channel_alias', None)
-    if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
-        channel_alias = sys_rc['channel_alias']
-    if channel_alias is not None:
-        channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
-    channel_alias_tok = binstar_client = binstar_domain = binstar_domain_tok = None
 
     offline = bool(rc.get('offline', False))
     add_anaconda_token = rc.get('add_anaconda_token',
