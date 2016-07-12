@@ -59,7 +59,16 @@ def configure_parser(sub_parsers):
         p.add_argument(
             "--shortcuts",
             action="store_true",
-            help="Install start menu shortcuts"
+            help="Install start menu shortcuts",
+            dest="shortcuts",
+            default=True
+        )
+        p.add_argument(
+            "--no-shortcuts",
+            action="store_false",
+            help="Don't install start menu shortcuts",
+            dest="shortcuts",
+            default=True
         )
     add_parser_install(p)
     add_parser_json(p)
