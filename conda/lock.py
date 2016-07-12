@@ -96,5 +96,5 @@ class FileLock(object):
 
 def Locked(*args, **kwargs):
     from warnings import warn
-    warn("Locked class has been deprecated as Filelock!")
+    warn("Locked class has been deprecated as FileLock!")
     return FileLock(*args, **kwargs)
