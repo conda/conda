@@ -24,9 +24,11 @@
   * fix conda.recipe for new quirks with conda-build, #2959
 
 
-2016-07-09  4.1.8:
+2016-07-12  4.1.8:
 ------------------
   * fix #3004 UNAUTHORIZED for url (null binstar token), #3008
+  * fix overwrite existing redirect shortcuts when symlinking envs, #3025
+  * partially revert no default shortcuts, #3032, #3047
 
 
 2016-07-09  4.0.11:
