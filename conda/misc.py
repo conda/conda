@@ -18,7 +18,7 @@ from .config import is_url, url_channel, root_dir, envs_dirs, subdir
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
-from .utils import md5_file, url_path as utils_url_path, on_win
+from .utils import md5_file, path_to_url
 from .api import get_index
 from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
                          PackageNotFoundError, CondaRuntimeError)
@@ -63,7 +63,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             elif not isdir(url_p):
                 raise CondaFileNotFoundError('file not found: %s' %
                                              join(url_p, fn))
-            url_p = utils_url_path(url_p).rstrip('/')
+            url_p = path_to_url(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
 
         # is_local: if the tarball is stored locally (file://)

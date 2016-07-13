@@ -37,7 +37,7 @@ from conda.connection import LocalFSAdapter
 from conda.exceptions import CondaError
 from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win, linked_data
-from conda.utils import url_path
+from conda.utils import path_to_url
 from tests.helpers import captured
 
 log = getLogger(__name__)
@@ -296,7 +296,7 @@ class IntegrationTests(TestCase):
             repodata = {'info': {}, 'packages':{flask_fname: flask_data}}
             with make_temp_env() as channel:
                 subchan = join(channel, subdir)
-                channel = url_path(channel)
+                channel = path_to_url(channel)
                 os.makedirs(subchan)
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
