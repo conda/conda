@@ -15,8 +15,7 @@ from .install import load_meta
 from blessings import Terminal
 from ._vendor.progressive.bar import Bar
 from ._vendor.progressive.tree import ProgressTree, Value, BarDescriptor
-
-
+from collections import OrderedDict
 log = getLogger(__name__)
 
 # op codes
@@ -32,7 +31,7 @@ PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 
-progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
+progress_cmds = set([FETCH, EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
     FETCH,
     EXTRACT,
@@ -126,20 +125,21 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     if verbose:
         from .console import setup_verbose_handlers
         setup_verbose_handlers()
-
-    state = {'i': None, 'prefix': root_dir, 'index': index}
-
+    plan_dict = new_plan(plan)
+    state = {'prefix': root_dir, 'index': index}
     checked = False
-    downloaded = False
-    to_download = []
-    for instruction, arg in plan:
+    start_label = "[   START      ]"
+    end_label = "[   COMPLETE   ]"
+    for instruction in plan_dict:
 
-        log.debug(' %s(%r)' % (instruction, arg))
+        if '_' not in instruction and plan_dict[instruction]:
+            header_message = '%sing packages ...' % instruction.capitalize()
+        elif instruction.startswith('RM_'):
+            header_message = 'Pruning %s packages from the cache ...' % instruction[3:].lower()
+        else:
+            header_message = None
 
-        if state['i'] is not None and instruction in progress_cmds:
-            state['i'] += 1
-            getLogger('progress.update').info((name_dist(arg),
-                                               state['i'] - 1))
+        log.debug(' %s' % instruction)
         cmd = _commands.get(instruction)
 
         if cmd is None:
@@ -150,23 +150,45 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             check_link_unlink(state, plan)
             checked = True
 
-        # a hack to current implementation
-        if cmd == FETCH_CMD:
-            to_download.append(arg)
-            continue
+        if instruction in progress_cmds and plan_dict[instruction]:
 
-        if cmd == EXTRACT_CMD and not downloaded:
-            parallel_download(state, to_download)
-            downloaded = True
-            PRINT_CMD(state, "Extracting packages ...")
+            # print the message header
+            if header_message:
+                PRINT_CMD(state, header_message)
+            # get the label
+            label_dict = pretty_label(end_label, plan_dict[instruction])
+            # execute the command
+            if cmd == FETCH_CMD:
+                parallel_download(state, plan_dict[instruction])
+            else:
+                # start a progress bar
+                bar = Bar(title=start_label, max_value=bar_length, fallback=True, num_rep="percentage")
+                bar.cursor.clear_lines(2)
+                #   Before beginning to draw our bars, we save the position
+                #   of our cursor so we can restore back to this position before writing
+                #   the next time.
+                bar.cursor.save()
+                length = len(plan_dict[instruction])
+                for i in range(len(plan_dict[instruction])+1):
+                    # the end step
+                    if i == len(plan_dict[instruction]):
+                        bar.cursor.restore()
+                        bar.update_title(end_label)
+                        bar.draw(value=bar_length)
+                        continue
 
-        cmd(state, arg)
-
-        if (state['i'] is not None and instruction in progress_cmds and
-                state['maxval'] == state['i']):
-            state['i'] = None
-            getLogger('progress.stop').info(None)
-
+                    # other operation
+                    arg = plan_dict[instruction][i]
+                    # We restore the cursor to saved position before writing
+                    bar.cursor.restore()
+                    # execute the command
+                    cmd(state, arg)
+                    # Now we draw the bar
+                    bar.update_title(label_dict[arg])
+                    bar.draw(value=bar_length/length * i)
+        else:
+            for arg in plan_dict[instruction]:
+                cmd(state, arg)
     messages(state['prefix'])
 
 
@@ -181,13 +203,14 @@ def parallel_download(state, arg_list):
 
         bd_defaults = dict(type=Bar, kwargs=dict(max_value=bar_length))
         general_label = "Fetching Packages "
-        general_label, new_arg_list = pretty_label(general_label, arg_list)
+        label_dict = pretty_label(general_label, arg_list)
+        general_label = label_dict[general_label]
         test_d = {general_label: {}}
         leaf_values = {}
-        for arg in new_arg_list:
-            url = state['index'][arg.strip() + '.tar.bz2'].get('url')
+        for arg in arg_list:
+            url = state['index'][arg + '.tar.bz2'].get('url')
             leaf_values[url] = Value(0)
-            test_d[general_label][arg] = BarDescriptor(value=leaf_values[url], **bd_defaults)
+            test_d[general_label][label_dict[arg]] = BarDescriptor(value=leaf_values[url], **bd_defaults)
             update_bar[url] = Value(0)
 
         t = Terminal()
@@ -208,19 +231,37 @@ def parallel_download(state, arg_list):
 
 
 def pretty_label(general_label, arg_list):
-    max_length = len(general_label)
+    """
+        Make the label and the argument looks pretty
+    :param general_label: the general label for the progress bar
+    :param arg_list: the list of package
+    :return: the map of old packages and new label
+    """
+    # clean the name of packages
+    new_arg_list = []
     for arg in arg_list:
+        new_arg_list.append(arg.rsplit("-", 2)[0])
+    res = {}
+
+    # align all the names
+    max_length = len(general_label)
+    for arg in new_arg_list:
         if len(arg) > max_length:
             max_length = len(arg)
     max_length += 2
-    general_label += "".join([" "] * (max_length - len(general_label)))
-    new_list = []
+    res[general_label] = general_label + "".join([" "] * (max_length - len(general_label)))
     for arg in arg_list:
-        new_list.append(arg + str("".join([" "] * (max_length - len(arg)))))
+        res[arg] = arg + str("".join([" "] * (max_length - len(arg))))
 
-    return general_label, new_list
+    return res
+
 
 def get_link_package(plan):
+    """
+        Get all the packages to link
+    :param plan: the plan from action
+    :return: the list of packages to link
+    """
     link_list = []
     for instruction, arg in plan:
         if instruction == LINK:
@@ -273,5 +314,17 @@ def download_job(state, arg_list, executor):
         from .install import package_cache
         for arg in arg_list:
              assert arg in package_cache()
+
+
+def new_plan(plan):
+    plan_dict = OrderedDict()
+    for instruction, arg in plan:
+        if instruction == PROGRESS:
+            continue
+        if instruction not in plan_dict:
+            plan_dict[instruction] = []
+        else:
+            plan_dict[instruction].append(arg)
+    return plan_dict
 
 

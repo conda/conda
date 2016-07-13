@@ -372,6 +372,9 @@ class Bar(object):
     # Public Methods #
     ##################
 
+    def update_title(self, title):
+        self.title = title
+
     def draw(self, value, newline=True, flush=True):
         """Draw the progress bar
 
@@ -431,7 +434,8 @@ class Bar(object):
         # Add complete percentage or fraction
         bar_str = u"{} {}".format(bar_str, amount_complete_str)
         # Add the widgets
-        bar_str = u"{}   {}".format(bar_str, self._format_line())
+        if self.widgets:
+            bar_str = u"{}   {}".format(bar_str, self._format_line())
         # Set back to normal after printing
         bar_str = u"{}{}".format(bar_str, self.term.normal)
         # Finally, write the completed bar_str
