@@ -15,6 +15,7 @@ import conda.plan as plan
 import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
+from conda.utils import on_win
 
 # FIXME This should be a relative import
 from tests.helpers import captured
@@ -920,7 +921,7 @@ class PlanFromActionsTests(unittest.TestCase):
             ('LINK', menuinst),
         ]
 
-        if sys.platform == 'win32':
+        if on_win:
             # menuinst should be linked first
             expected_plan = [
                 ('PREFIX', 'aprefix'),
