@@ -581,3 +581,4 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
+
