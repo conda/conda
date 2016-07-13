@@ -147,6 +147,7 @@ def execute(args, parser):
     from os.path import dirname
 
     import conda
+    import conda.config as config
     from conda.config import (root_dir, get_channel_urls, subdir, pkgs_dirs,
                               root_writable, envs_dirs, default_prefix, rc_path,
                               user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
@@ -231,6 +232,8 @@ def execute(args, parser):
         conda_env_version=conda_env_version,
         conda_build_version=conda_build_version,
         root_prefix=root_dir,
+        conda_prefix=config.conda_prefix,
+        home_in_root=config.home_in_root,
         root_writable=root_writable,
         pkgs_dirs=pkgs_dirs,
         envs_dirs=envs_dirs,
@@ -260,6 +263,7 @@ Current conda install:
 
                platform : %(platform)s
           conda version : %(conda_version)s
+   conda's home in root : %(home_in_root)s
       conda-env version : %(conda_env_version)s
     conda-build version : %(conda_build_version)s
          python version : %(python_version)s
