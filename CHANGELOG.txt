@@ -1,3 +1,8 @@
+2016-0X-XX  4.1.9 (unreleased):
+-------------------------------
+  * ignore symlink failure because of read-only file system, #3055
+
+
 2016-07-12  4.1.8:
 ------------------
   * fix #3004 UNAUTHORIZED for url (null binstar token), #3008
