@@ -11,7 +11,6 @@ import re
 import subprocess
 import tempfile
 
-from .compat import urlparse
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -126,6 +125,7 @@ def path_to_url(path):
     return 'file://%s' % path
 
 
+# TODO: move url_to_path from conda.connection
 # def url_to_path(url):
 #     assert url.startswith('file://')
 #     url_parts = urlparse.urlparse(url)
