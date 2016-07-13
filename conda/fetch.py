@@ -16,9 +16,7 @@ import warnings
 from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
-
 import requests
-
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
@@ -110,7 +108,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         filename = 'repodata.json'
 
     try:
-        resp = session.get(url + filename, headers=headers, proxies=session.proxies)
+        resp = session.get(url + filename, headers=headers, proxies=session.proxies, timeout=(3.05, 60))
         resp.raise_for_status()
         if resp.status_code != 304:
             if filename.endswith('.bz2'):
@@ -176,13 +174,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
-
         msg = "Connection error: %s: %s\n" % (e, remove_binstar_tokens(url))
         stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
         log.debug(msg)
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
 
+        raise CondaRuntimeError(msg)
     cache['_url'] = remove_binstar_tokens(url)
     try:
         with open(cache_path, 'w') as fo:
@@ -375,11 +373,11 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
 
     if retries is None:
         retries = RETRIES
+
     with Locked(dst_path):
         rm_rf(dst_path)
-
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies)
+            resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407:  # Proxy Authentication Required
