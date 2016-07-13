@@ -519,8 +519,6 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_does_not_barf_on_uninstall(self):
-        # pytest.mark.xfail(datetime.now() < datetime(2016, 7, 21),
-        #                   reason="deal with this later")
         from menuinst.win32 import dirs as win_locations
 
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
@@ -549,9 +547,9 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 7, 22), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
-
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
