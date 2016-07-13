@@ -5,11 +5,12 @@ from conda.config import DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens
 import pytest
 from os.path import exists, isfile
 from tempfile import mktemp
+from conda.exceptions import CondaRuntimeError, CondaHTTPError
 
 class TestFetchRepoData(unittest.TestCase):
     @responses.activate
     def test_fetchrepodata_httperror(self):
-        with pytest.raises(RuntimeError) as execinfo:
+        with pytest.raises(CondaHTTPError) as execinfo:
             url = DEFAULT_CHANNEL_ALIAS
             user = remove_binstar_tokens(url).split(DEFAULT_CHANNEL_ALIAS)[1].split("/")[0]
             msg = 'Could not find anaconda.org user %s' % user
@@ -20,18 +21,8 @@ class TestFetchRepoData(unittest.TestCase):
             fetch_repodata(url)
             assert msg in str(execinfo), str(execinfo)
 
-        with pytest.raises(RuntimeError):
-            url = "http://www.google.com/noarch/'"
-            msg = 'Could not find URL: %s' % remove_binstar_tokens(url)
-            filename = 'repodata.json'
-            responses.add(responses.GET, url+filename, body='{"error": "not found"}', status=403,
-                          content_type='application/json')
-
-            res = fetch_repodata(url)
-            assert not res
-
     def test_fetchrepodate_connectionerror(self):
-        with pytest.raises(RuntimeError) as execinfo:
+        with pytest.raises(CondaRuntimeError) as execinfo:
             url = "http://10.0.0.0/"
             msg = "Connection error:"
             filename = 'repodata.json'
@@ -55,7 +46,7 @@ class TestTmpDownload(unittest.TestCase):
 class TestDownload(unittest.TestCase):
 
     def test_download_connectionerror(self):
-        with pytest.raises(RuntimeError) as execinfo:
+        with pytest.raises(CondaRuntimeError) as execinfo:
             url = "http://10.0.0.0/"
             msg = "Connection error:"
             download(url, mktemp())
@@ -63,7 +54,7 @@ class TestDownload(unittest.TestCase):
 
     @responses.activate
     def test_download_httperror(self):
-        with pytest.raises(RuntimeError) as execinfo:
+        with pytest.raises(CondaRuntimeError) as execinfo:
             url = "http://www.google.com/noarch"
             msg = "HTTPError:"
             responses.add(responses.GET, url, body='{"error": "not found"}', status=404,
