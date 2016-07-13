@@ -1,6 +1,7 @@
 2016-0X-XX  4.1.9 (unreleased):
 -------------------------------
   * ignore symlink failure because of read-only file system, #3055
+  * backpaort shortcut tests, #3064
 
 
 2016-07-12  4.1.8:
