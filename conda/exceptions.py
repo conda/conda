@@ -406,7 +406,7 @@ conda GitHub issue tracker at:
 """
         print(message)
         command = ' '.join(sys.argv)
-        if ' info ' not in command:
+        if ' info' not in command:
             # get and print `conda info`
             info_stdout, info_stderr = get_info()
             print(info_stdout if info_stdout else info_stderr)
