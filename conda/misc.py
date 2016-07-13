@@ -11,17 +11,18 @@ from collections import defaultdict
 from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath, curdir)
 
-from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
-                      linked_data, find_new_location, cached_url, dist2filename)
+from .api import get_index
 from .compat import iteritems, itervalues
 from .config import is_url, url_channel, root_dir, envs_dirs, subdir
+from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
+                         PackageNotFoundError, CondaRuntimeError)
+from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
+                      linked_data, find_new_location, cached_url, dist2filename)
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
-from .utils import md5_file, url_path as utils_url_path, on_win
-from .api import get_index
-from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
-                         PackageNotFoundError, CondaRuntimeError)
+from .utils import md5_file, path_to_url, on_win
+
 
 def conda_installed_files(prefix, exclude_self_build=False):
     """
@@ -63,7 +64,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             elif not isdir(url_p):
                 raise CondaFileNotFoundError('file not found: %s' %
                                              join(url_p, fn))
-            url_p = utils_url_path(url_p).rstrip('/')
+            url_p = path_to_url(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
 
         # is_local: if the tarball is stored locally (file://)
