@@ -46,9 +46,9 @@ def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
-def make_temp_prefix():
+def make_temp_prefix(name=None):
     tempdir = gettempdir()
-    dirname = str(uuid4())[:8]
+    dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
     if exists(prefix):
         # rm here because create complains if directory exists
