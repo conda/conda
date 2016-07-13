@@ -151,21 +151,19 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         choices=BoolOrListKey()
     )
     action.add_argument(
-        "--add",
+        "--append", "--add",
         nargs=2,
         action="append",
-        help="""Add one configuration value to the beginning of a list key.
-        To add to the end of the list, use --append.""",
+        help="""Add one configuration value to the end of a list key.""",
         default=[],
         choices=ListKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
-        "--append",
+        "--prepend",
         nargs=2,
         action="append",
-        help="""Add one configuration value to a list key. The default
-        behavior is to prepend.""",
+        help="""Add one configuration value to the beginning of a list key.""",
         default=[],
         choices=ListKey(),
         metavar=('KEY', 'VALUE'),
@@ -260,7 +258,7 @@ def execute_config(args, parser):
                 # recreate the same file
                 items = rc_config.get(key, [])
                 numitems = len(items)
-                for q, item in enumerate(reversed(items)):
+                for q, item in enumerate(items):
                     # Use repr so that it can be pasted back in to conda config --add
                     if key == "channels" and q in (0, numitems-1):
                         print("--add", key, repr(item),
@@ -268,8 +266,8 @@ def execute_config(args, parser):
                     else:
                         print("--add", key, repr(item))
 
-    # Add, append
-    for arg, prepend in zip((args.add, args.append), (True, False)):
+    # prepend, append, add
+    for arg, prepend in zip((args.prepend, args.append), (True, False)):
         for key, item in arg:
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
@@ -287,7 +285,7 @@ def execute_config(args, parser):
             if item in arglist:
                 # Right now, all list keys should not contain duplicates
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
-                    item, key, "front" if prepend else "back")
+                    item, key, "top" if prepend else "bottom")
                 arglist = rc_config[key] = [p for p in arglist if p != item]
                 if not args.json:
                     print(message, file=sys.stderr)
