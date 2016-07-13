@@ -117,7 +117,7 @@ def md5_file(path):
     return hashsum_file(path, 'md5')
 
 
-def url_path(path):
+def path_to_url(path):
     path = abspath(path)
     if on_win:
         path = '/' + path.replace(':', '|').replace('\\', '/')
