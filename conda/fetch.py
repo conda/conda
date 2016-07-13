@@ -27,8 +27,8 @@ from .install import (add_cached_package, find_new_location, package_cache, dist
                       rm_rf, exp_backoff_fn)
 from .lock import Locked as Locked
 from .utils import memoized
-from .exceptions import ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError
-
+from .exceptions import ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError, \
+    CondaError, CondaHTTPError
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -159,7 +159,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             msg = "HTTPError: %s: %s\n" % (e, remove_binstar_tokens(url))
 
         log.debug(msg)
-        raise CondaRuntimeError(msg)
+        raise CondaHTTPError(msg)
 
     except requests.exceptions.SSLError as e:
         msg = "SSL Error: %s\n" % e
