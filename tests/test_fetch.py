@@ -55,7 +55,7 @@ class TestDownload(unittest.TestCase):
     @responses.activate
     def test_download_httperror(self):
         with pytest.raises(CondaRuntimeError) as execinfo:
-            url = "http://www.google.com/noarch"
+            url = DEFAULT_CHANNEL_ALIAS
             msg = "HTTPError:"
             responses.add(responses.GET, url, body='{"error": "not found"}', status=404,
                           content_type='application/json')
