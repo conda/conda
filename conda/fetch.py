@@ -108,7 +108,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         filename = 'repodata.json'
 
     try:
-        resp = session.get(url + filename, headers=headers, proxies=session.proxies)
+        resp = session.get(url + filename, headers=headers, proxies=session.proxies, timeout=(3.05, 60))
         resp.raise_for_status()
         if resp.status_code != 304:
             if filename.endswith('.bz2'):
@@ -174,7 +174,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
-
         msg = "Connection error: %s: %s\n" % (e, remove_binstar_tokens(url))
         stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
         log.debug(msg)
@@ -378,7 +377,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     with Locked(dst_path):
         rm_rf(dst_path)
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies)
+            resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407:  # Proxy Authentication Required
