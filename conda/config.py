@@ -11,7 +11,7 @@ import os
 import re
 import sys
 from collections import OrderedDict, namedtuple
-from os.path import abspath, expanduser, isfile, isdir, join
+from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
 from platform import machine
 
 from .compat import urlparse, string_types
@@ -96,7 +96,6 @@ rc_bool_keys = [
 rc_string_keys = [
     'ssl_verify',
     'channel_alias',
-    'root_dir',
 ]
 
 # Not supported by conda config yet
@@ -104,10 +103,25 @@ rc_other = [
     'proxy_servers',
 ]
 
+if (basename(sys.prefix) == '_conda' and
+           basename(dirname(sys.prefix)) == 'envs'):
+    # conda is located in it's own private environment named '_conda'
+    home_in_root = False
+    root_prefix = abspath(join(sys.prefix, '..', '..'))
+    conda_prefix = sys.prefix
+else:
+    # conda is located in the root environment
+    home_in_root = True
+    root_prefix = conda_prefix = abspath(sys.prefix)
+
+# root_dir is an alias for root_prefix, we prefer the name "root_prefix"
+# because it is more consistent with other names
+root_dir = root_prefix
+
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 local_channel = []
-root_dir = root_writable = None
+root_writable = None
 offline = False
 add_anaconda_token = ADD_BINSTAR_TOKEN
 rc = {}
@@ -394,7 +408,6 @@ def load_condarc(path=None):
     if path is not None:
         rc = load_condarc_(path)
 
-    root_dir = abspath(expanduser(os.getenv('CONDA_ROOT', rc.get('root_dir', sys.prefix))))
     root_writable = try_write(root_dir)
 
     globals().update(locals())
