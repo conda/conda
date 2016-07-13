@@ -8,7 +8,7 @@ import bz2
 from contextlib import contextmanager
 from glob import glob
 from logging import getLogger, Handler
-from os.path import exists, isdir, isfile, join, relpath, basename
+from os.path import exists, isdir, isfile, join, relpath, basename, islink
 from shlex import split
 from shutil import rmtree, copyfile
 from subprocess import check_call, Popen, PIPE
@@ -336,10 +336,25 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.')
 
     @pytest.mark.timeout(600)
-    def test_install_python2(self):
+    def test_install_python2_and_env_symlinks(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
+
+            # test symlinks created with env
+            bindir = 'Scripts' if on_win else 'bin'
+            print(os.listdir(join(prefix, bindir)))
+            if on_win:
+                assert isfile(join(prefix, bindir, 'activate'))
+                assert isfile(join(prefix, bindir, 'deactivate'))
+                assert isfile(join(prefix, bindir, 'conda'))
+                assert isfile(join(prefix, bindir, 'activate.bat'))
+                assert isfile(join(prefix, bindir, 'deactivate.bat'))
+                assert isfile(join(prefix, bindir, 'conda.bat'))
+            else:
+                assert islink(join(prefix, bindir, 'activate'))
+                assert islink(join(prefix, bindir, 'deactivate'))
+                assert islink(join(prefix, bindir, 'conda'))
 
     @pytest.mark.timeout(300)
     def test_remove_all(self):
@@ -437,128 +452,118 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'rpy2')
                     assert isfile(join(clone_prefix, 'condarc'))  # untracked file
 
+    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    def test_shortcut_in_underscore_env_shows_message(self):
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        try:
+            config.load_condarc("")
+            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut")
+            assert ("Environment name starts with underscore '_'.  "
+                    "Skipping menu installation." in stderr)
+        finally:
+            rmtree(prefix, ignore_errors=True)
 
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-def test_shortcut_in_underscore_env_shows_message():
-    with make_temp_env() as tmp:
-        cmd = ["conda", "create", '-y', '-p', join(tmp, '_conda'), "console_shortcut"]
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        output, error = p.communicate()
-        if PY3:
-            error = error.decode("UTF-8")
-        assert "Environment name starts with underscore '_'.  Skipping menu installation." in error
+    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        try:
+            config.load_condarc("")
+            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut",
+                                         "--no-shortcuts")
+            # This test is sufficient, because it effectively verifies that the code
+            #  path was not visited.
+            assert ("Environment name starts with underscore '_'.  Skipping menu installation."
+                    not in stderr)
+        finally:
+            rmtree(prefix, ignore_errors=True)
 
-
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-def test_shortcut_not_attempted_with_no_shortcuts_arg():
-    with make_temp_env() as tmp:
-        cmd = ["conda", "create", '-y', '--no-shortcuts', '-p', join(tmp, '_conda'), "console_shortcut"]
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        output, error = p.communicate()
-        if PY3:
-            error = error.decode("UTF-8")
-        # This test is sufficient, because it effectively verifies that the code
-        #  path was not visited.
-        assert "Environment name starts with underscore '_'.  Skipping menu installation." not in error
-
-
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-def test_shortcut_creation_installs_shortcut():
-    from menuinst.win32 import dirs as win_locations
-    with make_temp_env() as tmp:
-        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
-
+    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    def test_shortcut_creation_installs_shortcut(self):
+        from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
-        shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
-        shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
+        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
+                                          "".format(sys.version_info.major, config.bits))
 
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         try:
-            assert isfile(shortcut_file)
-        except AssertionError:
-            print("Shortcut not found in menu dir.  Contents of dir:")
-            print(os.listdir(shortcut_dir))
-            raise
+            config.load_condarc("")
+            run_command(Commands.CREATE, prefix, "console_shortcut")
+            assert package_is_installed(prefix, 'console_shortcut')
+            assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
+                                           "Contents of dir:\n"
+                                           "{0}".format(os.listdir(shortcut_dir)))
 
-        # make sure that cleanup without specifying --shortcuts still removes shortcuts
-        check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
-        try:
+            # make sure that cleanup without specifying --shortcuts still removes shortcuts
+            run_command(Commands.REMOVE, prefix, 'console_shortcut')
+            assert not package_is_installed(prefix, 'console_shortcut')
             assert not isfile(shortcut_file)
         finally:
+            rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
+    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    def test_shortcut_absent_does_not_barf_on_uninstall(self):
+        from menuinst.win32 import dirs as win_locations
 
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-def test_shortcut_absent_does_not_barf_on_uninstall():
-    from menuinst.win32 import dirs as win_locations
+        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
+                                          "".format(sys.version_info.major, config.bits))
 
-    user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
-    shortcut_dir = win_locations[user_mode]["start"]
-    shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
-    shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
-
-    # kill shortcut from any other misbehaving test
-    if isfile(shortcut_file):
-        os.remove(shortcut_file)
-
-    assert not isfile(shortcut_file)
-
-    with make_temp_env() as tmp:
-        # including --no-shortcuts should not get shortcuts installed
-        check_call(["conda", "create", '-y', '--no-shortcuts', '-p', join(tmp, 'conda'), "console_shortcut"])
-
-        # make sure it didn't get created
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         assert not isfile(shortcut_file)
 
-        # make sure that cleanup does not barf trying to remove non-existent shortcuts
-        check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+        try:
+            # including --no-shortcuts should not get shortcuts installed
+            config.load_condarc("")
+            run_command(Commands.CREATE, prefix, "--no-shortcuts", "console_shortcut")
+            assert package_is_installed(prefix, 'console_shortcut')
+            assert not isfile(shortcut_file)
 
+            # make sure that cleanup without specifying --shortcuts still removes shortcuts
+            run_command(Commands.REMOVE, prefix, 'console_shortcut')
+            assert not package_is_installed(prefix, 'console_shortcut')
+            assert not isfile(shortcut_file)
+        finally:
+            rmtree(prefix, ignore_errors=True)
+            if isfile(shortcut_file):
+                os.remove(shortcut_file)
 
-@pytest.mark.skipif()
-@pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-def test_shortcut_absent_when_condarc_set():
-    from menuinst.win32 import dirs as win_locations
+    @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    def test_shortcut_absent_when_condarc_set(self):
+        from menuinst.win32 import dirs as win_locations
+        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
+                                          "".format(sys.version_info.major, config.bits))
 
-    user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
-    shortcut_dir = win_locations[user_mode]["start"]
-    shortcut_dir = join(shortcut_dir, "Anaconda{} ({}-bit)".format(sys.version_info.major, config.bits))
-    shortcut_file = join(shortcut_dir, "Anaconda Prompt (conda).lnk")
-
-    # kill shortcut from any other misbehaving test
-    if isfile(shortcut_file):
-        os.remove(shortcut_file)
-
-    assert not isfile(shortcut_file)
-
-    with make_temp_env() as tmp:
-        if not os.path.isdir(tmp):
-            os.makedirs(tmp)
-        rc_path = os.path.join(tmp, "condarc")
-        with open(rc_path, 'w') as f:
-            f.write("shortcuts: False")
-        env = os.environ.copy()
-        env["CONDARC"] = rc_path
-
-        # including shortcuts: False should not get shortcuts installed
-        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "console_shortcut"], env=env)
-
-        # make sure it didn't get created
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         assert not isfile(shortcut_file)
 
-        # make sure that cleanup does not barf trying to remove non-existent shortcuts
-        check_call(["conda", "remove", '-y', '-p', join(tmp, 'conda'), "console_shortcut"])
+        try:
+            # set condarc shortcuts: False
+            config.load_condarc("")
+            run_command(Commands.CONFIG, prefix, "--set shortcuts false")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+            json_obj = json_loads(stdout)
+            # assert json_obj['rc_path'] == join(prefix, 'condarc')
+            assert json_obj['get']['shortcuts'] is False
 
+            # including shortcuts: False should not get shortcuts installed
+            run_command(Commands.CREATE, prefix, "console_shortcut")
+            assert package_is_installed(prefix, 'console_shortcut')
+            assert not isfile(shortcut_file)
 
-def test_symlinks_created_with_env():
-    bindir = 'Scripts' if on_win else 'bin'
-
-    with make_temp_env() as tmp:
-        check_call(["conda", "create", '-y', '-p', join(tmp, 'conda'), "python=2.7"])
-        assert isfile(join(tmp, 'conda', bindir, 'activate'))
-        assert isfile(join(tmp, 'conda', bindir, 'deactivate'))
-        assert isfile(join(tmp, 'conda', bindir, 'conda'))
-        if on_win:
-            assert isfile(join(tmp, 'conda', bindir, 'activate.bat'))
-            assert isfile(join(tmp, 'conda', bindir, 'deactivate.bat'))
-            assert isfile(join(tmp, 'conda', bindir, 'conda.bat'))
+            # make sure that cleanup without specifying --shortcuts still removes shortcuts
+            run_command(Commands.REMOVE, prefix, 'console_shortcut')
+            assert not package_is_installed(prefix, 'console_shortcut')
+            assert not isfile(shortcut_file)
+        finally:
+            rmtree(prefix, ignore_errors=True)
+            if isfile(shortcut_file):
+                os.remove(shortcut_file)
