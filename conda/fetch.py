@@ -16,9 +16,7 @@ import warnings
 from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
-
 import requests
-
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
@@ -27,9 +25,13 @@ from .connection import CondaSession, unparse_url, RETRIES
 from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
                          CondaHTTPError)
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
-                      rm_rf, exp_backoff_fn)
+                      rm_rf, exp_backoff_fn, on_win)
 from .lock import Locked as Locked
 from .utils import memoized
+from .exceptions import ProxyError, ChannelNotAllowed, CondaRuntimeError, \
+    CondaSignatureError, CondaIOError
+import ctypes
+
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -183,6 +185,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
 
+        raise RuntimeError(msg)
     cache['_url'] = remove_binstar_tokens(url)
     try:
         with open(cache_path, 'w') as fo:
@@ -335,6 +338,8 @@ def fetch_pkg(info, dst_dir=None, session=None):
     if dst_dir is None:
         dst_dir = find_new_location(fn[:-8])[0]
     path = join(dst_dir, fn)
+    if "size" in info:
+        check_size(dst_dir, info['size'])
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if info.get('sig'):
@@ -358,6 +363,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
     assert "::" not in str(url), url
     assert "::" not in str(dst_path), str(dst_path)
+    from .instructions import update_bar, bar_length
     if not offline_keep(url):
         raise RuntimeError("Cannot download in offline mode: %s" % (url,))
 
@@ -375,9 +381,9 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
 
     if retries is None:
         retries = RETRIES
+
     with Locked(dst_path):
         rm_rf(dst_path)
-
         try:
             resp = session.get(url, stream=True, proxies=session.proxies)
             resp.raise_for_status()
@@ -413,8 +419,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
-            fn = basename(dst_path)
-            getLogger('fetch.start').info((fn[:14], size))
 
         if md5:
             h = hashlib.new('md5')
@@ -432,7 +436,12 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                         h.update(chunk)
 
                     if size and 0 <= index <= size:
-                        getLogger('fetch.update').info(index)
+                        tmp = int(len(chunk) / size * bar_length) + 1
+                        val = update_bar[url].value
+                        if val + tmp > bar_length * 0.80:
+                            update_bar[url].value = 100
+                        else:
+                            update_bar[url].value += tmp
 
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
@@ -441,9 +450,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise CondaRuntimeError("Could not open %r for writing (%s)." % (pp, e))
-
-        if size:
-            getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
             if retries:
@@ -490,3 +496,23 @@ class TmpDownload(object):
     def __exit__(self, exc_type, exc_value, traceback):
         if self.tmp_dir:
             shutil.rmtree(self.tmp_dir)
+
+
+def get_free_space(dirname):
+    """Return folder/drive free space (in bytes)."""
+    if on_win:
+        free_bytes = ctypes.c_ulonglong(0)
+        ctypes.windll.kernel32.GetDiskFreeSpaceExW(
+            ctypes.c_wchar_p(dirname), None, None, ctypes.pointer(free_bytes))
+        return free_bytes.value
+    else:
+        st = os.statvfs(dirname)
+        return st.f_bavail * st.f_frsize
+
+
+def check_size(path, size):
+    free = get_free_space(path)
+    # print("The free is {0},
+    # and the required is {1}".format(free, size))
+    if free < size:
+        raise CondaIOError("Not enough space for download")

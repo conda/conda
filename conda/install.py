@@ -786,6 +786,7 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[url_path(fname)]
+
         with Locked(fname):
             rm_rf(fname)
     for fname in rec['dirs']:
@@ -839,11 +840,17 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
+
     path = fname[:-8]
     with Locked(path):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
+        from .fetch import check_size
         with tarfile.open(fname) as t:
+            size = 0
+            for m in t.getmembers():
+                size += m.size
+            check_size(pkgs_dir, size)
             t.extractall(path=temp_path)
         rm_rf(path)
         exp_backoff_fn(os.rename, temp_path, path)
@@ -1043,9 +1050,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
 
     # for the lock issue
     # may run into lock if prefix not exist
-    if not isdir(prefix):
-        os.makedirs(prefix)
-
     with Locked(prefix), Locked(source_dir):
         for f in files:
             src = join(source_dir, f)

@@ -276,12 +276,15 @@ def plan_from_actions(actions):
         if not actions[op]:
             log.debug("action {0} has None value".format(op))
             continue
-        if '_' not in op:
+        """
+        if '_' not in op and op not in [inst.FETCH, inst.EXTRACT]:
             res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
         elif op.startswith('RM_'):
             res.append((inst.PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
+
         if op in inst.progress_cmds:
             res.append((inst.PROGRESS, '%d' % len(actions[op])))
+        """
         for arg in actions[op]:
             log.debug("appending value {0} for action {1}".format(arg, op))
             res.append((op, arg))
