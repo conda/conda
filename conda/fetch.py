@@ -108,7 +108,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         filename = 'repodata.json'
 
     try:
-        resp = session.get(url + filename, headers=headers, proxies=session.proxies, timeout=(3.05, 60))
+        resp = session.get(url + filename, headers=headers, proxies=session.proxies,
+                           timeout=(3.05, 60))
         resp.raise_for_status()
 
         if resp.status_code != 304:
