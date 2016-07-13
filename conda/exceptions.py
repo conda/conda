@@ -424,7 +424,11 @@ def conda_exception_handler(func, *args, **kwargs):
         print_unexpected_error_message(e)
         return 1
     except CondaError as e:
-        print_exception(e)
+        from conda.config import debug_on
+        if debug_on:
+            print_unexpected_error_message(e)
+        else:
+            print_exception(e)
         return 1
     except Exception as e:
         print_unexpected_error_message(e)
