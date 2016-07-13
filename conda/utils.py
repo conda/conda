@@ -11,6 +11,8 @@ import re
 import subprocess
 import tempfile
 
+from .compat import urlparse
+
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
@@ -122,6 +124,12 @@ def path_to_url(path):
     if on_win:
         path = '/' + path.replace(':', '|').replace('\\', '/')
     return 'file://%s' % path
+
+
+# def url_to_path(url):
+#     assert url.startswith('file://')
+#     url_parts = urlparse.urlparse(url)
+#     return abspath(join(url_parts.netloc, url_parts.path))
 
 
 def run_in(command, shell, cwd=None, env=None):

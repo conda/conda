@@ -23,7 +23,7 @@ from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
                      ssl_verify, rc, prioritize_channels, url_channel, offline_keep)
-from .connection import CondaSession, unparse_url, RETRIES
+from .connection import CondaSession, unparse_url, RETRIES, url_to_path
 from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
                          CondaHTTPError)
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
@@ -121,9 +121,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                     return resp_content.decode('utf-8')
 
             if url.startswith('file://'):
-                pkg_file = urlparse.urlparse(url)
-                pkg_file = os.path.abspath(os.path.join(pkg_file.netloc, pkg_file.path))
-                with Locked(os.path.dirname(pkg_file)):
+                file_path = url_to_path(url)
+                with Locked(dirname(file_path)):
                     json_str = get_json_str(filename, resp.content)
             else:
                 json_str = get_json_str(filename, resp.content)
