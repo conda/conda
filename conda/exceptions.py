@@ -391,7 +391,11 @@ def print_unexpected_error_message(e):
     traceback = format_exc()
 
     from conda.config import output_json
-    if not output_json and e.__class__.__name__ not in ('ScannerError', 'ParserError'):
+    if output_json:
+        from conda.cli.common import stdout_json
+        stdout_json(dict(error=traceback))
+    else:
+    # if not output_json and e.__class__.__name__ not in ('ScannerError', 'ParserError'):
         message = """\
 An unexpected error has occurred.
 Please consider posting the following information to the
@@ -400,18 +404,14 @@ conda GitHub issue tracker at:
     https://github.com/conda/conda/issues
 
 """
-    else:
-        message = ''
-    print(message)
-    info_stdout, info_stderr = get_info()
-    print(info_stdout if info_stdout else info_stderr)
-    print("`$ {0}`".format(' '.join(sys.argv)))
-    print('\n')
-
-    if output_json:
-        from conda.cli.common import stdout_json
-        stdout_json(dict(error=traceback))
-    else:
+        print(message)
+        command = ' '.join(sys.argv)
+        if ' info ' not in command:
+            # get and print `conda info`
+            info_stdout, info_stderr = get_info()
+            print(info_stdout if info_stdout else info_stderr)
+        print("`$ {0}`".format(command))
+        print('\n')
         print('\n'.join('    ' + line for line in traceback.splitlines()))
 
 
