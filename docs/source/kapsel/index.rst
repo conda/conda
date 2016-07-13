@@ -64,7 +64,7 @@ Create an empty project
 
 We'll create a project directory called ``iris``. At the command
 prompt, switch to a directory you'd like to contain the ``iris``
-project, such as "iris". To do this, type::
+project. To create the ``iris`` project directory, type this::
 
     conda kapsel init --directory iris
 
