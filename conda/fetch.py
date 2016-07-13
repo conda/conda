@@ -21,7 +21,7 @@ from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
                      ssl_verify, rc, prioritize_channels, url_channel, offline_keep)
-from .connection import CondaSession, unparse_url, RETRIES
+from .connection import CondaSession, unparse_url, RETRIES, url_to_path
 from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
                          CondaHTTPError)
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
@@ -110,11 +110,21 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     try:
         resp = session.get(url + filename, headers=headers, proxies=session.proxies, timeout=(3.05, 60))
         resp.raise_for_status()
+
         if resp.status_code != 304:
-            if filename.endswith('.bz2'):
-                json_str = bz2.decompress(resp.content).decode('utf-8')
+            def get_json_str(filename, resp_content):
+                if filename.endswith('.bz2'):
+                    return bz2.decompress(resp_content).decode('utf-8')
+                else:
+                    return resp_content.decode('utf-8')
+
+            if url.startswith('file://'):
+                file_path = url_to_path(url)
+                with Locked(dirname(file_path)):
+                    json_str = get_json_str(filename, resp.content)
             else:
-                json_str = resp.content.decode('utf-8')
+                json_str = get_json_str(filename, resp.content)
+
             cache = json.loads(json_str)
             add_http_value_to_dict(resp, 'Etag', cache, '_etag')
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
@@ -189,6 +199,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         pass
 
     return cache or None
+
 
 def handle_proxy_407(url, session):
     """
