@@ -50,6 +50,7 @@ try:
     from conda.lock import Locked as Locked
     from conda.utils import win_path_to_unix, url_path
     from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
+    import conda.config as config
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
     # installer.
@@ -140,8 +141,9 @@ if on_win:
                 raise
 
         # bat file redirect
-        with open(dst+'.bat', 'w') as f:
-            f.write('@echo off\ncall "%s" %%*\n' % src)
+        if not os.path.isfile(dst + '.bat'):
+            with open(dst + '.bat', 'w') as f:
+                f.write('@echo off\ncall "%s" %%*\n' % src)
 
         # TODO: probably need one here for powershell at some point
 
@@ -149,17 +151,20 @@ if on_win:
         # set default shell to bash.exe when not provided, as that's most common
         if not shell:
             shell = "bash.exe"
-        with open(dst, "w") as f:
-            f.write("#!/usr/bin/env bash \n")
-            if src.endswith("conda"):
-                f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
-            else:
-                f.write('source %s "$@"' % shells[shell]['path_to'](src))
-        # Make the new file executable
-        # http://stackoverflow.com/a/30463972/1170370
-        mode = os.stat(dst).st_mode
-        mode |= (mode & 292) >> 2    # copy R bits to X
-        os.chmod(dst, mode)
+
+        # technically these are "links" - but islink doesn't work on win
+        if not os.path.isfile(dst):
+            with open(dst, "w") as f:
+                f.write("#!/usr/bin/env bash \n")
+                if src.endswith("conda"):
+                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+                else:
+                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
+            # Make the new file executable
+            # http://stackoverflow.com/a/30463972/1170370
+            mode = os.stat(dst).st_mode
+            mode |= (mode & 292) >> 2    # copy R bits to X
+            os.chmod(dst, mode)
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
@@ -1019,7 +1024,7 @@ def move_path_to_trash(path, preclean=True):
     return False
 
 
-def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
+def link(prefix, dist, linktype=LINK_HARD, index=None):
     """
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
@@ -1080,7 +1085,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None, shortcuts=False):
             if isfile(nonadmin):
                 open(join(prefix, ".nonadmin"), 'w').close()
 
-        if shortcuts:
+        if config.shortcuts:
             mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):
