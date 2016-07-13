@@ -8,7 +8,7 @@ from __future__ import print_function, division, absolute_import
 
 from .common import add_parser_install, add_parser_json
 from .install import install
-from conda.install import on_win
+from ..utils import on_win
 
 help = "Installs a list of packages into a specified conda environment."
 descr = help + """

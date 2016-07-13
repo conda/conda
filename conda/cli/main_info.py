@@ -14,6 +14,7 @@ from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
 
+from ..utils import on_win
 from ..compat import itervalues
 from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
                      handle_envs_list, add_parser_offline)
@@ -96,7 +97,7 @@ def show_pkg_info(name):
 python_re = re.compile('python\d\.\d')
 def get_user_site():
     site_dirs = []
-    if sys.platform != 'win32':
+    if not on_win:
         if exists(expanduser('~/.local/lib')):
             for path in listdir(expanduser('~/.local/lib/')):
                 if python_re.match(path):

@@ -41,10 +41,7 @@ from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
 from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, CondaOSError
-
-
-on_win = bool(sys.platform == "win32")
-
+from .utils import on_win
 
 try:
     from conda.lock import Locked as Locked

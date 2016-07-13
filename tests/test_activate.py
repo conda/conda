@@ -11,8 +11,8 @@ import pytest
 from conda.compat import TemporaryDirectory, PY3
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
-from conda.utils import path_identity, run_in, shells
-from conda.cli.activate import pathlist_to_str, binpath_from_arg, on_win
+from conda.utils import path_identity, run_in, shells, on_win
+from conda.cli.activate import pathlist_to_str, binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
 
@@ -78,7 +78,7 @@ def _format_vars(shell):
 
     base_path, _ = run_in(shelldict['printpath'], shell)
     # windows forces Library/bin onto PATH when starting up.  Strip it for the purposes of this test.
-    if sys.platform == "win32":
+    if on_win:
         base_path = strip_leading_library_bin(base_path, shelldict)
 
     raw_ps, _ = run_in(shelldict["printps1"], shell)
@@ -304,11 +304,11 @@ def test_activate_symlinking(shell):
     files/links exist, and that they point where they should."""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        where = 'Scripts' if sys.platform == 'win32' else 'bin'
+        where = 'Scripts' if on_win else 'bin'
         for env in gen_test_env_paths(envs, shell)[:2]:
             scripts = ["conda", "activate", "deactivate"]
             for f in scripts:
-                if sys.platform == "win32":
+                if on_win:
                     file_path = os.path.join(env, where, f + shells[shell]["shell_suffix"])
                     # must translate path to windows representation for Python's sake
                     file_path = shells[shell]["path_from"](file_path)
@@ -593,7 +593,7 @@ def test_activate_relative_path(shell):
 def test_activate_does_not_leak_echo_setting(shell):
     """Test that activate's setting of echo to off does not disrupt later echo calls"""
 
-    if sys.platform != "win32" or shell != "cmd.exe":
+    if not on_win or shell != "cmd.exe":
         pytest.skip("test only relevant for cmd.exe on win")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -654,7 +654,7 @@ def test_activate_has_extra_env_vars(shell):
 
 @pytest.mark.slow
 def test_activate_keeps_PATH_order(shell):
-    if sys.platform != "win32" or shell != "cmd.exe":
+    if not on_win or shell != "cmd.exe":
         pytest.xfail("test only implemented for cmd.exe on win")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -668,7 +668,7 @@ def test_activate_keeps_PATH_order(shell):
 
 @pytest.mark.slow
 def test_deactivate_placeholder(shell):
-    if sys.platform != "win32" or shell != "cmd.exe":
+    if not on_win or shell != "cmd.exe":
         pytest.xfail("test only implemented for cmd.exe on win")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:

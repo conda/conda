@@ -28,7 +28,7 @@ from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched
                       is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
                       LINK_SOFT, try_hard_link, rm_rf)
 from .resolve import MatchSpec, Resolve, Package
-from .utils import md5_file, human_bytes
+from .utils import md5_file, human_bytes, on_win
 
 # For backwards compatibility
 
@@ -254,7 +254,7 @@ def plan_from_actions(actions):
     assert inst.PREFIX in actions and actions[inst.PREFIX]
     res = [('PREFIX', '%s' % actions[inst.PREFIX])]
 
-    if sys.platform == 'win32':
+    if on_win:
         # Always link/unlink menuinst first on windows in case a subsequent
         # package tries to import it to create/remove a shortcut
 
@@ -352,7 +352,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                 lt = LINK_COPY
             elif try_hard_link(fetched_dir, prefix, dist):
                 lt = LINK_HARD
-            elif allow_softlinks and sys.platform != 'win32':
+            elif allow_softlinks and not on_win:
                 lt = LINK_SOFT
             else:
                 lt = LINK_COPY

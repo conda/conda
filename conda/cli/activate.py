@@ -7,8 +7,7 @@ import re
 import sys
 
 from ..exceptions import CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError
-
-on_win = sys.platform == "win32"
+from ..utils import on_win
 
 
 def help(command, shell):
@@ -66,7 +65,7 @@ def prefix_from_arg(arg, shelldict):
 def binpath_from_arg(arg, shelldict):
     # prefix comes back as platform-native path
     prefix = prefix_from_arg(arg, shelldict=shelldict)
-    if sys.platform == 'win32':
+    if on_win:
         paths = [
             prefix.rstrip("\\"),
             os.path.join(prefix, 'Library', 'mingw-w64', 'bin'),
