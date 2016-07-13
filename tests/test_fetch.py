@@ -23,9 +23,8 @@ class TestFetchRepoData(unittest.TestCase):
 
     def test_fetchrepodate_connectionerror(self):
         with pytest.raises(CondaRuntimeError) as execinfo:
-            url = "http://10.0.0.0/"
+            url = "http://240.0.0.0/"
             msg = "Connection error:"
-            filename = 'repodata.json'
             fetch_repodata(url)
             assert msg in str(execinfo)
 
@@ -47,7 +46,7 @@ class TestDownload(unittest.TestCase):
 
     def test_download_connectionerror(self):
         with pytest.raises(CondaRuntimeError) as execinfo:
-            url = "http://10.0.0.0/"
+            url = "http://240.0.0.0/"
             msg = "Connection error:"
             download(url, mktemp())
             assert msg in str(execinfo)
