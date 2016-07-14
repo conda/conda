@@ -88,25 +88,25 @@ class TestConfig(unittest.TestCase):
 
     # @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1) and not on_win,
     #                    reason="configs are borked")
-    # def test_normalize_urls(self):
-    #     current_platform = config.subdir
-    #     assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
-    #     assert config.rc.get('channel_alias') == 'https://your.repo/'
-    #     assert config.channel_prefix(False) == 'https://your.repo/'
-    #     assert config.binstar_domain == 'https://mybinstar.com/'
-    #     assert config.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
-    #     assert config.get_rc_urls() == ["binstar_username", "http://some.custom/channel", "defaults"]
-    #     channel_urls = [
-    #         'defaults',
-    #         'system',
-    #         'https://conda.anaconda.org/username',
-    #         'file:///Users/username/repo',
-    #         'https://mybinstar.com/t/5768wxyz/test2',
-    #         'https://mybinstar.com/test',
-    #         'https://conda.anaconda.org/t/abcdefgh/username',
-    #         'username'
-    #     ]
-    #     platform = 'osx-64'
+    def test_normalize_urls(self):
+        current_platform = config.subdir
+        assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
+        assert config.rc.get('channel_alias') == 'https://your.repo/'
+        assert config.channel_prefix(False) == 'https://your.repo/'
+        assert config.binstar_domain == 'https://mybinstar.com/'
+        assert config.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
+        assert config.get_rc_urls() == ["binstar_username", "http://some.custom/channel", "defaults"]
+        channel_urls = [
+            'defaults',
+            'system',
+            'https://conda.anaconda.org/username',
+            'file:///Users/username/repo',
+            'https://mybinstar.com/t/5768wxyz/test2',
+            'https://mybinstar.com/test',
+            'https://conda.anaconda.org/t/abcdefgh/username',
+            'username'
+        ]
+        platform = 'osx-64'
     #
     #     normurls = config.normalize_urls(channel_urls, platform)
     #     assert normurls == [

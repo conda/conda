@@ -4,8 +4,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import re
 import sys
-from collections import namedtuple
-from logging import getLogger
+from logging import getLogger, WARN, INFO
 from os.path import expanduser, abspath, join, isdir
 from platform import machine
 
@@ -61,29 +60,24 @@ class Binstar(object):
     #     channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
     # channel_alias_tok = binstar_client = binstar_domain = binstar_domain_tok = None
 
-    def __init__(self, quiet=False):
-        # global binstar_client, binstar_domain, binstar_domain_tok
-        # global binstar_regex, BINSTAR_TOKEN_PAT
-        if getattr(self, 'binstar_domain', None) is not None:
-            return
-        elif getattr(self, 'binstar_client', None) is None:
-            try:
-                from binstar_client.utils import get_binstar
-                # Turn off output in offline mode so people don't think we're going online
-                args = namedtuple('args', 'log_level')(0)  # if quiet or offline else None
-                self.binstar_client = get_binstar(args)
-            except ImportError:
-                log.debug("Could not import binstar")
-                self.binstar_client = ()
-            except Exception as e:
-                stderrlog.info("Warning: could not import binstar_client (%s)" % e)
-        if self.binstar_client == ():
-            self.binstar_domain = DEFAULT_CHANNEL_ALIAS
-            self.binstar_domain_tok = None
-        else:
+    def __init__(self, url=DEFAULT_CHANNEL_ALIAS, token=None, quiet=True):
+        try:
+            from binstar_client.utils import get_server_api
+            self.binstar_client = get_server_api(token=token, site=url,
+                                                 log_level=WARN if quiet else INFO)
+        except ImportError:
+            log.debug("Could not import binstar")
+            self.binstar_client = ()
+        except Exception as e:
+            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
+            self.binstar_client = ()
+        if self.binstar_client:
             self.binstar_domain = self.binstar_client.domain.replace("api", "conda").rstrip('/') + '/'
             if self.binstar_client.token:
                 self.binstar_domain_tok = self.binstar_domain + 't/%s/' % (self.binstar_client.token,)
+        else:
+            self.binstar_domain = DEFAULT_CHANNEL_ALIAS
+            self.binstar_domain_tok = None
         self.binstar_regex = (r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
                               re.escape(self.binstar_domain[:-1]))
         self.BINSTAR_TOKEN_PAT = re.compile(self.binstar_regex)
