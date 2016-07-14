@@ -2,7 +2,7 @@ Help & reference
 ================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    /using/cheatsheet
    /glossary
@@ -10,4 +10,5 @@ Help & reference
    /faq
    /troubleshooting
    support
+   /changelog
    /license
