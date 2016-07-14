@@ -25,7 +25,7 @@ def test_filelock_locks(tmpdir):
         with pytest.raises(LockError) as execinfo:
             with FileLock(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
-            assert lock2.lock_path == lock1.lock_path
+            assert lock2.path_to_lock == lock1.path_to_lock
 
         if not on_win:
             assert "LOCKERROR" in str(execinfo.value)
@@ -48,12 +48,12 @@ def test_filelock_folderlocks(tmpdir):
         with pytest.raises(LockError) as execinfo:
             with FileLock(tmpfile, retries=1) as lock2:
                 assert False  # this should never happen
-            assert lock2.lock_path == lock1.lock_path
+            assert lock2.path_to_lock == lock1.path_to_lock
 
         if not on_win:
             assert "LOCKERROR" in str(execinfo.value)
             assert "conda is already doing something" in str(execinfo.value)
-            assert lock1.lock_path in str(execinfo.value)
+            assert lock1.path_to_lock in str(execinfo.value)
 
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
