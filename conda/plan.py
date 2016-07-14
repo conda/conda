@@ -208,9 +208,9 @@ def display_actions(actions, index, show_channel_urls=None):
 
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
-    for pkg in sorted(new):
-        # New packages have been moved to the "old" column for display
-        print(format(oldfmt[pkg], pkg))
+        for pkg in sorted(new):
+            # New packages have been moved to the "old" column for display
+            print(format(oldfmt[pkg], pkg))
 
     if removed:
         print("\nThe following packages will be REMOVED:\n")
@@ -232,7 +232,7 @@ def display_actions(actions, index, show_channel_urls=None):
         for pkg in sorted(downgraded):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
-    if empty:
+    if empty and actions.get(inst.SYMLINK_CONDA):
         print("\nThe following empty environments will be CREATED:\n")
         print(actions['PREFIX'])
 
