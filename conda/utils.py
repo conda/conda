@@ -1,5 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
+from genericpath import isfile
+
 import logging
 import sys
 import hashlib
@@ -89,18 +91,24 @@ def gnu_get_libc_version():
     return f()
 
 
-def try_write(dir_path):
+def try_write(dir_path, heavy=False):
     if not isdir(dir_path):
         return False
-    # try to create a file to see if `dir_path` is writable, see #2151
-    temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
-    try:
-        with open(temp_filename, mode='wb') as fo:
-            fo.write(b'This is a test file.\n')
-        os.unlink(temp_filename)
-        return True
-    except (IOError, OSError):
-        return False
+    if on_win or heavy:
+        # try to create a file to see if `dir_path` is writable, see #2151
+        temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
+        try:
+            with open(temp_filename, mode='wb') as fo:
+                fo.write(b'This is a test file.\n')
+            os.unlink(temp_filename)
+            return True
+        except (IOError, OSError):
+            return False
+        finally:
+            if isfile(temp_filename):
+                os.unlink(temp_filename)
+    else:
+        return os.access(dir_path, os.W_OK)
 
 
 def hashsum_file(path, mode='md5'):
