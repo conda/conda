@@ -125,9 +125,8 @@ def make_temp_env(*packages):
     prefix = make_temp_prefix()
     try:
         # try to clear any config that's been set by other tests
-        if packages:
-            config.load_condarc(join(prefix, 'condarc'))
-            run_command(Commands.CREATE, prefix, *packages)
+        config.load_condarc(join(prefix, 'condarc'))
+        run_command(Commands.CREATE, prefix, *packages)
         yield prefix
     finally:
         rmtree(prefix, ignore_errors=True)
@@ -235,6 +234,12 @@ class IntegrationTests(TestCase):
 
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
+
+    @pytest.mark.timeout(300)
+    def test_create_empty_env(self):
+        with make_temp_env() as prefix:
+            assert exists(join(prefix, 'bin'))
+            assert exists(join(prefix, 'conda-meta/history'))
 
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
