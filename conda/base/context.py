@@ -63,8 +63,7 @@ class Binstar(object):
     def __init__(self, url=DEFAULT_CHANNEL_ALIAS, token=None, quiet=True):
         try:
             from binstar_client.utils import get_server_api
-            self.binstar_client = get_server_api(token=token, site=url,
-                                                 log_level=WARN if quiet else INFO)
+            self.binstar_client = get_server_api(token=token, site=url, log_level=WARN if quiet else INFO)
         except ImportError:
             log.debug("Could not import binstar")
             self.binstar_client = ()
@@ -72,7 +71,7 @@ class Binstar(object):
             stderrlog.info("Warning: could not import binstar_client (%s)" % e)
             self.binstar_client = ()
         if self.binstar_client:
-            self.binstar_domain = self.binstar_client.domain.replace("api", "conda").rstrip('/') + '/'
+            self.binstar_domain = self.binstar_client.domain.rstrip('/') + '/'
             if self.binstar_client.token:
                 self.binstar_domain_tok = self.binstar_domain + 't/%s/' % (self.binstar_client.token,)
         else:
@@ -163,11 +162,6 @@ class Context(AppConfiguration):
 
     @property
     def pkgs_dirs(self):
-        def pkgs_dir_from_envs_dir(envs_dir):
-            if abspath(envs_dir) == abspath(join(self.root_dir, 'envs')):
-                return join(self.root_dir, 'pkgs32' if context.force_32bit else 'pkgs')
-            else:
-                return join(envs_dir, '.pkgs')
         return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
 
     @property
@@ -197,13 +191,20 @@ class Context(AppConfiguration):
         return default_python
 
 
-
 context = Context.from_search_path(SEARCH_PATH, conda)
+
+
+def pkgs_dir_from_envs_dir(envs_dir):
+    if abspath(envs_dir) == abspath(join(context.root_dir, 'envs')):
+        return join(context.root_dir, 'pkgs32' if context.force_32bit else 'pkgs')
+    else:
+        return join(envs_dir, '.pkgs')
 
 
 def reset_context(search_path):
     global context
     context = Context.from_search_path(search_path, conda)
+    return context
 
 
 def get_help_dict():
@@ -255,7 +256,3 @@ def get_help_dict():
         'proxy_servers': dals("""
             """),
     }
-
-
-if __name__ == "__main__":
-    import pdb; pdb.set_trace()

@@ -4,18 +4,16 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 import os
-from datetime import datetime
-from os.path import dirname, join, exists
-from contextlib import contextmanager
-from tempfile import mktemp
-import unittest
-
 import pytest
+import unittest
+from contextlib import contextmanager
+from os.path import dirname, join, exists
+from tempfile import mktemp
 
 from conda import config
-from conda.install import on_win
+from conda.base.constants import DEFAULT_CHANNEL_ALIAS
+from conda.base.context import (reset_binstar, reset_context, pkgs_dir_from_envs_dir)
 from conda.utils import get_yaml
-
 from tests.helpers import run_conda_command
 
 yaml = get_yaml()
@@ -79,7 +77,7 @@ class TestConfig(unittest.TestCase):
             ('/usr/local/foo/envs' if config.platform != 'win' else 'C:\envs',
                 '/usr/local/foo/envs/.pkgs' if config.platform != 'win' else 'C:\envs\.pkgs'),
             ]:
-            self.assertEqual(config.pkgs_dir_from_envs_dir(pi), po)
+            self.assertEqual(pkgs_dir_from_envs_dir(pi), po)
 
     # def test_proxy_settings(self):
     #     self.assertEqual(config.get_proxy_servers(),
@@ -89,13 +87,15 @@ class TestConfig(unittest.TestCase):
     # @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1) and not on_win,
     #                    reason="configs are borked")
     def test_normalize_urls(self):
+        binstar = reset_binstar(url='https://mybinstar.com', token='01234abcde')
+        context = reset_context([join(dirname(__file__), 'condarc')])
         current_platform = config.subdir
         assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
-        assert config.rc.get('channel_alias') == 'https://your.repo/'
-        assert config.channel_prefix(False) == 'https://your.repo/'
-        assert config.binstar_domain == 'https://mybinstar.com/'
-        assert config.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
-        assert config.get_rc_urls() == ["binstar_username", "http://some.custom/channel", "defaults"]
+        assert context.channel_alias == 'https://your.repo/'
+        assert binstar.channel_prefix(False) == 'https://your.repo/'
+        assert binstar.binstar_domain == 'https://mybinstar.com/'
+        assert binstar.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
+        assert context.channels == ("binstar_username", "http://some.custom/channel", "defaults")
         channel_urls = [
             'defaults',
             'system',

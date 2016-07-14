@@ -24,7 +24,7 @@ class Arch(Enum):
 
 
 class Platform(Enum):
-    linux = 'linux'
+    linux = 'linux2'
     win = 'win32'
     openbsd = 'openbsd5'
     osx = 'darwin'
