@@ -140,7 +140,7 @@ class TestJson(unittest.TestCase):
     def test_info(self):
         res = capture_json_with_argv('conda', 'info', '--json')
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
-                'envs_dirs', 'is_foreign', 'pkgs_dirs', 'platform',
+                'envs_dirs', 'pkgs_dirs', 'platform',
                 'python_version', 'rc_path', 'root_prefix', 'root_writable')
         self.assertIsInstance(res, dict)
         for key in keys:

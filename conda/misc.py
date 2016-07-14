@@ -78,7 +78,6 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             schannel = 'defaults' if prefix == '' else prefix[:-2]
         else:
             # Channel information from the URL
-            import pdb; pdb.set_trace()
             channel, schannel = Channel(url).url_channel_wtf
             prefix = '' if schannel == 'defaults' else schannel + '::'
 

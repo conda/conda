@@ -22,7 +22,7 @@ import pytest
 from requests import Session
 from requests.adapters import BaseAdapter
 
-from conda import config
+from conda.base.context import context, reset_context, bits
 from conda.cli import conda_argparse
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
@@ -32,7 +32,6 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.compat import itervalues
-from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
 from conda.exceptions import CondaError
 from conda.install import linked as install_linked, linked_data_, dist2dirname
@@ -126,7 +125,7 @@ def make_temp_env(*packages):
     try:
         # try to clear any config that's been set by other tests
         if packages:
-            config.load_condarc(join(prefix, 'condarc'))
+            reset_context([join(prefix, 'condarc')])
             run_command(Commands.CREATE, prefix, *packages)
         yield prefix
     finally:
@@ -135,7 +134,7 @@ def make_temp_env(*packages):
 
 def reload_config(prefix):
     prefix_condarc = join(prefix, 'condarc')
-    config.load_condarc(prefix_condarc)
+    reset_context([prefix_condarc])
 
 
 class EnforceUnusedAdapter(BaseAdapter):
@@ -265,9 +264,8 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
-            from conda.config import pkgs_dirs
             flask_fname = flask_data['fn']
-            tar_old_path = join(pkgs_dirs[0], flask_fname)
+            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
 
             # regression test for #2886 (part 1 of 2)
             # install tarball from package cache, default channel
@@ -295,7 +293,7 @@ class IntegrationTests(TestCase):
                 del flask_data[field]
             repodata = {'info': {}, 'packages':{flask_fname: flask_data}}
             with make_temp_env() as channel:
-                subchan = join(channel, subdir)
+                subchan = join(channel, context.subdir)
                 channel = path_to_url(channel)
                 os.makedirs(subchan)
                 tar_new_path = join(subchan, flask_fname)
@@ -311,7 +309,7 @@ class IntegrationTests(TestCase):
                 # Regression test for 2970
                 # install from build channel as a tarball
                 conda_bld = join(sys.prefix, 'conda-bld')
-                conda_bld_sub = join(conda_bld, subdir)
+                conda_bld_sub = join(conda_bld, context.subdir)
 
                 tar_bld_path = join(conda_bld_sub, flask_fname)
                 if os.path.exists(conda_bld):
@@ -400,7 +398,6 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
-
     @pytest.mark.timeout(600)
     def test_python2_pandas(self):
         with make_temp_env("python=2 pandas") as prefix:
@@ -435,8 +432,7 @@ class IntegrationTests(TestCase):
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python") as prefix:
             assert_package_is_installed(prefix, 'python')
-            from conda.config import get_rc_urls
-            assert 'r' not in get_rc_urls()
+            assert 'r' not in context.channels
 
             # assert conda search cannot find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
@@ -469,7 +465,7 @@ class IntegrationTests(TestCase):
     def test_shortcut_in_underscore_env_shows_message(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         try:
-            config.load_condarc("")
+
             stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut")
             assert ("Environment name starts with underscore '_'.  "
                     "Skipping menu installation." in stderr)
@@ -480,7 +476,7 @@ class IntegrationTests(TestCase):
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         try:
-            config.load_condarc("")
+            reload_config(prefix)
             stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut",
                                          "--no-shortcuts")
             # This test is sufficient, because it effectively verifies that the code
@@ -501,7 +497,7 @@ class IntegrationTests(TestCase):
         prefix = make_temp_prefix(str(uuid4())[:7])
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         try:
-            config.load_condarc("")
+            reload_config(prefix)
             run_command(Commands.CREATE, prefix, "console_shortcut")
             assert package_is_installed(prefix, 'console_shortcut')
             assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
@@ -532,7 +528,7 @@ class IntegrationTests(TestCase):
 
         try:
             # including --no-shortcuts should not get shortcuts installed
-            config.load_condarc("")
+            reload_config(prefix)
             run_command(Commands.CREATE, prefix, "--no-shortcuts", "console_shortcut")
             assert package_is_installed(prefix, 'console_shortcut')
             assert not isfile(shortcut_file)
@@ -561,7 +557,7 @@ class IntegrationTests(TestCase):
 
         try:
             # set condarc shortcuts: False
-            config.load_condarc("")
+            reload_config(prefix)
             run_command(Commands.CONFIG, prefix, "--set shortcuts false")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
             json_obj = json_loads(stdout)

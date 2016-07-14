@@ -8,8 +8,7 @@ from collections import defaultdict
 
 import pytest
 
-from conda.config import default_python, pkgs_dirs
-import conda.config
+from conda.base.context import context
 from conda.install import LINK_HARD
 import conda.plan as plan
 import conda.instructions as inst
@@ -121,7 +120,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
     def test_4(self):
         self.linked = []
-        ps = ['python 2.7*'] if default_python == '2.7' else []
+        ps = ['python 2.7*'] if context.default_python == '2.7' else []
         for specs, added in [
             (['python'], ps),
             (['numpy'], ps),
