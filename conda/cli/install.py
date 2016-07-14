@@ -403,7 +403,7 @@ environment does not exist: %s
                     if e.errno == errno.EACCES:
                         log.debug("Can't write the history file")
                     else:
-                        raise CondaIOError("Can't write the history file")
+                        raise CondaIOError("Can't write the history file", e)
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:

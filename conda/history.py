@@ -240,7 +240,8 @@ class History(object):
 
     def write_dists(self, dists):
         if not dists:
-            return
+            # no dists for empty envs
+            pass
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
