@@ -148,8 +148,7 @@ def execute(args, parser):
 
     else:
         specs = specs_from_args(args.package_names)
-        if (conda_in_root and plan.is_root_prefix(prefix) and
-                  names_in_specs(root_no_rm, specs)):
+        if conda_in_root and plan.is_root_prefix(prefix) and names_in_specs(root_no_rm, specs):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(root_no_rm), args.json)
         actions = plan.remove_actions(prefix, specs, index=index,

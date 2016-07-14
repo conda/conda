@@ -104,8 +104,7 @@ rc_other = [
     'proxy_servers',
 ]
 
-if (basename(sys.prefix) == '_conda' and
-           basename(dirname(sys.prefix)) == 'envs'):
+if basename(sys.prefix) == '_conda' and basename(dirname(sys.prefix)) == 'envs':
     # conda is located in it's own private environment named '_conda'
     conda_in_root = False
     conda_private = True
