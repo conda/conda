@@ -395,7 +395,6 @@ def print_unexpected_error_message(e):
         from conda.cli.common import stdout_json
         stdout_json(dict(error=traceback))
     else:
-    # if not output_json and e.__class__.__name__ not in ('ScannerError', 'ParserError'):
         message = """\
 An unexpected error has occurred.
 Please consider posting the following information to the
