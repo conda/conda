@@ -271,7 +271,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         assert mocks['rename'].call_count == 1
         rename_args = mocks['rename'].call_args[0]
         assert rename_args[0] == mocks['unlink'].call_args_list[0][0][0]
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         assert dirname(rename_args[1]) == mocks['unlink'].call_args_list[1][0][0]
 
     @skip_if_no_mock
