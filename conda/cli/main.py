@@ -116,6 +116,7 @@ def _main():
     args = p.parse_args()
 
     conda.config.output_json = args.json
+    conda.config.debug_on = args.debug
 
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
