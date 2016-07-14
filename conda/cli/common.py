@@ -548,20 +548,21 @@ def names_in_specs(names, specs):
 
 def check_specs(prefix, specs, json=False, create=False):
     if len(specs) == 0:
-        msg = ('too few arguments, must supply command line '
-               'package specs or --file')
+        msg = ('no packages specified for this environment, '
+               'an empty environment will be created.')
         if create:
             msg += textwrap.dedent("""
 
-                You can specify one or more default packages to install when creating
+                You can also specify one or more default packages to install when creating
                 an environment.  Doing so allows you to call conda create without
                 explicitly providing any package names.
 
                 To set the provided packages, call conda config like this:
 
                     conda config --add create_default_packages PACKAGE_NAME
+
             """)
-        raise TooFewArgumentsError(msg, json)
+        sys.stdout.write(msg)
 
 
 def disp_features(features):
