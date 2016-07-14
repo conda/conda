@@ -14,7 +14,7 @@ from os.path import isdir, isfile
 from .common import (add_parser_help, add_parser_prefix, add_parser_json,
                      add_parser_show_channel_urls, disp_features, stdout_json,
                      get_prefix)
-from ..config import show_channel_urls, subdir, use_pip
+from ..base.context import context, subdir
 from ..egg_info import get_egg_info
 from ..install import dist2quad, linked
 from ..install import name_dist, is_linked, linked_data
@@ -122,7 +122,7 @@ def get_packages(installed, regex):
 
 
 def list_packages(prefix, installed, regex=None, format='human',
-                  show_channel_urls=show_channel_urls):
+                  show_channel_urls=context.show_channel_urls):
     res = 1
 
     result = []
@@ -153,7 +153,7 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
-                   json=False, show_channel_urls=show_channel_urls):
+                   json=False, show_channel_urls=context.show_channel_urls):
     if not isdir(prefix):
         raise CondaEnvironmentError("""\
 Error: environment does not exist: %s
@@ -169,7 +169,7 @@ Error: environment does not exist: %s
             print_export_header()
 
     installed = linked(prefix)
-    if piplist and use_pip and format == 'human':
+    if piplist and context.use_pip and format == 'human':
         installed.update(get_egg_info(prefix))
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,

@@ -14,6 +14,9 @@ from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
 
+from conda.config import rc_path
+from conda.config import user_rc_path, sys_rc_path
+from conda.entities.channel import Channel, offline_keep
 from ..utils import on_win
 from ..compat import itervalues
 from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
@@ -114,7 +117,6 @@ def get_user_site():
 
 def pretty_package(pkg):
     from conda.utils import human_bytes
-    from conda.config import canonical_channel_name
 
     d = OrderedDict([
         ('file name', pkg.fn),
@@ -122,7 +124,7 @@ def pretty_package(pkg):
         ('version', pkg.version),
         ('build number', pkg.build_number),
         ('build string', pkg.build),
-        ('channel', canonical_channel_name(pkg.channel)),
+        ('channel', Channel(pkg.channel).canonical_name),
         ('size', human_bytes(pkg.info['size'])),
         ])
     rest = pkg.info
@@ -147,22 +149,16 @@ def execute(args, parser):
     from os.path import dirname
 
     import conda
-    import conda.config as config
-    from conda.config import (root_dir, get_channel_urls, subdir, pkgs_dirs,
-                              root_writable, envs_dirs, default_prefix, rc_path,
-                              user_rc_path, sys_rc_path, foreign, hide_binstar_tokens,
-                              platform, offline_keep, is_offline, init_binstar)
+    from conda.base.context import context, binstar
+    from conda import config
     from conda.resolve import Resolve
     from conda.api import get_index
 
-    # Quietly initialize binstar to drop the API info
-    init_binstar(True)
-
     if args.root:
         if args.json:
-            stdout_json({'root_prefix': root_dir})
+            stdout_json({'root_prefix': context.root_dir})
         else:
-            print(root_dir)
+            print(context.root_dir)
         return
 
     if args.packages:
@@ -212,7 +208,7 @@ def execute(args, parser):
     else:
         conda_build_version = conda_build.__version__
 
-    channels = get_channel_urls()
+    channels = context.channels
 
     if args.unsafe_channels:
         if not args.json:
@@ -221,29 +217,29 @@ def execute(args, parser):
             print(json.dumps({"channels": channels}))
         return 0
 
-    channels = list(map(hide_binstar_tokens, channels))
+    channels = list(map(binstar.hide_binstar_tokens, channels))
     if not args.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]
 
     info_dict = dict(
-        platform=subdir,
+        platform=context.subdir,
         conda_version=conda.__version__,
         conda_env_version=conda_env_version,
         conda_build_version=conda_build_version,
-        root_prefix=root_dir,
+        root_prefix=context.root_dir,
         conda_prefix=config.conda_prefix,
         conda_private=config.conda_private,
-        root_writable=root_writable,
-        pkgs_dirs=pkgs_dirs,
-        envs_dirs=envs_dirs,
-        default_prefix=default_prefix,
+        root_writable=context.root_writable,
+        pkgs_dirs=context.pkgs_dirs,
+        envs_dirs=context.envs_dirs,
+        default_prefix=context.default_prefix,
         channels=channels,
         rc_path=rc_path,
         user_rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,
-        is_foreign=bool(foreign),
-        offline=is_offline(),
+        # is_foreign=bool(foreign),
+        offline=context.offline,
         envs=[],
         python_version='.'.join(map(str, sys.version_info)),
         requests_version=requests_version,
@@ -275,7 +271,6 @@ Current conda install:
            channel URLs : %(_channels)s
             config file : %(rc_path)s
            offline mode : %(offline)s
-      is foreign system : %(is_foreign)s
 """ % info_dict)
 
     if args.envs:
@@ -302,9 +297,9 @@ Current conda install:
 
         evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
                  'CIO_TEST', 'CONDA_ENVS_PATH']
-        if platform == 'linux':
+        if context.platform == 'linux':
             evars.append('LD_LIBRARY_PATH')
-        elif platform == 'osx':
+        elif context.platform == 'osx':
             evars.append('DYLD_LIBRARY_PATH')
         for ev in sorted(evars):
             print("%s: %s" % (ev, os.getenv(ev, '<not set>')))

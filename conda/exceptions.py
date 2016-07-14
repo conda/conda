@@ -216,7 +216,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
     '''
     def __init__(self, bad_deps, *args, **kwargs):
         from .resolve import dashlist
-        from .config import subdir
+        from .base.context import subdir
 
         deps = set(q[-1].spec for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
@@ -318,6 +318,10 @@ class CondaValueError(CondaError, ValueError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Value error: %s\n' % message
         super(CondaValueError, self).__init__(msg, *args, **kwargs)
+
+
+class ValidationError(CondaValueError):
+    pass
 
 
 class CondaTypeError(CondaError, TypeError):

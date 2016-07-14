@@ -20,9 +20,8 @@ import requests
 
 from . import __version__ as VERSION
 from .compat import urlparse
-from .config import platform as config_platform, ssl_verify, get_proxy_servers
 from .utils import gnu_get_libc_version
-
+from .base.context import context, platform as context_platform
 
 RETRIES = 3
 
@@ -36,10 +35,10 @@ _user_agent = ("conda/{conda_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
 glibc_ver = gnu_get_libc_version()
-if config_platform == 'linux':
+if context_platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
-elif config_platform == 'osx':
+elif context_platform == 'osx':
     dist = 'OSX'
     ver = platform.mac_ver()[0]
 else:
@@ -65,7 +64,7 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        proxies = get_proxy_servers()
+        proxies = context.proxy_servers
         if proxies:
             self.proxies = proxies
 
@@ -83,7 +82,7 @@ class CondaSession(requests.Session):
 
         self.headers['User-Agent'] = user_agent
 
-        self.verify = ssl_verify
+        self.verify = context.ssl_verify
 
 
 class S3Adapter(requests.adapters.BaseAdapter):

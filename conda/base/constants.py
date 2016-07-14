@@ -56,3 +56,22 @@ SEARCH_PATH = (
 )
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
+
+PLATFORM_DIRECTORIES = ("linux-64",  "linux-32",
+                        "win-64",  "win-32",
+                        "osx-64", "noarch")
+
+RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
+
+
+if Platform.from_sys() is Platform.win:
+    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
+                        'https://repo.continuum.io/pkgs/pro',
+                        'https://repo.continuum.io/pkgs/msys2',
+                        )
+else:
+    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
+                        'https://repo.continuum.io/pkgs/pro',
+                        )
+
+ROOT_ENV_NAME = 'root'
