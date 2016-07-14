@@ -104,8 +104,8 @@ class DirectoryLock(FileLock):
         self.lock_path = "%s.pid{0}.%s" % (lock_path_pre, LOCK_EXTENSION)
         self.lock_glob_str = "%s.pid*.%s" % (lock_path_pre, LOCK_EXTENSION)
         assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
-        assert os.access(self.directory_path, os.W_OK), "{0} not writable".format(self.directory_path)
+        assert (os.access(self.directory_path, os.W_OK),
+                "{0} not writable".format(self.directory_path))
 
 
 Locked = DirectoryLock
-

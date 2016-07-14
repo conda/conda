@@ -44,7 +44,7 @@ from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, Cond
 from .utils import on_win
 
 try:
-    from conda.lock import Locked as Locked
+    from conda.lock import FileLock, DirectoryLock
     from conda.utils import win_path_to_unix, path_to_url
     from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
     import conda.config as config
