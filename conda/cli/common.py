@@ -8,10 +8,9 @@ import sys
 import textwrap
 from os.path import abspath, basename, expanduser, isdir, join
 
+from conda.base.constants import ROOT_ENV_NAME
 from .. import console
-from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
-                      channel_priority, show_channel_urls, always_yes, root_env_name,
-                      root_dir, root_writable, disallow, set_offline, is_offline)
+from ..base.context import context, platform
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
                           CondaValueError, CondaFileIOError, TooFewArgumentsError)
 from ..install import dist2quad
@@ -55,7 +54,7 @@ class Completer(object):
 class Environments(Completer):
     def _get_items(self):
         res = []
-        for dir in envs_dirs:
+        for dir in context.envs_dirs:
             try:
                 res.extend(os.listdir(dir))
             except OSError:
@@ -109,14 +108,14 @@ def add_parser_prefix(p):
     npgroup.add_argument(
         '-n', "--name",
         action="store",
-        help="Name of environment (in %s)." % os.pathsep.join(envs_dirs),
+        help="Name of environment (in %s)." % os.pathsep.join(context.envs_dirs),
         metavar="ENVIRONMENT",
         choices=Environments(),
     )
     npgroup.add_argument(
         '-p', "--prefix",
         action="store",
-        help="Full path to environment prefix (default: %s)." % default_prefix,
+        help="Full path to environment prefix (default: %s)." % context.default_prefix,
         metavar='PATH',
     )
 
@@ -255,21 +254,21 @@ def add_parser_install(p):
         "--update-dependencies", "--update-deps",
         action="store_true",
         dest="update_deps",
-        default=update_dependencies,
+        default=context.update_dependencies,
         help="Update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--no-update-dependencies", "--no-update-deps",
         action="store_false",
         dest="update_deps",
-        default=not update_dependencies,
+        default=not context.update_dependencies,
         help="Don't update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--channel-priority", "--channel-pri", "--chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=channel_priority,
+        default=context.channel_priority,
         help="Channel priority takes precedence over package version (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
@@ -277,7 +276,7 @@ def add_parser_install(p):
         "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=not channel_priority,
+        default=not context.channel_priority,
         help="Package version takes precedence over channel priority (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
@@ -313,13 +312,13 @@ def add_parser_use_local(p):
 
 class OfflineAction(argparse.Action):
     def __call__(self, *args, **kwargs):
-        set_offline()
+        pass
 
 def add_parser_offline(p):
     p.add_argument(
         "--offline",
         action=OfflineAction,
-        default=is_offline(),
+        default=context.offline,
         help="Offline mode, don't connect to the Internet.",
         nargs=0
     )
@@ -338,7 +337,7 @@ def add_parser_show_channel_urls(p):
         "--show-channel-urls",
         action="store_true",
         dest="show_channel_urls",
-        default=show_channel_urls,
+        default=context.show_channel_urls,
         help="Show channel urls (default: %(default)s).",
     )
     p.add_argument(
@@ -398,7 +397,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
         raise DryRunExit
-    if args.yes or always_yes:
+    if args.yes or context.always_yes:
         return True
     try:
         choice = confirm(args, message=message, choices=('yes', 'no'),
@@ -420,10 +419,10 @@ def ensure_name_or_prefix(args, command):
                               getattr(args, 'json', False))
 
 def find_prefix_name(name):
-    if name == root_env_name:
-        return root_dir
+    if name == ROOT_ENV_NAME:
+        return context.root_dir
     # always search cwd in addition to envs dirs (for relative path access)
-    for envs_dir in envs_dirs + [os.getcwd(), ]:
+    for envs_dir in context.envs_dirs + [os.getcwd(), ]:
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
@@ -434,29 +433,29 @@ def get_prefix(args, search=True):
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   args.name, getattr(args, 'json', False))
-        if args.name == root_env_name:
-            return root_dir
+        if args.name == ROOT_ENV_NAME:
+            return context.root_dir
         if search:
             prefix = find_prefix_name(args.name)
             if prefix:
                 return prefix
-        return join(envs_dirs[0], args.name)
+        return join(context.envs_dirs[0], args.name)
 
     if args.prefix:
         return abspath(expanduser(args.prefix))
 
-    return default_prefix
+    return context.default_prefix
 
 def inroot_notwritable(prefix):
     """
     return True if the prefix is under root and root is not writeable
     """
-    return (abspath(prefix).startswith(root_dir) and
-            not root_writable)
+    return (abspath(prefix).startswith(context.root_dir) and
+            not context.root_writable)
 
 def name_prefix(prefix):
-    if abspath(prefix) == root_dir:
-        return root_env_name
+    if abspath(prefix) == context.root_dir:
+        return ROOT_ENV_NAME
     return basename(prefix)
 
 def check_write(command, prefix, json=False):
@@ -474,7 +473,7 @@ def arg2spec(arg, json=False, update=False):
         raise CondaValueError('invalid package specification: %s' % arg, json)
 
     name = spec.name
-    if name in disallow:
+    if name in context.disallow:
         raise CondaValueError("specification '%s' is disallowed" % name, json)
 
     if not spec.is_simple() and update:
@@ -614,15 +613,15 @@ def handle_envs_list(acc, output=True):
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
-        default = '*' if prefix == default_prefix else ' '
-        name = (root_env_name if prefix == root_dir else
+        default = '*' if prefix == context.default_prefix else ' '
+        name = (ROOT_ENV_NAME if prefix == context.root_dir else
                 basename(prefix))
         if output:
             print(fmt % (name, default, prefix))
 
     for prefix in misc.list_prefixes():
         disp_env(prefix)
-        if prefix != root_dir:
+        if prefix != context.root_dir:
             acc.append(prefix)
 
     if output:

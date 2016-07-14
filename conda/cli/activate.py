@@ -96,7 +96,8 @@ def pathlist_to_str(paths, escape_backslashes=True):
 
 
 def main():
-    from conda.config import root_env_name, root_dir
+    from conda.base.context import context
+    from conda.base.constants import ROOT_ENV_NAME
     from conda.utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
         # all execution paths sys.exit at end.
@@ -121,7 +122,7 @@ def main():
             raise ArgumentError("Invalid arguments to checkenv.  Need shell and env name/path")
         if len(sys.argv) > 4:
             raise ArgumentError("did not expect more than one argument.")
-        if sys.argv[3].lower() == root_env_name.lower():
+        if sys.argv[3].lower() == ROOT_ENV_NAME.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
             # raise CondaSystemExit
@@ -135,7 +136,7 @@ def main():
         # Make sure an env always has the conda symlink
         try:
             import conda.install
-            conda.install.symlink_conda(prefix, root_dir, shell)
+            conda.install.symlink_conda(prefix, context.root_dir, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}.\n"

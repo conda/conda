@@ -16,9 +16,10 @@ from difflib import get_close_matches
 from os.path import isdir, join, basename, exists, abspath
 
 from conda.api import get_index
+from conda.base.constants import ROOT_ENV_NAME
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..config import create_default_packages, force_32bit, root_env_name
+from ..base.context import force_32bit, context
 from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotFoundError,
                           CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
                           CondaAssertionError, CondaOSError, CondaImportError,
@@ -59,7 +60,7 @@ def check_prefix(prefix, json=False):
     error = None
     if name.startswith('.'):
         error = "environment name cannot start with '.': %s" % name
-    if name == root_env_name:
+    if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
         if isdir(prefix) and not os.listdir(prefix):
@@ -155,9 +156,9 @@ def install(args, parser, command='install'):
                                            (name, prefix), args.json)
 
     if newenv and not args.no_default_packages:
-        default_packages = create_default_packages[:]
+        default_packages = context.create_default_packages[:]
         # Override defaults if they are specified at the command line
-        for default_pkg in create_default_packages:
+        for default_pkg in context.create_default_packages:
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
                 default_packages.remove(default_pkg)
         args.packages.extend(default_packages)

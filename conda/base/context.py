@@ -7,16 +7,20 @@ from collections import namedtuple
 from logging import getLogger
 
 import sys
+from os.path import expanduser, abspath, join, isdir
 from platform import machine
 
-from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS
+from conda._vendor.toolz.itertoolz import concatv
+from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, RECOGNIZED_URL_SCHEMES, DEFAULT_CHANNELS, \
+    conda, ROOT_ENV_NAME
 from .._vendor.auxlib.compat import string_types
 from .._vendor.auxlib.ish import dals
 from ..common.configuration import (Configuration as AppConfiguration, PrimitiveParameter,
                                     SequenceParameter, MapParameter)
+from ..compat import urlparse
 
 log = getLogger(__name__)
-
+stderrlog = getLogger('stderrlog')
 
 
 default_python = '%d.%d' % sys.version_info[:2]
@@ -48,18 +52,6 @@ else:
     subdir = '%s-%d' % (platform, bits)
 
 
-defaults_ = [
-    'https://repo.continuum.io/pkgs/free',
-    'https://repo.continuum.io/pkgs/pro',
-]
-if platform == "win":
-    defaults_.append('https://repo.continuum.io/pkgs/msys2')
-
-
-
-
-
-
 
 class Binstar(object):
 
@@ -81,7 +73,7 @@ class Binstar(object):
             try:
                 from binstar_client.utils import get_binstar
                 # Turn off output in offline mode so people don't think we're going online
-                args = namedtuple('args', 'log_level')(0) if quiet or offline else None
+                args = namedtuple('args', 'log_level')(0)  # if quiet or offline else None
                 self.binstar_client = get_binstar(args)
             except ImportError:
                 log.debug("Could not import binstar")
@@ -134,38 +126,88 @@ class Context(AppConfiguration):
     always_copy = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
     use_pip = PrimitiveParameter(True)
-    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload', ))
+    shortcuts = PrimitiveParameter(True)
+    offline = PrimitiveParameter(False)
+    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',))
     allow_softlinks = PrimitiveParameter(True)
-    self_update = PrimitiveParameter(True)
+    auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     show_channel_urls = PrimitiveParameter(None)
     update_dependencies = PrimitiveParameter(True)
     channel_priority = PrimitiveParameter(True)
-    ssl_verify = PrimitiveParameter(True)
+    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
     track_features = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
     create_default_packages = SequenceParameter(string_types)
-    # envs_dirs = SequenceParameter(string_types)
 
+    channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
     channels = SequenceParameter(string_types)
-    default_channels = SequenceParameter(string_types)
+    default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
 
     proxy_servers = MapParameter(string_types)
 
+    _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
+
+    @property
+    def force_32bit(self):
+        return False
+
+    @property
+    def root_dir(self):
+        return abspath(expanduser(self._root_dir))
+
+    @property
+    def root_writable(self):
+        from ..utils import try_write
+        return try_write(self.root_dir)
+
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs'))
+
+    @property
+    def envs_dirs(self):
+        return tuple(abspath(expanduser(p))
+                     for p in concatv(self._envs_dirs,
+                                      (join(self.root_dir, 'envs'), '~/.conda/envs')
+                                      if self.root_writable else ('~/.conda/envs',)))
+
+    @property
+    def pkgs_dirs(self):
+        def pkgs_dir_from_envs_dir(envs_dir):
+            if abspath(envs_dir) == abspath(join(self.root_dir, 'envs')):
+                return join(self.root_dir, 'pkgs32' if context.force_32bit else 'pkgs')
+            else:
+                return join(envs_dir, '.pkgs')
+        return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
+
+    @property
+    def default_prefix(self):
+        _default_env = os.getenv('CONDA_DEFAULT_ENV')
+        if _default_env in (None, ROOT_ENV_NAME):
+            return self.root_dir
+        elif os.sep in _default_env:
+            return abspath(_default_env)
+        else:
+            for envs_dir in self.envs_dirs:
+                default_prefix = join(envs_dir, _default_env)
+                if isdir(default_prefix):
+                    return default_prefix
+        return join(self.envs_dirs[0], _default_env)
+
+    @property
+    def subdir(self):
+        return subdir
+
+    @property
+    def platform(self):
+        return platform
 
 
 
+context = Context.from_search_path(SEARCH_PATH, conda)
 
 
-
-
-
-
-context = Context.from_search_path(SEARCH_PATH)
-
-
-# def reset_context(search_path):
-#     global context
-#     context = Context.from_search_path(search_path)
+def reset_context(search_path):
+    global context
+    context = Context.from_search_path(search_path)
 
 
 def get_help_dict():
@@ -217,3 +259,7 @@ def get_help_dict():
         'proxy_servers': dals("""
             """),
     }
+
+
+if __name__ == "__main__":
+    import pdb; pdb.set_trace()

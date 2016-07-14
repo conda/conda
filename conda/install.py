@@ -40,56 +40,13 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
+from conda.base.context import binstar, context
+from conda.entities.channel import Channel
+from conda.lock import DirectoryLock, FileLock
+from conda.utils import path_to_url
 from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, CondaOSError
 from .utils import on_win
 
-try:
-    from conda.lock import FileLock, DirectoryLock
-    from conda.utils import win_path_to_unix, path_to_url
-    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
-    import conda.config as config
-except ImportError:
-    # Make sure this still works as a standalone script for the Anaconda
-    # installer.
-    pkgs_dirs = [sys.prefix]
-
-    class Locked(object):
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            pass
-
-        def __exit__(self, exc_type, exc_value, traceback):
-            pass
-
-    def win_path_to_unix(path, root_prefix=""):
-        """Convert a path or ;-separated string of paths into a unix representation
-
-        Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-        """
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
-
-        def translation(found_path):
-            found = found_path.group(1).replace("\\", "/").replace(":", "")
-            return root_prefix + "/" + found
-        return re.sub(path_re, translation, path).replace(";/", ":/")
-
-    def url_path(path):
-        path = abspath(path)
-        if on_win:
-            path = '/' + path.replace(':', '|').replace('\\', '/')
-        return 'file://%s' % path
-
-    # There won't be any binstar tokens in the installer anyway
-    def remove_binstar_tokens(url):
-        return url
-
-    # A simpler version of url_channel will do
-    def url_channel(url):
-        return url.rsplit('/', 2)[0] + '/' if url and '/' in url else None, 'defaults'
-
-    pkgs_dirs = [join(sys.prefix, 'pkgs')]
 
 if on_win:
     import ctypes
@@ -677,8 +634,8 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     if not (xpkg or xdir):
         return
     if url:
-        url = remove_binstar_tokens(url)
-    _, schannel = url_channel(url)
+        url = binstar.remove_binstar_tokens(url)
+    _, schannel = Channel(url).url_channel_wtf
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
     fname_table_[xkey] = fname_table_[path_to_url(xkey)] = prefix
@@ -714,7 +671,8 @@ def package_cache():
         return package_cache_
     # Stops recursion
     package_cache_['@'] = None
-    for pdir in pkgs_dirs:
+    # import pdb; pdb.set_trace()
+    for pdir in context.pkgs_dirs:
         try:
             data = open(join(pdir, 'urls.txt')).read()
             for url in data.split()[::-1]:
@@ -751,7 +709,7 @@ def find_new_location(dist):
     # Look for a location with no conflicts
     # On the second pass, just pick the first location
     for p in range(2):
-        for pkg_dir in pkgs_dirs:
+        for pkg_dir in context.pkgs_dirs:
             pkg_path = join(pkg_dir, fname)
             prefix = fname_table_.get(pkg_path)
             if p or prefix is None:
@@ -890,7 +848,7 @@ def load_linked_data(prefix, dist, rec=None):
         channel = channel.rstrip('/')
         if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
             url = rec['url'] = channel + '/' + fn
-    channel, schannel = url_channel(url)
+    channel, schannel = Channel(url).url_channel_wtf
     rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
@@ -966,7 +924,7 @@ def is_linked(prefix, dist):
 
 
 def delete_trash(prefix=None):
-    for pkg_dir in pkgs_dirs:
+    for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
         if not isdir(trash_dir):
             continue
@@ -996,7 +954,7 @@ def move_path_to_trash(path, preclean=True):
     if preclean:
         delete_trash()
 
-    for pkg_dir in pkgs_dirs:
+    for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
 
         try:
@@ -1082,7 +1040,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             if isfile(nonadmin):
                 open(join(prefix, ".nonadmin"), 'w').close()
 
-        if config.shortcuts:
+        if context.shortcuts:
             mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):

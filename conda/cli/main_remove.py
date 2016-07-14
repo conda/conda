@@ -21,7 +21,8 @@ from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parse
                      specs_from_args, names_in_specs, root_no_rm, stdout_json,
                      confirm_yn)
 from ..compat import iteritems, iterkeys
-from ..config import default_prefix, conda_in_root
+from ..config import conda_in_root
+from ..base.context import context
 from ..console import json_progress_bars
 from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
                           CondaValueError)
@@ -116,7 +117,7 @@ def execute(args, parser):
                               args.json)
 
     prefix = get_prefix(args)
-    if args.all and prefix == default_prefix:
+    if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
     check_write('remove', prefix, json=args.json)
