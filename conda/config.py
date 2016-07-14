@@ -107,12 +107,14 @@ rc_other = [
 if (basename(sys.prefix) == '_conda' and
            basename(dirname(sys.prefix)) == 'envs'):
     # conda is located in it's own private environment named '_conda'
-    home_in_root = False
+    conda_in_root = False
+    conda_private = True
     root_prefix = abspath(join(sys.prefix, '..', '..'))
     conda_prefix = sys.prefix
 else:
     # conda is located in the root environment
-    home_in_root = True
+    conda_in_root = True
+    conda_private = False
     root_prefix = conda_prefix = abspath(sys.prefix)
 
 # root_dir is an alias for root_prefix, we prefer the name "root_prefix"

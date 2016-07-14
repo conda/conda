@@ -233,7 +233,7 @@ def execute(args, parser):
         conda_build_version=conda_build_version,
         root_prefix=root_dir,
         conda_prefix=config.conda_prefix,
-        home_in_root=config.home_in_root,
+        conda_private=config.conda_private,
         root_writable=root_writable,
         pkgs_dirs=pkgs_dirs,
         envs_dirs=envs_dirs,
@@ -263,7 +263,7 @@ Current conda install:
 
                platform : %(platform)s
           conda version : %(conda_version)s
-   conda's home in root : %(home_in_root)s
+       conda is private : %(conda_private)s
       conda-env version : %(conda_env_version)s
     conda-build version : %(conda_build_version)s
          python version : %(python_version)s

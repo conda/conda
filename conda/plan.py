@@ -17,7 +17,7 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
 from . import instructions as inst
-from .config import (always_copy as config_always_copy, channel_priority,
+from .config import (always_copy as config_always_copy, channel_priority, conda_in_root,
                      show_channel_urls as config_show_channel_urls, is_offline,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
                      track_features, foreign, url_channel, canonical_channel_name)
@@ -557,7 +557,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
             raise CondaRuntimeError(msg % dist)
-        if name == 'conda' and name not in nlinked:
+        if conda_in_root and name == 'conda' and name not in nlinked:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")
             else:
