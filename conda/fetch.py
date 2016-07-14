@@ -121,7 +121,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
             if url.startswith('file://'):
                 file_path = url_to_path(url)
-                with Locked(dirname(file_path)):
+                with FileLock(dirname(file_path)):
                     json_str = get_json_str(filename, resp.content)
             else:
                 json_str = get_json_str(filename, resp.content)
@@ -386,7 +386,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     if retries is None:
         retries = RETRIES
 
-    with Locked(dst_path):
+    with FileLock(dst_path):
         rm_rf(dst_path)
         try:
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))

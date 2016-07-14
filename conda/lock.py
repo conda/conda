@@ -20,7 +20,7 @@ import logging
 import os
 import time
 from glob import glob
-from os.path import abspath, isdir, dirname
+from os.path import abspath, isdir, dirname, basename, join
 from .compat import range
 from .exceptions import LockError
 
@@ -49,7 +49,7 @@ def touch(file_name, times=None):
         os.utime(file_name, times)
 
 
-class Locked(object):
+class FileLock(object):
     """
     Context manager to handle locks.
     """
@@ -61,20 +61,20 @@ class Locked(object):
         """
         self.file_path = abspath(file_path)
         self.retries = retries
-
-    def __enter__(self):
+        self.lock_path = "%s.pid{0}.%s" % (self.file_path, LOCK_EXTENSION)
+        self.lock_glob_str = "%s.pid*.%s" % (self.file_path, LOCK_EXTENSION)
         assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
         assert "::" not in self.file_path, self.file_path
 
+    def __enter__(self):
         sleep_time = 1
-        self.lock_path = "{0}.pid{1}.{2}".format(self.file_path, os.getpid(), LOCK_EXTENSION)
-        lock_glob_str = "{0}.pid*.{1}".format(self.file_path, LOCK_EXTENSION)
+        self.lock_path = self.lock_path.format(os.getpid())
         last_glob_match = None
 
-        for q in range(self.retries + 1):
+        for _ in range(self.retries + 1):
 
             # search, whether there is process already locked on this file
-            glob_result = glob(lock_glob_str)
+            glob_result = glob(self.lock_glob_str)
             if glob_result:
                 log.debug(LOCKSTR.format(glob_result))
                 log.debug("Sleeping for %s seconds\n" % sleep_time)
@@ -92,3 +92,20 @@ class Locked(object):
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
         rm_rf(self.lock_path)
+
+
+class DirectoryLock(FileLock):
+
+    def __init__(self, directory_path, retries=10):
+        self.directory_path = abspath(directory_path)
+        directory_name = basename(self.directory_path)
+        self.retries = retries
+        lock_path_pre = join(self.directory_path, directory_name)
+        self.lock_path = "%s.pid{0}.%s" % (lock_path_pre, LOCK_EXTENSION)
+        self.lock_glob_str = "%s.pid*.%s" % (lock_path_pre, LOCK_EXTENSION)
+        assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
+        assert os.access(self.directory_path, os.W_OK), "{0} not writable".format(self.directory_path)
+
+
+Locked = DirectoryLock
+
