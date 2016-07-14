@@ -3,21 +3,18 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import re
+import sys
 from collections import namedtuple
 from logging import getLogger
-
-import sys
 from os.path import expanduser, abspath, join, isdir
 from platform import machine
 
 from conda._vendor.toolz.itertoolz import concatv
-from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, RECOGNIZED_URL_SCHEMES, DEFAULT_CHANNELS, \
-    conda, ROOT_ENV_NAME
+from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
 from .._vendor.auxlib.compat import string_types
 from .._vendor.auxlib.ish import dals
 from ..common.configuration import (Configuration as AppConfiguration, PrimitiveParameter,
                                     SequenceParameter, MapParameter)
-from ..compat import urlparse
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -160,14 +157,15 @@ class Context(AppConfiguration):
         from ..utils import try_write
         return try_write(self.root_dir)
 
-    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs'))
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
 
     @property
     def envs_dirs(self):
         return tuple(abspath(expanduser(p))
                      for p in concatv(self._envs_dirs,
-                                      (join(self.root_dir, 'envs'), '~/.conda/envs')
-                                      if self.root_writable else ('~/.conda/envs',)))
+                                      (join(self.root_dir, 'envs'), )
+                                      if self.root_writable
+                                      else ('~/.conda/envs', join(self.root_dir, 'envs'))))
 
     @property
     def pkgs_dirs(self):
@@ -200,6 +198,10 @@ class Context(AppConfiguration):
     def platform(self):
         return platform
 
+    @property
+    def default_python(self):
+        return default_python
+
 
 
 context = Context.from_search_path(SEARCH_PATH, conda)
@@ -207,7 +209,7 @@ context = Context.from_search_path(SEARCH_PATH, conda)
 
 def reset_context(search_path):
     global context
-    context = Context.from_search_path(search_path)
+    context = Context.from_search_path(search_path, conda)
 
 
 def get_help_dict():
