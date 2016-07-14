@@ -7,7 +7,7 @@ def test_filelock_passes(tmpdir):
     package_name = "conda_file1"
     tmpfile = join(tmpdir.strpath, package_name)
     with FileLock(tmpfile) as lock:
-        path = basename(lock.lock_path)
+        path = basename(lock.lock_file_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
     # lock should clean up after itself
@@ -19,7 +19,7 @@ def test_filelock_locks(tmpdir):
     package_name = "conda_file_2"
     tmpfile = join(tmpdir.strpath, package_name)
     with FileLock(tmpfile) as lock1:
-        path = basename(lock1.lock_path)
+        path = basename(lock1.lock_file_path)
         assert tmpdir.join(path).exists()
 
         with pytest.raises(LockError) as execinfo:
@@ -42,7 +42,7 @@ def test_filelock_folderlocks(tmpdir):
     tmpfile = join(tmpdir.strpath, package_name)
     os.makedirs(tmpfile)
     with FileLock(tmpfile) as lock1:
-        path = basename(lock1.lock_path)
+        path = basename(lock1.lock_file_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
         with pytest.raises(LockError) as execinfo:
@@ -63,7 +63,7 @@ def test_filelock_folderlocks(tmpdir):
 
 def lock_thread(tmpdir, file_path):
     with FileLock(file_path) as lock1:
-        path = basename(lock1.lock_path)
+        path = basename(lock1.lock_file_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
     assert not tmpdir.join(path).exists()
 
@@ -77,7 +77,7 @@ def test_lock_thread(tmpdir):
 
     with FileLock(tmpfile) as lock1:
         t.start()
-        path = basename(lock1.lock_path)
+        path = basename(lock1.lock_file_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
     t.join()
@@ -100,7 +100,7 @@ def test_lock_retries(tmpdir):
 
     with FileLock(tmpfile) as lock1:
         t.start()
-        path = basename(lock1.lock_path)
+        path = basename(lock1.lock_file_path)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
     t.join()

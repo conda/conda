@@ -50,31 +50,31 @@ def touch(file_name, times=None):
 
 
 class FileLock(object):
+    """Lock a path (file or directory) with the lock file sitting *beside* path.
+
+    :param path_to_lock: the path to be locked
+    :param retries: max number of retries
     """
-    Context manager to handle locks.
-    """
-    def __init__(self, file_path, retries=10):
+    def __init__(self, path_to_lock, retries=10):
         """
-        :param file_path: The file or directory to be locked
-        :param retries: max number of retries
-        :return:
         """
-        self.file_path = abspath(file_path)
+        self.path_to_lock = abspath(path_to_lock)
         self.retries = retries
-        self.lock_path = "%s.pid{0}.%s" % (self.file_path, LOCK_EXTENSION)
-        self.lock_glob_str = "%s.pid*.%s" % (self.file_path, LOCK_EXTENSION)
-        assert isdir(dirname(self.file_path)), "{0} doesn't exist".format(self.file_path)
-        assert "::" not in self.file_path, self.file_path
+        self.lock_file_path = "%s.pid{0}.%s" % (self.path_to_lock, LOCK_EXTENSION)
+        # e.g. if locking path `/conda`, lock file will be `/conda.pidXXXX.conda_lock`
+        self.lock_file_glob_str = "%s.pid*.%s" % (self.path_to_lock, LOCK_EXTENSION)
+        assert isdir(dirname(self.path_to_lock)), "{0} doesn't exist".format(self.path_to_lock)
+        assert "::" not in self.path_to_lock, self.path_to_lock
 
     def __enter__(self):
         sleep_time = 1
-        self.lock_path = self.lock_path.format(os.getpid())
+        self.lock_file_path = self.lock_file_path.format(os.getpid())
         last_glob_match = None
 
         for _ in range(self.retries + 1):
 
             # search, whether there is process already locked on this file
-            glob_result = glob(self.lock_glob_str)
+            glob_result = glob(self.lock_file_glob_str)
             if glob_result:
                 log.debug(LOCKSTR.format(glob_result))
                 log.debug("Sleeping for %s seconds\n" % sleep_time)
@@ -83,7 +83,7 @@ class FileLock(object):
                 sleep_time *= 2
                 last_glob_match = glob_result
             else:
-                touch(self.lock_path)
+                touch(self.lock_file_path)
                 return self
 
         stdoutlog.error("Exceeded max retries, giving up")
@@ -91,21 +91,29 @@ class FileLock(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         from .install import rm_rf
-        rm_rf(self.lock_path)
+        rm_rf(self.lock_file_path)
 
 
 class DirectoryLock(FileLock):
+    """Lock a directory with the lock file sitting *within* the directory being locked.
+
+    Useful when, for example, locking the root prefix at ``/conda``, and ``/`` is not writable.
+
+    :param directory_path: the path to be locked
+    :param retries: max number of retries
+    """
 
     def __init__(self, directory_path, retries=10):
         self.directory_path = abspath(directory_path)
         directory_name = basename(self.directory_path)
         self.retries = retries
         lock_path_pre = join(self.directory_path, directory_name)
-        self.lock_path = "%s.pid{0}.%s" % (lock_path_pre, LOCK_EXTENSION)
-        self.lock_glob_str = "%s.pid*.%s" % (lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_path = "%s.pid{0}.%s" % (lock_path_pre, LOCK_EXTENSION)
+        # e.g. if locking directory `/conda`, lock file will be `/conda/conda.pidXXXX.conda_lock`
+        self.lock_file_glob_str = "%s.pid*.%s" % (lock_path_pre, LOCK_EXTENSION)
         assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
         assert (os.access(self.directory_path, os.W_OK),
                 "{0} not writable".format(self.directory_path))
 
 
-Locked = DirectoryLock
+Locked = FileLock
