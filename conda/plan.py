@@ -234,7 +234,7 @@ def display_actions(actions, index, show_channel_urls=None):
 
     if empty:
         print("\nThe following empty environments will be CREATED:\n")
-        print(basename(actions['PREFIX']))
+        print(actions['PREFIX'])
 
     print()
 
