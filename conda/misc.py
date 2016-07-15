@@ -46,7 +46,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     index_args = index_args or {}
     index = index or {}
     verifies = []
-    channels = {}
+    channels = set()
     for spec in specs:
         if spec == '@EXPLICIT':
             continue
@@ -106,7 +106,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                     actions[RM_FETCHED].append(conflict)
                 if not is_local:
                     if fn not in index or index[fn].get('not_fetched'):
-                        channels.add(channel)
+                        channels.add(schannel)
                     verifies.append((dist + '.tar.bz2', md5))
                 actions[FETCH].append(dist)
             actions[EXTRACT].append(dist)
@@ -122,7 +122,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         index_args = index_args or {}
         index_args = index_args.copy()
         index_args['prepend'] = False
-        index_args['channel_urls'] = channels
+        index_args['channel_urls'] = list(channels)
         index.update(get_index(**index_args))
 
     # Finish the MD5 verification
