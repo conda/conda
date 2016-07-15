@@ -153,7 +153,7 @@ class Context(AppConfiguration):
     create_default_packages = SequenceParameter(string_types)
 
     channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
-    channels = SequenceParameter(string_types)
+    channels = SequenceParameter(string_types, default=('defaults',))
     default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
 
     proxy_servers = MapParameter(string_types)

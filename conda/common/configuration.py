@@ -354,7 +354,7 @@ class SequenceParameter(Parameter):
         Args:
             element_type (type or Iterable[type]): The generic type of each element in
                 the sequence.
-            default (Mapping):  The parameter's default value.
+            default (Iterable[str]):  The parameter's default value.
             aliases (Iterable[str]): Alternate names for the parameter.
             validation (callable): Given a parameter value as input, return a boolean indicating
                 validity, or alternately return a string describing an invalid value.
