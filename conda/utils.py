@@ -1,17 +1,15 @@
 from __future__ import print_function, division, absolute_import
 
-from genericpath import isfile
-
-import logging
-import sys
-import hashlib
 import collections
-from functools import partial
-from os.path import abspath, isdir, join
+import hashlib
+import logging
 import os
 import re
 import subprocess
+import sys
 import tempfile
+from functools import partial
+from os.path import abspath, isdir, join, isfile
 
 
 log = logging.getLogger(__name__)
@@ -92,6 +90,17 @@ def gnu_get_libc_version():
 
 
 def try_write(dir_path, heavy=False):
+    """Test write access to a directory.
+
+    Args:
+        dir_path (str): directory to test write access
+        heavy (bool): Actually create and delete a file, or do a faster os.access test.
+           https://docs.python.org/dev/library/os.html?highlight=xattr#os.access
+
+    Returns:
+        bool
+
+    """
     if not isdir(dir_path):
         return False
     if on_win or heavy:
