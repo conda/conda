@@ -11,6 +11,7 @@ Table of contents:
 #. :ref:`AttributeError-getproxies`
 #. :ref:`shell-command-location`
 #. :ref:`wrong-python`
+#. :ref:`unsatisfiable`
 
 .. _permission-denied:
 
@@ -262,3 +263,61 @@ or ``source deactivate`` will work normally.
 After running ``source activate`` to activate any environment, including after 
 running ``source activate root``, running ``python`` will invoke the Python in
 the active conda environment.
+
+
+.. _unsatisfiable:
+
+Issue: ``UnsatisfiableSpecifications`` error
+============================================
+
+Not all conda package installation specifications are possible to satisfy.
+
+For example, ``conda create -n tmp python=3 wxpython=3`` produces an 
+Unsatisfiable Specifications error because wxPython 3 depends on Python 2.7, so 
+the specification to install Python 3 conflicts with the specification to 
+install wxPython 3.
+
+Resolution: Fix the conflicts in the installation request
+---------------------------------------------------------
+
+When an unsatisfiable request is made to conda, conda shows a message such as 
+this one::
+
+    The following specifications were found to be in conflict:
+    - python 3*
+    - wxpython 3* -> python 2.7*
+    Use "conda info <package>" to see the dependencies for each package.
+
+This indicates that the specification to install wxpython 3 depends on 
+installing Python 2.7, which conflicts with the specification to install python 
+3.
+
+You can use "conda info wxpython" or "conda info wxpython=3" to show information 
+about this package and its dependencies::
+
+    wxpython 3.0 py27_0
+    -------------------
+    file name   : wxpython-3.0-py27_0.tar.bz2
+    name        : wxpython
+    version     : 3.0
+    build number: 0
+    build string: py27_0
+    channel     : defaults
+    size        : 34.1 MB
+    date        : 2014-01-10
+    fn          : wxpython-3.0-py27_0.tar.bz2
+    license_family: Other
+    md5         : adc6285edfd29a28224c410a39d4bdad
+    priority    : 2
+    schannel    : defaults
+    url         : https://repo.continuum.io/pkgs/free/osx-64/wxpython-3.0-py27_0.tar.bz2
+    dependencies:
+        python 2.7*
+        python.app
+
+By examining the dependencies of each package, you should be able to determine 
+why the installation request produced a conflict, and modify the request so it 
+can be satisfied without conflicts. In our example, we could install wxPython 
+with Python 2.7::
+
+    conda create -n tmp python=2.7 wxpython=3
