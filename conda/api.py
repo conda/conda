@@ -1,13 +1,11 @@
 from __future__ import print_function, division, absolute_import
 
-from itertools import chain
-
-from conda.entities.channel import Channel, prioritize_channels
+from conda.entities.channel import prioritize_channels
 from . import install
+from .base.context import context
 from .compat import iteritems, itervalues
 from .fetch import fetch_index
 from .resolve import Resolve
-from .base.context import context
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=False, prefix=False):

@@ -8,18 +8,10 @@ from __future__ import print_function, division, absolute_import
 
 import logging
 import os
-import re
 import sys
-from collections import OrderedDict, namedtuple
-from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
-from platform import machine
+from os.path import abspath, basename, dirname, expanduser, isfile, join
 
-from .compat import urlparse, string_types
-from .utils import try_write, yaml_load
-from .exceptions import ProxyError, CondaRuntimeError
-
-from conda.base.context import context, default_python, platform
-
+from conda.base.context import context
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -136,7 +128,6 @@ rc_path = get_rc_path()
 pkgs_dirs = context.pkgs_dirs
 default_prefix = context.default_prefix
 subdir = context.subdir
-from .base.context import arch_name, bits  # NOQA
 
 #
 # def load_condarc(path=None):
