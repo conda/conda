@@ -2,22 +2,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
-
 from itertools import chain
-
-import re
-
-from enum import Enum
-
-import os
 from logging import getLogger
+from os.path import exists, join
 
 from conda.base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
-from conda.exceptions import ValidationError
-from ..base.context import binstar, subdir, context, platform
-from os.path import exists, join
-from ..utils import path_to_url, on_win
+from ..base.context import subdir, context
 from ..compat import urlparse
+from ..utils import path_to_url
 
 log = getLogger(__name__)
 
@@ -100,14 +92,6 @@ class Channel(object):
         # url_channel out >> https://repo.continuum.io/pkgs/free defaults
         return self.base_url, self.canonical_name
 
-
-
-    # @property
-    # def normalized_urls(self):
-    #     return None
-
-
-
     # @staticmethod
     # def url_channel(url):
     #     parts = (url or '').rsplit('/', 2)
@@ -164,8 +148,6 @@ class Channel(object):
     #             for plat in (platform or subdir, 'noarch'):
     #                 newurls.append('%s/%s/' % (url0, plat))
     #     return newurls
-
-
 
 
 def split_platform(value):
@@ -255,14 +237,9 @@ def is_url(url):
         return p.netloc != "" or p.scheme == "file"
 
 
-
-
-
 if __name__ == "__main__":
     print(Channel('kalefranz').base_url)
     print(Channel('kalefranz').canonical_name)
     print(Channel('http://repo.continuum.io/pkgs/pro').base_url)
     print(Channel('http://repo.continuum.io/pkgs/pro').canonical_name)
     print(Channel('https://repo.continuum.io/pkgs/free/osx-64/_license-1.1-py27_1.tar.bz2').canonical_name)
-
-

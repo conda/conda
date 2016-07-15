@@ -8,7 +8,8 @@ from logging import getLogger, WARN, INFO
 from os.path import expanduser, abspath, join, isdir
 from platform import machine
 
-from conda._vendor.toolz.itertoolz import concatv
+from .._vendor.toolz.itertoolz import concatv
+from ..common.io import captured
 from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
 from .._vendor.auxlib.compat import string_types
 from .._vendor.auxlib.ish import dals
@@ -48,6 +49,21 @@ else:
     subdir = '%s-%d' % (platform, bits)
 
 
+def get_binstar_token(channel_alias):
+    try:
+        with captured() as c:
+            from binstar_client.utils import get_server_api
+            bs = get_server_api(site=channel_alias)
+        return bs.token
+    except ImportError:
+        log.debug("Could not import binstar")
+        return None
+    except Exception as e:
+        stderrlog.info("Warning: could not capture token from anaconda-client ({0})\n"
+                       "stdout: {1}\n"
+                       "stderr: {2}".format(e, c.stdout, c.stderr))
+        return None
+
 
 class Binstar(object):
 
@@ -60,7 +76,10 @@ class Binstar(object):
     #     channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
     # channel_alias_tok = binstar_client = binstar_domain = binstar_domain_tok = None
 
-    def __init__(self, url=DEFAULT_CHANNEL_ALIAS, token=None, quiet=True):
+    def __init__(self, url=DEFAULT_CHANNEL_ALIAS, token=None):
+        token = get_binstar_token(url)
+
+
         try:
             from binstar_client.utils import get_server_api
             self.binstar_client = get_server_api(token=token, site=url, log_level=WARN if quiet else INFO)
@@ -110,6 +129,10 @@ binstar = Binstar()
 
 
 class Context(AppConfiguration):
+
+    subdir = property(lambda self: subdir)
+    platform = property(lambda self: platform)
+    default_python = property(lambda self: default_python)
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
     always_yes = PrimitiveParameter(False)
@@ -177,18 +200,6 @@ class Context(AppConfiguration):
                 if isdir(default_prefix):
                     return default_prefix
         return join(self.envs_dirs[0], _default_env)
-
-    @property
-    def subdir(self):
-        return subdir
-
-    @property
-    def platform(self):
-        return platform
-
-    @property
-    def default_python(self):
-        return default_python
 
 
 context = Context.from_search_path(SEARCH_PATH, conda)
