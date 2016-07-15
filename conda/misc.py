@@ -48,7 +48,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     index_args = index_args or {}
     index = index or {}
     verifies = []
-    channels = {}
+    channels = ()
     for spec in specs:
         if spec == '@EXPLICIT':
             continue
