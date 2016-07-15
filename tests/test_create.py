@@ -42,6 +42,7 @@ from tests.helpers import captured
 
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
+BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 
 
 def escape_for_winpath(p):
@@ -238,7 +239,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.timeout(300)
     def test_create_empty_env(self):
         with make_temp_env() as prefix:
-            assert exists(join(prefix, 'bin'))
+            assert exists(join(prefix, BIN_DIRECTORY))
             assert exists(join(prefix, 'conda-meta/history'))
 
             list_output = run_command(Commands.LIST, prefix)
@@ -369,19 +370,18 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-2')
 
             # test symlinks created with env
-            bindir = 'Scripts' if on_win else 'bin'
-            print(os.listdir(join(prefix, bindir)))
+            print(os.listdir(join(prefix, BIN_DIRECTORY)))
             if on_win:
-                assert isfile(join(prefix, bindir, 'activate'))
-                assert isfile(join(prefix, bindir, 'deactivate'))
-                assert isfile(join(prefix, bindir, 'conda'))
-                assert isfile(join(prefix, bindir, 'activate.bat'))
-                assert isfile(join(prefix, bindir, 'deactivate.bat'))
-                assert isfile(join(prefix, bindir, 'conda.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'activate'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'conda'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'activate.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'conda.bat'))
             else:
-                assert islink(join(prefix, bindir, 'activate'))
-                assert islink(join(prefix, bindir, 'deactivate'))
-                assert islink(join(prefix, bindir, 'conda'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'activate'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'deactivate'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'conda'))
 
     @pytest.mark.timeout(300)
     def test_remove_all(self):
