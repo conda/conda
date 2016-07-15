@@ -51,8 +51,8 @@ SEARCH_PATH = (
     '$HOME/.conda/condarc',
     '$HOME/.conda/condarc.d/',
     '$HOME/.condarc',
-    '$ENV/.condarc',
-    '$ENV/.condaenv.yml',
+    # '$ENV/.condarc',
+    # '$ENV/.condaenv.yml',
 )
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
@@ -75,3 +75,5 @@ else:
                         )
 
 ROOT_ENV_NAME = 'root'
+
+EMPTY = ()

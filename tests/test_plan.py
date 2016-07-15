@@ -136,8 +136,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 def test_display_actions():
     import conda.plan
     conda.plan.config_show_channel_urls = False
-    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
-        "numpy-1.7.1-py27_0"]})
+    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0', "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
     index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
     index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
@@ -145,6 +144,7 @@ def test_display_actions():
     with captured() as c:
         display_actions(actions, index)
 
+    import pdb; pdb.set_trace()
     assert c.stdout == """
 The following packages will be downloaded:
 

@@ -6,6 +6,9 @@
 """OS-agnostic, system-level binary package manager."""
 from __future__ import absolute_import, division, print_function
 
+import os
+import sys
+
 from ._vendor.auxlib.packaging import get_version
 
 __all__ = [
@@ -14,7 +17,6 @@ __all__ = [
     "__summary__", "__url__",
 ]
 
-
 __name__ = "conda"
 __version__ = get_version(__file__)
 __author__ = "Continuum Analytics, Inc."
@@ -22,3 +24,6 @@ __email__ = "conda@continuum.io"
 __license__ = "BSD"
 __summary__ = __doc__
 __url__ = "https://github.com/conda/conda"
+
+if os.getenv('CONDA_ROOT') is None:
+    os.environ['CONDA_ROOT'] = sys.prefix
