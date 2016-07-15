@@ -11,7 +11,7 @@ import os
 import sys
 from os.path import abspath, basename, dirname, expanduser, isfile, join
 
-from conda.base.context import context
+from conda.base.context import context, arch_name, bits
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -123,7 +123,8 @@ def get_rc_path():
 
 rc_path = get_rc_path()
 
-
+arch_name = arch_name
+bits = bits
 platform = context.platform
 pkgs_dirs = context.pkgs_dirs
 default_prefix = context.default_prefix
