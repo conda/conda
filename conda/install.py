@@ -44,7 +44,7 @@ from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, Cond
 from .utils import on_win
 
 try:
-    from conda.lock import Locked as Locked
+    from conda.lock import FileLock, DirectoryLock
     from conda.utils import win_path_to_unix, path_to_url
     from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
     import conda.config as config
@@ -786,10 +786,10 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[path_to_url(fname)]
-        with Locked(fname):
+        with FileLock(fname):
             rm_rf(fname)
     for fname in rec['dirs']:
-        with Locked(fname):
+        with FileLock(fname):
             rm_rf(fname)
     del package_cache_[dist]
 
@@ -820,7 +820,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with Locked(fname):
+        with FileLock(fname):
             rm_rf(fname)
     if rec['files']:
         rec['dirs'] = []
@@ -840,7 +840,7 @@ def extract(dist):
     assert url and fname
     pkgs_dir = dirname(fname)
     path = fname[:-8]
-    with Locked(path):
+    with FileLock(path):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
         with tarfile.open(fname) as t:
@@ -1046,7 +1046,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     if not isdir(prefix):
         os.makedirs(prefix)
 
-    with Locked(prefix), Locked(source_dir):
+    with DirectoryLock(prefix), FileLock(source_dir):
         for f in files:
             src = join(source_dir, f)
             dst = join(prefix, f)
@@ -1109,7 +1109,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(prefix):
+    with DirectoryLock(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
