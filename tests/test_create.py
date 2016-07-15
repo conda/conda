@@ -241,6 +241,22 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, 'bin'))
             assert exists(join(prefix, 'conda-meta/history'))
 
+            list_output = run_command(Commands.LIST, prefix)
+            stdout = list_output[0]
+            stderr = list_output[1]
+            expected_output = """# packages in environment at /conda:
+            #
+
+            """
+            self.assertEqual(stdout, expected_output)
+            self.assertEqual(stderr, '')
+
+            revision_output = run_command(Commands.LIST, prefix, '--revisions')
+            stdout = revision_output[0]
+            stderr = revision_output[1]
+            self.assertEquals(stderr, '')
+            self.assertIsInstance(stdout, str)
+
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:

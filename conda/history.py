@@ -10,7 +10,7 @@ import warnings
 from os.path import isdir, isfile, join
 
 from .install import linked, dist2quad
-from .exceptions import CondaHistoryError, CondaIOError
+from .exceptions import CondaHistoryError, CondaFileIOError
 
 log = logging.getLogger(__name__)
 
@@ -64,18 +64,18 @@ class History(object):
         self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
-        self.update()
+        self.update('enter')
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.update()
+        self.update('exit')
 
     def init_log_file(self, force=False):
         if not force and isfile(self.path):
             return
         self.write_dists(linked(self.prefix))
 
-    def update(self):
+    def update(self, enter_or_exit=''):
         """
         update the history file (creating a new one if necessary)
         """
@@ -89,13 +89,17 @@ class History(object):
                 return
             curr = set(linked(self.prefix))
             if last == curr:
+                # print a head when a blank env is first created to preserve history
+                if enter_or_exit == 'exit' and not self.parse():
+                    with open(self.path, 'a') as fo:
+                        write_head(fo)
                 return
             self.write_changes(last, curr)
         except IOError as e:
             if e.errno == errno.EACCES:
                 log.debug("Can't write the history file")
             else:
-                raise CondaIOError(e)
+                raise CondaFileIOError(e)
 
     def parse(self):
         """
@@ -239,15 +243,13 @@ class History(object):
         return result
 
     def write_dists(self, dists):
-        if not dists:
-            # no dists for empty envs
-            pass
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
-            write_head(fo)
-            for dist in sorted(dists):
-                fo.write('%s\n' % dist)
+            if dists:
+                write_head(fo)
+                for dist in sorted(dists):
+                    fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
         with open(self.path, 'a') as fo:
