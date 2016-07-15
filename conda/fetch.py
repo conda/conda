@@ -10,13 +10,14 @@ import getpass
 import hashlib
 import json
 import os
+import requests
 import shutil
 import tempfile
 import warnings
 from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
-import requests
+
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
@@ -26,7 +27,7 @@ from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, Conda
                          CondaHTTPError)
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
                       rm_rf, exp_backoff_fn)
-from .lock import Locked as Locked
+from .lock import FileLock
 from .utils import memoized
 
 log = getLogger(__name__)
@@ -121,7 +122,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
             if url.startswith('file://'):
                 file_path = url_to_path(url)
-                with Locked(dirname(file_path)):
+                with FileLock(dirname(file_path)):
                     json_str = get_json_str(filename, resp.content)
             else:
                 json_str = get_json_str(filename, resp.content)
@@ -386,7 +387,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     if retries is None:
         retries = RETRIES
 
-    with Locked(dst_path):
+    with FileLock(dst_path):
         rm_rf(dst_path)
         try:
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
