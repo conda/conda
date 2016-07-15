@@ -12,7 +12,7 @@ from os.path import join
 from stat import S_IFREG, S_IFDIR, S_IFMT
 
 from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
-                     text_type, odict, string_types, isiterable)
+                     text_type, odict, isiterable)
 from .yaml import yaml_load
 from .._vendor.auxlib.collection import first, last, frozendict
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
@@ -454,6 +454,9 @@ class ConfigurationType(type):
 class Configuration(object):
 
     def __init__(self, raw_data=None, app_name=None):
+        self._load(raw_data, app_name)
+
+    def _load(self, raw_data=None, app_name=None):
         self.raw_data = raw_data or odict()
         if app_name is not None:
             self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)

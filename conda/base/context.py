@@ -11,10 +11,10 @@ from platform import machine
 from .._vendor.toolz.itertoolz import concatv
 from ..common.io import captured
 from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
-from .._vendor.auxlib.compat import string_types
+from .._vendor.auxlib.compat import string_types, NoneType
 from .._vendor.auxlib.ish import dals
 from ..common.configuration import (Configuration as AppConfiguration, PrimitiveParameter,
-                                    SequenceParameter, MapParameter)
+                                    SequenceParameter, MapParameter, load_raw_configs)
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -144,7 +144,7 @@ class Context(AppConfiguration):
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',))
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
-    show_channel_urls = PrimitiveParameter(None)
+    show_channel_urls = PrimitiveParameter(None, parameter_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(True)
     channel_priority = PrimitiveParameter(True)
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
@@ -213,8 +213,7 @@ def pkgs_dir_from_envs_dir(envs_dir):
 
 
 def reset_context(search_path):
-    global context
-    context = Context.from_search_path(search_path, conda)
+    context._load(load_raw_configs(search_path), conda)
     return context
 
 
