@@ -11,6 +11,7 @@ from os import environ, stat
 from os.path import join
 from stat import S_IFREG, S_IFDIR, S_IFMT
 
+from conda.base.constants import EMPTY_MAP
 from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
                      text_type, odict, isiterable)
 from .yaml import yaml_load
@@ -92,7 +93,9 @@ class RawParameter(object):
 
     @classmethod
     def make_raw_parameters(cls, from_map):
-        return dict((key, cls(from_map, key)) for key in from_map)
+        if from_map:
+            return dict((key, cls(from_map, key)) for key in from_map)
+        return EMPTY_MAP
 
 
 class EnvRawParameter(RawParameter):
