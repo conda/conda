@@ -124,7 +124,7 @@ def get_rc_path():
 rc_path = get_rc_path()
 
 
-
+platform = context.platform
 pkgs_dirs = context.pkgs_dirs
 default_prefix = context.default_prefix
 subdir = context.subdir
