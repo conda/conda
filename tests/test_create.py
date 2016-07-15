@@ -244,10 +244,10 @@ class IntegrationTests(TestCase):
             list_output = run_command(Commands.LIST, prefix)
             stdout = list_output[0]
             stderr = list_output[1]
-            expected_output = """# packages in environment at /conda:
-            #
+            expected_output = """# packages in environment at %s:
+#
 
-            """
+""" % prefix
             self.assertEqual(stdout, expected_output)
             self.assertEqual(stderr, '')
 
