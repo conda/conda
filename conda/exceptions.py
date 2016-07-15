@@ -358,29 +358,15 @@ def print_exception(exception):
 
 
 def get_info():
-    from conda.compat import StringIO
-    from contextlib import contextmanager
     from conda.cli import conda_argparse
     from conda.cli.main_info import configure_parser
-
-    class CapturedText(object):
-        pass
-
-    @contextmanager
-    def captured():
-        stdout, stderr = sys.stdout, sys.stderr
-        sys.stdout = outfile = StringIO()
-        sys.stderr = errfile = StringIO()
-        c = CapturedText()
-        yield c
-        c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
-        sys.stdout, sys.stderr = stdout, stderr
+    from shlex import split
+    from conda.common.io import captured
 
     p = conda_argparse.ArgumentParser()
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     configure_parser(sub_parsers)
 
-    from shlex import split
     args = p.parse_args(split("info"))
     with captured() as c:
         args.func(args, p)
