@@ -8,6 +8,8 @@ from platform import machine
 
 from enum import Enum
 
+from conda._vendor.auxlib.collection import frozendict
+
 log = getLogger(__name__)
 
 
@@ -83,4 +85,5 @@ else:
 
 ROOT_ENV_NAME = 'root'
 
-EMPTY = ()
+EMPTY_LIST = ()
+EMPTY_MAP = frozendict(dict())
