@@ -22,4 +22,3 @@ def captured():
         c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
     finally:
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
-

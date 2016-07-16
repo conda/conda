@@ -26,7 +26,8 @@ from .connection import CondaSession, unparse_url, RETRIES, url_to_path
 from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError,
                          CondaHTTPError)
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
-                      rm_rf, exp_backoff_fn)
+                      rm_rf)
+from conda.utils import exp_backoff_fn
 from .lock import FileLock
 from .utils import memoized
 

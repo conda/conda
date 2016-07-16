@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 import collections
+import errno
 import hashlib
 import logging
 import os
@@ -8,9 +9,9 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from functools import partial
 from os.path import abspath, isdir, join, isfile
-
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -115,7 +116,7 @@ def try_write(dir_path, heavy=False):
             return False
         finally:
             if isfile(temp_filename):
-                os.unlink(temp_filename)
+                exp_backoff_fn(os.unlink, temp_filename)
     else:
         return os.access(dir_path, os.W_OK)
 
@@ -414,3 +415,27 @@ else:
             pathsep=" ",
                     ),
     }
+
+
+def exp_backoff_fn(fn, *args):
+    """Mostly for retrying file operations that fail on Windows due to virus scanners"""
+    if not on_win:
+        return fn(*args)
+
+    import random
+    # with max_tries = 5, max total time ~= 3.2 sec
+    # with max_tries = 6, max total time ~= 6.5 sec
+    max_tries = 6
+    for n in range(max_tries):
+        try:
+            result = fn(*args)
+        except (OSError, IOError) as e:
+            log.debug(repr(e))
+            if e.errno in (errno.EPERM, errno.EACCES):
+                if n == max_tries-1:
+                    raise
+                time.sleep(((2 ** n) + random.random()) * 0.1)
+            else:
+                raise
+        else:
+            return result
