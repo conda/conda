@@ -379,14 +379,6 @@ Packages required to build the package. Python and NumPy must be listed explicit
     build:
       - python
 
-Some users may wish to build a recipe against different versions of NumPy and ensure that each version is part of the package dependencies, which can be done by listing ``numpy x.x`` as a requirement in meta.yaml and using ``conda build`` with a NumPy version option such as ``--numpy 1.7``. Note that the line in the meta.yaml file should literally say ``numpy x.x`` and should not have any numbers. If the meta.yaml file uses ``numpy x.x``, then it is required to use the ``--numpy`` option with ``conda build``.
-
-.. code-block:: yaml
-
-  requirements:
-    build:
-      - python
-      - numpy x.x
 
 Run
 ~~~
@@ -400,6 +392,15 @@ Packages required to run the package. These are the dependencies that will be in
       - python
       - argparse # [py26]
       - six >=1.8.0
+
+Some users may wish to build a recipe against different versions of NumPy and ensure that each version is part of the package dependencies, which can be done by listing ``numpy x.x`` as a requirement in meta.yaml and using ``conda build`` with a NumPy version option such as ``--numpy 1.7``. Note that the line in the meta.yaml file should literally say ``numpy x.x`` and should not have any numbers. If the meta.yaml file uses ``numpy x.x``, then it is required to use the ``--numpy`` option with ``conda build``.
+
+.. code-block:: yaml
+
+  requirements:
+    run:
+      - python
+      - numpy x.x
 
 Test section
 ------------
