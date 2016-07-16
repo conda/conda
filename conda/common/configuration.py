@@ -256,7 +256,8 @@ class Parameter(object):
         else:
             return Match(filepath, self.name, keys, None,
                          ValidationError(self.name, msg="Multiple aliased keys in file {0}:\n"
-                                                        "  - {1}".format(filepath, "\n  - ".join(keys))))
+                                                        "  - {1}".format(filepath,
+                                                                         "\n  - ".join(keys))))
 
     def _get_all_matches(self, instance):
         return tuple(m for m in (self._pull_match_from_single_raw(raw_parameters, filepath)
@@ -504,7 +505,6 @@ class Configuration(object):
 
         if validation_errors:
             raise MultiValidationError(validation_errors)
-
 
         # for filepath, raw_parameters in iteritems(self.raw_data):
 

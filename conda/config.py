@@ -97,10 +97,6 @@ sys_rc_path = join(sys.prefix, '.condarc')
 # add_anaconda_token = ADD_BINSTAR_TOKEN
 
 
-# ----- local directories -----
-
-
-
 class RC(object):
 
     def get(self, key, default=None):
@@ -148,7 +144,6 @@ subdir = context.subdir
 #             default_prefix = join(envs_dirs[0], _default_env)
 #
 #
-
 
 
 # offline = bool(rc.get('offline', False))
