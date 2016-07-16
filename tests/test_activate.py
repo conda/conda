@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
 
+import subprocess
+import tempfile
+
 import os
 from os.path import dirname
 import stat
@@ -11,7 +14,7 @@ import pytest
 from conda.compat import TemporaryDirectory, PY3
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
-from conda.utils import path_identity, run_in, shells, on_win
+from conda.utils import path_identity, shells, on_win, translate_stream
 from conda.cli.activate import pathlist_to_str, binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
@@ -697,3 +700,29 @@ def test_deactivate_placeholder(shell):
 #         """).format(envs=envs, env_dirs=env_dirs, var=shells[shell]["var_format"].format("TEST_VAR"), **shell_vars)
 #         stdout, stderr = run_in(commands, shell)
 #         assert_equals(stdout, u'test', stderr)
+
+
+def run_in(command, shell, cwd=None, env=None):
+    if hasattr(shell, "keys"):
+        shell = shell["exe"]
+    if shell == 'cmd.exe':
+        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
+        cmd_script.write(command)
+        cmd_script.close()
+        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
+        try:
+            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 cwd=cwd, env=env)
+            stdout, stderr = p.communicate()
+        finally:
+            os.unlink(cmd_script.name)
+    elif shell == 'powershell':
+        raise NotImplementedError
+    else:
+        cmd_bits = ([shells[shell]["exe"]] + shells[shell]["shell_args"] +
+                    [translate_stream(command, shells[shell]["path_to"])])
+        p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+    streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")
+               for stream in (stdout, stderr)]
+    return streams
