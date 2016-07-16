@@ -1,5 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
+from itertools import chain
+
 import argparse
 import contextlib
 import os
@@ -422,7 +424,7 @@ def find_prefix_name(name):
     if name == ROOT_ENV_NAME:
         return context.root_dir
     # always search cwd in addition to envs dirs (for relative path access)
-    for envs_dir in context.envs_dirs + [os.getcwd(), ]:
+    for envs_dir in chain(context.envs_dirs + (os.getcwd(),)):
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
