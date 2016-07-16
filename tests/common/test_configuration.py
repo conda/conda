@@ -166,11 +166,11 @@ class ConfigurationTests(TestCase):
 
             mkdir(condarcd)
 
-            with open(f1, 'w') as fh:
+            with open(f1, 'wb') as fh:
                 fh.write(test_yaml_raw['file1'].encode('utf-8'))
-            with open(f2, 'w') as fh:
+            with open(f2, 'wb') as fh:
                 fh.write(test_yaml_raw['file2'].encode('utf-8'))
-            with open(condarc, 'w') as fh:
+            with open(condarc, 'wb') as fh:
                 fh.write(test_yaml_raw['file3'].encode('utf-8'))
             search_path = [condarc, not_a_file, condarcd]
 

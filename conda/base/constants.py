@@ -44,7 +44,7 @@ class Platform(Enum):
 
 machine_bits = 8 * tuple.__itemsize__
 
-UID = os.getuid()
+# UID = os.getuid()
 PWD = os.getcwd()
 CONDA = 'CONDA'
 CONDA_ = 'CONDA_'

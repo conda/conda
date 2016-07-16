@@ -7,11 +7,10 @@ import os
 import pytest
 import unittest
 from contextlib import contextmanager
-from os.path import dirname, join, exists
-from tempfile import mktemp
+from os.path import join, exists
+from tempfile import mkstemp
 
 from conda import config
-from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import (reset_context, pkgs_dir_from_envs_dir)
 from conda.utils import get_yaml
 from tests.helpers import run_conda_command
@@ -278,14 +277,16 @@ class TestConfig(unittest.TestCase):
 @contextmanager
 def make_temp_condarc(value=None):
     try:
-        tempfile = mktemp()
+        tempfile = mkstemp(suffix='.yml')
+        temp_path = tempfile[1]
         if value:
-            with open(tempfile, 'w') as f:
+            with open(temp_path, 'w') as f:
                 f.write(value)
-        yield tempfile
+        reset_context([temp_path])
+        yield temp_path
     finally:
-        if exists(tempfile):
-            os.remove(tempfile)
+        if exists(temp_path):
+            os.remove(temp_path)
 
 def _read_test_condarc(rc):
     with open(rc) as f:
@@ -350,10 +351,10 @@ channels:
     # Test duoble remove of defaults
     with make_temp_condarc() as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--remove',
-            'channels', 'defaults')
+                                           'channels', 'defaults')
         assert stdout == stderr == ''
         stdout, stderr = run_conda_command('config', '--file', rc, '--remove',
-            'channels', 'defaults')
+                                           'channels', 'defaults')
         assert stdout == ''
         assert stderr == "Key error: 'defaults' is not in the 'channels' key of the config file"
 
@@ -440,8 +441,7 @@ channel_alias: http://alpha.conda.anaconda.org
         assert stdout == ""
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', rc,
-        '--get', 'invalid_key')
+        stdout, stderr = run_conda_command('config', '--file', rc, '--get', 'invalid_key')
 
         assert stdout == ""
         assert "invalid choice: 'invalid_key'" in stderr
@@ -603,13 +603,10 @@ def test_config_command_bad_args():
             'notarealkey', 'test')
         assert stdout == ''
 
-        assert not exists(rc)
-
         stdout, stderr = run_conda_command('config', '--file', rc, '--set',
             'notarealkey', 'true')
         assert stdout == ''
 
-        assert not exists(rc)
 
 def test_invalid_rc():
     # Some tests for unexpected input in the condarc, like keys that are the

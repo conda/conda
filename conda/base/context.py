@@ -79,7 +79,6 @@ class Binstar(object):
     def __init__(self, url=DEFAULT_CHANNEL_ALIAS, token=None):
         token = get_binstar_token(url)
 
-
         try:
             from binstar_client.utils import get_server_api
             self.binstar_client = get_server_api(token=token, site=url, log_level=WARN if quiet else INFO)
@@ -134,6 +133,7 @@ class Context(AppConfiguration):
     platform = property(lambda self: platform)
     default_python = property(lambda self: default_python)
 
+    add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
     always_yes = PrimitiveParameter(False)
     always_copy = PrimitiveParameter(False)
