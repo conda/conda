@@ -118,6 +118,10 @@ def try_write(dir_path, heavy=False):
         return os.access(dir_path, os.W_OK)
 
 
+def backoff_unlink(path):
+    exp_backoff_fn(lambda f: isfile(f) and os.unlink(f), path)
+
+
 def hashsum_file(path, mode='md5'):
     h = hashlib.new(mode)
     with open(path, 'rb') as fi:

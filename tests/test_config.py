@@ -12,7 +12,7 @@ from tempfile import mkstemp
 
 from conda import config
 from conda.base.context import (reset_context, pkgs_dir_from_envs_dir)
-from conda.utils import get_yaml
+from conda.utils import get_yaml, backoff_unlink
 from tests.helpers import run_conda_command
 
 yaml = get_yaml()
@@ -285,8 +285,7 @@ def make_temp_condarc(value=None):
         reset_context([temp_path])
         yield temp_path
     finally:
-        if exists(temp_path):
-            os.remove(temp_path)
+        backoff_unlink(temp_path)
 
 def _read_test_condarc(rc):
     with open(rc) as f:

@@ -30,7 +30,8 @@ def has_scheme(value):
 
 
 def join_url(*args):
-    return join(*args) + '/'
+    return '/'.join(args) + '/'
+
 
 class Channel(object):
     """
