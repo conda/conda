@@ -43,7 +43,7 @@ from os.path import (abspath, basename, dirname, isdir, isfile, islink,
 from conda.base.context import binstar, context
 from conda.entities.channel import Channel
 from conda.lock import DirectoryLock, FileLock
-from conda.utils import path_to_url
+from conda.utils import path_to_url, exp_backoff_fn
 from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, CondaOSError
 from .utils import on_win
 
@@ -181,30 +181,6 @@ def warn_failed_remove(function, path, exc_info):
         log.warn("Cannot remove, not empty: {0}".format(path))
     else:
         log.warn("Cannot remove, unknown reason: {0}".format(path))
-
-
-def exp_backoff_fn(fn, *args):
-    """Mostly for retrying file operations that fail on Windows due to virus scanners"""
-    if not on_win:
-        return fn(*args)
-
-    import random
-    # with max_tries = 5, max total time ~= 3.2 sec
-    # with max_tries = 6, max total time ~= 6.5 sec
-    max_tries = 6
-    for n in range(max_tries):
-        try:
-            result = fn(*args)
-        except (OSError, IOError) as e:
-            log.debug(repr(e))
-            if e.errno in (errno.EPERM, errno.EACCES):
-                if n == max_tries-1:
-                    raise
-                time.sleep(((2 ** n) + random.random()) * 0.1)
-            else:
-                raise
-        else:
-            return result
 
 
 def rm_rf(path, max_retries=5, trash=True):
