@@ -11,11 +11,11 @@ import sys
 
 import pytest
 
-from conda.compat import TemporaryDirectory, PY3
+from conda.compat import TemporaryDirectory
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
 from conda.utils import path_identity, shells, on_win, translate_stream
-from conda.cli.activate import pathlist_to_str, binpath_from_arg
+from conda.cli.activate import binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
 

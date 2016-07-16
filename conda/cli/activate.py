@@ -147,8 +147,8 @@ def main():
         sys.exit(0)
         # raise CondaSystemExit
     elif sys.argv[1] == '..changeps1':
-        from conda.config import changeps1
-        path = int(changeps1)
+        from conda.base.context import context
+        path = int(context.changeps1)
 
     else:
         # This means there is a bug in main.py
