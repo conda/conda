@@ -51,7 +51,8 @@ install:
   - setx PATH "%ANACONDA_PATH%"
   - conda info
   - conda config --set always_yes yes
-  - conda install --force --no-deps -q conda psutil ruamel_yaml requests
+  - pip install ruamel.yaml
+  - conda install --force --no-deps -q conda psutil requests
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
