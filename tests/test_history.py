@@ -3,6 +3,7 @@ import unittest
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
+from .test_create import make_temp_prefix
 
 from conda import history
 
@@ -28,6 +29,16 @@ class HistoryTestCase(unittest.TestCase):
         with mock.patch.object(h, 'update'):
             with h as h2:
                 self.assertEqual(h, h2)
+
+    @skip_if_no_mock
+    def test_empty_history_check_on_empty_env(self):
+        with mock.patch.object(history.History, 'file_is_empty') as mock_file_is_empty:
+            with history.History(make_temp_prefix()) as h:
+                self.assertEqual(mock_file_is_empty.call_count, 0)
+            self.assertEqual(mock_file_is_empty.call_count, 1)
+            assert h.file_is_empty()
+        self.assertEqual(mock_file_is_empty.call_count, 2)
+        assert not h.file_is_empty()
 
 
 class UserRequestsTestCase(unittest.TestCase):
