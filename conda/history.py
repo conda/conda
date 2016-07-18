@@ -75,6 +75,9 @@ class History(object):
             return
         self.write_dists(linked(self.prefix))
 
+    def file_is_empty(self):
+        return os.stat(self.path).st_size == 0
+
     def update(self, enter_or_exit=''):
         """
         update the history file (creating a new one if necessary)
@@ -90,7 +93,7 @@ class History(object):
             curr = set(linked(self.prefix))
             if last == curr:
                 # print a head when a blank env is first created to preserve history
-                if enter_or_exit == 'exit' and not self.parse():
+                if enter_or_exit == 'exit' and self.file_is_empty():
                     with open(self.path, 'a') as fo:
                         write_head(fo)
                 return
