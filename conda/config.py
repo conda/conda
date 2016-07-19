@@ -449,7 +449,10 @@ def load_condarc(path=None):
     if not sys_rc.get('allow_other_channels', True) and 'channel_alias' in sys_rc:
         channel_alias = sys_rc['channel_alias']
     if channel_alias is not None:
-        channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
+        try:
+            channel_alias = remove_binstar_tokens(channel_alias.rstrip('/') + '/')
+        except NameError as e:
+            log.debug(e)
     channel_alias_tok = binstar_client = binstar_domain = binstar_domain_tok = None
 
     offline = bool(rc.get('offline', False))
