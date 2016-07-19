@@ -81,7 +81,8 @@ Update conda automatically (auto_update_conda)
 When True, conda updates itself any time a user updates or installs a package 
 in the root environment. When False, conda updates itself only if the user 
 manually issues a conda update command. The default is ``True``. You can edit 
-the .condarc file or use the command ``conda config set auto_update_conda False``.
+the .condarc file or set the option with a command such 
+as ``conda config --set auto_update_conda False``.
 
 .. code-block:: yaml
 
