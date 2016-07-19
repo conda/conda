@@ -62,6 +62,13 @@ def configure_parser(sub_parsers):
         help='Remove build specification from dependencies'
     )
 
+    p.add_argument(
+        '--skip-channel-prefix',
+        default=False,
+        action='store_true',
+        required=False,
+        help='Do not include channel names as prefixes to package names.')
+
     p.set_defaults(func=execute)
 
 
@@ -84,7 +91,8 @@ def execute(args, parser):
     else:
         name = args.name
     prefix = common.get_prefix(args)
-    env = from_environment(name, prefix, no_builds=args.no_builds)
+    env = from_environment(name, prefix, no_builds=args.no_builds,
+                           skip_channel_prefix=args.skip_channel_prefix)
 
     if args.override_channels:
         env.remove_channels()
