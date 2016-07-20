@@ -353,7 +353,7 @@ Creating a Bokeh app
 Let's plot that flower data!
 
 Inside your ``iris`` project directory, create a new directory
-``iris_plot``, and in it save a new file named``main.py`` with
+``iris_plot``, and in it save a new file named ``main.py`` with
 these contents::
 
     import os
