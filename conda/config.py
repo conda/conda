@@ -10,7 +10,7 @@ import logging
 import os
 import re
 import sys
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
 from platform import machine
 
