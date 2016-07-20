@@ -2,6 +2,8 @@
 Conda changelog
 ===============
 
+This page is drawn from the GitHub conda project changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
+
 2016-07-12  4.1.8:
 ------------------
 
