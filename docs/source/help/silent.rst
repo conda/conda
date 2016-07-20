@@ -27,7 +27,9 @@ the ``/S`` argument. The following optional arguments are supported:
 - ``/D=<installation path>``
 
 All arguments are case-sensitive. The installation path must be the last
-argument and should **NOT** be wrapped in quotation marks.
+argument and should **NOT** be wrapped in quotation marks. When using silent 
+installation with ``/S`` you must also specify a destination installation path 
+with ``/D``.
 
 The following command installs Miniconda for the current user without
 registering Python as the system's default:
