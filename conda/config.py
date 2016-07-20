@@ -10,7 +10,7 @@ import logging
 import os
 import re
 import sys
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
 from platform import machine
 
@@ -251,15 +251,17 @@ def init_binstar(quiet=False):
         return
     elif binstar_client is None:
         try:
-            from binstar_client.utils import get_binstar
+            from binstar_client.utils import get_server_api
             # Turn off output in offline mode so people don't think we're going online
-            args = namedtuple('args', 'log_level')(0) if quiet or offline else None
-            binstar_client = get_binstar(args)
+            log_level = 0 if quiet or offline else None
+            binstar_client = get_server_api(log_level=log_level)
         except ImportError:
             log.debug("Could not import binstar")
             binstar_client = ()
         except Exception as e:
             stderrlog.info("Warning: could not import binstar_client (%s)" % e)
+            binstar_client = ()
+
     if binstar_client == ():
         binstar_domain = DEFAULT_CHANNEL_ALIAS
         binstar_domain_tok = None
