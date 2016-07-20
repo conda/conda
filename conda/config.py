@@ -234,11 +234,9 @@ def init_binstar(quiet=False):
             # Turn off output in offline mode so people don't think we're going online
             args = namedtuple('args', 'log_level')(0) if quiet or offline else None
             binstar_client = get_binstar(args)
-        except ImportError:
-            log.debug("Could not import binstar")
-            binstar_client = ()
         except Exception as e:
-            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
+            stderrlog.info("Warning: somethings is wrong with binstar_client (%s)" % e)
+            binstar_client = ()
     if binstar_client == ():
         binstar_domain = DEFAULT_CHANNEL_ALIAS
         binstar_domain_tok = None
