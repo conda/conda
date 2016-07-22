@@ -2,17 +2,19 @@
 from itertools import chain
 from collections import Mapping
 from re import compile, IGNORECASE
-from .compat import integer_types, string_types, text_type, isiterable, iteritems
+from .compat import integer_types, string_types, text_type, isiterable, iteritems, NoneType
 from .decorators import memoize, memoizeproperty
 
 __all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
 
 BOOLISH_TRUE = ("true", "yes", "on", "y")
 BOOLISH_FALSE = ("false", "off", "n", "no", "non", "none", "")
+NULL_STRINGS = ("none", "~", "null", "\0")
 BOOL_COERCEABLE_TYPES = integer_types + (bool, float, complex, list, set, dict, tuple)
 NUMBER_TYPES = integer_types + (float, complex)
 NUMBER_TYPES_SET = set(NUMBER_TYPES)
 STRING_TYPES_SET = set(string_types)
+BOOLNULL_TYPE_SET = set((bool, NoneType))
 
 NO_MATCH = object()
 
@@ -110,7 +112,7 @@ def numberify(value):
     raise ValueError("Cannot convert {0} to a number.".format(value))
 
 
-def boolify(value):
+def boolify(value, nullable=False):
     """Convert a number, string, or sequence type into a pure boolean.
 
     Args:
@@ -143,6 +145,8 @@ def boolify(value):
         return bool(float(val))
     elif val in BOOLISH_TRUE:
         return True
+    elif nullable and val in NULL_STRINGS:
+        return None
     elif val in BOOLISH_FALSE:
         return False
     else:  # must be False
@@ -201,6 +205,8 @@ def typify(value, type_hint=None):
             return numberify(value)
         elif not (type_hint - STRING_TYPES_SET):
             return text_type(value)
+        elif not (type_hint - BOOLNULL_TYPE_SET):
+            return boolify(value, nullable=True)
         raise NotImplementedError()
     elif type_hint is not None:
         # coerce using the type hint, or use boolify for bool
