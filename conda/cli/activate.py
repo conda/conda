@@ -2,10 +2,11 @@ from __future__ import print_function, division, absolute_import
 
 import errno
 import os
-from os.path import isdir, abspath
 import re
 import sys
+from os.path import isdir, abspath
 
+from ..base.constants import ROOT_ENV_NAME
 from ..exceptions import CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError
 from ..utils import on_win
 
@@ -96,7 +97,7 @@ def pathlist_to_str(paths, escape_backslashes=True):
 
 
 def main():
-    from conda.config import root_env_name, root_dir
+    from conda.config import root_dir
     from conda.utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
         # all execution paths sys.exit at end.
@@ -121,7 +122,7 @@ def main():
             raise ArgumentError("Invalid arguments to checkenv.  Need shell and env name/path")
         if len(sys.argv) > 4:
             raise ArgumentError("did not expect more than one argument.")
-        if sys.argv[3].lower() == root_env_name.lower():
+        if sys.argv[3].lower() == ROOT_ENV_NAME.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
             # raise CondaSystemExit

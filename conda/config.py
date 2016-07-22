@@ -14,6 +14,8 @@ from collections import OrderedDict, namedtuple
 from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
 from platform import machine
 
+from conda.base.constants import DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME
+
 from .compat import urlparse, string_types
 from .utils import try_write, yaml_load
 from .exceptions import ProxyError, CondaRuntimeError
@@ -69,8 +71,6 @@ rc_list_keys = [
     'envs_dirs',
     'default_channels',
 ]
-
-DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
 ADD_BINSTAR_TOKEN = True
 
@@ -150,11 +150,6 @@ def load_condarc_(path):
 sys_rc = load_condarc_(sys_rc_path) if isfile(sys_rc_path) else {}
 
 # ----- local directories -----
-
-# root_dir should only be used for testing, which is why don't mention it in
-# the documentation, to avoid confusion (it can really mess up a lot of
-# things)
-root_env_name = 'root'
 
 def _default_envs_dirs():
     lst = [join(root_dir, 'envs')]
@@ -425,7 +420,7 @@ def load_condarc(path=None):
     pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
 
     _default_env = os.getenv('CONDA_DEFAULT_ENV')
-    if _default_env in (None, root_env_name):
+    if _default_env in (None, ROOT_ENV_NAME):
         default_prefix = root_dir
     elif os.sep in _default_env:
         default_prefix = abspath(_default_env)

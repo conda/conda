@@ -15,10 +15,12 @@ import tempfile
 from difflib import get_close_matches
 from os.path import isdir, join, basename, exists, abspath
 
-from conda.api import get_index
+from .. import config
+from ..api import get_index
+from ..base.constants import ROOT_ENV_NAME
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..config import create_default_packages, force_32bit, root_env_name
+from ..config import create_default_packages, force_32bit
 from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotFoundError,
                           CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
                           CondaAssertionError, CondaOSError, CondaImportError,
@@ -31,7 +33,6 @@ from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defau
                     display_actions, revert_actions, nothing_to_do, execute_actions)
 from ..resolve import Resolve
 from ..utils import find_parent_shell
-from .. import config
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def check_prefix(prefix, json=False):
     error = None
     if name.startswith('.'):
         error = "environment name cannot start with '.': %s" % name
-    if name == root_env_name:
+    if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
         if isdir(prefix) and not os.listdir(prefix):
