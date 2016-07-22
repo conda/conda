@@ -221,6 +221,8 @@ def is_offline():
 def offline_keep(url):
     return not offline or not is_url(url) or url.startswith('file:/')
 
+BINSTAR_TOKEN_PAT = re.compile(r'((:?binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/')
+
 def init_binstar(quiet=False):
     global binstar_client, binstar_domain, binstar_domain_tok
     global binstar_regex, BINSTAR_TOKEN_PAT
@@ -232,11 +234,9 @@ def init_binstar(quiet=False):
             # Turn off output in offline mode so people don't think we're going online
             args = namedtuple('args', 'log_level')(0) if quiet or offline else None
             binstar_client = get_binstar(args)
-        except ImportError:
-            log.debug("Could not import binstar")
-            binstar_client = ()
         except Exception as e:
-            stderrlog.info("Warning: could not import binstar_client (%s)" % e)
+            stderrlog.info("Warning: somethings is wrong with binstar_client (%s)" % e)
+            binstar_client = ()
     if binstar_client == ():
         binstar_domain = DEFAULT_CHANNEL_ALIAS
         binstar_domain_tok = None
