@@ -14,11 +14,11 @@ from collections import OrderedDict, namedtuple
 from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
 from platform import machine
 
-from conda.base.constants import DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME
-
+from .base.constants import DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME
+from .common.yaml import yaml_load
 from .compat import urlparse, string_types
-from .utils import try_write, yaml_load
 from .exceptions import ProxyError, CondaRuntimeError
+from .utils import try_write
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
