@@ -10,13 +10,14 @@ import getpass
 import hashlib
 import json
 import os
-import requests
 import shutil
 import tempfile
 import warnings
 from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
+
+import requests
 
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
@@ -305,6 +306,12 @@ Allowed channels are:
             futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
                                             session=CondaSession()) for url in urls)
             repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+        except RuntimeError as e:
+            # Cannot start new thread, then give up parallel execution
+            log.debug(e)
+            session = CondaSession()
+            repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
+                         for url in urls]
         finally:
             executor.shutdown(wait=True)
 
