@@ -19,8 +19,9 @@ from os.path import basename, dirname, join
 
 import requests
 
+from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
-from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
+from .config import (pkgs_dirs, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
                      ssl_verify, rc, prioritize_channels, url_channel, offline_keep)
 from .connection import CondaSession, unparse_url, RETRIES, url_to_path
