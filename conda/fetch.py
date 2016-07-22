@@ -23,9 +23,9 @@ from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
-                     ssl_verify, rc, prioritize_channels)
+                     ssl_verify, rc)
 from .connection import CondaSession, unparse_url, RETRIES, url_to_path
-from .entities.channel import Channel, offline_keep
+from .entities.channel import Channel, offline_keep, prioritize_channels
 from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
                          CondaHTTPError)
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,

@@ -7,11 +7,10 @@ from logging import getLogger
 from os.path import exists, join
 
 from ..compat import urlparse
+from ..config import get_default_urls, channel_prefix, subdir, offline
 from ..utils import path_to_url
-from conda import config
 
 log = getLogger(__name__)
-
 
 
 PLATFORM_DIRECTORIES = ("linux-64",  "linux-32",
@@ -69,11 +68,11 @@ class Channel(object):
 
     @property
     def canonical_name(self):
-        if any(self == Channel(c) for c in config.get_default_urls()):
+        if any(self == Channel(c) for c in get_default_urls()):
             return 'defaults'
         elif any(self == Channel(c) for c in get_local_urls()):
             return 'local'
-        elif self._netloc == Channel(config.channel_prefix())._netloc:
+        elif self._netloc == Channel(channel_prefix())._netloc:
             # TODO: strip token
             return self._path.lstrip('/')
         else:
@@ -83,7 +82,7 @@ class Channel(object):
     def urls(self):
         # TODO: figure out how to add token
         if self._platform is None:
-            return [join_url(self.base_url, config.subdir), join_url(self.base_url, 'noarch')]
+            return [join_url(self.base_url, subdir), join_url(self.base_url, 'noarch')]
         else:
             return [join_url(self.base_url, self._platform)]
 
@@ -122,7 +121,7 @@ class NamedChannel(Channel):
 
     def __init__(self, name):
         self._raw_value = name
-        parsed = urlparse.urlparse(config.channel_prefix())
+        parsed = urlparse.urlparse(channel_prefix())
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
         self._path = join(parsed.path, name)
@@ -137,7 +136,7 @@ class DefaultChannel(NamedChannel):
 
     @property
     def urls(self):
-        return list(chain.from_iterable(Channel(c).urls for c in config.get_default_urls()))
+        return list(chain.from_iterable(Channel(c).urls for c in get_default_urls()))
 
 
 class LocalChannel(UrlChannel):
@@ -176,7 +175,7 @@ def prioritize_channels(channels):
 
 
 def offline_keep(url):
-    return not config.offline or not is_url(url) or url.startswith('file:/')
+    return not offline or not is_url(url) or url.startswith('file:/')
 
 
 def is_url(url):

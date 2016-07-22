@@ -17,12 +17,11 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
 from conda.entities.channel import Channel
-
 from . import instructions as inst
 from .config import (always_copy as config_always_copy, channel_priority, conda_in_root,
                      show_channel_urls as config_show_channel_urls, is_offline,
                      root_dir, allow_softlinks, default_python, auto_update_conda,
-                     track_features, foreign, url_channel, canonical_channel_name)
+                     track_features, foreign)
 from .exceptions import (TooFewArgumentsError, InstallError, RemoveError, CondaIndexError,
                          CondaRuntimeError)
 from .history import History
