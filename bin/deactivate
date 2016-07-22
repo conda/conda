@@ -3,10 +3,10 @@
 # Determine the directory containing this script
 if [[ -n $BASH_VERSION ]]; then
     _SCRIPT_LOCATION=${BASH_SOURCE[0]}
-    SHELL="bash"
+    _SHELL="bash"
 elif [[ -n $ZSH_VERSION ]]; then
     _SCRIPT_LOCATION=${funcstack[1]}
-    SHELL="zsh"
+    _SHELL="zsh"
 else
     echo "Only bash and zsh are supported"
     return 1
@@ -29,7 +29,7 @@ do
     key="$1"
     case $key in
         -h|--help)
-            "$_CONDA_DIR/conda" ..deactivate $SHELL$EXT -h
+            "$_CONDA_DIR/conda" ..deactivate $_SHELL$EXT -h
             if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
                 exit 0
             else
@@ -48,7 +48,7 @@ if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" 
     (>&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
 instead of 'deactivate'.
 ")
-    "$_CONDA_DIR/conda" ..deactivate $SHELL$EXT -h
+    "$_CONDA_DIR/conda" ..deactivate $_SHELL$EXT -h
     exit 1
 fi
 
