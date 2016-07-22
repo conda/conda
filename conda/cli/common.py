@@ -5,7 +5,6 @@ import contextlib
 import os
 import re
 import sys
-import textwrap
 from os.path import abspath, basename, expanduser, isdir, join
 
 from .. import console
@@ -13,7 +12,7 @@ from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
                       channel_priority, show_channel_urls, always_yes, root_env_name,
                       root_dir, root_writable, disallow, set_offline, is_offline)
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
-                          CondaValueError, CondaFileIOError, TooFewArgumentsError)
+                          CondaValueError, CondaFileIOError)
 from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
@@ -544,24 +543,6 @@ def specs_from_url(url, json=False):
 
 def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
-
-
-def check_specs(prefix, specs, json=False, create=False):
-    if len(specs) == 0:
-        msg = ('too few arguments, must supply command line '
-               'package specs or --file')
-        if create:
-            msg += textwrap.dedent("""
-
-                You can specify one or more default packages to install when creating
-                an environment.  Doing so allows you to call conda create without
-                explicitly providing any package names.
-
-                To set the provided packages, call conda config like this:
-
-                    conda config --add create_default_packages PACKAGE_NAME
-            """)
-        raise TooFewArgumentsError(msg, json)
 
 
 def disp_features(features):
