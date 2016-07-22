@@ -114,7 +114,7 @@ def get_user_site():
 
 def pretty_package(pkg):
     from conda.utils import human_bytes
-    from conda.config import canonical_channel_name
+    from conda.entities.channel import Channel
 
     d = OrderedDict([
         ('file name', pkg.fn),
@@ -122,7 +122,7 @@ def pretty_package(pkg):
         ('version', pkg.version),
         ('build number', pkg.build_number),
         ('build string', pkg.build),
-        ('channel', canonical_channel_name(pkg.channel)),
+        ('channel', Channel(pkg.channel).canonical_name),
         ('size', human_bytes(pkg.info['size'])),
         ])
     rest = pkg.info

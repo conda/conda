@@ -16,6 +16,8 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
+from conda.entities.channel import Channel
+
 from . import instructions as inst
 from .config import (always_copy as config_always_copy, channel_priority, conda_in_root,
                      show_channel_urls as config_show_channel_urls, is_offline,
@@ -54,9 +56,9 @@ def display_actions(actions, index, show_channel_urls=None):
         if rec.get('schannel'):
             return rec['schannel']
         if rec.get('url'):
-            return url_channel(rec['url'])[1]
+            return Channel(rec['url']).url_channel_wtf[1]
         if rec.get('channel'):
-            return canonical_channel_name(rec['channel'])
+            return Channel(rec['channel']).canonical_name
         return '<unknown>'
 
     def channel_filt(s):

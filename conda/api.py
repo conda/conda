@@ -2,10 +2,10 @@ from __future__ import print_function, division, absolute_import
 
 from . import install
 from .compat import iteritems, itervalues
-from .config import normalize_urls, prioritize_channels, get_channel_urls
+from .config import normalize_urls, get_channel_urls
+from .entities.channel import prioritize_channels
 from .fetch import fetch_index
 from .resolve import Resolve
-
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=False, prefix=False):

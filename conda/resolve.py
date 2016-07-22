@@ -5,6 +5,8 @@ import re
 from collections import defaultdict
 from itertools import chain
 
+from conda.entities.channel import Channel
+
 from .compat import iterkeys, itervalues, iteritems, string_types
 from .config import channel_priority, canonical_channel_name, track_features
 from .console import setup_handlers
@@ -150,7 +152,7 @@ class Package(object):
         self.schannel = info.get('schannel')
         self.priority = info.get('priority', None)
         if self.schannel is None:
-            self.schannel = canonical_channel_name(self.channel)
+            self.schannel = Channel(self.channel).canonical_name
         try:
             self.norm_version = normalized_version(self.version)
         except ValueError:
