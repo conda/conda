@@ -4,21 +4,22 @@
   * remove conda package and conda bundle, #2760
   * remove support for ftp:// repos, #2776
   * replace sys.exit with exceptions, #2899, #2993, #3016
-  * start using finer-grained locking, #2962
+  * improve locking, #2962, #2989, #3048, #3075
   * project structure enhancement, #2929
   * add extra info to exception message #3045
   * force use of ruamel_yaml, #2762
+  * add ability to have conda reside in a private env, #3068
+  * add ability to create empty environments, #3072
   * remove dead code, #2761
   * remove legacy code in conda.install, #2969
   * implement conda config --prepend; change behavior of --add to --append, #3041
   * code refactoring and additional testing, #3052, #3020
-  * improve repodata locking to enable parallel conda builds, #3048
   * exit on link error instead of logging it, #2639
   * clean up requests usage for fetching packages, #2755
   * remove excess output from conda --help, #2872
   * remove os.remove in update_prefix, #3006
   * remove auxlib from project root, #2931
-  * vendor auxlib 0.0.40, #2932, #2943
+  * vendor auxlib 0.0.40, #2932, #2943, #3131
   * vendor toolz 0.8.0, #2994
   * vendor boltons 16.4.1, #3046
   * expose full regex power for version specifications, #2933
@@ -26,7 +27,9 @@
   * merge conda-env into conda, #2950, #2952, #2954
   * better error behavior if conda is spec'd for a non-root environment, #2956
   * fix conda.recipe for new quirks with conda-build, #2959
-  * deprecate conda/lock.py Locked class, #2989
+  * scale back try_write function on unix, #3076
+  * move captured function to common module, #3083
+  * rename CHANGELOG to md, #3087
 
 
 2016-0X-XX  4.1.9 (unreleased):
