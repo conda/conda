@@ -10,13 +10,14 @@ import getpass
 import hashlib
 import json
 import os
-import requests
 import shutil
 import tempfile
 import warnings
 from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
+
+import requests
 
 from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
 from .config import (pkgs_dirs, DEFAULT_CHANNEL_ALIAS, remove_binstar_tokens,
@@ -310,7 +311,7 @@ Allowed channels are:
             log.debug(e)
             session = CondaSession()
             repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                     for url in urls]
+                         for url in urls]
         finally:
             executor.shutdown(wait=True)
 
