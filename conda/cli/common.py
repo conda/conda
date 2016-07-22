@@ -5,7 +5,6 @@ import contextlib
 import os
 import re
 import sys
-import textwrap
 from os.path import abspath, basename, expanduser, isdir, join
 
 from .. import console
@@ -544,25 +543,6 @@ def specs_from_url(url, json=False):
 
 def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
-
-
-def check_specs(prefix, specs, json=False, create=False):
-    if len(specs) == 0:
-        msg = ('no packages specified for this environment, '
-               'an empty environment will be created.')
-        if create:
-            msg += textwrap.dedent("""
-
-                You can also specify one or more default packages to install when creating
-                an environment.  Doing so allows you to call conda create without
-                explicitly providing any package names.
-
-                To set the provided packages, call conda config like this:
-
-                    conda config --add create_default_packages PACKAGE_NAME
-
-            """)
-        sys.stdout.write(msg)
 
 
 def disp_features(features):
