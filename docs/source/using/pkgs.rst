@@ -82,6 +82,7 @@ Check to see that the package is now installed:
 
 You will see a list of packages, including Bottleneck.
 
+NOTE: Conda can install packages from :doc:`multiple channels <../channels>`.
 
 Install non-conda packages 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -170,3 +171,8 @@ Confirm that the package has been removed:
    conda list
 
 Next, let's take a look at :doc:`/r-with-conda`.
+
+.. toctree::
+   :hidden:
+
+   ../channels
