@@ -41,6 +41,15 @@ class HistoryTestCase(unittest.TestCase):
         assert not h.file_is_empty()
 
 
+    @skip_if_no_mock
+    def test_parse_on_empty_env(self):
+        with mock.patch.object(history.History, 'parse') as mock_parse:
+            with history.History(make_temp_prefix()) as h:
+                self.assertEqual(mock_parse.call_count, 1)
+                self.assertEqual(len(h.parse()), 0)
+        self.assertEqual(len(h.parse()), 1)
+
+
 class UserRequestsTestCase(unittest.TestCase):
 
     h = history.History(dirname(__file__))

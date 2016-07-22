@@ -190,9 +190,6 @@ def install(args, parser, command='install'):
 
     if isinstall and args.revision:
         get_revision(args.revision, json=args.json)
-    elif not (newenv and args.clone):
-        common.check_specs(prefix, specs, json=args.json,
-                           create=(command == 'create'))
 
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
