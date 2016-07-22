@@ -1,4 +1,4 @@
-2016-07-XX   4.2.0 (unreleased):
+2016-0X-XX   4.2.0 (unreleased):
 --------------------------------
   * remove conda init, #2759
   * remove conda package and conda bundle, #2760
@@ -32,10 +32,18 @@
   * rename CHANGELOG to md, #3087
 
 
-2016-0X-XX  4.1.9 (unreleased):
--------------------------------
+2016-0X-XX  4.1.10 (unreleased):
+--------------------------------
   * ignore symlink failure because of read-only file system, #3055
   * backpaort shortcut tests, #3064
+  * fix #2979 redefition of $SHELL variable, #3081
+  * fix #3060 --clone root --copy exception, #3080
+
+
+2016-07-20  4.1.9:
+------------------
+  * fix #3104, add global BINSTAR_TOKEN_PAT
+  * handle failures in binstar_client more generally
 
 
 2016-07-12  4.1.8:
