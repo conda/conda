@@ -14,7 +14,7 @@ import pytest
 
 import conda.config as config
 from conda.install import on_win
-from conda.utils import get_yaml
+from conda.common.yaml import get_yaml
 
 from tests.helpers import run_conda_command
 
