@@ -231,10 +231,13 @@ def set_offline():
 def is_offline():
     return offline
 
+
 def offline_keep(url):
     return not offline or not is_url(url) or url.startswith('file:/')
 
+
 BINSTAR_TOKEN_PAT = re.compile(r'((:?binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/')
+
 
 def init_binstar(quiet=False):
     global binstar_client, binstar_domain, binstar_domain_tok
