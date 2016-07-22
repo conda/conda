@@ -8,8 +8,9 @@ import sys
 from os.path import abspath, basename, expanduser, isdir, join
 
 from .. import console
+from ..base.constants import ROOT_ENV_NAME
 from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
-                      channel_priority, show_channel_urls, always_yes, root_env_name,
+                      channel_priority, show_channel_urls, always_yes,
                       root_dir, root_writable, disallow, set_offline, is_offline)
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
                           CondaValueError, CondaFileIOError)
@@ -419,7 +420,7 @@ def ensure_name_or_prefix(args, command):
                               getattr(args, 'json', False))
 
 def find_prefix_name(name):
-    if name == root_env_name:
+    if name == ROOT_ENV_NAME:
         return root_dir
     # always search cwd in addition to envs dirs (for relative path access)
     for envs_dir in envs_dirs + [os.getcwd(), ]:
@@ -433,7 +434,7 @@ def get_prefix(args, search=True):
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   args.name, getattr(args, 'json', False))
-        if args.name == root_env_name:
+        if args.name == ROOT_ENV_NAME:
             return root_dir
         if search:
             prefix = find_prefix_name(args.name)
@@ -455,7 +456,7 @@ def inroot_notwritable(prefix):
 
 def name_prefix(prefix):
     if abspath(prefix) == root_dir:
-        return root_env_name
+        return ROOT_ENV_NAME
     return basename(prefix)
 
 def check_write(command, prefix, json=False):
@@ -596,7 +597,7 @@ def handle_envs_list(acc, output=True):
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
         default = '*' if prefix == default_prefix else ' '
-        name = (root_env_name if prefix == root_dir else
+        name = (ROOT_ENV_NAME if prefix == root_dir else
                 basename(prefix))
         if output:
             print(fmt % (name, default, prefix))
