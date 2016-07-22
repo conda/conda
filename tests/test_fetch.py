@@ -7,6 +7,7 @@ from os.path import exists, isfile
 from tempfile import mktemp
 from conda.exceptions import CondaRuntimeError, CondaHTTPError
 
+
 class TestFetchRepoData(unittest.TestCase):
     @responses.activate
     def test_fetchrepodata_httperror(self):
