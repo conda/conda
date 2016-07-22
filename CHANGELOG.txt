@@ -6,6 +6,12 @@
   * fix #3060 --clone root --copy exception, #3080
 
 
+2016-07-20  4.1.9:
+------------------
+  * fix #3104, add global BINSTAR_TOKEN_PAT
+  * handle failures in binstar_client more generally
+
+
 2016-07-12  4.1.8:
 ------------------
   * fix #3004 UNAUTHORIZED for url (null binstar token), #3008
