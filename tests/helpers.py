@@ -47,6 +47,10 @@ def run_conda_command(*args):
 
     stdout, stderr = [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
                       for stream in p.communicate()]
+    print(stdout)
+    print(stderr, file=sys.stderr)
+    # assert p.returncode == 0, p.returncode
+
     return stdout, strip_expected(stderr)
 
 
