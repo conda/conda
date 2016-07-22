@@ -190,9 +190,6 @@ def install(args, parser, command='install'):
 
     if isinstall and args.revision:
         get_revision(args.revision, json=args.json)
-    elif not (newenv and args.clone):
-        common.check_specs(prefix, specs, json=args.json,
-                           create=(command == 'create'))
 
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
@@ -403,7 +400,7 @@ environment does not exist: %s
                     if e.errno == errno.EACCES:
                         log.debug("Can't write the history file")
                     else:
-                        raise CondaIOError("Can't write the history file")
+                        raise CondaIOError("Can't write the history file", e)
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
