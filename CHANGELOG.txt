@@ -1,7 +1,9 @@
-2016-0X-XX  4.1.9 (unreleased):
--------------------------------
+2016-0X-XX  4.1.10 (unreleased):
+--------------------------------
   * ignore symlink failure because of read-only file system, #3055
   * backpaort shortcut tests, #3064
+  * fix #2979 redefition of $SHELL variable, #3081
+  * fix #3060 --clone root --copy exception, #3080
 
 
 2016-07-12  4.1.8:
