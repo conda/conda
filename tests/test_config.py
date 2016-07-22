@@ -88,7 +88,7 @@ class TestConfig(unittest.TestCase):
                           'https': 'https://user:pass@corp.com:8080'})
 
     @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1) and not on_win,
-                       reason="configs are borked")
+                       reason="refactor to work with Channel entity")
     def test_normalize_urls(self):
         current_platform = config.subdir
         assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
