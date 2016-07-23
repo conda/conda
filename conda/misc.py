@@ -13,7 +13,7 @@ from os.path import (abspath, dirname, expanduser, exists,
 
 from .api import get_index
 from .compat import iteritems, itervalues
-from .config import is_url, url_channel, root_dir, envs_dirs, subdir
+from .config import root_dir, envs_dirs, subdir
 from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
                          PackageNotFoundError, CondaRuntimeError)
 from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
@@ -22,6 +22,7 @@ from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, path_to_url, on_win
+from .entities.channel import Channel, is_url
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -77,7 +78,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             schannel = 'defaults' if prefix == '' else prefix[:-2]
         else:
             # Channel information from the URL
-            channel, schannel = url_channel(url)
+            channel, schannel = Channel(url).url_channel_wtf
             prefix = '' if schannel == 'defaults' else schannel + '::'
 
         fn = prefix + fn
