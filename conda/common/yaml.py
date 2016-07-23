@@ -2,10 +2,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from logging import getLogger
 
+from .._vendor.auxlib.decorators import memoize
+
 log = getLogger(__name__)
 
 
-# @memoized
+@memoize
 def get_yaml():
     try:
         import ruamel_yaml as yaml

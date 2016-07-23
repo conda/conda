@@ -12,13 +12,13 @@ log = getLogger(__name__)
 
 @contextmanager
 def captured():
+    class CapturedText(object):
+        pass
+    sys.stdout = outfile = StringIO()
+    sys.stderr = errfile = StringIO()
+    c = CapturedText()
     try:
-        class CapturedText(object):
-            pass
-        sys.stdout = outfile = StringIO()
-        sys.stderr = errfile = StringIO()
-        c = CapturedText()
         yield c
-        c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
     finally:
+        c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__

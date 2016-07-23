@@ -65,6 +65,18 @@ def get_binstar_token(channel_alias):
         return None
 
 
+_BINSTAR_URL_REGEX = re.compile(r'[-\w\.:/]*(:?%s|binstar\.org|anaconda\.org)')
+def is_binstar_url(url, channel_alias):
+    r'(:?binstar\.org|anaconda\.org)'
+
+    binstar_regex = r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' % re.escape(channel_alias)
+    BINSTAR_TOKEN_PAT = re.compile(binstar_regex)
+
+
+def add_binstar_token(url):
+    pass
+
+
 class Binstar(object):
 
     # binstar_regex = r'((:?binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/'
@@ -161,6 +173,32 @@ class Context(AppConfiguration):
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
 
     @property
+    def channel_alias_w_token(self):
+        self.binstar_regex = (r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
+                              re.escape(self.binstar_domain[:-1]))
+        self.BINSTAR_TOKEN_PAT = re.compile(self.binstar_regex)
+
+    def add_binstar_tokens(self, url):
+        if self.binstar_domain_tok and url.startswith(self.binstar_domain):
+            url2 = self.BINSTAR_TOKEN_PAT.sub(r'\1', url)
+            if url2 == url:
+                return self.binstar_domain_tok + url.split(self.binstar_domain, 1)[1]
+        return url
+
+    def hide_binstar_tokens(self, url):
+        return self.BINSTAR_TOKEN_PAT.sub(r'\1t/<TOKEN>/', url)
+
+    def remove_binstar_tokens(self, url):
+        return self.BINSTAR_TOKEN_PAT.sub(r'\1', url)
+
+
+
+
+
+
+
+
+    @property
     def force_32bit(self):
         return False
 
@@ -214,6 +252,8 @@ def pkgs_dir_from_envs_dir(envs_dir):
 
 def reset_context(search_path):
     context._load(load_raw_configs(search_path), conda)
+    from ..entities.channel import Channel
+    Channel._cache_ = dict()
     return context
 
 
