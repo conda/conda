@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 import bz2
 import json
 import os
+import pytest
 import sys
 from contextlib import contextmanager
 from datetime import datetime
@@ -11,16 +12,14 @@ from glob import glob
 from json import loads as json_loads
 from logging import getLogger, Handler
 from os.path import exists, isdir, isfile, join, relpath, basename, islink
+from requests import Session
+from requests.adapters import BaseAdapter
 from shlex import split
 from shutil import rmtree, copyfile
 from subprocess import check_call
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
-
-import pytest
-from requests import Session
-from requests.adapters import BaseAdapter
 
 from conda.base.context import context, reset_context, bits
 from conda.cli import conda_argparse
@@ -41,6 +40,7 @@ from tests.helpers import captured
 
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
+BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 
 
 def escape_for_winpath(p):
@@ -236,6 +236,28 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'constructor')
 
     @pytest.mark.timeout(300)
+    def test_create_empty_env(self):
+        with make_temp_env() as prefix:
+            assert exists(join(prefix, BIN_DIRECTORY))
+            assert exists(join(prefix, 'conda-meta/history'))
+
+            list_output = run_command(Commands.LIST, prefix)
+            stdout = list_output[0]
+            stderr = list_output[1]
+            expected_output = """# packages in environment at %s:
+#
+
+""" % prefix
+            self.assertEqual(stdout, expected_output)
+            self.assertEqual(stderr, '')
+
+            revision_output = run_command(Commands.LIST, prefix, '--revisions')
+            stdout = revision_output[0]
+            stderr = revision_output[1]
+            self.assertEquals(stderr, '')
+            self.assertIsInstance(stdout, str)
+
+    @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
@@ -346,19 +368,18 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-2')
 
             # test symlinks created with env
-            bindir = 'Scripts' if on_win else 'bin'
-            print(os.listdir(join(prefix, bindir)))
+            print(os.listdir(join(prefix, BIN_DIRECTORY)))
             if on_win:
-                assert isfile(join(prefix, bindir, 'activate'))
-                assert isfile(join(prefix, bindir, 'deactivate'))
-                assert isfile(join(prefix, bindir, 'conda'))
-                assert isfile(join(prefix, bindir, 'activate.bat'))
-                assert isfile(join(prefix, bindir, 'deactivate.bat'))
-                assert isfile(join(prefix, bindir, 'conda.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'activate'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'conda'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'activate.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'conda.bat'))
             else:
-                assert islink(join(prefix, bindir, 'activate'))
-                assert islink(join(prefix, bindir, 'deactivate'))
-                assert islink(join(prefix, bindir, 'conda'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'activate'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'deactivate'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'conda'))
 
     @pytest.mark.timeout(300)
     def test_remove_all(self):
@@ -543,7 +564,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 7, 22), reason="deal with this later")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 7, 29), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'

@@ -17,7 +17,7 @@ anaconda-submit-upload: clean-all
 	anaconda build submit . --queue conda-team/build_recipes --label stage
 
 
-# VERSION=0.0.40 make auxlib
+# VERSION=0.0.41 make auxlib
 auxlib:
 	git clone https://github.com/kalefranz/auxlib.git --single-branch --branch $(VERSION) \
 	    && rm -rf conda/_vendor/auxlib \

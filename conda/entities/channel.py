@@ -9,6 +9,7 @@ from os.path import exists, join
 from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
 from ..base.context import subdir, context
 from ..compat import urlparse
+from ..config import get_default_urls, channel_prefix, subdir, offline
 from ..utils import path_to_url
 
 log = getLogger(__name__)
@@ -183,12 +184,3 @@ _SPECIAL_CHANNELS = {
     'local': LocalChannel,
     None: NoneChannel,
 }
-
-
-if __name__ == "__main__":
-    print(Channel('kalefranz').base_url)
-    print(Channel('kalefranz').canonical_name)
-    print(Channel('http://repo.continuum.io/pkgs/pro').base_url)
-    print(Channel('http://repo.continuum.io/pkgs/pro').canonical_name)
-    print(Channel('https://repo.continuum.io/pkgs/free/osx-64/'
-                  '_license-1.1-py27_1.tar.bz2').canonical_name)

@@ -2,9 +2,9 @@ from __future__ import print_function, division, absolute_import
 
 import errno
 import os
-from os.path import isdir, abspath
 import re
 import sys
+from os.path import isdir, abspath
 
 from ..exceptions import CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError
 from ..utils import on_win

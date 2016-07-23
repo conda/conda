@@ -16,11 +16,10 @@ from os.path import exists, expanduser, join
 
 from conda.config import rc_path
 from conda.config import user_rc_path, sys_rc_path
-from conda.entities.channel import Channel, offline_keep
-from ..utils import on_win
-from ..compat import itervalues
 from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
                      handle_envs_list, add_parser_offline)
+from ..compat import itervalues
+from ..utils import on_win
 
 help = "Display information about current conda install."
 
@@ -117,6 +116,7 @@ def get_user_site():
 
 def pretty_package(pkg):
     from conda.utils import human_bytes
+    from conda.entities.channel import Channel
 
     d = OrderedDict([
         ('file name', pkg.fn),
@@ -151,6 +151,7 @@ def execute(args, parser):
     import conda
     from conda.base.context import context, binstar
     from conda import config
+    from conda.entities.channel import offline_keep
     from conda.resolve import Resolve
     from conda.api import get_index
 

@@ -7,13 +7,15 @@ import os
 import pytest
 import unittest
 from contextlib import contextmanager
-from os.path import join, exists, dirname
+from datetime import datetime
+from os.path import join, dirname
 from tempfile import mkstemp
 
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import (reset_context, pkgs_dir_from_envs_dir)
-from conda.utils import get_yaml, backoff_unlink
+from conda.common.yaml import get_yaml
+from conda.utils import backoff_unlink
 from tests.helpers import run_conda_command
 
 yaml = get_yaml()
@@ -84,8 +86,8 @@ class TestConfig(unittest.TestCase):
     #                      {'http': 'http://user:pass@corp.com:8080',
     #                       'https': 'https://user:pass@corp.com:8080'})
 
-    # @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1) and not on_win,
-    #                    reason="configs are borked")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1),
+                       reason="refactor to work with Channel entity")
     def test_normalize_urls(self):
         # binstar = reset_binstar(url='https://mybinstar.com', token='01234abcde')
         context = reset_context([join(dirname(__file__), 'condarc')])

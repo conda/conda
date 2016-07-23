@@ -10,6 +10,7 @@ import sys
 import time
 from functools import partial
 from os.path import abspath, isdir, join, isfile
+import threading
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -25,6 +26,7 @@ class memoized(object):
     def __init__(self, func):
         self.func = func
         self.cache = {}
+        self.lock = threading.Lock()
 
     def __call__(self, *args, **kw):
         newargs = []
@@ -39,12 +41,13 @@ class memoized(object):
                 newargs.append(arg)
         newargs = tuple(newargs)
         key = (newargs, frozenset(sorted(kw.items())))
-        if key in self.cache:
-            return self.cache[key]
-        else:
-            value = self.func(*args, **kw)
-            self.cache[key] = value
-            return value
+        with self.lock:
+            if key in self.cache:
+                return self.cache[key]
+            else:
+                value = self.func(*args, **kw)
+                self.cache[key] = value
+                return value
 
 
 # For instance methods only
@@ -249,32 +252,6 @@ def find_parent_shell(path=False, max_stack_depth=10):
     if path:
         return process.parent().exe()
     return process.parent().name()
-
-
-@memoized
-def get_yaml():
-    try:
-        import ruamel_yaml as yaml
-    except ImportError:                                         # pragma: no cover
-        try:                                                    # pragma: no cover
-            import ruamel.yaml as yaml                          # pragma: no cover
-        except ImportError:                                     # pragma: no cover
-            raise ImportError("No yaml library available.\n"    # pragma: no cover
-                              "To proceed, conda install "      # pragma: no cover
-                              "ruamel_yaml")                    # pragma: no cover
-    return yaml
-
-
-def yaml_load(filehandle):
-    yaml = get_yaml()
-    return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.1")
-
-
-def yaml_dump(string):
-    yaml = get_yaml()
-    return yaml.dump(string, Dumper=yaml.RoundTripDumper,
-                     block_seq_indent=2, default_flow_style=False,
-                     indent=4)
 
 
 # TODO: this should be done in a more extensible way

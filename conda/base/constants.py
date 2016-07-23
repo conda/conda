@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+This file should hold almost all string literals and magic numbers used throughout the code base.
+The exception is if a literal is specifically meant to be private to and isolated within a module.
+"""
 from __future__ import absolute_import, division, print_function
 
 import os
