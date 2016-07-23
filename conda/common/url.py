@@ -7,11 +7,11 @@ from os.path import abspath
 
 try:
     # Python 3
-    from urllib.parse import quote, unquote, urlunparse
+    from urllib.parse import quote, unquote, urlunparse  # NOQA
 except ImportError:
     # Python 2
     from urllib import quote, unquote
-    from urlparse import urlunparse
+    from urlparse import urlunparse  # NOQA
 
 from requests.packages.urllib3.util.url import parse_url
 from requests.packages.urllib3.exceptions import LocationParseError

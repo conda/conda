@@ -19,13 +19,13 @@ from os.path import basename, dirname, join
 
 import requests
 
-from conda.common.url import add_username_and_pass_to_url, url_to_path
 from .base.constants import DEFAULT_CHANNEL_ALIAS
+from .common.url import add_username_and_pass_to_url, url_to_path
 from .compat import itervalues, input, iterkeys, iteritems
 from .config import (pkgs_dirs, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
                      ssl_verify, rc)
-from .connection import CondaSession, RETRIES, url_to_path
+from .connection import CondaSession, RETRIES
 from .entities.channel import Channel, offline_keep, prioritize_channels
 from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
                          CondaHTTPError)
@@ -107,6 +107,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     if 'repo.continuum.io' in url or url.startswith("file://"):
         filename = 'repodata.json.bz2'
+        headers['Accept-Encoding'] = 'identity'
     else:
         headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
         headers['Content-Type'] = 'application/json'
