@@ -46,7 +46,8 @@ from .utils import on_win
 try:
     from conda.lock import FileLock, DirectoryLock
     from conda.utils import win_path_to_unix, path_to_url
-    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
+    from conda.config import remove_binstar_tokens, pkgs_dirs
+    from conda.entities.channel import Channel
     import conda.config as config
 except ImportError:
     # Make sure this still works as a standalone script for the Anaconda
@@ -678,7 +679,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
         return
     if url:
         url = remove_binstar_tokens(url)
-    _, schannel = url_channel(url)
+    _, schannel = Channel(url).url_channel_wtf
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
     fname_table_[xkey] = fname_table_[path_to_url(xkey)] = prefix
@@ -890,7 +891,7 @@ def load_linked_data(prefix, dist, rec=None):
         channel = channel.rstrip('/')
         if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
             url = rec['url'] = channel + '/' + fn
-    channel, schannel = url_channel(url)
+    channel, schannel = Channel(url).url_channel_wtf
     rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel

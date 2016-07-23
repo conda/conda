@@ -10,13 +10,13 @@ import logging
 import os
 import re
 import sys
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from os.path import abspath, basename, dirname, expanduser, isfile, isdir, join
 from platform import machine
 
 from .base.constants import DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME
 from .common.yaml import yaml_load
-from .compat import urlparse, string_types
+from .compat import string_types
 from .exceptions import ProxyError, CondaRuntimeError
 from .utils import try_write
 
@@ -224,11 +224,6 @@ def get_rc_urls():
         raise CondaRuntimeError("system cannot be used in .condarc")
     return rc['channels']
 
-def is_url(url):
-    if url:
-        p = urlparse.urlparse(url)
-        return p.netloc != "" or p.scheme == "file"
-
 def set_offline():
     global offline
     offline = True
@@ -236,10 +231,9 @@ def set_offline():
 def is_offline():
     return offline
 
-def offline_keep(url):
-    return not offline or not is_url(url) or url.startswith('file:/')
 
 BINSTAR_TOKEN_PAT = re.compile(r'((:?binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/')
+
 
 def init_binstar(quiet=False):
     global binstar_client, binstar_domain, binstar_domain_tok
@@ -295,44 +289,6 @@ def hide_binstar_tokens(url):
 def remove_binstar_tokens(url):
     return BINSTAR_TOKEN_PAT.sub(r'\1', url)
 
-def prioritize_channels(channels):
-    newchans = OrderedDict()
-    priority = 0
-    schans = {}
-    for channel in channels:
-        channel = channel.rstrip('/') + '/'
-        if channel not in newchans:
-            channel_s = canonical_channel_name(channel.rsplit('/', 2)[0])
-            if channel_s not in schans:
-                priority += 1
-                schans[channel_s] = priority
-            newchans[channel] = (channel_s, schans[channel_s])
-    return newchans
-
-def normalize_urls(urls, platform=None):
-    defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls(False))
-    newurls = []
-    while urls:
-        url = urls[0]
-        urls = urls[1:]
-        if url == "system" and rc_path:
-            urls = get_rc_urls() + urls
-            continue
-        elif url in ("defaults", "system"):
-            t_urls = defaults
-        elif url == "local":
-            t_urls = get_local_urls()
-        else:
-            t_urls = [url]
-        for url0 in t_urls:
-            url0 = url0.rstrip('/')
-            if not is_url(url0):
-                url0 = channel_prefix(True) + url0
-            else:
-                url0 = add_binstar_tokens(url0)
-            for plat in (platform or subdir, 'noarch'):
-                newurls.append('%s/%s/' % (url0, plat))
-    return newurls
 
 def get_channel_urls(platform=None):
     if os.getenv('CIO_TEST'):
@@ -342,41 +298,8 @@ def get_channel_urls(platform=None):
         base_urls = ['system']
     else:
         base_urls = ['defaults']
-    res = normalize_urls(base_urls, platform)
-    return res
+    return base_urls
 
-def canonical_channel_name(channel):
-    if channel is None:
-        return '<unknown>'
-    channel = remove_binstar_tokens(channel).rstrip('/')
-    if any(channel.startswith(i) for i in get_default_urls(True)):
-        return 'defaults'
-    elif any(channel.startswith(i) for i in get_local_urls(clear_cache=False)):
-        return 'local'
-    channel_alias = channel_prefix(False)
-    if channel.startswith(channel_alias):
-        return channel.split(channel_alias, 1)[1]
-    elif channel.startswith('http:/'):
-        channel2 = 'https' + channel[4:]
-        channel3 = canonical_channel_name(channel2)
-        return channel3 if channel3 != channel2 else channel
-    else:
-        return channel
-
-def url_channel(url):
-    parts = (url or '').rsplit('/', 2)
-    if len(parts) == 1:
-        return '<unknown>', '<unknown>'
-    if len(parts) == 2:
-        return parts[0], parts[0]
-    if url.startswith('file://') and parts[1] not in ('noarch', subdir):
-        # Explicit file-based URLs are denoted with a '/' in the schannel
-        channel = parts[0] + '/' + parts[1]
-        schannel = channel + '/'
-    else:
-        channel = parts[0]
-        schannel = canonical_channel_name(channel)
-    return channel, schannel
 
 # ----- allowed channels -----
 
@@ -389,7 +312,7 @@ def get_allowed_channels():
         base_urls = ['system']
     else:
         base_urls = ['default']
-    return normalize_urls(base_urls)
+    return base_urls
 
 allowed_channels = get_allowed_channels()
 
