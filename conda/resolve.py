@@ -5,15 +5,15 @@ import re
 from collections import defaultdict
 from itertools import chain
 
+from conda.entities.channel import Channel
 from .base.context import context
-from .entities.channel import Channel
 from .compat import iterkeys, itervalues, iteritems, string_types
 from .console import setup_handlers
+from .exceptions import UnsatisfiableError, NoPackagesFoundError, CondaValueError
 from .install import dist2quad
 from .logic import minimal_unsatisfiable_subset, Clauses
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
-from .exceptions import UnsatisfiableError, NoPackagesFoundError, CondaValueError
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')

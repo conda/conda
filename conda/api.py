@@ -1,9 +1,9 @@
 from __future__ import print_function, division, absolute_import
 
-from conda.entities.channel import prioritize_channels
 from . import install
 from .base.context import context
 from .compat import iteritems, itervalues
+from .entities.channel import prioritize_channels
 from .fetch import fetch_index
 from .resolve import Resolve
 

@@ -9,10 +9,10 @@ import os
 import sys
 
 from .common import (Completer, add_parser_json, stdout_json_success)
+from ..common.yaml import yaml_load, yaml_dump
 from ..compat import string_types
 from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
                       user_rc_path, rc_other)
-from ..utils import yaml_load, yaml_dump
 from ..exceptions import (CondaTypeError, CondaValueError, CondaError,
                           CondaKeyError, CouldntParseError)
 

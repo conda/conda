@@ -17,17 +17,17 @@ import warnings
 from functools import wraps
 from logging import getLogger
 from os.path import basename, dirname, join
+from requests.auth import AuthBase
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.entities.channel import Channel, offline_keep
+from conda.utils import exp_backoff_fn
 from .base.context import context, binstar
 from .compat import itervalues, input, urllib_quote, iteritems
 from .connection import CondaSession, unparse_url, RETRIES, url_to_path
-from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError,
-                         CondaHTTPError)
+from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, CondaHTTPError)
 from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
                       rm_rf)
-from conda.utils import exp_backoff_fn
 from .lock import FileLock
 from .utils import memoized
 
@@ -38,10 +38,6 @@ stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
 
-
-
-
-from requests.auth import AuthBase
 
 class PizzaAuth(AuthBase):
     """Attaches HTTP Pizza Authentication to the given Request object."""
@@ -323,6 +319,12 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
                                             session=CondaSession()) for url in urls)
             repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+        except RuntimeError as e:
+            # Cannot start new thread, then give up parallel execution
+            log.debug(e)
+            session = CondaSession()
+            repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
+                         for url in urls]
         finally:
             executor.shutdown(wait=True)
 

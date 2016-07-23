@@ -38,9 +38,6 @@ rc_list_keys = [
     'default_channels',
 ]
 
-
-# ADD_BINSTAR_TOKEN = True
-
 rc_bool_keys = [
     'add_binstar_token',
     'add_anaconda_token',

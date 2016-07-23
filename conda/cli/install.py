@@ -17,9 +17,10 @@ from os.path import isdir, join, basename, exists, abspath
 
 from conda.api import get_index
 from conda.base.constants import ROOT_ENV_NAME
+from .. import config
+from ..base.context import force_32bit, context
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..base.context import force_32bit, context
 from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotFoundError,
                           CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
                           CondaAssertionError, CondaOSError, CondaImportError,
@@ -32,7 +33,6 @@ from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defau
                     display_actions, revert_actions, nothing_to_do, execute_actions)
 from ..resolve import Resolve
 from ..utils import find_parent_shell
-from .. import config
 
 log = logging.getLogger(__name__)
 
@@ -191,9 +191,6 @@ def install(args, parser, command='install'):
 
     if isinstall and args.revision:
         get_revision(args.revision, json=args.json)
-    elif not (newenv and args.clone):
-        common.check_specs(prefix, specs, json=args.json,
-                           create=(command == 'create'))
 
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
@@ -404,7 +401,7 @@ environment does not exist: %s
                     if e.errno == errno.EACCES:
                         log.debug("Can't write the history file")
                     else:
-                        raise CondaIOError("Can't write the history file")
+                        raise CondaIOError("Can't write the history file", e)
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:

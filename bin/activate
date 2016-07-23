@@ -3,10 +3,10 @@
 # Determine the directory containing this script
 if [[ -n $BASH_VERSION ]]; then
     _SCRIPT_LOCATION=${BASH_SOURCE[0]}
-    SHELL="bash"
+    _SHELL="bash"
 elif [[ -n $ZSH_VERSION ]]; then
     _SCRIPT_LOCATION=${funcstack[1]}
-    SHELL="zsh"
+    _SHELL="zsh"
 else
     echo "Only bash and zsh are supported"
     return 1
@@ -40,7 +40,7 @@ if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "activate" ]]
     (>&2 echo "Error: activate must be sourced. Run 'source activate envname'
 instead of 'activate envname'.
 ")
-    "$_CONDA_DIR/conda" ..activate $SHELL$EXT -h
+    "$_CONDA_DIR/conda" ..activate $_SHELL$EXT -h
     exit 1
 fi
 
@@ -50,7 +50,7 @@ else
     args=$@
 fi
 
-"$_CONDA_DIR/conda" ..checkenv $SHELL$EXT "$args"
+"$_CONDA_DIR/conda" ..checkenv $_SHELL$EXT "$args"
 if (( $? != 0 )); then
     return 1
 fi
@@ -58,7 +58,7 @@ fi
 # Ensure we deactivate any scripts from the old env
 source "$_CONDA_DIR/deactivate"
 
-_NEW_PART=$("$_CONDA_DIR/conda" ..activate $SHELL$EXT "$args")
+_NEW_PART=$("$_CONDA_DIR/conda" ..activate $_SHELL$EXT "$args")
 if (( $? == 0 )); then
     export CONDA_PATH_BACKUP="$PATH"
     # export this to restore it upon deactivation

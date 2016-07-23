@@ -10,6 +10,7 @@ from conda.exceptions import CondaRuntimeError, CondaHTTPError
 from conda.fetch import fetch_repodata, TmpDownload, download
 
 
+
 class TestFetchRepoData(unittest.TestCase):
     @responses.activate
     def test_fetchrepodata_httperror(self):
