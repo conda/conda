@@ -195,17 +195,6 @@ class Package(object):
 
 
 class Resolve(object):
-    def add_feature(self, fstr, group=True):
-        fpkg = fstr + '@'
-        if fpkg in self.index:
-            return
-        self.index[fpkg] = {
-            'name': fpkg, 'channel': '@', 'priority': 0,
-            'version': '0', 'build_number': 0, 'fn': fpkg,
-            'build': '', 'depends': [], 'track_features': fstr}
-        if group:
-            self.groups[fpkg] = [fpkg]
-            self.trackers[fstr] = [fpkg]
 
     def __init__(self, index, sort=False, processed=False):
         self.index = index
@@ -240,6 +229,18 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
+
+    def add_feature(self, fstr, group=True):
+        fpkg = fstr + '@'
+        if fpkg in self.index:
+            return
+        self.index[fpkg] = {
+            'name': fpkg, 'channel': '@', 'priority': 0,
+            'version': '0', 'build_number': 0, 'fn': fpkg,
+            'build': '', 'depends': [], 'track_features': fstr}
+        if group:
+            self.groups[fpkg] = [fpkg]
+            self.trackers[fstr] = [fpkg]
 
     def default_filter(self, features=None, filter=None):
         if filter is None:

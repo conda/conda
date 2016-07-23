@@ -7,10 +7,11 @@ import os
 import pytest
 import unittest
 from contextlib import contextmanager
-from os.path import join, exists
+from os.path import join, exists, dirname
 from tempfile import mkstemp
 
 from conda import config
+from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import (reset_context, pkgs_dir_from_envs_dir)
 from conda.utils import get_yaml, backoff_unlink
 from tests.helpers import run_conda_command
@@ -85,28 +86,28 @@ class TestConfig(unittest.TestCase):
 
     # @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1) and not on_win,
     #                    reason="configs are borked")
-    # def test_normalize_urls(self):
-    #     binstar = reset_binstar(url='https://mybinstar.com', token='01234abcde')
-    #     context = reset_context([join(dirname(__file__), 'condarc')])
-    #     current_platform = config.subdir
-    #     assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
-    #     assert context.channel_alias == 'https://your.repo/'
-    #     assert binstar.channel_prefix(False) == 'https://your.repo/'
-    #     assert binstar.binstar_domain == 'https://mybinstar.com/'
-    #     assert binstar.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
-    #     assert context.channels == ("binstar_username", "http://some.custom/channel", "defaults")
-    #     channel_urls = [
-    #         'defaults',
-    #         'system',
-    #         'https://conda.anaconda.org/username',
-    #         'file:///Users/username/repo',
-    #         'https://mybinstar.com/t/5768wxyz/test2',
-    #         'https://mybinstar.com/test',
-    #         'https://conda.anaconda.org/t/abcdefgh/username',
-    #         'username'
-    #     ]
-    #     platform = 'osx-64'
-    #
+    def test_normalize_urls(self):
+        # binstar = reset_binstar(url='https://mybinstar.com', token='01234abcde')
+        context = reset_context([join(dirname(__file__), 'condarc')])
+        current_platform = config.subdir
+        assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
+        assert context.channel_alias == 'https://your.repo/'
+        # assert binstar.channel_prefix(False) == 'https://your.repo/'
+        # assert binstar.binstar_domain == 'https://mybinstar.com/'
+        # assert binstar.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
+        assert context.channels == ("binstar_username", "http://some.custom/channel", "defaults")
+        channel_urls = [
+            'defaults',
+            'system',
+            'https://conda.anaconda.org/username',
+            'file:///Users/username/repo',
+            'https://mybinstar.com/t/5768wxyz/test2',
+            'https://mybinstar.com/test',
+            'https://conda.anaconda.org/t/abcdefgh/username',
+            'username'
+        ]
+        platform = 'osx-64'
+
     #     normurls = config.normalize_urls(channel_urls, platform)
     #     assert normurls == [
     #        # defaults

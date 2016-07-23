@@ -6,7 +6,7 @@ from itertools import chain
 from logging import getLogger
 from os.path import exists, join
 
-from conda.base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
+from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
 from ..base.context import subdir, context
 from ..compat import urlparse
 from ..utils import path_to_url
@@ -34,31 +34,23 @@ def join_url(*args):
 
 
 class Channel(object):
-    """
-    Examples:
-
-    types:
-      - url: has_scheme
-      - local path
-      - just a name
-
-    """
+    _cache_ = dict()
 
     def __new__(cls, value):
-        if isinstance(value, cls):
+        if isinstance(value, Channel):
             return value
-        if value is None:
-            self = object.__new__(NoneChannel)
+        elif value in Channel._cache_:
+            return Channel._cache_[value]
+        elif value in _SPECIAL_CHANNELS:
+            self = object.__new__(_SPECIAL_CHANNELS[value])
         elif value.endswith('.tar.bz2'):
+            assert has_scheme(value)
             self = object.__new__(UrlChannel)
-        elif value == 'defaults':
-            self = object.__new__(DefaultChannel)
-        elif value == 'local':
-            self = object.__new__(LocalChannel)
         elif has_scheme(value):
             self = object.__new__(UrlChannel)
         else:
             self = object.__new__(NamedChannel)
+        Channel._cache_[value] = self
         return self
 
     @property
@@ -75,12 +67,14 @@ class Channel(object):
         elif any(self == Channel(c) for c in get_local_urls()):
             return 'local'
         elif self._netloc == Channel(context.channel_alias)._netloc:
+            # TODO: strip token
             return self._path.lstrip('/')
         else:
             return self.base_url
 
     @property
     def urls(self):
+        # TODO: figure out how to add token
         if self._platform is None:
             return [join_url(self.base_url, subdir), join_url(self.base_url, 'noarch')]
         else:
@@ -89,66 +83,12 @@ class Channel(object):
     @property
     def url_channel_wtf(self):
         # return channel, schannel
-        # url_channel in >> https://repo.continuum.io/pkgs/free/osx-64/requests-2.10.0-py27_0.tar.bz2
+        # url_channel in >> https://repo.continuum.io/pkgs/free/osx-64/requests-2.0-py27_0.tar.bz2
         # url_channel out >> https://repo.continuum.io/pkgs/free defaults
         return self.base_url, self.canonical_name
 
-    # @staticmethod
-    # def url_channel(url):
-    #     parts = (url or '').rsplit('/', 2)
-    #     if len(parts) == 1:
-    #         return '<unknown>', '<unknown>'
-    #     if len(parts) == 2:
-    #         return parts[0], parts[0]
-    #     if url.startswith('file://') and parts[1] not in ('noarch', subdir):
-    #         # Explicit file-based URLs are denoted with a '/' in the schannel
-    #         channel = parts[0] + '/' + parts[1]
-    #         schannel = channel + '/'
-    #     else:
-    #         channel = parts[0]
-    #         schannel = Channel(channel).canonical_name
-    #     return channel, schannel
-    #
-    # @staticmethod
-    # def prioritize_channels(channels):
-    #     newchans = OrderedDict()
-    #     priority = 0
-    #     schans = {}
-    #     for channel in channels:
-    #         channel = channel.rstrip('/') + '/'
-    #         if channel not in newchans:
-    #             channel_s = canonical_channel_name(channel.rsplit('/', 2)[0])
-    #             if channel_s not in schans:
-    #                 priority += 1
-    #                 schans[channel_s] = priority
-    #             newchans[channel] = (channel_s, schans[channel_s])
-    #     return newchans
-    #
-    # @staticmethod
-    # def normalize_urls(urls, platform=None):
-    #     defaults = tuple(x.rstrip('/') + '/' for x in get_default_urls(False))
-    #     newurls = []
-    #     while urls:
-    #         url = urls[0]
-    #         urls = urls[1:]
-    #         if url == "system" and rc_path:
-    #             urls = get_rc_urls() + urls
-    #             continue
-    #         elif url in ("defaults", "system"):
-    #             t_urls = defaults
-    #         elif url == "local":
-    #             t_urls = get_local_urls()
-    #         else:
-    #             t_urls = [url]
-    #         for url0 in t_urls:
-    #             url0 = url0.rstrip('/')
-    #             if not is_url(url0):
-    #                 url0 = channel_prefix(True) + url0
-    #             else:
-    #                 url0 = add_binstar_tokens(url0)
-    #             for plat in (platform or subdir, 'noarch'):
-    #                 newurls.append('%s/%s/' % (url0, plat))
-    #     return newurls
+    def is_binstar_channel(self):
+        pass
 
 
 def split_platform(value):
@@ -221,8 +161,8 @@ class NoneChannel(NamedChannel):
 def prioritize_channels(channels):
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
     result = OrderedDict()
-    for q, c in enumerate(channels):
-        channel = Channel(c)
+    for q, chn in enumerate(channels):
+        channel = Channel(chn)
         for url in channel.urls:
             result[url] = channel.canonical_name, q
     return result
@@ -238,9 +178,17 @@ def is_url(url):
         return p.netloc != "" or p.scheme == "file"
 
 
+_SPECIAL_CHANNELS = {
+    'defaults': DefaultChannel,
+    'local': LocalChannel,
+    None: NoneChannel,
+}
+
+
 if __name__ == "__main__":
     print(Channel('kalefranz').base_url)
     print(Channel('kalefranz').canonical_name)
     print(Channel('http://repo.continuum.io/pkgs/pro').base_url)
     print(Channel('http://repo.continuum.io/pkgs/pro').canonical_name)
-    print(Channel('https://repo.continuum.io/pkgs/free/osx-64/_license-1.1-py27_1.tar.bz2').canonical_name)
+    print(Channel('https://repo.continuum.io/pkgs/free/osx-64/'
+                  '_license-1.1-py27_1.tar.bz2').canonical_name)

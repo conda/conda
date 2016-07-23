@@ -53,7 +53,7 @@ def display_actions(actions, index, show_channel_urls=None):
         if rec.get('schannel'):
             return rec['schannel']
         if rec.get('url'):
-            return Channel(rec['url']).url_channel_wtf[1]
+            return Channel(rec['url']).url_channel_wtf[1]  # <-- same thing as canonical_name
         if rec.get('channel'):
             return Channel(rec['channel']).canonical_name
         return '<unknown>'
