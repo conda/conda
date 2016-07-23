@@ -14,10 +14,11 @@ log = getLogger(__name__)
 def captured():
     class CapturedText(object):
         pass
-    stdout, stderr = sys.stdout, sys.stderr
     sys.stdout = outfile = StringIO()
     sys.stderr = errfile = StringIO()
     c = CapturedText()
-    yield c
-    c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
-    sys.stdout, sys.stderr = stdout, stderr
+    try:
+        yield c
+    finally:
+        c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
+        sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
