@@ -62,7 +62,7 @@ _NEW_PART=$("$_CONDA_DIR/conda" ..activate $_SHELL$EXT "$args")
 if (( $? == 0 )); then
     export CONDA_PATH_BACKUP="$PATH"
     # export this to restore it upon deactivation
-    export CONDA_PS1_BACKUP=$PS1
+    export CONDA_PS1_BACKUP="$PS1"
 
     export PATH="$_NEW_PART:$PATH"
     # CONDA_DEFAULT_ENV is the shortest representation of how conda recognizes your env.
