@@ -37,7 +37,7 @@ from conda.connection import LocalFSAdapter
 from conda.exceptions import CondaError
 from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win, linked_data
-from conda.utils import path_to_url
+from conda.common.url import path_to_url
 from tests.helpers import captured
 
 log = getLogger(__name__)

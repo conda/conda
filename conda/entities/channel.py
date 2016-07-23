@@ -6,9 +6,9 @@ from itertools import chain
 from logging import getLogger
 from os.path import exists, join
 
-from ..compat import urlparse
+from conda.common.url import is_url
+from ..common.url import path_to_url, urlparse, urlunparse
 from ..config import get_default_urls, channel_prefix, subdir, offline
-from ..utils import path_to_url
 
 log = getLogger(__name__)
 
@@ -32,7 +32,7 @@ def get_local_urls():
 
 
 def has_scheme(value):
-    return bool(urlparse.urlparse(value).scheme in RECOGNIZED_URL_SCHEMES)
+    return bool(urlparse(value).scheme in RECOGNIZED_URL_SCHEMES)
 
 
 def join_url(*args):
@@ -50,7 +50,6 @@ class Channel(object):
         elif value in _SPECIAL_CHANNELS:
             self = object.__new__(_SPECIAL_CHANNELS[value])
         elif value.endswith('.tar.bz2'):
-            assert has_scheme(value)
             self = object.__new__(UrlChannel)
         elif has_scheme(value):
             self = object.__new__(UrlChannel)
@@ -61,7 +60,7 @@ class Channel(object):
 
     @property
     def base_url(self):
-        return urlparse.urlunparse((self._scheme, self._netloc, self._path, None, None, None))
+        return urlunparse((self._scheme, self._netloc, self._path, None, None, None))
 
     def __eq__(self, other):
         return self._netloc == other._netloc and self._path == other._path
@@ -107,8 +106,10 @@ class UrlChannel(Channel):
     def __init__(self, url):
         if url.endswith('.tar.bz2'):
             url = url.rsplit('/', 1)[0]
+        if not has_scheme(url):
+            url = path_to_url(url)
         self._raw_value = url
-        parsed = urlparse.urlparse(url)
+        parsed = urlparse(url)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
         self._path, self._platform = split_platform(parsed.path)
@@ -118,7 +119,7 @@ class NamedChannel(Channel):
 
     def __init__(self, name):
         self._raw_value = name
-        parsed = urlparse.urlparse(channel_prefix())
+        parsed = urlparse(channel_prefix())
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
         self._path = join(parsed.path, name)
@@ -173,12 +174,6 @@ def prioritize_channels(channels):
 
 def offline_keep(url):
     return not offline or not is_url(url) or url.startswith('file:/')
-
-
-def is_url(url):
-    if url:
-        p = urlparse.urlparse(url)
-        return p.netloc != "" or p.scheme == "file"
 
 
 _SPECIAL_CHANNELS = {
