@@ -19,12 +19,13 @@ from os.path import basename, dirname, join
 
 import requests
 
+from conda.common.url import add_username_and_pass_to_url, url_to_path
 from .base.constants import DEFAULT_CHANNEL_ALIAS
-from .compat import itervalues, input, urllib_quote, iterkeys, iteritems
+from .compat import itervalues, input, iterkeys, iteritems
 from .config import (pkgs_dirs, remove_binstar_tokens,
                      hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
                      ssl_verify, rc)
-from .connection import CondaSession, unparse_url, RETRIES, url_to_path
+from .connection import CondaSession, RETRIES, url_to_path
 from .entities.channel import Channel, offline_keep, prioritize_channels
 from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
                          CondaHTTPError)
@@ -222,11 +223,6 @@ for more information on how to configure proxies.""" % scheme)
     session.proxies[scheme] = add_username_and_pass_to_url(
                             session.proxies[scheme], username, passwd)
 
-def add_username_and_pass_to_url(url, username, passwd):
-    urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
-    passwd = urllib_quote(passwd, '')
-    urlparts[1] = username + ':' + passwd
-    return unparse_url(urlparts)
 
 @memoized
 def get_proxy_username_and_pass(scheme):

@@ -190,7 +190,7 @@ def get_local_urls(clear_cache=True):
     if local_channel:
         return local_channel
     from os.path import exists
-    from .utils import path_to_url
+    from conda.common.url import path_to_url
     try:
         from conda_build.config import croot
         if exists(croot):

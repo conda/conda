@@ -45,7 +45,8 @@ from .utils import on_win
 
 try:
     from conda.lock import FileLock, DirectoryLock
-    from conda.utils import win_path_to_unix, path_to_url
+    from conda.utils import win_path_to_unix
+    from conda.common.url import path_to_url
     from conda.config import remove_binstar_tokens, pkgs_dirs
     from conda.entities.channel import Channel
     import conda.config as config
