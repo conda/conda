@@ -93,9 +93,6 @@ class Channel(object):
         # url_channel out >> https://repo.continuum.io/pkgs/free defaults
         return self.base_url, self.canonical_name
 
-    def is_binstar_channel(self):
-        pass
-
 
 def split_platform(value):
     parts = value.rstrip('/').rsplit('/', 1)
@@ -189,12 +186,3 @@ _SPECIAL_CHANNELS = {
     'local': LocalChannel,
     None: NoneChannel,
 }
-
-
-if __name__ == "__main__":
-    print(Channel('kalefranz').base_url)
-    print(Channel('kalefranz').canonical_name)
-    print(Channel('http://repo.continuum.io/pkgs/pro').base_url)
-    print(Channel('http://repo.continuum.io/pkgs/pro').canonical_name)
-    print(Channel('https://repo.continuum.io/pkgs/free/osx-64/'
-                  '_license-1.1-py27_1.tar.bz2').canonical_name)
