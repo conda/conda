@@ -66,4 +66,5 @@ def stderr_log_level(level, logger_name=None):
         yield
     finally:
         with _logger_lock():
-            logr.handlers, logr.level, logr.disabled, logr.propagate = _hndlrs, _lvl, _dsbld, _prpgt
+            logr.handlers, logr.level, logr.disabled = _hndlrs, _lvl, _dsbld
+            logr.propagate = _prpgt

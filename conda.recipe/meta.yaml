@@ -33,6 +33,7 @@ requirements:
     - menuinst  [win]
     - pycosat >=0.6.1
     - ruamel_yaml
+    - enum34           [py < 34]
 
 test:
   requires:
