@@ -9,21 +9,17 @@ from os.path import exists, join
 from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
 from ..base.context import subdir, context
 from ..compat import urlparse
-from ..config import get_default_urls, channel_prefix, subdir, offline
 from ..utils import path_to_url
 
 log = getLogger(__name__)
 
 
-def get_local_urls():
-    # Note, get_*_urls() return unnormalized urls.
+def get_conda_build_local_url():
     try:
         from conda_build.config import croot
-        if exists(croot):
-            return [path_to_url(croot)]
     except ImportError:
-        pass
-    return []
+        return None
+    return path_to_url(croot) if exists(croot) else None
 
 
 def has_scheme(value):
@@ -36,6 +32,8 @@ def join_url(*args):
 
 class Channel(object):
     _cache_ = dict()
+    _local_url = get_conda_build_local_url()
+    _channel_alias_netloc = urlparse.urlparse(context.channel_alias).netloc
 
     def __new__(cls, value):
         if isinstance(value, Channel):
@@ -54,6 +52,12 @@ class Channel(object):
         Channel._cache_[value] = self
         return self
 
+    @staticmethod
+    def _reset_state():
+        Channel._cache_ = dict()
+        Channel._local_url = get_conda_build_local_url()
+        Channel._channel_alias_netloc = urlparse.urlparse(context.channel_alias).netloc
+
     @property
     def base_url(self):
         return urlparse.urlunparse((self._scheme, self._netloc, self._path, None, None, None))
@@ -65,7 +69,7 @@ class Channel(object):
     def canonical_name(self):
         if any(self == Channel(c) for c in context.default_channels):
             return 'defaults'
-        elif any(self == Channel(c) for c in get_local_urls()):
+        elif self._local_url and any(self == Channel(c) for c in self._local_url):
             return 'local'
         elif self._netloc == Channel(context.channel_alias)._netloc:
             # TODO: strip token
@@ -87,9 +91,6 @@ class Channel(object):
         # url_channel in >> https://repo.continuum.io/pkgs/free/osx-64/requests-2.0-py27_0.tar.bz2
         # url_channel out >> https://repo.continuum.io/pkgs/free defaults
         return self.base_url, self.canonical_name
-
-    def is_binstar_channel(self):
-        pass
 
 
 def split_platform(value):
@@ -137,7 +138,7 @@ class DefaultChannel(NamedChannel):
 class LocalChannel(UrlChannel):
 
     def __init__(self, _):
-        super(LocalChannel, self).__init__(get_local_urls()[0])
+        super(LocalChannel, self).__init__(get_conda_build_local_url())
 
     @property
     def canonical_name(self):

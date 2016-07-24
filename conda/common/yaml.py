@@ -23,11 +23,11 @@ def get_yaml():
 
 def yaml_load(filehandle):
     yaml = get_yaml()
-    return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.1")
+    return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
 
 
 def yaml_dump(string):
     yaml = get_yaml()
     return yaml.dump(string, Dumper=yaml.RoundTripDumper,
                      block_seq_indent=2, default_flow_style=False,
-                     indent=4)
+                     indent=2)

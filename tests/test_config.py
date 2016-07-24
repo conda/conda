@@ -86,10 +86,9 @@ class TestConfig(unittest.TestCase):
     #                      {'http': 'http://user:pass@corp.com:8080',
     #                       'https': 'https://user:pass@corp.com:8080'})
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1),
-                       reason="refactor to work with Channel entity")
+    # @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1),
+    #                    reason="refactor to work with Channel entity")
     def test_normalize_urls(self):
-        # binstar = reset_binstar(url='https://mybinstar.com', token='01234abcde')
         context = reset_context([join(dirname(__file__), 'condarc')])
         current_platform = config.subdir
         assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
