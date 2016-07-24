@@ -12,8 +12,10 @@ from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath, curdir)
 
 from .api import get_index
+from .common.url import path_to_url, is_url
 from .compat import iteritems, itervalues
 from .config import root_dir, envs_dirs, subdir
+from .entities.channel import Channel
 from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
                          PackageNotFoundError, CondaRuntimeError)
 from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
@@ -21,8 +23,7 @@ from .install import (name_dist, linked as install_linked, is_fetched, is_extrac
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
-from .utils import md5_file, path_to_url, on_win
-from .entities.channel import Channel, is_url
+from .utils import md5_file, on_win
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -70,7 +71,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
         # is_local: if the tarball is stored locally (file://)
         # is_cache: if the tarball is sitting in our cache
-        is_local = url.startswith('file://')
+        is_local = not is_url(url) or url.startswith('file://')
         prefix = cached_url(url) if is_local else None
         is_cache = prefix is not None
         if is_cache:
