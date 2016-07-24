@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
 from json import loads as json_loads
-from logging import getLogger, Handler
+from logging import getLogger, Handler, DEBUG
 from os.path import exists, isdir, isfile, join, relpath, basename, islink
 from shlex import split
 from shutil import rmtree, copyfile
@@ -31,6 +31,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
+from conda.common.io import stderr_log_level, disable_logger
 from conda.compat import itervalues
 from conda.config import bits, subdir
 from conda.connection import LocalFSAdapter
@@ -56,22 +57,6 @@ def make_temp_prefix(name=None):
     os.makedirs(prefix)
     assert isdir(prefix)
     return prefix
-
-
-def disable_dotlog():
-    class NullHandler(Handler):
-        def emit(self, record):
-            pass
-    dotlogger = getLogger('dotupdate')
-    saved_handlers = dotlogger.handlers
-    dotlogger.handlers = []
-    dotlogger.addHandler(NullHandler())
-    return saved_handlers
-
-
-def reenable_dotlog(handlers):
-    dotlogger = getLogger('dotupdate')
-    dotlogger.handlers = handlers
 
 
 class Commands:
@@ -124,13 +109,15 @@ def run_command(command, prefix, *arguments):
 @contextmanager
 def make_temp_env(*packages):
     prefix = make_temp_prefix()
-    try:
-        # try to clear any config that's been set by other tests
-        config.load_condarc(join(prefix, 'condarc'))
-        run_command(Commands.CREATE, prefix, *packages)
-        yield prefix
-    finally:
-        rmtree(prefix, ignore_errors=True)
+    with stderr_log_level(DEBUG, 'conda'), stderr_log_level(DEBUG, 'requests'):
+        with disable_logger('fetch'), disable_logger('dotupdate'):
+            try:
+                # try to clear any config that's been set by other tests
+                config.load_condarc(join(prefix, 'condarc'))
+                run_command(Commands.CREATE, prefix, *packages)
+                yield prefix
+            finally:
+                rmtree(prefix, ignore_errors=True)
 
 
 def reload_config(prefix):
@@ -198,12 +185,6 @@ def get_conda_list_tuple(prefix, package_name):
 
 
 class IntegrationTests(TestCase):
-
-    def setUp(self):
-        self.saved_dotlog_handlers = disable_dotlog()
-
-    def tearDown(self):
-        reenable_dotlog(self.saved_dotlog_handlers)
 
     @pytest.mark.timeout(900)
     def test_create_install_update_remove(self):
