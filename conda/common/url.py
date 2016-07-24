@@ -3,29 +3,28 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import re
 from logging import getLogger
-from os.path import abspath
+from os.path import abspath, expanduser
 
 try:
     # Python 3
-    from urllib.parse import quote, unquote, urlunparse  # NOQA
+    from urllib.parse import quote, unquote, urlunparse, urljoin  # NOQA
+    from urllib.request import pathname2url  # NOQA
 except ImportError:
     # Python 2
-    from urllib import quote, unquote
-    from urlparse import urlunparse  # NOQA
+    from urllib import quote, unquote, pathname2url
+    from urlparse import urlunparse, urljoin  # NOQA
 
 from requests.packages.urllib3.util.url import parse_url
 from requests.packages.urllib3.exceptions import LocationParseError
-
-from ..utils import on_win
 
 log = getLogger(__name__)
 
 
 def path_to_url(path):
-    path = abspath(path)
-    if on_win:
-        path = '/' + path.replace(':', '|').replace('\\', '/')
-    return 'file://%s' % path
+    path = abspath(expanduser(path))
+    url = urljoin('file:', pathname2url(path))
+    log.debug("%s converted to %s", path, url)
+    return url
 
 
 _url_drive_re = re.compile('^([a-z])[:|]', re.I)
