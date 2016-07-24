@@ -64,6 +64,7 @@ install:
   - conda install -q pytest requests mock
   - conda install -q pycrypto pyflakes pycosat
   - conda install -q git menuinst
+  - conda install -q enum34 || WHOAMI
   - pip install flake8 pytest-cov pytest-timeout responses
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
