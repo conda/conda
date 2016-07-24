@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
 from json import JSONEncoder
 from logging import getLogger, INFO, Handler, Formatter, StreamHandler, DEBUG
+from pprint import pformat
 from sys import stderr
 
 log = getLogger(__name__)
@@ -68,28 +70,73 @@ def fullname(obj):
     return obj.__module__ + "." + obj.__class__.__name__
 
 
+request_header_sort_dict = {
+    'Host': '\x00\x00',
+    'User-Agent': '\x00\x01',
+}
+def request_header_sort_key(item):
+    return request_header_sort_dict.get(item[0], item[0].lower())
+
+
+response_header_sort_dict = {
+    'Content-Length': '\x7e\x7e\x61',
+    'Connection': '\x7e\x7e\x62',
+}
+def response_header_sort_key(item):
+    return response_header_sort_dict.get(item[0], item[0].lower())
+
+
 def stringify(obj):
-    name = fullname(obj)
-    if name.startswith('bottle.'):
-        builder = list()
-        builder.append("{0} {1}{2} {3}".format(obj.method,
-                                               obj.path,
-                                               obj.environ.get('QUERY_STRING', ''),
-                                               obj.get('SERVER_PROTOCOL')))
-        builder += ["{0}: {1}".format(key, value) for key, value in obj.headers.items()]
+    def bottle_builder(builder, bottle_object):
+        builder.append("{0} {1}{2} {3}".format(bottle_object.method,
+                                               bottle_object.path,
+                                               bottle_object.environ.get('QUERY_STRING', ''),
+                                               bottle_object.get('SERVER_PROTOCOL')))
+        builder += ["{0}: {1}".format(key, value) for key, value in bottle_object.headers.items()]
         builder.append('')
-        body = obj.body.read().strip()
+        body = bottle_object.body.read().strip()
         if body:
             builder.append(body)
             builder.append('')
-        return "\n".join(builder)
-    elif name == 'requests.models.PreparedRequest':
-        builder = list()
-        builder.append("{0} {1} {2}".format(obj.method, obj.path_url,
-                                            obj.url.split(':')[0]))
-        builder += ["{0}: {1}".format(key, value) for key, value in obj.headers.items()]
+
+    def requests_models_PreparedRequest_builder(builder, request_object):
+        builder.append("> {0} {1} {2}".format(request_object.method, request_object.path_url,
+                                              request_object.url.split(':', 1)[0].upper()))
+        builder.extend("> {0}: {1}".format(key, value)
+                       for key, value in sorted(request_object.headers.items(),
+                                                key=request_header_sort_key))
         builder.append('')
-        if obj.body:
-            builder.append(obj.body)
+        if request_object.body:
+            builder.append(request_object.body)
             builder.append('')
+
+    def requests_models_Response_builder(builder, response_object):
+        builder.append("< {0} {1} {2}".format(response_object.url.split(':', 1)[0].upper(),
+                                              response_object.status_code, response_object.reason))
+        builder.extend("> {0}: {1}".format(key, value)
+                       for key, value in sorted(response_object.headers.items(),
+                                                key=response_header_sort_key))
+        builder.append('')
+        content_type = response_object.headers.get('Content-Type')
+        if content_type == 'application/json':
+            builder.append(pformat(response_object.json, indent=2))
+            builder.append('')
+        elif content_type.startswith('text/'):
+            builder.append(response_object.text)
+            builder.append('')
+
+    try:
+        name = fullname(obj)
+        builder = list()
+        if name.startswith('bottle.'):
+            bottle_builder(builder, obj)
+        elif name.endswith('requests.models.PreparedRequest'):
+            requests_models_PreparedRequest_builder(builder, obj)
+        elif name.endswith('requests.models.Response'):
+            requests_models_PreparedRequest_builder(builder, obj)
+            requests_models_Response_builder(builder, obj)
+        else:
+            return None
         return "\n".join(builder)
+    except Exception as e:
+        log.exception(e)
