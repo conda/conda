@@ -25,7 +25,9 @@ def path_to_url(path):
     path = abspath(path)
     if on_win:
         path = '/' + path.replace(':', '|').replace('\\', '/')
-    return 'file://%s' % path
+    url = 'file://%s' % path
+    log.debug("%s converted to %s", path, url)
+    return url
 
 
 _url_drive_re = re.compile('^([a-z])[:|]', re.I)
