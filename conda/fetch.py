@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, absolute_import, unicode_literals
 
 import bz2
 import getpass
@@ -15,20 +15,20 @@ import shutil
 import tempfile
 import warnings
 from functools import wraps
-from logging import getLogger
+from logging import getLogger, DEBUG
 from os.path import basename, dirname, join
 from requests.auth import AuthBase
 
-from conda.entities.channel import Channel, offline_keep
-from conda.utils import exp_backoff_fn
+from ._vendor.auxlib.logz import stringify
 from .base.context import context
-from .compat import itervalues, input, urllib_quote, iteritems
-from .connection import CondaSession, unparse_url, RETRIES, url_to_path
+from .common.url import add_username_and_pass_to_url, url_to_path
+from .compat import itervalues, input, iteritems
+from .connection import CondaSession, RETRIES
+from .entities.channel import Channel, offline_keep
 from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, CondaHTTPError)
-from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
-                      rm_rf)
+from .install import add_cached_package, find_new_location, package_cache, dist2pair, rm_rf
 from .lock import FileLock
-from .utils import memoized
+from .utils import exp_backoff_fn, memoized
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -99,6 +99,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         return {'packages': {}}
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
+        log.debug("Opening repodata cache for {0} at {1}".format(url, cache_path))
         with open(cache_path) as f:
             cache = json.load(f)
     except (IOError, ValueError):
@@ -125,6 +126,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     if 'repo.continuum.io' in url or url.startswith("file://"):
         filename = 'repodata.json.bz2'
+        headers['Accept-Encoding'] = 'identity'
     else:
         headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
         headers['Content-Type'] = 'application/json'
@@ -133,6 +135,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     try:
         resp = session.get(url + filename, headers=headers, proxies=session.proxies,
                            timeout=(3.05, 60))
+        if log.isEnabledFor(DEBUG):
+            log.debug(stringify(resp))
         resp.raise_for_status()
 
         if resp.status_code != 304:
@@ -232,11 +236,6 @@ for more information on how to configure proxies.""" % scheme)
     session.proxies[scheme] = add_username_and_pass_to_url(
                             session.proxies[scheme], username, passwd)
 
-def add_username_and_pass_to_url(url, username, passwd):
-    urlparts = list(requests.packages.urllib3.util.url.parse_url(url))
-    passwd = urllib_quote(passwd, '')
-    urlparts[1] = username + ':' + passwd
-    return unparse_url(urlparts)
 
 @memoized
 def get_proxy_username_and_pass(scheme):

@@ -11,17 +11,15 @@ import email
 import mimetypes
 import os
 import platform
-import re
+import requests
 import tempfile
 from io import BytesIO
 from logging import getLogger
 
-import requests
-
 from . import __version__ as VERSION
-from .compat import urlparse
-from .utils import gnu_get_libc_version
 from .base.context import context, platform as context_platform
+from .common.url import url_to_path, url_to_s3_info
+from .utils import gnu_get_libc_version
 
 RETRIES = 3
 
@@ -125,7 +123,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
         conn = boto.connect_s3()
 
-        bucket_name, key_string = url_to_S3_info(request.url)
+        bucket_name, key_string = url_to_s3_info(request.url)
 
         # Get the bucket without validation that it exists and that we have
         # permissions to list its contents.
@@ -164,17 +162,6 @@ class S3Adapter(requests.adapters.BaseAdapter):
             os.remove(self._temp_file)
 
 
-def url_to_S3_info(url):
-    """
-    Convert a S3 url to a tuple of bucket and key
-    """
-    parsed_url = requests.packages.urllib3.util.url.parse_url(url)
-    assert parsed_url.scheme == 's3', (
-        "You can only use s3: urls (not %r)" % url)
-    bucket, key = parsed_url.host, parsed_url.path
-    return bucket, key
-
-
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
@@ -206,23 +193,6 @@ class LocalFSAdapter(requests.adapters.BaseAdapter):
 
     def close(self):
         pass
-
-
-_url_drive_re = re.compile('^([a-z])[:|]', re.I)
-def url_to_path(url):  # NOQA
-    """
-    Convert a file: URL to a path.
-    """
-    assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not %r)" % url)
-    path = url[len('file:'):].lstrip('/')
-    path = urlparse.unquote(path)
-    if _url_drive_re.match(path):
-        path = path[0] + ':' + path[2:]
-    elif not path.startswith(r'\\'):
-        # if not a Windows UNC path
-        path = '/' + path
-    return path
 
 
 def data_callback_factory(variable):
@@ -289,50 +259,3 @@ def parse_multipart_files(request):
     buf.seek(0)
 
     return buf
-
-
-# Taken from urllib3 (actually
-# https://github.com/shazow/urllib3/pull/394). Once it is fully upstreamed to
-# requests.packages.urllib3 we can just use that.
-def unparse_url(U):
-    """
-    Convert a :class:`.Url` into a url
-
-    The input can be any iterable that gives ['scheme', 'auth', 'host',
-    'port', 'path', 'query', 'fragment']. Unused items should be None.
-
-    This function should more or less round-trip with :func:`.parse_url`. The
-    returned url may not be exactly the same as the url inputted to
-    :func:`.parse_url`, but it should be equivalent by the RFC (e.g., urls
-    with a blank port).
-
-
-    Example: ::
-
-        >>> Url = parse_url('http://google.com/mail/')
-        >>> unparse_url(Url)
-        'http://google.com/mail/'
-        >>> unparse_url(['http', 'username:password', 'host.com', 80,
-        ... '/path', 'query', 'fragment'])
-        'http://username:password@host.com:80/path?query#fragment'
-    """
-    scheme, auth, host, port, path, query, fragment = U
-    url = ''
-
-    # We use "is not None" we want things to happen with empty strings (or 0 port)
-    if scheme is not None:
-        url = scheme + '://'
-    if auth is not None:
-        url += auth + '@'
-    if host is not None:
-        url += host
-    if port is not None:
-        url += ':' + str(port)
-    if path is not None:
-        url += path
-    if query is not None:
-        url += '?' + query
-    if fragment is not None:
-        url += '#' + fragment
-
-    return url
