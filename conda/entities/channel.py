@@ -18,6 +18,10 @@ def get_conda_build_local_url():
         from conda_build.config import croot
     except ImportError:
         return None
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        return None
     return path_to_url(croot) if exists(croot) else None
 
 
@@ -32,7 +36,7 @@ def join_url(*args):
 class Channel(object):
     _cache_ = dict()
     _local_url = get_conda_build_local_url()
-    _channel_alias_netloc = urlparse.urlparse(context.channel_alias).netloc
+    _channel_alias_netloc = urlparse(context.channel_alias).netloc
 
     def __new__(cls, value):
         if isinstance(value, Channel):
@@ -54,7 +58,7 @@ class Channel(object):
     def _reset_state():
         Channel._cache_ = dict()
         Channel._local_url = get_conda_build_local_url()
-        Channel._channel_alias_netloc = urlparse.urlparse(context.channel_alias).netloc
+        Channel._channel_alias_netloc = urlparse(context.channel_alias).netloc
 
     @property
     def base_url(self):

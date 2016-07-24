@@ -111,9 +111,8 @@ def make_temp_env(*packages):
         with disable_logger('fetch'), disable_logger('dotupdate'):
             try:
                 # try to clear any config that's been set by other tests
-                if packages:
-                    reset_context([join(prefix, 'condarc')])
-                    run_command(Commands.CREATE, prefix, *packages)
+                reset_context([join(prefix, 'condarc')])
+                run_command(Commands.CREATE, prefix, *packages)
                 yield prefix
             finally:
                 rmtree(prefix, ignore_errors=True)

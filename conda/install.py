@@ -40,12 +40,12 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
-from conda.base.context import context
-from conda.entities.channel import Channel
-from conda.lock import DirectoryLock, FileLock
-from conda.utils import path_to_url, exp_backoff_fn
+from .base.context import context
+from .common.url import path_to_url
+from .entities.channel import Channel
 from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, CondaOSError
-from .utils import on_win
+from .lock import DirectoryLock, FileLock
+from .utils import exp_backoff_fn, on_win
 
 
 if on_win:
