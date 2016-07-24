@@ -8,9 +8,9 @@ import os
 import re
 import sys
 import time
-from functools import partial
-from os.path import abspath, isdir, join, isfile
 import threading
+from functools import partial
+from os.path import isdir, join, isfile
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -138,20 +138,6 @@ def hashsum_file(path, mode='md5'):
 
 def md5_file(path):
     return hashsum_file(path, 'md5')
-
-
-def path_to_url(path):
-    path = abspath(path)
-    if on_win:
-        path = '/' + path.replace(':', '|').replace('\\', '/')
-    return 'file://%s' % path
-
-
-# TODO: move url_to_path from conda.connection
-# def url_to_path(url):
-#     assert url.startswith('file://')
-#     url_parts = urlparse.urlparse(url)
-#     return abspath(join(url_parts.netloc, url_parts.path))
 
 
 def path_identity(path):

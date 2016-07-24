@@ -7,9 +7,8 @@ from logging import getLogger
 from os.path import exists, join
 
 from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
-from ..base.context import subdir, context
-from ..compat import urlparse
-from ..utils import path_to_url
+from ..base.context import context
+from ..common.url import path_to_url, urlparse, urlunparse, is_url
 
 log = getLogger(__name__)
 
@@ -23,7 +22,7 @@ def get_conda_build_local_url():
 
 
 def has_scheme(value):
-    return bool(urlparse.urlparse(value).scheme in RECOGNIZED_URL_SCHEMES)
+    return bool(urlparse(value).scheme in RECOGNIZED_URL_SCHEMES)
 
 
 def join_url(*args):
@@ -43,7 +42,6 @@ class Channel(object):
         elif value in _SPECIAL_CHANNELS:
             self = object.__new__(_SPECIAL_CHANNELS[value])
         elif value.endswith('.tar.bz2'):
-            assert has_scheme(value)
             self = object.__new__(UrlChannel)
         elif has_scheme(value):
             self = object.__new__(UrlChannel)
@@ -60,7 +58,7 @@ class Channel(object):
 
     @property
     def base_url(self):
-        return urlparse.urlunparse((self._scheme, self._netloc, self._path, None, None, None))
+        return urlunparse((self._scheme, self._netloc, self._path, None, None, None))
 
     def __eq__(self, other):
         return self._netloc == other._netloc and self._path == other._path
@@ -81,7 +79,7 @@ class Channel(object):
     def urls(self):
         # TODO: figure out how to add token
         if self._platform is None:
-            return [join_url(self.base_url, subdir), join_url(self.base_url, 'noarch')]
+            return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
         else:
             return [join_url(self.base_url, self._platform)]
 
@@ -106,8 +104,10 @@ class UrlChannel(Channel):
     def __init__(self, url):
         if url.endswith('.tar.bz2'):
             url = url.rsplit('/', 1)[0]
+        if not has_scheme(url):
+            url = path_to_url(url)
         self._raw_value = url
-        parsed = urlparse.urlparse(url)
+        parsed = urlparse(url)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
         self._path, self._platform = split_platform(parsed.path)
@@ -117,7 +117,7 @@ class NamedChannel(Channel):
 
     def __init__(self, name):
         self._raw_value = name
-        parsed = urlparse.urlparse(context.channel_alias)
+        parsed = urlparse(context.channel_alias)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
         self._path = join(parsed.path, name)
@@ -172,12 +172,6 @@ def prioritize_channels(channels):
 
 def offline_keep(url):
     return not context.offline or not is_url(url) or url.startswith('file:/')
-
-
-def is_url(url):
-    if url:
-        p = urlparse.urlparse(url)
-        return p.netloc != "" or p.scheme == "file"
 
 
 _SPECIAL_CHANNELS = {
