@@ -14,7 +14,8 @@ from conda.common.compat import (string_types, odict)
 from conda.common.configuration import (Configuration, SequenceParameter, PrimitiveParameter,
                                         MapParameter, YamlRawParameter, load_raw_configs,
                                         ParameterFlag, ValidationError)
-from conda.utils import yaml_load
+from conda.common.yaml import yaml_load
+
 test_yaml_raw = {
     'file1': dals("""
         always_yes: no

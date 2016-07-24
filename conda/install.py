@@ -40,7 +40,7 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
-from conda.base.context import binstar, context
+from conda.base.context import context
 from conda.entities.channel import Channel
 from conda.lock import DirectoryLock, FileLock
 from conda.utils import path_to_url, exp_backoff_fn
@@ -610,7 +610,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     if not (xpkg or xdir):
         return
     if url:
-        url = binstar.remove_binstar_tokens(url)
+        url = url
     _, schannel = Channel(url).url_channel_wtf
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')

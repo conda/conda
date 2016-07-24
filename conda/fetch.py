@@ -19,10 +19,9 @@ from logging import getLogger
 from os.path import basename, dirname, join
 from requests.auth import AuthBase
 
-from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.entities.channel import Channel, offline_keep
 from conda.utils import exp_backoff_fn
-from .base.context import context, binstar
+from .base.context import context
 from .compat import itervalues, input, urllib_quote, iteritems
 from .connection import CondaSession, unparse_url, RETRIES, url_to_path
 from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, CondaHTTPError)
@@ -156,7 +155,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except ValueError as e:
         raise CondaRuntimeError("Invalid index file: {0}{1}: {2}"
-                                .format(binstar.remove_binstar_tokens(url), filename, e))
+                                .format(url, filename, e))
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407:  # Proxy Authentication Required
@@ -165,15 +164,9 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         if e.response.status_code == 404:
-            if url.startswith(DEFAULT_CHANNEL_ALIAS):
-                user = binstar.remove_binstar_tokens(url) \
-                             .split(DEFAULT_CHANNEL_ALIAS)[1] \
-                             .split("/")[0]
-                msg = 'Could not find anaconda.org user %s' % user
-            else:
-                if url.endswith('/noarch/'):  # noarch directory might not exist
-                    return None
-                msg = 'Could not find URL: %s' % binstar.remove_binstar_tokens(url)
+            if url.endswith('/noarch/'):  # noarch directory might not exist
+                return None
+            msg = 'Could not find URL: %s' % url
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
             return None
 
@@ -182,14 +175,12 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             # not match the conda configured one.
             msg = ("Warning: you may need to login to anaconda.org again with "
                    "'anaconda login' to access private packages(%s, %s)" %
-                   (binstar.hide_binstar_tokens(url), e))
+                   (url, e))
             stderrlog.info(msg)
-            return fetch_repodata(binstar.remove_binstar_tokens(url),
-                                  cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         else:
-            msg = "HTTPError: %s: %s\n" % (e, binstar.remove_binstar_tokens(url))
+            msg = "HTTPError: %s: %s\n" % (e, url)
 
         log.debug(msg)
         raise CondaHTTPError(msg)
@@ -208,14 +199,14 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
-        msg = "Connection error: %s: %s\n" % (e, binstar.remove_binstar_tokens(url))
-        stderrlog.info('Could not connect to %s\n' % binstar.remove_binstar_tokens(url))
+        msg = "Connection error: %s: %s\n" % (e, url)
+        stderrlog.info('Could not connect to %s\n' % url)
         log.debug(msg)
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
 
         raise CondaRuntimeError(msg)
-    cache['_url'] = binstar.remove_binstar_tokens(url)
+    cache['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
             json.dump(cache, fo, indent=2, sort_keys=True)

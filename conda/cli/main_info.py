@@ -149,7 +149,7 @@ def execute(args, parser):
     from os.path import dirname
 
     import conda
-    from conda.base.context import context, binstar
+    from conda.base.context import context
     from conda import config
     from conda.entities.channel import offline_keep
     from conda.resolve import Resolve
@@ -218,7 +218,7 @@ def execute(args, parser):
             print(json.dumps({"channels": channels}))
         return 0
 
-    channels = list(map(binstar.hide_binstar_tokens, channels))
+    channels = list(channels)
     if not args.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]
