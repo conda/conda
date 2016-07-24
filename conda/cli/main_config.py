@@ -8,6 +8,7 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 
+from conda._vendor.auxlib.type_coercion import boolify
 from .common import (Completer, add_parser_json, stdout_json_success)
 from ..common.yaml import yaml_load, yaml_dump
 from ..compat import string_types
@@ -297,15 +298,11 @@ def execute_config(args, parser):
     set_bools, set_strings = set(rc_bool_keys), set(rc_string_keys)
     for key, item in args.set:
         # Check key and value
-        yamlitem = yaml_load(item)
         if key in set_bools:
-            if not isinstance(yamlitem, bool):
-                raise CondaTypeError("Key: %s; %s is not a YAML boolean." %
-                                     (key, item), args.json)
-            rc_config[key] = yamlitem
-
+            rc_config[key] = boolify(item)
         elif key in set_strings:
-            rc_config[key] = yamlitem
+            assert isinstance(item, string_types)
+            rc_config[key] = item
         else:
             raise CondaValueError("Error key must be one of %s, not %s" %
                                   (', '.join(set_bools | set_strings), key),
