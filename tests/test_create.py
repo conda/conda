@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
 from json import loads as json_loads
-from logging import getLogger, Handler, DEBUG
+from logging import getLogger, DEBUG
 from os.path import exists, isdir, isfile, join, relpath, basename, islink
 from requests import Session
 from requests.adapters import BaseAdapter
@@ -22,7 +22,6 @@ from unittest import TestCase
 from uuid import uuid4
 
 from conda.base.context import context, reset_context, bits
-from conda.cli import conda_argparse
 from conda.cli.main import generate_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
@@ -32,12 +31,12 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.io import stderr_log_level, disable_logger
+from conda.common.url import path_to_url
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
 from conda.exceptions import CondaError
 from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win, linked_data
-from conda.common.url import path_to_url
 from tests.helpers import captured
 
 log = getLogger(__name__)
@@ -107,8 +106,8 @@ def run_command(command, prefix, *arguments):
 
 
 @contextmanager
-def make_temp_env(*packages):
-    prefix = make_temp_prefix()
+def make_temp_env(*packages, **kwargs):
+    prefix = kwargs.pop('prefix', None) or make_temp_prefix()
     with stderr_log_level(DEBUG, 'conda'), stderr_log_level(DEBUG, 'requests'):
         with disable_logger('fetch'), disable_logger('dotupdate'):
             try:
@@ -467,27 +466,20 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_in_underscore_env_shows_message(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        try:
-
-            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut")
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut")
             assert ("Environment name starts with underscore '_'.  "
                     "Skipping menu installation." in stderr)
-        finally:
-            rmtree(prefix, ignore_errors=True)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        try:
-            reload_config(prefix)
-            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut",
-                                         "--no-shortcuts")
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut", "--no-shortcuts")
             # This test is sufficient, because it effectively verifies that the code
             #  path was not visited.
             assert ("Environment name starts with underscore '_'.  Skipping menu installation."
                     not in stderr)
-        finally:
-            rmtree(prefix, ignore_errors=True)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
@@ -500,17 +492,16 @@ class IntegrationTests(TestCase):
         prefix = make_temp_prefix(str(uuid4())[:7])
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         try:
-            reload_config(prefix)
-            run_command(Commands.CREATE, prefix, "console_shortcut")
-            assert package_is_installed(prefix, 'console_shortcut')
-            assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
-                                           "Contents of dir:\n"
-                                           "{0}".format(os.listdir(shortcut_dir)))
+            with make_temp_env("console_shortcut", prefix=prefix):
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
+                                               "Contents of dir:\n"
+                                               "{0}".format(os.listdir(shortcut_dir)))
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, 'console_shortcut')
-            assert not package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # make sure that cleanup without specifying --shortcuts still removes shortcuts
+                run_command(Commands.REMOVE, prefix, 'console_shortcut')
+                assert not package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
@@ -531,15 +522,14 @@ class IntegrationTests(TestCase):
 
         try:
             # including --no-shortcuts should not get shortcuts installed
-            reload_config(prefix)
-            run_command(Commands.CREATE, prefix, "--no-shortcuts", "console_shortcut")
-            assert package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+            with make_temp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, 'console_shortcut')
-            assert not package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # make sure that cleanup without specifying --shortcuts still removes shortcuts
+                run_command(Commands.REMOVE, prefix, 'console_shortcut')
+                assert not package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
@@ -559,23 +549,23 @@ class IntegrationTests(TestCase):
         assert not isfile(shortcut_file)
 
         try:
-            # set condarc shortcuts: False
-            reload_config(prefix)
-            run_command(Commands.CONFIG, prefix, "--set shortcuts false")
-            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
-            json_obj = json_loads(stdout)
-            # assert json_obj['rc_path'] == join(prefix, 'condarc')
-            assert json_obj['get']['shortcuts'] is False
+            with make_temp_env(prefix=prefix):
+                # set condarc shortcuts: False
+                run_command(Commands.CONFIG, prefix, "--set shortcuts false")
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+                json_obj = json_loads(stdout)
+                # assert json_obj['rc_path'] == join(prefix, 'condarc')
+                assert json_obj['get']['shortcuts'] is False
 
-            # including shortcuts: False should not get shortcuts installed
-            run_command(Commands.CREATE, prefix, "console_shortcut")
-            assert package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # including shortcuts: False should not get shortcuts installed
+                run_command(Commands.CREATE, prefix, "console_shortcut")
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, 'console_shortcut')
-            assert not package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # make sure that cleanup without specifying --shortcuts still removes shortcuts
+                run_command(Commands.REMOVE, prefix, 'console_shortcut')
+                assert not package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):

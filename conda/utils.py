@@ -10,7 +10,7 @@ import sys
 import time
 import threading
 from functools import partial
-from os.path import isdir, join, isfile, basename, exists
+from os.path import isdir, join, basename, exists
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -125,10 +125,8 @@ def backoff_unlink(path):
     try:
         exp_backoff_fn(lambda f: exists(f) and os.unlink(f), path)
     except (IOError, OSError) as e:
-        if e.errno in (errno.ENOENT,):
+        if e.errno not in (errno.ENOENT,):
             # errno.ENOENT File not found error
-            pass
-        else:
             raise
 
 
