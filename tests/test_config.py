@@ -70,12 +70,12 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.bits in (32, 64))
 
     def test_pkgs_dir_from_envs_dir(self):
-        root_dir = config.root_dir
+        root_dir = context.root_dir
         root_pkgs = join(root_dir, 'pkgs')
         for pi, po in [
             (join(root_dir, 'envs'), root_pkgs),
-            ('/usr/local/foo/envs' if config.platform != 'win' else 'C:\envs',
-                '/usr/local/foo/envs/.pkgs' if config.platform != 'win' else 'C:\envs\.pkgs'),
+            ('/usr/local/foo/envs' if context.platform != 'win' else 'C:\envs',
+                '/usr/local/foo/envs/.pkgs' if context.platform != 'win' else 'C:\envs\.pkgs'),
             ]:
             self.assertEqual(pkgs_dir_from_envs_dir(pi), po)
 
@@ -88,7 +88,7 @@ class TestConfig(unittest.TestCase):
     #                    reason="refactor to work with Channel entity")
     def test_normalize_urls(self):
         context = reset_context([join(dirname(__file__), 'condarc')])
-        current_platform = config.subdir
+        current_platform = context.subdir
         assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert context.channel_alias == 'https://your.repo/'
         # assert binstar.channel_prefix(False) == 'https://your.repo/'

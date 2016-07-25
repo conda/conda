@@ -15,7 +15,6 @@ import tempfile
 from difflib import get_close_matches
 from os.path import isdir, join, basename, exists, abspath
 
-from .. import config
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import force_32bit, context, check_write
@@ -262,7 +261,6 @@ def install(args, parser, command='install'):
                 common.stdout_json_success(
                     message='All requested packages already installed.')
             return
-
     if args.force:
         args.no_deps = True
 
@@ -287,7 +285,7 @@ environment does not exist: %s
 #""" % prefix, args.json)
 
     if hasattr(args, 'shortcuts'):
-        config.shortcuts = args.shortcuts and config.shortcuts
+        context.shortcuts = args.shortcuts and context.shortcuts
 
     try:
         if isinstall and args.revision:
@@ -363,7 +361,6 @@ environment does not exist: %s
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError('', e, args.json)
         raise CondaError('UnsatisfiableSpecifications', e, args.json)
-
     if nothing_to_do(actions):
         from .main_list import print_packages
 
