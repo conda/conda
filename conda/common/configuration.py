@@ -11,7 +11,6 @@ from os import environ, stat
 from os.path import join
 from stat import S_IFREG, S_IFDIR, S_IFMT
 
-from conda.base.constants import EMPTY_MAP
 from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
                      text_type, odict, isiterable)
 from .yaml import yaml_load
@@ -22,6 +21,8 @@ from .._vendor.auxlib.type_coercion import typify_data_structure
 from .._vendor.toolz.dicttoolz import merge
 from .._vendor.toolz.functoolz import excepts
 from .._vendor.toolz.itertoolz import concat, unique, concatv
+from ..base.constants import EMPTY_MAP
+from ..exceptions import ValidationError as CondaValidationError
 
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
@@ -39,11 +40,11 @@ Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter', 'typed_value', 
 NO_MATCH = Match(None, None, None, None, None)
 
 
-class MultiValidationError(ValidationError):
+class MultiValidationError(CondaValidationError):
 
     def __init__(self, errors):
         messages = "\n".join(repr(e) for e in errors)
-        super(MultiValidationError, self).__init__(None, msg=messages)
+        super(MultiValidationError, self).__init__(messages)
 
 
 class ParameterFlag(Enum):
@@ -525,21 +526,3 @@ class Configuration(object):
 
         if validation_errors:
             raise MultiValidationError(validation_errors)
-
-        # for filepath, raw_parameters in iteritems(self.raw_data):
-        #     try:
-        #         match = parameter._pull_match_from_single_raw(raw_parameters, filepath)
-        #     except ValidationError as e:
-        #         self._validation_errors[match] = ""
-        #         print("The parameter '{0}' has invalid value '{1}' in {2}.\n{3}"
-        #               .format(key, raw_parameters[key].value, filepath, text_type(e)))
-        #         continue
-        #     if match is NO_MATCH:
-        #         continue
-        #     v = parameter.validate(self, match.typed_value)
-        #     if v is not True:
-        #         msg = ("The parameter '{0}' has invalid value '{1}' in {2}."
-        #                .format(match.key, match.raw_parameter.value, match.filepath))
-        #         if isinstance(v, string_types):
-        #             msg += "\n{0}".format(v)
-        #         print(msg)

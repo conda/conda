@@ -15,6 +15,8 @@ from conda.common.configuration import (Configuration, SequenceParameter, Primit
                                         MapParameter, YamlRawParameter, load_raw_configs,
                                         ParameterFlag, ValidationError)
 from conda.common.yaml import yaml_load
+from conda.exceptions import ValidationError as CondaValidationError
+
 
 test_yaml_raw = {
     'file1': dals("""
@@ -235,16 +237,16 @@ class ConfigurationTests(TestCase):
 
     def test_validation(self):
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean'))
-        raises(ValidationError, lambda: config.always_yes)
+        raises(CondaValidationError, lambda: config.always_yes)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('too_many_aliases'))
-        raises(ValidationError, lambda: config.always_yes)
+        raises(CondaValidationError, lambda: config.always_yes)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('not_an_int'))
-        raises(ValidationError, lambda: config.always_an_int)
+        raises(CondaValidationError, lambda: config.always_an_int)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
-        raises(ValidationError, lambda: config.boolean_map)
+        raises(CondaValidationError, lambda: config.boolean_map)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('good_boolean_map'))
         assert config.boolean_map['a_true'] is True
@@ -262,4 +264,4 @@ class ConfigurationTests(TestCase):
         config.validate_all()
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
-        raises(ValidationError, config.validate_all)
+        raises(CondaValidationError, config.validate_all)
