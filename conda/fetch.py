@@ -10,6 +10,7 @@ import getpass
 import hashlib
 import json
 import os
+import requests
 import shutil
 import tempfile
 import warnings
@@ -17,23 +18,16 @@ from functools import wraps
 from logging import getLogger, DEBUG
 from os.path import basename, dirname, join
 
-import requests
-from conda._vendor.auxlib.logz import stringify
-
-from .base.constants import DEFAULT_CHANNEL_ALIAS
+from ._vendor.auxlib.logz import stringify
+from .base.context import context
 from .common.url import add_username_and_pass_to_url, url_to_path
-from .compat import itervalues, input, iterkeys, iteritems
-from .config import (pkgs_dirs, remove_binstar_tokens,
-                     hide_binstar_tokens, allowed_channels, add_pip_as_python_dependency,
-                     ssl_verify, rc)
+from .compat import itervalues, input, iteritems
 from .connection import CondaSession, RETRIES
-from .entities.channel import Channel, offline_keep, prioritize_channels
-from .exceptions import (ProxyError, ChannelNotAllowed, CondaRuntimeError, CondaSignatureError,
-                         CondaHTTPError)
-from .install import (add_cached_package, find_new_location, package_cache, dist2pair,
-                      rm_rf, exp_backoff_fn)
+from .entities.channel import Channel, offline_keep
+from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, CondaHTTPError)
+from .install import add_cached_package, find_new_location, package_cache, dist2pair, rm_rf
 from .lock import FileLock
-from .utils import memoized
+from .utils import exp_backoff_fn, memoized
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -44,7 +38,7 @@ fail_unknown_host = False
 
 
 def create_cache_dir():
-    cache_dir = join(pkgs_dirs[0], 'cache')
+    cache_dir = join(context.pkgs_dirs[0], 'cache')
     try:
         os.makedirs(cache_dir)
     except OSError:
@@ -91,7 +85,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if use_cache:
         return cache
 
-    if not ssl_verify:
+    if not context.ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
         except ImportError:
@@ -142,7 +136,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     except ValueError as e:
         raise CondaRuntimeError("Invalid index file: {0}{1}: {2}"
-                                .format(remove_binstar_tokens(url), filename, e))
+                                .format(url, filename, e))
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407:  # Proxy Authentication Required
@@ -151,32 +145,23 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         if e.response.status_code == 404:
-            if url.startswith(DEFAULT_CHANNEL_ALIAS):
-                user = remove_binstar_tokens(url) \
-                             .split(DEFAULT_CHANNEL_ALIAS)[1] \
-                             .split("/")[0]
-                msg = 'Could not find anaconda.org user %s' % user
-            else:
-                if url.endswith('/noarch/'):  # noarch directory might not exist
-                    return None
-                msg = 'Could not find URL: %s' % remove_binstar_tokens(url)
+            if url.endswith('/noarch/'):  # noarch directory might not exist
+                return None
+            msg = 'Could not find URL: %s' % url
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
             return None
 
-        elif (e.response.status_code == 401 and
-                rc.get('channel_alias', DEFAULT_CHANNEL_ALIAS) in url):
+        elif e.response.status_code == 401 and context.channel_alias in url:
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to anaconda.org again with "
                    "'anaconda login' to access private packages(%s, %s)" %
-                   (hide_binstar_tokens(url), e))
+                   (url, e))
             stderrlog.info(msg)
-            return fetch_repodata(remove_binstar_tokens(url),
-                                  cache_dir=cache_dir,
-                                  use_cache=use_cache, session=session)
+            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         else:
-            msg = "HTTPError: %s: %s\n" % (e, remove_binstar_tokens(url))
+            msg = "HTTPError: %s: %s\n" % (e, url)
 
         log.debug(msg)
         raise CondaHTTPError(msg)
@@ -195,14 +180,14 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             handle_proxy_407(url, session)
             # Try again
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
-        msg = "Connection error: %s: %s\n" % (e, remove_binstar_tokens(url))
-        stderrlog.info('Could not connect to %s\n' % remove_binstar_tokens(url))
+        msg = "Connection error: %s: %s\n" % (e, url)
+        stderrlog.info('Could not connect to %s\n' % url)
         log.debug(msg)
         if fail_unknown_host:
             raise CondaRuntimeError(msg)
 
         raise CondaRuntimeError(msg)
-    cache['_url'] = remove_binstar_tokens(url)
+    cache['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
             json.dump(cache, fo, indent=2, sort_keys=True)
@@ -283,16 +268,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     if index is None:
         index = {}
     stdoutlog.info("Fetching package metadata ...")
-    if not isinstance(channel_urls, dict):
-        channel_urls = prioritize_channels(channel_urls)
-    for url in iterkeys(channel_urls):
-        if allowed_channels and url not in allowed_channels:
-            raise ChannelNotAllowed("""
-Error: URL '%s' not in allowed channels.
-
-Allowed channels are:
-  - %s
-""" % (url, '\n  - '.join(allowed_channels)))
+    # if not isinstance(channel_urls, dict):
+    #     channel_urls = prioritize_channels(channel_urls)
 
     urls = tuple(filter(offline_keep, channel_urls))
     try:
@@ -336,7 +313,7 @@ Allowed channels are:
     stdoutlog.info('\n')
     if unknown:
         add_unknown(index, channel_urls)
-    if add_pip_as_python_dependency:
+    if context.add_pip_as_python_dependency:
         add_pip_dependency(index)
     return index
 
@@ -386,7 +363,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     dst_dir = dirname(dst_path)
     session = session or CondaSession()
 
-    if not ssl_verify:
+    if not context.ssl_verify:
         try:
             from requests.packages.urllib3.connectionpool import InsecureRequestWarning
         except ImportError:

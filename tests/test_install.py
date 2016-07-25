@@ -1,3 +1,4 @@
+import errno
 import pytest
 import random
 import shutil
@@ -9,6 +10,7 @@ from os import makedirs
 from os.path import join, basename, relpath, exists, dirname
 
 from conda import install
+from conda.base.context import context
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, dist2quad,
                            dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
@@ -110,9 +112,8 @@ class FileTests(unittest.TestCase):
             )
 
     def test_trash_outside_prefix(self):
-        from conda.config import root_dir
         tmp_dir = tempfile.mkdtemp()
-        rel = relpath(tmp_dir, root_dir)
+        rel = relpath(tmp_dir, context.root_dir)
         self.assertTrue(rel.startswith(u'..'))
         move_path_to_trash(tmp_dir)
         self.assertFalse(exists(tmp_dir))
@@ -264,14 +265,14 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_calls_rename_if_unlink_fails(self):
         with self.generate_mocks() as mocks:
-            mocks['unlink'].side_effect = OSError
+            mocks['unlink'].side_effect = OSError(errno.ENOENT, "blah")
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         assert mocks['unlink'].call_count > 1
         assert mocks['rename'].call_count == 1
         rename_args = mocks['rename'].call_args[0]
         assert rename_args[0] == mocks['unlink'].call_args_list[0][0][0]
-        assert dirname(rename_args[1]) == mocks['unlink'].call_args_list[1][0][0]
+        assert dirname(rename_args[1]) in (ca[0][0] for ca in mocks['unlink'].call_args_list)
 
     @skip_if_no_mock
     def test_calls_unlink_on_os_access_false(self):

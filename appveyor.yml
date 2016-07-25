@@ -28,10 +28,6 @@ environment:
     #   PYTHON_VERSION: "2.7"
     #   PYTHON_ARCH: "32"
 
-    # - PYTHON: "C:\\Python34_32"
-    #   PYTHON_VERSION: "3.4"
-    #   PYTHON_ARCH: "32"
-
 init:
   - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOME%
 
@@ -55,7 +51,7 @@ install:
   - setx PATH "%ANACONDA_PATH%"
   - conda info
   - conda config --set always_yes yes
-  - conda install --force --no-deps -q conda psutil ruamel_yaml requests
+  - conda install --force --no-deps -q conda psutil requests
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
@@ -69,6 +65,8 @@ install:
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install --old-and-unmanageable
+  - conda remove --force -q -y ruamel_yaml || WHOAMI
+  - pip install -U ruamel.yaml
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false

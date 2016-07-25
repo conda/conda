@@ -7,12 +7,12 @@
 from __future__ import print_function, division, absolute_import
 
 from conda.api import get_index
+from ..base.context import context
 from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
                      add_parser_use_index_cache, add_parser_offline, add_parser_channels,
                      add_parser_json, add_parser_use_local,
                      ensure_use_local, ensure_override_channels_requires_channel,
-                     get_prefix, stdout_json, disp_features)
-from ..config import subdir
+                     stdout_json, disp_features)
 from ..exceptions import CondaValueError, PackageNotFoundError
 from ..install import dist2quad
 from ..misc import make_icon_url
@@ -152,7 +152,7 @@ def execute_search(args, parser):
                 raise CondaValueError("'%s' is not a valid regex pattern (exception: %s)" %
                                       (regex, e), args.json)
 
-    prefix = get_prefix(args)
+    prefix = context.prefix_w_legacy_search
 
     import conda.install
 
@@ -161,7 +161,7 @@ def execute_search(args, parser):
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
-    if platform and platform != subdir:
+    if platform and platform != context.subdir:
         args.unknown = False
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
@@ -249,7 +249,7 @@ def execute_search(args, parser):
                 else:
                     json.append(dist)
                 continue
-            if platform and platform != subdir:
+            if platform and platform != context.subdir:
                 inst = ' '
             elif dist in linked:
                 inst = '*'

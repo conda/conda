@@ -1,16 +1,16 @@
 from __future__ import print_function, division, absolute_import
 
 import collections
+import errno
 import hashlib
 import logging
 import os
 import re
-import subprocess
 import sys
-import tempfile
+import time
 import threading
 from functools import partial
-from os.path import isdir, join, isfile
+from os.path import isdir, join, basename, exists
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -116,10 +116,18 @@ def try_write(dir_path, heavy=False):
         except (IOError, OSError):
             return False
         finally:
-            if isfile(temp_filename):
-                os.unlink(temp_filename)
+            backoff_unlink(temp_filename)
     else:
         return os.access(dir_path, os.W_OK)
+
+
+def backoff_unlink(path):
+    try:
+        exp_backoff_fn(lambda f: exists(f) and os.unlink(f), path)
+    except (IOError, OSError) as e:
+        if e.errno not in (errno.ENOENT,):
+            # errno.ENOENT File not found error
+            raise
 
 
 def hashsum_file(path, mode='md5'):
@@ -135,32 +143,6 @@ def hashsum_file(path, mode='md5'):
 
 def md5_file(path):
     return hashsum_file(path, 'md5')
-
-
-def run_in(command, shell, cwd=None, env=None):
-    if hasattr(shell, "keys"):
-        shell = shell["exe"]
-    if shell == 'cmd.exe':
-        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
-        cmd_script.write(command)
-        cmd_script.close()
-        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
-        try:
-            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 cwd=cwd, env=env)
-            stdout, stderr = p.communicate()
-        finally:
-            os.unlink(cmd_script.name)
-    elif shell == 'powershell':
-        raise NotImplementedError
-    else:
-        cmd_bits = ([shells[shell]["exe"]] + shells[shell]["shell_args"] +
-                    [translate_stream(command, shells[shell]["path_to"])])
-        p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-    streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")
-               for stream in (stdout, stderr)]
-    return streams
 
 
 def path_identity(path):
@@ -376,3 +358,34 @@ else:
             pathsep=" ",
                     ),
     }
+
+
+def exp_backoff_fn(fn, *args):
+    """Mostly for retrying file operations that fail on Windows due to virus scanners"""
+    if not on_win:
+        return fn(*args)
+
+    import random
+    # with max_tries = 6, max total time ~= 3.2 sec
+    # with max_tries = 7, max total time ~= 6.5 sec
+    max_tries = 7
+    for n in range(max_tries):
+        try:
+            result = fn(*args)
+        except (OSError, IOError) as e:
+            log.debug(repr(e))
+            if e.errno in (errno.EPERM, errno.EACCES):
+                if n == max_tries-1:
+                    raise
+                sleep_time = ((2 ** n) + random.random()) * 0.1
+                caller_frame = sys._getframe(1)
+                log.debug("retrying %s/%s %s() in %g sec",
+                          basename(caller_frame.f_code.co_filename),
+                          caller_frame.f_lineno, fn.__name__,
+                          sleep_time)
+                time.sleep(sleep_time)
+            else:
+                log.error("Uncaught backoff with errno %d", e.errno)
+                raise
+        else:
+            return result

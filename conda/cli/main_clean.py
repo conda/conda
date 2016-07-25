@@ -12,7 +12,7 @@ from os import lstat, walk, listdir
 from os.path import join, getsize, isdir
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
-from ..config import pkgs_dirs as config_pkgs_dirs, root_dir, envs_dirs
+from ..base.context import context
 from ..install import rm_rf
 from ..utils import human_bytes
 from ..exceptions import ArgumentError
@@ -165,9 +165,9 @@ def find_lock():
 
     from conda.lock import LOCK_EXTENSION
 
-    lock_dirs = config_pkgs_dirs[:]
-    lock_dirs += [root_dir]
-    for envs_dir in envs_dirs:
+    lock_dirs = context.pkgs_dirs[:]
+    lock_dirs += [context.root_dir]
+    for envs_dir in context.envs_dirs:
         if os.path.exists(envs_dir):
             for fn in os.listdir(envs_dir):
                 if os.path.isdir(join(envs_dir, fn)):
@@ -198,7 +198,7 @@ def rm_lock(locks, verbose=True):
 
 def find_tarballs():
     pkgs_dirs = defaultdict(list)
-    for pkgs_dir in config_pkgs_dirs:
+    for pkgs_dir in context.pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
         for fn in os.listdir(pkgs_dir):
@@ -263,7 +263,7 @@ def find_pkgs():
 
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
-    for pkgs_dir in config_pkgs_dirs:
+    for pkgs_dir in context.pkgs_dirs:
         if not os.path.exists(pkgs_dir):
             print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
@@ -347,7 +347,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
 def rm_index_cache():
     from conda.install import rm_rf
 
-    rm_rf(join(config_pkgs_dirs[0], 'cache'))
+    rm_rf(join(context.pkgs_dirs[0], 'cache'))
 
 def find_source_cache():
     try:
@@ -435,7 +435,7 @@ def execute(args, parser):
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
-            'files': [join(config_pkgs_dirs[0], 'cache')]
+            'files': [join(context.pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
 

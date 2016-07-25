@@ -1,14 +1,15 @@
 from __future__ import print_function, absolute_import
+
+import os
+
 import json
 import unittest
 from os.path import dirname, join
 
-import pytest
-
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.base.context import reset_context
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
+from conda.resolve import MatchSpec, Package, Resolve
 from tests.helpers import raises
-from conda import config
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = json.load(fi)
@@ -878,8 +879,10 @@ def test_channel_priority():
     index2[fn2] = index2[fn1].copy()
     r2 = Resolve(index2)
     rec = r2.index[fn2]
-    import conda.resolve
-    conda.resolve.channel_priority = True
+
+    os.environ['CONDA_CHANNEL_PRIORITY'] = 'True'
+    reset_context(())
+
     rec['priority'] = 0
     # Should select the "other", older package because it
     # has a lower channel priority number
@@ -890,7 +893,10 @@ def test_channel_priority():
     installed2 = r2.install(spec)
     # Should also select the newer package because we have
     # turned off channel priority altogether
-    conda.resolve.channel_priority = False
+
+    os.environ['CONDA_CHANNEL_PRIORITY'] = 'False'
+    reset_context(())
+
     rec['priority'] = 0
     installed3 = r2.install(spec)
     assert installed1 != installed2
