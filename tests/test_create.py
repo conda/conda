@@ -23,6 +23,7 @@ from uuid import uuid4
 
 from conda.base.context import context, reset_context, bits
 from conda.cli import conda_argparse
+from conda.cli.main import generate_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
@@ -79,7 +80,7 @@ parser_config = {
 
 
 def run_command(command, prefix, *arguments):
-    p = conda_argparse.ArgumentParser()
+    p = generate_parser()
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     parser_config[command](sub_parsers)
 
@@ -95,6 +96,8 @@ def run_command(command, prefix, *arguments):
         command_line = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
+    context.add_argparse_args(args)
+
     with captured(disallow_stderr=False) as c:
         args.func(args, p)
     print(c.stdout)

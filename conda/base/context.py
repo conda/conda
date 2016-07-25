@@ -2,21 +2,17 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import re
 import sys
-from logging import getLogger, WARN, INFO
+from logging import getLogger
 from os.path import expanduser, abspath, join, isdir
 from platform import machine
 
-from requests.packages.urllib3.util.url import parse_url
-
-from .._vendor.toolz.itertoolz import concatv
-from ..common.io import captured, disable_logger
 from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
 from .._vendor.auxlib.compat import string_types, NoneType
 from .._vendor.auxlib.ish import dals
-from ..common.configuration import (Configuration as AppConfiguration, PrimitiveParameter,
-                                    SequenceParameter, MapParameter, load_raw_configs)
+from .._vendor.toolz.itertoolz import concatv
+from ..common.configuration import (Configuration, PrimitiveParameter,
+                                    SequenceParameter, MapParameter)
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -51,7 +47,7 @@ else:
     subdir = '%s-%d' % (platform, bits)
 
 
-class Context(AppConfiguration):
+class Context(Configuration):
 
     subdir = property(lambda self: subdir)
     platform = property(lambda self: platform)
@@ -59,30 +55,34 @@ class Context(AppConfiguration):
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
-    always_yes = PrimitiveParameter(False)
-    always_copy = PrimitiveParameter(False)
-    changeps1 = PrimitiveParameter(True)
-    use_pip = PrimitiveParameter(True)
-    shortcuts = PrimitiveParameter(True)
-    offline = PrimitiveParameter(False)
-    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',))
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
-    show_channel_urls = PrimitiveParameter(None, parameter_type=(bool, NoneType))
-    update_dependencies = PrimitiveParameter(True)
-    channel_priority = PrimitiveParameter(True)
+    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',))
+    changeps1 = PrimitiveParameter(True)
+    create_default_packages = SequenceParameter(string_types)
+    disallow = SequenceParameter(string_types)
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
     track_features = SequenceParameter(string_types)
-    disallow = SequenceParameter(string_types)
-    create_default_packages = SequenceParameter(string_types)
+    use_pip = PrimitiveParameter(True)
+    proxy_servers = MapParameter(string_types)
+    _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
 
+    # channels
     channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
     channels = SequenceParameter(string_types, default=('defaults',))
     default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
 
-    proxy_servers = MapParameter(string_types)
-
-    _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
+    # command line
+    always_copy = PrimitiveParameter(False, aliases=('copy',))
+    always_yes = PrimitiveParameter(False, aliases=('yes',))
+    channel_priority = PrimitiveParameter(True)
+    debug = PrimitiveParameter(False)
+    json = PrimitiveParameter(False)
+    offline = PrimitiveParameter(False)
+    quiet = PrimitiveParameter(False)
+    shortcuts = PrimitiveParameter(True)
+    show_channel_urls = PrimitiveParameter(None, parameter_type=(bool, NoneType))
+    update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
 
     @property
     def force_32bit(self):
@@ -126,7 +126,14 @@ class Context(AppConfiguration):
         return join(self.envs_dirs[0], _default_env)
 
 
-context = Context.from_search_path(SEARCH_PATH, conda)
+context = Context(SEARCH_PATH, conda, None)
+
+
+def reset_context(search_path=SEARCH_PATH, argparse_args=None):
+    context.__init__(search_path, conda, argparse_args)
+    from ..entities.channel import Channel
+    Channel._reset_state()
+    return context
 
 
 def pkgs_dir_from_envs_dir(envs_dir):
@@ -134,14 +141,6 @@ def pkgs_dir_from_envs_dir(envs_dir):
         return join(context.root_dir, 'pkgs32' if context.force_32bit else 'pkgs')
     else:
         return join(envs_dir, '.pkgs')
-
-
-def reset_context(search_path):
-    # TODO: move to test module
-    context._load(load_raw_configs(search_path), conda)
-    from ..entities.channel import Channel
-    Channel._reset_state()
-    return context
 
 
 def get_help_dict():
