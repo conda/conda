@@ -15,12 +15,11 @@ import tempfile
 from difflib import get_close_matches
 from os.path import isdir, join, basename, exists, abspath
 
-from .. import config
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
+from ..base.context import force_32bit, context, check_write
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..config import create_default_packages, force_32bit
 from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotFoundError,
                           CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
                           CondaAssertionError, CondaOSError, CondaImportError,
@@ -77,7 +76,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         if not isdir(src_prefix):
             raise DirectoryNotFoundError('no such directory: %s' % src_arg, json)
     else:
-        src_prefix = common.find_prefix_name(src_arg)
+        src_prefix = context.prefix_w_legacy_search
         if src_prefix is None:
             raise CondaEnvironmentError('could not find environment: %s' %
                                         src_arg, json)
@@ -129,12 +128,13 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
+    context.validate_all()
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
     if newenv:
         common.ensure_name_or_prefix(args, command)
-    prefix = common.get_prefix(args, search=not newenv)
+    prefix = context.prefix if newenv else context.prefix_w_legacy_search
     if newenv:
         check_prefix(prefix, json=args.json)
     if force_32bit and is_root_prefix(prefix):
@@ -156,9 +156,9 @@ def install(args, parser, command='install'):
                                            (name, prefix), args.json)
 
     if newenv and not args.no_default_packages:
-        default_packages = create_default_packages[:]
+        default_packages = context.create_default_packages[:]
         # Override defaults if they are specified at the command line
-        for default_pkg in create_default_packages:
+        for default_pkg in context.create_default_packages:
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
                 default_packages.remove(default_pkg)
         args.packages.extend(default_packages)
@@ -262,7 +262,6 @@ def install(args, parser, command='install'):
                 common.stdout_json_success(
                     message='All requested packages already installed.')
             return
-
     if args.force:
         args.no_deps = True
 
@@ -285,9 +284,6 @@ environment does not exist: %s
 # Use 'conda create' to create an environment before installing packages
 # into it.
 #""" % prefix, args.json)
-
-    if hasattr(args, 'shortcuts'):
-        config.shortcuts = args.shortcuts and config.shortcuts
 
     try:
         if isinstall and args.revision:
@@ -363,7 +359,6 @@ environment does not exist: %s
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError('', e, args.json)
         raise CondaError('UnsatisfiableSpecifications', e, args.json)
-
     if nothing_to_do(actions):
         from .main_list import print_packages
 
@@ -382,7 +377,7 @@ environment does not exist: %s
         display_actions(actions, index, show_channel_urls=args.show_channel_urls)
 
     if command in {'install', 'update'}:
-        common.check_write(command, prefix)
+        check_write(command, prefix)
 
     if not args.json:
         common.confirm_yn(args)

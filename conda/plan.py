@@ -16,12 +16,9 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
-from conda.entities.channel import Channel
+from .base.context import context, default_python
+from .entities.channel import Channel
 from . import instructions as inst
-from .config import (always_copy as config_always_copy, channel_priority, conda_in_root,
-                     show_channel_urls as config_show_channel_urls, is_offline,
-                     root_dir, allow_softlinks, default_python, auto_update_conda,
-                     track_features, foreign)
 from .exceptions import (TooFewArgumentsError, InstallError, RemoveError, CondaIndexError,
                          CondaRuntimeError)
 from .history import History
@@ -49,13 +46,13 @@ def print_dists(dists_extras):
 
 def display_actions(actions, index, show_channel_urls=None):
     if show_channel_urls is None:
-        show_channel_urls = config_show_channel_urls
+        show_channel_urls = context.show_channel_urls
 
     def channel_str(rec):
         if rec.get('schannel'):
             return rec['schannel']
         if rec.get('url'):
-            return Channel(rec['url']).url_channel_wtf[1]
+            return Channel(rec['url']).url_channel_wtf[1]  # <-- same thing as canonical_name
         if rec.get('channel'):
             return Channel(rec['channel']).canonical_name
         return '<unknown>'
@@ -186,7 +183,7 @@ def display_actions(actions, index, show_channel_urls=None):
             oldver = P0.version > P1.version
         oldbld = P0.build_number > P1.build_number
         newbld = P0.build_number < P1.build_number
-        if channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
+        if context.channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
             channeled.add(pkg)
         elif newver:
             updated.add(pkg)
@@ -356,11 +353,11 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                 index_json = join(ppath, 'index.json')
                 with open(index_json, 'w'):
                     pass
-            if config_always_copy or always_copy:
+            if context.always_copy or always_copy:
                 lt = LINK_COPY
             elif try_hard_link(fetched_dir, prefix, dist):
                 lt = LINK_HARD
-            elif allow_softlinks and not on_win:
+            elif context.allow_softlinks and not on_win:
                 lt = LINK_SOFT
             else:
                 lt = LINK_COPY
@@ -382,7 +379,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
 
 
 def is_root_prefix(prefix):
-    return abspath(prefix) == abspath(root_dir)
+    return abspath(prefix) == abspath(context.root_dir)
 
 
 def add_defaults_to_specs(r, linked, specs, update=False):
@@ -465,7 +462,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
     mss = [ms for ms in mss if ms.name in root_only]
     if is_root_prefix(prefix):
-        if auto_update_conda and not is_offline() and not mss:
+        if context.auto_update_conda and not context.offline and not mss:
             from . import __version__ as conda_version
             specs.append('conda >=' + conda_version)
             specs.append('conda-env')
@@ -477,8 +474,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         raise InstallError("Error: 'conda' can only be installed into the root environment")
 
     must_have = {}
-    if track_features:
-        specs.extend(x + '@' for x in track_features)
+    if context.track_features:
+        specs.extend(x + '@' for x in context.track_features)
 
     pkgs = r.install(specs, linked, update_deps=update_deps)
 
@@ -490,9 +487,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         must_have[name] = dist
 
     if is_root_prefix(prefix):
-        for name in foreign:
-            if name in must_have:
-                del must_have[name]
+        # for name in foreign:
+        #     if name in must_have:
+        #         del must_have[name]
+        pass
     elif basename(prefix).startswith('_'):
         # anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
@@ -524,7 +522,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         force=force, always_copy=always_copy)
 
     # always symlink to create empty dirs
-    actions[inst.SYMLINK_CONDA] = [root_dir]
+    actions[inst.SYMLINK_CONDA] = [context.root_dir]
 
     for fkey in sorted(linked):
         dist = fkey[:-8]
@@ -565,7 +563,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
             raise CondaRuntimeError(msg % dist)
-        if conda_in_root and name == 'conda' and name not in nlinked:
+        if context.conda_in_root and name == 'conda' and name not in nlinked:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")
             else:

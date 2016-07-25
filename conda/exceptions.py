@@ -216,7 +216,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
     '''
     def __init__(self, bad_deps, *args, **kwargs):
         from .resolve import dashlist
-        from .config import subdir
+        from .base.context import subdir
 
         deps = set(q[-1].spec for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
@@ -320,6 +320,10 @@ class CondaValueError(CondaError, ValueError):
         super(CondaValueError, self).__init__(msg, *args, **kwargs)
 
 
+class ValidationError(CondaValueError):
+    pass
+
+
 class CondaTypeError(CondaError, TypeError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Type error: %s\n' % message
@@ -345,13 +349,13 @@ class CondaSignatureError(CondaError):
 
 
 def print_exception(exception):
-    from conda.config import output_json
+    from conda.base.context import context
     from conda.cli.common import stdout_json
     from sys import stderr
 
     message = repr(exception)
 
-    if output_json:
+    if context.json:
         stdout_json(dict(error=message))
     else:
         stderr.write(message)
@@ -376,8 +380,8 @@ def get_info():
 def print_unexpected_error_message(e):
     traceback = format_exc()
 
-    from conda.config import output_json
-    if output_json:
+    from conda.base.context import context
+    if context.json:
         from conda.cli.common import stdout_json
         stdout_json(dict(error=traceback))
     else:
@@ -409,8 +413,8 @@ def conda_exception_handler(func, *args, **kwargs):
         print_unexpected_error_message(e)
         return 1
     except CondaError as e:
-        from conda.config import debug_on
-        if debug_on:
+        from conda.base.context import context
+        if context.debug:
             print_unexpected_error_message(e)
         else:
             print_exception(e)

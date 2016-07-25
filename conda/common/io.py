@@ -10,7 +10,7 @@ from ..compat import StringIO
 
 log = getLogger(__name__)
 
-_FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d):\n%(message)s")
+_FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d):%(message)s")
 
 
 @contextmanager

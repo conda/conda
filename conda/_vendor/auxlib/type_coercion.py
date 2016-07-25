@@ -14,7 +14,7 @@ BOOL_COERCEABLE_TYPES = integer_types + (bool, float, complex, list, set, dict, 
 NUMBER_TYPES = integer_types + (float, complex)
 NUMBER_TYPES_SET = set(NUMBER_TYPES)
 STRING_TYPES_SET = set(string_types)
-BOOLNULL_TYPE_SET = set((bool, NoneType))
+BOOLNULL_TYPE_SET = {bool, NoneType}
 
 NO_MATCH = object()
 
@@ -112,7 +112,7 @@ def numberify(value):
     raise ValueError("Cannot convert {0} to a number.".format(value))
 
 
-def boolify(value, nullable=False):
+def boolify(value, nullable=False, return_string=False):
     """Convert a number, string, or sequence type into a pure boolean.
 
     Args:
@@ -153,6 +153,8 @@ def boolify(value, nullable=False):
         try:
             return bool(complex(val))
         except ValueError:
+            if isinstance(value, string_types) and return_string:
+                return value
             raise ValueError("The value {0} cannot be boolified.".format(repr(value)))
 
 
@@ -207,7 +209,10 @@ def typify(value, type_hint=None):
             return text_type(value)
         elif not (type_hint - BOOLNULL_TYPE_SET):
             return boolify(value, nullable=True)
-        raise NotImplementedError()
+        elif not (type_hint - (STRING_TYPES_SET | {bool})):
+            return boolify(value, return_string=True)
+        else:
+            raise NotImplementedError()
     elif type_hint is not None:
         # coerce using the type hint, or use boolify for bool
         return boolify(value) if type_hint == bool else type_hint(value)

@@ -97,7 +97,6 @@ def stringify(obj):
         body = bottle_object.body.read().strip()
         if body:
             builder.append(body)
-            builder.append('')
 
     def requests_models_PreparedRequest_builder(builder, request_object):
         builder.append("> {0} {1} {2}".format(request_object.method, request_object.path_url,
@@ -108,7 +107,6 @@ def stringify(obj):
         builder.append('')
         if request_object.body:
             builder.append(request_object.body)
-            builder.append('')
 
     def requests_models_Response_builder(builder, response_object):
         builder.append("< {0} {1} {2}".format(response_object.url.split(':', 1)[0].upper(),
@@ -123,20 +121,20 @@ def stringify(obj):
             builder.append('')
         elif content_type.startswith('text/'):
             builder.append(response_object.text)
-            builder.append('')
 
     try:
         name = fullname(obj)
-        builder = list()
+        builder = ['']  # start with new line
         if name.startswith('bottle.'):
             bottle_builder(builder, obj)
         elif name.endswith('requests.models.PreparedRequest'):
             requests_models_PreparedRequest_builder(builder, obj)
         elif name.endswith('requests.models.Response'):
-            requests_models_PreparedRequest_builder(builder, obj)
+            requests_models_PreparedRequest_builder(builder, obj.request)
             requests_models_Response_builder(builder, obj)
         else:
             return None
+        builder.append('')  # end with new line
         return "\n".join(builder)
     except Exception as e:
         log.exception(e)

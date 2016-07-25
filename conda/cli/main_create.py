@@ -33,12 +33,19 @@ def configure_parser(sub_parsers):
     )
     if on_win:
         p.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help="Install start menu shortcuts",
+            dest="shortcuts",
+            default=True
+        )
+        p.add_argument(
             "--no-shortcuts",
             action="store_false",
-            help="Prevent installation of start menu shortcuts",
-            dest='shortcuts',
+            help="Don't install start menu shortcuts",
+            dest="shortcuts",
+            default=True
         )
-
     add_parser_install(p)
     add_parser_json(p)
     p.add_argument(

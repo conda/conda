@@ -6,29 +6,23 @@ from itertools import chain
 from logging import getLogger
 from os.path import exists, join
 
-from conda.common.url import is_url
-from ..common.url import path_to_url, urlparse, urlunparse
-from ..config import get_default_urls, channel_prefix, subdir, offline
+from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
+from ..base.context import context
+from ..common.url import path_to_url, urlparse, urlunparse, is_url
 
 log = getLogger(__name__)
 
 
-PLATFORM_DIRECTORIES = ("linux-64",  "linux-32",
-                        "win-64",  "win-32",
-                        "osx-64", "noarch")
-
-RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
-
-
-def get_local_urls():
-    # Note, get_*_urls() return unnormalized urls.
+def get_conda_build_local_url():
     try:
         from conda_build.config import croot
-        if exists(croot):
-            return [path_to_url(croot)]
     except ImportError:
-        pass
-    return []
+        return None
+    except Exception:
+        import traceback
+        log.debug(traceback.format_exc())
+        return None
+    return path_to_url(croot) if exists(croot) else None
 
 
 def has_scheme(value):
@@ -41,6 +35,8 @@ def join_url(*args):
 
 class Channel(object):
     _cache_ = dict()
+    _local_url = get_conda_build_local_url()
+    _channel_alias_netloc = urlparse(context.channel_alias).netloc
 
     def __new__(cls, value):
         if isinstance(value, Channel):
@@ -58,6 +54,12 @@ class Channel(object):
         Channel._cache_[value] = self
         return self
 
+    @staticmethod
+    def _reset_state():
+        Channel._cache_ = dict()
+        Channel._local_url = get_conda_build_local_url()
+        Channel._channel_alias_netloc = urlparse(context.channel_alias).netloc
+
     @property
     def base_url(self):
         return urlunparse((self._scheme, self._netloc, self._path, None, None, None))
@@ -67,11 +69,11 @@ class Channel(object):
 
     @property
     def canonical_name(self):
-        if any(self == Channel(c) for c in get_default_urls()):
+        if any(self == Channel(c) for c in context.default_channels):
             return 'defaults'
-        elif any(self == Channel(c) for c in get_local_urls()):
+        elif self._local_url and any(self == Channel(c) for c in self._local_url):
             return 'local'
-        elif self._netloc == Channel(channel_prefix())._netloc:
+        elif self._netloc == Channel(context.channel_alias)._netloc:
             # TODO: strip token
             return self._path.lstrip('/')
         else:
@@ -81,7 +83,7 @@ class Channel(object):
     def urls(self):
         # TODO: figure out how to add token
         if self._platform is None:
-            return [join_url(self.base_url, subdir), join_url(self.base_url, 'noarch')]
+            return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
         else:
             return [join_url(self.base_url, self._platform)]
 
@@ -119,7 +121,7 @@ class NamedChannel(Channel):
 
     def __init__(self, name):
         self._raw_value = name
-        parsed = urlparse(channel_prefix())
+        parsed = urlparse(context.channel_alias)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
         self._path = join(parsed.path, name)
@@ -134,13 +136,13 @@ class DefaultChannel(NamedChannel):
 
     @property
     def urls(self):
-        return list(chain.from_iterable(Channel(c).urls for c in get_default_urls()))
+        return list(chain.from_iterable(Channel(c).urls for c in context.default_channels))
 
 
 class LocalChannel(UrlChannel):
 
     def __init__(self, _):
-        super(LocalChannel, self).__init__(get_local_urls()[0])
+        super(LocalChannel, self).__init__(get_conda_build_local_url())
 
     @property
     def canonical_name(self):
@@ -173,7 +175,7 @@ def prioritize_channels(channels):
 
 
 def offline_keep(url):
-    return not offline or not is_url(url) or url.startswith('file:/')
+    return not context.offline or not is_url(url) or url.startswith('file:/')
 
 
 _SPECIAL_CHANNELS = {

@@ -6,7 +6,6 @@ import re
 import sys
 from os.path import isdir, abspath
 
-from ..base.constants import ROOT_ENV_NAME
 from ..exceptions import CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError
 from ..utils import on_win
 
@@ -45,7 +44,7 @@ activate' from PATH. """)
 
 
 def prefix_from_arg(arg, shelldict):
-    from conda.cli.common import find_prefix_name
+    from conda.base.context import context, find_prefix_name
     'Returns a platform-native path'
     # MSYS2 converts Unix paths to Windows paths with unix seps
     # so we must check for the drive identifier too.
@@ -57,7 +56,7 @@ def prefix_from_arg(arg, shelldict):
         else:
             raise CondaValueError('could not find environment: %s' % native_path)
     else:
-        prefix = find_prefix_name(arg.replace('/', os.path.sep))
+        prefix = find_prefix_name(context, arg.replace('/', os.path.sep))
         if prefix is None:
             raise CondaValueError('could not find environment: %s' % arg)
     return prefix
@@ -97,7 +96,8 @@ def pathlist_to_str(paths, escape_backslashes=True):
 
 
 def main():
-    from conda.config import root_dir
+    from conda.base.context import context
+    from conda.base.constants import ROOT_ENV_NAME
     from conda.utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
         # all execution paths sys.exit at end.
@@ -136,7 +136,7 @@ def main():
         # Make sure an env always has the conda symlink
         try:
             import conda.install
-            conda.install.symlink_conda(prefix, root_dir, shell)
+            conda.install.symlink_conda(prefix, context.root_dir, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}.\n"
@@ -147,8 +147,8 @@ def main():
         sys.exit(0)
         # raise CondaSystemExit
     elif sys.argv[1] == '..changeps1':
-        from conda.config import changeps1
-        path = int(changeps1)
+        from conda.base.context import context
+        path = int(context.changeps1)
 
     else:
         # This means there is a bug in main.py

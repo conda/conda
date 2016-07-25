@@ -12,7 +12,7 @@ def test_info():
     assert_equals(conda_info_err, '')
     for name in ['platform', 'conda version', 'root environment',
         'default environment', 'envs directories', 'package cache',
-        'channel URLs', 'config file', 'offline mode', 'is foreign system']:
+        'channel URLs', 'config file', 'offline mode']:
         assert_in(name, conda_info_out)
 
     conda_info_e_out, conda_info_e_err = run_conda_command('info', '-e')

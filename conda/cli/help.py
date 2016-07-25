@@ -3,12 +3,12 @@ from __future__ import absolute_import, division, print_function
 from os.path import join
 
 from .common import name_prefix
-from ..config import envs_dirs, root_dir
+from ..base.context import context
 from ..exceptions import CondaIOError
 
 def read_message(fn):
     res = []
-    for envs_dir in envs_dirs:
+    for envs_dir in context.envs_dirs:
         path = join(envs_dir, '.conda-help', fn)
         try:
             with open(path) as fi:
@@ -36,7 +36,7 @@ Missing write permissions in: ${root_dir}
 #
 # $ conda create -n my_${name} --clone=${prefix}
 """
-    msg = msg.replace('${root_dir}', root_dir)
+    msg = msg.replace('${root_dir}', context.root_dir)
     msg = msg.replace('${prefix}', prefix)
     msg = msg.replace('${name}', name_prefix(prefix))
     msg = msg.replace('${command}', command)

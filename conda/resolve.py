@@ -6,8 +6,8 @@ from collections import defaultdict
 from itertools import chain
 
 from conda.entities.channel import Channel
+from .base.context import context
 from .compat import iterkeys, itervalues, iteritems, string_types
-from .config import channel_priority, track_features
 from .console import setup_handlers
 from .exceptions import UnsatisfiableError, NoPackagesFoundError, CondaValueError
 from .install import dist2quad
@@ -195,17 +195,6 @@ class Package(object):
 
 
 class Resolve(object):
-    def add_feature(self, fstr, group=True):
-        fpkg = fstr + '@'
-        if fpkg in self.index:
-            return
-        self.index[fpkg] = {
-            'name': fpkg, 'channel': '@', 'priority': 0,
-            'version': '0', 'build_number': 0, 'fn': fpkg,
-            'build': '', 'depends': [], 'track_features': fstr}
-        if group:
-            self.groups[fpkg] = [fpkg]
-            self.trackers[fstr] = [fpkg]
 
     def __init__(self, index, sort=False, processed=False):
         self.index = index
@@ -215,7 +204,7 @@ class Resolve(object):
                     continue
                 for fstr in chain(info.get('features', '').split(),
                                   info.get('track_features', '').split(),
-                                  track_features or ()):
+                                  context.track_features or ()):
                     self.add_feature(fstr, group=False)
                 for fstr in iterkeys(info.get('with_features_depends', {})):
                     index['%s[%s]' % (fkey, fstr)] = info
@@ -240,6 +229,18 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
+
+    def add_feature(self, fstr, group=True):
+        fpkg = fstr + '@'
+        if fpkg in self.index:
+            return
+        self.index[fpkg] = {
+            'name': fpkg, 'channel': '@', 'priority': 0,
+            'version': '0', 'build_number': 0, 'fn': fpkg,
+            'build': '', 'depends': [], 'track_features': fstr}
+        if group:
+            self.groups[fpkg] = [fpkg]
+            self.trackers[fstr] = [fpkg]
 
     def default_filter(self, features=None, filter=None):
         if filter is None:
@@ -577,7 +578,7 @@ class Resolve(object):
         cpri = -rec.get('priority', 1)
         ver = normalized_version(rec.get('version', ''))
         bld = rec.get('build_number', 0)
-        return (cpri, ver, bld) if channel_priority else (ver, cpri, bld)
+        return (cpri, ver, bld) if context.channel_priority else (ver, cpri, bld)
 
     def features(self, fkey):
         return set(self.index[fkey].get('features', '').split())
