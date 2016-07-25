@@ -13,12 +13,10 @@ from tempfile import mkstemp
 
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
-from conda.base.context import (reset_context, pkgs_dir_from_envs_dir)
-from conda.common.yaml import get_yaml
+from conda.base.context import (reset_context, pkgs_dir_from_envs_dir, context)
+from conda.common.yaml import yaml_load
 from conda.utils import backoff_unlink
 from tests.helpers import run_conda_command
-
-yaml = get_yaml()
 
 # use condarc from source tree to run these tests against
 
@@ -472,12 +470,12 @@ create_default_packages :
 changeps1: false
 
 # Here is a comment
-always_yes: yes
+always_yes: true
 """
     # First verify that this itself is valid YAML
-    assert yaml.load(condarc, Loader=yaml.RoundTripLoader) == {'channels': ['test', 'defaults'],
+    assert yaml_load(condarc) == {'channels': ['test', 'defaults'],
         'create_default_packages': ['ipython', 'numpy'], 'changeps1':
-        False, 'always_yes': 'yes'}
+        False, 'always_yes': True}
 
     with make_temp_condarc(condarc) as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--get')
@@ -490,11 +488,8 @@ always_yes: yes
 --add create_default_packages 'ipython'
 --add create_default_packages 'numpy'\
 """
-        print(">>>>")
         with open(rc, 'r') as fh:
             print(fh.read())
-
-
 
         stdout, stderr = run_conda_command('config', '--file', rc, '--prepend', 'channels', 'mychannel')
         assert stdout == stderr == ''
@@ -571,7 +566,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'channels', 'test')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc(rc), Loader=yaml.RoundTripLoader) == {'channels': ['defaults'],
+        assert yaml_load(_read_test_condarc(rc)) == {'channels': ['defaults'],
             'always_yes': True}
 
         stdout, stderr = run_conda_command('config', '--file', rc,
@@ -587,7 +582,7 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove-key', 'always_yes', '--force')
         assert stdout == stderr == ''
-        assert yaml.load(_read_test_condarc(rc), Loader=yaml.RoundTripLoader) == {'channels': ['defaults']}
+        assert yaml_load(_read_test_condarc(rc)) == {'channels': ['defaults']}
 
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove-key', 'always_yes', '--force')
@@ -649,18 +644,19 @@ def test_set_rc_string():
 
     # We specifically test ssl_verify since it can be either a boolean or a string
     with make_temp_condarc() as rc:
+        assert context.ssl_verify is True
         stdout, stderr = run_conda_command('config', '--file', rc,
-                                           '--set', 'ssl_verify', 'yes')
+                                           '--set', 'ssl_verify', 'no')
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(rc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
-        assert verify is True
+        reset_context([rc])
+        assert context.ssl_verify is False
 
         stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--set', 'ssl_verify', 'test_string.crt')
         assert stdout == ''
         assert stderr == ''
 
-        verify = yaml.load(open(rc, 'r'), Loader=yaml.RoundTripLoader)['ssl_verify']
-        assert verify == 'test_string.crt'
+        reset_context([rc])
+        assert context.ssl_verify == 'test_string.crt'
