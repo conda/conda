@@ -203,6 +203,10 @@ class CondaHTTPError(CondaError):
         super(CondaHTTPError, self).__init__(msg, *args, **kwargs)
 
 
+class AuthenticationError(CondaError):
+    pass
+
+
 class NoPackagesFoundError(CondaError, RuntimeError):
     '''An exception to report that requested packages are missing.
 
