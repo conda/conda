@@ -23,7 +23,6 @@ from ..api import get_index
 from ..base.context import check_write
 from ..base.context import context
 from ..compat import iteritems, iterkeys
-from ..config import conda_in_root
 from ..console import json_progress_bars
 from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
                           CondaValueError)
@@ -150,7 +149,8 @@ def execute(args, parser):
 
     else:
         specs = specs_from_args(args.package_names)
-        if conda_in_root and plan.is_root_prefix(prefix) and names_in_specs(root_no_rm, specs):
+        if (context.conda_in_root and plan.is_root_prefix(prefix) and
+                names_in_specs(root_no_rm, specs)):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(root_no_rm), args.json)
         actions = plan.remove_actions(prefix, specs, index=index,

@@ -6,7 +6,7 @@ from itertools import chain
 import os
 import sys
 from logging import getLogger
-from os.path import expanduser, abspath, join, isdir
+from os.path import expanduser, abspath, join, isdir, basename, dirname
 from platform import machine
 
 from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
@@ -93,6 +93,8 @@ class Context(Configuration):
 
     @property
     def root_dir(self):
+        # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
+        # because it is more consistent with other names
         return abspath(expanduser(self._root_dir))
 
     @property
@@ -136,6 +138,26 @@ class Context(Configuration):
     def prefix_w_legacy_search(self):
         return get_prefix(self, self._argparse_args, True)
 
+    @property
+    def conda_in_root(self):
+        return not conda_in_private_env()
+
+    @property
+    def conda_private(self):
+        return conda_in_private_env()
+
+    @property
+    def root_prefix(self):
+        return abspath(join(sys.prefix, '..', '..')) if conda_in_private_env() else sys.prefix
+
+    @property
+    def conda_prefix(self):
+        return sys.prefix
+
+
+def conda_in_private_env():
+    # conda is located in its own private environment named '_conda'
+    return basename(sys.prefix) == '_conda' and basename(dirname(sys.prefix)) == 'envs'
 
 context = Context(SEARCH_PATH, conda, None)
 
