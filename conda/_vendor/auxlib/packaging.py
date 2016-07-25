@@ -69,11 +69,14 @@ from __future__ import print_function, division, absolute_import
 import sys
 from collections import namedtuple
 from logging import getLogger
-from os import getenv, remove
+from os import getenv, remove, listdir
 from os.path import abspath, dirname, expanduser, isdir, isfile, join
 from re import compile
 from shlex import split
 from subprocess import CalledProcessError, Popen, PIPE
+from fnmatch import fnmatchcase
+from distutils.util import convert_path
+
 try:
     from setuptools.command.build_py import build_py
     from setuptools.command.sdist import sdist
@@ -81,8 +84,8 @@ try:
 except ImportError:
     from distutils.command.build_py import build_py
     from distutils.command.sdist import sdist
-    TestCommand = object
 
+    TestCommand = object
 
 log = getLogger(__name__)
 
@@ -222,3 +225,21 @@ class Tox(TestCommand):
             args = ''
         errno = cmdline(args=args)
         sys.exit(errno)
+
+
+# swiped from setuptools
+def find_packages(where='.', exclude=()):
+    out = []
+    stack = [(convert_path(where), '')]
+    while stack:
+        where, prefix = stack.pop(0)
+        for name in listdir(where):
+            fn = join(where, name)
+            if ('.' not in name and isdir(fn) and
+                    isfile(join(fn, '__init__.py'))
+                ):
+                out.append(prefix + name)
+                stack.append((fn, prefix + name + '.'))
+    for pat in list(exclude) + ['ez_setup', 'distribute_setup']:
+        out = [item for item in out if not fnmatchcase(item, pat)]
+    return out
