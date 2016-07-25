@@ -117,6 +117,18 @@ class EnvRawParameter(RawParameter):
         return super(EnvRawParameter, cls).make_raw_parameters(raw_env)
 
 
+class ArgParseRawParameter(RawParameter):
+
+    def __init__(self, args_from_argparse, key):
+        self.key = key
+        raw_value = args_from_argparse[key]
+        super(ArgParseRawParameter, self).__init__(key, raw_value, None, None)
+
+    @classmethod
+    def make_raw_parameters(cls, args_from_argparse):
+        return super(ArgParseRawParameter, cls).make_raw_parameters(vars(args_from_argparse))
+
+
 class YamlRawParameter(RawParameter):
     # this class should encapsulate all direct use of ruamel.yaml in this module
 
@@ -457,29 +469,18 @@ class ConfigurationType(type):
 @with_metaclass(ConfigurationType)
 class Configuration(object):
 
-    def __init__(self, raw_data=None, app_name=None):
-        self._load(raw_data, app_name)
-
-    def _load(self, raw_data=None, app_name=None):
-        self.raw_data = raw_data or odict()
+    def __init__(self, search_path=(), app_name=None, argparse_args=None):
+        self.raw_data = load_raw_configs(search_path)
         if app_name is not None:
             self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)
+        if argparse_args is not None:
+            self.add_argparse_args(argparse_args)
         self._cache = dict()
         self._validation_errors = defaultdict(list)
 
-    @classmethod
-    def from_search_path(cls, search_path, app_name=None):
-        """Builds a configuration instance from the given files and directories.
-
-        Args:
-            search_path (Iterable[str]): List of paths to search for configuration information.
-            app_name (str): The name of the application. Used to search for relevant
-                environment variables.
-
-        Returns:
-            Configuration:
-        """
-        return cls(load_raw_configs(search_path), app_name)
+    def add_argparse_args(self, argparse_args):
+        self.raw_data['cmd_line'] = ArgParseRawParameter.make_raw_parameters(argparse_args)
+        self._cache = dict()
 
     def dump(self):
         Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))

@@ -37,11 +37,49 @@ Additional help for each command can be accessed by using:
 
 from __future__ import print_function, division, absolute_import
 
-import sys
+from argparse import SUPPRESS
 import importlib
+import logging
+import sys
 
-from conda.utils import on_win
+from ..base.context import context
 from ..exceptions import conda_exception_handler, CommandNotFoundError
+from ..utils import on_win
+from .. import __version__
+
+
+def generate_parser():
+    from ..cli import conda_argparse
+    p = conda_argparse.ArgumentParser(
+        description='conda is a tool for managing and deploying applications,'
+                    ' environments and packages.'
+    )
+    p.add_argument(
+        '-V', '--version',
+        action='version',
+        version='conda %s' % __version__,
+        help="Show the conda version number and exit."
+    )
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show debug output."
+    )
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    sub_parsers = p.add_subparsers(
+        metavar='command',
+        dest='cmd',
+    )
+    # http://bugs.python.org/issue9253
+    # http://stackoverflow.com/a/18283730/1599393
+    sub_parsers.required = True
+
+    return p, sub_parsers
+
 
 
 def _main():
@@ -62,38 +100,7 @@ def _main():
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
-    import logging
-    from conda.cli import conda_argparse
-    import argparse
-    import conda
-
-    p = conda_argparse.ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.'
-    )
-    p.add_argument(
-        '-V', '--version',
-        action='version',
-        version='conda %s' % conda.__version__,
-        help="Show the conda version number and exit."
-    )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        help="Show debug output."
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        help=argparse.SUPPRESS,
-    )
-    sub_parsers = p.add_subparsers(
-        metavar='command',
-        dest='cmd',
-    )
-    # http://bugs.python.org/issue9253
-    # http://stackoverflow.com/a/18283730/1599393
-    sub_parsers.required = True
+    p, sub_parsers = generate_parser()
 
     main_modules = ["info", "help", "list", "search", "create", "install", "update",
                     "remove", "config", "clean"]
@@ -115,8 +122,9 @@ def _main():
     sub_parsers.completer = completer
     args = p.parse_args()
 
-    conda.config.output_json = args.json
-    conda.config.debug_on = args.debug
+    context.add_argparse_args(args)
+    # conda.config.output_json = args.json
+    # conda.config.debug_on = args.debug
 
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
