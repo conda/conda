@@ -10,7 +10,7 @@ import sys
 import time
 import threading
 from functools import partial
-from os.path import isdir, join, isfile
+from os.path import isdir, join, isfile, basename, exists
 
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
@@ -116,13 +116,20 @@ def try_write(dir_path, heavy=False):
         except (IOError, OSError):
             return False
         finally:
-            exp_backoff_fn(lambda f: isfile(f) and os.unlink(f), temp_filename)
+            backoff_unlink(temp_filename)
     else:
         return os.access(dir_path, os.W_OK)
 
 
 def backoff_unlink(path):
-    exp_backoff_fn(lambda f: isfile(f) and os.unlink(f), path)
+    try:
+        exp_backoff_fn(lambda f: exists(f) and os.unlink(f), path)
+    except (IOError, OSError) as e:
+        if e.errno in (errno.ENOENT,):
+            # errno.ENOENT File not found error
+            pass
+        else:
+            raise
 
 
 def hashsum_file(path, mode='md5'):
@@ -361,9 +368,9 @@ def exp_backoff_fn(fn, *args):
         return fn(*args)
 
     import random
-    # with max_tries = 5, max total time ~= 3.2 sec
-    # with max_tries = 6, max total time ~= 6.5 sec
-    max_tries = 6
+    # with max_tries = 6, max total time ~= 3.2 sec
+    # with max_tries = 7, max total time ~= 6.5 sec
+    max_tries = 7
     for n in range(max_tries):
         try:
             result = fn(*args)
@@ -372,8 +379,15 @@ def exp_backoff_fn(fn, *args):
             if e.errno in (errno.EPERM, errno.EACCES):
                 if n == max_tries-1:
                     raise
-                time.sleep(((2 ** n) + random.random()) * 0.1)
+                sleep_time = ((2 ** n) + random.random()) * 0.1
+                caller_frame = sys._getframe(1)
+                log.debug("retrying %s/%s %s() in %g sec",
+                          basename(caller_frame.f_code.co_filename),
+                          caller_frame.f_lineno, fn.__name__,
+                          sleep_time)
+                time.sleep(sleep_time)
             else:
+                log.error("Uncaught backoff with errno %d", e.errno)
                 raise
         else:
             return result
