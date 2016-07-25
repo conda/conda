@@ -284,9 +284,6 @@ environment does not exist: %s
 # into it.
 #""" % prefix, args.json)
 
-    if hasattr(args, 'shortcuts'):
-        context.shortcuts = args.shortcuts and context.shortcuts
-
     try:
         if isinstall and args.revision:
             actions = revert_actions(prefix, get_revision(args.revision))
