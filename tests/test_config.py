@@ -9,7 +9,7 @@ import unittest
 from contextlib import contextmanager
 from datetime import datetime
 from os.path import join, dirname
-from tempfile import mkstemp
+from tempfile import mkstemp, NamedTemporaryFile
 
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
@@ -277,8 +277,9 @@ class TestConfig(unittest.TestCase):
 @contextmanager
 def make_temp_condarc(value=None):
     try:
-        tempfile = mkstemp(suffix='.yml')
-        temp_path = tempfile[1]
+        tempfile = NamedTemporaryFile(suffix='.yml', delete=False)
+        tempfile.close()
+        temp_path = tempfile.name
         if value:
             with open(temp_path, 'w') as f:
                 f.write(value)
@@ -306,6 +307,10 @@ channels:
   - defaults
   - test
 """
+        print(_read_test_condarc(rc))
+        print(_read_test_condarc(rc))
+        print(_read_test_condarc(rc))
+
     with make_temp_condarc() as rc:
         # When defaults is explicitly given, it should not be added
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
