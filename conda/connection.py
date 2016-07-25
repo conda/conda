@@ -6,26 +6,29 @@
 
 from __future__ import print_function, division, absolute_import
 
-from base64 import b64decode
-
-import ftplib
-
 import cgi
 import email
+import ftplib
 import mimetypes
 import os
 import platform
 import requests
 import tempfile
+from base64 import b64decode
 from io import BytesIO
 from logging import getLogger
+from requests.adapters import HTTPAdapter
+from requests.auth import AuthBase
+from requests.packages.urllib3.util import Url
 
-from conda.exceptions import AuthenticationError
 from . import __version__ as VERSION
+from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context, platform as context_platform
+from .common.io import disable_logger
 from .common.url import url_to_path, url_to_s3_info, urlparse
-from .utils import gnu_get_libc_version
 from .compat import StringIO
+from .exceptions import AuthenticationError
+from .utils import gnu_get_libc_version
 
 RETRIES = 3
 
@@ -59,6 +62,54 @@ if glibc_ver:
     user_agent += " glibc/{}".format(glibc_ver)
 
 
+class BinstarAuth(AuthBase):
+
+    def __call__(self, request):
+        request.url = BinstarAuth.add_binstar_token(request.url)
+        return request
+
+    @staticmethod
+    def get_binstar_token(url):
+        try:
+            try:
+                from binstar_client.utils import get_config, load_token
+            except ImportError:
+                log.debug("Could not import binstar_client.")
+                return None
+
+            binstar_default_url = 'https://api.anaconda.org'
+            url_parts = urlparse(url)
+            base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
+            if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
+                base_url = binstar_default_url
+
+            with disable_logger('binstar'):
+                config = get_config(remote_site=base_url)
+                url_from_bs_config = config.get('url', base_url)
+                token = load_token(url_from_bs_config)
+                return token
+        except Exception as e:
+            log.warn("Warning: could not capture token from anaconda-client (%r)", e)
+            return None
+
+    @staticmethod
+    def add_binstar_token(url):
+        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url(url):
+            return url
+        token = BinstarAuth.get_binstar_token(url)
+        if token is None:
+            return url
+        u = urlparse(url)
+        path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
+        return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
+
+    @staticmethod
+    def is_binstar_url(url):
+        urlparts = urlparse(url)
+        return (urlparts.scheme in ('http', 'https') and
+                any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
+
+
 class CondaSession(requests.Session):
 
     timeout = None
@@ -68,13 +119,15 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
+        self.auth = BinstarAuth()
+
         proxies = context.proxy_servers
         if proxies:
             self.proxies = proxies
 
         # Configure retries
         if retries:
-            http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
+            http_adapter = HTTPAdapter(max_retries=retries)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
 

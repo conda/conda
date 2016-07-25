@@ -9,6 +9,7 @@ from logging import getLogger
 from os.path import expanduser, abspath, join, isdir, basename, dirname
 from platform import machine
 
+from conda.common.url import urlparse
 from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
 from .._vendor.auxlib.compat import string_types, NoneType
 from .._vendor.auxlib.ish import dals
@@ -155,6 +156,12 @@ class Context(Configuration):
     @property
     def conda_prefix(self):
         return sys.prefix
+
+    @property
+    def binstar_hosts(self):
+        return (urlparse(self.channel_alias).hostname,
+                'anaconda.org',
+                'binstar.org')
 
 
 def conda_in_private_env():
