@@ -52,9 +52,11 @@ else:
 
 class Context(Configuration):
 
-    subdir = property(lambda self: subdir)
-    platform = property(lambda self: platform)
+    arch_name = property(lambda self: arch_name)
+    bits = property(lambda self: bits)
     default_python = property(lambda self: default_python)
+    platform = property(lambda self: platform)
+    subdir = property(lambda self: subdir)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
@@ -259,8 +261,7 @@ def find_prefix_name(ctx, name):
 
 def check_write(command, prefix, json=False):
     if inroot_notwritable(prefix):
-        from .help import root_read_only
-
+        from conda.cli.help import root_read_only
         root_read_only(command, prefix, json=json)
 
 
