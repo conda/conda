@@ -5,11 +5,10 @@ import contextlib
 import os
 import re
 import sys
-from itertools import chain
-from os.path import abspath, basename, expanduser, isdir, join
+from os.path import abspath, basename
 
-from conda.base.constants import ROOT_ENV_NAME
 from .. import console
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, platform
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
                           CondaValueError, CondaFileIOError)
@@ -87,7 +86,7 @@ class InstalledPackages(Completer):
     @memoize
     def _get_items(self):
         import conda.install
-        packages = conda.install.linked(get_prefix(self.parsed_args))
+        packages = conda.install.linked(context.prefix_w_legacy_search)
         return [dist2quad(i)[0] for i in packages]
 
 def add_parser_help(p):
@@ -418,51 +417,12 @@ def ensure_name_or_prefix(args, command):
                               'try "conda %s -h" for more details' % command,
                               getattr(args, 'json', False))
 
-def find_prefix_name(name):
-    if name == ROOT_ENV_NAME:
-        return context.root_dir
-    # always search cwd in addition to envs dirs (for relative path access)
-    for envs_dir in chain(context.envs_dirs + (os.getcwd(),)):
-        prefix = join(envs_dir, name)
-        if isdir(prefix):
-            return prefix
-    return None
-
-def get_prefix(args, search=True):
-    if args.name:
-        if '/' in args.name:
-            raise CondaValueError("'/' not allowed in environment name: %s" %
-                                  args.name, getattr(args, 'json', False))
-        if args.name == ROOT_ENV_NAME:
-            return context.root_dir
-        if search:
-            prefix = find_prefix_name(args.name)
-            if prefix:
-                return prefix
-        return join(context.envs_dirs[0], args.name)
-
-    if args.prefix:
-        return abspath(expanduser(args.prefix))
-
-    return context.default_prefix
-
-def inroot_notwritable(prefix):
-    """
-    return True if the prefix is under root and root is not writeable
-    """
-    return (abspath(prefix).startswith(context.root_dir) and
-            not context.root_writable)
 
 def name_prefix(prefix):
     if abspath(prefix) == context.root_dir:
         return ROOT_ENV_NAME
     return basename(prefix)
 
-def check_write(command, prefix, json=False):
-    if inroot_notwritable(prefix):
-        from .help import root_read_only
-
-        root_read_only(command, prefix, json=json)
 
 # -------------------------------------------------------------------------
 

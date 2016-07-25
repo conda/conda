@@ -17,7 +17,6 @@ import warnings
 from functools import wraps
 from logging import getLogger, DEBUG
 from os.path import basename, dirname, join
-from requests.auth import AuthBase
 
 from ._vendor.auxlib.logz import stringify
 from .base.context import context
@@ -36,28 +35,6 @@ stdoutlog = getLogger('stdoutlog')
 stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
-
-
-class PizzaAuth(AuthBase):
-    """Attaches HTTP Pizza Authentication to the given Request object."""
-    def __init__(self, username):
-        # setup any auth-related data here
-        self.username = username
-
-    def __call__(self, r):
-        # modify and return the request
-        r.headers['X-Pizza'] = self.username
-        return r
-
-
-
-
-
-
-
-
-
-
 
 
 def create_cache_dir():

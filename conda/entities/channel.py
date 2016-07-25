@@ -18,7 +18,7 @@ def get_conda_build_local_url():
         from conda_build.config import croot
     except ImportError:
         return None
-    except Exception as e:
+    except Exception:
         import traceback
         log.debug(traceback.format_exc())
         return None

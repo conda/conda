@@ -11,18 +11,19 @@ import logging
 from argparse import RawDescriptionHelpFormatter
 from os.path import join
 
-from conda.api import get_index
 from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parser_no_pin,
                      add_parser_channels, add_parser_prefix, add_parser_quiet,
                      add_parser_no_use_index_cache, add_parser_use_index_cache,
                      add_parser_use_local, add_parser_offline, add_parser_pscheck,
-                     InstalledPackages, get_prefix, check_write,
-                     ensure_use_local, ensure_override_channels_requires_channel,
+                     InstalledPackages, ensure_use_local,
+                     ensure_override_channels_requires_channel,
                      specs_from_args, names_in_specs, root_no_rm, stdout_json,
                      confirm_yn)
+from ..api import get_index
+from ..base.context import check_write
+from ..base.context import context
 from ..compat import iteritems, iterkeys
 from ..config import conda_in_root
-from ..base.context import context
 from ..console import json_progress_bars
 from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
                           CondaValueError)
@@ -116,7 +117,7 @@ def execute(args, parser):
                               '       try "conda remove -h" for more details',
                               args.json)
 
-    prefix = get_prefix(args)
+    prefix = context.prefix_w_legacy_search
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)

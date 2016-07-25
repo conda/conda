@@ -15,10 +15,10 @@ import tempfile
 from difflib import get_close_matches
 from os.path import isdir, join, basename, exists, abspath
 
-from conda.api import get_index
-from conda.base.constants import ROOT_ENV_NAME
 from .. import config
-from ..base.context import force_32bit, context
+from ..api import get_index
+from ..base.constants import ROOT_ENV_NAME
+from ..base.context import force_32bit, context, check_write
 from ..cli import common
 from ..cli.find_commands import find_executable
 from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotFoundError,
@@ -77,7 +77,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         if not isdir(src_prefix):
             raise DirectoryNotFoundError('no such directory: %s' % src_arg, json)
     else:
-        src_prefix = common.find_prefix_name(src_arg)
+        src_prefix = context.prefix_w_legacy_search
         if src_prefix is None:
             raise CondaEnvironmentError('could not find environment: %s' %
                                         src_arg, json)
@@ -134,7 +134,7 @@ def install(args, parser, command='install'):
     isinstall = bool(command == 'install')
     if newenv:
         common.ensure_name_or_prefix(args, command)
-    prefix = common.get_prefix(args, search=not newenv)
+    prefix = context.prefix if newenv else context.prefix_w_legacy_search
     if newenv:
         check_prefix(prefix, json=args.json)
     if force_32bit and is_root_prefix(prefix):
@@ -382,7 +382,7 @@ environment does not exist: %s
         display_actions(actions, index, show_channel_urls=args.show_channel_urls)
 
     if command in {'install', 'update'}:
-        common.check_write(command, prefix)
+        check_write(command, prefix)
 
     if not args.json:
         common.confirm_yn(args)

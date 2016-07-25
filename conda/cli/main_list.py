@@ -12,8 +12,7 @@ from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile
 
 from .common import (add_parser_help, add_parser_prefix, add_parser_json,
-                     add_parser_show_channel_urls, disp_features, stdout_json,
-                     get_prefix)
+                     add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.context import context, subdir
 from ..egg_info import get_egg_info
 from ..install import dist2quad, linked
@@ -197,7 +196,7 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
-    prefix = get_prefix(args)
+    prefix = context.prefix_w_legacy_search
 
     regex = args.regex
     if args.full_name:

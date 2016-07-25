@@ -44,7 +44,7 @@ activate' from PATH. """)
 
 
 def prefix_from_arg(arg, shelldict):
-    from conda.cli.common import find_prefix_name
+    from conda.base.context import context, find_prefix_name
     'Returns a platform-native path'
     # MSYS2 converts Unix paths to Windows paths with unix seps
     # so we must check for the drive identifier too.
@@ -56,7 +56,7 @@ def prefix_from_arg(arg, shelldict):
         else:
             raise CondaValueError('could not find environment: %s' % native_path)
     else:
-        prefix = find_prefix_name(arg.replace('/', os.path.sep))
+        prefix = find_prefix_name(context, arg.replace('/', os.path.sep))
         if prefix is None:
             raise CondaValueError('could not find environment: %s' % arg)
     return prefix
