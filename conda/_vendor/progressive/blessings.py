@@ -14,9 +14,7 @@ except ImportError:
 
 from os import isatty, environ
 from platform import python_version_tuple
-import struct
 import sys
-from termios import TIOCGWINSZ
 
 
 __all__ = ['Terminal']
