@@ -51,7 +51,6 @@ install:
   - setx PATH "%ANACONDA_PATH%"
   - conda info
   - conda config --set always_yes yes
-  - pip install -U ruamel.yaml
   - conda install --force --no-deps -q conda psutil requests
   # - conda info python
   - python -c "import sys; print(sys.version)"
@@ -66,6 +65,8 @@ install:
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install --old-and-unmanageable
+  - conda remove --force -q -y ruamel_yaml || WHOAMI
+  - pip install -U ruamel.yaml
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
