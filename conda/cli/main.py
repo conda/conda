@@ -81,7 +81,6 @@ def generate_parser():
     return p, sub_parsers
 
 
-
 def _main():
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
@@ -122,7 +121,7 @@ def _main():
     sub_parsers.completer = completer
     args = p.parse_args()
 
-    context.add_argparse_args(args)
+    context._add_argparse_args(args)
     # conda.config.output_json = args.json
     # conda.config.debug_on = args.debug
 

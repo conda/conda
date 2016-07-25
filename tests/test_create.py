@@ -80,8 +80,7 @@ parser_config = {
 
 
 def run_command(command, prefix, *arguments):
-    p = generate_parser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
+    p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
 
     prefix = escape_for_winpath(prefix)
@@ -96,7 +95,7 @@ def run_command(command, prefix, *arguments):
         command_line = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
-    context.add_argparse_args(args)
+    context._add_argparse_args(args)
 
     with captured(disallow_stderr=False) as c:
         args.func(args, p)

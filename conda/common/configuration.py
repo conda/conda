@@ -470,20 +470,39 @@ class ConfigurationType(type):
 class Configuration(object):
 
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
-        self.raw_data = load_raw_configs(search_path)
-        if app_name is not None:
-            self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)
-        if argparse_args is not None:
-            self.add_argparse_args(argparse_args)
+        self.raw_data = odict()
         self._cache = dict()
         self._validation_errors = defaultdict(list)
+        if search_path:
+            self._add_search_path(search_path)
+        if app_name is not None:
+            self._add_env_vars(app_name)
+        if argparse_args is not None:
+            self._add_argparse_args(argparse_args)
 
-    def add_argparse_args(self, argparse_args):
-        self.raw_data['cmd_line'] = ArgParseRawParameter.make_raw_parameters(argparse_args)
+    def _add_search_path(self, search_path):
+        self.raw_data.update(load_raw_configs(search_path))
         self._cache = dict()
+        return self
 
-    def dump(self):
-        Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
+    def _add_env_vars(self, app_name):
+        self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)
+        self._cache = dict()
+        return self
+
+    def _add_argparse_args(self, argparse_args):
+        self._argparse_args = argparse_args
+        self.raw_data['cmd_line'] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
+        self._cache = dict()
+        return self
+
+    def _add_raw_data(self, raw_data):
+        self.raw_data.update(raw_data)
+        self._cache = dict()
+        return self
+
+    # def dump(self):
+    #     Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
 
     def validate_all(self):
         validation_errors = defaultdict(list)
@@ -508,20 +527,19 @@ class Configuration(object):
             raise MultiValidationError(validation_errors)
 
         # for filepath, raw_parameters in iteritems(self.raw_data):
-
-                # try:
-                #     match = parameter._pull_match_from_single_raw(raw_parameters, filepath)
-                # except ValidationError as e:
-                #     self._validation_errors[match] = ""
-                #     print("The parameter '{0}' has invalid value '{1}' in {2}.\n{3}"
-                #           .format(key, raw_parameters[key].value, filepath, text_type(e)))
-                #     continue
-                # if match is NO_MATCH:
-                #     continue
-                # v = parameter.validate(self, match.typed_value)
-                # if v is not True:
-                #     msg = ("The parameter '{0}' has invalid value '{1}' in {2}."
-                #            .format(match.key, match.raw_parameter.value, match.filepath))
-                #     if isinstance(v, string_types):
-                #         msg += "\n{0}".format(v)
-                #     print(msg)
+        #     try:
+        #         match = parameter._pull_match_from_single_raw(raw_parameters, filepath)
+        #     except ValidationError as e:
+        #         self._validation_errors[match] = ""
+        #         print("The parameter '{0}' has invalid value '{1}' in {2}.\n{3}"
+        #               .format(key, raw_parameters[key].value, filepath, text_type(e)))
+        #         continue
+        #     if match is NO_MATCH:
+        #         continue
+        #     v = parameter.validate(self, match.typed_value)
+        #     if v is not True:
+        #         msg = ("The parameter '{0}' has invalid value '{1}' in {2}."
+        #                .format(match.key, match.raw_parameter.value, match.filepath))
+        #         if isinstance(v, string_types):
+        #             msg += "\n{0}".format(v)
+        #         print(msg)

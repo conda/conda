@@ -99,6 +99,7 @@ def capture_with_argv(*argv):
     oldstdout, oldstderr = sys.stdout, sys.stderr
     sys.stdout = stdout
     sys.stderr = stderr
+    reset_context(())
     try:
         cli.main()
     except SystemExit:

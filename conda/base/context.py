@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from itertools import chain
+
 import os
 import sys
 from logging import getLogger
@@ -13,6 +15,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.toolz.itertoolz import concatv
 from ..common.configuration import (Configuration, PrimitiveParameter,
                                     SequenceParameter, MapParameter)
+from ..exceptions import CondaValueError
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -125,6 +128,14 @@ class Context(Configuration):
                     return default_prefix
         return join(self.envs_dirs[0], _default_env)
 
+    @property
+    def prefix(self):
+        return get_prefix(self, self._argparse_args, False)
+
+    @property
+    def prefix_w_legacy_search(self):
+        return get_prefix(self, self._argparse_args, True)
+
 
 context = Context(SEARCH_PATH, conda, None)
 
@@ -192,3 +203,48 @@ def get_help_dict():
         'proxy_servers': dals("""
             """),
     }
+
+
+def get_prefix(ctx, args, search=True):
+    if args.name:
+        if '/' in args.name:
+            raise CondaValueError("'/' not allowed in environment name: %s" %
+                                  args.name, getattr(args, 'json', False))
+        if args.name == ROOT_ENV_NAME:
+            return ctx.root_dir
+        if search:
+            prefix = find_prefix_name(ctx, args.name)
+            if prefix:
+                return prefix
+        return join(ctx.envs_dirs[0], args.name)
+
+    if args.prefix:
+        return abspath(expanduser(args.prefix))
+
+    return ctx.default_prefix
+
+
+def find_prefix_name(ctx, name):
+    if name == ROOT_ENV_NAME:
+        return ctx.root_dir
+    # always search cwd in addition to envs dirs (for relative path access)
+    for envs_dir in chain(ctx.envs_dirs + (os.getcwd(),)):
+        prefix = join(envs_dir, name)
+        if isdir(prefix):
+            return prefix
+    return None
+
+
+def check_write(command, prefix, json=False):
+    if inroot_notwritable(prefix):
+        from .help import root_read_only
+
+        root_read_only(command, prefix, json=json)
+
+
+def inroot_notwritable(prefix):
+    """
+    return True if the prefix is under root and root is not writeable
+    """
+    return (abspath(prefix).startswith(context.root_dir) and
+            not context.root_writable)
