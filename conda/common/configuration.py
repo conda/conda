@@ -482,9 +482,7 @@ class Configuration(object):
             self._add_argparse_args(argparse_args)
 
     def _add_search_path(self, search_path):
-        self.raw_data.update(load_raw_configs(search_path))
-        self._cache = dict()
-        return self
+        return self._add_raw_data(load_raw_configs(search_path))
 
     def _add_env_vars(self, app_name):
         self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)

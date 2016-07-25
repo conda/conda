@@ -8,7 +8,6 @@ from os.path import abspath, expanduser
 try:
     # Python 3
     from urllib.parse import quote, unquote, urlunparse, urljoin  # NOQA
-    from urllib.request import pathname2url  # NOQA
 except ImportError:
     # Python 2
     from urllib import quote, unquote, pathname2url
