@@ -340,7 +340,10 @@ def load_condarc(path=None):
             _default_envs_dirs()
             )]
 
-    pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
+    if 'pkgs_dirs' in rc:
+        pkgs_dirs = rc['pkgs_dirs']
+    else:
+        pkgs_dirs = [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in envs_dirs]
 
     _default_env = os.getenv('CONDA_DEFAULT_ENV')
     if _default_env in (None, ROOT_ENV_NAME):
