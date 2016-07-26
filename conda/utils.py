@@ -389,3 +389,11 @@ def exp_backoff_fn(fn, *args):
                 raise
         else:
             return result
+
+# put back because of conda build
+def url_path(path):
+    from os.path import abspath
+    path = abspath(path)
+    if sys.platform == 'win32':
+        path = '/' + path.replace(':', '|').replace('\\', '/')
+    return 'file://%s' % path
