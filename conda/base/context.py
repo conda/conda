@@ -62,7 +62,7 @@ class Context(Configuration):
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
-    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',))
+    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',), parameter_type=(bool, NoneType))
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
