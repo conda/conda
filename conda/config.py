@@ -239,6 +239,7 @@ def init_binstar(quiet=False):
             binstar_client = ()
         except Exception as e:
             stderrlog.info("Warning: could not import binstar_client (%s)" % e)
+            binstar_client = ()
     if binstar_client == ():
         binstar_domain = DEFAULT_CHANNEL_ALIAS
         binstar_domain_tok = None
