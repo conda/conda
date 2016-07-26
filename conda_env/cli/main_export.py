@@ -3,12 +3,10 @@ from __future__ import absolute_import, print_function
 import os
 import textwrap
 from argparse import RawDescriptionHelpFormatter
-
 from conda import config
-from conda.cli import common
-
 from ..env import from_environment
-
+# conda env import
+from conda_env.cli.common import error_and_exit, get_prefix
 description = """
 Export a given environment
 """
@@ -79,11 +77,11 @@ def execute(args, parser):
                 * Provide an environment name via --name or -n
                 * Re-run this command inside an activated conda environment.""").lstrip()
             # TODO Add json support
-            common.error_and_exit(msg, json=False)
+            error_and_exit(msg, json=False)
         args.name = name
     else:
         name = args.name
-    prefix = common.get_prefix(args)
+    prefix = get_prefix(args)
     env = from_environment(name, prefix, no_builds=args.no_builds)
 
     if args.override_channels:
