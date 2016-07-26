@@ -42,7 +42,7 @@ from os.path import (abspath, basename, dirname, isdir, isfile, islink,
 
 from .base.context import context
 from .common.url import path_to_url
-from .entities.channel import Channel
+from .models.channel import Channel
 from .exceptions import CondaError, PaddingError, LinkError, ArgumentError, CondaOSError
 from .lock import DirectoryLock, FileLock
 from .utils import exp_backoff_fn, on_win
