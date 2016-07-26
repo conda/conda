@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-from itertools import chain
-
 import os
 import sys
+from itertools import chain
 from logging import getLogger
 from os.path import expanduser, abspath, join, isdir, basename, dirname
 from platform import machine
@@ -15,6 +14,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.toolz.itertoolz import concatv
 from ..common.configuration import (Configuration, PrimitiveParameter,
                                     SequenceParameter, MapParameter)
+from ..common.url import urlparse
 from ..exceptions import CondaValueError
 
 log = getLogger(__name__)
@@ -155,6 +155,12 @@ class Context(Configuration):
     @property
     def conda_prefix(self):
         return sys.prefix
+
+    @property
+    def binstar_hosts(self):
+        return (urlparse(self.channel_alias).hostname,
+                'anaconda.org',
+                'binstar.org')
 
 
 def conda_in_private_env():
