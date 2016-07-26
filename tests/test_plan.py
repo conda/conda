@@ -20,7 +20,7 @@ from conda.utils import on_win
 
 # FIXME This should be a relative import
 from tests.helpers import captured
-from conda.exceptions import CondaError
+from conda import CondaError
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
