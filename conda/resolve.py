@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from itertools import chain
 
-from conda.entities.channel import Channel
+from conda.models.channel import Channel
 from .base.context import context
 from .compat import iterkeys, itervalues, iteritems, string_types
 from .console import setup_handlers
