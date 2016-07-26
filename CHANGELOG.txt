@@ -1,5 +1,11 @@
-2016-0X-XX  4.1.10 (unreleased):
---------------------------------
+2016-07-26  4.1.11:
+-------------------
+  * fix PS1 backup in activate script, #3135 via #3155
+  * correct resolution for 'handle failures in binstar_client more generaly', #3156
+
+
+2016-07-25  4.1.10:
+-------------------
   * ignore symlink failure because of read-only file system, #3055
   * backpaort shortcut tests, #3064
   * fix #2979 redefition of $SHELL variable, #3081
