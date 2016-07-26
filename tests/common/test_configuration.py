@@ -12,7 +12,7 @@ from unittest import TestCase
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import (string_types, odict)
 from conda.common.configuration import (Configuration, SequenceParameter, PrimitiveParameter,
-                                        MapParameter, YamlRawParameter, load_raw_configs,
+                                        MapParameter, YamlRawParameter, load_file_configs,
                                         ParameterFlag, ValidationError)
 from conda.common.yaml import yaml_load
 from conda.exceptions import ValidationError as CondaValidationError
@@ -110,7 +110,7 @@ class TestConfiguration(Configuration):
 
 
 def load_from_string_data(*seq):
-    return odict((f, YamlRawParameter.make_raw_parameters(yaml_load(test_yaml_raw[f])))
+    return odict((f, YamlRawParameter.make_raw_parameters(f, yaml_load(test_yaml_raw[f])))
                  for f in seq)
 
 
@@ -177,14 +177,11 @@ class ConfigurationTests(TestCase):
             with open(condarc, 'wb') as fh:
                 fh.write(test_yaml_raw['file3'].encode('utf-8'))
             search_path = [condarc, not_a_file, condarcd]
-
-            raw_data = load_raw_configs(search_path)
+            raw_data = load_file_configs(search_path)
             assert not_a_file not in raw_data
-            assert 'valueflags' in repr(raw_data[f1])
-
-            assert raw_data[condarc]['channels'].value[0] == "wile"
-            assert raw_data[f1]['always_yes'].value == "no"
-            assert raw_data[f2]['proxy_servers'].value['http'] == "marv"
+            assert raw_data[condarc]['channels'].value(None)[0] == "wile"
+            assert raw_data[f1]['always_yes'].value(None) == "no"
+            assert raw_data[f2]['proxy_servers'].value(None)['http'] == "marv"
 
             config = TestConfiguration(search_path)
             assert config.channels == ('wile', 'porky', 'bugs', 'elmer', 'daffy',
