@@ -2,42 +2,43 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod
-from collections import defaultdict, namedtuple, Mapping, Set
+from collections import Mapping, Set, defaultdict
 from enum import Enum
 from glob import glob
 from itertools import chain, takewhile
 from logging import getLogger
 from os import environ, stat
 from os.path import join
-from stat import S_IFREG, S_IFDIR, S_IFMT
-
-from .compat import (iteritems, with_metaclass, itervalues, primitive_types,
-                     text_type, odict, isiterable)
-from .yaml import yaml_load
-from .._vendor.auxlib.collection import first, last, frozendict
-from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError, ValidationError, Raise
-from .._vendor.auxlib.path import expand
-from .._vendor.auxlib.type_coercion import typify_data_structure
-from .._vendor.toolz.dicttoolz import merge
-from .._vendor.toolz.functoolz import excepts
-from .._vendor.toolz.itertoolz import concat, unique, concatv
-from ..base.constants import EMPTY_MAP
-from ..exceptions import ValidationError as CondaValidationError
+from stat import S_IFDIR, S_IFMT, S_IFREG
 
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
 
+try:
+    from cytoolz.toolz.dicttoolz import merge
+    from cytoolz.toolz.functoolz import excepts
+    from cytoolz.toolz.itertoolz import concat, concatv, unique
+except ImportError:
+    from .._vendor.toolz.dicttoolz import merge
+    from .._vendor.toolz.functoolz import excepts
+    from .._vendor.toolz.itertoolz import concat, concatv, unique
+
+from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, text_type,
+                     with_metaclass)
+from .yaml import yaml_load
+from .._vendor.auxlib.collection import first, frozendict, last
+from .._vendor.auxlib.exceptions import Raise, ThisShouldNeverHappenError, ValidationError
+from .._vendor.auxlib.path import expand
+from .._vendor.auxlib.type_coercion import typify_data_structure
+from ..base.constants import EMPTY_MAP
+from ..exceptions import ValidationError as CondaValidationError
 
 __all__ = ["Configuration", "ParameterFlag", "PrimitiveParameter",
            "SequenceParameter", "MapParameter"]
 
 log = getLogger(__name__)
-
-
-Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter', 'typed_value', 'typing_error'))
-NO_MATCH = Match(None, None, None, None, None)
 
 
 class MultiValidationError(CondaValidationError):
@@ -83,75 +84,110 @@ def make_immutable(value):
 @with_metaclass(ABCMeta)
 class RawParameter(object):
 
-    def __init__(self, key, value, keyflag=None, valueflags=None):
+    def __init__(self, source, key, raw_value):
+        self.source = source
         self.key = key
-        self.value = make_immutable(value)
-        self.keyflag = keyflag
-        self.valueflags = valueflags
+        self._raw_value = raw_value
 
     def __repr__(self):
         return text_type(vars(self))
 
+    @abstractmethod
+    def value(self, parameter_type):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def keyflag(self, parameter_type):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def valueflags(self, parameter_type):
+        raise NotImplementedError()
+
     @classmethod
-    def make_raw_parameters(cls, from_map):
+    def make_raw_parameters(cls, source, from_map):
         if from_map:
-            return dict((key, cls(from_map, key)) for key in from_map)
+            return dict((key, cls(source, key, from_map[key])) for key in from_map)
         return EMPTY_MAP
 
 
 class EnvRawParameter(RawParameter):
+    source = 'envvars'
 
-    def __init__(self, groomed_env, key):
-        self.key = key
-        raw_value = groomed_env[key]
-        important_split_value = raw_value.split("!important")
-        keyflag = ParameterFlag.important if len(important_split_value) >= 2 else None
-        value = important_split_value[0].strip()
-        valueflags = None
-        super(EnvRawParameter, self).__init__(key, value, keyflag, valueflags)
+    def value(self, parameter_type):
+        return self.__important_split_value[0].strip()
+
+    def keyflag(self, parameter_type):
+        return ParameterFlag.important if len(self.__important_split_value) >= 2 else None
+
+    def valueflags(self, parameter_type):
+        return None
+
+    @property
+    def __important_split_value(self):
+        return self._raw_value.split("!important")
 
     @classmethod
     def make_raw_parameters(cls, appname):
         keystart = "{0}_".format(appname.upper())
         raw_env = dict((k.replace(keystart, '').lower(), v)
                        for k, v in iteritems(environ) if k.startswith(keystart))
-        return super(EnvRawParameter, cls).make_raw_parameters(raw_env)
+        return super(EnvRawParameter, cls).make_raw_parameters(EnvRawParameter.source, raw_env)
 
 
 class ArgParseRawParameter(RawParameter):
+    source = 'cmd_line'
 
-    def __init__(self, args_from_argparse, key):
-        self.key = key
-        raw_value = args_from_argparse[key]
-        super(ArgParseRawParameter, self).__init__(key, raw_value, None, None)
+    def value(self, parameter_type):
+        return make_immutable(self._raw_value)
+
+    def keyflag(self, parameter_type):
+        return None
+
+    def valueflags(self, parameter_type):
+        return None
 
     @classmethod
     def make_raw_parameters(cls, args_from_argparse):
-        return super(ArgParseRawParameter, cls).make_raw_parameters(vars(args_from_argparse))
+        return super(ArgParseRawParameter, cls).make_raw_parameters(ArgParseRawParameter.source,
+                                                                    vars(args_from_argparse))
 
 
 class YamlRawParameter(RawParameter):
     # this class should encapsulate all direct use of ruamel.yaml in this module
 
-    def __init__(self, ruamel_yaml_object, key):
-        rawvalue = ruamel_yaml_object[key]
-        keycomment = self._get_yaml_key_comment(ruamel_yaml_object, key)
-        keyflag = ParameterFlag.from_string(keycomment)
-        if isinstance(rawvalue, CommentedSeq):
-            valuecomments = self._get_yaml_list_comments(rawvalue)
-            valueflags = tuple(ParameterFlag.from_string(s) for s in valuecomments)
-            value = tuple(rawvalue)
-        elif isinstance(rawvalue, CommentedMap):
-            valuecomments = self._get_yaml_map_comments(rawvalue)
-            valueflags = dict((k, ParameterFlag.from_string(v))
+    def __init__(self, source, key, raw_value, keycomment):
+        self._keycomment = keycomment
+        super(YamlRawParameter, self).__init__(source, key, raw_value)
+
+    def value(self, parameter_type):
+        self.__process(parameter_type)
+        return self._value
+
+    def keyflag(self, parameter_type):
+        return ParameterFlag.from_string(self._keycomment)
+
+    def valueflags(self, parameter_type):
+        self.__process(parameter_type)
+        return self._valueflags
+
+    def __process(self, parameter_type):
+        if hasattr(self, '_value'):
+            return
+        elif isinstance(self._raw_value, CommentedSeq):
+            valuecomments = self._get_yaml_list_comments(self._raw_value)
+            self._valueflags = tuple(ParameterFlag.from_string(s) for s in valuecomments)
+            self._value = tuple(self._raw_value)
+        elif isinstance(self._raw_value, CommentedMap):
+            valuecomments = self._get_yaml_map_comments(self._raw_value)
+            self._valueflags = dict((k, ParameterFlag.from_string(v))
                               for k, v in iteritems(valuecomments) if v is not None)
-            value = dict(rawvalue)
-        elif isinstance(rawvalue, primitive_types):
-            valueflags = None
-            value = rawvalue
+            self._value = frozendict(self._raw_value)
+        elif isinstance(self._raw_value, primitive_types):
+            self._valueflags = None
+            self._value = self._raw_value
         else:
             raise ThisShouldNeverHappenError()  # pragma: no cover
-        super(YamlRawParameter, self).__init__(key, value, keyflag, valueflags)
 
     @staticmethod
     def _get_yaml_key_comment(commented_dict, key):
@@ -179,13 +215,21 @@ class YamlRawParameter(RawParameter):
                     for key in rawvalue)
 
     @classmethod
+    def make_raw_parameters(cls, source, from_map):
+        if from_map:
+            return dict((key, cls(source, key, from_map[key],
+                                  cls._get_yaml_key_comment(from_map, key)))
+                        for key in from_map)
+        return EMPTY_MAP
+
+    @classmethod
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath, 'r') as fh:
             ruamel_yaml = yaml_load(fh)
-        return cls.make_raw_parameters(ruamel_yaml)
+        return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 
 
-def load_raw_configs(search_path):
+def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_yaml_loader(fullpath):
@@ -194,7 +238,6 @@ def load_raw_configs(search_path):
 
     def _dir_yaml_loader(fullpath):
         for filepath in glob(join(fullpath, "*.yml")):
-            assert filepath.endswith(".yml") or filepath.endswith("condarc"), filepath
             yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
 
     # map a stat result to a file loader or a directory loader
@@ -252,30 +295,26 @@ class Parameter(object):
             raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._names
 
-    def _pull_match_from_single_raw(self, raw_parameters, filepath):
+    def _collect_single_raw_parameter(self, raw_parameters):
+        # while supporting parameter name aliases, we enforce that one one definition is given
+        # per data source
         keys = self.names & frozenset(raw_parameters.keys())
         numkeys = len(keys)
         if numkeys == 0:
-            return NO_MATCH
+            return None
         elif numkeys == 1:
-            key, = keys
-            raw_value = raw_parameters[key]
-            try:
-                typed_value = typify_data_structure(raw_value.value, self._element_type)
-                return Match(filepath, key, raw_value, typed_value, None)
-            except ValueError as e:
-                # from typify
-                return Match(filepath, key, raw_value, None, e)
+            key, = keys  # get single key from frozenset
+            return raw_parameters[key]
         else:
-            return Match(filepath, self.name, keys, None,
-                         ValidationError(self.name, msg="Multiple aliased keys in file {0}:\n"
-                                                        "  - {1}".format(filepath,
-                                                                         "\n  - ".join(keys))))
+            raise CondaValidationError("Multiple aliased keys in file %s:%s"
+                                       % (raw_parameters[next(iter(keys))].source,
+                                          "\n  - ".join(chain.from_iterable((('',), keys)))))
 
     def _get_all_matches(self, instance):
-        return tuple(m for m in (self._pull_match_from_single_raw(raw_parameters, filepath)
+        # a match is a single raw parameter instance
+        return tuple(m for m in (self._collect_single_raw_parameter(raw_parameters)
                                  for filepath, raw_parameters in iteritems(instance.raw_data))
-                     if m is not NO_MATCH)
+                     if m is not None)
 
     @abstractmethod
     def _merge(self, matches):
@@ -290,13 +329,7 @@ class Parameter(object):
             return instance._cache[self.name]
 
         matches = self._get_all_matches(instance)
-        typing_errors = tuple(m.typing_error for m in matches if m.typing_error is not None)
-        if typing_errors:
-            raise MultiValidationError(typing_errors)
-        elif matches:
-            result = self._merge(matches)
-        else:
-            result = self.default
+        result = typify_data_structure(self._merge(matches) if matches else self.default)
         self.validate(instance, result)
         instance._cache[self.name] = result
         return result
@@ -319,11 +352,10 @@ class Parameter(object):
                 (self._validation is None or self._validation(value))):
             return value
         else:
-            raise ValidationError(getattr(self, 'name', 'undefined name'), value)
+            raise CondaValidationError(getattr(self, 'name', 'undefined name'), value)
 
-    @staticmethod
-    def _match_key_is_important(match):
-        return match.raw_parameter.keyflag is ParameterFlag.important
+    def _match_key_is_important(self, raw_parameter):
+        return raw_parameter.keyflag(self.__class__) is ParameterFlag.important
 
 
 class PrimitiveParameter(Parameter):
@@ -349,14 +381,13 @@ class PrimitiveParameter(Parameter):
         super(PrimitiveParameter, self).__init__(default, aliases, validation)
 
     def _merge(self, matches):
-        important_match = first(matches, Parameter._match_key_is_important, default=NO_MATCH)
-        if important_match is not NO_MATCH:
-            return important_match.typed_value
+        important_match = first(matches, self._match_key_is_important, default=None)
+        if important_match is not None:
+            return important_match.value(self.__class__)
 
-        last_match = last(matches, lambda x: x is not NO_MATCH, default=NO_MATCH)
-        if last_match is not NO_MATCH:
-            return last_match.typed_value
-
+        last_match = last(matches, lambda x: x is not None, default=None)
+        if last_match is not None:
+            return last_match.value(self.__class__)
         raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
@@ -390,20 +421,21 @@ class SequenceParameter(Parameter):
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        important_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
+        important_matches = tuple(takewhile(self._match_key_is_important, matches)) or matches
 
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
         def get_important_lines(match):
             return tuple(line
-                         for line, flag in zip(match.typed_value, match.raw_parameter.valueflags)
+                         for line, flag in zip(match.value(self.__class__),
+                                               match.valueflags(self.__class__))
                          if flag is ParameterFlag.important)
         important_lines = concat(get_important_lines(m) for m in important_matches)
 
         # reverse the matches and concat the lines
         #   reverse because elements closer to the end of search path that are not marked
         #   important take precedence
-        catted_lines = concat(m.typed_value for m in reversed(important_matches))
+        catted_lines = concat(m.value(self.__class__) for m in reversed(important_matches))
 
         # now de-dupe important_lines + concatted_lines
         return tuple(unique(concatv(important_lines, catted_lines)))
@@ -430,30 +462,27 @@ class MapParameter(Parameter):
 
     def validate(self, instance, value):
         et = self._element_type
-        [Raise(ValidationError(self.name, v, et))
+        [Raise(CondaValidationError(self.name, v, et))
          for v in itervalues(value) if not isinstance(v, et)]  # TODO: cleanup
         return super(MapParameter, self).validate(instance, value)
 
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        relevant_matches = tuple(takewhile(Parameter._match_key_is_important, matches)) or matches
-
-        # # typify values
-        # relevant_maps = tuple(dict((k, v) for k, v in iteritems(m.typed_value))
-        #                       for m in relevant_matches)
+        relevant_matches = tuple(takewhile(self._match_key_is_important, matches)) or matches
 
         # mapkeys with important matches
         def key_is_important(match, key):
-            return match.raw_parameter.valueflags.get(key) is ParameterFlag.important
+            return match.valueflags(self.__class__).get(key) is ParameterFlag.important
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match.typed_value)
+                                    for k, v in iteritems(match.value(self.__class__))
                                     if key_is_important(match, k))
                                for match in relevant_matches)
 
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m.typed_value for m in relevant_matches), reversed(important_maps)))
+        return merge(concatv((m.value(self.__class__) for m in relevant_matches),
+                             reversed(important_maps)))
 
 
 class ConfigurationType(type):
@@ -482,16 +511,17 @@ class Configuration(object):
             self._add_argparse_args(argparse_args)
 
     def _add_search_path(self, search_path):
-        return self._add_raw_data(load_raw_configs(search_path))
+        return self._add_raw_data(load_file_configs(search_path))
 
     def _add_env_vars(self, app_name):
-        self.raw_data['envvars'] = EnvRawParameter.make_raw_parameters(app_name)
+        self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
         self._cache = dict()
         return self
 
     def _add_argparse_args(self, argparse_args):
         self._argparse_args = argparse_args
-        self.raw_data['cmd_line'] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
+        source = ArgParseRawParameter.source
+        self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
         self._cache = dict()
         return self
 
@@ -507,18 +537,10 @@ class Configuration(object):
         validation_errors = defaultdict(list)
         for key in self.parameter_names:
             parameter = self.__class__.__dict__[key]
-
-            matches = parameter._get_all_matches(self)
-            typing_errors = [m.typing_error for m in matches if m.typing_error is not None]
-
-            # if there are any typing errors, it's game over for this key
-            if typing_errors:
-                validation_errors[key] = typing_errors
-                continue
-
-            for match in matches:
+            for match in parameter._get_all_matches(self):
                 try:
-                    parameter.validate(self, match.typed_value)
+                    result = typify_data_structure(match.value(parameter.__class__))
+                    parameter.validate(self, result)
                 except ValidationError as e:
                     validation_errors[key].append(e)
 
