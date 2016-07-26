@@ -1,22 +1,11 @@
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 from traceback import format_exc
 
+from . import CondaError
 from .compat import iteritems, iterkeys
-
-
-class CondaError(Exception):
-    def __init__(self, *args, **kwargs):
-        super(CondaError, self).__init__(*args, **kwargs)
-
-    def __repr__(self):
-        ret_str = ' '.join([str(arg) for arg in self.args if not isinstance(arg, bool)])
-        return ret_str
-
-    def __str__(self):
-        ret_str = ' '.join([str(arg) for arg in self.args if not isinstance(arg, bool)])
-        return ret_str
 
 
 class InvalidInstruction(CondaError):

@@ -14,9 +14,8 @@ from ..common.yaml import yaml_load, yaml_dump
 from ..compat import string_types
 from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
                       user_rc_path, rc_other)
-from ..exceptions import (CondaValueError, CondaError,
-                          CondaKeyError, CouldntParseError)
-
+from ..exceptions import (CondaValueError, CondaKeyError, CouldntParseError)
+from conda import CondaError
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git

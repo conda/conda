@@ -34,7 +34,7 @@ from conda.common.io import stderr_log_level, disable_logger
 from conda.common.url import path_to_url
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
-from conda.exceptions import CondaError
+from conda import CondaError
 from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win, linked_data
 from tests.helpers import captured
