@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 import subprocess
-
-from conda.cli import common
 from conda_env.pip_util import pip_args
+from conda_env.cli import common
 
 
 def install(prefix, specs, args, env, prune=False):

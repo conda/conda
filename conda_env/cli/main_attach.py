@@ -2,8 +2,8 @@ from argparse import RawDescriptionHelpFormatter
 from ..utils.notebooks import Notebook
 from conda.cli import common
 from ..env import from_environment
-
-
+# conda env import
+from conda_env.cli.common import get_prefix
 description = """
 Embeds information describing your conda environment
 into the notebook metadata
@@ -70,7 +70,7 @@ def configure_parser(sub_parsers):
 def execute(args, parser):
 
     if args.prefix is None:
-        prefix = common.get_prefix(args)
+        prefix = get_prefix(args)
     else:
         prefix = args.prefix
 
