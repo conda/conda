@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-from itertools import chain
-
 import os
 import sys
+from itertools import chain
 from logging import getLogger
 from os.path import expanduser, abspath, join, isdir, basename, dirname
 from platform import machine
 
-from conda.common.url import urlparse
 from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
 from .._vendor.auxlib.compat import string_types, NoneType
 from .._vendor.auxlib.ish import dals
 from .._vendor.toolz.itertoolz import concatv
 from ..common.configuration import (Configuration, PrimitiveParameter,
                                     SequenceParameter, MapParameter)
+from ..common.url import urlparse
 from ..exceptions import CondaValueError
 
 log = getLogger(__name__)
