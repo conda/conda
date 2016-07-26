@@ -36,8 +36,8 @@ def load_from_directory(directory):
 
 # TODO This should lean more on conda instead of divining it from the outside
 # TODO tests!!!
-def from_environment(name, prefix, no_builds=False):
-    installed = install.linked(prefix)
+def from_environment(name, prefix, no_builds=False, skip_channel_prefix=False):
+    installed = install.linked(prefix, skip_channel_prefix=skip_channel_prefix)
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed
     add_pip_installed(prefix, installed, json=True)
