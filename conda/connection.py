@@ -69,6 +69,17 @@ class BinstarAuth(AuthBase):
         return request
 
     @staticmethod
+    def add_binstar_token(url):
+        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url(url):
+            return url
+        token = BinstarAuth.get_binstar_token(url)
+        if token is None:
+            return url
+        u = urlparse(url)
+        path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
+        return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
+
+    @staticmethod
     def get_binstar_token(url):
         try:
             try:
@@ -91,17 +102,6 @@ class BinstarAuth(AuthBase):
         except Exception as e:
             log.warn("Warning: could not capture token from anaconda-client (%r)", e)
             return None
-
-    @staticmethod
-    def add_binstar_token(url):
-        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url(url):
-            return url
-        token = BinstarAuth.get_binstar_token(url)
-        if token is None:
-            return url
-        u = urlparse(url)
-        path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
-        return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
 
     @staticmethod
     def is_binstar_url(url):
