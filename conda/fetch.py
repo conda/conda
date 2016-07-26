@@ -24,7 +24,7 @@ from .base.context import context
 from .common.url import add_username_and_pass_to_url, url_to_path
 from .compat import itervalues, input, iteritems
 from .connection import CondaSession, RETRIES
-from .entities.channel import Channel, offline_keep
+from .models.channel import Channel, offline_keep
 from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, CondaHTTPError)
 from .install import add_cached_package, find_new_location, package_cache, dist2pair, rm_rf
 from .lock import FileLock

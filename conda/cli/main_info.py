@@ -116,7 +116,7 @@ def get_user_site():
 
 def pretty_package(pkg):
     from conda.utils import human_bytes
-    from conda.entities.channel import Channel
+    from conda.models.channel import Channel
 
     d = OrderedDict([
         ('file name', pkg.fn),
@@ -150,7 +150,7 @@ def execute(args, parser):
 
     import conda
     from conda.base.context import context
-    from conda.entities.channel import offline_keep
+    from conda.models.channel import offline_keep
     from conda.resolve import Resolve
     from conda.api import get_index
 

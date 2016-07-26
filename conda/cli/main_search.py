@@ -17,7 +17,7 @@ from ..exceptions import CondaValueError, PackageNotFoundError
 from ..install import dist2quad
 from ..misc import make_icon_url
 from ..resolve import NoPackagesFoundError, Package
-from ..entities.channel import Channel
+from ..models.channel import Channel
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
