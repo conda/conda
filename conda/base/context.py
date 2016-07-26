@@ -172,7 +172,7 @@ context = Context(SEARCH_PATH, conda, None)
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, conda, argparse_args)
-    from ..entities.channel import Channel
+    from ..models.channel import Channel
     Channel._reset_state()
     return context
 
