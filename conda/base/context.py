@@ -244,7 +244,10 @@ def get_prefix(ctx, args, search=True):
         if args.name == ROOT_ENV_NAME:
             return ctx.root_dir
         if search:
-            prefix = find_prefix_name(ctx, args.name)
+            if getattr(args, 'clone', False):
+                prefix = find_prefix_name(ctx, args.clone)
+            else:
+                prefix = find_prefix_name(ctx, args.name)
             if prefix:
                 return prefix
         return join(ctx.envs_dirs[0], args.name)

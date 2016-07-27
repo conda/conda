@@ -10,7 +10,7 @@ from itertools import chain
 
 from conda.cli import common
 from conda import install
-from conda import config
+from conda.base import context
 
 from . import compat
 from . import exceptions
@@ -50,8 +50,9 @@ def from_environment(name, prefix, no_builds=False):
         dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
-
-    channels = config.get_rc_urls()
+    # conda uses ruamel_yaml which returns a ruamel_yaml.comments.CommentedSeq
+    # this doesn't dump correctly using pyyaml
+    channels = context.channels
 
     return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
 

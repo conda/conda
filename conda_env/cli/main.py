@@ -3,7 +3,7 @@ import os
 import sys
 
 try:
-    from conda.cli.main import args_func
+    from conda.exceptions import conda_exception_handler
 except ImportError as e:
     if 'CONDA_DEFAULT_ENV' in os.environ:
         sys.stderr.write("""
@@ -65,7 +65,7 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
-    return args_func(args, parser)
+    return conda_exception_handler(args.func, args, parser)
 
 
 if __name__ == '__main__':

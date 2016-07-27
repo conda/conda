@@ -60,8 +60,8 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests", "conda-env",
-                                                                   "build", "utils", ".tox")),
+    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests", "build",
+                                                                   "utils", ".tox")),
     cmdclass={
         'build_py': conda._vendor.auxlib.BuildPyCommand,
         'sdist': conda._vendor.auxlib.SDistCommand,

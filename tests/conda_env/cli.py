@@ -92,6 +92,11 @@ class IntegrationTest(unittest.TestCase):
         parsed = json.loads(o)
         self.assertNotEqual(len(parsed), 0)
 
+    def test_name(self):
+        # smoke test for gh-254
+        create_env(environment_1)
+        o, e, s = run('conda env create -n new-env create')
+        self.assertStatusOk(s)
 
 if __name__ == '__main__':
     unittest.main()
