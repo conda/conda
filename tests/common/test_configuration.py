@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os import environ
-from os import mkdir
+from conda._vendor.auxlib.ish import dals
+from conda.common.compat import odict, string_types
+from conda.common.configuration import Configuration, MapParameter, ParameterFlag, \
+    PrimitiveParameter, SequenceParameter, YamlRawParameter, load_file_configs
+from conda.common.yaml import yaml_load
+from conda.exceptions import ValidationError as CondaValidationError
+from os import environ, mkdir
 from os.path import join
 from pytest import raises
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
-
-from conda._vendor.auxlib.ish import dals
-from conda.common.compat import (string_types, odict)
-from conda.common.configuration import (Configuration, SequenceParameter, PrimitiveParameter,
-                                        MapParameter, YamlRawParameter, load_file_configs,
-                                        ParameterFlag, ValidationError)
-from conda.common.yaml import yaml_load
-from conda.exceptions import ValidationError as CondaValidationError
 
 
 test_yaml_raw = {
@@ -46,27 +43,27 @@ test_yaml_raw = {
           - elmer
     """),
     'file3': dals("""
-        always_yes_altname2: yes  #!important
+        always_yes_altname2: yes  #!final
 
         proxy_servers:
-          http: foghorn  #!important
+          http: foghorn  #!final
           https: elmer
           s3: porky
 
         channels:
-          - wile   #!important
+          - wile   #!top
           - daffy
           - foghorn
     """),
     'file4': dals("""
-        always_yes: yes  #!important
-        changeps1: no  #!important
+        always_yes: yes  #!final
+        changeps1: no  #!final
 
-        proxy_servers:  #!important
+        proxy_servers:  #!final
           http: bugs
           https: daffy
 
-        channels:  #!important
+        channels:  #!final
           - pepé
           - marv
           - sam
