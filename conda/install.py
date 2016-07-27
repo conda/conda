@@ -802,7 +802,7 @@ def extract(dist):
 linked_data_ = {}
 
 
-def load_linked_data(prefix, dist, rec=None, skip_channel_prefix=False):
+def load_linked_data(prefix, dist, rec=None, ignore_channels=False):
     schannel, dname = dist2pair(dist)
     meta_file = join(prefix, 'conda-meta', dname + '.json')
     if rec is None:
@@ -830,7 +830,7 @@ def load_linked_data(prefix, dist, rec=None, skip_channel_prefix=False):
     rec['channel'] = channel
     rec['schannel'] = schannel
     rec['link'] = rec.get('link') or True
-    if skip_channel_prefix:
+    if ignore_channels:
         linked_data_[prefix][dname] = rec
     else:
         cprefix = '' if schannel == 'defaults' else schannel + '::'
@@ -872,7 +872,7 @@ def load_meta(prefix, dist):
     return linked_data(prefix).get(dist)
 
 
-def linked_data(prefix, skip_channel_prefix=False):
+def linked_data(prefix, ignore_channels=False):
     """
     Return a dictionary of the linked packages in prefix.
     """
@@ -884,17 +884,15 @@ def linked_data(prefix, skip_channel_prefix=False):
         if isdir(meta_dir):
             for fn in os.listdir(meta_dir):
                 if fn.endswith('.json'):
-                    load_linked_data(prefix, fn[:-5],
-                                     skip_channel_prefix=skip_channel_prefix)
+                    load_linked_data(prefix, fn[:-5], ignore_channels=ignore_channels)
     return recs
 
 
-def linked(prefix, skip_channel_prefix=False):
+def linked(prefix, ignore_channels=False):
     """
     Return the set of canonical names of linked packages in prefix.
     """
-    return set(linked_data(prefix,
-                           skip_channel_prefix=skip_channel_prefix).keys())
+    return set(linked_data(prefix, ignore_channels=ignore_channels).keys())
 
 
 def is_linked(prefix, dist):

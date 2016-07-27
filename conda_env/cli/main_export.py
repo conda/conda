@@ -61,11 +61,11 @@ def configure_parser(sub_parsers):
     )
 
     p.add_argument(
-        '--skip-channel-prefix',
+        '--ignore-channels',
         default=False,
         action='store_true',
         required=False,
-        help='Do not include channel names as prefixes to package names.')
+        help='Do not include channel names with package names.')
 
     p.set_defaults(func=execute)
 
@@ -90,7 +90,7 @@ def execute(args, parser):
         name = args.name
     prefix = get_prefix(args)
     env = from_environment(name, prefix, no_builds=args.no_builds,
-                           skip_channel_prefix=args.skip_channel_prefix)
+                           ignore_channels=args.ignore_prefix)
 
     if args.override_channels:
         env.remove_channels()
