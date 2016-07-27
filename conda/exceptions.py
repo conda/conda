@@ -313,10 +313,6 @@ class CondaValueError(CondaError, ValueError):
         super(CondaValueError, self).__init__(msg, *args, **kwargs)
 
 
-class ValidationError(CondaValueError):
-    pass
-
-
 class CondaTypeError(CondaError, TypeError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Type error: %s\n' % message

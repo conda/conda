@@ -9,6 +9,7 @@ import os
 import sys
 
 from conda._vendor.auxlib.type_coercion import boolify
+from conda.base.context import context
 from .common import (Completer, add_parser_json, stdout_json_success)
 from ..common.yaml import yaml_load, yaml_dump
 from ..compat import string_types
@@ -277,6 +278,7 @@ def execute_config(args, parser):
 
     # Get
     if args.get is not None:
+        context.validate_all()
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
