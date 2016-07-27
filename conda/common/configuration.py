@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 from collections import Mapping, Set, defaultdict
 from enum import Enum
 from glob import glob
-from itertools import chain, takewhile
+from itertools import chain
 from logging import getLogger
 from os import environ, stat
 from os.path import join
@@ -410,7 +410,7 @@ class PrimitiveParameter(Parameter):
     @classmethod
     def repr_raw(cls, raw_parameter):
         return "%s: %s%s" % (raw_parameter.key, raw_parameter.value(cls),
-                              cls._str_format_flag(raw_parameter.keyflag()))
+                             cls._str_format_flag(raw_parameter.keyflag()))
 
 
 class SequenceParameter(Parameter):
@@ -479,7 +479,7 @@ class SequenceParameter(Parameter):
     def repr_raw(cls, raw_parameter):
         lines = list()
         lines.append("%s:%s" % (raw_parameter.key,
-                                  cls._str_format_flag(raw_parameter.keyflag())))
+                                cls._str_format_flag(raw_parameter.keyflag())))
         for q, value in enumerate(raw_parameter.value(cls)):
             valueflag = raw_parameter.valueflags(cls)[q]
             lines.append("  - %s%s" % (value, cls._str_format_flag(valueflag)))
@@ -532,7 +532,7 @@ class MapParameter(Parameter):
     def repr_raw(cls, raw_parameter):
         lines = list()
         lines.append("%s:%s" % (raw_parameter.key,
-                                  cls._str_format_flag(raw_parameter.keyflag())))
+                                cls._str_format_flag(raw_parameter.keyflag())))
         for valuekey, value in iteritems(raw_parameter.value(cls)):
             valueflag = raw_parameter.valueflags(cls).get(valuekey)
             lines.append("  %s:%s%s" % (valuekey, value, cls._str_format_flag(valueflag)))
