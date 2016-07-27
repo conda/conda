@@ -49,7 +49,7 @@ class MultiValidationError(CondaValidationError):
 
 
 class ParameterFlag(Enum):
-    important = 'important'
+    final = 'final'
     top = "top"
     bottom = "bottom"
 
@@ -118,7 +118,7 @@ class EnvRawParameter(RawParameter):
         return self.__important_split_value[0].strip()
 
     def keyflag(self, parameter_type):
-        return ParameterFlag.important if len(self.__important_split_value) >= 2 else None
+        return ParameterFlag.final if len(self.__important_split_value) >= 2 else None
 
     def valueflags(self, parameter_type):
         return None
@@ -181,7 +181,7 @@ class YamlRawParameter(RawParameter):
         elif isinstance(self._raw_value, CommentedMap):
             valuecomments = self._get_yaml_map_comments(self._raw_value)
             self._valueflags = dict((k, ParameterFlag.from_string(v))
-                              for k, v in iteritems(valuecomments) if v is not None)
+                                    for k, v in iteritems(valuecomments) if v is not None)
             self._value = frozendict(self._raw_value)
         elif isinstance(self._raw_value, primitive_types):
             self._valueflags = None
@@ -355,7 +355,7 @@ class Parameter(object):
             raise CondaValidationError(getattr(self, 'name', 'undefined name'), value)
 
     def _match_key_is_important(self, raw_parameter):
-        return raw_parameter.keyflag(self.__class__) is ParameterFlag.important
+        return raw_parameter.keyflag(self.__class__) is ParameterFlag.final
 
 
 class PrimitiveParameter(Parameter):
@@ -425,20 +425,33 @@ class SequenceParameter(Parameter):
 
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
-        def get_important_lines(match):
+        def get_marked_lines(match, marker):
             return tuple(line
                          for line, flag in zip(match.value(self.__class__),
                                                match.valueflags(self.__class__))
-                         if flag is ParameterFlag.important)
-        important_lines = concat(get_important_lines(m) for m in important_matches)
+                         if flag is marker)
+        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m in important_matches)
 
-        # reverse the matches and concat the lines
-        #   reverse because elements closer to the end of search path that are not marked
-        #   important take precedence
-        catted_lines = concat(m.value(self.__class__) for m in reversed(important_matches))
+        # also get lines that were marked as bottom, but reverse the match order so that lines
+        # coming earlier will ultimately be last
+        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m in
+                              reversed(important_matches))
 
-        # now de-dupe important_lines + concatted_lines
-        return tuple(unique(concatv(important_lines, catted_lines)))
+        # now, concat all lines, while reversing the matches
+        #   reverse because elements closer to the end of search path take precedence
+        all_lines = concat(m.value(self.__class__) for m in reversed(important_matches))
+
+        # stack top_lines + all_lines, then de-dupe
+        top_deduped = tuple(unique(concatv(top_lines, all_lines)))
+
+        # take the top-deduped lines, reverse them, and concat with reversed bottom_lines
+        # this gives us the reverse of the order we want, but almost there
+        # NOTE: for a line value marked both top and bottom, the bottom marker will win out
+        #       for the top marker to win out, we'd need one additional de-dupe step
+        bottom_deduped = unique(concatv(reversed(tuple(bottom_lines)), reversed(top_deduped)))
+
+        # just reverse, and we're good to go
+        return tuple(reversed(tuple(bottom_deduped)))
 
 
 class MapParameter(Parameter):
@@ -473,7 +486,7 @@ class MapParameter(Parameter):
 
         # mapkeys with important matches
         def key_is_important(match, key):
-            return match.valueflags(self.__class__).get(key) is ParameterFlag.important
+            return match.valueflags(self.__class__).get(key) is ParameterFlag.final
         important_maps = tuple(dict((k, v)
                                     for k, v in iteritems(match.value(self.__class__))
                                     if key_is_important(match, k))
@@ -530,7 +543,7 @@ class Configuration(object):
         self._cache = dict()
         return self
 
-    # def dump(self):
+    # def dump(self, parameter_name):
     #     Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
 
     def validate_all(self):
