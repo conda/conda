@@ -4,6 +4,8 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\tools\\appveyor\\run_with_env.cmd"
+  COVERALLS_REPO_TOKEN:
+    secure: ZaE7K9EHorv40AjYhSuWtQeRAsMN1+QqPf7u8rOlvEY50kdaHj87Mh5GIDZgJBzj
 
   matrix:
     - PYTHON: "C:\\Python35_64"
@@ -24,10 +26,6 @@ environment:
 
     # - PYTHON: "C:\\Python27_32"
     #   PYTHON_VERSION: "2.7"
-    #   PYTHON_ARCH: "32"
-
-    # - PYTHON: "C:\\Python34_32"
-    #   PYTHON_VERSION: "3.4"
     #   PYTHON_ARCH: "32"
 
 init:
@@ -53,7 +51,7 @@ install:
   - setx PATH "%ANACONDA_PATH%"
   - conda info
   - conda config --set always_yes yes
-  - conda install --force --no-deps -q conda psutil ruamel_yaml requests
+  - conda install --force --no-deps -q conda psutil requests
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
@@ -62,10 +60,16 @@ install:
   - conda install -q pytest requests mock
   - conda install -q pycrypto pyflakes pycosat
   - conda install -q git menuinst
-  - pip install auxlib flake8 pytest-cov pytest-timeout responses
+  - conda install yaml
+  - conda install anaconda-client
+  - conda install nbformat
+  - conda install -q enum34 || WHOAMI
+  - pip install flake8 pytest-cov pytest-timeout responses
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install --old-and-unmanageable
+  - conda remove --force -q -y ruamel_yaml || WHOAMI
+  - pip install -U ruamel.yaml
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
@@ -74,5 +78,7 @@ test_script:
   - py.test --cov-report xml tests --shell=cmd.exe --shell=bash.exe
 
 on_success:
-  - pip install codecov
+  - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PYTHON_VERSION
+  # - coveralls && exit 0
+  # - ocular && exit 0

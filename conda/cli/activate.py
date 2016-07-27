@@ -2,11 +2,12 @@ from __future__ import print_function, division, absolute_import
 
 import errno
 import os
-from os.path import isdir, abspath
 import re
 import sys
+from os.path import isdir, abspath
 
-on_win = sys.platform == "win32"
+from ..exceptions import CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError
+from ..utils import on_win
 
 
 def help(command, shell):
@@ -15,35 +16,35 @@ def help(command, shell):
     # get grandparent process name to see which shell we're using
     if command in ('..activate', '..checkenv'):
         if shell in ["cmd.exe", "powershell.exe"]:
-            sys.exit("""Usage: activate ENV
+            raise CondaSystemExit("""Usage: activate ENV
 
 Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
 
         else:
-            sys.exit("""Usage: source activate ENV
+            raise CondaSystemExit("""Usage: source activate ENV
 
 Adds the 'bin' directory of the environment ENV to the front of PATH.
 ENV may either refer to just the name of the environment, or the full
 prefix path.""")
     elif command == '..deactivate':
         if shell in ["cmd.exe", "powershell.exe"]:
-            sys.exit("""Usage: deactivate
+            raise CondaSystemExit("""Usage: deactivate
 
 Removes the environment prefix, 'Scripts' and 'Library\\bin' directory
 of the environment ENV from the front of PATH.""")
         else:
-            sys.exit("""Usage: source deactivate
+            raise CondaSystemExit("""Usage: source deactivate
 
 Removes the 'bin' directory of the environment activated with 'source
 activate' from PATH. """)
     else:
-        sys.exit("No help available for command %s" % sys.argv[1])
+        raise CondaSystemExit("No help available for command %s" % sys.argv[1])
 
 
 def prefix_from_arg(arg, shelldict):
-    from conda.cli.common import find_prefix_name
+    from conda.base.context import context, find_prefix_name
     'Returns a platform-native path'
     # MSYS2 converts Unix paths to Windows paths with unix seps
     # so we must check for the drive identifier too.
@@ -53,18 +54,18 @@ def prefix_from_arg(arg, shelldict):
         if isdir(abspath(native_path.strip("\""))):
             prefix = abspath(native_path.strip("\""))
         else:
-            raise ValueError('could not find environment: %s' % native_path)
+            raise CondaValueError('could not find environment: %s' % native_path)
     else:
-        prefix = find_prefix_name(arg.replace('/', os.path.sep))
+        prefix = find_prefix_name(context, arg.replace('/', os.path.sep))
         if prefix is None:
-            raise ValueError('could not find environment: %s' % arg)
+            raise CondaValueError('could not find environment: %s' % arg)
     return prefix
 
 
 def binpath_from_arg(arg, shelldict):
     # prefix comes back as platform-native path
     prefix = prefix_from_arg(arg, shelldict=shelldict)
-    if sys.platform == 'win32':
+    if on_win:
         paths = [
             prefix.rstrip("\\"),
             os.path.join(prefix, 'Library', 'mingw-w64', 'bin'),
@@ -78,6 +79,7 @@ def binpath_from_arg(arg, shelldict):
                 ]
     # convert paths to shell-native paths
     return [shelldict['path_to'](path) for path in paths]
+
 
 def pathlist_to_str(paths, escape_backslashes=True):
     """
@@ -94,7 +96,8 @@ def pathlist_to_str(paths, escape_backslashes=True):
 
 
 def main():
-    from conda.config import root_env_name, root_dir
+    from conda.base.context import context
+    from conda.base.constants import ROOT_ENV_NAME
     from conda.utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
         # all execution paths sys.exit at end.
@@ -105,7 +108,7 @@ def main():
         shelldict = shells[shell]
     if sys.argv[1] == '..activate':
         if len(sys.argv) != 4:
-            sys.exit("Error: ..activate expected exactly two arguments: shell and env name")
+            raise ArgumentError("..activate expected exactly two arguments: shell and env name")
         binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
 
         # prepend our new entries onto the existing path and make sure that the separator is native
@@ -116,38 +119,40 @@ def main():
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 4:
-            sys.exit("Invalid arguments to checkenv.  Need shell and env name/path")
+            raise ArgumentError("Invalid arguments to checkenv.  Need shell and env name/path")
         if len(sys.argv) > 4:
-            sys.exit("Error: did not expect more than one argument.")
-        if sys.argv[3].lower() == root_env_name.lower():
+            raise ArgumentError("did not expect more than one argument.")
+        if sys.argv[3].lower() == ROOT_ENV_NAME.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
+            # raise CondaSystemExit
 
         # this should throw an error and exit if the env or path can't be found.
         try:
             prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
         except ValueError as e:
-            sys.exit(getattr(e, 'message', e))
+            raise CondaValueError(e)
 
         # Make sure an env always has the conda symlink
         try:
             import conda.install
-            conda.install.symlink_conda(prefix, root_dir, shell)
+            conda.install.symlink_conda(prefix, context.root_dir, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}.\n"
                        "User does not have write access for conda symlinks."
                        .format(sys.argv[2]))
-                sys.exit(msg)
+                raise CondaEnvironmentError(msg, e)
             raise
         sys.exit(0)
+        # raise CondaSystemExit
     elif sys.argv[1] == '..changeps1':
-        from conda.config import changeps1
-        path = int(changeps1)
+        from conda.base.context import context
+        path = int(context.changeps1)
 
     else:
         # This means there is a bug in main.py
-        raise ValueError("unexpected command")
+        raise CondaValueError("unexpected command")
 
     # This print is actually what sets the PATH or PROMPT variable.  The shell
     # script gets this value, and finishes the job.

@@ -1,15 +1,14 @@
 from __future__ import absolute_import, division, print_function
 
-import sys
 import base64
 from os.path import abspath, expanduser, isfile, join
-
+from .exceptions import CondaImportError, CondaSignatureError
 try:
     from Crypto.Hash import SHA256
     from Crypto.PublicKey import RSA
     from Crypto.Signature import PKCS1_PSS
 except ImportError:
-    sys.exit("""\
+    raise CondaImportError("""\
 Error: could not import Crypto (required for signature verification).
     Run the following command:
 
@@ -31,10 +30,6 @@ def hash_file(path):
     return h
 
 
-class SignatureError(Exception):
-    pass
-
-
 def verify(path):
     """
     Verify the file `path`, with signature `path`.sig, against the key
@@ -46,13 +41,13 @@ def verify(path):
     """
     sig_path = path + '.sig'
     if not isfile(sig_path):
-        raise SignatureError("signature does not exist: %s" % sig_path)
+        raise CondaSignatureError("signature does not exist: %s" % sig_path)
     with open(sig_path) as fi:
         key_name, sig = fi.read().split()
     if key_name not in KEYS:
         key_path = join(KEYS_DIR, '%s.pub' % key_name)
         if not isfile(key_path):
-            raise SignatureError("public key does not exist: %s" % key_path)
+            raise CondaSignatureError("public key does not exist: %s" % key_path)
         KEYS[key_name] = RSA.importKey(open(key_path).read())
     key = KEYS[key_name]
     verifier = PKCS1_PSS.new(key)

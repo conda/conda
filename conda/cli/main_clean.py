@@ -11,10 +11,11 @@ from collections import defaultdict
 from os import lstat, walk, listdir
 from os.path import join, getsize, isdir
 
-from .common import add_parser_json, add_parser_yes, confirm_yn, error_and_exit, stdout_json
-from ..config import pkgs_dirs as config_pkgs_dirs, root_dir, envs_dirs
+from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
+from ..base.context import context
 from ..install import rm_rf
 from ..utils import human_bytes
+from ..exceptions import ArgumentError
 
 descr = """
 Remove unused packages and caches.
@@ -162,11 +163,11 @@ class CrossPlatformStLink(object):
 def find_lock():
     from os.path import join
 
-    from conda.lock import LOCKFN
+    from conda.lock import LOCK_EXTENSION
 
-    lock_dirs = config_pkgs_dirs[:]
-    lock_dirs += [root_dir]
-    for envs_dir in envs_dirs:
+    lock_dirs = context.pkgs_dirs[:]
+    lock_dirs += [context.root_dir]
+    for envs_dir in context.envs_dirs:
         if os.path.exists(envs_dir):
             for fn in os.listdir(envs_dir):
                 if os.path.isdir(join(envs_dir, fn)):
@@ -182,21 +183,22 @@ def find_lock():
         if not os.path.exists(dir):
             continue
         for dn in os.listdir(dir):
-            if os.path.isdir(join(dir, dn)) and dn.startswith(LOCKFN):
+            if os.path.exists(join(dir, dn)) and dn.endswith(LOCK_EXTENSION):
                 path = join(dir, dn)
                 yield path
 
 
 def rm_lock(locks, verbose=True):
+    from ..install import rm_rf
     for path in locks:
         if verbose:
             print('removing: %s' % path)
-        os.rmdir(path)
+        rm_rf(path)
 
 
 def find_tarballs():
     pkgs_dirs = defaultdict(list)
-    for pkgs_dir in config_pkgs_dirs:
+    for pkgs_dir in context.pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
         for fn in os.listdir(pkgs_dir):
@@ -261,7 +263,7 @@ def find_pkgs():
 
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
-    for pkgs_dir in config_pkgs_dirs:
+    for pkgs_dir in context.pkgs_dirs:
         if not os.path.exists(pkgs_dir):
             print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
@@ -345,7 +347,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
 def rm_index_cache():
     from conda.install import rm_rf
 
-    rm_rf(join(config_pkgs_dirs[0], 'cache'))
+    rm_rf(join(context.pkgs_dirs[0], 'cache'))
 
 def find_source_cache():
     try:
@@ -433,7 +435,7 @@ def execute(args, parser):
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
-            'files': [join(config_pkgs_dirs[0], 'cache')]
+            'files': [join(context.pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
 
@@ -457,10 +459,8 @@ def execute(args, parser):
 
     if not any((args.lock, args.tarballs, args.index_cache, args.packages,
                 args.source_cache, args.all)):
-        error_and_exit(
-            "One of {--lock, --tarballs, --index-cache, --packages, "
-            "--source-cache, --all} required",
-            error_type="ValueError")
+        raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
+                            "--source-cache, --all} required")
 
     if args.json:
         stdout_json(json_result)

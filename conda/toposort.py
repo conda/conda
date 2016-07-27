@@ -3,6 +3,8 @@ from __future__ import print_function, division, absolute_import
 from functools import reduce as _reduce
 import logging
 
+from .exceptions import CondaValueError
+
 log = logging.getLogger(__name__)
 
 def _toposort(data):
@@ -42,7 +44,7 @@ items in the preceding sets.
 
     if len(data) != 0:
         msg = 'Cyclic dependencies exist among these items: {}'
-        raise ValueError(msg.format(' -> '.join(repr(x) for x in data.keys())))
+        raise CondaValueError(msg.format(' -> '.join(repr(x) for x in data.keys())))
 
 def pop_key(data):
     '''

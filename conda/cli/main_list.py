@@ -12,13 +12,12 @@ from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile
 
 from .common import (add_parser_help, add_parser_prefix, add_parser_json,
-                     add_parser_show_channel_urls, disp_features, error_and_exit, stdout_json,
-                     get_prefix)
-from ..config import show_channel_urls, subdir, use_pip
+                     add_parser_show_channel_urls, disp_features, stdout_json)
+from ..base.context import context, subdir
 from ..egg_info import get_egg_info
 from ..install import dist2quad, linked
 from ..install import name_dist, is_linked, linked_data
-
+from ..exceptions import CondaEnvironmentError, CondaFileNotFoundError
 
 descr = "List linked packages in a conda environment."
 
@@ -122,7 +121,7 @@ def get_packages(installed, regex):
 
 
 def list_packages(prefix, installed, regex=None, format='human',
-                  show_channel_urls=show_channel_urls):
+                  show_channel_urls=context.show_channel_urls):
     res = 1
 
     result = []
@@ -153,15 +152,13 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
-                   json=False, show_channel_urls=show_channel_urls):
+                   json=False, show_channel_urls=context.show_channel_urls):
     if not isdir(prefix):
-        error_and_exit("""\
+        raise CondaEnvironmentError("""\
 Error: environment does not exist: %s
 #
 # Use 'conda create' to create an environment before listing its packages.""" %
-                       prefix,
-                       json=json,
-                       error_type="NoEnvironmentFound")
+                                    prefix, json)
 
     if not json:
         if format == 'human':
@@ -171,7 +168,7 @@ Error: environment does not exist: %s
             print_export_header()
 
     installed = linked(prefix)
-    if piplist and use_pip and format == 'human':
+    if piplist and context.use_pip and format == 'human':
         installed.update(get_egg_info(prefix))
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
@@ -185,7 +182,8 @@ Error: environment does not exist: %s
 
 def print_explicit(prefix, add_md5=False):
     if not isdir(prefix):
-        error_and_exit("Error: environment does not exist: %s" % prefix)
+        raise CondaEnvironmentError("Error: environment does not exist: %s" %
+                                    prefix)
     print_export_header()
     print("@EXPLICIT")
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
@@ -198,7 +196,7 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
-    prefix = get_prefix(args)
+    prefix = context.prefix_w_legacy_search
 
     regex = args.regex
     if args.full_name:
@@ -214,9 +212,8 @@ def execute(args, parser):
             else:
                 stdout_json(h.object_log())
         else:
-            error_and_exit("No revision log found: %s\n" % h.path,
-                           json=args.json,
-                           error_type="NoRevisionLog")
+            raise CondaFileNotFoundError("No revision log found: %s\n" % h.path,
+                                         args.json)
         return
 
     if args.explicit:

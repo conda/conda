@@ -9,6 +9,8 @@ import os
 import re
 import json
 
+from conda.base.context import reset_context
+
 try:
     from unittest import mock
 except ImportError:
@@ -47,6 +49,11 @@ def run_conda_command(*args):
 
     stdout, stderr = [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
                       for stream in p.communicate()]
+    print(stdout)
+    print(stderr, file=sys.stderr)
+    # assert p.returncode == 0, p.returncode
+    if args[0] == 'config':
+        reset_context([args[2]])
     return stdout, strip_expected(stderr)
 
 
@@ -92,6 +99,7 @@ def capture_with_argv(*argv):
     oldstdout, oldstderr = sys.stdout, sys.stderr
     sys.stdout = stdout
     sys.stderr = stderr
+    reset_context(())
     try:
         cli.main()
     except SystemExit:

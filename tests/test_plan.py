@@ -1,3 +1,5 @@
+import os
+
 from contextlib import contextmanager
 import sys
 import json
@@ -8,17 +10,17 @@ from collections import defaultdict
 
 import pytest
 
-from conda.config import default_python, pkgs_dirs
-import conda.config
+from conda.base.context import context, reset_context
 from conda.install import LINK_HARD
 import conda.plan as plan
 import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
+from conda.utils import on_win
 
 # FIXME This should be a relative import
 from tests.helpers import captured
-from conda.exceptions import CondaException
+from conda import CondaError
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
@@ -120,7 +122,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
     def test_4(self):
         self.linked = []
-        ps = ['python 2.7*'] if default_python == '2.7' else []
+        ps = ['python 2.7*'] if context.default_python == '2.7' else []
         for specs, added in [
             (['python'], ps),
             (['numpy'], ps),
@@ -134,10 +136,9 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             self.check(specs, added)
 
 def test_display_actions():
-    import conda.plan
-    conda.plan.config_show_channel_urls = False
-    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
-        "numpy-1.7.1-py27_0"]})
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
+    reset_context(())
+    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0', "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
     index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
     index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
@@ -278,8 +279,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 
 def test_display_actions_show_channel_urls():
-    import conda.plan
-    conda.plan.config_show_channel_urls = True
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
+    reset_context(())
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
@@ -453,8 +454,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 
 def test_display_actions_link_type():
-    import conda.plan
-    conda.plan.config_show_channel_urls = False
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
+    reset_context(())
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 2', 'dateutil-1.5-py33_0 2',
     'numpy-1.7.1-py33_0 2', 'python-3.3.2-0 2', 'readline-6.2-0 2', 'sqlite-3.7.13-0 2', 'tk-8.5.13-0 2', 'zlib-1.2.7-0 2']})
@@ -605,8 +606,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)
 
 """
-    import conda.plan
-    conda.plan.config_show_channel_urls = True
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
+    reset_context(())
 
     index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
     index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
@@ -662,8 +663,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 """
 
 def test_display_actions_features():
-    import conda.plan
-    conda.plan.config_show_channel_urls = False
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
+    reset_context(())
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
@@ -739,8 +740,8 @@ The following packages will be UPDATED:
     numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
 
 """
-    import conda.plan
-    conda.plan.config_show_channel_urls = True
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
+    reset_context(())
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
@@ -871,7 +872,7 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
         expected = [('INSTRUCTION', 'arg')]
         self.assertEqual(new_plan, expected)
 
-        with self.assertRaises(CondaException):
+        with self.assertRaises(CondaError):
             plan.update_old_plan(['INVALID'])
 
     def test_execute_plan(self):
@@ -920,7 +921,7 @@ class PlanFromActionsTests(unittest.TestCase):
             ('LINK', menuinst),
         ]
 
-        if sys.platform == 'win32':
+        if on_win:
             # menuinst should be linked first
             expected_plan = [
                 ('PREFIX', 'aprefix'),

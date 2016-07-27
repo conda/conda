@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+import bz2
 import json
 import os
+import pytest
 import sys
-import bz2
 from contextlib import contextmanager
+from datetime import datetime
 from glob import glob
-from logging import getLogger, Handler
+from json import loads as json_loads
+from logging import getLogger, DEBUG
 from os.path import exists, isdir, isfile, join, relpath, basename, islink
+from requests import Session
+from requests.adapters import BaseAdapter
 from shlex import split
 from shutil import rmtree, copyfile
-from subprocess import check_call, Popen, PIPE
+from subprocess import check_call
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
-from json import loads as json_loads
 
-import pytest
-from requests import Session
-from requests.adapters import BaseAdapter
-
-from conda import config
-from conda.cli import conda_argparse
+from conda.base.context import context, reset_context, bits
+from conda.cli.main import generate_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
@@ -30,16 +30,18 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.compat import PY3, itervalues
-from conda.config import bits, subdir
+from conda.common.io import stderr_log_level, disable_logger
+from conda.common.url import path_to_url
+from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
-from conda.install import linked as install_linked, linked_data_, dist2dirname, package_cache
+from conda import CondaError
+from conda.install import linked as install_linked, linked_data_, dist2dirname
 from conda.install import on_win, linked_data
-from conda.utils import url_path
 from tests.helpers import captured
 
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
+BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 
 
 def escape_for_winpath(p):
@@ -50,27 +52,9 @@ def make_temp_prefix(name=None):
     tempdir = gettempdir()
     dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
-    if exists(prefix):
-        # rm here because create complains if directory exists
-        rmtree(prefix)
-    assert isdir(tempdir)
+    os.makedirs(prefix)
+    assert isdir(prefix)
     return prefix
-
-
-def disable_dotlog():
-    class NullHandler(Handler):
-        def emit(self, record):
-            pass
-    dotlogger = getLogger('dotupdate')
-    saved_handlers = dotlogger.handlers
-    dotlogger.handlers = []
-    dotlogger.addHandler(NullHandler())
-    return saved_handlers
-
-
-def reenable_dotlog(handlers):
-    dotlogger = getLogger('dotupdate')
-    dotlogger.handlers = handlers
 
 
 class Commands:
@@ -95,8 +79,7 @@ parser_config = {
 
 
 def run_command(command, prefix, *arguments):
-    p = conda_argparse.ArgumentParser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
+    p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
 
     prefix = escape_for_winpath(prefix)
@@ -111,6 +94,8 @@ def run_command(command, prefix, *arguments):
         command_line = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
+    context._add_argparse_args(args)
+
     with captured(disallow_stderr=False) as c:
         args.func(args, p)
     print(c.stdout)
@@ -121,21 +106,22 @@ def run_command(command, prefix, *arguments):
 
 
 @contextmanager
-def make_temp_env(*packages):
-    prefix = make_temp_prefix()
-    try:
-        # try to clear any config that's been set by other tests
-        if packages:
-            config.load_condarc(join(prefix, 'condarc'))
-            run_command(Commands.CREATE, prefix, *packages)
-        yield prefix
-    finally:
-        rmtree(prefix, ignore_errors=True)
+def make_temp_env(*packages, **kwargs):
+    prefix = kwargs.pop('prefix', None) or make_temp_prefix()
+    with stderr_log_level(DEBUG, 'conda'), stderr_log_level(DEBUG, 'requests'):
+        with disable_logger('fetch'), disable_logger('dotupdate'):
+            try:
+                # try to clear any config that's been set by other tests
+                reset_context([join(prefix, 'condarc')])
+                run_command(Commands.CREATE, prefix, *packages)
+                yield prefix
+            finally:
+                rmtree(prefix, ignore_errors=True)
 
 
 def reload_config(prefix):
     prefix_condarc = join(prefix, 'condarc')
-    config.load_condarc(prefix_condarc)
+    reset_context([prefix_condarc])
 
 
 class EnforceUnusedAdapter(BaseAdapter):
@@ -199,12 +185,6 @@ def get_conda_list_tuple(prefix, package_name):
 
 class IntegrationTests(TestCase):
 
-    def setUp(self):
-        self.saved_dotlog_handlers = disable_dotlog()
-
-    def tearDown(self):
-        reenable_dotlog(self.saved_dotlog_handlers)
-
     @pytest.mark.timeout(900)
     def test_create_install_update_remove(self):
         with make_temp_env("python=3") as prefix:
@@ -229,6 +209,34 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, '--revision 0')
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
+
+            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'conda')
+            assert not package_is_installed(prefix, 'conda')
+
+            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
+            assert not package_is_installed(prefix, 'constructor')
+
+    @pytest.mark.timeout(300)
+    def test_create_empty_env(self):
+        with make_temp_env() as prefix:
+            assert exists(join(prefix, BIN_DIRECTORY))
+            assert exists(join(prefix, 'conda-meta/history'))
+
+            list_output = run_command(Commands.LIST, prefix)
+            stdout = list_output[0]
+            stderr = list_output[1]
+            expected_output = """# packages in environment at %s:
+#
+
+""" % prefix
+            self.assertEqual(stdout, expected_output)
+            self.assertEqual(stderr, '')
+
+            revision_output = run_command(Commands.LIST, prefix, '--revisions')
+            stdout = revision_output[0]
+            stderr = revision_output[1]
+            self.assertEquals(stderr, '')
+            self.assertIsInstance(stdout, str)
 
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
@@ -259,9 +267,8 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
-            from conda.config import pkgs_dirs
             flask_fname = flask_data['fn']
-            tar_old_path = join(pkgs_dirs[0], flask_fname)
+            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
 
             # regression test for #2886 (part 1 of 2)
             # install tarball from package cache, default channel
@@ -289,8 +296,8 @@ class IntegrationTests(TestCase):
                 del flask_data[field]
             repodata = {'info': {}, 'packages':{flask_fname: flask_data}}
             with make_temp_env() as channel:
-                subchan = join(channel, subdir)
-                channel = url_path(channel)
+                subchan = join(channel, context.subdir)
+                channel = path_to_url(channel)
                 os.makedirs(subchan)
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
@@ -305,7 +312,7 @@ class IntegrationTests(TestCase):
                 # Regression test for 2970
                 # install from build channel as a tarball
                 conda_bld = join(sys.prefix, 'conda-bld')
-                conda_bld_sub = join(conda_bld, subdir)
+                conda_bld_sub = join(conda_bld, context.subdir)
 
                 tar_bld_path = join(conda_bld_sub, flask_fname)
                 if os.path.exists(conda_bld):
@@ -342,19 +349,18 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-2')
 
             # test symlinks created with env
-            bindir = 'Scripts' if on_win else 'bin'
-            print(os.listdir(join(prefix, bindir)))
+            print(os.listdir(join(prefix, BIN_DIRECTORY)))
             if on_win:
-                assert isfile(join(prefix, bindir, 'activate'))
-                assert isfile(join(prefix, bindir, 'deactivate'))
-                assert isfile(join(prefix, bindir, 'conda'))
-                assert isfile(join(prefix, bindir, 'activate.bat'))
-                assert isfile(join(prefix, bindir, 'deactivate.bat'))
-                assert isfile(join(prefix, bindir, 'conda.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'activate'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'conda'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'activate.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate.bat'))
+                assert isfile(join(prefix, BIN_DIRECTORY, 'conda.bat'))
             else:
-                assert islink(join(prefix, bindir, 'activate'))
-                assert islink(join(prefix, bindir, 'deactivate'))
-                assert islink(join(prefix, bindir, 'conda'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'activate'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'deactivate'))
+                assert islink(join(prefix, BIN_DIRECTORY, 'conda'))
 
     @pytest.mark.timeout(300)
     def test_remove_all(self):
@@ -366,7 +372,6 @@ class IntegrationTests(TestCase):
             assert not exists(prefix)
 
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.xfail(reason="pending resolution of #2926")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
@@ -422,22 +427,27 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python") as prefix:
             assert_package_is_installed(prefix, 'python')
-            from conda.config import get_rc_urls
-            assert 'r' not in get_rc_urls()
+            assert 'r' not in context.channels
 
             # assert conda search cannot find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert bool(json_obj) is False
 
+            # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+            json_obj = json_loads(stdout)
+            assert json_obj['rc_path'] == join(prefix, 'condarc')
+            assert json_obj['get']['channels']
 
-            # assert conda search cannot find rpy2
+            # assert conda search can now find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj['rpy2']) > 1
@@ -455,27 +465,20 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_in_underscore_env_shows_message(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        try:
-            config.load_condarc("")
-            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut")
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut")
             assert ("Environment name starts with underscore '_'.  "
                     "Skipping menu installation." in stderr)
-        finally:
-            rmtree(prefix, ignore_errors=True)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        try:
-            config.load_condarc("")
-            stdout, stderr = run_command(Commands.CREATE, prefix, "console_shortcut",
-                                         "--no-shortcuts")
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut", "--no-shortcuts")
             # This test is sufficient, because it effectively verifies that the code
             #  path was not visited.
             assert ("Environment name starts with underscore '_'.  Skipping menu installation."
                     not in stderr)
-        finally:
-            rmtree(prefix, ignore_errors=True)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
@@ -483,22 +486,21 @@ class IntegrationTests(TestCase):
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, config.bits))
+                                          "".format(sys.version_info.major, context.bits))
 
         prefix = make_temp_prefix(str(uuid4())[:7])
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         try:
-            config.load_condarc("")
-            run_command(Commands.CREATE, prefix, "console_shortcut")
-            assert package_is_installed(prefix, 'console_shortcut')
-            assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
-                                           "Contents of dir:\n"
-                                           "{0}".format(os.listdir(shortcut_dir)))
+            with make_temp_env("console_shortcut", prefix=prefix):
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert isfile(shortcut_file), ("Shortcut not found in menu dir. "
+                                               "Contents of dir:\n"
+                                               "{0}".format(os.listdir(shortcut_dir)))
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, 'console_shortcut')
-            assert not package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # make sure that cleanup without specifying --shortcuts still removes shortcuts
+                run_command(Commands.REMOVE, prefix, 'console_shortcut')
+                assert not package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
@@ -511,7 +513,7 @@ class IntegrationTests(TestCase):
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, config.bits))
+                                          "".format(sys.version_info.major, context.bits))
 
         prefix = make_temp_prefix(str(uuid4())[:7])
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
@@ -519,51 +521,50 @@ class IntegrationTests(TestCase):
 
         try:
             # including --no-shortcuts should not get shortcuts installed
-            config.load_condarc("")
-            run_command(Commands.CREATE, prefix, "--no-shortcuts", "console_shortcut")
-            assert package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+            with make_temp_env("console_shortcut", "--no-shortcuts", prefix=prefix):
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, 'console_shortcut')
-            assert not package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # make sure that cleanup without specifying --shortcuts still removes shortcuts
+                run_command(Commands.REMOVE, prefix, 'console_shortcut')
+                assert not package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(reason="configs got borked here somehow")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 7, 29), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
-                                          "".format(sys.version_info.major, config.bits))
+                                          "".format(sys.version_info.major, context.bits))
 
         prefix = make_temp_prefix(str(uuid4())[:7])
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         assert not isfile(shortcut_file)
 
         try:
-            # set condarc shortcuts: False
-            config.load_condarc("")
-            run_command(Commands.CONFIG, prefix, "--set shortcuts false")
-            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
-            json_obj = json_loads(stdout)
-            # assert json_obj['rc_path'] == join(prefix, 'condarc')
-            assert json_obj['get']['shortcuts'] is False
+            with make_temp_env(prefix=prefix):
+                # set condarc shortcuts: False
+                run_command(Commands.CONFIG, prefix, "--set shortcuts false")
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+                json_obj = json_loads(stdout)
+                # assert json_obj['rc_path'] == join(prefix, 'condarc')
+                assert json_obj['get']['shortcuts'] is False
 
-            # including shortcuts: False should not get shortcuts installed
-            run_command(Commands.CREATE, prefix, "console_shortcut")
-            assert package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # including shortcuts: False should not get shortcuts installed
+                run_command(Commands.CREATE, prefix, "console_shortcut")
+                assert package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
 
-            # make sure that cleanup without specifying --shortcuts still removes shortcuts
-            run_command(Commands.REMOVE, prefix, 'console_shortcut')
-            assert not package_is_installed(prefix, 'console_shortcut')
-            assert not isfile(shortcut_file)
+                # make sure that cleanup without specifying --shortcuts still removes shortcuts
+                run_command(Commands.REMOVE, prefix, 'console_shortcut')
+                assert not package_is_installed(prefix, 'console_shortcut')
+                assert not isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):

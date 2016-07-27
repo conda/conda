@@ -11,15 +11,19 @@ from collections import defaultdict
 from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath, curdir)
 
+from .api import get_index
+from .base.context import context
+from .common.url import path_to_url, is_url
+from .compat import iteritems, itervalues
+from .models.channel import Channel
+from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
+                         PackageNotFoundError, CondaRuntimeError)
 from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
                       linked_data, find_new_location, cached_url, dist2filename)
-from .compat import iteritems, itervalues
-from .config import is_url, url_channel, root_dir, envs_dirs, subdir
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
-from .utils import md5_file, url_path as utils_url_path
-from .api import get_index
+from .utils import md5_file, on_win
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -54,19 +58,20 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # Format: (url|path)(:#md5)?
         m = url_pat.match(spec)
         if m is None:
-            sys.exit('Could not parse explicit URL: %s' % spec)
+            raise ParseError('Could not parse explicit URL: %s' % spec)
         url_p, fn, md5 = m.group('url_p'), m.group('fn'), m.group('md5')
         if not is_url(url_p):
             if url_p is None:
                 url_p = curdir
             elif not isdir(url_p):
-                sys.exit('Error: file not found: %s' % join(url_p, fn))
-            url_p = utils_url_path(url_p).rstrip('/')
+                raise CondaFileNotFoundError('file not found: %s' %
+                                             join(url_p, fn))
+            url_p = path_to_url(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
 
         # is_local: if the tarball is stored locally (file://)
         # is_cache: if the tarball is sitting in our cache
-        is_local = url.startswith('file://')
+        is_local = not is_url(url) or url.startswith('file://')
         prefix = cached_url(url) if is_local else None
         is_cache = prefix is not None
         if is_cache:
@@ -74,7 +79,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             schannel = 'defaults' if prefix == '' else prefix[:-2]
         else:
             # Channel information from the URL
-            channel, schannel = url_channel(url)
+            channel, schannel = Channel(url).url_channel_wtf
             prefix = '' if schannel == 'defaults' else schannel + '::'
 
         fn = prefix + fn
@@ -129,13 +134,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     for fn, md5 in verifies:
         info = index.get(fn)
         if info is None:
-            sys.exit("Error: no package '%s' in index" % fn)
+            raise PackageNotFoundError("no package '%s' in index" % fn)
         if md5 and 'md5' not in info:
             sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
         if md5 and info['md5'] != md5:
-            sys.exit(
-                'MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
-                % (fn, md5, info['md5']))
+            raise MD5MismatchError('MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
+                                   % (fn, md5, info['md5']))
 
     execute_actions(actions, index=index, verbose=verbose)
     return actions
@@ -143,7 +147,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
 def rel_path(prefix, path, windows_forward_slashes=True):
     res = path[len(prefix) + 1:]
-    if sys.platform == 'win32' and windows_forward_slashes:
+    if on_win and windows_forward_slashes:
         res = res.replace('\\', '/')
     return res
 
@@ -177,7 +181,7 @@ def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=Tr
                 if islink(path):
                     res.add(relpath(path, prefix))
 
-    if sys.platform == 'win32' and windows_forward_slashes:
+    if on_win and windows_forward_slashes:
         return {path.replace('\\', '/') for path in res}
     else:
         return res
@@ -210,31 +214,11 @@ def which_prefix(path):
         prefix = dirname(prefix)
 
 
-def which_package(path):
-    """
-    given the path (of a (presumably) conda installed file) iterate over
-    the conda packages the file came from.  Usually the iteration yields
-    only one package.
-    """
-    path = abspath(path)
-    prefix = which_prefix(path)
-    if prefix is None:
-        raise RuntimeError("could not determine conda prefix from: %s" % path)
-    for dist in install_linked(prefix):
-        meta = is_linked(prefix, dist)
-        if any(abspath(join(prefix, f)) == path for f in meta['files']):
-            yield dist
-
-
-def discard_conda(dists):
-    return [dist for dist in dists if not name_dist(dist) == 'conda']
-
-
 def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
     """
-    if sys.platform == 'win32' and exists(join(root_dir, '.nonadmin')):
+    if on_win and exists(join(context.root_dir, '.nonadmin')):
         if not isdir(prefix):
             os.makedirs(prefix)
         with open(join(prefix, '.nonadmin'), 'w') as fo:
@@ -305,8 +289,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     if notfound:
         what = "Package%s " % ('' if len(notfound) == 1 else 's')
         notfound = '\n'.join(' - ' + fn for fn in notfound)
-        msg = '%s missing in current %s channels:%s' % (what, subdir, notfound)
-        raise RuntimeError(msg)
+        msg = '%s missing in current %s channels:%s' % (what, context.subdir, notfound)
+        raise CondaRuntimeError(msg)
 
     # Assemble the URL and channel list
     urls = {}
@@ -361,23 +345,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     return actions, untracked_files
 
 
-def install_local_packages(prefix, paths, verbose=False):
-    explicit(paths, prefix, verbose=verbose)
-
-
-def environment_for_conda_environment(prefix=root_dir):
-    # prepend the bin directory to the path
-    fmt = r'%s\Scripts' if sys.platform == 'win32' else '%s/bin'
-    binpath = fmt % abspath(prefix)
-    path = os.path.pathsep.join([binpath, os.getenv('PATH')])
-    env = {'PATH': path}
-    # copy existing environment variables, but not anything with PATH in it
-    for k, v in iteritems(os.environ):
-        if k != 'PATH':
-            env[k] = v
-    return binpath, env
-
-
 def make_icon_url(info):
     if info.get('channel') and info.get('icon'):
         base_url = dirname(info['channel'])
@@ -391,7 +358,7 @@ def make_icon_url(info):
 
 def list_prefixes():
     # Lists all the prefixes that conda knows about.
-    for envs_dir in envs_dirs:
+    for envs_dir in context.envs_dirs:
         if not isdir(envs_dir):
             continue
         for dn in sorted(os.listdir(envs_dir)):
@@ -402,4 +369,4 @@ def list_prefixes():
                 prefix = join(envs_dir, dn)
                 yield prefix
 
-    yield root_dir
+    yield context.root_dir

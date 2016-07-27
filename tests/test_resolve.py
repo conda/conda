@@ -1,13 +1,15 @@
 from __future__ import print_function, absolute_import
+
+import os
+
 import json
 import unittest
 from os.path import dirname, join
 
-import pytest
-
-from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable
+from conda.base.context import reset_context
+from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
+from conda.resolve import MatchSpec, Package, Resolve
 from tests.helpers import raises
-from conda import config
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = json.load(fi)
@@ -97,6 +99,7 @@ class TestMatchSpec(unittest.TestCase):
     def test_string(self):
         a = MatchSpec("foo1 >=1.3 2 (optional,target=burg)")
         assert a.optional and a.target=='burg'
+
 
 class TestPackage(unittest.TestCase):
 
@@ -353,16 +356,16 @@ def test_generate_eq():
 
 def test_unsat():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
+    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
     # numpy 1.5 does not have a python 3 package
-    assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'python 3*']))
-    assert raises(Unsatisfiable, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
+    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'python 3*']))
+    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
 
 def test_nonexistent():
-    assert raises(NoPackagesFound, lambda: r.get_pkgs('notarealpackage 2.0*'))
-    assert raises(NoPackagesFound, lambda: r.install(['notarealpackage 2.0*']))
+    assert raises(NoPackagesFoundError, lambda: r.get_pkgs('notarealpackage 2.0*'))
+    assert raises(NoPackagesFoundError, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
-    assert raises(NoPackagesFound, lambda: r.install(['numpy 1.5']))
+    assert raises(NoPackagesFoundError, lambda: r.install(['numpy 1.5']))
 
 def test_nonexistent_deps():
     index2 = index.copy()
@@ -435,8 +438,8 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
-    assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.0']))
-    assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
+    assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0']))
+    assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
     assert r.install(['anotherpackage 1.0']) == [
         'anotherpackage-1.0-py33_0.tar.bz2',
@@ -535,7 +538,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
-    assert raises(NoPackagesFound, lambda: r.install(['mypackage 1.1']))
+    assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.1']))
 
 
     assert r.install(['anotherpackage 1.0']) == [
@@ -876,8 +879,10 @@ def test_channel_priority():
     index2[fn2] = index2[fn1].copy()
     r2 = Resolve(index2)
     rec = r2.index[fn2]
-    import conda.resolve
-    conda.resolve.channel_priority = True
+
+    os.environ['CONDA_CHANNEL_PRIORITY'] = 'True'
+    reset_context(())
+
     rec['priority'] = 0
     # Should select the "other", older package because it
     # has a lower channel priority number
@@ -888,7 +893,10 @@ def test_channel_priority():
     installed2 = r2.install(spec)
     # Should also select the newer package because we have
     # turned off channel priority altogether
-    conda.resolve.channel_priority = False
+
+    os.environ['CONDA_CHANNEL_PRIORITY'] = 'False'
+    reset_context(())
+
     rec['priority'] = 0
     installed3 = r2.install(spec)
     assert installed1 != installed2

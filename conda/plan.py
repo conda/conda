@@ -16,18 +16,17 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
+from .base.context import context, default_python
+from .models.channel import Channel
 from . import instructions as inst
-from .config import (always_copy as config_always_copy, channel_priority,
-                     show_channel_urls as config_show_channel_urls, is_offline,
-                     root_dir, allow_softlinks, default_python, auto_update_conda,
-                     track_features, foreign, url_channel, canonical_channel_name)
-from .exceptions import CondaException
+from .exceptions import (TooFewArgumentsError, InstallError, RemoveError, CondaIndexError,
+                         CondaRuntimeError)
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
                       is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
                       LINK_SOFT, try_hard_link, rm_rf)
 from .resolve import MatchSpec, Resolve, Package
-from .utils import md5_file, human_bytes
+from .utils import md5_file, human_bytes, on_win
 
 # For backwards compatibility
 
@@ -47,15 +46,15 @@ def print_dists(dists_extras):
 
 def display_actions(actions, index, show_channel_urls=None):
     if show_channel_urls is None:
-        show_channel_urls = config_show_channel_urls
+        show_channel_urls = context.show_channel_urls
 
     def channel_str(rec):
         if rec.get('schannel'):
             return rec['schannel']
         if rec.get('url'):
-            return url_channel(rec['url'])[1]
+            return Channel(rec['url']).url_channel_wtf[1]  # <-- same thing as canonical_name
         if rec.get('channel'):
-            return canonical_channel_name(rec['channel'])
+            return Channel(rec['channel']).canonical_name
         return '<unknown>'
 
     def channel_filt(s):
@@ -127,6 +126,7 @@ def display_actions(actions, index, show_channel_urls=None):
         for var in (packages, features, channels, records):
             var[pkg] = var[pkg][::-1]
 
+    empty = False
     if packages:
         maxpkg = max(len(p) for p in packages) + 1
         maxoldver = max(len(p[0]) for p in packages.values())
@@ -135,6 +135,8 @@ def display_actions(actions, index, show_channel_urls=None):
         maxnewfeatures = max(len(p[1]) for p in features.values())
         maxoldchannels = max(len(channel_filt(p[0])) for p in channels.values())
         maxnewchannels = max(len(channel_filt(p[1])) for p in channels.values())
+    else:
+        empty = True
     updated = set()
     downgraded = set()
     channeled = set()
@@ -181,7 +183,7 @@ def display_actions(actions, index, show_channel_urls=None):
             oldver = P0.version > P1.version
         oldbld = P0.build_number > P1.build_number
         newbld = P0.build_number < P1.build_number
-        if channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
+        if context.channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
             channeled.add(pkg)
         elif newver:
             updated.add(pkg)
@@ -204,9 +206,9 @@ def display_actions(actions, index, show_channel_urls=None):
 
     if new:
         print("\nThe following NEW packages will be INSTALLED:\n")
-    for pkg in sorted(new):
-        # New packages have been moved to the "old" column for display
-        print(format(oldfmt[pkg], pkg))
+        for pkg in sorted(new):
+            # New packages have been moved to the "old" column for display
+            print(format(oldfmt[pkg], pkg))
 
     if removed:
         print("\nThe following packages will be REMOVED:\n")
@@ -227,6 +229,10 @@ def display_actions(actions, index, show_channel_urls=None):
         print("\nThe following packages will be DOWNGRADED due to dependency conflicts:\n")
         for pkg in sorted(downgraded):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+
+    if empty and actions.get(inst.SYMLINK_CONDA):
+        print("\nThe following empty environments will be CREATED:\n")
+        print(actions['PREFIX'])
 
     print()
 
@@ -253,7 +259,7 @@ def plan_from_actions(actions):
     assert inst.PREFIX in actions and actions[inst.PREFIX]
     res = [('PREFIX', '%s' % actions[inst.PREFIX])]
 
-    if sys.platform == 'win32':
+    if on_win:
         # Always link/unlink menuinst first on windows in case a subsequent
         # package tries to import it to create/remove a shortcut
 
@@ -347,11 +353,11 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                 index_json = join(ppath, 'index.json')
                 with open(index_json, 'w'):
                     pass
-            if config_always_copy or always_copy:
+            if context.always_copy or always_copy:
                 lt = LINK_COPY
             elif try_hard_link(fetched_dir, prefix, dist):
                 lt = LINK_HARD
-            elif allow_softlinks and sys.platform != 'win32':
+            elif context.allow_softlinks and not on_win:
                 lt = LINK_SOFT
             else:
                 lt = LINK_COPY
@@ -373,7 +379,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
 
 
 def is_root_prefix(prefix):
-    return abspath(prefix) == abspath(root_dir)
+    return abspath(prefix) == abspath(context.root_dir)
 
 
 def add_defaults_to_specs(r, linked, specs, update=False):
@@ -439,6 +445,7 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
+
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False):
     r = Resolve(index)
@@ -451,17 +458,24 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     # Only add a conda spec if conda and conda-env are not in the specs.
     # Also skip this step if we're offline.
-    if auto_update_conda and not is_offline() and is_root_prefix(prefix):
-        mss = [MatchSpec(s) for s in specs if s.startswith('conda')]
-        mss = [ms for ms in mss if ms.name in ('conda', 'conda-env')]
-        if not mss:
+    root_only = ('conda', 'conda-env')
+    mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
+    mss = [ms for ms in mss if ms.name in root_only]
+    if is_root_prefix(prefix):
+        if context.auto_update_conda and not context.offline and not mss:
             from . import __version__ as conda_version
             specs.append('conda >=' + conda_version)
             specs.append('conda-env')
+    elif basename(prefix).startswith('_'):
+        # anything (including conda) can be installed into environments
+        # starting with '_', mainly to allow conda-build to build conda
+        pass
+    elif mss:
+        raise InstallError("Error: 'conda' can only be installed into the root environment")
 
     must_have = {}
-    if track_features:
-        specs.extend(x + '@' for x in track_features)
+    if context.track_features:
+        specs.extend(x + '@' for x in context.track_features)
 
     pkgs = r.install(specs, linked, update_deps=update_deps)
 
@@ -473,18 +487,32 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         must_have[name] = dist
 
     if is_root_prefix(prefix):
-        for name in foreign:
-            if name in must_have:
-                del must_have[name]
+        # for name in foreign:
+        #     if name in must_have:
+        #         del must_have[name]
+        pass
     elif basename(prefix).startswith('_'):
         # anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
         pass
-    else:
-        # disallow conda from being installed into all other environments
-        if 'conda' in must_have or 'conda-env' in must_have:
-            sys.exit("Error: 'conda' can only be installed into the "
-                     "root environment")
+
+    elif any(s in must_have for s in root_only):
+        # the solver scheduled an install of conda, but it wasn't in the
+        # specs, so it must have been a dependency.
+        specs = [s for s in specs if r.depends_on(s, root_only)]
+        if specs:
+            raise InstallError("""\
+Error: the following specs depend on 'conda' and can only be installed
+into the root environment: %s""" % (' '.join(specs),))
+        linked = [r.package_name(s) for s in linked]
+        linked = [s for s in linked if r.depends_on(s, root_only)]
+        if linked:
+            raise InstallError("""\
+Error: one or more of the packages already installed depend on 'conda'
+and should only be installed in the root environment: %s
+These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
+        raise InstallError("Error: 'conda' can only be installed into the "
+                           "root environment")
 
     smh = r.dependency_sort(must_have)
 
@@ -493,8 +521,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         index=index if force else None,
         force=force, always_copy=always_copy)
 
-    if actions[inst.LINK]:
-        actions[inst.SYMLINK_CONDA] = [root_dir]
+    # always symlink to create empty dirs
+    actions[inst.SYMLINK_CONDA] = [context.root_dir]
 
     for fkey in sorted(linked):
         dist = fkey[:-8]
@@ -534,14 +562,13 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             continue
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
-            raise RuntimeError(msg % dist)
-        if name == 'conda' and name not in nlinked:
+            raise CondaRuntimeError(msg % dist)
+        if context.conda_in_root and name == 'conda' and name not in nlinked:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
-                sys.exit("Error: 'conda' cannot be removed from the root environment")
+                raise RemoveError("'conda' cannot be removed from the root environment")
             else:
-                msg = ("Error: this 'remove' command cannot be executed because it\n"
-                       "would require removing 'conda' dependencies")
-                sys.exit(msg)
+                raise RemoveError("Error: this 'remove' command cannot be executed because it\n"
+                                  "would require removing 'conda' dependencies")
         add_unlink(actions, old_fn)
 
     return actions
@@ -578,7 +605,7 @@ def revert_actions(prefix, revision=-1):
     try:
         state = h.get_state(revision)
     except IndexError:
-        sys.exit("Error: no such revision: %d" % revision)
+        raise CondaIndexError("no such revision: %d" % revision)
 
     curr = h.get_state()
     if state == curr:
@@ -609,9 +636,8 @@ def update_old_plan(old_plan):
         if line.startswith('#'):
             continue
         if ' ' not in line:
-            raise CondaException(
-                "The instruction '%s' takes at least one argument" % line
-            )
+            raise TooFewArgumentsError("The instruction '%s' takes at least"
+                                       " one argument" % line)
 
         instruction, arg = line.split(' ', 1)
         plan.append((instruction, arg))

@@ -14,6 +14,7 @@ from difflib import get_close_matches
 
 from .common import add_parser_help
 from .find_commands import find_commands, find_executable
+from ..exceptions import CommandNotFoundError, SubprocessExit
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
                   'pipbuild', 'develop', 'convert'}
@@ -68,7 +69,7 @@ if argcomplete:
                     debug_argcomplete(args)
                     p = subprocess.Popen(args, env=environ, close_fds=False)
                     p.communicate()
-                    sys.exit()
+                    raise SubprocessExit()
             else:
                 debug_argcomplete("Not using subprocess")
                 debug_argcomplete(sys.argv)
@@ -128,10 +129,9 @@ class ArgumentParser(argparse.ArgumentParser):
                     executable = find_executable('conda-' + cmd)
                     if not executable:
                         if cmd in build_commands:
-                            sys.exit("""\
-Error: You need to install conda-build in order to use the 'conda %s'
-       command.
-""" % cmd)
+                            raise CommandNotFoundError('''
+Error: You need to install conda-build in order to
+use the "conda %s" command.''' % cmd)
                         else:
                             message = "Error: Could not locate 'conda-%s'" % cmd
                             possibilities = (set(argument.choices.keys()) |
@@ -142,7 +142,8 @@ Error: You need to install conda-build in order to use the 'conda %s'
                                 message += '\n\nDid you mean one of these?\n'
                                 for s in close:
                                     message += '    %s' % s
-                            sys.exit(message)
+                            raise CommandNotFoundError(message)
+
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])
                     p = subprocess.Popen(args)
@@ -151,15 +152,18 @@ Error: You need to install conda-build in order to use the 'conda %s'
                     except KeyboardInterrupt:
                         p.wait()
                     finally:
-                        sys.exit(p.returncode)
+                        raise SubprocessExit(p.returncode)
+
         super(ArgumentParser, self).error(message)
 
     def print_help(self):
         super(ArgumentParser, self).print_help()
 
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
-            from .find_commands import help
-            help()
+            print("""
+other commands, such as "conda build", are avaialble when additional conda
+packages (e.g. conda-build) are installed
+""")
 
     def parse_args(self, *args, **kwargs):
         if argcomplete:
