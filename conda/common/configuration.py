@@ -208,8 +208,9 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(rawvalue):
-        return dict((key, excepts(AttributeError,
-                                  lambda k: first(k.ca.items.values())[2].value.strip() or None,
+        # first(k.ca.items.values())[2].value.strip()
+        return dict((key, excepts(KeyError,
+                                  lambda k: rawvalue.ca.items[k][2].value.strip() or None,
                                   lambda _: None  # default value on exception
                                   )(key))
                     for key in rawvalue)
@@ -357,6 +358,11 @@ class Parameter(object):
     def _match_key_is_important(self, raw_parameter):
         return raw_parameter.keyflag(self.__class__) is ParameterFlag.final
 
+    def _first_important_matches(self, matches):
+        idx = first(enumerate(matches), lambda x: self._match_key_is_important(x[1]),
+                    apply=lambda x: x[0])
+        return matches if idx is None else matches[:idx+1]
+
 
 class PrimitiveParameter(Parameter):
     """Parameter type for a Configuration class that holds a single python primitive value.
@@ -421,7 +427,7 @@ class SequenceParameter(Parameter):
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        important_matches = tuple(takewhile(self._match_key_is_important, matches)) or matches
+        relevant_matches = self._first_important_matches(matches)
 
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
@@ -430,16 +436,16 @@ class SequenceParameter(Parameter):
                          for line, flag in zip(match.value(self.__class__),
                                                match.valueflags(self.__class__))
                          if flag is marker)
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m in important_matches)
+        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m in relevant_matches)
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
         bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m in
-                              reversed(important_matches))
+                              reversed(relevant_matches))
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(m.value(self.__class__) for m in reversed(important_matches))
+        all_lines = concat(m.value(self.__class__) for m in reversed(relevant_matches))
 
         # stack top_lines + all_lines, then de-dupe
         top_deduped = tuple(unique(concatv(top_lines, all_lines)))
@@ -482,7 +488,7 @@ class MapParameter(Parameter):
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        relevant_matches = tuple(takewhile(self._match_key_is_important, matches)) or matches
+        relevant_matches = self._first_important_matches(matches)
 
         # mapkeys with important matches
         def key_is_important(match, key):
@@ -491,7 +497,6 @@ class MapParameter(Parameter):
                                     for k, v in iteritems(match.value(self.__class__))
                                     if key_is_important(match, k))
                                for match in relevant_matches)
-
         # dump all matches in a dict
         # then overwrite with important matches
         return merge(concatv((m.value(self.__class__) for m in relevant_matches),
