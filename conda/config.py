@@ -92,3 +92,7 @@ rc_path = get_rc_path()
 pkgs_dirs = context.pkgs_dirs
 default_prefix = context.default_prefix
 subdir = context.subdir
+
+# put back because of conda build
+default_python = context. default_python
+binstar_upload = context.binstar_upload
