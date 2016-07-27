@@ -11,7 +11,8 @@ import time
 import threading
 from functools import partial
 from os.path import isdir, join, basename, exists
-
+# conda build import
+from .common.url import path_to_url
 log = logging.getLogger(__name__)
 stderrlog = logging.getLogger('stderrlog')
 
@@ -389,3 +390,6 @@ def exp_backoff_fn(fn, *args):
                 raise
         else:
             return result
+
+# put back because of conda build
+urlpath = path_to_url
