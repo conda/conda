@@ -137,6 +137,7 @@ def display_actions(actions, index, show_channel_urls=None):
         maxnewchannels = max(len(channel_filt(p[1])) for p in channels.values())
     else:
         empty = True
+        actions[inst.SYMLINK_CONDA] = [context.root_dir]
     updated = set()
     downgraded = set()
     channeled = set()
@@ -522,7 +523,8 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         force=force, always_copy=always_copy)
 
     # always symlink to create empty dirs
-    actions[inst.SYMLINK_CONDA] = [context.root_dir]
+    if actions[inst.LINK]:
+        actions[inst.SYMLINK_CONDA] = [context.root_dir]
 
     for fkey in sorted(linked):
         dist = fkey[:-8]
