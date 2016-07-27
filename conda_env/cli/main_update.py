@@ -7,11 +7,11 @@ from conda import config
 from conda.cli import common
 from conda.cli import install as cli_install
 from conda.misc import touch_nonadmin
-
 from ..installers.base import get_installer, InvalidInstaller
 from .. import specs as install_specs
 from .. import exceptions
-
+# for conda env
+from conda_env.cli.common import error_and_exit, get_prefix
 description = """
 Update the current environment based on environment file
 """
@@ -76,7 +76,7 @@ def execute(args, parser):
                                     directory=os.getcwd())
         env = spec.environment
     except exceptions.SpecNotFound as e:
-        common.error_and_exit(str(e), json=args.json)
+        error_and_exit(str(e), json=args.json)
 
     if not args.name:
         if not env.name:
@@ -91,14 +91,14 @@ def execute(args, parser):
                     * Provide an environment name via --name or -n
                     * Re-run this command inside an activated conda environment.""").lstrip()
                 # TODO Add json support
-                common.error_and_exit(msg, json=False)
+                error_and_exit(msg, json=False)
 
         # Note: stubbing out the args object as all of the
         # conda.cli.common code thinks that name will always
         # be specified.
         args.name = env.name
 
-    prefix = common.get_prefix(args, search=False)
+    prefix = get_prefix(args, search=False)
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 

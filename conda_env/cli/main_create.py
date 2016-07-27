@@ -4,6 +4,7 @@ import os
 import sys
 import textwrap
 
+
 from conda.cli import common
 from conda.cli import install as cli_install
 from conda.install import rm_rf
@@ -13,6 +14,9 @@ from conda.plan import is_root_prefix
 from ..installers.base import get_installer, InvalidInstaller
 from .. import exceptions
 from .. import specs
+
+# for conda env import
+from conda_env.cli.common import error_and_exit, get_prefix
 
 description = """
 Create an environment based on an environment file
@@ -27,6 +31,7 @@ examples:
     conda env create -f=/path/to/requirements.txt -n deathstar
     conda env create -f=/path/to/requirements.txt -p /home/user/software/deathstar
 """
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -77,13 +82,14 @@ def execute(args, parser):
         env = spec.environment
 
         # FIXME conda code currently requires args to have a name or prefix
-        if args.prefix is None:
+        # don't overwrite name if it's given. gh-254
+        if args.prefix is None and args.name is None:
             args.name = env.name
 
     except exceptions.SpecNotFound as e:
-        common.error_and_exit(str(e), json=args.json)
+        error_and_exit(str(e), json=args.json)
 
-    prefix = common.get_prefix(args, search=False)
+    prefix = get_prefix(args, search=False)
 
     if args.force and not is_root_prefix(prefix) and os.path.exists(prefix):
         rm_rf(prefix)
