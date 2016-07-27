@@ -10,7 +10,7 @@ from itertools import chain
 
 from conda.cli import common
 from conda import install
-from conda.base import context
+from conda.base.context import context
 
 from . import compat
 from . import exceptions
