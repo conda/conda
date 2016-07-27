@@ -3,7 +3,7 @@ from os.path import abspath, join, isdir, expanduser
 from conda.config import root_dir, default_prefix
 import os
 from conda.base.context import context
-
+import textwrap
 root_env_name = 'root'
 envs_dirs = context.envs_dirs
 def stdout_json(d):
@@ -61,8 +61,43 @@ def find_prefix_name(name):
     if name == root_env_name:
         return root_dir
     # always search cwd in addition to envs dirs (for relative path access)
-    for envs_dir in envs_dirs + [os.getcwd(), ]:
+    for envs_dir in list(envs_dirs) + [os.getcwd(), ]:
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
     return None
+
+def check_specs(prefix, specs, json=False, create=False):
+    if len(specs) == 0:
+        msg = ('too few arguments, must supply command line '
+               'package specs or --file')
+        if create:
+            msg += textwrap.dedent("""
+                You can specify one or more default packages to install when creating
+                an environment.  Doing so allows you to call conda create without
+                explicitly providing any package names.
+                To set the provided packages, call conda config like this:
+                    conda config --add create_default_packages PACKAGE_NAME
+            """)
+        error_and_exit(msg, json=json, error_type="ValueError")
+
+def get_index_trap(*args, **kwargs):
+    """
+    Retrieves the package index, but traps exceptions and reports them as
+    JSON if necessary.
+    """
+    from conda.api import get_index
+
+    if 'json' in kwargs:
+        json = kwargs['json']
+        del kwargs['json']
+    else:
+        json = False
+
+    try:
+        return get_index(*args, **kwargs)
+    except BaseException as e:
+        if json:
+            exception_and_exit(e, json=json)
+        else:
+            raise
