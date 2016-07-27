@@ -27,12 +27,12 @@ except ImportError:
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concat, concatv, unique
 
-from .. import CondaError
+from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first, frozendict, last
 from .._vendor.auxlib.exceptions import (Raise, ThisShouldNeverHappenError,
                                          ValidationError as AuxlibValidationError, AuxlibError)
 from .._vendor.auxlib.path import expand
-from .._vendor.auxlib.type_coercion import typify_data_structure
+from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
 from ..base.constants import EMPTY_MAP
 from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, text_type,
                      with_metaclass)
@@ -63,7 +63,7 @@ class ValidationError(ConfigurationError):
         self.parameter_name = parameter_name
         self.parameter_value = parameter_value
         self.source = source
-        if msg is not None:
+        if msg is None:
             msg = ("Parameter %s = %r declared in %s is invalid."
                    % (parameter_name, parameter_value, source))
         super(ConfigurationError, self).__init__(msg, **kwargs)
@@ -108,29 +108,9 @@ class CustomValidationError(ValidationError):
                                                     msg=msg)
 
 
-class MultiValidationError(ConfigurationError):
+class MultiValidationError(CondaMultiError, ConfigurationError):
     def __init__(self, errors, *args, **kwargs):
-        if len(errors) > 1:
-            msg = 'Multiple errors'
-        else:
-            msg = ''
-
-        error_message = ''
-        if isinstance(errors, dict):
-            error_items = errors.items()
-            #error_descriptions = [
-            #    ''.join(['Error with key %r in %r: ' % (item[0], item[1][0]),
-            #             ''.join([str(exception) for exception in item[1]])])
-            #    for item in error_items
-            #    ]
-
-            error_descriptions = ['Error with key %r in %r' % (item[0], item[1]) for item in error_items]
-
-            error_message = '\n'.join(error_descriptions) + '\n'
-        elif isinstance(errors, tuple):
-            error_message = '\n'.join(str(exception) for exception in errors)
-
-        super(MultiValidationError, self).__init__(msg, error_message, *args, **kwargs)
+        super(MultiValidationError, self).__init__(errors, *args, **kwargs)
 
 
 class ParameterFlag(Enum):
@@ -413,11 +393,11 @@ class Parameter(object):
         matches = []
         multikey_exceptions = []
         for filepath, raw_parameters in iteritems(instance.raw_data):
-            for match, error in self._raw_parameters_from_single_source(raw_parameters):
-                if match is not None:
-                    matches.append(match)
-                if error:
-                    multikey_exceptions.append(error)
+            match, error = self._raw_parameters_from_single_source(raw_parameters)
+            if match is not None:
+                matches.append(match)
+            if error:
+                multikey_exceptions.append(error)
         return matches, multikey_exceptions
 
     @abstractmethod
@@ -434,10 +414,10 @@ class Parameter(object):
         matches, errors = self._get_all_matches(instance)
         try:
             result = typify_data_structure(self._merge(matches) if matches else self.default)
-        except AuxlibError as e:
+        except TypeCoercionError as e:
             if 'result' not in locals():
                 result = None
-            errors.append(e)
+            errors.append(CustomValidationError(self.name, e.value, "<<merged>>", text_type(e)))
         self.validate_and_raise(instance, result, errors)
         instance._cache[self.name] = result
         return result
@@ -747,9 +727,10 @@ class Configuration(object):
             if match is not None and not isinstance(match, dict):
                 try:
                     typed_value = typify_data_structure(match.value(parameter.__class__),
-                                                        parameter._type)
-                except AuxlibError as e:
-                    validation_errors.append(e)
+                                                        parameter._element_type)
+                except TypeCoercionError as e:
+                    validation_errors.append(CustomValidationError(match.key, e.value, match.source, text_type(e)))
+
                 else:
                     validation_result = parameter.collect_errors(self, typed_value, match.source)
                     if validation_result is not True:
@@ -761,6 +742,7 @@ class Configuration(object):
         return validation_errors
 
     def validate_all(self):
-        validation_errors = [self.check_source(source) for source in self.raw_data]
+        validation_errors = list(chain.from_iterable(self.check_source(source)
+                                                     for source in self.raw_data))
         if validation_errors:
             raise MultiValidationError(validation_errors)

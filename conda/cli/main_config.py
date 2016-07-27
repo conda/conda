@@ -153,6 +153,11 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="Display all identified configuration sources.",
     )
     action.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate all configuration sources.",
+    )
+    action.add_argument(
         "--get",
         nargs='*',
         action="store",
@@ -261,6 +266,14 @@ def execute_config(args, parser):
                              'update_dependencies',
                              'use_pip'))
         print(yaml_dump(d))
+        return
+
+    if args.validate:
+        from conda.base.context import context
+        context.validate_all()
+        return
+
+
 
     if args.system:
         rc_path = sys_rc_path

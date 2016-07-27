@@ -1,9 +1,11 @@
 """Collection of functions to coerce conversion of types with an intelligent guess."""
-from itertools import chain
 from collections import Mapping
-from re import compile, IGNORECASE
-from .compat import integer_types, string_types, text_type, isiterable, iteritems, NoneType
+from itertools import chain
+from re import IGNORECASE, compile
+
+from .compat import NoneType, integer_types, isiterable, iteritems, string_types, text_type
 from .decorators import memoize, memoizeproperty
+from .exceptions import AuxlibError
 
 __all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
 
@@ -17,6 +19,13 @@ STRING_TYPES_SET = set(string_types)
 BOOLNULL_TYPE_SET = {bool, NoneType}
 
 NO_MATCH = object()
+
+
+class TypeCoercionError(AuxlibError, ValueError):
+
+    def __init__(self, value, msg, *args, **kwargs):
+        self.value = value
+        super(TypeCoercionError, self).__init__(msg, *args, **kwargs)
 
 
 class _Regex(object):
@@ -109,7 +118,7 @@ def numberify(value):
     candidate = _REGEX.convert_number(value)
     if candidate is not NO_MATCH:
         return candidate
-    raise ValueError("Cannot convert {0} to a number.".format(value))
+    raise TypeCoercionError(value, "Cannot convert {0} to a number.".format(value))
 
 
 def boolify(value, nullable=False, return_string=False):
@@ -155,7 +164,7 @@ def boolify(value, nullable=False, return_string=False):
         except ValueError:
             if isinstance(value, string_types) and return_string:
                 return value
-            raise ValueError("The value {0} cannot be boolified.".format(repr(value)))
+            raise TypeCoercionError(value, "The value %r cannot be boolified." % value)
 
 
 def boolify_truthy_string_ok(value):
