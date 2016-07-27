@@ -423,4 +423,4 @@ def conda_exception_handler(func, *args, **kwargs):
         json_result['lock'] = {
             'files': locks
         }
-        rm_lock(locks, verbose=not args.json)
+        rm_lock(locks, verbose=False)
