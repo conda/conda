@@ -17,6 +17,7 @@ fi
 # local vars
 ###############################################################################
 _SHELL="bash"
+[[ -n $ZSH_VERSION ]] && _SHELL="zsh"
 case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
@@ -57,6 +58,8 @@ unset arg
 if [[ "$HELP" == true ]]; then
     conda ..activate ${_SHELL}${EXT} -h
 
+    unset _SHELL
+    unset EXT
     unset HELP
     return 0
 fi
@@ -66,12 +69,20 @@ unset HELP
 # configure virtual environment
 ######################################################################
 conda ..checkenv ${_SHELL}${EXT} "$envname"
-[[ $? != 0 ]] && return 1
+if [[ $? != 0 ]]; then
+    unset _SHELL
+    unset EXT
+    return 1
+fi
+
+# configure the command to run to get the conda bin
+_CONDA_BIN="conda ..activate ${_SHELL}${EXT} ${envname}"
 
 # Ensure we deactivate any scripts from the old env
+# be careful since deactivate will unset certain values (like $_SHELL and $EXT)
 source deactivate ""
 
-_CONDA_BIN=$(conda ..activate ${_SHELL}${EXT} "$envname")
+_CONDA_BIN=$(${_CONDA_BIN})
 if [[ $? == 0 ]]; then
     # CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
     # export these to restore upon deactivation
@@ -85,9 +96,7 @@ if [[ $? == 0 ]]; then
     # CONDA_PREFIX
     # always the full path to the activated environment
     # is not set when no environment is active
-    SED=$(which sed) || SED="sed"
-    export CONDA_PREFIX=$(echo ${_CONDA_BIN} | $SED 's|/bin$||' >& /dev/null)
-    unset SED
+    export CONDA_PREFIX=$(echo ${_CONDA_BIN} | sed 's|/bin$||' >& /dev/null)
 
     # CONDA_DEFAULT_ENV
     # the shortest representation of how conda recognizes your env
@@ -123,14 +132,18 @@ if [[ $? == 0 ]]; then
         # most others uses rehash
         rehash
     fi
+
+    unset _SHELL
+    unset EXT
+    unset envname
+    unset _CONDA_BIN
+    unset _CONDA_DIR
+
+    return 0
 else
+    unset _SHELL
+    unset EXT
+    unset envname
+    unset _CONDA_BIN
     return 1
 fi
-
-unset _SHELL
-unset EXT
-unset envname
-unset _CONDA_BIN
-unset _CONDA_DIR
-
-return 0

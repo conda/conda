@@ -16,6 +16,22 @@ fi
 ###############################################################################
 # local vars
 ###############################################################################
+_SHELL="bash"
+[[ -n $ZSH_VERSION ]] && _SHELL="zsh"
+case "$(uname -s)" in
+    CYGWIN*|MINGW*|MSYS*)
+        EXT=".exe"
+        export MSYS2_ENV_CONV_EXCL=CONDA_PATH
+        # ignore any windows backup paths from bat-based activation
+        if [[ "$CONDA_PATH_BACKUP" =~ "/".*  ]]; then
+           unset CONDA_PATH_BACKUP
+        fi
+        ;;
+    *)
+        EXT=""
+        ;;
+esac
+
 HELP=false
 UNKNOWN=""
 
@@ -50,6 +66,8 @@ if [[ "$HELP" == true ]]; then
     fi
     conda ..deactivate ${_SHELL}${EXT} -h
 
+    unset _SHELL
+    unset EXT
     unset HELP
     if [[ "$UNKNOWN" != "" ]]; then
         unset UNKNOWN
@@ -59,6 +77,8 @@ if [[ "$HELP" == true ]]; then
         return 0
     fi
 fi
+unset _SHELL
+unset EXT
 unset HELP
 unset UNKNOWN
 

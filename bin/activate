@@ -30,6 +30,8 @@ echo '[ACTIVATE]: ERROR: Only supports sourcing from csh/tcsh and sh/bash/zsh.' 
 echo '[ACTIVATE]: ERROR: Your command: `'$0'`.'
 
 # CSH/TCSH
+# csh/tcsh does not check the $PATH when sourcing
+# so we need the hack with `which activate.csh`
 (                                   \
     test $0 = "csh"             ||  \
     test $0 = "-csh"            ||  \
@@ -39,7 +41,7 @@ echo '[ACTIVATE]: ERROR: Your command: `'$0'`.'
     test $0 = "-tcsh"           ||  \
     test $0 = "/bin/tcsh"           \
 )                               &&  \
-source activate.csh
+source `which activate.csh`
 
 # SH/BASH/ZSH
 (                                   \

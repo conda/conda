@@ -16,14 +16,31 @@ endif
 ###############################################################################
 # local vars
 ###############################################################################
+set _SHELL="csh"
+switch ( `uname -s` )
+    case "CYGWIN*":
+    case "MINGW*":
+    case "MSYS*":
+        set EXT=".exe"
+        setenv MSYS2_ENV_CONV_EXCL CONDA_PATH
+        # ignore any windows backup paths from bat-based activation
+        if ( "$CONDA_PATH_BACKUP" =~ "/*"  ) then
+           unset CONDA_PATH_BACKUP
+        endif
+        breaksw
+    default:
+        set EXT=""
+        breaksw
+endsw
+
 set HELP=false
 set UNKNOWN=""
 
 ###############################################################################
 # parse command line, perform command line error checking
 ###############################################################################
-set args=( $* )
-foreach arg $args
+set args="$*"
+foreach arg ( $args )
     switch ($arg)
         case "-h":
         case "--help":
@@ -51,6 +68,8 @@ if ( "$HELP" == true ) then
     endif
     conda ..deactivate ${_SHELL}${EXT} -h
 
+    unset _SHELL
+    unset EXT
     unset HELP
     if ( "$UNKNOWN" != "" ) then
         unset UNKNOWN
@@ -60,6 +79,8 @@ if ( "$HELP" == true ) then
         exit 0
     endif
 endif
+unset _SHELL
+unset EXT
 unset HELP
 unset UNKNOWN
 

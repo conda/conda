@@ -34,7 +34,11 @@ with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
 scripts = ['bin/activate',
+           'bin/activate.sh',
+           'bin/activate.csh',
            'bin/deactivate',
+           'bin/deactivate.sh',
+           'bin/deactivate.csh',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here

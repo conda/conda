@@ -11,7 +11,11 @@ build:
   always_include_files:
     - bin/conda                 [unix]
     - bin/activate              [unix]
+    - bin/activate.sh           [unix]
+    - bin/activate.csh          [unix]
     - bin/deactivate            [unix]
+    - bin/deactivate.sh         [unix]
+    - bin/deactivate.csh        [unix]
     - Scripts/activate.bat      [win]
     - Scripts/deactivate.bat    [win]
     # TODO: are these needed?  They currently break packaging, since these files don't exist yet at build time
