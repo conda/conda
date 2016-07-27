@@ -371,7 +371,9 @@ environment does not exist: %s
             common.stdout_json_success(
                 message='All requested packages already installed.')
         return
-
+    from ..instructions import LINK, UNLINK, SYMLINK_CONDA
+    if not actions[LINK] and not actions[UNLINK]:
+        actions[SYMLINK_CONDA] = [context.root_dir]
     if not args.json:
         print()
         print("Package plan for installation in environment %s:" % prefix)
