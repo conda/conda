@@ -62,6 +62,7 @@ install:
   - conda install -q git menuinst
   - conda install yaml
   - conda install anaconda-client
+  - conda install nbformat
   - conda install -q enum34 || WHOAMI
   - pip install flake8 pytest-cov pytest-timeout responses
   - python --version
