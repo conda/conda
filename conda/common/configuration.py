@@ -17,9 +17,9 @@ except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
 
 try:
-    from cytoolz.toolz.dicttoolz import merge
-    from cytoolz.toolz.functoolz import excepts
-    from cytoolz.toolz.itertoolz import concat, concatv, unique
+    from cytoolz.dicttoolz import merge
+    from cytoolz.functoolz import excepts
+    from cytoolz.itertoolz import concat, concatv, unique
 except ImportError:
     from .._vendor.toolz.dicttoolz import merge
     from .._vendor.toolz.functoolz import excepts
@@ -52,6 +52,9 @@ class ParameterFlag(Enum):
     final = 'final'
     top = "top"
     bottom = "bottom"
+
+    def __str__(self):
+        return "%s" % self.value
 
     @classmethod
     def from_name(cls, name):
@@ -97,7 +100,7 @@ class RawParameter(object):
         raise NotImplementedError()
 
     @abstractmethod
-    def keyflag(self, parameter_type):
+    def keyflag(self):
         raise NotImplementedError()
 
     @abstractmethod
@@ -117,7 +120,7 @@ class EnvRawParameter(RawParameter):
     def value(self, parameter_type):
         return self.__important_split_value[0].strip()
 
-    def keyflag(self, parameter_type):
+    def keyflag(self):
         return ParameterFlag.final if len(self.__important_split_value) >= 2 else None
 
     def valueflags(self, parameter_type):
@@ -141,7 +144,7 @@ class ArgParseRawParameter(RawParameter):
     def value(self, parameter_type):
         return make_immutable(self._raw_value)
 
-    def keyflag(self, parameter_type):
+    def keyflag(self):
         return None
 
     def valueflags(self, parameter_type):
@@ -164,7 +167,7 @@ class YamlRawParameter(RawParameter):
         self.__process(parameter_type)
         return self._value
 
-    def keyflag(self, parameter_type):
+    def keyflag(self):
         return ParameterFlag.from_string(self._keycomment)
 
     def valueflags(self, parameter_type):
@@ -356,12 +359,20 @@ class Parameter(object):
             raise CondaValidationError(getattr(self, 'name', 'undefined name'), value)
 
     def _match_key_is_important(self, raw_parameter):
-        return raw_parameter.keyflag(self.__class__) is ParameterFlag.final
+        return raw_parameter.keyflag() is ParameterFlag.final
 
     def _first_important_matches(self, matches):
         idx = first(enumerate(matches), lambda x: self._match_key_is_important(x[1]),
                     apply=lambda x: x[0])
         return matches if idx is None else matches[:idx+1]
+
+    @staticmethod
+    def _str_format_flag(flag):
+        return "  #!%s" % flag if flag is not None else ''
+
+    @classmethod
+    def repr_raw(cls, raw_parameter):
+        raise NotImplementedError()
 
 
 class PrimitiveParameter(Parameter):
@@ -395,6 +406,11 @@ class PrimitiveParameter(Parameter):
         if last_match is not None:
             return last_match.value(self.__class__)
         raise ThisShouldNeverHappenError()  # pragma: no cover
+
+    @classmethod
+    def repr_raw(cls, raw_parameter):
+        return "%s: %s%s" % (raw_parameter.key, raw_parameter.value(cls),
+                              cls._str_format_flag(raw_parameter.keyflag()))
 
 
 class SequenceParameter(Parameter):
@@ -459,6 +475,16 @@ class SequenceParameter(Parameter):
         # just reverse, and we're good to go
         return tuple(reversed(tuple(bottom_deduped)))
 
+    @classmethod
+    def repr_raw(cls, raw_parameter):
+        lines = list()
+        lines.append("%s:%s" % (raw_parameter.key,
+                                  cls._str_format_flag(raw_parameter.keyflag())))
+        for q, value in enumerate(raw_parameter.value(cls)):
+            valueflag = raw_parameter.valueflags(cls)[q]
+            lines.append("  - %s%s" % (value, cls._str_format_flag(valueflag)))
+        return '\n'.join(lines)
+
 
 class MapParameter(Parameter):
     """Parameter type for a Configuration class that holds a map (i.e. dict) of python
@@ -501,6 +527,16 @@ class MapParameter(Parameter):
         # then overwrite with important matches
         return merge(concatv((m.value(self.__class__) for m in relevant_matches),
                              reversed(important_maps)))
+
+    @classmethod
+    def repr_raw(cls, raw_parameter):
+        lines = list()
+        lines.append("%s:%s" % (raw_parameter.key,
+                                  cls._str_format_flag(raw_parameter.keyflag())))
+        for valuekey, value in iteritems(raw_parameter.value(cls)):
+            valueflag = raw_parameter.valueflags(cls).get(valuekey)
+            lines.append("  %s:%s%s" % (valuekey, value, cls._str_format_flag(valueflag)))
+        return '\n'.join(lines)
 
 
 class ConfigurationType(type):
@@ -548,8 +584,29 @@ class Configuration(object):
         self._cache = dict()
         return self
 
-    # def dump(self, parameter_name):
-    #     Match = namedtuple('Match', ('filepath', 'key', 'raw_parameter'))
+    def dump_parameter(self, parameter_name):
+        parameter = self.__class__.__dict__[parameter_name]
+        lines = list()
+        for match in parameter._get_all_matches(self):
+            lines.append("> %s" % match.source)
+            lines.append(parameter.repr_raw(match))
+            lines.append('')
+        return '\n'.join(lines)
+
+    def dump_locations(self):
+        lines = list()
+        for location, raw_parameters in iteritems(self.raw_data):
+            if not raw_parameters:
+                continue
+            parameter = lambda k: self.__class__.__dict__.get(k)
+            these_lines = tuple(parameter(key).repr_raw(match)
+                                for key, match in iteritems(raw_parameters)
+                                if parameter(key) is not None)
+            if these_lines:
+                lines.append("> %s" % location)
+                lines.extend(these_lines)
+                lines.append('')
+        return '\n'.join(lines)
 
     def validate_all(self):
         validation_errors = defaultdict(list)
