@@ -416,6 +416,7 @@ def conda_exception_handler(func, *args, **kwargs):
         print_unexpected_error_message(e)
         return 1
     finally:
+        # clean the lock we have
         from .cli.main_clean import find_lock, rm_lock
         json_result = { 'success': True}
         locks = list(find_lock())
