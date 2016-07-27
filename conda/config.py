@@ -94,6 +94,5 @@ default_prefix = context.default_prefix
 subdir = context.subdir
 
 # put back because of conda build
-default_python = '%d.%d' % sys.version_info[:2]
-binstar_upload = rc.get('anaconda_upload',
-                        rc.get('binstar_upload', None))  # None means ask
+default_python = context. default_python
+binstar_upload = context.binstar_upload
