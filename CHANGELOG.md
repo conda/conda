@@ -2,14 +2,17 @@
 --------------------------------
   * remove conda init, #2759
   * remove conda package and conda bundle, #2760
-  * remove support for ftp:// repos, #2776
-  * replace sys.exit with exceptions, #2899, #2993, #3016
+  * deprecate conde-env repo; pull into conda proper, #2950, #2952, #2954, #3157, #3163
+  * new configuration engine, #2537, #3160
+  * replace sys.exit with exceptions, #2899, #2993, #3016, #3152
   * improve locking, #2962, #2989, #3048, #3075
-  * project structure enhancement, #2929
+  * project structure enhancement, #2929,#3132, #3133, #3136
   * add extra info to exception message #3045
   * force use of ruamel_yaml, #2762
   * add ability to have conda reside in a private env, #3068
   * add ability to create empty environments, #3072
+  * clean up channel handling with new channel model, #3130, #3151
+  * add Anaconda Cloud / Binstar auth handler, #3142
   * remove dead code, #2761
   * remove legacy code in conda.install, #2969
   * implement conda config --prepend; change behavior of --add to --append, #3041
@@ -21,19 +24,27 @@
   * remove auxlib from project root, #2931
   * vendor auxlib 0.0.40, #2932, #2943, #3131
   * vendor toolz 0.8.0, #2994
-  * vendor boltons 16.4.1, #3046
   * expose full regex power for version specifications, #2933
   * move progressbar to vendor directory, #2951
-  * merge conda-env into conda, #2950, #2952, #2954
   * better error behavior if conda is spec'd for a non-root environment, #2956
   * fix conda.recipe for new quirks with conda-build, #2959
   * scale back try_write function on unix, #3076
   * move captured function to common module, #3083
   * rename CHANGELOG to md, #3087
+  * fix #3124 add threading lock to memoize, #3134
+  * fix a failure with multi-threaded repodata downloads, #3078
+  * fix windows file url, #3139
+  * fix PS1 backup in activate script, #3135
 
 
-2016-0X-XX  4.1.10 (unreleased):
---------------------------------
+2016-07-26  4.1.11:
+-------------------
+  * fix PS1 backup in activate script, #3135 via #3155
+  * correct resolution for 'handle failures in binstar_client more generaly', #3156
+
+
+2016-07-25  4.1.10:
+-------------------
   * ignore symlink failure because of read-only file system, #3055
   * backpaort shortcut tests, #3064
   * fix #2979 redefition of $SHELL variable, #3081
