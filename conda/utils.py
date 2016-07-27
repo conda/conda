@@ -358,6 +358,22 @@ else:
             unix_shell_base, exe="fish",
             pathsep=" ",
                     ),
+        "csh": dict(
+            unix_shell_base, exe="csh",
+            env_script_suffix=".csh",
+            nul='>&/dev/null',
+            printps1='echo $prompt',
+            promptvar='prompt',
+            set_var='setenv ',
+                    ),
+        "tcsh": dict(
+            unix_shell_base, exe="csh",
+            env_script_suffix=".csh",
+            nul='>&/dev/null',
+            printps1='echo $prompt',
+            promptvar='prompt',
+            set_var='setenv ',
+                    ),
     }
 
 
