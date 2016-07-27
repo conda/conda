@@ -8,12 +8,14 @@ from __future__ import print_function, division, absolute_import
 import os
 import sys
 
-from .common import (Completer, add_parser_json, error_and_exit, exception_and_exit,
-                     stdout_json_success)
+from conda._vendor.auxlib.type_coercion import boolify
+from .common import (Completer, add_parser_json, stdout_json_success)
+from ..common.yaml import yaml_load, yaml_dump
 from ..compat import string_types
 from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
                       user_rc_path, rc_other)
-from ..utils import yaml_load, yaml_dump
+from ..exceptions import (CondaValueError, CondaKeyError, CouldntParseError)
+from conda import CondaError
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -87,11 +89,6 @@ Disable the 'show_channel_urls' option:
     conda config --set show_channel_urls no
 """
 
-class CouldntParse(NotImplementedError):
-    def __init__(self, reason):
-        self.args = ["""Could not parse the yaml file. Use -f to use the
-yaml parser (this will remove any structure or comments from the existing
-.condarc file). Reason: %s""" % reason]
 
 class SingleValueKey(Completer):
     def _get_items(self):
@@ -99,9 +96,11 @@ class SingleValueKey(Completer):
                rc_string_keys + \
                ['yes', 'no', 'on', 'off', 'true', 'false']
 
+
 class ListKey(Completer):
     def _get_items(self):
         return rc_list_keys
+
 
 class BoolOrListKey(Completer):
     def __contains__(self, other):
@@ -109,6 +108,7 @@ class BoolOrListKey(Completer):
 
     def _get_items(self):
         return rc_list_keys + rc_bool_keys
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -142,30 +142,38 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     # --add and --remove with the same keys will not be well-defined).
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
+        "--show",
+        action="store_true",
+        help="Display all configuration values as calculated and compiled.",
+    )
+    action.add_argument(
+        "--show-sources",
+        action="store_true",
+        help="Display all identified configuration sources.",
+    )
+    action.add_argument(
         "--get",
         nargs='*',
         action="store",
         help="Get a configuration value.",
         default=None,
-        metavar=('KEY'),
+        metavar='KEY',
         choices=BoolOrListKey()
     )
     action.add_argument(
-        "--add",
+        "--append", "--add",
         nargs=2,
         action="append",
-        help="""Add one configuration value to the beginning of a list key.
-        To add to the end of the list, use --append.""",
+        help="""Add one configuration value to the end of a list key.""",
         default=[],
         choices=ListKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
-        "--append",
+        "--prepend",
         nargs=2,
         action="append",
-        help="""Add one configuration value to a list key. The default
-        behavior is to prepend.""",
+        help="""Add one configuration value to the beginning of a list key.""",
         default=[],
         choices=ListKey(),
         metavar=('KEY', 'VALUE'),
@@ -210,16 +218,48 @@ or the file path given by the 'CONDARC' environment variable, if it is set
 def execute(args, parser):
     try:
         execute_config(args, parser)
-    except (CouldntParse, NotImplementedError) as e:
-        if args.json:
-            exception_and_exit(e, json=True)
-        else:
-            raise
+    except (CouldntParseError, NotImplementedError) as e:
+        raise CondaError(e, args.json)
 
 
 def execute_config(args, parser):
     json_warnings = []
     json_get = {}
+
+    if args.show_sources:
+        from conda.base.context import context
+        print(context.dump_locations())
+        return
+
+    if args.show:
+        from conda.base.context import context
+        d = dict((key, getattr(context, key))
+                 for key in ('add_anaconda_token',
+                             'add_pip_as_python_dependency',
+                             'allow_softlinks',
+                             'always_copy',
+                             'always_yes',
+                             'binstar_upload',
+                             'auto_update_conda',
+                             'changeps1',
+                             'channel_alias',
+                             'channel_priority',
+                             'channels',
+                             'create_default_packages',
+                             'debug',
+                             'default_channels',
+                             'disallow',
+                             'json',
+                             'offline',
+                             'proxy_servers',
+                             'quiet',
+                             'shortcuts',
+                             'show_channel_urls',
+                             'ssl_verify',
+                             'track_features',
+                             'update_dependencies',
+                             'use_pip'))
+        print(yaml_dump(d))
 
     if args.system:
         rc_path = sys_rc_path
@@ -263,7 +303,7 @@ def execute_config(args, parser):
                 # recreate the same file
                 items = rc_config.get(key, [])
                 numitems = len(items)
-                for q, item in enumerate(reversed(items)):
+                for q, item in enumerate(items):
                     # Use repr so that it can be pasted back in to conda config --add
                     if key == "channels" and q in (0, numitems-1):
                         print("--add", key, repr(item),
@@ -271,18 +311,18 @@ def execute_config(args, parser):
                     else:
                         print("--add", key, repr(item))
 
-    # Add, append
-    for arg, prepend in zip((args.add, args.append), (True, False)):
+    # prepend, append, add
+    for arg, prepend in zip((args.prepend, args.append), (True, False)):
         for key, item in arg:
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
             if key not in rc_list_keys:
-                error_and_exit("key must be one of %s, not %r" %
-                               (', '.join(rc_list_keys), key), json=args.json,
-                               error_type="ValueError")
+                raise CondaValueError("key must be one of %s, not %r" %
+                                      (', '.join(rc_list_keys), key),
+                                      args.json)
             if not isinstance(rc_config.get(key, []), list):
                 bad = rc_config[key].__class__.__name__
-                raise CouldntParse("key %r should be a list, not %s." % (key, bad))
+                raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
             if key == 'default_channels' and rc_path != sys_rc_path:
                 msg = "'default_channels' is only configurable for system installs"
                 raise NotImplementedError(msg)
@@ -290,7 +330,7 @@ def execute_config(args, parser):
             if item in arglist:
                 # Right now, all list keys should not contain duplicates
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
-                    item, key, "front" if prepend else "back")
+                    item, key, "top" if prepend else "bottom")
                 arglist = rc_config[key] = [p for p in arglist if p != item]
                 if not args.json:
                     print(message, file=sys.stderr)
@@ -302,36 +342,33 @@ def execute_config(args, parser):
     set_bools, set_strings = set(rc_bool_keys), set(rc_string_keys)
     for key, item in args.set:
         # Check key and value
-        yamlitem = yaml_load(item)
         if key in set_bools:
-            if not isinstance(yamlitem, bool):
-                error_and_exit("Key: %s; %s is not a YAML boolean." % (key, item),
-                               json=args.json, error_type="TypeError")
-            rc_config[key] = yamlitem
+            rc_config[key] = boolify(item)
         elif key in set_strings:
-            rc_config[key] = yamlitem
+            assert isinstance(item, string_types)
+            rc_config[key] = item
         else:
-            error_and_exit("Error key must be one of %s, not %s" %
-                           (', '.join(set_bools | set_strings), key), json=args.json,
-                           error_type="ValueError")
+            raise CondaValueError("Error key must be one of %s, not %s" %
+                                  (', '.join(set_bools | set_strings), key),
+                                  args.json)
 
     # Remove
     for key, item in args.remove:
         if key not in rc_config:
             if key != 'channels':
-                error_and_exit("key %r is not in the config file" % key, json=args.json,
-                               error_type="KeyError")
+                raise CondaKeyError("key %r is not in the config file" %
+                                    key, args.json)
             rc_config[key] = ['defaults']
         if item not in rc_config[key]:
-            error_and_exit("%r is not in the %r key of the config file" %
-                           (item, key), json=args.json, error_type="KeyError")
+            raise CondaKeyError("%r is not in the %r key of the config file" %
+                                (item, key), args.json)
         rc_config[key] = [i for i in rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in rc_config:
-            error_and_exit("key %r is not in the config file" % key, json=args.json,
-                           error_type="KeyError")
+            raise CondaKeyError("key %r is not in the config file" %
+                                key, args.json)
         del rc_config[key]
 
     # config.rc_keys

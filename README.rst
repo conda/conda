@@ -11,9 +11,9 @@
    :alt: Travis-CI Build Status
    :target: https://travis-ci.org/conda/conda
 
-.. image:: https://ci.appveyor.com/api/projects/status/idy477yjwiswsskg/branch/master?svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/v6fl568drifhia2d/branch/master?svg=true
    :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ContinuumAnalytics/conda/branch/master
+   :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda/branch/master
 
 .. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
    :alt: Codecov Status
@@ -30,6 +30,14 @@
 .. image:: https://badges.gitter.im/conda/conda.svg
    :alt: Join the chat at https://gitter.im/conda/conda
    :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
+|
+
+.. image:: https://s3.amazonaws.com/conda-dev/conda-announce-signup-button.svg
+   :alt: Join the Conda Announcment List
+   :target: http://conda.pydata.org/docs
+
+|
 
 Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda

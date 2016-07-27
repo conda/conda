@@ -1,42 +1,45 @@
-os:
-  - linux
-  - osx
-
-addons:
-  apt:
-    packages:
-    - zsh
+sudo: false
 
 env:
   global:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
-  matrix:
-    - PY_VERSION=2.7
-    - PY_VERSION=3.4
-    - PY_VERSION=3.5
+
+addons:
+  apt:
+    packages:
+      - zsh
+
+matrix:
+  include:
+    - python: '2.7'
+      os: linux
+      language: python
+    - python: '3.4'
+      os: linux
+      language: python
+    - python: '3.5'
+      os: linux
+      language: python
+    - python: '3.5'
+      env: FLAKE8=true
+      os: linux
+      language: python
+    - os: osx
+      env: PYTHON_VERSION=3.5
 
 install:
-  - printenv
-  - source ./utils/travis-bootstrap-conda.sh
-  - conda install psutil ruamel_yaml
-  - conda install flake8 pytest pytest-cov mock
-  - conda install pip
-  - pip install auxlib pytest-timeout radon responses
-  - python setup.py install
+  - which -a python
+  - env | sort
+  - source ./utils/travis-run-install.sh
 
 script:
-  - export PYTHONHASHSEED=$(python -c "import random as r; print(r.randint(0,4294967296))")
-  - echo $PYTHONHASHSEED
-  - py.test --cov-report xml tests --shell=bash --shell=zsh
-  - radon cc --ignore "build,tests,ve,_vendor,auxlib,progressbar" --no-assert -nb --total-average -s conda
-  - radon mi --ignore "build,tests,ve,_vendor,auxlib,progressbar" -na -m -s conda
-  - flake8 --statistics
-  - conda install --help
+  - source ./utils/travis-run-script.sh
 
 sudo: false
 
 after_success:
-  - pip install codecov
+  - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PY_VERSION
-  # - travis_build_and_upload
+  - coveralls || true
+  - ocular || true

@@ -1,3 +1,4 @@
+import errno
 import pytest
 import random
 import shutil
@@ -9,8 +10,9 @@ from os import makedirs
 from os.path import join, basename, relpath, exists, dirname
 
 from conda import install
+from conda.base.context import context
 from conda.install import (PaddingError, binary_replace, update_prefix,
-                           warn_failed_remove, duplicates_to_remove, dist2quad,
+                           warn_failed_remove, dist2quad,
                            dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
                            move_path_to_trash, on_win)
 from .decorators import skip_if_no_mock
@@ -110,9 +112,8 @@ class FileTests(unittest.TestCase):
             )
 
     def test_trash_outside_prefix(self):
-        from conda.config import root_dir
         tmp_dir = tempfile.mkdtemp()
-        rel = relpath(tmp_dir, root_dir)
+        rel = relpath(tmp_dir, context.root_dir)
         self.assertTrue(rel.startswith(u'..'))
         move_path_to_trash(tmp_dir)
         self.assertFalse(exists(tmp_dir))
@@ -124,7 +125,8 @@ class FileTests(unittest.TestCase):
 class remove_readonly_TestCase(unittest.TestCase):
     def test_takes_three_args(self):
         with self.assertRaises(TypeError):
-            install._remove_readonly()
+            install.\
+                _remove_readonly()
 
         with self.assertRaises(TypeError):
             install._remove_readonly(True)
@@ -263,14 +265,14 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_calls_rename_if_unlink_fails(self):
         with self.generate_mocks() as mocks:
-            mocks['unlink'].side_effect = OSError
+            mocks['unlink'].side_effect = OSError(errno.ENOENT, "blah")
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         assert mocks['unlink'].call_count > 1
         assert mocks['rename'].call_count == 1
         rename_args = mocks['rename'].call_args[0]
         assert rename_args[0] == mocks['unlink'].call_args_list[0][0][0]
-        assert dirname(rename_args[1]) == mocks['unlink'].call_args_list[1][0][0]
+        assert dirname(rename_args[1]) in (ca[0][0] for ca in mocks['unlink'].call_args_list)
 
     @skip_if_no_mock
     def test_calls_unlink_on_os_access_false(self):
@@ -430,48 +432,6 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         self.assertEqual(2, mocks['rmtree'].call_count)
 
 
-class duplicates_to_remove_TestCase(unittest.TestCase):
-
-    def test_1(self):
-        linked = ['conda-3.18.8-py27_0', 'conda-3.19.0',
-                  'python-2.7.10-2', 'python-2.7.11-0',
-                  'zlib-1.2.8-0']
-        keep = ['conda-3.19.0', 'python-2.7.11-0']
-        self.assertEqual(duplicates_to_remove(linked, keep),
-                         ['conda-3.18.8-py27_0', 'python-2.7.10-2'])
-
-    def test_2(self):
-        linked = ['conda-3.19.0',
-                  'python-2.7.10-2', 'python-2.7.11-0',
-                  'zlib-1.2.7-1', 'zlib-1.2.8-0', 'zlib-1.2.8-4']
-        keep = ['conda-3.19.0', 'python-2.7.11-0']
-        self.assertEqual(duplicates_to_remove(linked, keep),
-                         ['python-2.7.10-2', 'zlib-1.2.7-1', 'zlib-1.2.8-0'])
-
-    def test_3(self):
-        linked = ['python-2.7.10-2', 'python-2.7.11-0', 'python-3.4.3-1']
-        keep = ['conda-3.19.0', 'python-2.7.11-0']
-        self.assertEqual(duplicates_to_remove(linked, keep),
-                         ['python-2.7.10-2', 'python-3.4.3-1'])
-
-    def test_nokeep(self):
-        linked = ['python-2.7.10-2', 'python-2.7.11-0', 'python-3.4.3-1']
-        self.assertEqual(duplicates_to_remove(linked, []),
-                         ['python-2.7.10-2', 'python-2.7.11-0'])
-
-    def test_misc(self):
-        d1 = 'a-1.3-0'
-        self.assertEqual(duplicates_to_remove([], []), [])
-        self.assertEqual(duplicates_to_remove([], [d1]), [])
-        self.assertEqual(duplicates_to_remove([d1], [d1]), [])
-        self.assertEqual(duplicates_to_remove([d1], []), [])
-        d2 = 'a-1.4-0'
-        li = set([d1, d2])
-        self.assertEqual(duplicates_to_remove(li, [d2]), [d1])
-        self.assertEqual(duplicates_to_remove(li, [d1]), [d2])
-        self.assertEqual(duplicates_to_remove(li, []), [d1])
-        self.assertEqual(duplicates_to_remove(li, [d1, d2]), [])
-
 def test_dist2():
     for name in ('python', 'python-hyphen', ''):
         for version in ('2.7.0', '2.7.0rc1', ''):
@@ -489,20 +449,6 @@ def test_dist2():
                         assert dist2dirname(test) == dist_noprefix
                         assert dist2filename(test) == dist_noprefix + '.tar.bz2'
                         assert dist2filename(test, '') == dist_noprefix
-
-def test_standalone_import():
-    import sys
-    import conda.install
-    tmp_dir = tempfile.mkdtemp()
-    fname = conda.install.__file__.rstrip('co')
-    shutil.copyfile(fname, join(tmp_dir, basename(fname)))
-    opath = [tmp_dir]
-    opath.extend(s for s in sys.path if basename(s) not in ('conda', 'site-packages'))
-    opath, sys.path = sys.path, opath
-    try:
-        import install
-    finally:
-        sys.path = opath
 
 
 if __name__ == '__main__':

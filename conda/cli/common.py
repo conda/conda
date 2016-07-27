@@ -5,17 +5,16 @@ import contextlib
 import os
 import re
 import sys
-import textwrap
-from os.path import abspath, basename, expanduser, isdir, join
+from os.path import abspath, basename
 
 from .. import console
-from ..config import (envs_dirs, default_prefix, platform, update_dependencies,
-                      channel_priority, show_channel_urls, always_yes, root_env_name,
-                      root_dir, root_writable, disallow)
+from ..base.constants import ROOT_ENV_NAME
+from ..base.context import context, platform
+from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
+                          CondaValueError, CondaFileIOError)
 from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
-from .. import config
 
 
 class Completer(object):
@@ -54,7 +53,7 @@ class Completer(object):
 class Environments(Completer):
     def _get_items(self):
         res = []
-        for dir in envs_dirs:
+        for dir in context.envs_dirs:
             try:
                 res.extend(os.listdir(dir))
             except OSError:
@@ -87,7 +86,7 @@ class InstalledPackages(Completer):
     @memoize
     def _get_items(self):
         import conda.install
-        packages = conda.install.linked(get_prefix(self.parsed_args))
+        packages = conda.install.linked(context.prefix_w_legacy_search)
         return [dist2quad(i)[0] for i in packages]
 
 def add_parser_help(p):
@@ -108,14 +107,14 @@ def add_parser_prefix(p):
     npgroup.add_argument(
         '-n', "--name",
         action="store",
-        help="Name of environment (in %s)." % os.pathsep.join(envs_dirs),
+        help="Name of environment (in %s)." % os.pathsep.join(context.envs_dirs),
         metavar="ENVIRONMENT",
         choices=Environments(),
     )
     npgroup.add_argument(
         '-p', "--prefix",
         action="store",
-        help="Full path to environment prefix (default: %s)." % default_prefix,
+        help="Full path to environment prefix (default: %s)." % context.default_prefix,
         metavar='PATH',
     )
 
@@ -254,21 +253,21 @@ def add_parser_install(p):
         "--update-dependencies", "--update-deps",
         action="store_true",
         dest="update_deps",
-        default=update_dependencies,
+        default=context.update_dependencies,
         help="Update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--no-update-dependencies", "--no-update-deps",
         action="store_false",
         dest="update_deps",
-        default=not update_dependencies,
+        default=not context.update_dependencies,
         help="Don't update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--channel-priority", "--channel-pri", "--chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=channel_priority,
+        default=context.channel_priority,
         help="Channel priority takes precedence over package version (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
@@ -276,7 +275,7 @@ def add_parser_install(p):
         "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=not channel_priority,
+        default=not context.channel_priority,
         help="Package version takes precedence over channel priority (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
     )
@@ -312,14 +311,13 @@ def add_parser_use_local(p):
 
 class OfflineAction(argparse.Action):
     def __call__(self, *args, **kwargs):
-        config.offline = True
+        pass
 
 def add_parser_offline(p):
-    global offline
     p.add_argument(
         "--offline",
         action=OfflineAction,
-        default=config.offline,
+        default=context.offline,
         help="Offline mode, don't connect to the Internet.",
         nargs=0
     )
@@ -338,7 +336,7 @@ def add_parser_show_channel_urls(p):
         "--show-channel-urls",
         action="store_true",
         dest="show_channel_urls",
-        default=show_channel_urls,
+        default=context.show_channel_urls,
         help="Show channel urls (default: %(default)s).",
     )
     p.add_argument(
@@ -353,25 +351,23 @@ def ensure_use_local(args):
         return
     try:
         from conda_build.config import croot  # noqa
-    except ImportError:
-        error_and_exit("you need to have 'conda-build >= 1.7.1' installed"
-                       " to use the --use-local option",
-                       json=args.json, error_type="RuntimeError")
+    except ImportError as e:
+        raise CondaRuntimeError("you need to have 'conda-build >= 1.7.1' installed"
+                                " to use the --use-local option", args.json, e)
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
         if dashc:
-            error_and_exit('--override-channels requires -c/--channel or --use-local',
-                           json=args.json, error_type="ValueError")
+            raise CondaValueError('--override-channels requires -c/--channel'
+                                  ' or --use-local', args.json)
         else:
-            error_and_exit('--override-channels requires --channel or --use-local',
-                           json=args.json, error_type="ValueError")
+            raise CondaValueError('--override-channels requires --channel'
+                                  'or --use-local', args.json)
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
     if args.dry_run:
-        print("Dry run: exiting")
-        sys.exit(0)
+        raise DryRunExit
 
     options = []
     for option in choices:
@@ -399,78 +395,34 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
-        print("Dry run: exiting")
-        sys.exit(0)
-    if args.yes or always_yes:
+        raise DryRunExit
+    if args.yes or context.always_yes:
         return True
     try:
         choice = confirm(args, message=message, choices=('yes', 'no'),
                          default=default)
-    except KeyboardInterrupt:
-        # no need to exit by showing the traceback
-        sys.exit("\nOperation aborted.  Exiting.")
+    except KeyboardInterrupt as e:
+        raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
     if choice == 'yes':
         return True
     if exit_no:
-        sys.exit(1)
+        raise CondaSystemExit('Exiting')
     return False
 
 # --------------------------------------------------------------------
 
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
-        error_and_exit('either -n NAME or -p PREFIX option required,\n'
-                       '       try "conda %s -h" for more details' % command,
-                       json=getattr(args, 'json', False),
-                       error_type="ValueError")
+        raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
+                              'try "conda %s -h" for more details' % command,
+                              getattr(args, 'json', False))
 
-def find_prefix_name(name):
-    if name == root_env_name:
-        return root_dir
-    # always search cwd in addition to envs dirs (for relative path access)
-    for envs_dir in envs_dirs + [os.getcwd(), ]:
-        prefix = join(envs_dir, name)
-        if isdir(prefix):
-            return prefix
-    return None
-
-def get_prefix(args, search=True):
-    if args.name:
-        if '/' in args.name:
-            error_and_exit("'/' not allowed in environment name: %s" %
-                           args.name,
-                           json=getattr(args, 'json', False),
-                           error_type="ValueError")
-        if args.name == root_env_name:
-            return root_dir
-        if search:
-            prefix = find_prefix_name(args.name)
-            if prefix:
-                return prefix
-        return join(envs_dirs[0], args.name)
-
-    if args.prefix:
-        return abspath(expanduser(args.prefix))
-
-    return default_prefix
-
-def inroot_notwritable(prefix):
-    """
-    return True if the prefix is under root and root is not writeable
-    """
-    return (abspath(prefix).startswith(root_dir) and
-            not root_writable)
 
 def name_prefix(prefix):
-    if abspath(prefix) == root_dir:
-        return root_env_name
+    if abspath(prefix) == context.root_dir:
+        return ROOT_ENV_NAME
     return basename(prefix)
 
-def check_write(command, prefix, json=False):
-    if inroot_notwritable(prefix):
-        from .help import root_read_only
-
-        root_read_only(command, prefix, json=json)
 
 # -------------------------------------------------------------------------
 
@@ -478,18 +430,17 @@ def arg2spec(arg, json=False, update=False):
     try:
         spec = MatchSpec(spec_from_line(arg), normalize=True)
     except:
-        error_and_exit('invalid package specification: %s' % arg,
-                       json=json, error_type="ValueError")
+        raise CondaValueError('invalid package specification: %s' % arg, json)
+
     name = spec.name
-    if name in disallow:
-        error_and_exit("specification '%s' is disallowed" % name,
-                       json=json,
-                       error_type="ValueError")
+    if name in context.disallow:
+        raise CondaValueError("specification '%s' is disallowed" % name, json)
+
     if not spec.is_simple() and update:
-        error_and_exit("""version specifications not allowed with 'update'; use
+        raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or
-    conda install %s""" % (name, ' ' * (len(arg)-len(name)), arg),
-                       json=json, error_type="ValueError")
+    conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg), json)
+
     return str(spec)
 
 
@@ -542,37 +493,16 @@ def specs_from_url(url, json=False):
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
-                    error_and_exit("could not parse '%s' in: %s" % (line, url),
-                                   json=json,
-                                   error_type="ValueError")
+                    raise CondaValueError("could not parse '%s' in: %s" %
+                                          (line, url), json)
                 specs.append(spec)
-        except IOError:
-            error_and_exit('cannot open file: %s' % path,
-                           json=json,
-                           error_type="IOError")
+        except IOError as e:
+            raise CondaFileIOError('cannot open file: %s' % path, json, e)
     return specs
 
 
 def names_in_specs(names, specs):
     return any(spec.split()[0] in names for spec in specs)
-
-
-def check_specs(prefix, specs, json=False, create=False):
-    if len(specs) == 0:
-        msg = ('too few arguments, must supply command line '
-               'package specs or --file')
-        if create:
-            msg += textwrap.dedent("""
-
-                You can specify one or more default packages to install when creating
-                an environment.  Doing so allows you to call conda create without
-                explicitly providing any package names.
-
-                To set the provided packages, call conda config like this:
-
-                    conda config --add create_default_packages PACKAGE_NAME
-            """)
-        error_and_exit(msg, json=json, error_type="ValueError")
 
 
 def disp_features(features):
@@ -589,47 +519,14 @@ def stdout_json(d):
     sys.stdout.write('\n')
 
 
-def error_and_exit(message, json=False, newline=False, error_text=True,
-                   error_type=None):
-    if json:
-        stdout_json(dict(error=message, error_type=error_type))
-        sys.exit(1)
-    else:
-        if newline:
-            print()
-
-        if error_text:
-            sys.exit("Error: " + message)
-        else:
-            sys.exit(message)
-
-
-def exception_and_exit(exc, **kwargs):
-    if 'error_type' not in kwargs:
-        kwargs['error_type'] = exc.__class__.__name__
-    error_and_exit('; '.join(map(str, exc.args)), **kwargs)
-
-
 def get_index_trap(*args, **kwargs):
     """
     Retrieves the package index, but traps exceptions and reports them as
     JSON if necessary.
     """
     from ..api import get_index
-
-    if 'json' in kwargs:
-        json = kwargs['json']
-        del kwargs['json']
-    else:
-        json = False
-
-    try:
-        return get_index(*args, **kwargs)
-    except BaseException as e:
-        if json:
-            exception_and_exit(e, json=json)
-        else:
-            raise
+    kwargs.pop('json')
+    return get_index(*args, **kwargs)
 
 
 @contextlib.contextmanager
@@ -658,15 +555,15 @@ def handle_envs_list(acc, output=True):
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
-        default = '*' if prefix == default_prefix else ' '
-        name = (root_env_name if prefix == root_dir else
+        default = '*' if prefix == context.default_prefix else ' '
+        name = (ROOT_ENV_NAME if prefix == context.root_dir else
                 basename(prefix))
         if output:
             print(fmt % (name, default, prefix))
 
     for prefix in misc.list_prefixes():
         disp_env(prefix)
-        if prefix != root_dir:
+        if prefix != context.root_dir:
             acc.append(prefix)
 
     if output:

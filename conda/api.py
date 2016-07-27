@@ -1,11 +1,11 @@
 from __future__ import print_function, division, absolute_import
 
 from . import install
+from .base.context import context
 from .compat import iteritems, itervalues
-from .config import normalize_urls, prioritize_channels, get_channel_urls
+from .models.channel import prioritize_channels
 from .fetch import fetch_index
 from .resolve import Resolve
-
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=False, prefix=False):
@@ -18,9 +18,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     """
     if use_local:
         channel_urls = ['local'] + list(channel_urls)
-    channel_urls = normalize_urls(channel_urls, platform)
     if prepend:
-        channel_urls.extend(get_channel_urls(platform))
+        channel_urls += context.channels
     channel_urls = prioritize_channels(channel_urls)
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:

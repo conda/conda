@@ -28,9 +28,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 src_dir = os.path.join(here, "conda")
 sys.path.insert(0, src_dir)
 
-import auxlib  # noqa -- build-time dependency only
 import conda  # NOQA
-
 
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
@@ -62,19 +60,14 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=[
-        'conda',
-        'conda.cli',
-        'conda.progressbar'
-    ],
+    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests", "build",
+                                                                   "utils", ".tox")),
     cmdclass={
-        'build_py': auxlib.BuildPyCommand,
-        'sdist': auxlib.SDistCommand,
+        'build_py': conda._vendor.auxlib.BuildPyCommand,
+        'sdist': conda._vendor.auxlib.SDistCommand,
     },
     install_requires=[
         'pycosat >=0.6.1',
-        'pyyaml',
-        'requests',
     ],
     entry_points={
         'console_scripts': [

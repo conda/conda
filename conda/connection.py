@@ -6,22 +6,28 @@
 
 from __future__ import print_function, division, absolute_import
 
-import base64
 import cgi
 import email
 import ftplib
 import mimetypes
 import os
 import platform
-import re
 import requests
 import tempfile
+from base64 import b64decode
 from io import BytesIO
 from logging import getLogger
+from requests.adapters import HTTPAdapter
+from requests.auth import AuthBase
+from requests.packages.urllib3.util import Url
 
 from . import __version__ as VERSION
-from .compat import urlparse, StringIO
-from .config import platform as config_platform, ssl_verify, get_proxy_servers
+from .base.constants import DEFAULT_CHANNEL_ALIAS
+from .base.context import context, platform as context_platform
+from .common.io import disable_logger
+from .common.url import url_to_path, url_to_s3_info, urlparse
+from .compat import StringIO
+from .exceptions import AuthenticationError
 from .utils import gnu_get_libc_version
 
 RETRIES = 3
@@ -36,10 +42,10 @@ _user_agent = ("conda/{conda_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
 glibc_ver = gnu_get_libc_version()
-if config_platform == 'linux':
+if context_platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
-elif config_platform == 'osx':
+elif context_platform == 'osx':
     dist = 'OSX'
     ver = platform.mac_ver()[0]
 else:
@@ -55,28 +61,54 @@ user_agent = _user_agent.format(conda_ver=VERSION,
 if glibc_ver:
     user_agent += " glibc/{}".format(glibc_ver)
 
-# Modified from code in pip/download.py:
 
-# Copyright (c) 2008-2014 The pip developers (see AUTHORS.txt file)
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+class BinstarAuth(AuthBase):
+
+    def __call__(self, request):
+        request.url = BinstarAuth.add_binstar_token(request.url)
+        return request
+
+    @staticmethod
+    def add_binstar_token(url):
+        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url(url):
+            return url
+        token = BinstarAuth.get_binstar_token(url)
+        if token is None:
+            return url
+        u = urlparse(url)
+        path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
+        return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
+
+    @staticmethod
+    def get_binstar_token(url):
+        try:
+            try:
+                from binstar_client.utils import get_config, load_token
+            except ImportError:
+                log.debug("Could not import binstar_client.")
+                return None
+
+            binstar_default_url = 'https://api.anaconda.org'
+            url_parts = urlparse(url)
+            base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
+            if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
+                base_url = binstar_default_url
+
+            with disable_logger('binstar'):
+                config = get_config(remote_site=base_url)
+                url_from_bs_config = config.get('url', base_url)
+                token = load_token(url_from_bs_config)
+                return token
+        except Exception as e:
+            log.warn("Warning: could not capture token from anaconda-client (%r)", e)
+            return None
+
+    @staticmethod
+    def is_binstar_url(url):
+        urlparts = urlparse(url)
+        return (urlparts.scheme in ('http', 'https') and
+                any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
+
 
 class CondaSession(requests.Session):
 
@@ -87,28 +119,28 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        proxies = get_proxy_servers()
+        self.auth = BinstarAuth()
+
+        proxies = context.proxy_servers
         if proxies:
             self.proxies = proxies
 
         # Configure retries
         if retries:
-            http_adapter = requests.adapters.HTTPAdapter(max_retries=retries)
+            http_adapter = HTTPAdapter(max_retries=retries)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
 
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
-        # Enable ftp:// urls
-        self.mount("ftp://", FTPAdapter())
-
         # Enable s3:// urls
         self.mount("s3://", S3Adapter())
 
         self.headers['User-Agent'] = user_agent
 
-        self.verify = ssl_verify
+        self.verify = context.ssl_verify
+
 
 class S3Adapter(requests.adapters.BaseAdapter):
 
@@ -150,7 +182,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
         conn = boto.connect_s3()
 
-        bucket_name, key_string = url_to_S3_info(request.url)
+        bucket_name, key_string = url_to_s3_info(request.url)
 
         # Get the bucket without validation that it exists and that we have
         # permissions to list its contents.
@@ -189,17 +221,6 @@ class S3Adapter(requests.adapters.BaseAdapter):
             os.remove(self._temp_file)
 
 
-def url_to_S3_info(url):
-    """
-    Convert a S3 url to a tuple of bucket and key
-    """
-    parsed_url = requests.packages.urllib3.util.url.parse_url(url)
-    assert parsed_url.scheme == 's3', (
-        "You can only use s3: urls (not %r)" % url)
-    bucket, key = parsed_url.host, parsed_url.path
-    return bucket, key
-
-
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
@@ -231,24 +252,6 @@ class LocalFSAdapter(requests.adapters.BaseAdapter):
 
     def close(self):
         pass
-
-
-def url_to_path(url):
-    """
-    Convert a file: URL to a path.
-    """
-    assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not %r)" % url)
-    path = url[len('file:'):].lstrip('/')
-    path = urlparse.unquote(path)
-    if _url_drive_re.match(path):
-        path = path[0] + ':' + path[2:]
-    elif not path.startswith(r'\\'):
-        # if not a Windows UNC path
-        path = '/' + path
-    return path
-
-_url_drive_re = re.compile('^([a-z])[:|]', re.I)
 
 
 # Taken from requests-ftp
@@ -405,12 +408,12 @@ class FTPAdapter(requests.adapters.BaseAdapter):
             # second part. Check that we have the right kind of auth though.
             encoded_components = auth_header.split()[:2]
             if encoded_components[0] != 'Basic':
-                raise AuthError('Invalid form of Authentication used.')
+                raise AuthenticationError('Invalid form of Authentication used.')
             else:
                 encoded = encoded_components[1]
 
             # Decode the base64 encoded string.
-            decoded = base64.b64decode(encoded)
+            decoded = b64decode(encoded)
 
             # The string is of the form 'username:password'. Split on the
             # colon.
@@ -428,7 +431,7 @@ class FTPAdapter(requests.adapters.BaseAdapter):
         of urlparse's craziness.'''
         url = request.url
         # scheme, netloc, path, params, query, fragment = urlparse(url)
-        parsed = urlparse.urlparse(url)
+        parsed = urlparse(url)
         path = parsed.path
 
         # If there is a slash on the front of the path, chuck it.
@@ -452,17 +455,15 @@ def data_callback_factory(variable):
     return callback
 
 
-class AuthError(Exception):
-    '''Denotes an error with authentication.'''
-    pass
-
 def build_text_response(request, data, code):
     '''Build a response for textual data.'''
     return build_response(request, data, code, 'ascii')
 
+
 def build_binary_response(request, data, code):
     '''Build a response for data whose encoding is unknown.'''
     return build_response(request, data, code,  None)
+
 
 def build_response(request, data, code, encoding):
     '''Builds a response object from the data returned by ftplib, using the
@@ -483,6 +484,7 @@ def build_response(request, data, code, encoding):
     # Run the response hook.
     response = requests.hooks.dispatch_hook('response', request.hooks, response)
     return response
+
 
 def parse_multipart_files(request):
     '''Given a prepared reqest, return a file-like object containing the
@@ -506,51 +508,3 @@ def parse_multipart_files(request):
     buf.seek(0)
 
     return buf
-
-# Taken from urllib3 (actually
-# https://github.com/shazow/urllib3/pull/394). Once it is fully upstreamed to
-# requests.packages.urllib3 we can just use that.
-
-
-def unparse_url(U):
-    """
-    Convert a :class:`.Url` into a url
-
-    The input can be any iterable that gives ['scheme', 'auth', 'host',
-    'port', 'path', 'query', 'fragment']. Unused items should be None.
-
-    This function should more or less round-trip with :func:`.parse_url`. The
-    returned url may not be exactly the same as the url inputted to
-    :func:`.parse_url`, but it should be equivalent by the RFC (e.g., urls
-    with a blank port).
-
-
-    Example: ::
-
-        >>> Url = parse_url('http://google.com/mail/')
-        >>> unparse_url(Url)
-        'http://google.com/mail/'
-        >>> unparse_url(['http', 'username:password', 'host.com', 80,
-        ... '/path', 'query', 'fragment'])
-        'http://username:password@host.com:80/path?query#fragment'
-    """
-    scheme, auth, host, port, path, query, fragment = U
-    url = ''
-
-    # We use "is not None" we want things to happen with empty strings (or 0 port)
-    if scheme is not None:
-        url = scheme + '://'
-    if auth is not None:
-        url += auth + '@'
-    if host is not None:
-        url += host
-    if port is not None:
-        url += ':' + str(port)
-    if path is not None:
-        url += path
-    if query is not None:
-        url += '?' + query
-    if fragment is not None:
-        url += '#' + fragment
-
-    return url

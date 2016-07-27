@@ -6,15 +6,18 @@
 
 from __future__ import print_function, division, absolute_import
 
+from conda.api import get_index
+from ..base.context import context
 from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
                      add_parser_use_index_cache, add_parser_offline, add_parser_channels,
-                     add_parser_json, add_parser_use_local, exception_and_exit, error_and_exit,
+                     add_parser_json, add_parser_use_local,
                      ensure_use_local, ensure_override_channels_requires_channel,
-                     get_index_trap, get_prefix, stdout_json, disp_features)
-from ..config import subdir, canonical_channel_name
+                     stdout_json, disp_features)
+from ..exceptions import CondaValueError, PackageNotFoundError
 from ..install import dist2quad
 from ..misc import make_icon_url
-from ..resolve import NoPackagesFound, Package
+from ..resolve import NoPackagesFoundError, Package
+from ..models.channel import Channel
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -121,8 +124,8 @@ package.""",
 def execute(args, parser):
     try:
         execute_search(args, parser)
-    except NoPackagesFound as e:
-        exception_and_exit(e, json=args.json)
+    except NoPackagesFoundError as e:
+        raise PackageNotFoundError('', e, args.json)
 
 def execute_search(args, parser):
     import re
@@ -146,13 +149,10 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
-                error_and_exit(
-                    "'%s' is not a valid regex pattern (exception: %s)" %
-                    (regex, e),
-                    json=args.json,
-                    error_type="ValueError")
+                raise CondaValueError("'%s' is not a valid regex pattern (exception: %s)" %
+                                      (regex, e), args.json)
 
-    prefix = get_prefix(args)
+    prefix = context.prefix_w_legacy_search
 
     import conda.install
 
@@ -161,15 +161,15 @@ def execute_search(args, parser):
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
-    if platform and platform != subdir:
+    if platform and platform != context.subdir:
         args.unknown = False
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
-    index = get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
-                           platform=args.platform, use_local=args.use_local,
-                           use_cache=args.use_index_cache, prefix=prefix,
-                           unknown=args.unknown, json=args.json)
+    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels,
+                      platform=args.platform, use_local=args.use_local,
+                      use_cache=args.use_index_cache, prefix=prefix,
+                      unknown=args.unknown)
 
     r = Resolve(index)
 
@@ -249,7 +249,7 @@ def execute_search(args, parser):
                 else:
                     json.append(dist)
                 continue
-            if platform and platform != subdir:
+            if platform and platform != context.subdir:
                 inst = ' '
             elif dist in linked:
                 inst = '*'
@@ -263,7 +263,7 @@ def execute_search(args, parser):
                     disp_name, inst,
                     pkg.version,
                     pkg.build,
-                    canonical_channel_name(pkg.channel),
+                    Channel(pkg.channel).canonical_name,
                     disp_features(r.features(pkg.fn)),
                     ))
                 disp_name = ''
@@ -277,7 +277,7 @@ def execute_search(args, parser):
                     'version': pkg.version,
                     'build': pkg.build,
                     'build_number': pkg.build_number,
-                    'channel': canonical_channel_name(pkg.channel),
+                    'channel': Channel(pkg.channel).canonical_name,
                     'full_channel': pkg.channel,
                     'features': list(r.features(pkg.fn)),
                     'license': pkg.info.get('license'),

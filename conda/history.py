@@ -10,11 +10,9 @@ import warnings
 from os.path import isdir, isfile, join
 
 from .install import linked, dist2quad
+from .exceptions import CondaHistoryError, CondaFileIOError
 
 log = logging.getLogger(__name__)
-
-class CondaHistoryException(Exception):
-    pass
 
 
 class CondaHistoryWarning(Warning):
@@ -66,18 +64,21 @@ class History(object):
         self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
-        self.update()
+        self.update('enter')
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.update()
+        self.update('exit')
 
     def init_log_file(self, force=False):
         if not force and isfile(self.path):
             return
         self.write_dists(linked(self.prefix))
 
-    def update(self):
+    def file_is_empty(self):
+        return os.stat(self.path).st_size == 0
+
+    def update(self, enter_or_exit=''):
         """
         update the history file (creating a new one if necessary)
         """
@@ -85,19 +86,23 @@ class History(object):
             self.init_log_file()
             try:
                 last = self.get_state()
-            except CondaHistoryException as e:
+            except CondaHistoryError as e:
                 warnings.warn("Error in %s: %s" % (self.path, e),
                               CondaHistoryWarning)
                 return
             curr = set(linked(self.prefix))
             if last == curr:
+                # print a head when a blank env is first created to preserve history
+                if enter_or_exit == 'exit' and self.file_is_empty():
+                    with open(self.path, 'a') as fo:
+                        write_head(fo)
                 return
             self.write_changes(last, curr)
         except IOError as e:
             if e.errno == errno.EACCES:
                 log.debug("Can't write the history file")
             else:
-                raise
+                raise CondaFileIOError(e)
 
     def parse(self):
         """
@@ -169,7 +174,7 @@ class History(object):
                     elif s.startswith('+'):
                         cur.add(s[1:])
                     else:
-                        raise CondaHistoryException('Did not expect: %s' % s)
+                        raise CondaHistoryError('Did not expect: %s' % s)
             res.append((dt, cur.copy()))
         return res
 
@@ -241,14 +246,13 @@ class History(object):
         return result
 
     def write_dists(self, dists):
-        if not dists:
-            return
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
-            write_head(fo)
-            for dist in sorted(dists):
-                fo.write('%s\n' % dist)
+            if dists:
+                write_head(fo)
+                for dist in sorted(dists):
+                    fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
         with open(self.path, 'a') as fo:

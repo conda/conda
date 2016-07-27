@@ -2,18 +2,17 @@ from __future__ import print_function, division, absolute_import
 
 import os
 import re
-import subprocess
 import sys
 from os.path import isdir, isfile, join, expanduser
 
-from ..utils import memoized
+from ..utils import memoized, on_win
 
 def find_executable(executable, include_others=True):
     # backwards compatibility
     global dir_paths
 
     if include_others:
-        if sys.platform == 'win32':
+        if on_win:
             dir_paths = [join(sys.prefix, 'Scripts'),
                          'C:\\cygwin\\bin']
         else:
@@ -24,7 +23,7 @@ def find_executable(executable, include_others=True):
     dir_paths.extend(os.environ['PATH'].split(os.pathsep))
 
     for dir_path in dir_paths:
-        if sys.platform == 'win32':
+        if on_win:
             for ext in ('.exe', '.bat', ''):
                 path = join(dir_path, executable + ext)
                 if isfile(path):
@@ -38,7 +37,7 @@ def find_executable(executable, include_others=True):
 @memoized
 def find_commands(include_others=True):
     if include_others:
-        if sys.platform == 'win32':
+        if on_win:
             dir_paths = [join(sys.prefix, 'Scripts'),
                          'C:\\cygwin\\bin']
         else:
@@ -46,7 +45,7 @@ def find_commands(include_others=True):
     else:
         dir_paths = []
 
-    if sys.platform == 'win32':
+    if on_win:
         pat = re.compile(r'conda-([\w\-]+)\.(exe|bat)$')
     else:
         pat = re.compile(r'conda-([\w\-]+)$')
@@ -62,33 +61,3 @@ def find_commands(include_others=True):
             if m:
                 res.add(m.group(1))
     return sorted(res)
-
-
-def filter_descr(cmd):
-    args = [find_executable('conda-' + cmd), '--help']
-    if not args[0]:
-        print('failed: %s (could not find executable)' % (cmd))
-        return
-    try:
-        output = subprocess.check_output(args)
-    except (OSError, subprocess.CalledProcessError):
-        print('failed: %s' % (' '.join(args)))
-        return
-    pat = re.compile(r'(\r?\n){2}(.*?)(\r?\n){2}', re.DOTALL)
-    m = pat.search(output.decode('utf-8'))
-    descr = ['<could not extract description>'] if m is None else m.group(2).splitlines()
-    # XXX: using some stuff from textwrap would be better here, as it gets
-    # longer than 80 characters
-    print('    %-12s %s' % (cmd, descr[0]))
-    for d in descr[1:]:
-        print('                 %s' % d)
-
-
-def help():
-    print("\nother commands:")
-    for cmd in find_commands():
-        filter_descr(cmd)
-
-
-if __name__ == '__main__':
-    help()

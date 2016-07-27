@@ -18,11 +18,6 @@ These API functions have argument names referring to:
                  be the "default" environment (i.e. sys.prefix),
                  but is otherwise something like '/opt/anaconda/envs/foo',
                  or even any prefix, e.g. '/home/joe/myenv'
-
-Also, this module is directly invoked by the (self extracting (sfx)) tarball
-installer to create the initial environment, therefore it needs to be
-standalone, i.e. not import any other parts of `conda` (only depend on
-the standard library).
 """
 
 from __future__ import print_function, division, absolute_import
@@ -45,56 +40,14 @@ import traceback
 from os.path import (abspath, basename, dirname, isdir, isfile, islink,
                      join, normpath, normcase)
 
+from . import CondaError
+from .base.context import context
+from .common.url import path_to_url
+from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
+from .lock import DirectoryLock, FileLock
+from .models.channel import Channel
+from .utils import exp_backoff_fn, on_win
 
-on_win = bool(sys.platform == "win32")
-
-try:
-    from conda.lock import Locked
-    from conda.utils import win_path_to_unix, url_path
-    from conda.config import remove_binstar_tokens, pkgs_dirs, url_channel
-    import conda.config as config
-except ImportError:
-    # Make sure this still works as a standalone script for the Anaconda
-    # installer.
-    pkgs_dirs = [sys.prefix]
-
-    class Locked(object):
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def __enter__(self):
-            pass
-
-        def __exit__(self, exc_type, exc_value, traceback):
-            pass
-
-    def win_path_to_unix(path, root_prefix=""):
-        """Convert a path or ;-separated string of paths into a unix representation
-
-        Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-        """
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
-
-        def translation(found_path):
-            found = found_path.group(1).replace("\\", "/").replace(":", "")
-            return root_prefix + "/" + found
-        return re.sub(path_re, translation, path).replace(";/", ":/")
-
-    def url_path(path):
-        path = abspath(path)
-        if on_win:
-            path = '/' + path.replace(':', '|').replace('\\', '/')
-        return 'file://%s' % path
-
-    # There won't be any binstar tokens in the installer anyway
-    def remove_binstar_tokens(url):
-        return url
-
-    # A simpler version of url_channel will do
-    def url_channel(url):
-        return url.rsplit('/', 2)[0] + '/' if url and '/' in url else None, 'defaults'
-
-    pkgs_dirs = [join(sys.prefix, 'pkgs')]
 
 if on_win:
     import ctypes
@@ -115,14 +68,14 @@ if on_win:
     def win_hard_link(src, dst):
         "Equivalent to os.link, using the win32 CreateHardLink call."
         if not CreateHardLink(dst, src, None):
-            raise OSError('win32 hard link failed')
+            raise CondaOSError('win32 hard link failed')
 
     def win_soft_link(src, dst):
         "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
         if CreateSymbolicLink is None:
-            raise OSError('win32 soft link not supported')
+            raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise OSError('win32 soft link failed')
+            raise CondaOSError('win32 soft link failed')
 
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
@@ -215,7 +168,7 @@ def _link(src, dst, linktype=LINK_HARD):
         else:
             shutil.copy2(src, dst)
     else:
-        raise Exception("Did not expect linktype=%r" % linktype)
+        raise CondaError("Did not expect linktype=%r" % linktype)
 
 
 def _remove_readonly(func, path, excinfo):
@@ -229,30 +182,6 @@ def warn_failed_remove(function, path, exc_info):
         log.warn("Cannot remove, not empty: {0}".format(path))
     else:
         log.warn("Cannot remove, unknown reason: {0}".format(path))
-
-
-def exp_backoff_fn(fn, *args):
-    """Mostly for retrying file operations that fail on Windows due to virus scanners"""
-    if not on_win:
-        return fn(*args)
-
-    import random
-    # with max_tries = 5, max total time ~= 3.2 sec
-    # with max_tries = 6, max total time ~= 6.5 sec
-    max_tries = 6
-    for n in range(max_tries):
-        try:
-            result = fn(*args)
-        except (OSError, IOError) as e:
-            log.debug(repr(e))
-            if e.errno in (errno.EPERM, errno.EACCES):
-                if n == max_tries-1:
-                    raise
-                time.sleep(((2 ** n) + random.random()) * 0.1)
-            else:
-                raise
-        else:
-            return result
 
 
 def rm_rf(path, max_retries=5, trash=True):
@@ -359,10 +288,6 @@ def read_has_prefix(path):
     return res
 
 
-class PaddingError(Exception):
-    pass
-
-
 def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
@@ -408,7 +333,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
         else:
             logging.debug("Skipping prefix replacement in binary on Windows")
     else:
-        sys.exit("Invalid mode: %s" % mode)
+        raise ArgumentError("Invalid mode: %s" % mode)
     return data
 
 
@@ -429,8 +354,6 @@ def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text')
     if data == original_data:
         return
     st = os.lstat(path)
-    # Remove file before rewriting to avoid destroying hard-linked cache
-    os.remove(path)
     with exp_backoff_fn(open, path, 'wb') as fo:
         fo.write(data)
     os.chmod(path, stat.S_IMODE(st.st_mode))
@@ -688,11 +611,11 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     if not (xpkg or xdir):
         return
     if url:
-        url = remove_binstar_tokens(url)
-    _, schannel = url_channel(url)
+        url = url
+    _, schannel = Channel(url).url_channel_wtf
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
-    fname_table_[xkey] = fname_table_[url_path(xkey)] = prefix
+    fname_table_[xkey] = fname_table_[path_to_url(xkey)] = prefix
     fkey = prefix + dist
     rec = package_cache_.get(fkey)
     if rec is None:
@@ -725,7 +648,8 @@ def package_cache():
         return package_cache_
     # Stops recursion
     package_cache_['@'] = None
-    for pdir in pkgs_dirs:
+    # import pdb; pdb.set_trace()
+    for pdir in context.pkgs_dirs:
         try:
             data = open(join(pdir, 'urls.txt')).read()
             for url in data.split()[::-1]:
@@ -762,7 +686,7 @@ def find_new_location(dist):
     # Look for a location with no conflicts
     # On the second pass, just pick the first location
     for p in range(2):
-        for pkg_dir in pkgs_dirs:
+        for pkg_dir in context.pkgs_dirs:
             pkg_path = join(pkg_dir, fname)
             prefix = fname_table_.get(pkg_path)
             if p or prefix is None:
@@ -796,11 +720,11 @@ def rm_fetched(dist):
         return
     for fname in rec['files']:
         del fname_table_[fname]
-        del fname_table_[url_path(fname)]
-        with Locked(dirname(fname)):
+        del fname_table_[path_to_url(fname)]
+        with FileLock(fname):
             rm_rf(fname)
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with FileLock(fname):
             rm_rf(fname)
     del package_cache_[dist]
 
@@ -831,7 +755,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with Locked(dirname(fname)):
+        with FileLock(fname):
             rm_rf(fname)
     if rec['files']:
         rec['dirs'] = []
@@ -840,6 +764,7 @@ def rm_extracted(dist):
 
 
 def extract(dist):
+
     """
     Extract a package, i.e. make a package available for linkage. We assume
     that the compressed package is located in the packages directory.
@@ -849,8 +774,8 @@ def extract(dist):
     fname = rec['files'][0]
     assert url and fname
     pkgs_dir = dirname(fname)
-    with Locked(pkgs_dir):
-        path = fname[:-8]
+    path = fname[:-8]
+    with FileLock(path):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
         with tarfile.open(fname) as t:
@@ -900,7 +825,7 @@ def load_linked_data(prefix, dist, rec=None):
         channel = channel.rstrip('/')
         if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
             url = rec['url'] = channel + '/' + fn
-    channel, schannel = url_channel(url)
+    channel, schannel = Channel(url).url_channel_wtf
     rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
@@ -976,7 +901,7 @@ def is_linked(prefix, dist):
 
 
 def delete_trash(prefix=None):
-    for pkg_dir in pkgs_dirs:
+    for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
         if not isdir(trash_dir):
             continue
@@ -1006,7 +931,7 @@ def move_path_to_trash(path, preclean=True):
     if preclean:
         delete_trash()
 
-    for pkg_dir in pkgs_dirs:
+    for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
 
         try:
@@ -1044,14 +969,19 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
               (pkgs_dir, prefix, dist, linktype))
 
     if not run_script(source_dir, dist, 'pre-link', prefix):
-        sys.exit('Error: pre-link failed: %s' % dist)
+        raise LinkError('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
 
-    with Locked(prefix), Locked(pkgs_dir):
+    # for the lock issue
+    # may run into lock if prefix not exist
+    if not isdir(prefix):
+        os.makedirs(prefix)
+
+    with DirectoryLock(prefix), FileLock(source_dir):
         for f in files:
             src = join(source_dir, f)
             dst = join(prefix, f)
@@ -1064,19 +994,20 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             lt = linktype
             if f in has_prefix_files or f in no_link or islink(src):
                 lt = LINK_COPY
+
             try:
                 _link(src, dst, lt)
             except OSError as e:
-                log.error('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                          (src, dst, lt, e))
+                raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                                   (src, dst, lt, e))
 
         for f in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[f]
             try:
                 update_prefix(join(prefix, f), prefix, placeholder, mode)
             except PaddingError:
-                sys.exit("ERROR: placeholder '%s' too short in: %s\n" %
-                         (placeholder, dist))
+                raise PaddingError("ERROR: placeholder '%s' too short in: %s\n" %
+                                   (placeholder, dist))
 
         # make sure that the child environment behaves like the parent,
         #    wrt user/system install on win
@@ -1086,11 +1017,11 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             if isfile(nonadmin):
                 open(join(prefix, ".nonadmin"), 'w').close()
 
-        if config.shortcuts:
+        if context.shortcuts:
             mk_menus(prefix, files, remove=False)
 
         if not run_script(prefix, dist, 'post-link'):
-            sys.exit("Error: post-link failed for: %s" % dist)
+            raise LinkError("Error: post-link failed for: %s" % dist)
 
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
@@ -1113,7 +1044,7 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with Locked(prefix):
+    with DirectoryLock(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
@@ -1151,102 +1082,3 @@ def messages(prefix):
         pass
     finally:
         rm_rf(path)
-
-
-def duplicates_to_remove(dist_metas, keep_dists):
-    """
-    Returns the (sorted) list of distributions to be removed, such that
-    only one distribution (for each name) remains.  `keep_dists` is an
-    iterable of distributions (which are not allowed to be removed).
-    """
-    from collections import defaultdict
-
-    keep_dists = set(keep_dists)
-    ldists = defaultdict(set)  # map names to set of distributions
-    for dist in dist_metas:
-        name = name_dist(dist)
-        ldists[name].add(dist)
-
-    res = set()
-    for dists in ldists.values():
-        # `dists` is the group of packages with the same name
-        if len(dists) == 1:
-            # if there is only one package, nothing has to be removed
-            continue
-        if dists & keep_dists:
-            # if the group has packages which are have to be kept, we just
-            # take the set of packages which are in group but not in the
-            # ones which have to be kept
-            res.update(dists - keep_dists)
-        else:
-            # otherwise, we take lowest (n-1) (sorted) packages
-            res.update(sorted(dists)[:-1])
-    return sorted(res)
-
-
-# =========================== end API functions ==========================
-
-
-def main():
-    # This CLI is only invoked from the self-extracting shell installers
-    global pkgs_dirs
-    from optparse import OptionParser
-
-    p = OptionParser(description="conda link tool used by installer")
-
-    p.add_option('--file',
-                 action="store",
-                 help="path of a file containing distributions to link, "
-                      "by default all packages extracted in the cache are "
-                      "linked")
-
-    p.add_option('--prefix',
-                 action="store",
-                 default=sys.prefix,
-                 help="prefix (defaults to %default)")
-
-    p.add_option('-v', '--verbose',
-                 action="store_true")
-
-    opts, args = p.parse_args()
-    if args:
-        p.error('no arguments expected')
-
-    logging.basicConfig()
-
-    prefix = opts.prefix
-    pkgs_dir = join(prefix, 'pkgs')
-    pkgs_dirs = [pkgs_dir]
-    if opts.verbose:
-        print("prefix: %r" % prefix)
-
-    if opts.file:
-        idists = list(yield_lines(join(prefix, opts.file)))
-    else:
-        idists = sorted(extracted())
-    assert idists
-
-    linktype = (LINK_HARD
-                if try_hard_link(pkgs_dir, prefix, idists[0]) else
-                LINK_COPY)
-    if opts.verbose:
-        print("linktype: %s" % link_name_map[linktype])
-
-    for dist in idists:
-        if opts.verbose:
-            print("linking: %s" % dist)
-        link(prefix, dist, linktype)
-
-    messages(prefix)
-
-    for dist in duplicates_to_remove(linked(prefix), idists):
-        meta_path = join(prefix, 'conda-meta', dist + '.json')
-        print("WARNING: unlinking: %s" % meta_path)
-        try:
-            os.rename(meta_path, meta_path + '.bak')
-        except OSError:
-            rm_rf(meta_path)
-
-
-if __name__ == '__main__':
-    main()

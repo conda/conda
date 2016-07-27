@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 from logging import getLogger
 
-from .config import root_dir
+from .base.context import context
 from .exceptions import InvalidInstruction
 from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
@@ -117,7 +117,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         from .console import setup_verbose_handlers
         setup_verbose_handlers()
 
-    state = {'i': None, 'prefix': root_dir, 'index': index}
+    state = {'i': None, 'prefix': context.root_dir, 'index': index}
 
     for instruction, arg in plan:
 

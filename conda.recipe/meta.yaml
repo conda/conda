@@ -25,35 +25,31 @@ build:
 requirements:
   build:
     - python
-    - conda-env
-    - menuinst  [win]
+    - setuptools
     - pycosat >=0.6.1
-    - pyyaml
-    - ruamel_yaml
-    - requests
   run:
     - python
-    - conda-env
+    - conda-env >=2.5.1
     - menuinst  [win]
     - pycosat >=0.6.1
-    - pyyaml
     - ruamel_yaml
-    - requests
+    - enum34           [py < 34]
 
 test:
   requires:
     - pycrypto
     - pytest
+    - pytest-cov
   commands:
     - conda --version
     - conda info
-    - pip install pytest-cov pytest-timeout
-    - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || pushd $SRC_DIR && make clean-all && popd
-    - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || py.test -c $SRC_DIR/setup.cfg $SRC_DIR/tests/ || true
-    # - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || pushd %SRC_DIR% && make clean-all && popd
-    - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || py.test -c %SRC_DIR%/setup.cfg %SRC_DIR%/tests/ || true
-  imports:
-    - conda
+#    - pip install pytest-timeout
+#    - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || pushd $SRC_DIR && make clean-all && popd
+#    - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || py.test -c $SRC_DIR/setup.cfg $SRC_DIR/tests/ || true
+#    # - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || pushd %SRC_DIR% && make clean-all && popd
+#    - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || py.test -c %SRC_DIR%/setup.cfg %SRC_DIR%/tests/ || true
+#  imports:
+#    - conda
 
 about:
   home: http://conda.pydata.org/
