@@ -142,12 +142,22 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     # --add and --remove with the same keys will not be well-defined).
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
+        "--show",
+        action="store_true",
+        help="Display all configuration values as calculated and compiled.",
+    )
+    action.add_argument(
+        "--show-sources",
+        action="store_true",
+        help="Display all identified configuration sources.",
+    )
+    action.add_argument(
         "--get",
         nargs='*',
         action="store",
         help="Get a configuration value.",
         default=None,
-        metavar=('KEY'),
+        metavar='KEY',
         choices=BoolOrListKey()
     )
     action.add_argument(
@@ -215,6 +225,41 @@ def execute(args, parser):
 def execute_config(args, parser):
     json_warnings = []
     json_get = {}
+
+    if args.show_sources:
+        from conda.base.context import context
+        print(context.dump_locations())
+        return
+
+    if args.show:
+        from conda.base.context import context
+        d = dict((key, getattr(context, key))
+                 for key in ('add_anaconda_token',
+                             'add_pip_as_python_dependency',
+                             'allow_softlinks',
+                             'always_copy',
+                             'always_yes',
+                             'binstar_upload',
+                             'auto_update_conda',
+                             'changeps1',
+                             'channel_alias',
+                             'channel_priority',
+                             'channels',
+                             'create_default_packages',
+                             'debug',
+                             'default_channels',
+                             'disallow',
+                             'json',
+                             'offline',
+                             'proxy_servers',
+                             'quiet',
+                             'shortcuts',
+                             'show_channel_urls',
+                             'ssl_verify',
+                             'track_features',
+                             'update_dependencies',
+                             'use_pip'))
+        print(yaml_dump(d))
 
     if args.system:
         rc_path = sys_rc_path
