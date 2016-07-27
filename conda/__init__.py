@@ -31,7 +31,6 @@ if os.getenv('CONDA_ROOT') is None:
 
 
 class CondaErrorType(type):
-
     def __init__(cls, name, bases, attr):
         super(CondaErrorType, cls).__init__(name, bases, attr)
         key = "%s.%s" % (cls.__module__, name)

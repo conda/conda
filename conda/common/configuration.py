@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod
 from collections import Mapping, Set, defaultdict
+from conda.compat import string_types
 from enum import Enum
 from glob import glob
 from itertools import chain
@@ -10,6 +11,7 @@ from logging import getLogger
 from os import environ, stat
 from os.path import join
 from stat import S_IFDIR, S_IFMT, S_IFREG
+
 
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
@@ -25,15 +27,16 @@ except ImportError:
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concat, concatv, unique
 
-from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, text_type,
-                     with_metaclass)
-from .yaml import yaml_load
+from .. import CondaError
 from .._vendor.auxlib.collection import first, frozendict, last
-from .._vendor.auxlib.exceptions import Raise, ThisShouldNeverHappenError, ValidationError
+from .._vendor.auxlib.exceptions import (Raise, ThisShouldNeverHappenError,
+                                         ValidationError as AuxlibValidationError, AuxlibError)
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import typify_data_structure
 from ..base.constants import EMPTY_MAP
-from ..exceptions import ValidationError as CondaValidationError
+from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, text_type,
+                     with_metaclass)
+from .yaml import yaml_load
 
 __all__ = ["Configuration", "ParameterFlag", "PrimitiveParameter",
            "SequenceParameter", "MapParameter"]
@@ -41,11 +44,93 @@ __all__ = ["Configuration", "ParameterFlag", "PrimitiveParameter",
 log = getLogger(__name__)
 
 
-class MultiValidationError(CondaValidationError):
+def pretty_list(iterable):  # TODO: move to conda.common
+    if not isiterable(iterable):
+        iterable = list(iterable)
+    return "\n  - ".join(chain.from_iterable((('',), iterable)))
 
-    def __init__(self, errors):
-        messages = "\n".join(repr(e) for e in errors)
-        super(MultiValidationError, self).__init__(messages)
+
+class ConfigurationError(CondaError):
+    pass
+    # def __init__(self, *args, **kwargs):
+    #     msg = 'Configuration error: '
+    #     super(ConfigurationError, self).__init__(msg, *args, **kwargs)
+
+
+class ValidationError(ConfigurationError):
+
+    def __init__(self, parameter_name, parameter_value, source, msg=None, **kwargs):
+        self.parameter_name = parameter_name
+        self.parameter_value = parameter_value
+        self.source = source
+        if msg is not None:
+            msg = ("Parameter %s = %r declared in %s is invalid."
+                   % (parameter_name, parameter_value, source))
+        super(ConfigurationError, self).__init__(msg, **kwargs)
+
+
+class MultipleKeysError(ValidationError):
+
+    def __init__(self, source, keys, preferred_key):
+        self.source = source
+        self.keys = keys
+        msg = ("Multiple aliased keys in file %s:%s.\n"
+               "Must declare only one. Prefer '%s'." % (source, pretty_list(keys), preferred_key))
+        super(MultipleKeysError, self).__init__(preferred_key, None, source, msg=msg)
+
+
+class InvalidTypeError(ValidationError):
+    def __init__(self, parameter_name, parameter_value, source, wrong_type, valid_types, msg=None):
+        self.wrong_type = wrong_type
+        self.valid_types = valid_types
+        if msg is None:
+            msg = ("Parameter %s = %r declared in %s has type %s.\n"
+                   "Valid types: %s." % (parameter_name, parameter_value,
+                                         source, wrong_type, pretty_list(valid_types)))
+        super(InvalidTypeError, self).__init__(parameter_name, parameter_value, source, msg=msg)
+
+
+class InvalidElementTypeError(InvalidTypeError):
+    def __init__(self, parameter_name, parameter_value, source, wrong_type,
+                 valid_types, index_or_key):
+        msg = ("Parameter %s declared in %s has invalid element %r at index %d.\n"
+               "Valid element types: %s." % (parameter_name, source, parameter_value,
+                                             index_or_key, pretty_list(valid_types)))
+        super(InvalidElementTypeError, self).__init__(parameter_name, parameter_value, source,
+                                                      wrong_type, valid_types, msg=msg)
+
+
+class CustomValidationError(ValidationError):
+    def __init__(self, parameter_name, parameter_value, source, custom_message):
+        msg = ("Parameter %s = %r declared in %s is invalid.\n"
+               "%s" % (parameter_name, parameter_value, source, custom_message))
+        super(CustomValidationError, self).__init__(parameter_name, parameter_value, source,
+                                                    msg=msg)
+
+
+class MultiValidationError(ConfigurationError):
+    def __init__(self, errors, *args, **kwargs):
+        if len(errors) > 1:
+            msg = 'Multiple errors'
+        else:
+            msg = ''
+
+        error_message = ''
+        if isinstance(errors, dict):
+            error_items = errors.items()
+            #error_descriptions = [
+            #    ''.join(['Error with key %r in %r: ' % (item[0], item[1][0]),
+            #             ''.join([str(exception) for exception in item[1]])])
+            #    for item in error_items
+            #    ]
+
+            error_descriptions = ['Error with key %r in %r' % (item[0], item[1]) for item in error_items]
+
+            error_message = '\n'.join(error_descriptions) + '\n'
+        elif isinstance(errors, tuple):
+            error_message = '\n'.join(str(exception) for exception in errors)
+
+        super(MultiValidationError, self).__init__(msg, error_message, *args, **kwargs)
 
 
 class ParameterFlag(Enum):
@@ -211,7 +296,6 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(rawvalue):
-        # first(k.ca.items.values())[2].value.strip()
         return dict((key, excepts(KeyError,
                                   lambda k: rawvalue.ca.items[k][2].value.strip() or None,
                                   lambda _: None  # default value on exception
@@ -299,26 +383,42 @@ class Parameter(object):
             raise ThisShouldNeverHappenError()  # pragma: no cover
         return self._names
 
-    def _collect_single_raw_parameter(self, raw_parameters):
+    def _raw_parameters_from_single_source(self, raw_parameters):
         # while supporting parameter name aliases, we enforce that one one definition is given
         # per data source
         keys = self.names & frozenset(raw_parameters.keys())
+        matches = {key: raw_parameters[key] for key in keys}
         numkeys = len(keys)
         if numkeys == 0:
-            return None
+            return None, None
         elif numkeys == 1:
-            key, = keys  # get single key from frozenset
-            return raw_parameters[key]
+            return matches.values()[0], None
+        elif self.name in keys:
+            return matches[self.name], MultipleKeysError(raw_parameters[next(iter(keys))].source,
+                                                         keys, self.name)
         else:
-            raise CondaValidationError("Multiple aliased keys in file %s:%s"
-                                       % (raw_parameters[next(iter(keys))].source,
-                                          "\n  - ".join(chain.from_iterable((('',), keys)))))
+            return None, MultipleKeysError(raw_parameters[next(iter(keys))].source,
+                                           keys, self.name)
+
+    # def _get_all_matches_for_source(self, instance, source):
+    #     raw_parameters = instance.raw_data[source]
+    #     for match, error in self._raw_parameters_from_single_source(raw_parameters):
+    #         if match:
+    #             matches.append(match)
+    #         if error:
+    #             multikey_exceptions.append(error)
 
     def _get_all_matches(self, instance):
-        # a match is a single raw parameter instance
-        return tuple(m for m in (self._collect_single_raw_parameter(raw_parameters)
-                                 for filepath, raw_parameters in iteritems(instance.raw_data))
-                     if m is not None)
+        # a match is a raw parameter instance
+        matches = []
+        multikey_exceptions = []
+        for filepath, raw_parameters in iteritems(instance.raw_data):
+            for match, error in self._raw_parameters_from_single_source(raw_parameters):
+                if match is not None:
+                    matches.append(match)
+                if error:
+                    multikey_exceptions.append(error)
+        return matches, multikey_exceptions
 
     @abstractmethod
     def _merge(self, matches):
@@ -328,17 +428,21 @@ class Parameter(object):
         # strategy is "extract and merge," which is actually just map and reduce
         # extract matches from each source in SEARCH_PATH
         # then merge matches together
-
         if self.name in instance._cache:
             return instance._cache[self.name]
 
-        matches = self._get_all_matches(instance)
-        result = typify_data_structure(self._merge(matches) if matches else self.default)
-        self.validate(instance, result)
+        matches, errors = self._get_all_matches(instance)
+        try:
+            result = typify_data_structure(self._merge(matches) if matches else self.default)
+        except AuxlibError as e:
+            if 'result' not in locals():
+                result = None
+            errors.append(e)
+        self.validate_and_raise(instance, result, errors)
         instance._cache[self.name] = result
         return result
 
-    def validate(self, instance, value):
+    def collect_errors(self, instance, value, source="<<merged>>"):
         """Validate a Parameter value.
 
         Args:
@@ -352,11 +456,27 @@ class Parameter(object):
         Raises:
             ValidationError:
         """
-        if (isinstance(value, self._type) and
-                (self._validation is None or self._validation(value))):
-            return value
+        errors = []
+        if not isinstance(value, self._type):
+            errors.append([InvalidTypeError(self.name, value, source, type(value),
+                                            self._type)])
+        elif self._validation is not None:
+            result = self._validation(value)
+            if result is False:
+                errors.append(ValidationError(self.name, value, source))
+            elif isinstance(result, string_types):
+                errors.append(CustomValidationError(self.name, value, source, result))
+        return errors
+
+    def validate_and_raise(self, instance, value, other_errors=()):
+        errors = other_errors or []
+        errors.extend(self.collect_errors(instance, value))
+        if not errors:
+            return True
+        elif len(errors) == 1:
+            raise errors[0]
         else:
-            raise CondaValidationError(getattr(self, 'name', 'undefined name'), value)
+            raise MultiValidationError(errors)
 
     def _match_key_is_important(self, raw_parameter):
         return raw_parameter.keyflag() is ParameterFlag.final
@@ -433,12 +553,15 @@ class SequenceParameter(Parameter):
         self._element_type = element_type
         super(SequenceParameter, self).__init__(default, aliases, validation)
 
-    def validate(self, instance, value):
-        et = self._element_type
-        for el in value:
-            if not isinstance(el, et):
-                raise ValidationError(self.name, el, et)
-        return super(SequenceParameter, self).validate(instance, value)
+    def collect_errors(self, instance, value, source="<<merged>>"):
+        errors = super(SequenceParameter, self).collect_errors(instance, value)
+
+        element_type = self._element_type
+        for idx, element in enumerate(value):
+            if not isinstance(element, element_type):
+                errors.append(InvalidElementTypeError(self.name, element, source,
+                                                      type(element), element_type, idx))
+        return errors
 
     def _merge(self, matches):
         # get matches up to and including first important_match
@@ -505,11 +628,15 @@ class MapParameter(Parameter):
         self._element_type = element_type
         super(MapParameter, self).__init__(default or dict(), aliases, validation)
 
-    def validate(self, instance, value):
-        et = self._element_type
-        [Raise(CondaValidationError(self.name, v, et))
-         for v in itervalues(value) if not isinstance(v, et)]  # TODO: cleanup
-        return super(MapParameter, self).validate(instance, value)
+    def collect_errors(self, instance, value, source="<<merged>>"):
+        errors = super(MapParameter, self).collect_errors(instance, value)
+
+        element_type = self._element_type
+        for key, val in iteritems(value):
+            if not isinstance(val, element_type):
+                errors.append(InvalidElementTypeError(self.name, val, source,
+                                                      type(val), element_type, key))
+        return errors
 
     def _merge(self, matches):
         # get matches up to and including first important_match
@@ -608,16 +735,32 @@ class Configuration(object):
                 lines.append('')
         return '\n'.join(lines)
 
-    def validate_all(self):
-        validation_errors = defaultdict(list)
+    def check_source(self, source):
+        validation_errors = list()
+        raw_parameters = self.raw_data[source]
         for key in self.parameter_names:
             parameter = self.__class__.__dict__[key]
-            for match in parameter._get_all_matches(self):
-                try:
-                    result = typify_data_structure(match.value(parameter.__class__))
-                    parameter.validate(self, result)
-                except ValidationError as e:
-                    validation_errors[key].append(e)
+            match, multikey_error = parameter._raw_parameters_from_single_source(raw_parameters)
+            if multikey_error:
+                validation_errors.append(multikey_error)
 
+            if match is not None and not isinstance(match, dict):
+                try:
+                    typed_value = typify_data_structure(match.value(parameter.__class__),
+                                                        parameter._type)
+                except AuxlibError as e:
+                    validation_errors.append(e)
+                else:
+                    validation_result = parameter.collect_errors(self, typed_value, match.source)
+                    if validation_result is not True:
+                        validation_errors.extend(validation_result)
+            else:
+                # this situation will happen if there is a multikey_error and none of the
+                # matched keys is the primary key
+                pass
+        return validation_errors
+
+    def validate_all(self):
+        validation_errors = [self.check_source(source) for source in self.raw_data]
         if validation_errors:
             raise MultiValidationError(validation_errors)
