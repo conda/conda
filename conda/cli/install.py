@@ -360,7 +360,7 @@ environment does not exist: %s
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError('', e, args.json)
         raise CondaError('UnsatisfiableSpecifications', e, args.json)
-    if nothing_to_do(actions):
+    if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
 
         if not args.json:
