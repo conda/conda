@@ -360,6 +360,7 @@ environment does not exist: %s
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError('', e, args.json)
         raise CondaError('UnsatisfiableSpecifications', e, args.json)
+
     if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
 
@@ -371,9 +372,12 @@ environment does not exist: %s
             common.stdout_json_success(
                 message='All requested packages already installed.')
         return
-    from ..instructions import LINK, UNLINK, SYMLINK_CONDA
-    if not actions[LINK] and not actions[UNLINK]:
-        actions[SYMLINK_CONDA] = [context.root_dir]
+    elif newenv:
+        # needed in the case of creating an empty env
+        from ..instructions import LINK, UNLINK, SYMLINK_CONDA
+        if not actions[LINK] and not actions[UNLINK]:
+            actions[SYMLINK_CONDA] = [context.root_dir]
+
     if not args.json:
         print()
         print("Package plan for installation in environment %s:" % prefix)
