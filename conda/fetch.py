@@ -30,9 +30,6 @@ from .install import add_cached_package, find_new_location, package_cache, dist2
 from .lock import FileLock
 from .utils import exp_backoff_fn, memoized
 from math import floor
-
-
-
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
