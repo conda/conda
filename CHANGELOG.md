@@ -23,6 +23,7 @@
   * remove excess output from conda --help, #2872
   * remove os.remove in update_prefix, #3006
   * remove auxlib from project root, #2931
+  * remove psutil requirement #3183
   * vendor auxlib 0.0.40, #2932, #2943, #3131
   * vendor toolz 0.8.0, #2994
   * expose full regex power for version specifications, #2933
