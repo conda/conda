@@ -16,6 +16,12 @@ from os import isatty, environ
 from platform import python_version_tuple
 import sys
 
+PY3 = sys.version_info[0] == 3
+
+if PY3:
+    text_type = str
+else:
+    text_type = unicode
 
 __all__ = ['Terminal']
 
@@ -422,7 +428,7 @@ COMPOUNDABLES = (COLORS |
                       'shadow', 'standout', 'subscript', 'superscript']))
 
 
-class ParametrizingString(unicode):
+class ParametrizingString(text_type):
     """A Unicode string which can be called to parametrize it as a terminal
     capability"""
 
@@ -474,12 +480,12 @@ class ParametrizingString(unicode):
                 raise
 
 
-class FormattingString(unicode):
+class FormattingString(text_type):
     """A Unicode string which can be called upon a piece of text to wrap it in
     formatting"""
 
     def __new__(cls, formatting, normal):
-        new = unicode.__new__(cls, formatting)
+        new = text_type.__new__(cls, formatting)
         new._normal = normal
         return new
 
@@ -494,7 +500,7 @@ class FormattingString(unicode):
         return self + text + self._normal
 
 
-class NullCallableString(unicode):
+class NullCallableString(text_type):
     """A dummy callable Unicode to stand in for ``FormattingString`` and
     ``ParametrizingString``
 
@@ -502,7 +508,7 @@ class NullCallableString(unicode):
 
     """
     def __new__(cls):
-        new = unicode.__new__(cls, u'')
+        new = text_type.__new__(cls, u'')
         return new
 
     def __call__(self, *args):
