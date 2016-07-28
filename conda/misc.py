@@ -121,12 +121,23 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         if name in linked:
             actions[UNLINK].append(linked[name])
 
-        if context.always_copy:
-            from .install import LINK_COPY
-            lt = LINK_COPY
+        # check for link action
+        from .install import LINK_COPY, LINK_HARD, LINK_SOFT
+        from .install import try_hard_link
+        fetched_dist = dir_path or pkg_path[:-8]
+        fetched_dir = dirname(fetched_dist)
+        try:
+            if context.always_copy:
+                lt = LINK_COPY
+            elif try_hard_link(fetched_dir, prefix, dist):
+                lt = LINK_HARD
+            elif context.allow_softlinks and not on_win:
+                lt = LINK_SOFT
+            else:
+                lt = LINK_COPY
             actions[LINK].append('%s %d' % (dist, lt))
-        else:
-            actions[LINK].append(dist)
+        except (OSError, IOError):
+            actions[LINK].append('%s %d' % (dist, LINK_COPY))
 
     # Pull the repodata for channels we are using
     if channels:
