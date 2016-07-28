@@ -128,7 +128,6 @@ def print_activate(arg):
     return message % (arg, arg)
 
 
-
 def get_revision(arg, json=False):
     try:
         return int(arg)
