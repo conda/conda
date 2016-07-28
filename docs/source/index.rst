@@ -24,9 +24,9 @@ Conda
        <div id="mc_embed_signup_scroll">
    	<h2>Conda Announcements</h2>
 
-    <div style="font-weight:500;">News and updates directly from the Conda core team.</div>
+    <div><p style="font-weight:500;">News and updates directly from the Conda core team.</p></div>
 
-    <divstyle="font-size:0.8em; font-color:#aaaaaa; font-weight:500;">Privacy Policy: We will never sell, give away, or further distribute your email address to third parties.</div>
+    <div><p style="font-size:0.8em; font-color:#aaaaaa; font-weight:500;">Privacy Policy: We will never sell, give away, or further distribute your email address to third parties.</p></div>
 
    <div class="indicates-required"><span class="asterisk">*</span> indicates required</div>
    <div class="mc-field-group">
@@ -42,7 +42,7 @@ Conda
    	<label for="mce-AFFILIATIO">Affiliations (e.g. Company, Projects) </label>
    	<input type="text" value="" name="AFFILIATIO" class="" id="mce-AFFILIATIO">
    </div>
-   <p><a href="http://us13.campaign-archive1.com/home/?u=28f85eefa68de727efcbd93f9&id=cb4ca49e7d" title="View previous campaigns">View previous announcements.</a></p>
+   <p><a href="http://us13.campaign-archive1.com/home/?u=28f85eefa68de727efcbd93f9&id=cb4ca49e7d" title="View previous announcements.">View previous announcements.</a></p>
    	<div id="mce-responses" class="clear">
    		<div class="response" id="mce-error-response" style="display:none"></div>
    		<div class="response" id="mce-success-response" style="display:none"></div>
