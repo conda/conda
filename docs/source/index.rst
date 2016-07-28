@@ -27,7 +27,7 @@
 
     <div><p style="font-size:1.3em;font-weight:700;">News and updates directly from the Conda core team.</p></div>
 
-    <div style="font-size:0.9em; color:#999999; font-weight:500;">Privacy Policy: We will never sell, give away, or further distribute your email address to third parties.</div>
+    <div style="font-size:1em; color:#777777; font-weight:500;">Privacy Policy: We will never sell, give away, or further distribute your email address to third parties.</div>
 
    <div class="indicates-required"><span class="asterisk">*</span> indicates required</div>
    <div class="mc-field-group">
