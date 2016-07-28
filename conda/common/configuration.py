@@ -29,12 +29,11 @@ except ImportError:
 
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first, frozendict, last
-from .._vendor.auxlib.exceptions import (Raise, ThisShouldNeverHappenError,
-                                         ValidationError as AuxlibValidationError, AuxlibError)
+from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
 from ..base.constants import EMPTY_MAP
-from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, text_type,
+from .compat import (isiterable, iteritems, odict, primitive_types, text_type,
                      with_metaclass)
 from .yaml import yaml_load
 
@@ -52,9 +51,6 @@ def pretty_list(iterable):  # TODO: move to conda.common
 
 class ConfigurationError(CondaError):
     pass
-    # def __init__(self, *args, **kwargs):
-    #     msg = 'Configuration error: '
-    #     super(ConfigurationError, self).__init__(msg, *args, **kwargs)
 
 
 class ValidationError(ConfigurationError):
@@ -383,14 +379,6 @@ class Parameter(object):
             return None, MultipleKeysError(raw_parameters[next(iter(keys))].source,
                                            keys, self.name)
 
-    # def _get_all_matches_for_source(self, instance, source):
-    #     raw_parameters = instance.raw_data[source]
-    #     for match, error in self._raw_parameters_from_single_source(raw_parameters):
-    #         if match:
-    #             matches.append(match)
-    #         if error:
-    #             multikey_exceptions.append(error)
-
     def _get_all_matches(self, instance):
         # a match is a raw parameter instance
         matches = []
@@ -443,7 +431,7 @@ class Parameter(object):
         errors = []
         if not isinstance(value, self._type):
             errors.append(InvalidTypeError(self.name, value, source, type(value),
-                                            self._type))
+                                           self._type))
         elif self._validation is not None:
             result = self._validation(value)
             if result is False:
