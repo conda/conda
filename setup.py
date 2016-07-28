@@ -44,7 +44,6 @@ if sys.platform == 'win32':
 install_requires = [
     'pycosat >=0.6.1',
     'requests >=2.5.3',
-    'conda-env >=2.6'
 ]
 
 if sys.version_info < (3, 4):
