@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+from conda.compat import text_type
 
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import with_metaclass
@@ -31,7 +32,6 @@ if os.getenv('CONDA_ROOT') is None:
 
 
 class CondaErrorType(type):
-
     def __init__(cls, name, bases, attr):
         super(CondaErrorType, cls).__init__(name, bases, attr)
         key = "%s.%s" % (cls.__module__, name)
@@ -44,7 +44,11 @@ class CondaErrorType(type):
 @with_metaclass(CondaErrorType)
 class CondaError(Exception):
     def __init__(self, *args, **kwargs):
-        super(CondaError, self).__init__(*args, **kwargs)
+        msg = kwargs.pop('msg', None)
+        if msg:
+            super(CondaError, self).__init__(msg, *args, **kwargs)
+        else:
+            super(CondaError, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         ret_str = ' '.join([str(arg) for arg in self.args if not isinstance(arg, bool)])
@@ -53,3 +57,16 @@ class CondaError(Exception):
     def __str__(self):
         ret_str = ' '.join([str(arg) for arg in self.args if not isinstance(arg, bool)])
         return ret_str
+
+
+class CondaMultiError(CondaError):
+
+    def __init__(self, errors, *args, **kwargs):
+        self.errors = errors
+        super(CondaError, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return '\n'.join(text_type(e)for e in self.errors) + '\n'
+
+    def __str__(self):
+        return '\n'.join(text_type(e) for e in self.errors) + '\n'
