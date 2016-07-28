@@ -46,8 +46,8 @@ log = getLogger(__name__)
 
 def pretty_list(iterable):  # TODO: move to conda.common
     if not isiterable(iterable):
-        iterable = list(iterable)
-    return "\n  - ".join(chain.from_iterable((('',), iterable)))
+        iterable = [iterable]
+    return ''.join("  - %s\n" % item for item in iterable)
 
 
 class ConfigurationError(CondaError):
@@ -63,10 +63,11 @@ class ValidationError(ConfigurationError):
         self.parameter_name = parameter_name
         self.parameter_value = parameter_value
         self.source = source
-        if msg is None:
-            msg = ("Parameter %s = %r declared in %s is invalid."
-                   % (parameter_name, parameter_value, source))
         super(ConfigurationError, self).__init__(msg, **kwargs)
+
+        def __str__(self):
+            return ("Parameter %s = %r declared in %s is invalid."
+                    % (self.parameter_name, self.parameter_value, self.source))
 
 
 class MultipleKeysError(ValidationError):
@@ -93,9 +94,11 @@ class InvalidTypeError(ValidationError):
 class InvalidElementTypeError(InvalidTypeError):
     def __init__(self, parameter_name, parameter_value, source, wrong_type,
                  valid_types, index_or_key):
-        msg = ("Parameter %s declared in %s has invalid element %r at index %d.\n"
-               "Valid element types: %s." % (parameter_name, source, parameter_value,
-                                             index_or_key, pretty_list(valid_types)))
+        qualifier = "at index" if isinstance(index_or_key, int) else "for key"
+        msg = ("Parameter %s declared in %s has invalid element %r %s %s.\n"
+               "Valid element types:\n"
+               "%s." % (parameter_name, source, parameter_value, qualifier,
+                        index_or_key, pretty_list(valid_types)))
         super(InvalidElementTypeError, self).__init__(parameter_name, parameter_value, source,
                                                       wrong_type, valid_types, msg=msg)
 
@@ -413,12 +416,13 @@ class Parameter(object):
 
         matches, errors = self._get_all_matches(instance)
         try:
-            result = typify_data_structure(self._merge(matches) if matches else self.default)
+            result = typify_data_structure(self._merge(matches) if matches else self.default,
+                                           self._element_type)
         except TypeCoercionError as e:
-            if 'result' not in locals():
-                result = None
             errors.append(CustomValidationError(self.name, e.value, "<<merged>>", text_type(e)))
-        self.validate_and_raise(instance, result, errors)
+        else:
+            errors.extend(self.collect_errors(instance, result))
+        self.raise_errors(errors)
         instance._cache[self.name] = result
         return result
 
@@ -438,8 +442,8 @@ class Parameter(object):
         """
         errors = []
         if not isinstance(value, self._type):
-            errors.append([InvalidTypeError(self.name, value, source, type(value),
-                                            self._type)])
+            errors.append(InvalidTypeError(self.name, value, source, type(value),
+                                            self._type))
         elif self._validation is not None:
             result = self._validation(value)
             if result is False:
@@ -448,9 +452,8 @@ class Parameter(object):
                 errors.append(CustomValidationError(self.name, value, source, result))
         return errors
 
-    def validate_and_raise(self, instance, value, other_errors=()):
-        errors = other_errors or []
-        errors.extend(self.collect_errors(instance, value))
+    @staticmethod
+    def raise_errors(errors):
         if not errors:
             return True
         elif len(errors) == 1:
@@ -610,12 +613,9 @@ class MapParameter(Parameter):
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(MapParameter, self).collect_errors(instance, value)
-
         element_type = self._element_type
-        for key, val in iteritems(value):
-            if not isinstance(val, element_type):
-                errors.append(InvalidElementTypeError(self.name, val, source,
-                                                      type(val), element_type, key))
+        errors.extend(InvalidElementTypeError(self.name, val, source, type(val), element_type, key)
+                      for key, val in iteritems(value) if not isinstance(val, element_type))
         return errors
 
     def _merge(self, matches):
@@ -729,8 +729,8 @@ class Configuration(object):
                     typed_value = typify_data_structure(match.value(parameter.__class__),
                                                         parameter._element_type)
                 except TypeCoercionError as e:
-                    validation_errors.append(CustomValidationError(match.key, e.value, match.source, text_type(e)))
-
+                    validation_errors.append(CustomValidationError(match.key, e.value,
+                                                                   match.source, text_type(e)))
                 else:
                     validation_result = parameter.collect_errors(self, typed_value, match.source)
                     if validation_result is not True:

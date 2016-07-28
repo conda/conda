@@ -233,12 +233,10 @@ def execute_config(args, parser):
     json_get = {}
 
     if args.show_sources:
-        from conda.base.context import context
         print(context.dump_locations())
         return
 
     if args.show:
-        from conda.base.context import context
         d = dict((key, getattr(context, key))
                  for key in ('add_anaconda_token',
                              'add_pip_as_python_dependency',
@@ -269,11 +267,8 @@ def execute_config(args, parser):
         return
 
     if args.validate:
-        from conda.base.context import context
         context.validate_all()
         return
-
-
 
     if args.system:
         rc_path = sys_rc_path

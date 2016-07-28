@@ -224,7 +224,11 @@ def typify(value, type_hint=None):
             raise NotImplementedError()
     elif type_hint is not None:
         # coerce using the type hint, or use boolify for bool
-        return boolify(value) if type_hint == bool else type_hint(value)
+        try:
+            return boolify(value) if type_hint == bool else type_hint(value)
+        except ValueError as e:
+            # ValueError: invalid literal for int() with base 10: 'nope'
+            raise TypeCoercionError(value, text_type(e))
     else:
         # no type hint, but we know value is a string, so try to match with the regex patterns
         candidate = _REGEX.convert(value)

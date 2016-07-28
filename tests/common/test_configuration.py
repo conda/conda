@@ -3,10 +3,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
-from conda.common.configuration import Configuration, MapParameter, ParameterFlag, \
-    PrimitiveParameter, SequenceParameter, YamlRawParameter, load_file_configs
+from conda.common.configuration import (Configuration, MapParameter, ParameterFlag,
+                                        PrimitiveParameter, SequenceParameter, YamlRawParameter,
+                                        load_file_configs, MultiValidationError)
 from conda.common.yaml import yaml_load
-from conda.exceptions import ValidationError as CondaValidationError
+from conda.common.configuration import ValidationError
 from os import environ, mkdir
 from os.path import join
 from pytest import raises
@@ -309,16 +310,16 @@ class ConfigurationTests(TestCase):
 
     def test_validation(self):
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean'))
-        raises(CondaValidationError, lambda: config.always_yes)
+        raises(ValidationError, lambda: config.always_yes)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('too_many_aliases'))
-        raises(CondaValidationError, lambda: config.always_yes)
+        raises(ValidationError, lambda: config.always_yes)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('not_an_int'))
-        raises(CondaValidationError, lambda: config.always_an_int)
+        raises(ValidationError, lambda: config.always_an_int)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
-        raises(CondaValidationError, lambda: config.boolean_map)
+        raises(ValidationError, lambda: config.boolean_map)
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('good_boolean_map'))
         assert config.boolean_map['a_true'] is True
@@ -336,4 +337,4 @@ class ConfigurationTests(TestCase):
         config.validate_all()
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
-        raises(CondaValidationError, config.validate_all)
+        raises(MultiValidationError, config.validate_all)
