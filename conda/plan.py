@@ -522,7 +522,6 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         index=index if force else None,
         force=force, always_copy=always_copy)
 
-    # always symlink to create empty dirs
     if actions[inst.LINK]:
         actions[inst.SYMLINK_CONDA] = [context.root_dir]
 
