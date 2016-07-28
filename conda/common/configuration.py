@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod
 from collections import Mapping, Set, defaultdict
-from conda.compat import string_types
 from enum import Enum
 from glob import glob
 from itertools import chain
@@ -11,12 +10,6 @@ from logging import getLogger
 from os import environ, stat
 from os.path import join
 from stat import S_IFDIR, S_IFMT, S_IFREG
-
-
-try:
-    from ruamel_yaml.comments import CommentedSeq, CommentedMap
-except ImportError:  # pragma: no cover
-    from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
 
 try:
     from cytoolz.dicttoolz import merge
@@ -26,6 +19,10 @@ except ImportError:
     from .._vendor.toolz.dicttoolz import merge
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concat, concatv, unique
+try:
+    from ruamel_yaml.comments import CommentedSeq, CommentedMap
+except ImportError:  # pragma: no cover
+    from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
 
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first, frozendict, last
@@ -34,10 +31,10 @@ from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
 from ..base.constants import EMPTY_MAP
 from .compat import (isiterable, iteritems, odict, primitive_types, text_type,
-                     with_metaclass)
+                     with_metaclass, string_types, itervalues)
 from .yaml import yaml_load
 
-__all__ = ["Configuration", "ParameterFlag", "PrimitiveParameter",
+__all__ = ["Configuration", "PrimitiveParameter",
            "SequenceParameter", "MapParameter"]
 
 log = getLogger(__name__)
@@ -371,7 +368,7 @@ class Parameter(object):
         if numkeys == 0:
             return None, None
         elif numkeys == 1:
-            return matches.values()[0], None
+            return next(itervalues(matches)), None
         elif self.name in keys:
             return matches[self.name], MultipleKeysError(raw_parameters[next(iter(keys))].source,
                                                          keys, self.name)
