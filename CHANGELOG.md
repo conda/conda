@@ -1,5 +1,3 @@
-# Changlog
-
 ## 4.2.0 (2016-07-28)
 
 ### Features
@@ -53,247 +51,247 @@
 * rename CHANGELOG to md (#3087)
 
 
-2016-07-26  4.1.11:
--------------------
-  * fix PS1 backup in activate script, #3135 via #3155
-  * correct resolution for 'handle failures in binstar_client more generaly', #3156
+## 4.1.11 (2016-07-26)
+
+* fix PS1 backup in activate script, #3135 via #3155
+* correct resolution for 'handle failures in binstar_client more generaly', #3156
 
 
-2016-07-25  4.1.10:
--------------------
-  * ignore symlink failure because of read-only file system, #3055
-  * backpaort shortcut tests, #3064
-  * fix #2979 redefition of $SHELL variable, #3081
-  * fix #3060 --clone root --copy exception, #3080
+## 4.1.10 (2016-07-25)
+
+* ignore symlink failure because of read-only file system, #3055
+* backpaort shortcut tests, #3064
+* fix #2979 redefition of $SHELL variable, #3081
+* fix #3060 --clone root --copy exception, #3080
 
 
-2016-07-20  4.1.9:
-------------------
-  * fix #3104, add global BINSTAR_TOKEN_PAT
-  * handle failures in binstar_client more generally
+## 4.1.9 (2016-07-20)
+
+* fix #3104, add global BINSTAR_TOKEN_PAT
+* handle failures in binstar_client more generally
 
 
-2016-07-12  4.1.8:
-------------------
-  * fix #3004 UNAUTHORIZED for url (null binstar token), #3008
-  * fix overwrite existing redirect shortcuts when symlinking envs, #3025
-  * partially revert no default shortcuts, #3032, #3047
+## 4.1.8 (2016-07-12)
+
+* fix #3004 UNAUTHORIZED for url (null binstar token), #3008
+* fix overwrite existing redirect shortcuts when symlinking envs, #3025
+* partially revert no default shortcuts, #3032, #3047
 
 
-2016-07-09  4.0.11:
--------------------
-  * allow auto_update_conda from sysrc, #3015 via #3021
+## 4.0.11 2016-07-09
+
+* allow auto_update_conda from sysrc, #3015 via #3021
 
 
-2016-07-07  4.1.7:
-------------------
-  * add msys2 channel to defaults on Windows, #2999
-  * fix #2939 channel_alias issues; improve offline enforcement, #2964
-  * fix #2970, #2974 improve handling of file:// URLs inside channel, #2976
+## 4.1.7 (2016-07-07)
+
+* add msys2 channel to defaults on Windows, #2999
+* fix #2939 channel_alias issues; improve offline enforcement, #2964
+* fix #2970, #2974 improve handling of file:// URLs inside channel, #2976
 
 
-2016-07-01  4.1.6:
-------------------
-  * slow down exp backoff from 1 ms to 100 ms factor, #2944
-  * set max time on exp_backoff to ~6.5 sec,#2955
-  * fix #2914 add/subtract from PATH; kill folder output text, #2917
-  * normalize use of get_index behavior across clone/explicit, #2937
-  * wrap root prefix check with normcase, #2938
+## 4.1.6 (2016-07-01)
+
+* slow down exp backoff from 1 ms to 100 ms factor, #2944
+* set max time on exp_backoff to ~6.5 sec,#2955
+* fix #2914 add/subtract from PATH; kill folder output text, #2917
+* normalize use of get_index behavior across clone/explicit, #2937
+* wrap root prefix check with normcase, #2938
 
 
-2016-06-29  4.1.5:
-------------------
-  * more conservative auto updates of conda #2900
-  * fix some permissions errors with more aggressive use of move_path_to_trash, #2882
-  * fix #2891 error if allow_other_channels setting is used, #2896
-  * fix #2886, #2907 installing a tarball directly from the package cache, #2908
-  * fix #2681, #2778 reverting #2320 lock behavior changes, #2915
+## 4.1.5 (2016-06-29)
+
+* more conservative auto updates of conda #2900
+* fix some permissions errors with more aggressive use of move_path_to_trash, #2882
+* fix #2891 error if allow_other_channels setting is used, #2896
+* fix #2886, #2907 installing a tarball directly from the package cache, #2908
+* fix #2681, #2778 reverting #2320 lock behavior changes, #2915
 
 
-2016-06-29  4.0.10:
--------------------
-  * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859 via #2878
-  * fix some permissions errors with more aggressive use of move_path_to_trash, #2882 via #2894
+## 4.0.10 (2016-06-29)
+
+* fix #2846 revert the use of UNC paths; shorten trash filenames, #2859 via #2878
+* fix some permissions errors with more aggressive use of move_path_to_trash, #2882 via #2894
 
 
-2016-06-27   4.1.4:
--------------------
-  * fix #2846 revert the use of UNC paths; shorten trash filenames, #2859
-  * fix exp backoff on Windows, #2860
-  * fix #2845 URL for local file repos, #2862
-  * fix #2764 restore full path var on win; create to CONDA_PREFIX env var, #2848
-  * fix #2754 improve listing pip installed packages, #2873
-  * change root prefix detection to avoid clobbering root activate scripts, #2880
-  * address #2841 add lowest and highest priority indication to channel config output, #2875
-  * add SYMLINK_CONDA to planned instructions, #2861
-  * use CONDA_PREFIX, not CONDA_DEFAULT_ENV for activate.d, #2856
-  * call scripts with redirect on win; more error checking to activate, #2852
+## 4.1.4 (2016-06-27)
+
+* fix #2846 revert the use of UNC paths; shorten trash filenames, #2859
+* fix exp backoff on Windows, #2860
+* fix #2845 URL for local file repos, #2862
+* fix #2764 restore full path var on win; create to CONDA_PREFIX env var, #2848
+* fix #2754 improve listing pip installed packages, #2873
+* change root prefix detection to avoid clobbering root activate scripts, #2880
+* address #2841 add lowest and highest priority indication to channel config output, #2875
+* add SYMLINK_CONDA to planned instructions, #2861
+* use CONDA_PREFIX, not CONDA_DEFAULT_ENV for activate.d, #2856
+* call scripts with redirect on win; more error checking to activate, #2852
 
 
-2016-06-23   4.1.3:
--------------------
-  * ensure conda-env auto update, along with conda, #2772
-  * make yaml booleans behave how everyone expects them to, #2784
-  * use accept-encoding for repodata; prefer repodata.json to repodata.json.bz2, #2821
-  * additional integration and regression tests, #2757, #2774, #2787
-  * add offline mode to printed info; use offline flag when grabbing channels, #2813
-  * show conda-env version in conda info, #2819
-  * adjust channel priority superseded list, #2820
-  * support epoch ! characters in command line specs, #2832
-  * accept old default names and new ones when canonicalizing channel URLs #2839
-  * push PATH, PS1 manipulation into shell scripts, #2796
-  * fix #2765 broken source activate without arguments, #2806
-  * fix standalone execution of install.py, #2756
-  * fix #2810 activating conda environment broken with git bash on Windows, #2795
-  * fix #2805, #2781 handle both file-based channels and explicit file-based URLs, #2812
-  * fix #2746 conda create --clone of root, #2838
-  * fix #2668, #2699 shell recursion with activate #2831
+## 4.1.3 (2016-06-23)
+
+* ensure conda-env auto update, along with conda, #2772
+* make yaml booleans behave how everyone expects them to, #2784
+* use accept-encoding for repodata; prefer repodata.json to repodata.json.bz2, #2821
+* additional integration and regression tests, #2757, #2774, #2787
+* add offline mode to printed info; use offline flag when grabbing channels, #2813
+* show conda-env version in conda info, #2819
+* adjust channel priority superseded list, #2820
+* support epoch ! characters in command line specs, #2832
+* accept old default names and new ones when canonicalizing channel URLs #2839
+* push PATH, PS1 manipulation into shell scripts, #2796
+* fix #2765 broken source activate without arguments, #2806
+* fix standalone execution of install.py, #2756
+* fix #2810 activating conda environment broken with git bash on Windows, #2795
+* fix #2805, #2781 handle both file-based channels and explicit file-based URLs, #2812
+* fix #2746 conda create --clone of root, #2838
+* fix #2668, #2699 shell recursion with activate #2831
 
 
-2016-06-17   4.1.2:
--------------------
-  * improve messaging for "downgrades" due to channel priority, #2718
-  * support conda config channel append/prepend, handle duplicates, #2730
-  * remove --shortcuts option to internal CLI code, #2723
-  * fix an issue concerning space characters in paths in activate.bat, #2740
-  * fix #2732 restore yes/no/on/off for booleans on the command line, #2734
-  * fix #2642 tarball install on Windows, #2729
-  * fix #2687, #2697 WindowsError when creating environments on Windows, #2717
-  * fix #2710 link instruction in conda create causes TypeError, #2715
-  * revert #2514, #2695, disabling of .netrc files, #2736
-  * revert #2281 printing progress bar to terminal, #2707
+## 4.1.2 (2016-06-17)
+
+* improve messaging for "downgrades" due to channel priority, #2718
+* support conda config channel append/prepend, handle duplicates, #2730
+* remove --shortcuts option to internal CLI code, #2723
+* fix an issue concerning space characters in paths in activate.bat, #2740
+* fix #2732 restore yes/no/on/off for booleans on the command line, #2734
+* fix #2642 tarball install on Windows, #2729
+* fix #2687, #2697 WindowsError when creating environments on Windows, #2717
+* fix #2710 link instruction in conda create causes TypeError, #2715
+* revert #2514, #2695, disabling of .netrc files, #2736
+* revert #2281 printing progress bar to terminal, #2707
 
 
-2016-06-16   4.1.1:
--------------------
-  * add auto_update_conda config parameter, #2686
-  * fix #2669 conda config --add channels can leave out defaults, #2670
-  * fix #2703 ignore activate symlink error if links already exist, #2705
-  * fix #2693 install duplicate packages with older version of Anaconda, #2701
-  * fix #2677 respect HTTP_PROXY, #2695
-  * fix #2680 broken fish integration, #2685, #2694
-  * fix an issue with conda never exiting, #2689
-  * fix #2688 explicit file installs, #2708
-  * fix #2700 conda list UnicodeDecodeError, #2706
+## 4.1.1 (2016-06-16)
+
+* add auto_update_conda config parameter, #2686
+* fix #2669 conda config --add channels can leave out defaults, #2670
+* fix #2703 ignore activate symlink error if links already exist, #2705
+* fix #2693 install duplicate packages with older version of Anaconda, #2701
+* fix #2677 respect HTTP_PROXY, #2695
+* fix #2680 broken fish integration, #2685, #2694
+* fix an issue with conda never exiting, #2689
+* fix #2688 explicit file installs, #2708
+* fix #2700 conda list UnicodeDecodeError, #2706
 
 
-2016-06-15  4.0.9:
-------------------
-  * add auto_update_conda config parameter, #2686
+## 4.0.9 (2016-06-15)
+
+* add auto_update_conda config parameter, #2686
 
 
-2016-06-14   4.1.0:
--------------------
-  * clean up activate and deactivate scripts, moving back to conda repo, #1727,
-    #2265, #2291, #2473, #2501, #2484
-  * replace pyyaml with ruamel_yaml, #2283, #2321
-  * better handling of channel collisions, #2323, #2369 #2402, #2428
-  * improve listing of pip packages with conda list, #2275
-  * re-license progressbar under BSD 3-clause, #2334
-  * reduce the amount of extraneous info in hints, #2261
-  * add --shortcuts option to install shortcuts on windows, #2623
-  * skip binary replacement on windows, #2630
-  * don't show channel urls by default in conda list, #2282
-  * package resolution and solver tweaks, #2443, #2475, #2480
-  * improved version & build matching, #2442, #2488
-  * print progress to the terminal rather than stdout, #2281
-  * verify version specs given on command line are valid, #2246
-  * fix for try_write function in case of odd permissions, #2301
-  * fix a conda search --spec error, #2343
-  * update User-Agent for conda connections, #2347
-  * remove some dead code paths, #2338, #2374
-  * fixes a thread safety issue with http requests, #2377, #2383
-  * manage BeeGFS hard-links non-POSIX configuration, #2355
-  * prevent version downgrades during removes, #2394
-  * fix conda info --json, #2445
-  * truncate shebangs over 127 characters using /usr/bin/env, #2479
-  * extract packages to a temporary directory then rename, #2425, #2483
-  * fix help in install, #2460
-  * fix re-install bug when sha1 differs, #2507
-  * fix a bug with file deletion, #2499
-  * disable .netrc files, #2514
-  * dont fetch index on remove --all, #2553
-  * allow track_features to be a string *or* a list in .condarc, #2541
-  * fix #2415 infinite recursion in invalid_chains, #2566
-  * allow channel_alias to be different than binstar, #2564
+## 4.1.0 (2016-06-14)
+
+* clean up activate and deactivate scripts, moving back to conda repo, #1727,
+  #2265, #2291, #2473, #2501, #2484
+* replace pyyaml with ruamel_yaml, #2283, #2321
+* better handling of channel collisions, #2323, #2369 #2402, #2428
+* improve listing of pip packages with conda list, #2275
+* re-license progressbar under BSD 3-clause, #2334
+* reduce the amount of extraneous info in hints, #2261
+* add --shortcuts option to install shortcuts on windows, #2623
+* skip binary replacement on windows, #2630
+* don't show channel urls by default in conda list, #2282
+* package resolution and solver tweaks, #2443, #2475, #2480
+* improved version & build matching, #2442, #2488
+* print progress to the terminal rather than stdout, #2281
+* verify version specs given on command line are valid, #2246
+* fix for try_write function in case of odd permissions, #2301
+* fix a conda search --spec error, #2343
+* update User-Agent for conda connections, #2347
+* remove some dead code paths, #2338, #2374
+* fixes a thread safety issue with http requests, #2377, #2383
+* manage BeeGFS hard-links non-POSIX configuration, #2355
+* prevent version downgrades during removes, #2394
+* fix conda info --json, #2445
+* truncate shebangs over 127 characters using /usr/bin/env, #2479
+* extract packages to a temporary directory then rename, #2425, #2483
+* fix help in install, #2460
+* fix re-install bug when sha1 differs, #2507
+* fix a bug with file deletion, #2499
+* disable .netrc files, #2514
+* dont fetch index on remove --all, #2553
+* allow track_features to be a string *or* a list in .condarc, #2541
+* fix #2415 infinite recursion in invalid_chains, #2566
+* allow channel_alias to be different than binstar, #2564
 
 
-2016-06-03   4.0.8:
--------------------
-  * fix a potential problem with moving files to trash, #2587
+## 4.0.8 (2016-06-03)
+
+* fix a potential problem with moving files to trash, #2587
 
 
-2016-05-26   4.0.7:
--------------------
-  * workaround for boto bug, #2380
+## 4.0.7 (2016-05-26)
+
+* workaround for boto bug, #2380
 
 
-2016-05-11   4.0.6:
--------------------
-  * log "custom" versions as updates rather than downgrades, #2290
-  * fixes a TypeError exception that can occur on install/update, #2331
-  * fixes an error on Windows removing files with long path names, #2452
+## 4.0.6 (2016-05-11)
+
+* log "custom" versions as updates rather than downgrades, #2290
+* fixes a TypeError exception that can occur on install/update, #2331
+* fixes an error on Windows removing files with long path names, #2452
 
 
-2016-03-16   4.0.5:
--------------------
-  * improved help documentation for install, update, and remove, #2262
-  * fixes #2229 and #2250 related to conda update errors on Windows, #2251
-  * fixes #2258 conda list for pip packages on Windows, #2264
+## 4.0.5 (2016-03-16)
+
+* improved help documentation for install, update, and remove, #2262
+* fixes #2229 and #2250 related to conda update errors on Windows, #2251
+* fixes #2258 conda list for pip packages on Windows, #2264
 
 
-2016-03-10   4.0.4:
--------------------
-  * revert #2217 closing request sessions, #2233
+## 4.0.4 (2016-03-10)
+
+* revert #2217 closing request sessions, #2233
 
 
-2016-03-10   4.0.3:
--------------------
-  * adds a `conda clean --all` feature, #2211
-  * solver performance improvements, #2209
-  * fixes conda list for pip packages on windows, #2216
-  * quiets some logging for package downloads under python 3, #2217
-  * more urls for `conda list --explicit`, #1855
-  * prefer more "latest builds" for more packages, #2227
-  * fixes a bug with dependecy resolution and features, #2226
+## 4.0.3 (2016-03-10)
+
+* adds a `conda clean --all` feature, #2211
+* solver performance improvements, #2209
+* fixes conda list for pip packages on windows, #2216
+* quiets some logging for package downloads under python 3, #2217
+* more urls for `conda list --explicit`, #1855
+* prefer more "latest builds" for more packages, #2227
+* fixes a bug with dependecy resolution and features, #2226
 
 
-2016-03-08   4.0.2:
--------------------
-  * fixes track_features in ~/.condarc being a list, see also #2203
-  * fixes incorrect path in lock file error #2195
-  * fixes issues with cloning environments, #2193, #2194
-  * fixes a strange interaction between features and versions, #2206
-  * fixes a bug in low-level SAT clause generation creating a
-    preference for older versions, #2199
+## 4.0.2 (2016-03-08)
+
+* fixes track_features in ~/.condarc being a list, see also #2203
+* fixes incorrect path in lock file error #2195
+* fixes issues with cloning environments, #2193, #2194
+* fixes a strange interaction between features and versions, #2206
+* fixes a bug in low-level SAT clause generation creating a
+  preference for older versions, #2199
 
 
-2016-03-07   4.0.1:
--------------------
-  * fixes an install issue caused by md5 checksum mismatches, #2183
-  * remove auxlib build dependency, #2188
+## 4.0.1 (2016-03-07)
+
+* fixes an install issue caused by md5 checksum mismatches, #2183
+* remove auxlib build dependency, #2188
 
 
-2016-03-04   4.0.0:
--------------------
-  * The solver has been retooled significantly. Performance
-    should be improved in most circumstances, and a number of issues
-    involving feature conflicts should be resolved.
-  * `conda update <package>` now handles depedencies properly
-    according to the setting of the "update_deps" configuration:
-        --update-deps: conda will also update any dependencies as needed
-                       to install the latest verison of the requrested
-                       packages.  The minimal set of changes required to
-                       achieve this is sought.
-        --no-update-deps: conda will update the packages *only* to the
-                       extent that no updates to the dependencies are
-                       required
-    The previous behavior, which would update the packages without regard to
-    their dependencies, could result in a broken configuration, and has been
-    removed.
-  * Conda finally has an official logo.
-  * Fix `conda clean --packages` on Windows, #1944
-  * Conda sub-commands now support dashes in names, #1840
+## 4.0.0 (2016-03-04)
+
+* The solver has been retooled significantly. Performance
+  should be improved in most circumstances, and a number of issues
+  involving feature conflicts should be resolved.
+* `conda update <package>` now handles depedencies properly
+  according to the setting of the "update_deps" configuration:
+      --update-deps: conda will also update any dependencies as needed
+                     to install the latest verison of the requrested
+                     packages.  The minimal set of changes required to
+                     achieve this is sought.
+      --no-update-deps: conda will update the packages *only* to the
+                     extent that no updates to the dependencies are
+                     required
+  The previous behavior, which would update the packages without regard to
+  their dependencies, could result in a broken configuration, and has been
+  removed.
+* Conda finally has an official logo.
+* Fix `conda clean --packages` on Windows, #1944
+* Conda sub-commands now support dashes in names, #1840
 
 
 2016-02-19   3.19.3:
