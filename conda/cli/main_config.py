@@ -9,6 +9,7 @@ import os
 import sys
 
 from conda._vendor.auxlib.type_coercion import boolify
+from conda.base.context import context
 from .common import (Completer, add_parser_json, stdout_json_success)
 from ..common.yaml import yaml_load, yaml_dump
 from ..compat import string_types
@@ -152,6 +153,11 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="Display all identified configuration sources.",
     )
     action.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate all configuration sources.",
+    )
+    action.add_argument(
         "--get",
         nargs='*',
         action="store",
@@ -227,12 +233,10 @@ def execute_config(args, parser):
     json_get = {}
 
     if args.show_sources:
-        from conda.base.context import context
         print(context.dump_locations())
         return
 
     if args.show:
-        from conda.base.context import context
         d = dict((key, getattr(context, key))
                  for key in ('add_anaconda_token',
                              'add_pip_as_python_dependency',
@@ -260,6 +264,11 @@ def execute_config(args, parser):
                              'update_dependencies',
                              'use_pip'))
         print(yaml_dump(d))
+        return
+
+    if args.validate:
+        context.validate_all()
+        return
 
     if args.system:
         rc_path = sys_rc_path
@@ -277,6 +286,7 @@ def execute_config(args, parser):
 
     # Get
     if args.get is not None:
+        context.validate_all()
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:

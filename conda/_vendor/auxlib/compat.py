@@ -19,6 +19,8 @@ primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool
 def isiterable(obj):
     # and not a string
     if PY2:
-        return hasattr(obj, '__iter__') and not isinstance(obj, string_types)
+        return (hasattr(obj, '__iter__')
+                and not isinstance(obj, string_types)
+                and type(obj) is not type)
     else:
         return not isinstance(obj, string_types) and isinstance(obj, collections.Iterable)
