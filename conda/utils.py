@@ -214,37 +214,6 @@ def human_bytes(n):
     g = m/1024
     return '%.2f GB' % g
 
-# This is necessary for Windows, for linking the environment, and for printing the correct
-# activation instructions on Windows, depending on the shell type.  It would be great to
-# get rid of it, but I don't know how to otherwise detect which shell is used to create
-# or install conda packages.
-def find_parent_shell(path=False, max_stack_depth=10):
-    """return process name or path of parent.  Default is to return only name of process."""
-    try:
-        import psutil
-    except ImportError:
-        stderrlog.warn("No psutil available.\n"
-                       "To proceed, please conda install psutil")
-        return None
-    process = psutil.Process()
-    pname = process.parent().name().lower()
-    stack_depth = 0
-    while (any(proc in pname for proc in ["conda", "python", "py.test"]) and
-           stack_depth < max_stack_depth):
-        if process:
-            process = process.parent()
-            pname = process.parent().name().lower()
-            stack_depth += 1
-        else:
-            # fallback defaults to system default
-            if on_win:
-                return 'cmd.exe'
-            else:
-                return 'bash'
-    if path:
-        return process.parent().exe()
-    return process.parent().name()
-
 
 # TODO: this should be done in a more extensible way
 #     (like files for each shell, with some registration mechanism.)
