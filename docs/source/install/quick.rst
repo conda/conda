@@ -60,7 +60,7 @@ simply accept the defaults as they all can be changed later.
 
 .. code::
 
-   bash Miniconda2-latest-MacOSX-x86_64.sh
+   bash Miniconda3-latest-MacOSX-x86_64.sh
 
 Now close and re-open your terminal window for the changes to take effect.
 
@@ -91,7 +91,7 @@ about any setting, simply accept the defaults as they all can be changed later:
 
 .. code::
 
-   bash Miniconda2-latest-Linux-x86_64.sh
+   bash Miniconda3-latest-Linux-x86_64.sh
 
 Now close and re-open your terminal window for the changes to take effect.
 
