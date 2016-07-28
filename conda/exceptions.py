@@ -414,7 +414,7 @@ def conda_exception_handler(func, *args, **kwargs):
     finally:
         # clean the lock we have
         from .cli.main_clean import find_lock, rm_lock
-        json_result = { 'success': True}
+        json_result = {'success': True}
         locks = list(find_lock())
         json_result['lock'] = {
             'files': locks
