@@ -1,18 +1,19 @@
-2016-0X-XX   4.2.0 (unreleased):
---------------------------------
+2016-07-28   4.2.0:
+-------------------
   * remove conda init, #2759
   * remove conda package and conda bundle, #2760
-  * deprecate conde-env repo; pull into conda proper, #2950, #2952, #2954, #3157, #3163
-  * new configuration engine, #2537, #3160
+  * deprecate conda-env repo; pull into conda proper, #2950, #2952, #2954, #3157, #3163, #3170
+  * new configuration engine, #2537, #3160, #3178
   * replace sys.exit with exceptions, #2899, #2993, #3016, #3152
   * improve locking, #2962, #2989, #3048, #3075
   * project structure enhancement, #2929,#3132, #3133, #3136
   * add extra info to exception message #3045
   * force use of ruamel_yaml, #2762
   * add ability to have conda reside in a private env, #3068
-  * add ability to create empty environments, #3072
+  * add ability to create empty environments, #3072, #3174
   * clean up channel handling with new channel model, #3130, #3151
   * add Anaconda Cloud / Binstar auth handler, #3142
+  * better lock cleanup after failures, #3171
   * remove dead code, #2761
   * remove legacy code in conda.install, #2969
   * implement conda config --prepend; change behavior of --add to --append, #3041
@@ -35,6 +36,7 @@
   * fix a failure with multi-threaded repodata downloads, #3078
   * fix windows file url, #3139
   * fix PS1 backup in activate script, #3135
+  * address #2800, error with environment.yml and non-default channels, #3164
 
 
 2016-07-26  4.1.11:
