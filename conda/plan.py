@@ -599,7 +599,9 @@ def remove_features_actions(prefix, index, features):
     return actions
 
 
-def revert_actions(prefix, revision=-1):
+def revert_actions(prefix, revision=-1, index=None):
+    # TODO: If revision raise a revision error, should always go back to a safe revision
+    # change
     h = History(prefix)
     h.update()
     try:
@@ -614,6 +616,17 @@ def revert_actions(prefix, revision=-1):
     actions = ensure_linked_actions(state, prefix)
     for dist in curr - state:
         add_unlink(actions, dist)
+
+    # check whether it is a safe revision
+    from .instructions import split_linkarg
+    from .exceptions import CondaRevisionError
+    for arg in set(actions.get(inst.LINK, []) + actions.get(inst.UNLINK, [])
+                   + actions.get(inst.FETCH, [])):
+        dist, lt = split_linkarg(arg)
+        fkey = dist + '.tar.bz2'
+        if fkey not in index:
+            msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
+            raise CondaRevisionError(msg)
 
     return actions
 

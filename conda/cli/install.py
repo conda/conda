@@ -288,7 +288,7 @@ environment does not exist: %s
 
     try:
         if isinstall and args.revision:
-            actions = revert_actions(prefix, get_revision(args.revision))
+            actions = revert_actions(prefix, get_revision(args.revision), index)
         else:
             with common.json_progress_bars(json=args.json and not args.quiet):
                 actions = install_actions(prefix, index, specs,
