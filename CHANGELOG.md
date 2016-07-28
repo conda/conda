@@ -1,43 +1,56 @@
-2016-07-28   4.2.0:
--------------------
-  * remove conda init, #2759
-  * remove conda package and conda bundle, #2760
-  * deprecate conda-env repo; pull into conda proper, #2950, #2952, #2954, #3157, #3163, #3170
-  * new configuration engine, #2537, #3160, #3178
-  * replace sys.exit with exceptions, #2899, #2993, #3016, #3152
-  * improve locking, #2962, #2989, #3048, #3075
-  * project structure enhancement, #2929,#3132, #3133, #3136
-  * add extra info to exception message #3045
-  * force use of ruamel_yaml, #2762
-  * add ability to have conda reside in a private env, #3068
-  * add ability to create empty environments, #3072, #3174
-  * clean up channel handling with new channel model, #3130, #3151
-  * add Anaconda Cloud / Binstar auth handler, #3142
-  * better lock cleanup after failures, #3171
-  * remove dead code, #2761
-  * remove legacy code in conda.install, #2969
-  * implement conda config --prepend; change behavior of --add to --append, #3041
-  * code refactoring and additional testing, #3052, #3020
-  * exit on link error instead of logging it, #2639
-  * clean up requests usage for fetching packages, #2755
-  * remove excess output from conda --help, #2872
-  * remove os.remove in update_prefix, #3006
-  * remove auxlib from project root, #2931
-  * remove psutil requirement #3183
-  * vendor auxlib 0.0.40, #2932, #2943, #3131
-  * vendor toolz 0.8.0, #2994
-  * expose full regex power for version specifications, #2933
-  * move progressbar to vendor directory, #2951
-  * better error behavior if conda is spec'd for a non-root environment, #2956
-  * fix conda.recipe for new quirks with conda-build, #2959
-  * scale back try_write function on unix, #3076
-  * move captured function to common module, #3083
-  * rename CHANGELOG to md, #3087
-  * fix #3124 add threading lock to memoize, #3134
-  * fix a failure with multi-threaded repodata downloads, #3078
-  * fix windows file url, #3139
-  * fix PS1 backup in activate script, #3135
-  * address #2800, error with environment.yml and non-default channels, #3164
+# Changlog
+
+## 4.2.0 (2016-07-28)
+
+### Features
+
+* new configuration engine (#2537, #3160, #3178)
+* replace sys.exit with exceptions (#2899, #2993, #3016, #3152, #3045)
+* add ability to have conda reside in a private env (#3068)
+* add ability to create empty environments (#3072, #3174)
+* expose full regex power for version specifications (#2933)
+
+
+### Deprecations/Breaking Changes
+
+* remove conda init (#2759)
+* remove conda package and conda bundle (#2760)
+* deprecate conda-env repo; pull into conda proper (#2950, #2952, #2954, #3157, #3163, #3170)
+* force use of ruamel_yaml (#2762)
+* implement conda config --prepend; change behavior of --add to --append (#3041)
+* exit on link error instead of logging it (#2639)
+
+
+### Improvements
+* improve locking (#2962, #2989, #3048, #3075)
+* clean up requests usage for fetching packages (#2755)
+* remove excess output from conda --help (#2872)
+* remove os.remove in update_prefix (#3006)
+* better error behavior if conda is spec'd for a non-root environment (#2956)
+* scale back try_write function on unix (#3076)
+
+
+### Bug Fixes
+* remove psutil requirement, fixes annoying error message (#3135, #3183)
+* fix #3124 add threading lock to memoize (#3134)
+* fix a failure with multi-threaded repodata downloads (#3078)
+* fix windows file url (#3139)
+* address #2800, error with environment.yml and non-default channels (#3164)
+
+
+### Non-User-Facing Changes
+* project structure enhancement (#2929, #3132, #3133, #3136)
+* clean up channel handling with new channel model (#3130, #3151)
+* add Anaconda Cloud / Binstar auth handler (#3142)
+* remove dead code (#2761, #2969)
+* code refactoring and additional tests (#3052, #3020)
+* remove auxlib from project root (#2931)
+* vendor auxlib 0.0.40 (#2932, #2943, #3131)
+* vendor toolz 0.8.0 (#2994)
+* move progressbar to vendor directory (#2951)
+* fix conda.recipe for new quirks with conda-build (#2959)
+* move captured function to common module (#3083)
+* rename CHANGELOG to md (#3087)
 
 
 2016-07-26  4.1.11:
