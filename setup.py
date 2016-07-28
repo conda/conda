@@ -41,6 +41,16 @@ if sys.platform == 'win32':
     scripts.extend(['bin/activate.bat',
                     'bin/deactivate.bat'])
 
+install_requires = [
+    'pycosat >=0.6.1',
+    'requests >=2.5.3',
+    'conda-env >=2.6'
+]
+
+if sys.version_info < (3, 4):
+    install_requires.append('enum34')
+
+
 setup(
     name=conda.__name__,
     version=conda.__version__,
@@ -66,9 +76,7 @@ setup(
         'build_py': conda._vendor.auxlib.BuildPyCommand,
         'sdist': conda._vendor.auxlib.SDistCommand,
     },
-    install_requires=[
-        'pycosat >=0.6.1',
-    ],
+    install_requires=install_requires,
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
