@@ -618,10 +618,10 @@ def revert_actions(prefix, revision=-1, index=None):
         add_unlink(actions, dist)
 
     # check whether it is a safe revision
-    from .instructions import split_linkarg
+    from .instructions import split_linkarg, LINK, UNLINK, FETCH
     from .exceptions import CondaRevisionError
-    for arg in set(actions.get(inst.LINK, []) + actions.get(inst.UNLINK, [])
-                   + actions.get(inst.FETCH, [])):
+    for arg in set(actions.get(LINK,
+                               []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
         dist, lt = split_linkarg(arg)
         fkey = dist + '.tar.bz2'
         if fkey not in index:
