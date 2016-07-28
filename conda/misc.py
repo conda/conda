@@ -120,7 +120,13 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         name = name_dist(dist)
         if name in linked:
             actions[UNLINK].append(linked[name])
-        actions[LINK].append(dist)
+
+        if context.always_copy:
+            from .install import LINK_COPY
+            lt = LINK_COPY
+            actions[LINK].append('%s %d' % (dist, lt))
+        else:
+            actions[LINK].append(dist)
 
     # Pull the repodata for channels we are using
     if channels:
