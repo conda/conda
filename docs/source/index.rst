@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-=====
-Conda
-=====
+.. =====
+.. Conda
+.. =====
 
 .. figure::  images/conda_logo.svg
    :align:   center
@@ -22,11 +22,12 @@ Conda
    <div id="mc_embed_signup">
    <form action="//pydata.us13.list-manage.com/subscribe/post?u=28f85eefa68de727efcbd93f9&amp;id=cb4ca49e7d" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
        <div id="mc_embed_signup_scroll">
-   	<h2>Conda Announcements</h2>
 
-    <div><p style="font-weight:500;">News and updates directly from the Conda core team.</p></div>
+   	<h1>Conda Announcements</h1>
 
-    <div><p style="font-size:0.8em; font-color:#aaaaaa; font-weight:500;">Privacy Policy: We will never sell, give away, or further distribute your email address to third parties.</p></div>
+    <div><p style="font-size:2em;font-weight:700;">News and updates directly from the Conda core team.</p></div>
+
+    <div style="font-size:0.8em; color:#bbbbbb; font-weight:500;">Privacy Policy: We will never sell, give away, or further distribute your email address to third parties./div>
 
    <div class="indicates-required"><span class="asterisk">*</span> indicates required</div>
    <div class="mc-field-group">
