@@ -16,3 +16,4 @@ junit.xml
 tmpfile.rc
 .DS_Store
 .coverage*
+*.bz2
