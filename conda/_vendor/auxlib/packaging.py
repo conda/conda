@@ -169,7 +169,8 @@ def write_version_into_init(target_dir, version):
     for q in range(len(init_lines)):
         if init_lines[q].startswith('__version__'):
             init_lines[q] = '__version__ = "{0}"\n'.format(version)
-        elif init_lines[q].startswith(('from auxlib', 'import auxlib')):
+        elif (init_lines[q].startswith(('from auxlib', 'import auxlib'))
+              or 'auxlib.packaging' in init_lines[q]):
             init_lines[q] = None
     print("UPDATING {0}".format(target_init_file))
     remove(target_init_file)
