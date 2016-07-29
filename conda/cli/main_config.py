@@ -12,7 +12,7 @@ from conda._vendor.auxlib.type_coercion import boolify
 from conda.base.context import context
 from .common import (Completer, add_parser_json, stdout_json_success)
 from ..common.yaml import yaml_load, yaml_dump
-from ..compat import string_types
+from ..compat import string_types, iteritems, itervalues
 from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
                       user_rc_path, rc_other)
 from ..exceptions import (CondaValueError, CondaKeyError, CouldntParseError)
@@ -233,7 +233,12 @@ def execute_config(args, parser):
     json_get = {}
 
     if args.show_sources:
-        print(context.dump_locations())
+        lines = []
+        for source, reprs in iteritems(context.collect_all()):
+            lines.append("> %s" % source)
+            lines.extend(itervalues(reprs))
+            lines.append('')
+        print('\n'.join(lines))
         return
 
     if args.show:
