@@ -25,19 +25,20 @@ build:
 
   entry_points:
     - conda = conda.cli:main
+    - conda-env = conda_env.cli.main:main
 
 requirements:
   build:
     - python
-    - setuptools
     - pycosat >=0.6.1
   run:
     - python
-    - conda-env >=2.5.1
-    - menuinst  [win]
+    - conda-env >=2.6
+    - enum34               [py<34]
+    - menuinst             [win]
     - pycosat >=0.6.1
-    - ruamel_yaml
-    - enum34           [py < 34]
+    - requests >=2.5.3
+    - ruamel_yaml >=0.11.14
 
 test:
   requires:

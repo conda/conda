@@ -535,7 +535,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 7, 29), reason="deal with this later")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 4), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
@@ -547,17 +547,16 @@ class IntegrationTests(TestCase):
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         assert not isfile(shortcut_file)
 
-        try:
-            with make_temp_env(prefix=prefix):
-                # set condarc shortcuts: False
-                run_command(Commands.CONFIG, prefix, "--set shortcuts false")
-                stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
-                json_obj = json_loads(stdout)
-                # assert json_obj['rc_path'] == join(prefix, 'condarc')
-                assert json_obj['get']['shortcuts'] is False
+        # set condarc shortcuts: False
+        run_command(Commands.CONFIG, prefix, "--set shortcuts false")
+        stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+        json_obj = json_loads(stdout)
+        # assert json_obj['rc_path'] == join(prefix, 'condarc')
+        assert json_obj['get']['shortcuts'] is False
 
-                # including shortcuts: False should not get shortcuts installed
-                run_command(Commands.CREATE, prefix, "console_shortcut")
+        try:
+            with make_temp_env("console_shortcut", prefix=prefix):
+                # including shortcuts: False from condarc should not get shortcuts installed
                 assert package_is_installed(prefix, 'console_shortcut')
                 assert not isfile(shortcut_file)
 

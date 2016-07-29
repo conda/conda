@@ -33,17 +33,26 @@ import conda  # NOQA
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
-scripts = ['bin/activate',
-           'bin/activate.sh',
-           'bin/activate.csh',
-           'bin/deactivate',
-           'bin/deactivate.sh',
-           'bin/deactivate.csh',
+scripts = ['shell/activate',
+           'shell/activate.sh',
+           'shell/activate.csh',
+           'shell/deactivate',
+           'shell/deactivate.sh',
+           'shell/deactivate.csh',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
-    scripts.extend(['bin/activate.bat',
-                    'bin/deactivate.bat'])
+    scripts.extend(['shell/activate.bat',
+                    'shell/deactivate.bat'])
+
+install_requires = [
+    'pycosat >=0.6.1',
+    'requests >=2.5.3',
+]
+
+if sys.version_info < (3, 4):
+    install_requires.append('enum34')
+
 
 setup(
     name=conda.__name__,
@@ -64,15 +73,16 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests", "build",
-                                                                   "utils", ".tox")),
+    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests",
+                                                                   "tests.*",
+                                                                   "build",
+                                                                   "utils",
+                                                                   ".tox")),
     cmdclass={
-        'build_py': conda._vendor.auxlib.BuildPyCommand,
-        'sdist': conda._vendor.auxlib.SDistCommand,
+        'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
+        'sdist': conda._vendor.auxlib.packaging.SDistCommand,
     },
-    install_requires=[
-        'pycosat >=0.6.1',
-    ],
+    install_requires=install_requires,
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"

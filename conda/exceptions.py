@@ -192,6 +192,11 @@ class CondaHTTPError(CondaError):
         super(CondaHTTPError, self).__init__(msg, *args, **kwargs)
 
 
+class CondaRevisionError(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = 'Revision Error :%s\n' % message
+        super(CondaRevisionError, self).__init__(msg, *args, **kwargs)
+
 class AuthenticationError(CondaError):
     pass
 
@@ -313,10 +318,6 @@ class CondaValueError(CondaError, ValueError):
         super(CondaValueError, self).__init__(msg, *args, **kwargs)
 
 
-class ValidationError(CondaValueError):
-    pass
-
-
 class CondaTypeError(CondaError, TypeError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Type error: %s\n' % message
@@ -341,7 +342,7 @@ class CondaSignatureError(CondaError):
         super(CondaSignatureError, self).__init__(msg, *args, **kwargs)
 
 
-def print_exception(exception):
+def print_conda_exception(exception):
     from conda.base.context import context
     from conda.cli.common import stdout_json
     from sys import stderr
@@ -410,7 +411,7 @@ def conda_exception_handler(func, *args, **kwargs):
         if context.debug:
             print_unexpected_error_message(e)
         else:
-            print_exception(e)
+            print_conda_exception(e)
         return 1
     except Exception as e:
         print_unexpected_error_message(e)

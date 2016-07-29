@@ -137,6 +137,7 @@ def display_actions(actions, index, show_channel_urls=None):
         maxnewchannels = max(len(channel_filt(p[1])) for p in channels.values())
     else:
         empty = True
+
     updated = set()
     downgraded = set()
     channeled = set()
@@ -521,8 +522,8 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         index=index if force else None,
         force=force, always_copy=always_copy)
 
-    # always symlink to create empty dirs
-    actions[inst.SYMLINK_CONDA] = [context.root_dir]
+    if actions[inst.LINK]:
+        actions[inst.SYMLINK_CONDA] = [context.root_dir]
 
     for fkey in sorted(linked):
         dist = fkey[:-8]
@@ -599,7 +600,9 @@ def remove_features_actions(prefix, index, features):
     return actions
 
 
-def revert_actions(prefix, revision=-1):
+def revert_actions(prefix, revision=-1, index=None):
+    # TODO: If revision raise a revision error, should always go back to a safe revision
+    # change
     h = History(prefix)
     h.update()
     try:
@@ -614,6 +617,17 @@ def revert_actions(prefix, revision=-1):
     actions = ensure_linked_actions(state, prefix)
     for dist in curr - state:
         add_unlink(actions, dist)
+
+    # check whether it is a safe revision
+    from .instructions import split_linkarg, LINK, UNLINK, FETCH
+    from .exceptions import CondaRevisionError
+    for arg in set(actions.get(LINK,
+                               []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
+        dist, lt = split_linkarg(arg)
+        fkey = dist + '.tar.bz2'
+        if fkey not in index:
+            msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
+            raise CondaRevisionError(msg)
 
     return actions
 

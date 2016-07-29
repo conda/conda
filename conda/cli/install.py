@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import errno
 import logging
@@ -13,26 +13,26 @@ import shutil
 import tarfile
 import tempfile
 from difflib import get_close_matches
-from os.path import isdir, join, basename, exists, abspath
+from os.path import abspath, basename, exists, isdir, join
 
+from .. import CondaError
+from .._vendor.auxlib.ish import dals
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import force_32bit, context, check_write
+from ..base.context import check_write, context, force_32bit
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..exceptions import (CondaFileNotFoundError, CondaValueError, DirectoryNotFoundError,
-                          CondaEnvironmentError, PackageNotFoundError, TooManyArgumentsError,
-                          CondaAssertionError, CondaOSError, CondaImportError,
-                          DryRunExit, LockError, CondaRuntimeError,
-                          CondaSystemExit, NoPackagesFoundError, UnsatisfiableError, CondaIOError)
-from conda import CondaError
-from ..install import linked as install_linked
-from ..install import name_dist, is_linked
-from ..misc import explicit, clone_env, append_env, touch_nonadmin
-from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defaults_to_specs,
-                    display_actions, revert_actions, nothing_to_do, execute_actions)
+from ..exceptions import (CondaAssertionError, CondaEnvironmentError, CondaFileNotFoundError,
+                          CondaIOError, CondaImportError, CondaOSError, CondaRuntimeError,
+                          CondaSystemExit, CondaValueError, DirectoryNotFoundError, DryRunExit,
+                          LockError, NoPackagesFoundError, PackageNotFoundError,
+                          TooManyArgumentsError, UnsatisfiableError)
+from ..install import is_linked, linked as install_linked, name_dist
+from ..misc import append_env, clone_env, explicit, touch_nonadmin
+from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
+                    install_actions, is_root_prefix, nothing_to_do, revert_actions)
 from ..resolve import Resolve
-from ..utils import find_parent_shell
+from ..utils import on_win
 
 log = logging.getLogger(__name__)
 
@@ -102,20 +102,30 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 
 def print_activate(arg):
-    shell = find_parent_shell(path=False)
-    print("#")
-    print("# To activate this environment, use:")
-    if shell in ["powershell.exe", "cmd.exe"]:
-        print("# > activate %s" % arg)
-        print("#")
-        print("# To deactivate this environment, use:")
-        print("# > deactivate")
+    if on_win:
+        message = dals("""
+        #
+        # To activate this environment, use:
+        # > activate %s
+        #
+        # To deactivate this environment, use:
+        # > deactivate %s
+        #
+        # * for power-users using bash, you must source
+        #
+        """)
     else:
-        print("# $ source activate %s" % arg)
-        print("#")
-        print("# To deactivate this environment, use:")
-        print("# $ source deactivate")
-    print("#")
+        message = dals("""
+        #
+        # To activate this environment, use:
+        # > source activate %s
+        #
+        # To deactivate this environment, use:
+        # > source deactivate %s
+        #
+        """)
+
+    return message % (arg, arg)
 
 
 def get_revision(arg, json=False):
@@ -288,7 +298,7 @@ environment does not exist: %s
 
     try:
         if isinstall and args.revision:
-            actions = revert_actions(prefix, get_revision(args.revision))
+            actions = revert_actions(prefix, get_revision(args.revision), index)
         else:
             with common.json_progress_bars(json=args.json and not args.quiet):
                 actions = install_actions(prefix, index, specs,
@@ -360,7 +370,8 @@ environment does not exist: %s
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError('', e, args.json)
         raise CondaError('UnsatisfiableSpecifications', e, args.json)
-    if nothing_to_do(actions):
+
+    if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
 
         if not args.json:
@@ -371,6 +382,11 @@ environment does not exist: %s
             common.stdout_json_success(
                 message='All requested packages already installed.')
         return
+    elif newenv:
+        # needed in the case of creating an empty env
+        from ..instructions import LINK, UNLINK, SYMLINK_CONDA
+        if not actions[LINK] and not actions[UNLINK]:
+            actions[SYMLINK_CONDA] = [context.root_dir]
 
     if not args.json:
         print()
