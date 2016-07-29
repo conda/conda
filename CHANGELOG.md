@@ -1,23 +1,34 @@
+## 4.2.1 (2016-07-29)
+
+### Improvements
+* improve an error message that can happen during conda install --revision (#3181)
+
+### Bug Fixes
+* critical fix for 4.2.0 error when no git is on PATH (#3193)
+* revert #3171 lock cleaning on exit pending further refinement
+* patches for conda-build compatibility with 4.2 (#3187)
+* fix a bug in --show-sources output that ignored aliased parameter names (#3189)
+
+### Non-User-Facing Changes
+* move scripts in bin to shell directory (#3186)
+
+
 ## 4.2.0 (2016-07-28)
 
 ### New Features
-
 * **New Configuration Engine**: Configuration and "operating context" are the foundation of conda's functionality. Conda now has the ability to pull configuration information from a multitude of on-disk locations, including `.d` directories and a `.condarc` file *within* a conda environment), along with full `CONDA_` environment variable support. Helpful validation errors are given for improperly-specified configuration. Full documentation updates pending. (#2537, #3160, #3178)
 * **New Exception Handling Engine**: Previous releases followed a pattern of premature exiting (with hard calls to `sys.exit()` when exceptional circumstances were encountered. This release replaces over 100 `sys.exit` calls with python exceptions.  For conda developers, this will result in tests that are easier to write.  For developers using conda, this is a first step on a long path toward conda being directly importable.  For conda users, this will eventually result in more helpful and descriptive errors messages.  (#2899, #2993, #3016, #3152, #3045)
 * **Empty Environments**: Conda can now create "empty" environments when no initial packages are specified, alleviating a common source of confusion. (#3072, #3174)
 * **Conda in Private Env**: Conda can now be configured to live within its own private environment.  While it's not yet default behavior, this represents a first step toward separating the `root` environment into a "conda private" environment and a "user default" environment. (#3068)
 * **Regex Version Specification**: Regelar expressions are now valid version specifiers.  For example, `^1\.[5-8]\.1$|2.2`. (#2933)
 
-
 ### Deprecations/Breaking Changes
-
 * remove conda init (#2759)
 * remove conda package and conda bundle (#2760)
 * deprecate conda-env repo; pull into conda proper (#2950, #2952, #2954, #3157, #3163, #3170)
 * force use of ruamel_yaml (#2762)
 * implement conda config --prepend; change behavior of --add to --append (#3041)
 * exit on link error instead of logging it (#2639)
-
 
 ### Improvements
 * improve locking (#2962, #2989, #3048, #3075)
@@ -27,14 +38,12 @@
 * better error behavior if conda is spec'd for a non-root environment (#2956)
 * scale back try_write function on unix (#3076)
 
-
 ### Bug Fixes
 * remove psutil requirement, fixes annoying error message (#3135, #3183)
 * fix #3124 add threading lock to memoize (#3134)
 * fix a failure with multi-threaded repodata downloads (#3078)
 * fix windows file url (#3139)
 * address #2800, error with environment.yml and non-default channels (#3164)
-
 
 ### Non-User-Facing Changes
 * project structure enhancement (#2929, #3132, #3133, #3136)
