@@ -116,4 +116,4 @@ class DirectoryLock(FileLock):
                          os.W_OK), "{0} not writable".format(self.directory_path)
 
 
-Locked = FileLock
+Locked = DirectoryLock

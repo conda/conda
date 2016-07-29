@@ -9,7 +9,7 @@ import os
 import sys
 from os.path import abspath, expanduser, isfile, join
 
-from conda.base.context import context, arch_name, bits, platform  # NOQA
+from conda.base.context import context, arch_name, bits, platform, non_x86_linux_machines  # NOQA
 
 
 # ----- rc file -----
