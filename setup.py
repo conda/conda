@@ -75,8 +75,8 @@ setup(
                                                                    "utils",
                                                                    ".tox")),
     cmdclass={
-        'build_py': conda._vendor.auxlib.BuildPyCommand,
-        'sdist': conda._vendor.auxlib.SDistCommand,
+        'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
+        'sdist': conda._vendor.auxlib.packaging.SDistCommand,
     },
     install_requires=install_requires,
     entry_points={
