@@ -192,6 +192,11 @@ class CondaHTTPError(CondaError):
         super(CondaHTTPError, self).__init__(msg, *args, **kwargs)
 
 
+class CondaRevisionError(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = 'Revision Error :%s\n' % message
+        super(CondaRevisionError, self).__init__(msg, *args, **kwargs)
+
 class AuthenticationError(CondaError):
     pass
 
