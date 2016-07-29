@@ -125,12 +125,12 @@ test_yaml_raw = {
           a_complex: 1+2j
     """),
 
-
 }
 
 
 class TestConfiguration(Configuration):
-    always_yes = PrimitiveParameter(False, aliases=('always_yes_altname1', 'always_yes_altname2'))
+    always_yes = PrimitiveParameter(False, aliases=('always_yes_altname1', 'yes',
+                                                    'always_yes_altname2'))
     changeps1 = PrimitiveParameter(True)
     proxy_servers = MapParameter(string_types)
     channels = SequenceParameter(string_types, aliases=('channels_altname', ))
@@ -184,9 +184,27 @@ class ConfigurationTests(TestCase):
             environ.update(test_dict)
             assert 'MYAPP_ALWAYS_YES' in environ
             raw_data = load_from_string_data('file1', 'file2')
-            config = TestConfiguration(app_name=appname)._add_raw_data(raw_data)
+            config = TestConfiguration(app_name=appname)
             assert config.changeps1 is False
             assert config.always_yes is True
+        finally:
+            [environ.pop(key) for key in test_dict]
+
+    def test_env_var_config_alias(self):
+        def make_key(appname, key):
+            return "{0}_{1}".format(appname.upper(), key.upper())
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, 'yes')] = 'yes'
+        test_dict[make_key(appname, 'changeps1')] = 'false'
+
+        try:
+            environ.update(test_dict)
+            assert 'MYAPP_YES' in environ
+            raw_data = load_from_string_data('file1', 'file2')
+            config = TestConfiguration()._add_env_vars(appname)
+            assert config.always_yes is True
+            assert config.changeps1 is False
         finally:
             [environ.pop(key) for key in test_dict]
 
@@ -337,4 +355,4 @@ class ConfigurationTests(TestCase):
         config.validate_all()
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
-        raises(MultiValidationError, config.validate_all)
+        raises(ValidationError, config.validate_all)

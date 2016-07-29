@@ -110,6 +110,15 @@ class MultiValidationError(CondaMultiError, ConfigurationError):
         super(MultiValidationError, self).__init__(errors, *args, **kwargs)
 
 
+def raise_errors(errors):
+    if not errors:
+        return True
+    elif len(errors) == 1:
+        raise errors[0]
+    else:
+        raise MultiValidationError(errors)
+
+
 class ParameterFlag(Enum):
     final = 'final'
     top = "top"
@@ -408,7 +417,7 @@ class Parameter(object):
             errors.append(CustomValidationError(self.name, e.value, "<<merged>>", text_type(e)))
         else:
             errors.extend(self.collect_errors(instance, result))
-        self.raise_errors(errors)
+        raise_errors(errors)
         instance._cache[self.name] = result
         return result
 
@@ -437,15 +446,6 @@ class Parameter(object):
             elif isinstance(result, string_types):
                 errors.append(CustomValidationError(self.name, value, source, result))
         return errors
-
-    @staticmethod
-    def raise_errors(errors):
-        if not errors:
-            return True
-        elif len(errors) == 1:
-            raise errors[0]
-        else:
-            raise MultiValidationError(errors)
 
     def _match_key_is_important(self, raw_parameter):
         return raw_parameter.keyflag() is ParameterFlag.final
@@ -677,32 +677,38 @@ class Configuration(object):
         self._cache = dict()
         return self
 
-    def dump_parameter(self, parameter_name):
-        parameter = self.__class__.__dict__[parameter_name]
-        lines = list()
-        for match in parameter._get_all_matches(self):
-            lines.append("> %s" % match.source)
-            lines.append(parameter.repr_raw(match))
-            lines.append('')
-        return '\n'.join(lines)
+    # def dump_parameter(self, parameter_name):
+    #     parameter = self.__class__.__dict__[parameter_name]
+    #     lines = list()
+    #     for match in parameter._get_all_matches(self):
+    #         lines.append("> %s" % match.source)
+    #         lines.append(parameter.repr_raw(match))
+    #         lines.append('')
+    #     return '\n'.join(lines)
 
-    def dump_locations(self):
-        lines = list()
-        for location, raw_parameters in iteritems(self.raw_data):
-            if not raw_parameters:
-                continue
-            parameter = lambda k: self.__class__.__dict__.get(k)
-            these_lines = tuple(parameter(key).repr_raw(match)
-                                for key, match in iteritems(raw_parameters)
-                                if parameter(key) is not None)
-            if these_lines:
-                lines.append("> %s" % location)
-                lines.extend(these_lines)
-                lines.append('')
-        return '\n'.join(lines)
+    # def dump_locations(self):
+    #     lines = list()
+    #     for location, raw_parameters in iteritems(self.raw_data):
+    #         if not raw_parameters:
+    #             continue
+    #         for key in self.parameter_names:
+    #             parameter = self.__class__.__dict__[key]
+    #             match, multikey_error = parameter._raw_parameters_from_single_source(raw_parameters)
+    #
+    #
+    #         parameter = lambda k: self.__class__.__dict__.get(k)
+    #         these_lines = tuple(parameter(key).repr_raw(match)
+    #                             for key, match in iteritems(raw_parameters)
+    #                             if parameter(key) is not None)
+    #         if these_lines:
+    #             lines.append("> %s" % location)
+    #             lines.extend(these_lines)
+    #             lines.append('')
+    #     return '\n'.join(lines)
 
     def check_source(self, source):
-        validation_errors = list()
+        parameter_repr = {}
+        validation_errors = []
         raw_parameters = self.raw_data[source]
         for key in self.parameter_names:
             parameter = self.__class__.__dict__[key]
@@ -710,7 +716,7 @@ class Configuration(object):
             if multikey_error:
                 validation_errors.append(multikey_error)
 
-            if match is not None and not isinstance(match, dict):
+            if match is not None:
                 try:
                     typed_value = typify_data_structure(match.value(parameter.__class__),
                                                         parameter._element_type)
@@ -718,17 +724,26 @@ class Configuration(object):
                     validation_errors.append(CustomValidationError(match.key, e.value,
                                                                    match.source, text_type(e)))
                 else:
-                    validation_result = parameter.collect_errors(self, typed_value, match.source)
-                    if validation_result is not True:
-                        validation_errors.extend(validation_result)
+                    collected_errors = parameter.collect_errors(self, typed_value, match.source)
+                    if collected_errors:
+                        validation_errors.extend(collected_errors)
+                    else:
+                        parameter_repr[match.key] = parameter.repr_raw(match)
             else:
                 # this situation will happen if there is a multikey_error and none of the
                 # matched keys is the primary key
                 pass
-        return validation_errors
+        return parameter_repr, validation_errors
 
     def validate_all(self):
-        validation_errors = list(chain.from_iterable(self.check_source(source)
+        validation_errors = list(chain.from_iterable(self.check_source(source)[1]
                                                      for source in self.raw_data))
-        if validation_errors:
-            raise MultiValidationError(validation_errors)
+        raise_errors(validation_errors)
+
+    def collect_all(self):
+        parameter_reprs = odict()
+        validation_errors = odict()
+        for source in self.raw_data:
+            parameter_reprs[source], validation_errors[source] = self.check_source(source)
+        raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
+        return odict((k, v) for k, v in iteritems(parameter_reprs) if v)
