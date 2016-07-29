@@ -3,6 +3,7 @@ clean:
 	find . -name __pycache__ -delete
 	rm -rf *.egg-info* .cache build
 	rm -f .coverage junit.xml tmpfile.rc conda/.version
+	rm -rf auxlib bin conda/progressbar
 
 
 clean-all: clean
