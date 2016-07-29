@@ -4,57 +4,112 @@
 # assumes that deactivate.* can be found on the $PATH
 #
 
-# if no valid shell was detected and sourced accordingly then print error
-(                                   \
-    test $0 != "csh"            &&  \
-    test $0 != "-csh"           &&  \
-    test $0 != "/bin/csh"       &&  \
-                                    \
-    test $0 != "tcsh"           &&  \
-    test $0 != "-tcsh"          &&  \
-    test $0 != "/bin/tcsh"      &&  \
-                                    \
-    test $0 != "sh"             &&  \
-    test $0 != "-sh"            &&  \
-    test $0 != "/bin/sh"        &&  \
-                                    \
-    test $0 != "bash"           &&  \
-    test $0 != "-bash"          &&  \
-    test $0 != "/bin/bash"      &&  \
-                                    \
-    test $0 != "zsh"            &&  \
-    test $0 != "-zsh"           &&  \
-    test $0 != "/bin/zsh"           \
-)                               &&  \
+# first clause: error clause
+echo "`ps -p $$ | tr '\n' ' '` `uname -s` $SHLVL" | awk '{ \
+    num=split($0,a," ");                                \
+    if (num < 10)                                       \
+        exit 0;                                         \
+    sh="."a[8];                                         \
+    sy=a[num-1];                                        \
+    sl=a[num];                                          \
+                                                        \
+    if ((sh == ".bash")                                 ||\
+        (sh == ".-bash")                                ||\
+        (sh == "./bin/bash")                            ||\
+        (sh == ".-bin/bash")) {                         \
+        exit 1;                                         \
+    }                                                   \
+    if ((sh == ".zsh")                                  ||\
+        (sh == ".-zsh")                                 ||\
+        (sh == "./bin/zsh")                             ||\
+        (sh == ".-bin/zsh")) {                          \
+        exit 1;                                         \
+    }                                                   \
+    if ((sh == ".csh")                                  ||\
+        (sh == ".-csh" && sy == "Darwin" && sl == "1")  ||\
+        (sh == ".-sh"  && sy == "Darwin" && sl != "1")  ||\
+        (sh == ".-csh" && sy == "Linux")                ||\
+        (sh == "./bin/csh")                             ||\
+        (sh == ".-bin/csh")) {                          \
+        exit 1;                                         \
+    }                                                   \
+    if ((sh == ".tcsh")                                 ||\
+        (sh == ".-tcsh" && sy == "Darwin" && sl == "1") ||\
+        (sh == ".-csh"  && sy == "Darwin" && sl != "1") ||\
+        (sh == ".-tcsh" && sy == "Linux")               ||\
+        (sh == "./bin/tcsh")                            ||\
+        (sh == ".-bin/tcsh")) {                         \
+        exit 1;                                         \
+    }                                                   \
+    if ((sh == ".sh")                                   ||\
+        (sh == ".-sh" && sy == "Darwin" && sl == "1")   ||\
+        (sh == ".-sh" && sy == "Linux")                 ||\
+        (sh == "./bin/sh")                              ||\
+        (sh == ".-bin/sh")) {                           \
+        exit 1;                                         \
+    }                                                   \
+    exit 0;                                             \
+}'                                                      &&\
 echo '[DEACTIVATE]: ERROR: Only supports sourcing from csh/tcsh and sh/bash/zsh.' &&  \
 echo '[DEACTIVATE]: ERROR: Your command: `'$0'`.'
 
-# CSH/TCSH
-# csh/tcsh does not check the $PATH when sourcing
-# so we need the hack with `which activate.csh`
-(                                   \
-    test $0 = "csh"             ||  \
-    test $0 = "-csh"            ||  \
-    test $0 = "/bin/csh"        ||  \
-                                    \
-    test $0 = "tcsh"            ||  \
-    test $0 = "-tcsh"           ||  \
-    test $0 = "/bin/tcsh"           \
-)                               &&  \
-source `which deactivate.csh`
+# second clause: bourne shells (bash/zsh)
+echo "`ps -p $$ | tr '\n' ' '` `uname -s` $SHLVL" | awk '{ \
+    num=split($0,a," ");                                \
+    if (num < 10)                                       \
+        exit 0;                                         \
+    sh="."a[8];                                         \
+    sy=a[num-1];                                        \
+    sl=a[num];                                          \
+                                                        \
+    if ((sh == ".bash")                                 ||\
+        (sh == ".-bash")                                ||\
+        (sh == "./bin/bash")                            ||\
+        (sh == ".-bin/bash")) {                         \
+        exit 0;                                         \
+    }                                                   \
+    if ((sh == ".zsh")                                  ||\
+        (sh == ".-zsh")                                 ||\
+        (sh == "./bin/zsh")                             ||\
+        (sh == ".-bin/zsh")) {                          \
+        exit 0;                                         \
+    }                                                   \
+    if ((sh == ".sh")                                   ||\
+        (sh == ".-sh" && sy == "Darwin" && sl == "1")   ||\
+        (sh == ".-sh" && sy == "Linux")                 ||\
+        (sh == "./bin/sh")                              ||\
+        (sh == ".-bin/sh")) {                           \
+        exit 0;                                         \
+    }                                                   \
+    exit 1;                                             \
+}'                                                      &&\
+source deactivate.sh && return
 
-# SH/BASH/ZSH
-(                                   \
-    test $0 = "sh"              ||  \
-    test $0 = "-sh"             ||  \
-    test $0 = "/bin/sh"         ||  \
-                                    \
-    test $0 = "bash"            ||  \
-    test $0 = "-bash"           ||  \
-    test $0 = "/bin/bash"       ||  \
-                                    \
-    test $0 = "zsh"             ||  \
-    test $0 = "-zsh"            ||  \
-    test $0 = "/bin/zsh"            \
-)                               &&  \
-source deactivate.sh
+# third clause: c-shells (tcsh/csh)
+echo "`ps -p $$ | tr '\n' ' '` `uname -s` $SHLVL" | awk '{ \
+    num=split($0,a," ");                                \
+    if (num < 10)                                       \
+        exit 0;                                         \
+    sh="."a[8];                                         \
+    sy=a[num-1];                                        \
+    sl=a[num];                                          \
+                                                        \
+    if ((sh == ".csh")                                  ||\
+        (sh == ".-csh" && sy == "Darwin" && sl == "1")  ||\
+        (sh == ".-sh"  && sy == "Darwin" && sl != "1")  ||\
+        (sh == ".-csh" && sy == "Linux")                ||\
+        (sh == "./bin/csh")                             ||\
+        (sh == ".-bin/csh")) {                          \
+        exit 0;                                         \
+    }                                                   \
+    if ((sh == ".tcsh")                                 ||\
+        (sh == ".-tcsh" && sy == "Darwin" && sl == "1") ||\
+        (sh == ".-csh"  && sy == "Darwin" && sl != "1") ||\
+        (sh == ".-tcsh" && sy == "Linux")               ||\
+        (sh == "./bin/csh")                             ||\
+        (sh == ".-bin/csh")) {                          \
+        exit 0;                                         \
+    }                                                   \
+    exit 1;                                             \
+}'                                                      &&\
+source `which deactivate.csh` && exit $status

@@ -264,7 +264,8 @@ unix_shell_base = dict(
                        printps1='echo $PS1',
                        promptvar='PS1',
                        sep="/",
-                       set_var='export ',
+                       set_var='export {variable}="{value}"',
+                       unset_var='unset {variable}',
                        shell_args=["-l", "-c"],
                        shell_suffix="",
                        slash_convert=("\\", "/"),
@@ -289,7 +290,7 @@ if on_win:
         #    binpath="/bin/",  # mind the trailing slash.
         #    source_setup="source",
         #    nul='2>/dev/null',
-        #    set_var='export ',
+        #    set_var='export {variable}="{value}"',
         #    shell_suffix=".ps",
         #    env_script_suffix=".ps",
         #    printps1='echo $PS1',
@@ -307,7 +308,7 @@ if on_win:
             source_setup="call",
             test_echo_extra="",
             nul='1>NUL 2>&1',
-            set_var='set ',
+            set_var='set {variable}="{value}"',
             shell_suffix=".bat",
             env_script_suffix=".bat",
             printps1="@echo %PROMPT%",
@@ -364,7 +365,8 @@ else:
             nul='>&/dev/null',
             printps1='echo $prompt',
             promptvar='prompt',
-            set_var='setenv ',
+            set_var='setenv {variable} "{value}"',
+            shell_args=["-c"],
                     ),
     }
 

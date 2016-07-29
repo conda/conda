@@ -9,7 +9,7 @@
 ######################################################################
 if ( `basename -- "$0"` =~ "*activate*" ) then
     # we are not being sourced
-    echo '[ACTIVATE]: ERROR: Must be sourced. Run `source activate`.'
+    sh -c "echo '[ACTIVATE]: ERROR: Must be sourced. Run `source activate`.' 1>&2"
     exec /bin/false
 endif
 
@@ -34,38 +34,69 @@ switch ( `uname -s` )
 endsw
 
 set HELP=false
-set envname="root"
+set UNKNOWN=""
+set envname=""
 
 ###############################################################################
 # parse command line, perform command line error checking
 ###############################################################################
-set args="$*"
-foreach arg ( $args )
-    switch ($arg)
-        case "-h":
-        case "--help":
-            set HELP=true
-            breaksw
-        default:
-            set envname="$arg"
-            breaksw
-    endsw
-end
-unset args
-unset arg
+if ( "$*" != "" ) then
+    set num=0
+    while ( $num != -1 )
+        @ num=($num + 1)
+        set arg=`eval eval echo '\$$num'`
+
+        if ( "$arg" == "" ) then
+            set num=-1
+        else
+            switch ( "$arg" )
+                case "-h":
+                case "--help":
+                    set HELP=true
+                    breaksw
+                default:
+                    if ( "$envname" == "" ) then
+                        set envname="$arg"
+                    else
+                        if ( "$UNKNOWN" == "" ) then
+                            set UNKNOWN="$arg"
+                        else
+                            set UNKNOWN="$UNKNOWN $arg"
+                        endif
+                        set HELP=true
+                    endif
+                    breaksw
+            endsw
+        endif
+    end
+    unset num
+    unset arg
+endif
+
+if ( "$envname" == "" ) set envname="root"
 
 ######################################################################
 # help dialog
 ######################################################################
 if ( "$HELP" == true ) then
+    if ( "$UNKNOWN" != "" ) then
+        sh -c "echo '[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter ($UNKNOWN)' 1>&2"
+    endif
     conda ..activate ${_SHELL}${EXT} -h
 
     unset _SHELL
     unset EXT
     unset HELP
-    exit 0
+    if ( "$UNKNOWN" != "" ) then
+        unset UNKNOWN
+        exit 1
+    else
+        unset UNKNOWN
+        exit 0
+    endif
 endif
 unset HELP
+unset UNKNOWN
 
 ######################################################################
 # configure virtual environment
@@ -77,15 +108,17 @@ if ( $status != 0 ) then
     exit 1
 endif
 
-# configure the command to run to get the conda bin
-set _CONDA_BIN="conda ..activate ${_SHELL}${EXT} ${envname}"
+# store the _SHELL+EXT since it may get cleared by deactivate
+set _CONDA_BIN="${_SHELL}${EXT}"
 
 # Ensure we deactivate any scripts from the old env
 # be careful since deactivate will unset certain values (like $_SHELL and $EXT)
 # beware of csh's `which` checking $PATH and aliases for matches
+echo "START DEACTIVATE"
 source `which \deactivate` ""
+echo "END DEACTIVATE"
 
-set _CONDA_BIN=`${_CONDA_BIN}`
+set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${envname}"`
 if ( $status == 0 ) then
     # CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
     # export these to restore upon deactivation
@@ -99,13 +132,18 @@ if ( $status == 0 ) then
     # CONDA_PREFIX
     # always the full path to the activated environment
     # is not set when no environment is active
-    setenv CONDA_PREFIX `echo ${_CONDA_BIN} | sed 's|/bin$||' >& /dev/null`
+    setenv CONDA_PREFIX "`echo ${_CONDA_BIN} | sed 's|/bin$||'`"
 
     # CONDA_DEFAULT_ENV
     # the shortest representation of how conda recognizes your env
     # can be an env name, or a full path (if the string contains / it's a path)
     if ( "$envname" =~ "*/*" ) then
-        setenv CONDA_DEFAULT_ENV `get_abs_filename "$envname"`
+        set d=`dirname "${envname}"`
+        set d=`cd "${d}" && pwd`
+        set f=`basename "${envname}"`
+        setenv CONDA_DEFAULT_ENV `"${d}/${f}"`
+        unset d
+        unset f
     else
         setenv CONDA_DEFAULT_ENV "$envname"
     endif
@@ -113,18 +151,15 @@ if ( $status == 0 ) then
     # PROMPT
     # customize the prompt to show what environment has been activated
     if ( `conda ..changeps1` == "1" ) then
-        echo "$prompt" | grep -q CONDA_DEFAULT_ENV >& /dev/null
-        if ( $status != 0 ) then
-            set prompt="(${CONDA_DEFAULT_ENV}) $prompt"
-        endif
+        set prompt="(${CONDA_DEFAULT_ENV}) $prompt"
     endif
 
     # load post-activate scripts
     # scripts found in $CONDA_PREFIX/etc/conda/activate.d
-    set _CONDA_DIR="$CONDA_PREFIX/etc/conda/activate.d"
+    set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/activate.d"
     if ( -d "${_CONDA_DIR}" ) then
-        foreach f ( `find "${_CONDA_DIR}" -iname "*.sh"` )
-            source "$f"
+        foreach f ( `ls "${_CONDA_DIR}" | grep \\.csh$` )
+            source "${_CONDA_DIR}/${f}"
         end
     endif
 

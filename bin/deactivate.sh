@@ -5,11 +5,11 @@
 #
 
 ######################################################################
-# test if script is sourced
+# test if script is sourced (zsh cannot be reliably checked)
 ######################################################################
-if [[ $(basename -- "$0") =~ .*"deactivate".* ]]; then
+if [[ -n $BASH_VERSION && $(basename -- "$0") =~ .*"deactivate".* ]]; then
     # we are not being sourced
-    echo '[DEACTIVATE]: ERROR: Must be sourced. Run `source deactivate`.'
+    echo '[DEACTIVATE]: ERROR: Must be sourced. Run `source deactivate`.' 1>&2
     exit 1
 fi
 
@@ -38,31 +38,32 @@ UNKNOWN=""
 ###############################################################################
 # parse command line, perform command line error checking
 ###############################################################################
-args="$@"
-for arg in $args; do
-    case "$arg" in
-        -h|--help)
-            HELP=true
-            ;;
-        *)
-            if [[ "$UNKNOWN" == "" ]]; then
-                UNKNOWN="$arg"
-            else
-                UNKNOWN="$UNKNOWN $arg"
-            fi
-            HELP=true
-            ;;
-    esac
-done
-unset args
-unset arg
+if [[ "$@" != "" ]]; then
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)
+                HELP=true
+                ;;
+            *)
+                if [[ "$UNKNOWN" == "" ]]; then
+                    UNKNOWN="$arg"
+                else
+                    UNKNOWN="$UNKNOWN $arg"
+                fi
+                HELP=true
+                ;;
+        esac
+    done
+    unset args
+    unset arg
+fi
 
 ######################################################################
 # help dialog
 ######################################################################
 if [[ "$HELP" == true ]]; then
     if [[ "$UNKNOWN" != "" ]]; then
-        echo "[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter ($UNKNOWN)"
+        echo "[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter ($UNKNOWN)" 1>&2
     fi
     conda ..deactivate ${_SHELL}${EXT} -h
 
@@ -91,8 +92,8 @@ if [[ -n $CONDA_PATH_BACKUP ]]; then
     # scripts found in $CONDA_PREFIX/etc/conda/deactivate.d
     _CONDA_DIR="$CONDA_PREFIX/etc/conda/deactivate.d"
     if [[ -d "${_CONDA_DIR}" ]]; then
-        for f in $(find "${_CONDA_DIR}" -iname "*.sh"); do
-            source "$f"
+        for f in $(ls "${_CONDA_DIR}" | grep \\.sh$); do
+            source "${_CONDA_DIR}/${f}"
         done
     fi
     unset _CONDA_DIR
@@ -109,8 +110,8 @@ if [[ -n $CONDA_PATH_BACKUP ]]; then
     # restore PATH
     export PATH="$CONDA_PATH_BACKUP"
 
-    # remove CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
-    unset CONDA_PROMPT_BACKUP
+    # remove CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
+    unset CONDA_PS1_BACKUP
     unset CONDA_PATH_BACKUP
 
     if [[ -n $BASH_VERSION ]]; then

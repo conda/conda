@@ -9,7 +9,7 @@
 ######################################################################
 if ( `basename -- "$0"` =~ "*deactivate*" ) then
     # we are not being sourced
-    echo '[DEACTIVATE]: ERROR: Must be sourced. Run `source deactivate`.'
+    sh -c "echo '[DEACTIVATE]: ERROR: Must be sourced. Run `source deactivate`.' 1>&2"
     exec /bin/false
 endif
 
@@ -39,32 +39,41 @@ set UNKNOWN=""
 ###############################################################################
 # parse command line, perform command line error checking
 ###############################################################################
-set args="$*"
-foreach arg ( $args )
-    switch ($arg)
-        case "-h":
-        case "--help":
-            set HELP=true
-            breaksw
-        default:
-            if ( "$UNKNOWN" == "" ) then
-                set UNKNOWN="$arg"
-            else
-                set UNKNOWN="$UNKNOWN $arg"
-            endif
-            set HELP=true
-            breaksw
-    endsw
-end
-unset args
-unset arg
+if ( "$*" != "" ) then
+    set num=0
+    while ( $num != -1 )
+        @ num=($num + 1)
+        set arg=`eval eval echo '\$$num'`
+
+        if ( "$arg" == "" ) then
+            set num=-1
+        else
+            switch ($arg)
+                case "-h":
+                case "--help":
+                    set HELP=true
+                    breaksw
+                default:
+                    if ( "$UNKNOWN" == "" ) then
+                        set UNKNOWN="$arg"
+                    else
+                        set UNKNOWN="$UNKNOWN $arg"
+                    endif
+                    set HELP=true
+                    breaksw
+            endsw
+        endif
+    end
+    unset num
+    unset arg
+endif
 
 ######################################################################
 # help dialog
 ######################################################################
 if ( "$HELP" == true ) then
     if ( "$UNKNOWN" != "" ) then
-        echo "[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter ($UNKNOWN)"
+        sh -c "echo '[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter ($UNKNOWN)' 1>&2"
     endif
     conda ..deactivate ${_SHELL}${EXT} -h
 
@@ -89,34 +98,36 @@ unset UNKNOWN
 # accordingly
 ######################################################################
 if ( $?CONDA_PATH_BACKUP ) then
-    # unload post-activate scripts
-    # scripts found in $CONDA_PREFIX/etc/conda/deactivate.d
-    set _CONDA_DIR="$CONDA_PREFIX/etc/conda/deactivate.d"
-    if ( -d "${_CONDA_DIR}" ) then
-        foreach f ( `find "${_CONDA_DIR}" -iname "*.sh"` )
-            source "$f"
-        end
+    if ( "$CONDA_PATH_BACKUP" != "" ) then
+        # unload post-activate scripts
+        # scripts found in $CONDA_PREFIX/etc/conda/deactivate.d
+        set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/deactivate.d"
+        if ( -d "${_CONDA_DIR}" ) then
+            foreach f ( `ls "${_CONDA_DIR}" | grep \\.csh$` )
+                source "${_CONDA_DIR}/${f}"
+            end
+        endif
+        unset _CONDA_DIR
+
+        # restore PROMPT
+        set prompt="$CONDA_PROMPT_BACKUP"
+
+        # remove CONDA_DEFAULT_ENV
+        unset CONDA_DEFAULT_ENV
+
+        # remove CONDA_PREFIX
+        unset CONDA_PREFIX
+
+        # restore PATH
+        setenv PATH "$CONDA_PATH_BACKUP"
+
+        # remove CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
+        unset CONDA_PROMPT_BACKUP
+        unset CONDA_PATH_BACKUP
+
+        # csh/tcsh both use rehash
+        rehash
     endif
-    unset _CONDA_DIR
-
-    # restore PROMPT
-    set prompt="$CONDA_PROMPT_BACKUP"
-
-    # remove CONDA_DEFAULT_ENV
-    unset CONDA_DEFAULT_ENV
-
-    # remove CONDA_PREFIX
-    unset CONDA_PREFIX
-
-    # restore PATH
-    setenv PATH "$CONDA_PATH_BACKUP"
-
-    # remove CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
-    unset CONDA_PROMPT_BACKUP
-    unset CONDA_PATH_BACKUP
-
-    # csh/tcsh both use rehash
-    rehash
 endif
 
 exit 0
