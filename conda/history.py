@@ -102,7 +102,7 @@ class History(object):
             if e.errno == errno.EACCES:
                 log.debug("Can't write the history file")
             else:
-                raise CondaFileIOError(e)
+                raise CondaFileIOError(self.path, "Can't write the history file", e)
 
     def parse(self):
         """

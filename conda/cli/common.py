@@ -497,7 +497,7 @@ def specs_from_url(url, json=False):
                                           (line, url), json)
                 specs.append(spec)
         except IOError as e:
-            raise CondaFileIOError('cannot open file: %s' % path, json, e)
+            raise CondaFileIOError(path, e, json)
     return specs
 
 
