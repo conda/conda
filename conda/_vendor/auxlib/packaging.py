@@ -117,7 +117,12 @@ def _get_version_from_version_file(path):
 
 
 def _git_describe_tags(path):
-    call(path, "git update-index --refresh", raise_on_error=False)
+    try:
+        call(path, "git update-index --refresh", raise_on_error=False)
+    except CalledProcessError as e:
+        # git is probably not installed
+        log.warn(repr(e))
+        return None
     response = call(path, "git describe --tags --long", raise_on_error=False)
     if response.rc == 0:
         return response.stdout.strip()
@@ -158,7 +163,14 @@ def get_version(dunder_file):
 
     """
     path = abspath(expanduser(dirname(dunder_file)))
-    return _get_version_from_version_file(path) or _get_version_from_git_tag(path)
+    try:
+        return _get_version_from_version_file(path) or _get_version_from_git_tag(path)
+    except CalledProcessError as e:
+        log.warn(repr(e))
+        return None
+    except Exception as e:
+        log.exception(e)
+        return None
 
 
 def write_version_into_init(target_dir, version):
@@ -181,6 +193,7 @@ def write_version_into_init(target_dir, version):
 def write_version_file(target_dir, version):
     assert isdir(target_dir), "Directory not found: {0}".format(target_dir)
     target_file = join(target_dir, ".version")
+    print("WRITING {0} with version {1}".format(target_file, version))
     with open(target_file, 'w') as f:
         f.write(version)
 
