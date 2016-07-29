@@ -21,6 +21,7 @@ build:
 
   entry_points:
     - conda = conda.cli:main
+    - conda-env = conda_env.cli.main:main
 
 requirements:
   build:
