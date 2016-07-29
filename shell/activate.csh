@@ -118,6 +118,8 @@ echo "START DEACTIVATE"
 source `which \deactivate` ""
 echo "END DEACTIVATE"
 
+echo "_CONDA_BIN: ${_CONDA_BIN}"
+
 set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${envname}"`
 if ( $status == 0 ) then
     # CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
