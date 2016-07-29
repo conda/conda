@@ -217,3 +217,4 @@ def setup_handlers():
     stderrlogger = logging.getLogger('stderrlog')
     stderrlogger.setLevel(logging.DEBUG)
     stderrlogger.addHandler(SysStderrWriteHandler())
+    #stderrlogger.addFilter()

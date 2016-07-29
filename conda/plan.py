@@ -19,8 +19,8 @@ from os.path import abspath, basename, dirname, join, exists
 from .base.context import context, default_python
 from .models.channel import Channel
 from . import instructions as inst
-from .exceptions import (TooFewArgumentsError, InstallError, RemoveError, CondaIndexError,
-                         CondaRuntimeError)
+from .exceptions import (InstallError, RemoveError, CondaIndexError,
+                         CondaRuntimeError, ArgumentError)
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
                       is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
@@ -650,8 +650,8 @@ def update_old_plan(old_plan):
         if line.startswith('#'):
             continue
         if ' ' not in line:
-            raise TooFewArgumentsError("The instruction '%s' takes at least"
-                                       " one argument" % line)
+            raise ArgumentError("The instruction '%s' takes at least"
+                                " one argument" % line)
 
         instruction, arg = line.split(' ', 1)
         plan.append((instruction, arg))

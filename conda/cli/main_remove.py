@@ -166,7 +166,7 @@ def execute(args, parser):
                     'actions': actions
                 })
             return
-        raise PackageNotFoundError('no packages found to remove from '
+        raise PackageNotFoundError('', 'no packages found to remove from '
                                    'environment: %s' % prefix, args.json)
 
     if not args.json:
