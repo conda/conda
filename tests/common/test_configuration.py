@@ -356,3 +356,7 @@ class ConfigurationTests(TestCase):
 
         config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
         raises(ValidationError, config.validate_all)
+
+    def test_cross_parameter_validation(self):
+        pass
+        # test primitive can't be list; list can't be map, etc
