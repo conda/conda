@@ -34,14 +34,10 @@
 """
 A platform independent file lock that supports the with-statement.
 """
-
-
-# Modules
-# ------------------------------------------------
+from __future__ import absolute_import, division, print_function
 import os
 import threading
 import time
-from __future__ import absolute_import, division, print_function
 import logging
 from .exceptions import LockError
 
@@ -63,7 +59,7 @@ except ImportError:
 
 # Data
 # ------------------------------------------------
-__all__ = [
+Locked = [
     "Timeout",
     "BaseFileLock",
     "WindowsFileLock",
@@ -96,10 +92,14 @@ class BaseFileLock(object):
     Implements the base class of a file lock.
     """
 
-    def __init__(self, lock_file, timeout = 100):
+    def __init__(self, lock_file, timeout = 15):
         """
         """
+        assert os.path.exists(lock_file), lock_file
         # The path to the lock file.
+        if os.path.isdir(lock_file):
+            lock_file = os.path.join(lock_file, LOCK_EXTENSION)
+
         self._lock_file = lock_file
 
         # The file descriptor for the *_lock_file* as it is returned by the
@@ -371,6 +371,7 @@ class UnixFileLock(BaseFileLock):
 
 # Soft lock
 # ~~~~~~~~~
+
 
 class SoftFileLock(BaseFileLock):
     """

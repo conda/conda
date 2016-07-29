@@ -28,7 +28,7 @@ from .models.channel import Channel, offline_keep
 from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, CondaHTTPError,
                          MD5MismatchError)
 from .install import add_cached_package, find_new_location, package_cache, dist2pair, rm_rf
-from .lock import FileLock
+from .lock import Locked
 from .utils import exp_backoff_fn, memoized
 
 log = getLogger(__name__)
@@ -122,7 +122,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
             if url.startswith('file://'):
                 file_path = url_to_path(url)
-                with FileLock(dirname(file_path)):
+                with Locked(dirname(file_path)):
                     json_str = get_json_str(filename, resp.content)
             else:
                 json_str = get_json_str(filename, resp.content)
@@ -371,7 +371,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     if retries is None:
         retries = RETRIES
 
-    with FileLock(dst_path):
+    with Locked(dirname(dst_path)):
         rm_rf(dst_path)
         try:
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))

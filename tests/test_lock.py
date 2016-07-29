@@ -1,16 +1,28 @@
 import pytest
-from os.path import basename, join
-from conda.lock import FileLock, LOCKSTR, LOCK_EXTENSION, LockError
-from conda.install import on_win
+import os
+from os.path import basename, join, isfile
+from conda.lock import Locked, LockError
+from conda.install import on_win, rm_rf
+
+def touch(file_name, times=None):
+    """ Touch function like touch in Unix shell
+    :param file_name: the name of file
+    :param times: the access and modified time
+    Examples:
+        touch("hello_world.py")
+    """
+    with open(file_name, 'a'):
+        os.utime(file_name, times)
 
 def test_filelock_passes(tmpdir):
     package_name = "conda_file1"
     tmpfile = join(tmpdir.strpath, package_name)
-    with FileLock(tmpfile) as lock:
-        path = basename(lock.lock_file_path)
+    touch(tmpfile)
+    with Locked(tmpfile) as lock:
+        path = basename(lock.lock_file)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
-    # lock should clean up after itself
+    rm_rf(tmpfile)
     assert not tmpdir.join(path).exists()
 
 
@@ -18,21 +30,21 @@ def test_filelock_locks(tmpdir):
 
     package_name = "conda_file_2"
     tmpfile = join(tmpdir.strpath, package_name)
-    with FileLock(tmpfile) as lock1:
-        path = basename(lock1.lock_file_path)
+    touch(tmpfile)
+    with Locked(tmpfile) as lock1:
+        path = basename(lock1.lock_file)
         assert tmpdir.join(path).exists()
 
         with pytest.raises(LockError) as execinfo:
-            with FileLock(tmpfile, retries=1) as lock2:
+            with Locked(tmpfile) as lock2:
                 assert False  # this should never happen
-            assert lock2.path_to_lock == lock1.path_to_lock
+            assert lock2.lock_file == lock1.lock_file
 
         if not on_win:
             assert "LOCKERROR" in str(execinfo.value)
             assert "conda is already doing something" in str(execinfo.value)
-        assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
-    # lock should clean up after itself
+    rm_rf(tmpfile)
     assert not tmpdir.join(path).exists()
 
 
@@ -41,31 +53,28 @@ def test_filelock_folderlocks(tmpdir):
     package_name = "conda_file_2"
     tmpfile = join(tmpdir.strpath, package_name)
     os.makedirs(tmpfile)
-    with FileLock(tmpfile) as lock1:
-        path = basename(lock1.lock_file_path)
-        assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
+    with Locked(tmpfile) as lock1:
+        path = lock1.lock_file
+        assert isfile(path)
 
         with pytest.raises(LockError) as execinfo:
-            with FileLock(tmpfile, retries=1) as lock2:
+            with Locked(tmpfile) as lock2:
                 assert False  # this should never happen
-            assert lock2.path_to_lock == lock1.path_to_lock
+            assert lock2.lock_file == lock1.lock_file
 
         if not on_win:
             assert "LOCKERROR" in str(execinfo.value)
             assert "conda is already doing something" in str(execinfo.value)
-            assert lock1.path_to_lock in str(execinfo.value)
+            assert lock1.lock_file in str(execinfo.value)
 
-        assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
-
-    # lock should clean up after itself
+    rm_rf(tmpfile)
     assert not tmpdir.join(path).exists()
 
 
 def lock_thread(tmpdir, file_path):
-    with FileLock(file_path) as lock1:
-        path = basename(lock1.lock_file_path)
+    with Locked(file_path) as lock1:
+        path = basename(lock1.lock_file)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
-    assert not tmpdir.join(path).exists()
 
 
 def test_lock_thread(tmpdir):
@@ -73,36 +82,16 @@ def test_lock_thread(tmpdir):
     from threading import Thread
     package_name = "conda_file_3"
     tmpfile = join(tmpdir.strpath, package_name)
+    touch(tmpfile)
     t = Thread(target=lock_thread, args=(tmpdir, tmpfile))
 
-    with FileLock(tmpfile) as lock1:
+    with Locked(tmpfile) as lock1:
         t.start()
-        path = basename(lock1.lock_file_path)
+        path = basename(lock1.lock_file)
         assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
 
     t.join()
-    # lock should clean up after itself
+    rm_rf(tmpfile)
     assert not tmpdir.join(path).exists()
 
 
-def lock_thread_retries(tmpdir, file_path):
-    with pytest.raises(LockError) as execinfo:
-        with FileLock(file_path, retries=0):
-            assert False  # should never enter here, since max_tires is 0
-        assert  "LOCKERROR" in str(execinfo.value)
-
-def test_lock_retries(tmpdir):
-
-    from threading import Thread
-    package_name = "conda_file_3"
-    tmpfile = join(tmpdir.strpath, package_name)
-    t = Thread(target=lock_thread_retries, args=(tmpdir, tmpfile))
-
-    with FileLock(tmpfile) as lock1:
-        t.start()
-        path = basename(lock1.lock_file_path)
-        assert tmpdir.join(path).exists() and tmpdir.join(path).isfile()
-
-    t.join()
-    # lock should clean up after itself
-    assert not tmpdir.join(path).exists()

@@ -48,8 +48,9 @@ from . import CondaError
 from .base.constants import UTF8
 from .base.context import context
 from .common.url import path_to_url
-from .exceptions import CondaOSError, LinkError, PaddingError
-from .lock import DirectoryLock, FileLock
+
+from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
+from .lock import Locked
 from .models.channel import Channel
 from .utils import backoff_unlink, exp_backoff_fn, on_win
 
@@ -798,10 +799,10 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[path_to_url(fname)]
-        with FileLock(fname):
+        with Locked(dirname(fname)):
             rm_rf(fname)
     for fname in rec['dirs']:
-        with FileLock(fname):
+        with Locked(dirname(fname)):
             rm_rf(fname)
     del package_cache_[dist]
 
@@ -832,7 +833,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with FileLock(fname):
+        with Locked(dirname(fname)):
             rm_rf(fname)
     if rec['files']:
         rec['dirs'] = []
@@ -851,7 +852,7 @@ def extract(dist):
     assert url and fname
     pkgs_dir = dirname(fname)
     path = fname[:-8]
-    with FileLock(path):
+    with Locked(pkgs_dir):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
         with tarfile.open(fname) as t:
@@ -1061,10 +1062,11 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     if not isdir(prefix):
         os.makedirs(prefix)
 
-    with DirectoryLock(prefix), FileLock(source_dir):
-        for filepath in files:
-            src = join(source_dir, filepath)
-            dst = join(prefix, filepath)
+
+    with Locked(prefix), Locked(source_dir):
+        for f in files:
+            src = join(source_dir, f)
+            dst = join(prefix, f)
             dst_dir = dirname(dst)
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
@@ -1124,8 +1126,8 @@ def unlink(prefix, dist):
     Remove a package from the specified environment, it is an error if the
     package does not exist in the prefix.
     """
-    with DirectoryLock(prefix):
-        log.debug("unlinking package %s", dist)
+
+    with Locked(prefix):
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
