@@ -2,10 +2,6 @@ unlink $PREFIX/bin/conda
 CONDA_DEFAULT_ENV='' $PYTHON setup.py install
 CONDA_DEFAULT_ENV='' python setup.py --version > __conda_version__.txt
 
-mkdir $PREFIX/bin
-cp $SRC_DIR/shell/activate $PREFIX/bin/activate
-cp $SRC_DIR/shell/deactivate $PREFIX/bin/deactivate
-
 # link to exec folder as a more contained proxy.  Idea is that people can add exec folder to PATH
 #    instead of bin, and have only activate & conda on PATH - no trampling other stuff.
 mkdir -p $PREFIX/exec

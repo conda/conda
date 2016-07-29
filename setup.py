@@ -33,13 +33,13 @@ import conda  # NOQA
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
-scripts = ['bin/activate',
-           'bin/deactivate',
+scripts = ['shell/activate',
+           'shell/deactivate',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
-    scripts.extend(['bin/activate.bat',
-                    'bin/deactivate.bat'])
+    scripts.extend(['shell/activate.bat',
+                    'shell/deactivate.bat'])
 
 install_requires = [
     'pycosat >=0.6.1',
