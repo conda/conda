@@ -3,9 +3,6 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
-#!/usr/bin/python3
-
 # This is free and unencumbered software released into the public domain.
 #
 # Anyone is free to copy, modify, publish, use, compile, sell, or
@@ -56,7 +53,6 @@ try:
 except ImportError:
     fcntl = None
 
-
 # Data
 # ------------------------------------------------
 Locked = [
@@ -69,7 +65,6 @@ Locked = [
 ]
 
 __version__ = "2.0.6"
-
 
 LOCK_EXTENSION = 'conda_lock'
 
@@ -85,6 +80,7 @@ You can also use: $ conda clean --lock
 stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
 
+
 # Classes
 # ------------------------------------------------
 class BaseFileLock(object):
@@ -92,7 +88,7 @@ class BaseFileLock(object):
     Implements the base class of a file lock.
     """
 
-    def __init__(self, lock_file, timeout = 15):
+    def __init__(self, lock_file, timeout=15):
         """
         """
         assert os.path.exists(lock_file), lock_file
@@ -265,9 +261,9 @@ class BaseFileLock(object):
                 self.lock.release()
                 return None
 
-        return ReturnProxy(lock = self)
+        return ReturnProxy(lock=self)
 
-    def release(self, force = False):
+    def release(self, force=False):
         """
         Releases the file lock.
 
@@ -299,7 +295,7 @@ class BaseFileLock(object):
         return None
 
     def __del__(self):
-        self.release(force = True)
+        self.release(force=True)
         return None
 
 
@@ -342,6 +338,7 @@ class WindowsFileLock(BaseFileLock):
             pass
         return None
 
+
 # Unix locking mechanism
 # ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -368,6 +365,7 @@ class UnixFileLock(BaseFileLock):
         fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)
         return None
+
 
 # Soft lock
 # ~~~~~~~~~
