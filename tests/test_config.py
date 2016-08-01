@@ -360,7 +360,7 @@ channels:
         stdout, stderr = run_conda_command('config', '--file', rc, '--remove',
                                            'channels', 'defaults')
         assert stdout == ''
-        assert stderr == "Error with key 'channels': 'defaults' is not in the 'channels'\
+        assert stderr == "CondaKeyError: Error with key 'channels': 'defaults' is not in the 'channels'\
  key of the config file"
 
     # Test creating a new file with --set
@@ -578,12 +578,14 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'channels', 'test', '--force')
         assert stdout == ''
-        assert stderr == "Error with key 'channels': 'test' is not in the 'channels' key of the config file"
+        assert stderr == """\
+CondaKeyError: Error with key 'channels': 'test' is not in the 'channels' key of the config file"""
 
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove', 'disallow', 'python', '--force')
         assert stdout == ''
-        assert stderr == "Error with key 'disallow': key 'disallow' is not in the config file"
+        assert stderr == """\
+CondaKeyError: Error with key 'disallow': key 'disallow' is not in the config file"""
 
         stdout, stderr = run_conda_command('config', '--file', rc,
             '--remove-key', 'always_yes', '--force')
@@ -594,7 +596,8 @@ def test_config_command_remove_force():
             '--remove-key', 'always_yes', '--force')
 
         assert stdout == ''
-        assert stderr == "Error with key 'always_yes': key 'always_yes' is not in the config file"
+        assert stderr == """\
+CondaKeyError: Error with key 'always_yes': key 'always_yes' is not in the config file"""
 
 
 # FIXME Break into multiple tests
@@ -622,9 +625,7 @@ channels:
                                            '--add', 'channels', 'test')
         assert stdout == ''
         assert stderr == """\
-Parse error: Error: Could not parse the yaml file. Use -f to use the
-yaml parser (this will remove any structure or comments from the existing
-.condarc file). Reason: key 'channels' should be a list, not NoneType."""
+CondaError: Parse error: key 'channels' should be a list, not NoneType."""
         assert _read_test_condarc(rc) == condarc
 
 

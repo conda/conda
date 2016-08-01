@@ -24,35 +24,24 @@ class InvalidInstructionTestCase(unittest.TestCase):
 class CondaErrorTestCase(unittest.TestCase):
     def test_repr_is_correct(self):
         e = conda.CondaError("Can't do that")
-        self.assertEqual(repr(e), "Can't do that")
+        self.assertEqual(repr(e), "CondaError: Can't do that\n")
 
     def test_inherited_repr_is_correct(self):
         try:
             raise exceptions.CondaValueError('value incorrect')
         except exceptions.CondaValueError as e:
-            err = conda.CondaError("Can't do that", e)
+            err = conda.CondaError("Can't do that %s" % e)
 
-        self.assertEqual(repr(err), "Can't do that Value error: value incorrect\n")
+        self.assertEqual(repr(err), "CondaError: Can't do that Value error: value incorrect\n\n")
 
     def test_str_is_correct(self):
         e = conda.CondaError("Can't do that")
-        self.assertEqual(str(e), "Can't do that")
+        self.assertEqual(str(e), "Can't do that\n")
 
     def test_inherited_str_is_correct(self):
         try:
             raise exceptions.CondaValueError('value incorrect')
         except exceptions.CondaValueError as e:
-            err = conda.CondaError("Can't do that", e)
+            err = conda.CondaError("Can't do that %s" % e)
 
-        self.assertEqual(str(err), "Can't do that Value error: value incorrect\n")
-
-    def test_json_flags_not_in_output(self):
-        try:
-            raise exceptions.CondaValueError('value incorrect', False)
-        except exceptions.CondaValueError as e:
-            err = conda.CondaError("Can't do that", e, True)
-
-        self.assertNotIn('False', repr(err))
-        self.assertNotIn('True', repr(err))
-        self.assertNotIn('False', str(err))
-        self.assertNotIn('True', str(err))
+        self.assertEqual(str(err), "Can't do that Value error: value incorrect\n\n")

@@ -51,7 +51,7 @@ class CondaError(Exception):
         return '%s: %s' % (self.__class__.__name__, text_type(self))
 
     def __str__(self):
-        return self.message + '\n'
+        return text_type(self.message) + '\n'
 
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),

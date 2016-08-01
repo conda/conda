@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import logging
 import sys
 from traceback import format_exc
 
@@ -333,7 +334,7 @@ class CondaRuntimeError(CondaError, RuntimeError):
 class CondaValueError(CondaError, ValueError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Value error: %s' % message
-        super(CondaValueError, self).__init__(msg, *args, **kwargs)
+        super(CondaValueError, self).__init__(msg)
 
 
 class CondaTypeError(CondaError, TypeError):
@@ -364,15 +365,17 @@ def print_conda_exception(exception):
     from conda.base.context import context
     from .console import setup_handlers
 
+    stdoutlogger = logging.getLogger('stdoutlog')
+    stderrlogger = logging.getLogger('stderrlog')
     setup_handlers()
 
     if context.json:
         import json
-        print(json.dumps(exception.dump_map(), indent=2, sort_keys=True))  # temporary
-        # stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
+        # print(json.dumps(exception.dump_map(), indent=2, sort_keys=True))  # temporary
+        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
     else:
-        print(repr(exception))  # temporary
-        # stderrlogger.info(repr(exception))
+        # print(repr(exception))  # temporary
+        stderrlogger.info(repr(exception))
 
 
 def get_info():

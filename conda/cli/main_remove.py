@@ -113,8 +113,7 @@ def execute(args, parser):
 
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
-                              '       try "conda remove -h" for more details',
-                              args.json)
+                              '       try "conda remove -h" for more details')
 
     prefix = context.prefix_w_legacy_search
     if args.all and prefix == context.default_prefix:
@@ -141,8 +140,7 @@ def execute(args, parser):
     elif args.all:
         if plan.is_root_prefix(prefix):
             raise CondaEnvironmentError('cannot remove root environment,\n'
-                                        '       add -n NAME or -p PREFIX option',
-                                        args.json)
+                                        '       add -n NAME or -p PREFIX option')
         actions = {inst.PREFIX: prefix}
         for fkey in sorted(iterkeys(index)):
             plan.add_unlink(actions, fkey[:-8])
@@ -152,7 +150,7 @@ def execute(args, parser):
         if (context.conda_in_root and plan.is_root_prefix(prefix) and
                 names_in_specs(root_no_rm, specs)):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
-                                        ', '.join(root_no_rm), args.json)
+                                        ', '.join(root_no_rm))
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
 
@@ -167,7 +165,7 @@ def execute(args, parser):
                 })
             return
         raise PackageNotFoundError('', 'no packages found to remove from '
-                                   'environment: %s' % prefix, args.json)
+                                   'environment: %s' % prefix)
 
     if not args.json:
         print()

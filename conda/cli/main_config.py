@@ -225,7 +225,7 @@ def execute(args, parser):
     try:
         execute_config(args, parser)
     except (CouldntParseError, NotImplementedError) as e:
-        raise CondaError(e, args.json)
+        raise CondaError(e)
 
 
 def execute_config(args, parser):
@@ -333,8 +333,7 @@ def execute_config(args, parser):
                 rc_config[key] = ['defaults']
             if key not in rc_list_keys:
                 raise CondaValueError("key must be one of %s, not %r" %
-                                      (', '.join(rc_list_keys), key),
-                                      args.json)
+                                      (', '.join(rc_list_keys), key))
             if not isinstance(rc_config.get(key, []), list):
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
@@ -364,25 +363,24 @@ def execute_config(args, parser):
             rc_config[key] = item
         else:
             raise CondaValueError("Error key must be one of %s, not %s" %
-                                  (', '.join(set_bools | set_strings), key),
-                                  args.json)
+                                  (', '.join(set_bools | set_strings), key))
 
     # Remove
     for key, item in args.remove:
         if key not in rc_config:
             if key != 'channels':
-                raise CondaKeyError(key, "key %r is not in the config file" % key, args.json)
+                raise CondaKeyError(key, "key %r is not in the config file" % key)
             rc_config[key] = ['defaults']
         if item not in rc_config[key]:
             raise CondaKeyError(key, "%r is not in the %r key of the config file" %
-                                (item, key), args.json)
+                                (item, key))
         rc_config[key] = [i for i in rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in rc_config:
             raise CondaKeyError(key, "key %r is not in the config file" %
-                                key, args.json)
+                                key)
         del rc_config[key]
 
     # config.rc_keys
