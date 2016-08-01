@@ -55,6 +55,7 @@ class ProgressHandler(logging.Handler):
         except LookupError:
             pass
 
+
 class JsonFetchProgressHandler(logging.Handler):
     def emit(self, record):
         if record.name == 'fetch.start':
@@ -134,6 +135,7 @@ class PrintHandler(logging.Handler):
         if record.name == 'print':
             print(record.msg)
 
+
 class DotHandler(logging.Handler):
     def emit(self, record):
         try:
@@ -142,6 +144,7 @@ class DotHandler(logging.Handler):
         except IOError:
             # sys.stdout.flush doesn't work in pythonw
             pass
+
 
 class SysStdoutWriteHandler(logging.Handler):
     def emit(self, record):

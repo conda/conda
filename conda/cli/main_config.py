@@ -371,8 +371,7 @@ def execute_config(args, parser):
     for key, item in args.remove:
         if key not in rc_config:
             if key != 'channels':
-                raise CondaKeyError(key, "key %r is not in the config file" %
-                                    key, args.json)
+                raise CondaKeyError(key, "key %r is not in the config file" % key, args.json)
             rc_config[key] = ['defaults']
         if item not in rc_config[key]:
             raise CondaKeyError(key, "%r is not in the %r key of the config file" %
