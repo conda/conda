@@ -106,10 +106,10 @@ echo "`ps -p $$ | tr '\n' ' '` `uname -s` $SHLVL" | awk '{ \
         (sh == ".-tcsh" && sy == "Darwin" && sl == "1") ||\
         (sh == ".-csh"  && sy == "Darwin" && sl != "1") ||\
         (sh == ".-tcsh" && sy == "Linux")               ||\
-        (sh == "./bin/csh")                             ||\
-        (sh == ".-bin/csh")) {                          \
+        (sh == "./bin/tcsh")                            ||\
+        (sh == ".-bin/tcsh")) {                         \
         exit 0;                                         \
     }                                                   \
     exit 1;                                             \
 }'                                                      &&\
-source `which deactivate.csh` && exit $status
+source "`which deactivate.csh`" && exit $status

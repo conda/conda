@@ -9,8 +9,12 @@
 ######################################################################
 if ( `basename -- "$0"` =~ "*deactivate*" ) then
     # we are not being sourced
-    sh -c "echo '[DEACTIVATE]: ERROR: Must be sourced. Run `source deactivate`.' 1>&2"
-    exec /bin/false
+    sh -c 'echo "[DEACTIVATE]: ERROR: Must be sourced. Run \`source deactivate\`." 1>&2'
+    if ( -x "/usr/bin/false" ) then
+        exec /usr/bin/false
+    else
+        exec /bin/false
+    endif
 endif
 
 ###############################################################################
@@ -113,17 +117,19 @@ if ( $?CONDA_PATH_BACKUP ) then
         set prompt="$CONDA_PROMPT_BACKUP"
 
         # remove CONDA_DEFAULT_ENV
-        unset CONDA_DEFAULT_ENV
+        unsetenv CONDA_DEFAULT_ENV
 
         # remove CONDA_PREFIX
-        unset CONDA_PREFIX
+        unsetenv CONDA_PREFIX
 
         # restore PATH
-        setenv PATH "$CONDA_PATH_BACKUP"
+        set path=(${CONDA_path_BACKUP})
+        set PATH=(${CONDA_PATH_BACKUP})
 
         # remove CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
-        unset CONDA_PROMPT_BACKUP
-        unset CONDA_PATH_BACKUP
+        unsetenv CONDA_PROMPT_BACKUP
+        unsetenv CONDA_path_BACKUP
+        unsetenv CONDA_PATH_BACKUP
 
         # csh/tcsh both use rehash
         rehash

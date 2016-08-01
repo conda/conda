@@ -9,8 +9,12 @@
 ######################################################################
 if ( `basename -- "$0"` =~ "*activate*" ) then
     # we are not being sourced
-    sh -c "echo '[ACTIVATE]: ERROR: Must be sourced. Run `source activate`.' 1>&2"
-    exec /bin/false
+    sh -c 'echo "[ACTIVATE]: ERROR: Must be sourced. Run \`source activate\`." 1>&2'
+    if ( -x "/usr/bin/false" ) then
+        exec /usr/bin/false
+    else
+        exec /bin/false
+    endif
 endif
 
 ###############################################################################
@@ -114,27 +118,35 @@ set _CONDA_BIN="${_SHELL}${EXT}"
 # Ensure we deactivate any scripts from the old env
 # be careful since deactivate will unset certain values (like $_SHELL and $EXT)
 # beware of csh's `which` checking $PATH and aliases for matches
-echo "START DEACTIVATE"
-source `which \deactivate` ""
-echo "END DEACTIVATE"
+# by using \deactivate we will refer to the "root" deactivate not the aliased deactivate if it exists
+source "`which \deactivate`" ""
 
-echo "_CONDA_BIN: ${_CONDA_BIN}"
-
-set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${envname}"`
+set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${envname}" | sed 's| |\ |g'`
 if ( $status == 0 ) then
     # CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
     # export these to restore upon deactivation
     setenv CONDA_PATH_BACKUP "${PATH}"
+    setenv CONDA_path_BACKUP "${path}"
     setenv CONDA_PROMPT_BACKUP "${prompt}"
 
     # PATH
     # update path with the new conda environment
-    setenv PATH "${_CONDA_BIN}:${PATH}"
+    # csh/tcsh are fun since they have two path variables,
+    # in theory they are supposed to reflect each other at
+    # all times but due to the CONDA_BIN possibly containing
+    # a space in the pathname then the paths aren't properly
+    # updated when one is changed and instead we must manually
+    # update both, yes this may cause issues for the user if
+    # they decide to alter the path while inside a conda
+    # environment
+
+    set path=(${_CONDA_BIN} ${path})
+    set PATH=(${_CONDA_BIN}:${PATH})
 
     # CONDA_PREFIX
     # always the full path to the activated environment
     # is not set when no environment is active
-    setenv CONDA_PREFIX "`echo ${_CONDA_BIN} | sed 's|/bin$||'`"
+    setenv CONDA_PREFIX `echo "${_CONDA_BIN}" | sed 's|/bin$||' | sed 's| |\ |g'`
 
     # CONDA_DEFAULT_ENV
     # the shortest representation of how conda recognizes your env
@@ -143,7 +155,7 @@ if ( $status == 0 ) then
         set d=`dirname "${envname}"`
         set d=`cd "${d}" && pwd`
         set f=`basename "${envname}"`
-        setenv CONDA_DEFAULT_ENV `"${d}/${f}"`
+        setenv CONDA_DEFAULT_ENV "${d}/${f}"
         unset d
         unset f
     else
@@ -173,7 +185,6 @@ if ( $status == 0 ) then
     unset envname
     unset _CONDA_BIN
     unset _CONDA_DIR
-
     exit 0
 else
     unset _SHELL

@@ -57,7 +57,7 @@ echo '[ACTIVATE]: ERROR: Your command: `'$0'`.'
 echo "`ps -p $$ | tr '\n' ' '` `uname -s` $SHLVL" | awk '{ \
     num=split($0,a," ");                                \
     if (num < 10)                                       \
-        exit 0;                                         \
+        exit 1;                                         \
     sh="."a[8];                                         \
     sy=a[num-1];                                        \
     sl=a[num];                                          \
@@ -89,7 +89,7 @@ source activate.sh && return
 echo "`ps -p $$ | tr '\n' ' '` `uname -s` $SHLVL" | awk '{ \
     num=split($0,a," ");                                \
     if (num < 10)                                       \
-        exit 0;                                         \
+        exit 1;                                         \
     sh="."a[8];                                         \
     sy=a[num-1];                                        \
     sl=a[num];                                          \
@@ -106,10 +106,10 @@ echo "`ps -p $$ | tr '\n' ' '` `uname -s` $SHLVL" | awk '{ \
         (sh == ".-tcsh" && sy == "Darwin" && sl == "1") ||\
         (sh == ".-csh"  && sy == "Darwin" && sl != "1") ||\
         (sh == ".-tcsh" && sy == "Linux")               ||\
-        (sh == "./bin/csh")                             ||\
-        (sh == ".-bin/csh")) {                          \
+        (sh == "./bin/tcsh")                            ||\
+        (sh == ".-bin/tcsh")) {                         \
         exit 0;                                         \
     }                                                   \
     exit 1;                                             \
 }'                                                      &&\
-source `which activate.csh` && exit $status
+source "`which activate.csh`" && exit $status

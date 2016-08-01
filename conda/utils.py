@@ -228,9 +228,9 @@ unix_shell_base = dict(
                        path_from=path_identity,
                        path_to=path_identity,
                        pathsep=":",
-                       printdefaultenv='echo $CONDA_DEFAULT_ENV',
-                       printpath="echo $PATH",
-                       printps1='echo $PS1',
+                       printdefaultenv='echo "${CONDA_DEFAULT_ENV}"',
+                       printpath='echo "${PATH}"',
+                       printps1='echo "${PS1}"',
                        promptvar='PS1',
                        sep="/",
                        set_var='export {variable}="{value}"',
@@ -238,7 +238,7 @@ unix_shell_base = dict(
                        shell_args=["-l", "-c"],
                        shell_suffix="",
                        slash_convert=("\\", "/"),
-                       source_setup="source",
+                       source="source",
                        test_echo_extra="",
                        var_format="${}",
 )
@@ -257,12 +257,12 @@ if on_win:
         #    test_echo_extra=" .",
         #    var_format="${var}",
         #    binpath="/bin/",  # mind the trailing slash.
-        #    source_setup="source",
+        #    source="source",
         #    nul='2>/dev/null',
         #    set_var='export {variable}="{value}"',
         #    shell_suffix=".ps",
         #    env_script_suffix=".ps",
-        #    printps1='echo $PS1',
+        #    printps1='echo "${PS1}"',
         #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
         #    printpath="echo %PATH%",
         #    exe="powershell.exe",
@@ -274,7 +274,7 @@ if on_win:
             echo="@echo",
             var_format="%{}%",
             binpath="\\Scripts\\",  # mind the trailing slash.
-            source_setup="call",
+            source="call",
             test_echo_extra="",
             nul='1>NUL 2>&1',
             set_var='set {variable}="{value}"',
@@ -317,6 +317,17 @@ if on_win:
     }
 
 else:
+    c_shell_base = dict(
+                        unix_shell_base,
+                        env_script_suffix=".csh",
+                        nul='>&/dev/null',
+                        printps1='echo "${prompt}"',
+                        promptvar='prompt',
+                        set_var='setenv {variable} "{value}"',
+                        shell_args=["-c"],
+                        unset_var='unsetenv {variable}',
+
+    )
     shells = {
         "bash": dict(
             unix_shell_base, exe="bash",
@@ -328,14 +339,14 @@ else:
             unix_shell_base, exe="fish",
             pathsep=" ",
                     ),
+        "sh": dict(
+            unix_shell_base, exe="sh",
+                    ),
         "csh": dict(
-            unix_shell_base, exe="csh",
-            env_script_suffix=".csh",
-            nul='>&/dev/null',
-            printps1='echo $prompt',
-            promptvar='prompt',
-            set_var='setenv {variable} "{value}"',
-            shell_args=["-c"],
+            c_shell_base, exe="csh",
+                    ),
+        "tcsh": dict(
+            c_shell_base, exe="tcsh",
                     ),
     }
 

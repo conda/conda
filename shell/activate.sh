@@ -103,9 +103,9 @@ _CONDA_BIN="${_SHELL}${EXT}"
 
 # Ensure we deactivate any scripts from the old env
 # be careful since deactivate will unset certain values (like $_SHELL and $EXT)
-source deactivate ""
+source "deactivate" ""
 
-_CONDA_BIN=$(conda ..activate ${_CONDA_BIN} "${envname}")
+_CONDA_BIN=$(conda ..activate ${_CONDA_BIN} "${envname}" | sed 's| |\ |')
 if [[ $? == 0 ]]; then
     # CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
     # export these to restore upon deactivation
