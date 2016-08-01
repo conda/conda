@@ -3,6 +3,7 @@ osx_setup() {
 
     brew outdated openssl || brew upgrade openssl
     brew install zsh
+    brew install tcsh
 
     # install pyenv
     git clone https://github.com/yyuu/pyenv.git ~/.pyenv
