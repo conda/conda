@@ -277,6 +277,7 @@ class IntegrationTests(TestCase):
 
             # regression test for #2626
             # install tarball with full path, outside channel
+
             tar_new_path = join(prefix, flask_fname)
             copyfile(tar_old_path, tar_new_path)
             run_command(Commands.INSTALL, prefix, tar_new_path)

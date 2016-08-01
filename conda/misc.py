@@ -106,7 +106,8 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
         if not dir_path:
             if not pkg_path:
-                _, conflict = find_new_location(dist)
+                pkg_path, conflict = find_new_location(dist)
+                pkg_path = join(pkg_path, dist2filename(dist))
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
                 if not is_local:
@@ -124,9 +125,21 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # check for link action
         from .install import LINK_COPY, LINK_HARD, LINK_SOFT
         from .install import try_hard_link
+        from .install import rm_rf
+
         fetched_dist = dir_path or pkg_path[:-8]
         fetched_dir = dirname(fetched_dist)
         try:
+            # Determine what kind of linking is necessary
+            if not dir_path:
+                # If not already extracted, create some dummy
+                # data to test with
+                rm_rf(fetched_dist)
+                ppath = join(fetched_dist, 'info')
+                os.makedirs(ppath)
+                index_json = join(ppath, 'index.json')
+                with open(index_json, 'w'):
+                    pass
             if context.always_copy:
                 lt = LINK_COPY
             elif try_hard_link(fetched_dir, prefix, dist):
@@ -138,6 +151,13 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             actions[LINK].append('%s %d' % (dist, lt))
         except (OSError, IOError):
             actions[LINK].append('%s %d' % (dist, LINK_COPY))
+        finally:
+            if not dir_path:
+                # Remove the dummy data
+                try:
+                    rm_rf(fetched_dist)
+                except (OSError, IOError):
+                    pass
 
     # Pull the repodata for channels we are using
     if channels:
