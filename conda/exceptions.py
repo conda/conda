@@ -368,11 +368,11 @@ def print_conda_exception(exception):
 
     if context.json:
         import json
-        print(json.dumps(exception.dump_map(), indent=2, sort_keys=True)) #temporary
-        #stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
+        print(json.dumps(exception.dump_map(), indent=2, sort_keys=True))  # temporary
+        # stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
     else:
-        print(repr(exception)) #temporary
-        #stderrlogger.info(repr(exception))
+        print(repr(exception))  # temporary
+        # stderrlogger.info(repr(exception))
 
 
 def get_info():
