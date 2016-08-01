@@ -56,8 +56,7 @@ class CondaError(Exception):
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),
                     exception_class=self.__class__.__name__,
-                    message=text_type(self),
-                    **vars(self))
+                    message=text_type(self))
 
 
 class CondaMultiError(CondaError):
