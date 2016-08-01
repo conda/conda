@@ -1,7 +1,8 @@
-## 4.2.1 (2016-07-29)
+## 4.2.1 (2016-08-01)
 
 ### Improvements
 * improve an error message that can happen during conda install --revision (#3181)
+* use clean sys.exit with user choice 'No' (#3196)
 
 ### Bug Fixes
 * critical fix for 4.2.0 error when no git is on PATH (#3193)
