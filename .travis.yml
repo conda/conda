@@ -9,6 +9,8 @@ addons:
   apt:
     packages:
       - zsh
+      - tcsh
+      - csh
 
 matrix:
   include:
