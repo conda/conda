@@ -353,16 +353,16 @@ def ensure_use_local(args):
         from conda_build.config import croot  # noqa
     except ImportError as e:
         raise CondaRuntimeError("you need to have 'conda-build >= 1.7.1' installed"
-                                " to use the --use-local option", args.json, e)
+                                " to use the --use-local option", e)
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
         if dashc:
             raise CondaValueError('--override-channels requires -c/--channel'
-                                  ' or --use-local', args.json)
+                                  ' or --use-local')
         else:
             raise CondaValueError('--override-channels requires --channel'
-                                  'or --use-local', args.json)
+                                  'or --use-local')
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default

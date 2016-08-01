@@ -155,7 +155,7 @@ def install(args, parser, command='install'):
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
-""" % prefix, args.json)
+""" % prefix)
 
     linked = install_linked(prefix)
     lnames = {name_dist(d) for d in linked}
@@ -164,7 +164,7 @@ def install(args, parser, command='install'):
             common.arg2spec(name, json=args.json, update=True)
             if name not in lnames:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
-                                           (name, prefix), args.json)
+                                           (name, prefix))
 
     if newenv and not args.no_default_packages:
         default_packages = context.create_default_packages[:]
@@ -210,7 +210,7 @@ def install(args, parser, command='install'):
             return
         else:
             raise CondaValueError("cannot mix specifications with conda package"
-                                  " filenames", args.json)
+                                  " filenames")
 
     # handle tar file containing conda packages
     if len(args.packages) == 1:
@@ -223,7 +223,7 @@ def install(args, parser, command='install'):
         package_diff = set(args.packages) - set(default_packages)
         if package_diff:
             raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
-                                        'did not expect any arguments for --clone', args.json)
+                                        'did not expect any arguments for --clone')
 
         clone(args.clone, prefix, json=args.json, quiet=args.quiet, index_args=index_args)
         append_env(prefix)
@@ -252,7 +252,7 @@ def install(args, parser, command='install'):
                 assert len(vers_inst) == 1, name
                 assert len(build_inst) == 1, name
             except AssertionError as e:
-                raise CondaAssertionError('', e, args.json)
+                raise CondaAssertionError('', e)
 
             pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
@@ -277,14 +277,14 @@ def install(args, parser, command='install'):
                 os.makedirs(prefix)
             except OSError:
                 raise CondaOSError("Error: could not create directory: %s" %
-                                   prefix, args.json)
+                                   prefix)
         else:
             raise CondaEnvironmentError("""\
 environment does not exist: %s
 #
 # Use 'conda create' to create an environment before installing packages
 # into it.
-#""" % prefix, args.json)
+#""" % prefix)
 
     try:
         if isinstall and args.revision:
@@ -353,13 +353,13 @@ environment does not exist: %s
 
             error_message = ''.join(error_message)
 
-            raise PackageNotFoundError('', error_message, args.json)
+            raise PackageNotFoundError('', error_message)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         if e.args and 'could not import' in e.args[0]:
-            raise CondaImportError('', e, args.json)
-        raise CondaError('UnsatisfiableSpecifications', e, args.json)
+            raise CondaImportError('', e)
+        raise CondaError('UnsatisfiableSpecifications', e)
 
     if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
@@ -407,11 +407,11 @@ environment does not exist: %s
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked', e, args.json)
+                raise LockError('Already locked', e)
             else:
-                raise CondaRuntimeError('RuntimeError', e, args.json)
+                raise CondaRuntimeError('RuntimeError', e)
         except SystemExit as e:
-            raise CondaSystemExit('Exiting', e, args.json)
+            raise CondaSystemExit('Exiting', e)
 
     if newenv:
         append_env(prefix)
