@@ -5,12 +5,12 @@ env:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
 
-addons:
-  apt:
-    packages:
-      - zsh
-      - tcsh
-      - csh
+# addons:
+#   apt:
+#     packages:
+#       - zsh
+#       - tcsh
+#       - csh
 
 matrix:
   include:
