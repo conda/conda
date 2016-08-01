@@ -10,7 +10,7 @@ addons:
     packages:
       - zsh
       - csh
-#       - tcsh
+      - tcsh
 
 
 matrix:
