@@ -1,4 +1,4 @@
-## 4.2.1 (2016-07-29)
+## 4.2.1 (2016-08-01)
 
 ### Improvements
 * improve an error message that can happen during conda install --revision (#3181)
