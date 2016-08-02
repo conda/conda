@@ -593,7 +593,8 @@ class SequenceParameter(Parameter):
                                 cls._str_format_flag(raw_parameter.keyflag())))
         for q, value in enumerate(raw_parameter.value(cls)):
             valueflag = raw_parameter.valueflags(cls)[q]
-            lines.append("  - %s%s" % (cls._str_format_value(value), cls._str_format_flag(valueflag)))
+            lines.append("  - %s%s" % (cls._str_format_value(value),
+                                       cls._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
 
@@ -647,7 +648,8 @@ class MapParameter(Parameter):
                                 cls._str_format_flag(raw_parameter.keyflag())))
         for valuekey, value in iteritems(raw_parameter.value(cls)):
             valueflag = raw_parameter.valueflags(cls).get(valuekey)
-            lines.append("  %s: %s%s" % (valuekey, cls._str_format_value(value), cls._str_format_flag(valueflag)))
+            lines.append("  %s: %s%s" % (valuekey, cls._str_format_value(value),
+                                         cls._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
 
