@@ -100,8 +100,8 @@ on `the menuinst wiki <https://github.com/ContinuumIO/menuinst/wiki>`_.
 
 The easiest way to ensure a package made 
 with `conda constructor <https://github.com/conda/constructor>`_ does not 
-install menus is by removing ``menuinst`` from the list of conda packages 
-included. To do this, add the following to the constuct.yaml file:
+install any menu shortcuts is by removing ``menuinst`` from the list of conda 
+packages included. To do this, add the following to the constuct.yaml file:
 
 .. code-block:: yaml
 
