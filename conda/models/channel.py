@@ -22,7 +22,7 @@ def get_conda_build_local_url():
         import traceback
         log.debug(traceback.format_exc())
         return None
-    return path_to_url(croot) if exists(croot) else None
+    return [path_to_url(croot)] if exists(croot) else None
 
 
 def has_scheme(value):
