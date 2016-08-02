@@ -352,8 +352,8 @@ def ensure_use_local(args):
     try:
         from conda_build.config import croot  # noqa
     except ImportError as e:
-        raise CondaRuntimeError("you need to have 'conda-build >= 1.7.1' installed"
-                                " to use the --use-local option", e)
+        raise CondaRuntimeError("%s: you need to have 'conda-build >= 1.7.1' installed"
+                                " to use the --use-local option." % e)
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
@@ -411,11 +411,11 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
 
 # --------------------------------------------------------------------
 
+
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
-                              'try "conda %s -h" for more details' % command,
-                              getattr(args, 'json', False))
+                              'try "conda %s -h" for more details' % command)
 
 
 def name_prefix(prefix):
@@ -430,16 +430,16 @@ def arg2spec(arg, json=False, update=False):
     try:
         spec = MatchSpec(spec_from_line(arg), normalize=True)
     except:
-        raise CondaValueError('invalid package specification: %s' % arg, json)
+        raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name
     if name in context.disallow:
-        raise CondaValueError("specification '%s' is disallowed" % name, json)
+        raise CondaValueError("specification '%s' is disallowed" % name)
 
     if not spec.is_simple() and update:
         raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or
-    conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg), json)
+    conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg))
 
     return str(spec)
 
@@ -494,10 +494,10 @@ def specs_from_url(url, json=False):
                 spec = spec_from_line(line)
                 if spec is None:
                     raise CondaValueError("could not parse '%s' in: %s" %
-                                          (line, url), json)
+                                          (line, url))
                 specs.append(spec)
         except IOError as e:
-            raise CondaFileIOError(path, e, json)
+            raise CondaFileIOError(path, e)
     return specs
 
 

@@ -6,6 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+from conda import text_type
 from conda.api import get_index
 from ..base.context import context
 from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
@@ -125,7 +126,7 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
-        raise PackageNotFoundError('', e)
+        raise PackageNotFoundError('', text_type(e))
 
 def execute_search(args, parser):
     import re

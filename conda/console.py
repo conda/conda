@@ -4,6 +4,7 @@ import contextlib
 import json
 import logging
 import sys
+import re
 
 from ._vendor.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from .utils import memoized
@@ -221,3 +222,37 @@ def setup_handlers():
     stderrlogger.setLevel(logging.DEBUG)
     stderrlogger.addHandler(SysStderrWriteHandler())
     # stderrlogger.addFilter()
+
+
+class TokenURLFilter(logging.Filter):
+    def __init__(self):
+        self.token_url_pattern = re.compile(r'(http[s]?://)'
+                                            r'([a-zA-Z0-9-]{1,20}\.){0,10}([a-zA-Z0-9-]{2,20})'
+                                            r'(:[0-9]{4})?'  # port, ^domain name
+                                            r'/t/[a-z0-9A-Z-]+/'  # token
+                                            )
+
+    def filter(self, record):
+        message = record.msg
+        record.msg = self.token_url_pattern.sub(r'\1\2\3\4/t/<TOKEN>/', message)
+        return True
+
+
+def init_our_logging():
+    formatter = logging.Formatter("%(message)s\n")
+
+    stdout = logging.getLogger('stdout')
+    stdout.setLevel(logging.INFO)
+    stdouthandler = logging.StreamHandler(sys.stdout)
+    stdouthandler.setLevel(logging.INFO)
+    stdouthandler.setFormatter(formatter)
+    stdout.addHandler(stdouthandler)
+    stdout.addFilter(TokenURLFilter())
+
+    stderr = logging.getLogger('stderr')
+    stderr.setLevel(logging.INFO)
+    stderrhandler = logging.StreamHandler(sys.stderr)
+    stderrhandler.setLevel(logging.INFO)
+    stderrhandler.setFormatter(formatter)
+    stderr.addHandler(stderrhandler)
+    stderr.addFilter(TokenURLFilter())
