@@ -67,9 +67,11 @@ stacks. Conda is also available on pypi, although that approach may not be as up
 * Miniconda is a small "bootstrap" version that includes only conda, Python, and the packages they depend on. Over 720
   scientific packages and their dependencies can be installed individually from the Continuum repository with
   the "conda install" command.
+
 * Anaconda includes conda, conda-build, Python, and over 150 automatically installed scientific packages and
   their dependencies. As with Miniconda, over 250 additional scientific packages can be installed individually with
   the "conda install" command.
+
 * pip install conda uses the released version on pypi.  This version allows you to create new conda environments using
   any python installation, and a new version of Python will then be installed into those environments.  These environments
   are still considered "Anaconda installations."
