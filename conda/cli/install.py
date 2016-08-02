@@ -15,7 +15,7 @@ import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from .. import CondaError
+from .. import CondaError, text_type
 from .._vendor.auxlib.ish import dals
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
@@ -252,7 +252,7 @@ def install(args, parser, command='install'):
                 assert len(vers_inst) == 1, name
                 assert len(build_inst) == 1, name
             except AssertionError as e:
-                raise CondaAssertionError('', e)
+                raise CondaAssertionError(text_type(e))
 
             pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
@@ -276,8 +276,7 @@ def install(args, parser, command='install'):
             try:
                 os.makedirs(prefix)
             except OSError:
-                raise CondaOSError("Error: could not create directory: %s" %
-                                   prefix)
+                raise CondaOSError("Error: could not create directory: %s" % prefix)
         else:
             raise CondaEnvironmentError("""\
 environment does not exist: %s
@@ -358,7 +357,7 @@ environment does not exist: %s
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         if e.args and 'could not import' in e.args[0]:
-            raise CondaImportError('', e)
+            raise CondaImportError(text_type(e))
         raise CondaError('UnsatisfiableSpecifications', e)
 
     if nothing_to_do(actions) and not newenv:
@@ -407,9 +406,9 @@ environment does not exist: %s
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked', e)
+                raise LockError('Already locked: %s' % text_type(e))
             else:
-                raise CondaRuntimeError('RuntimeError', e)
+                raise CondaRuntimeError('RuntimeError: %s' % e)
         except SystemExit as e:
             raise CondaSystemExit('Exiting', e)
 

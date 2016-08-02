@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 from conda.compat import text_type
+from conda.console import init_our_logging
 
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import with_metaclass
@@ -75,3 +76,5 @@ class CondaMultiError(CondaError):
         return dict(exception_type=text_type(type(self)),
                     exception_class=self.__class__.__name__,
                     errors=tuple(error.dump_map() for error in self.errors))
+
+init_our_logging()

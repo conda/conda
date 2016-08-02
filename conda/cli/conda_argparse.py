@@ -69,7 +69,7 @@ if argcomplete:
                     debug_argcomplete(args)
                     p = subprocess.Popen(args, env=environ, close_fds=False)
                     p.communicate()
-                    raise SubprocessExit()
+                    raise SubprocessExit
             else:
                 debug_argcomplete("Not using subprocess")
                 debug_argcomplete(sys.argv)

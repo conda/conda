@@ -126,7 +126,7 @@ def _main():
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
         for logger in logging.Logger.manager.loggerDict:
-            if logger not in ('fetch', 'progress'):
+            if logger not in ('fetch', 'progress', 'stdout', 'stderr'):
                 logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
 
     if args.debug:

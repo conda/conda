@@ -346,8 +346,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         except CondaSignatureError:
             raise
 
-        raise CondaSignatureError("Error: Signature for '%s' is invalid." %
-                                  (basename(path)))
+        raise CondaSignatureError("Error: Signature for '%s' is invalid." % (basename(path)))
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):

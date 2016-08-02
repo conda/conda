@@ -6,6 +6,7 @@ import re
 import sys
 from os.path import isdir, abspath
 
+from conda import text_type
 from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError,
                           TooManyArgumentsError, TooFewArgumentsError)
 from ..utils import on_win
@@ -141,7 +142,7 @@ def main():
         try:
             prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
         except ValueError as e:
-            raise CondaValueError(e)
+            raise CondaValueError(text_type(e))
 
         # Make sure an env always has the conda symlink
         try:
@@ -152,7 +153,7 @@ def main():
                 msg = ("Cannot activate environment {0}.\n"
                        "User does not have write access for conda symlinks."
                        .format(sys.argv[2]))
-                raise CondaEnvironmentError(msg, e)
+                raise CondaEnvironmentError(msg)
             raise
         sys.exit(0)
         # raise CondaSystemExit
