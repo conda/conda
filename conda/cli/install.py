@@ -262,17 +262,7 @@ def install(args, parser, command='install'):
             if (latest.version == vers_inst[0] and
                     latest.build_number == build_inst[0]):
                 args.packages.remove(name)
-        if not args.packages:
-            from .main_list import print_packages
-
-            if not args.json:
-                regex = '^(%s)$' % '|'.join(orig_packages)
-                print('# All requested packages already installed.')
-                print_packages(prefix, regex)
-            else:
-                common.stdout_json_success(
-                    message='All requested packages already installed.')
-            return
+      
     if args.force:
         args.no_deps = True
 
