@@ -262,7 +262,6 @@ def install(args, parser, command='install'):
             if (latest.version == vers_inst[0] and
                     latest.build_number == build_inst[0]):
                 args.packages.remove(name)
-      
     if args.force:
         args.no_deps = True
 
