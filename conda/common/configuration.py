@@ -471,6 +471,12 @@ class Parameter(object):
     def _str_format_flag(flag):
         return "  #!%s" % flag if flag is not None else ''
 
+    @staticmethod
+    def _str_format_value(value):
+        if value is None:
+            return 'None'
+        return value
+
     @classmethod
     def repr_raw(cls, raw_parameter):
         raise NotImplementedError()
@@ -510,7 +516,8 @@ class PrimitiveParameter(Parameter):
 
     @classmethod
     def repr_raw(cls, raw_parameter):
-        return "%s: %s%s" % (raw_parameter.key, raw_parameter.value(cls),
+        return "%s: %s%s" % (raw_parameter.key,
+                             cls._str_format_value(raw_parameter.value(cls)),
                              cls._str_format_flag(raw_parameter.keyflag()))
 
 
@@ -586,7 +593,7 @@ class SequenceParameter(Parameter):
                                 cls._str_format_flag(raw_parameter.keyflag())))
         for q, value in enumerate(raw_parameter.value(cls)):
             valueflag = raw_parameter.valueflags(cls)[q]
-            lines.append("  - %s%s" % (value, cls._str_format_flag(valueflag)))
+            lines.append("  - %s%s" % (cls._str_format_value(value), cls._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
 
@@ -640,7 +647,7 @@ class MapParameter(Parameter):
                                 cls._str_format_flag(raw_parameter.keyflag())))
         for valuekey, value in iteritems(raw_parameter.value(cls)):
             valueflag = raw_parameter.valueflags(cls).get(valuekey)
-            lines.append("  %s:%s%s" % (valuekey, value, cls._str_format_flag(valueflag)))
+            lines.append("  %s: %s%s" % (valuekey, cls._str_format_value(value), cls._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
 
