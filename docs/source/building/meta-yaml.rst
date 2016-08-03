@@ -215,6 +215,20 @@ This is needed for some packages that use setuptools specific features. Default 
   build:
     preserve_egg_dir: True
 
+Skip compiling some .py files into .pyc files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some packages ship .py files that should not be compiled because either they cannot be
+compiled because for example they contain templates or should not be compiled yet because
+the Python interpreter that will be used cannot be known at build-time.
+
+.. code-block:: yaml
+
+  build:
+    skip_compile_pyc:
+      - templates/*.py          # These should not (and cannot) be compiled
+      - share/plugins/gdb/*.py  # The python embedded into gdb is unknown
+
 No link
 ~~~~~~~
 
@@ -224,7 +238,7 @@ A list of globs for files that should always be copied and never soft linked or 
 
   build:
     no_link:
-      - bin/\*.py # Don't link any .py files in bin/
+      - bin/*.py  # Don't link any .py files in bin/
 
 Script
 ~~~~~~
