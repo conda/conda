@@ -34,6 +34,7 @@ import re
 import shlex
 import shutil
 import stat
+import struct
 import subprocess
 import sys
 import tarfile
@@ -316,16 +317,23 @@ def binary_replace(data, a, b):
     All input arguments are expected to be bytes objects.
     """
 
-    def replace(match):
-        occurances = match.group().count(a)
-        padding = (len(a) - len(b))*occurances
-        if padding < 0:
-            raise PaddingError(a, b, padding)
-        return match.group().replace(a, b) + b'\0' * padding
-    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
-    res = pat.sub(replace, data)
-    assert len(res) == len(data)
-    return res
+    original_data = data
+
+    if on_win:
+        # This is a no-op if the data is not a distlib-created launcher.
+        data = replace_entry_point_shebang(data, a, b)
+
+    if original_data == data:
+        def replace(match):
+            occurances = match.group().count(a)
+            padding = (len(a) - len(b))*occurances
+            if padding < 0:
+                raise PaddingError(a, b, padding)
+            return match.group().replace(a, b) + b'\0' * padding
+        pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
+        data = pat.sub(replace, data)
+        assert len(data) == len(original_data)
+    return data
 
 
 def replace_long_shebang(mode, data):
@@ -343,23 +351,45 @@ def replace_long_shebang(mode, data):
     return data
 
 
+def replace_entry_point_shebang(all_data, placeholder, new_prefix):
+    """Code adapted from pyzzer.  This is meant to deal with entry point exe's created by distlib, which
+    consist of a launcher, then a shebang, then a zip archive of the entry point code to run.  We need to change
+    the shebang.
+    https://bitbucket.org/vinay.sajip/pyzzer/src/5d5740cb04308f067d5844a56fbe91e7a27efccc/pyzzer/__init__.py?at=default&fileviewer=file-view-default#__init__.py-112  # NOQA
+    """
+
+    launcher = shebang = data = None
+    pos = all_data.rfind(b'PK\x05\x06')
+    if pos >= 0:
+        end_cdr = all_data[pos + 12:pos + 20]
+        cdr_size, cdr_offset = struct.unpack('<LL', end_cdr)
+        arc_pos = pos - cdr_size - cdr_offset
+        data = all_data[arc_pos:]
+        if arc_pos > 0:
+            pos = all_data.rfind(b'#!', 0, arc_pos)
+            if pos >= 0:
+                shebang = all_data[pos:arc_pos]
+                if pos > 0:
+                    launcher = all_data[:pos]
+
+        if data and shebang and launcher:
+            shebang = shebang.replace(placeholder, new_prefix)
+            all_data = b"".join([launcher, shebang, data])
+    return all_data
+
+
 def replace_prefix(mode, data, placeholder, new_prefix):
     if mode is FileMode.text:
         data = data.replace(placeholder.encode(UTF8), new_prefix.encode(UTF8))
-    # Skip binary replacement in Windows.  Some files do have prefix information embedded, but
-    #    this should not matter, as it is not used for things like RPATH.
-    elif mode is FileMode.binary:
-        if not on_win:
-            data = binary_replace(data, placeholder.encode(UTF8), new_prefix.encode(UTF8))
-        else:
-            logging.debug("Skipping prefix replacement in binary on Windows")
+    elif mode == FileMode.binary:
+        data = binary_replace(data, placeholder.encode(UTF8), new_prefix.encode(UTF8))
     else:
         raise RuntimeError("Invalid mode: %r" % mode)
     return data
 
 
 def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text):
-    if on_win:
+    if on_win and mode is FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
         new_prefix = new_prefix.replace('\\', '/')
