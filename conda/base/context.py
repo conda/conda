@@ -259,13 +259,34 @@ def get_prefix(ctx, args, search=True):
 
 
 def find_prefix_name(ctx, name):
+    """
+        Find the prefix name
+    Args:
+        ctx: The context, has all the environment dir list
+        name: The name of prefix to find
+    Returns: The prefix found, or CondaValueError will raise if not found
+    """
     if name == ROOT_ENV_NAME:
         return ctx.root_dir
+    # keep a list of all prefix
+    all_env = []
     # always search cwd in addition to envs dirs (for relative path access)
     for envs_dir in chain(ctx.envs_dirs + (os.getcwd(),)):
+        all_env += next(os.walk(envs_dir))[1]
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
+
+    # try to find a close match, and raise better error message
+    from difflib import get_close_matches
+    close = get_close_matches(name, all_env, cutoff=0.7)
+    error_message = " No prefix found for name %s \n" % name
+    if close:
+        error_message += "\nClose matches found; did you mean one of these?\n"
+        error_message += "\n    %s: %s\n" % (name, ', '.join(close))
+
+    error_message += '\nYou can see all the environment with conda env list\n'
+    raise CondaValueError(error_message)
     return None
 
 
