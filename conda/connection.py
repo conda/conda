@@ -24,7 +24,7 @@ from requests.packages.urllib3.util import Url
 from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context, platform as context_platform
-from .common.io import disable_logger
+from .common.io import disable_logger, captured
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
@@ -75,6 +75,7 @@ class BinstarAuth(AuthBase):
         token = BinstarAuth.get_binstar_token(url)
         if token is None:
             return url
+        log.debug("Adding binstar token to url %s", url)
         u = urlparse(url)
         path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
         return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
@@ -82,6 +83,7 @@ class BinstarAuth(AuthBase):
     @staticmethod
     def get_binstar_token(url):
         try:
+            log.debug("Attempting to binstar collect token for url %s", url)
             try:
                 from binstar_client.utils import get_config, load_token
             except ImportError:
@@ -93,12 +95,13 @@ class BinstarAuth(AuthBase):
             base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
             if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
                 base_url = binstar_default_url
-
-            with disable_logger('binstar'):
+            with disable_logger('binstar'), captured() as c:
                 config = get_config(remote_site=base_url)
                 url_from_bs_config = config.get('url', base_url)
                 token = load_token(url_from_bs_config)
-                return token
+            log.debug("binstar stdout >> %s\n"
+                      "binstar stderr >> %s", c.stdout, c.stderr)
+            return token
         except Exception as e:
             log.warn("Warning: could not capture token from anaconda-client (%r)", e)
             return None
@@ -134,6 +137,9 @@ class CondaSession(requests.Session):
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
+        # Enable ftp:// urls
+        self.mount("ftp://", FTPAdapter())
+
         # Enable s3:// urls
         self.mount("s3://", S3Adapter())
 
@@ -148,8 +154,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
         super(S3Adapter, self).__init__()
         self._temp_file = None
 
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
-             proxies=None):
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
 
         resp = requests.models.Response()
         resp.status_code = 200
@@ -223,8 +228,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):
 
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
-             proxies=None):
+    def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
         pathname = url_to_path(request.url)
 
         resp = requests.models.Response()
