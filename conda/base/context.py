@@ -244,18 +244,11 @@ def get_prefix(ctx, args, search=True):
         if args.name == ROOT_ENV_NAME:
             return ctx.root_dir
         if search:
-            if getattr(args, 'clone', False):
-                prefix = locate_prefix_by_name(ctx, args.clone)
-            else:
-                prefix = locate_prefix_by_name(ctx, args.name)
-            if prefix:
-                return prefix
-        return join(ctx.envs_dirs[0], args.name)
-
-    if args.prefix:
+            return locate_prefix_by_name(ctx, getattr(args, 'clone', False) or args.name)
+    elif args.prefix:
         return abspath(expanduser(args.prefix))
-
-    return ctx.default_prefix
+    else:
+        return ctx.default_prefix
 
 
 def locate_prefix_by_name(ctx, name):
