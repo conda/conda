@@ -22,11 +22,11 @@ from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context, force_32bit
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..exceptions import (CondaAssertionError, CondaEnvironmentError, CondaFileNotFoundError,
-                          CondaIOError, CondaImportError, CondaOSError, CondaRuntimeError,
-                          CondaSystemExit, CondaValueError, DirectoryNotFoundError, DryRunExit,
-                          LockError, NoPackagesFoundError, PackageNotFoundError,
-                          TooManyArgumentsError, UnsatisfiableError)
+from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
+                          CondaFileNotFoundError, CondaIOError, CondaImportError, CondaOSError,
+                          CondaRuntimeError, CondaSystemExit, CondaValueError,
+                          DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
+                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..install import is_linked, linked as install_linked, name_dist
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
@@ -79,8 +79,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     else:
         src_prefix = context.prefix_w_legacy_search
         if src_prefix is None:
-            raise CondaEnvironmentError('could not find environment: %s' %
-                                        src_arg, json)
+            raise CondaEnvironmentNotFoundError(src_arg)
 
     if not json:
         print("Source:      %s" % src_prefix)
@@ -289,12 +288,7 @@ def install(args, parser, command='install'):
                 raise CondaOSError("Error: could not create directory: %s" %
                                    prefix, args.json)
         else:
-            raise CondaEnvironmentError("""\
-environment does not exist: %s
-#
-# Use 'conda create' to create an environment before installing packages
-# into it.
-#""" % prefix, args.json)
+            raise CondaEnvironmentNotFoundError(prefix)
 
     try:
         if isinstall and args.revision:
