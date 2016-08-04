@@ -245,9 +245,9 @@ def get_prefix(ctx, args, search=True):
             return ctx.root_dir
         if search:
             if getattr(args, 'clone', False):
-                prefix = find_prefix_name(ctx, args.clone)
+                prefix = locate_prefix_by_name(ctx, args.clone)
             else:
-                prefix = find_prefix_name(ctx, args.name)
+                prefix = locate_prefix_by_name(ctx, args.name)
             if prefix:
                 return prefix
         return join(ctx.envs_dirs[0], args.name)
@@ -258,40 +258,42 @@ def get_prefix(ctx, args, search=True):
     return ctx.default_prefix
 
 
-def find_prefix_name(ctx, name):
-    """
-        Find the prefix name
+def locate_prefix_by_name(ctx, name):
+    """ Find the location of a prefix given a conda env name.
+
     Args:
-        ctx: The context, has all the environment dir list
-        name: The name of prefix to find
-    Returns: The prefix found, or CondaValueError will raise if not found
+        ctx (Context): the context object
+        name (str): the name of prefix to find
+
+    Returns:
+        str: the location of the prefix found, or CondaValueError will raise if not found
+
+    Raises:
+        CondaValueError: when no prefix is found
     """
     if name == ROOT_ENV_NAME:
         return ctx.root_dir
-    # keep a list of all prefix
-    all_env = []
-    # always search cwd in addition to envs dirs (for relative path access)
-    for envs_dir in chain(ctx.envs_dirs + (os.getcwd(),)):
-        try:
-            all_env += next(os.walk(envs_dir))[1]
-        except Exception as e:
-            log.debug(e)
 
+    # look for a directory named `name` in all envs_dirs AND in CWD
+    for envs_dir in chain(ctx.envs_dirs + (os.getcwd(),)):
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
 
+    # find the locations of all known envs, but now DON'T include CWD
+    all_possible_envs = chain.from_iterable(os.listdir(envs_dir) for envs_dir in ctx.envs_dirs)
+    all_known_envs = tuple(env_dir for env_dir in all_possible_envs if os.path.isdir(env_dir))
+
     # try to find a close match, and raise better error message
     from difflib import get_close_matches
-    close = get_close_matches(name, all_env, cutoff=0.7)
-    error_message = " could not find environmen %s \n" % name
-    if close:
-        error_message += "\nClose matches found; did you mean one of these?\n"
-        error_message += "\n    %s: %s\n" % (name, ', '.join(close))
+    close_matches = get_close_matches(name, all_known_envs, cutoff=0.7)
+    error_message_parts = [" could not find environment %s" % name]
+    if close_matches:
+        error_message_parts.append("\nClose matches found; did you mean one of these?")
+        error_message_parts.append("    %s: %s\n" % (name, ', '.join(close_matches)))
 
-    error_message += '\nYou can see all the environment with conda env list\n'
+    error_message += '\nYou can see all discoverable the environment with conda info --envs\n'
     raise CondaValueError(error_message)
-    return None
 
 
 def check_write(command, prefix, json=False):
