@@ -5,17 +5,17 @@ import os
 import sys
 from itertools import chain
 from logging import getLogger
-from os.path import expanduser, abspath, join, isdir, basename, dirname
+from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 
-from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
-from .._vendor.auxlib.compat import string_types, NoneType
+from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda
+from .._vendor.auxlib.compat import NoneType, string_types
 from .._vendor.auxlib.ish import dals
 from .._vendor.toolz.itertoolz import concatv
-from ..common.configuration import (Configuration, PrimitiveParameter,
-                                    SequenceParameter, MapParameter)
+from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
+                                    SequenceParameter)
 from ..common.url import urlparse
-from ..exceptions import CondaValueError
+from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -280,9 +280,7 @@ def locate_prefix_by_name(ctx, name):
         if isdir(prefix):
             return prefix
 
-    raise CondaValueError("Could not find an environment named '%s'.\n"
-                          "You can see all discoverable the environment with `conda info --envs`."
-                          "" % name)
+    raise CondaEnvironmentNotFoundError(name)
 
 
 def check_write(command, prefix, json=False):
