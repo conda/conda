@@ -181,9 +181,9 @@ The command line session will look something like::
     Added packages to project file: bokeh=0.12, pandas.
 
 If you look at ``kapsel.yml`` now, you'll see bokeh and pandas
-listed under the ``packages:`` section. You will also see files
-such as ``envs/default/conda-meta/bokeh`` since the packages have now
-been installed in your project's environment.
+listed under the ``packages:`` section. Since the packages have 
+now been installed in your project's environment, you will also 
+see files such as ``envs/YOUR-PATH-TO/bokeh``.
 
 Configure your project with environment variables
 =================================================
