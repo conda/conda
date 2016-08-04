@@ -280,20 +280,9 @@ def locate_prefix_by_name(ctx, name):
         if isdir(prefix):
             return prefix
 
-    # find the locations of all known envs, but now DON'T include CWD
-    all_possible_envs = chain.from_iterable(os.listdir(envs_dir) for envs_dir in ctx.envs_dirs)
-    all_known_envs = tuple(env_dir for env_dir in all_possible_envs if os.path.isdir(env_dir))
-
-    # try to find a close match, and raise better error message
-    from difflib import get_close_matches
-    close_matches = get_close_matches(name, all_known_envs, cutoff=0.7)
-    error_message_parts = [" could not find environment %s" % name]
-    if close_matches:
-        error_message_parts.append("\nClose matches found; did you mean one of these?")
-        error_message_parts.append("    %s: %s\n" % (name, ', '.join(close_matches)))
-
-    error_message += '\nYou can see all discoverable the environment with conda info --envs\n'
-    raise CondaValueError(error_message)
+    raise CondaValueError("Could not find an environment named '%s'.\n"
+                          "You can see all discoverable the environment with `conda info --envs`."
+                          "" % name)
 
 
 def check_write(command, prefix, json=False):
