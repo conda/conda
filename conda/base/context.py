@@ -237,6 +237,16 @@ def get_help_dict():
 
 
 def get_prefix(ctx, args, search=True):
+    """
+        Get the prefix
+    Args:
+        ctx: the context of conda
+        args: the args from command line
+        search: whether search for prefix
+
+    Returns: the prefix
+    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+    """
     if args.name:
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
@@ -244,7 +254,9 @@ def get_prefix(ctx, args, search=True):
         if args.name == ROOT_ENV_NAME:
             return ctx.root_dir
         if search:
-            return locate_prefix_by_name(ctx, getattr(args, 'clone', False) or args.name)
+            return locate_prefix_by_name(ctx, getattr(args, 'clone', None) or args.name)
+        else:
+            return join(ctx.envs_dirs[0], args.name)
     elif args.prefix:
         return abspath(expanduser(args.prefix))
     else:
