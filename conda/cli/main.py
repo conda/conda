@@ -90,11 +90,11 @@ def _main():
             return
         if argv1 in ('activate', 'deactivate'):
 
-            message = "Error: '%s' is not a conda command.\n" % argv1
+            message = "'%s' is not a conda command.\n" % argv1
             if not on_win:
                 message += ' Did you mean "source %s" ?\n' % ' '.join(sys.argv[1:])
 
-            raise CommandNotFoundError(message)
+            raise CommandNotFoundError(argv1, message)
 
     if len(sys.argv) == 1:
         sys.argv.append('-h')
@@ -126,7 +126,7 @@ def _main():
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
         for logger in logging.Logger.manager.loggerDict:
-            if logger not in ('fetch', 'progress'):
+            if logger not in ('fetch', 'progress', 'stdout', 'stderr'):
                 logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
 
     if args.debug:

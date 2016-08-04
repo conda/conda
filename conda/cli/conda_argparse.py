@@ -69,7 +69,7 @@ if argcomplete:
                     debug_argcomplete(args)
                     p = subprocess.Popen(args, env=environ, close_fds=False)
                     p.communicate()
-                    raise SubprocessExit()
+                    raise SubprocessExit
             else:
                 debug_argcomplete("Not using subprocess")
                 debug_argcomplete(sys.argv)
@@ -129,7 +129,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     executable = find_executable('conda-' + cmd)
                     if not executable:
                         if cmd in build_commands:
-                            raise CommandNotFoundError('''
+                            raise CommandNotFoundError(cmd, '''
 Error: You need to install conda-build in order to
 use the "conda %s" command.''' % cmd)
                         else:
@@ -142,7 +142,7 @@ use the "conda %s" command.''' % cmd)
                                 message += '\n\nDid you mean one of these?\n'
                                 for s in close:
                                     message += '    %s' % s
-                            raise CommandNotFoundError(message)
+                            raise CommandNotFoundError(cmd, message)
 
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])

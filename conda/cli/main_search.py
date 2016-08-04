@@ -6,6 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+from conda import text_type
 from conda.api import get_index
 from ..base.context import context
 from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
@@ -125,7 +126,7 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
-        raise PackageNotFoundError('', e, args.json)
+        raise PackageNotFoundError('', text_type(e))
 
 def execute_search(args, parser):
     import re
@@ -150,7 +151,7 @@ def execute_search(args, parser):
                 pat = re.compile(regex, re.I)
             except re.error as e:
                 raise CondaValueError("'%s' is not a valid regex pattern (exception: %s)" %
-                                      (regex, e), args.json)
+                                      (regex, e))
 
     prefix = context.prefix_w_legacy_search
 
