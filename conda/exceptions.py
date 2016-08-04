@@ -68,6 +68,21 @@ class DirectoryNotFoundError(CondaError):
         super(DirectoryNotFoundError, self).__init__(msg, *args, **kwargs)
 
 
+class CondaEnvironmentNotFoundError(CondaError, EnvironmentError):
+    """ Raised when a requested environment cannot be found.
+
+    args:
+        environment_name_or_prefix (str): either the name or location of an environment
+    """
+
+    def __init__(self, environment_name_or_prefix, *args, **kwargs):
+        msg = ("Could not find environment: %(environment_name_or_prefix)s.\n"
+               "You can list all discoverable environments with `conda info --envs`."
+               % environment_name_or_prefix)
+        self.environment_name_or_prefix = environment_name_or_prefix
+        super(CondaEnvironmentNotFoundError, self).__init__(msg, *args, **kwargs)
+
+
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Environment not found: %s\n' % message
