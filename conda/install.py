@@ -427,6 +427,10 @@ def replace_entry_point_shebang(all_data, placeholder, new_prefix):
                     launcher = all_data[:pos]
 
         if data and shebang and launcher:
+            if hasattr(placeholder, 'encode'):
+                placeholder = placeholder.encode('utf-8')
+            if hasattr(new_prefix, 'encode'):
+                new_prefix = new_prefix.encode('utf-8')
             shebang = shebang.replace(placeholder, new_prefix)
             all_data = b"".join([launcher, shebang, data])
     return all_data
