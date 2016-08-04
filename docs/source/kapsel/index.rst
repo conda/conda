@@ -182,7 +182,7 @@ The command line session will look something like::
 
 If you look at ``kapsel.yml`` now, you'll see bokeh and pandas
 listed under the ``packages:`` section. You will also see files
-such as ``envs/default/bin/bokeh`` since the packages have now
+such as ``envs/default/conda-meta/bokeh`` since the packages have now
 been installed in your project's environment.
 
 Configure your project with environment variables
@@ -221,7 +221,7 @@ wouldn't be set.
 Tell ``conda kapsel`` how to run your new script by adding a new
 command called showdata::
 
-    conda kapsel add-command showdata 'python showdata.py'
+    conda kapsel add-command showdata "python showdata.py"
 
 (When prompted, choose "C" for "command line".)
 
