@@ -57,8 +57,6 @@ def prefix_from_arg(arg, shelldict):
             raise CondaValueError('could not find environment: %s' % native_path)
     else:
         prefix = locate_prefix_by_name(context, arg.replace('/', os.path.sep))
-        if prefix is None:
-            raise CondaValueError('could not find environment: %s' % arg)
     return prefix
 
 
