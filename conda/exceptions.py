@@ -76,7 +76,7 @@ class CondaEnvironmentNotFoundError(CondaError, EnvironmentError):
     """
 
     def __init__(self, environment_name_or_prefix, *args, **kwargs):
-        msg = ("Could not find environment: %(environment_name_or_prefix)s.\n"
+        msg = ("Could not find environment: %s .\n"
                "You can list all discoverable environments with `conda info --envs`."
                % environment_name_or_prefix)
         self.environment_name_or_prefix = environment_name_or_prefix
