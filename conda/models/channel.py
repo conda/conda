@@ -106,6 +106,7 @@ def split_platform(value):
 class UrlChannel(Channel):
 
     def __init__(self, url):
+        log.debug("making channel object for url: %s", url)
         if url.endswith('.tar.bz2'):
             url = url.rsplit('/', 1)[0]
         if not has_scheme(url):
@@ -120,6 +121,7 @@ class UrlChannel(Channel):
 class NamedChannel(Channel):
 
     def __init__(self, name):
+        log.debug("making channel object for named channel: %s", name)
         self._raw_value = name
         parsed = urlparse(context.channel_alias)
         self._scheme = parsed.scheme
