@@ -148,6 +148,7 @@ def add_parser_json(p):
         action="count",
         help="Use once for info, twice for debug.",
         dest="verbosity",
+        default=0,
     )
 
 
