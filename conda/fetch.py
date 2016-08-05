@@ -271,9 +271,10 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     try:
         import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(10)
-    except (ImportError, RuntimeError):
+    except (ImportError, RuntimeError) as e:
         # concurrent.futures is only available in Python >= 3.2 or if futures is installed
         # RuntimeError is thrown if number of threads are limited by OS
+        log.debug(repr(e))
         session = CondaSession()
         repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
                      for url in urls]

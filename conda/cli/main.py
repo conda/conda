@@ -35,17 +35,20 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 '''
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
-from argparse import SUPPRESS
 import importlib
-import logging
 import sys
+from argparse import SUPPRESS
+from conda.gateways.logging import initialize_conda_logger
+from logging import CRITICAL, DEBUG, Logger, getLogger
 
-from ..base.context import context
-from ..exceptions import conda_exception_handler, CommandNotFoundError
-from ..utils import on_win
 from .. import __version__
+from ..base.context import context
+from ..exceptions import CommandNotFoundError, conda_exception_handler
+from ..utils import on_win
+
+log = getLogger(__name__)
 
 
 def generate_parser():
@@ -82,6 +85,7 @@ def generate_parser():
 
 
 def _main():
+    log.debug("conda.cli.main called with %s", sys.argv)
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
         if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
@@ -125,13 +129,12 @@ def _main():
 
     if getattr(args, 'json', False):
         # Silence logging info to avoid interfering with JSON output
-        for logger in logging.Logger.manager.loggerDict:
+        for logger in Logger.manager.loggerDict:
             if logger not in ('fetch', 'progress'):
-                logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
+                getLogger(logger).setLevel(CRITICAL + 1)
 
-    if args.debug:
-        logging.disable(logging.NOTSET)
-        logging.basicConfig(level=logging.DEBUG)
+    if context.debug:
+        initialize_conda_logger(DEBUG)
 
     exit_code = args.func(args, p)
     if isinstance(exit_code, int):
