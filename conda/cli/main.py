@@ -40,8 +40,8 @@ from __future__ import absolute_import, division, print_function
 import importlib
 import sys
 from argparse import SUPPRESS
-from conda.gateways.logging import initialize_conda_logger
-from logging import CRITICAL, DEBUG, Logger, getLogger
+from conda.gateways.logging import enable_debug
+from logging import CRITICAL, Logger, getLogger
 
 from .. import __version__
 from ..base.context import context
@@ -66,7 +66,7 @@ def generate_parser():
     p.add_argument(
         "--debug",
         action="store_true",
-        help="Show debug output."
+        help=SUPPRESS,
     )
     p.add_argument(
         "--json",
@@ -127,14 +127,14 @@ def _main():
 
     context._add_argparse_args(args)
 
-    if getattr(args, 'json', False):
-        # Silence logging info to avoid interfering with JSON output
-        for logger in Logger.manager.loggerDict:
-            if logger not in ('fetch', 'progress'):
-                getLogger(logger).setLevel(CRITICAL + 1)
+    # if getattr(args, 'json', False):
+    #     # Silence logging info to avoid interfering with JSON output
+    #     for logger in Logger.manager.loggerDict:
+    #         if logger not in ('fetch', 'progress'):
+    #             getLogger(logger).setLevel(CRITICAL + 1)
 
     if context.debug:
-        initialize_conda_logger(DEBUG)
+        enable_debug()
 
     exit_code = args.func(args, p)
     if isinstance(exit_code, int):
