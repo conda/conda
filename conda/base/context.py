@@ -5,17 +5,17 @@ import os
 import sys
 from itertools import chain
 from logging import getLogger
-from os.path import expanduser, abspath, join, isdir, basename, dirname
+from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 
-from .constants import SEARCH_PATH, DEFAULT_CHANNEL_ALIAS, DEFAULT_CHANNELS, conda, ROOT_ENV_NAME
-from .._vendor.auxlib.compat import string_types, NoneType
+from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda
+from .._vendor.auxlib.compat import NoneType, string_types
 from .._vendor.auxlib.ish import dals
 from .._vendor.toolz.itertoolz import concatv
-from ..common.configuration import (Configuration, PrimitiveParameter,
-                                    SequenceParameter, MapParameter)
+from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
+                                    SequenceParameter)
 from ..common.url import urlparse
-from ..exceptions import CondaValueError
+from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -143,6 +143,11 @@ class Context(Configuration):
         return get_prefix(self, self._argparse_args, True)
 
     @property
+    def clone_src(self):
+        assert self._argparse_args.clone is not None
+        return locate_prefix_by_name(self, self._argparse_args.clone)
+
+    @property
     def conda_in_root(self):
         return not conda_in_private_env()
 
@@ -238,6 +243,16 @@ def get_help_dict():
 
 
 def get_prefix(ctx, args, search=True):
+    """
+        Get the prefix
+    Args:
+        ctx: the context of conda
+        args: the args from command line
+        search: whether search for prefix
+
+    Returns: the prefix
+    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+    """
     if args.name:
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
@@ -245,29 +260,38 @@ def get_prefix(ctx, args, search=True):
         if args.name == ROOT_ENV_NAME:
             return ctx.root_dir
         if search:
-            if getattr(args, 'clone', False):
-                prefix = find_prefix_name(ctx, args.clone)
-            else:
-                prefix = find_prefix_name(ctx, args.name)
-            if prefix:
-                return prefix
-        return join(ctx.envs_dirs[0], args.name)
-
-    if args.prefix:
+            return locate_prefix_by_name(ctx, args.name)
+        else:
+            return join(ctx.envs_dirs[0], args.name)
+    elif args.prefix:
         return abspath(expanduser(args.prefix))
+    else:
+        return ctx.default_prefix
 
-    return ctx.default_prefix
 
+def locate_prefix_by_name(ctx, name):
+    """ Find the location of a prefix given a conda env name.
 
-def find_prefix_name(ctx, name):
+    Args:
+        ctx (Context): the context object
+        name (str): the name of prefix to find
+
+    Returns:
+        str: the location of the prefix found, or CondaValueError will raise if not found
+
+    Raises:
+        CondaValueError: when no prefix is found
+    """
     if name == ROOT_ENV_NAME:
         return ctx.root_dir
-    # always search cwd in addition to envs dirs (for relative path access)
+
+    # look for a directory named `name` in all envs_dirs AND in CWD
     for envs_dir in chain(ctx.envs_dirs + (os.getcwd(),)):
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
-    return None
+
+    raise CondaEnvironmentNotFoundError(name)
 
 
 def check_write(command, prefix, json=False):
