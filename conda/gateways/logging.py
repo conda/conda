@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from logging import WARN, getLogger, ERROR, DEBUG, Logger, INFO
+from logging import DEBUG, ERROR, INFO, WARN, getLogger
 
 from ..common.io import attach_stderr_handler
 
