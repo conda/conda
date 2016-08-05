@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import cgi
 import email
@@ -24,7 +24,7 @@ from requests.packages.urllib3.util import Url
 from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context, platform as context_platform
-from .common.io import disable_logger, captured
+from .common.io import captured
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError

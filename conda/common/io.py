@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import sys
 from contextlib import contextmanager
-from logging import Formatter, StreamHandler, getLogger, WARN, DEBUG, CRITICAL
+from logging import CRITICAL, Formatter, StreamHandler, WARN, getLogger
 
 from .._vendor.auxlib.logz import NullHandler
 from ..compat import StringIO
