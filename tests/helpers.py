@@ -8,8 +8,11 @@ import sys
 import os
 import re
 import json
+from shlex import split
 
 from conda.base.context import reset_context
+from conda.common.io import captured, argv
+from conda import cli
 
 try:
     from unittest import mock
@@ -93,9 +96,9 @@ def captured(disallow_stderr=True):
             raise Exception("Got stderr output: %s" % c.stderr)
 
 
-def capture_json_with_argv(*argv, **kwargs):
+def capture_json_with_argv(command, **kwargs):
     # used in test_config (6 times), test_info (2 times), test_list (5 times), and test_search (10 times)
-    stdout, stderr = run_conda_command(*argv)
+    stdout, stderr = run_inprocess_conda_command(command)
 
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
@@ -122,3 +125,15 @@ def assert_not_in(a, b, output=""):
 
 def assert_in(a, b, output=""):
     assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
+
+
+def run_inprocess_conda_command(command):
+    reset_context(())
+    with argv(split(command)), captured() as c:
+        try:
+            cli.main()
+        except SystemExit:
+            pass
+    print(c.stderr, file=sys.stderr)
+    print(c.stdout)
+    return c.stdout, c.stderr

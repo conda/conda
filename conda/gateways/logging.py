@@ -24,11 +24,14 @@ def initialize_conda_logger(level=WARN):
 def set_all_logger_level(level=DEBUG):
     initialize_root_logger(level)
     initialize_conda_logger(level)
+    attach_stderr_handler(level, 'auxlib')
+    attach_stderr_handler(level, 'binstar')
+    attach_stderr_handler(level, 'requests')
 
-    # enable all registered loggers
-    for logger in Logger.manager.loggerDict:
-        getLogger(logger).setLevel(level)
-        log.debug("enabling %s", logger)
+    # # enable all registered loggers
+    # for logger in Logger.manager.loggerDict:
+    #     getLogger(logger).setLevel(level)
+    #     log.debug("enabling %s", logger)
 
 
 def set_verbosity(level):

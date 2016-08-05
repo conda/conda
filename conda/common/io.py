@@ -30,6 +30,16 @@ def captured():
 
 
 @contextmanager
+def argv(args_list):
+    saved_args = sys.argv
+    sys.argv = args_list
+    try:
+        yield
+    finally:
+        sys.argv = saved_args
+
+
+@contextmanager
 def _logger_lock():
     logging._acquireLock()
     try:
