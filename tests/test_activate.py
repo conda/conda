@@ -821,6 +821,11 @@ def test_PS1_no_changeps1(shell, bash_profile):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
+
+            print("commands:", commands)
+            print("stdout:", stdout)
+            print("stderr:", stderr)
+
             assert_equals(stdout, shell_vars['base_ps'], stderr)
 
 
