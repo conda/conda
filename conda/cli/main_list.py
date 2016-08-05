@@ -4,20 +4,19 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import logging
 import re
 from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile
 
-from .common import (add_parser_help, add_parser_prefix, add_parser_json,
+from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.context import context, subdir
 from ..egg_info import get_egg_info
-from ..install import dist2quad, linked
-from ..install import name_dist, is_linked, linked_data
-from ..exceptions import CondaEnvironmentError, CondaFileNotFoundError
+from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
+from ..install import dist2quad, is_linked, linked, linked_data, name_dist
 
 descr = "List linked packages in a conda environment."
 
@@ -154,11 +153,7 @@ def list_packages(prefix, installed, regex=None, format='human',
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=context.show_channel_urls):
     if not isdir(prefix):
-        raise CondaEnvironmentError("""\
-Error: environment does not exist: %s
-#
-# Use 'conda create' to create an environment before listing its packages.""" %
-                                    prefix, json)
+        raise CondaEnvironmentNotFoundError(prefix)
 
     if not json:
         if format == 'human':
@@ -182,8 +177,7 @@ Error: environment does not exist: %s
 
 def print_explicit(prefix, add_md5=False):
     if not isdir(prefix):
-        raise CondaEnvironmentError("Error: environment does not exist: %s" %
-                                    prefix)
+        raise CondaEnvironmentNotFoundError(prefix)
     print_export_header()
     print("@EXPLICIT")
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):

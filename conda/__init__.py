@@ -8,11 +8,12 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
-from conda.compat import text_type
-from conda.console import init_our_logging
 
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import with_metaclass
+from .compat import text_type, text_type
+from .console import init_our_logging
+from .gateways.logging import initialize_logging
 
 __all__ = [
     "__name__", "__version__", "__author__",
@@ -30,6 +31,8 @@ __url__ = "https://github.com/conda/conda"
 
 if os.getenv('CONDA_ROOT') is None:
     os.environ['CONDA_ROOT'] = sys.prefix
+
+initialize_logging()
 
 
 class CondaErrorType(type):

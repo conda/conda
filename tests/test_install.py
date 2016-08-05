@@ -10,6 +10,7 @@ from os import makedirs
 from os.path import join, basename, relpath, exists, dirname
 
 from conda import install
+from conda import utils
 from conda.base.context import context
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, dist2quad,
@@ -176,7 +177,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
 
     @contextmanager
     def generate_mock_unlink(self):
-        with patch.object(install.os, 'unlink') as unlink:
+        with patch.object(install, 'backoff_unlink') as unlink:
             yield unlink
 
     @contextmanager
@@ -265,7 +266,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_calls_rename_if_unlink_fails(self):
         with self.generate_mocks() as mocks:
-            mocks['unlink'].side_effect = OSError(errno.ENOENT, "blah")
+            mocks['unlink'].side_effect = OSError(errno.ENOEXEC, "blah")
             some_path = self.generate_random_path
             install.rm_rf(some_path)
         assert mocks['unlink'].call_count > 1

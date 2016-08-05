@@ -22,11 +22,11 @@ from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context, force_32bit
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..exceptions import (CondaAssertionError, CondaEnvironmentError, CondaFileNotFoundError,
-                          CondaIOError, CondaImportError, CondaOSError, CondaRuntimeError,
-                          CondaSystemExit, CondaValueError, DirectoryNotFoundError, DryRunExit,
-                          LockError, NoPackagesFoundError, PackageNotFoundError,
-                          TooManyArgumentsError, UnsatisfiableError)
+from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
+                          CondaFileNotFoundError, CondaIOError, CondaImportError, CondaOSError,
+                          CondaRuntimeError, CondaSystemExit, CondaValueError,
+                          DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
+                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..install import is_linked, linked as install_linked, name_dist
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
@@ -77,10 +77,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         if not isdir(src_prefix):
             raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
     else:
-        src_prefix = context.prefix_w_legacy_search
-        if src_prefix is None:
-            raise CondaEnvironmentError('could not find environment: %s' %
-                                        src_arg, json)
+        src_prefix = context.clone_src
 
     if not json:
         print("Source:      %s" % src_prefix)
@@ -263,6 +260,17 @@ def install(args, parser, command='install'):
             if (latest.version == vers_inst[0] and
                     latest.build_number == build_inst[0]):
                 args.packages.remove(name)
+        if not args.packages:
+            from .main_list import print_packages
+
+            if not args.json:
+                regex = '^(%s)$' % '|'.join(orig_packages)
+                print('# All requested packages already installed.')
+                print_packages(prefix, regex)
+            else:
+                common.stdout_json_success(
+                    message='All requested packages already installed.')
+            return
     if args.force:
         args.no_deps = True
 
@@ -278,12 +286,7 @@ def install(args, parser, command='install'):
             except OSError:
                 raise CondaOSError("Error: could not create directory: %s" % prefix)
         else:
-            raise CondaEnvironmentError("""\
-environment does not exist: %s
-#
-# Use 'conda create' to create an environment before installing packages
-# into it.
-#""" % prefix)
+            raise CondaEnvironmentNotFoundError(prefix)
 
     try:
         if isinstall and args.revision:

@@ -119,7 +119,7 @@ def stringify(obj):
         if content_type == 'application/json':
             builder.append(pformat(response_object.json, indent=2))
             builder.append('')
-        elif content_type.startswith('text/'):
+        elif content_type is not None and content_type.startswith('text/'):
             builder.append(response_object.text)
 
     try:
