@@ -40,8 +40,8 @@ from __future__ import absolute_import, division, print_function
 import importlib
 import sys
 from argparse import SUPPRESS
-from conda.gateways.logging import enable_debug
-from logging import CRITICAL, Logger, getLogger
+from conda.gateways.logging import set_all_logger_level, set_verbosity
+from logging import CRITICAL, Logger, getLogger, DEBUG
 
 from .. import __version__
 from ..base.context import context
@@ -134,7 +134,9 @@ def _main():
     #             getLogger(logger).setLevel(CRITICAL + 1)
 
     if context.debug:
-        enable_debug()
+        set_all_logger_level(DEBUG)
+
+    set_verbosity(context.verbosity)
 
     exit_code = args.func(args, p)
     if isinstance(exit_code, int):
