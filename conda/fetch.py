@@ -263,8 +263,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     # pool = ThreadPool(5)
     if index is None:
         index = {}
-    if not context.json:
-        stdoutlog.info("Fetching package metadata ...")
+    stdoutlog.info("Fetching package metadata ...")
     # if not isinstance(channel_urls, dict):
     #     channel_urls = prioritize_channels(channel_urls)
 
