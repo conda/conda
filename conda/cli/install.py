@@ -77,7 +77,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         if not isdir(src_prefix):
             raise DirectoryNotFoundError('no such directory: %s' % src_arg, json)
     else:
-        src_prefix = context.prefix_w_legacy_search
+        src_prefix = context.clone_src
 
     if not json:
         print("Source:      %s" % src_prefix)
