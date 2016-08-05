@@ -372,6 +372,10 @@ def get_info():
 
 
 def print_unexpected_error_message(e):
+    # bomb = "\U0001F4A3 "
+    # explosion = "\U0001F4A5 "
+    # fire = "\U0001F525 "
+    # print("%s  %s  %s" % (3*bomb, 3*explosion, 3*fire))
     traceback = format_exc()
 
     from conda.base.context import context
