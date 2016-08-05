@@ -36,7 +36,7 @@ from . import main_list
 from . import main_remove
 from . import main_upload
 from . import main_update
-
+from conda.base.context import context
 
 # TODO: This belongs in a helper library somewhere
 # Note: This only works with `conda-env` as a sub-command.  If this gets
@@ -65,6 +65,7 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
+    context._add_argparse_args(args)
     return conda_exception_handler(args.func, args, parser)
 
 
