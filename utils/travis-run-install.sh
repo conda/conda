@@ -2,7 +2,9 @@ osx_setup() {
     brew update || brew update
 
     brew outdated openssl || brew upgrade openssl
+    brew install dash
     brew install zsh
+    brew install csh
     brew install tcsh
 
     # install pyenv

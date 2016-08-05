@@ -4,19 +4,6 @@
 # `source activate` for csh
 #
 
-######################################################################
-# test if script is sourced
-######################################################################
-if ( `basename -- "$0"` =~ "*activate*" ) then
-    # we are not being sourced
-    sh -c 'echo "[ACTIVATE]: ERROR: Must be sourced. Run \`source activate\`." 1>&2'
-    if ( -x "/usr/bin/false" ) then
-        exec /usr/bin/false
-    else
-        exec /bin/false
-    endif
-endif
-
 ###############################################################################
 # local vars
 ###############################################################################
@@ -28,7 +15,7 @@ switch ( `uname -s` )
         set EXT=".exe"
         setenv MSYS2_ENV_CONV_EXCL CONDA_PATH
         # ignore any windows backup paths from bat-based activation
-        if ( "$CONDA_PATH_BACKUP" =~ "/*"  ) then
+        if ( `echo "${CONDA_PATH_BACKUP}" | awk '{exit(match($0,/\/.*/) != 0)}'` ) then
            unset CONDA_PATH_BACKUP
         endif
         breaksw
@@ -37,61 +24,71 @@ switch ( `uname -s` )
         breaksw
 endsw
 
-set HELP=false
+# inherit whatever the user set
+# this is important for dash where you cannot pass parameters to sourced scripts
+# since this script is exclusively for csh/tcsh this is just for consistency/a bonus feature
+if ( ! $?CONDA_HELP ) set CONDA_HELP=false
 set UNKNOWN=""
-set envname=""
+if ( ! $?CONDA_VERBOSE ) set CONDA_VERBOSE=false
+if ( ! $?CONDA_ENVNAME ) set CONDA_ENVNAME=""
 
 ###############################################################################
 # parse command line, perform command line error checking
 ###############################################################################
-if ( "$*" != "" ) then
-    set num=0
-    while ( $num != -1 )
-        @ num=($num + 1)
-        set arg=`eval eval echo '\$$num'`
+set num=0
+while ( $num != -1 )
+    @ num = ($num + 1)
+    set arg=`eval eval echo '\$$num'`
 
-        if ( "$arg" == "" ) then
-            set num=-1
-        else
-            switch ( "$arg" )
-                case "-h":
-                case "--help":
-                    set HELP=true
-                    breaksw
-                default:
-                    if ( "$envname" == "" ) then
-                        set envname="$arg"
+    if ( `echo "${arg}" | sed 's| ||g'` == "" ) then
+        set num=-1
+    else
+        switch ( "${arg}" )
+            case "-h":
+            case "--help":
+                set CONDA_HELP=true
+                breaksw
+            case "-v":
+            case "--verbose":
+                set CONDA_VERBOSE=true
+                breaksw
+            default:
+                if ( "${CONDA_ENVNAME}" == "" ) then
+                    set CONDA_ENVNAME="${arg}"
+                else
+                    if ( "${UNKNOWN}" == "" ) then
+                        set UNKNOWN="${arg}"
                     else
-                        if ( "$UNKNOWN" == "" ) then
-                            set UNKNOWN="$arg"
-                        else
-                            set UNKNOWN="$UNKNOWN $arg"
-                        endif
-                        set HELP=true
+                        set UNKNOWN="${UNKNOWN} ${arg}"
                     endif
-                    breaksw
-            endsw
-        endif
-    end
-    unset num
-    unset arg
-endif
+                    set CONDA_HELP=true
+                endif
+                breaksw
+        endsw
+    endif
+end
+unset num
+unset arg
 
-if ( "$envname" == "" ) set envname="root"
+if ( `echo "${CONDA_HELP}" | sed 's| ||g'` == "" ) set CONDA_HELP=false
+if ( `echo "${CONDA_VERBOSE}" | sed 's| ||g'` == "" ) set CONDA_VERBOSE=false
+if ( `echo "${CONDA_ENVNAME}" | sed 's| ||g'` == "" ) set CONDA_ENVNAME="root"
 
 ######################################################################
 # help dialog
 ######################################################################
-if ( "$HELP" == true ) then
-    if ( "$UNKNOWN" != "" ) then
-        sh -c "echo '[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter ($UNKNOWN)' 1>&2"
+if ( "${CONDA_HELP}" == true ) then
+    if ( "${UNKNOWN}" != "" ) then
+        sh -c "echo '[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
     endif
     conda ..activate ${_SHELL}${EXT} -h
 
     unset _SHELL
     unset EXT
-    unset HELP
-    if ( "$UNKNOWN" != "" ) then
+    unset CONDA_ENVNAME
+    unset CONDA_HELP
+    unset CONDA_VERBOSE
+    if ( "${UNKNOWN}" != "" ) then
         unset UNKNOWN
         exit 1
     else
@@ -99,35 +96,43 @@ if ( "$HELP" == true ) then
         exit 0
     endif
 endif
-unset HELP
+unset CONDA_HELP
 unset UNKNOWN
 
 ######################################################################
 # configure virtual environment
 ######################################################################
-conda ..checkenv ${_SHELL}${EXT} "$envname"
+conda ..checkenv ${_SHELL}${EXT} "${CONDA_ENVNAME}"
 if ( $status != 0 ) then
     unset _SHELL
     unset EXT
+    unset CONDA_ENVNAME
+    unset CONDA_VERBOSE
     exit 1
 endif
 
 # store the _SHELL+EXT since it may get cleared by deactivate
+# store the CONDA_VERBOSE since it may get cleared by deactivate
 set _CONDA_BIN="${_SHELL}${EXT}"
+set CONDA_VERBOSE_TMP="${CONDA_VERBOSE}"
 
 # Ensure we deactivate any scripts from the old env
 # be careful since deactivate will unset certain values (like $_SHELL and $EXT)
 # beware of csh's `which` checking $PATH and aliases for matches
 # by using \deactivate we will refer to the "root" deactivate not the aliased deactivate if it exists
-source "`which \deactivate`" ""
+source "`which \deactivate.csh`" ""
 
-set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${envname}" | sed 's| |\ |g'`
+# restore CONDA_VERBOSE
+set CONDA_VERBOSE="${CONDA_VERBOSE_TMP}"
+unset CONDA_VERBOSE_TMP
+
+set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${CONDA_ENVNAME}" | sed 's| |\ |g'`
 if ( $status == 0 ) then
-    # CONDA_PATH_BACKUP,CONDA_PROMPT_BACKUP
+    # CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
     # export these to restore upon deactivation
     setenv CONDA_PATH_BACKUP "${PATH}"
     setenv CONDA_path_BACKUP "${path}"
-    setenv CONDA_PROMPT_BACKUP "${prompt}"
+    setenv CONDA_PS1_BACKUP "${prompt}"
 
     # PATH
     # update path with the new conda environment
@@ -139,7 +144,6 @@ if ( $status == 0 ) then
     # update both, yes this may cause issues for the user if
     # they decide to alter the path while inside a conda
     # environment
-
     set path=(${_CONDA_BIN} ${path})
     set PATH=(${_CONDA_BIN}:${PATH})
 
@@ -151,21 +155,21 @@ if ( $status == 0 ) then
     # CONDA_DEFAULT_ENV
     # the shortest representation of how conda recognizes your env
     # can be an env name, or a full path (if the string contains / it's a path)
-    if ( "$envname" =~ "*/*" ) then
-        set d=`dirname "${envname}"`
+    if ( `echo "${CONDA_ENVNAME}" | awk '{exit(match($0,/.*\/.*/) != 0)}'` ) then
+        set d=`dirname "${CONDA_ENVNAME}"`
         set d=`cd "${d}" && pwd`
-        set f=`basename "${envname}"`
+        set f=`basename "${CONDA_ENVNAME}"`
         setenv CONDA_DEFAULT_ENV "${d}/${f}"
         unset d
         unset f
     else
-        setenv CONDA_DEFAULT_ENV "$envname"
+        setenv CONDA_DEFAULT_ENV "${CONDA_ENVNAME}"
     endif
 
     # PROMPT
     # customize the prompt to show what environment has been activated
     if ( `conda ..changeps1` == "1" ) then
-        set prompt="(${CONDA_DEFAULT_ENV}) $prompt"
+        set prompt="(${CONDA_DEFAULT_ENV}) ${prompt}"
     endif
 
     # load post-activate scripts
@@ -173,6 +177,7 @@ if ( $status == 0 ) then
     set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/activate.d"
     if ( -d "${_CONDA_DIR}" ) then
         foreach f ( `ls "${_CONDA_DIR}" | grep \\.csh$` )
+            if ( "${CONDA_VERBOSE}" == true ) echo "[ACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
             source "${_CONDA_DIR}/${f}"
         end
     endif
@@ -182,14 +187,16 @@ if ( $status == 0 ) then
 
     unset _SHELL
     unset EXT
-    unset envname
+    unset CONDA_ENVNAME
+    unset CONDA_VERBOSE
     unset _CONDA_BIN
     unset _CONDA_DIR
     exit 0
 else
     unset _SHELL
     unset EXT
-    unset envname
+    unset CONDA_ENVNAME
+    unset CONDA_VERBOSE
     unset _CONDA_BIN
     exit 1
 endif

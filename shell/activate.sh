@@ -4,26 +4,22 @@
 # `source activate` for sh
 #
 
-######################################################################
-# test if script is sourced (zsh cannot be reliably checked)
-######################################################################
-if [[ -n $BASH_VERSION && $(basename -- "$0") =~ .*"activate".* ]]; then
-    # we are not being sourced
-    echo '[ACTIVATE]: ERROR: Must be sourced. Run `source activate`.' 1>&2
-    exit 1
-fi
-
 ###############################################################################
 # local vars
 ###############################################################################
-_SHELL="bash"
-[[ -n $ZSH_VERSION ]] && _SHELL="zsh"
+if [ -n "${ZSH_VERSION}" ]; then
+    _SHELL="zsh"
+elif [ -n "${BASH_VERSION}" ]; then
+    _SHELL="bash"
+else
+    _SHELL="dash"
+fi
 case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
         export MSYS2_ENV_CONV_EXCL=CONDA_PATH
         # ignore any windows backup paths from bat-based activation
-        if [[ "$CONDA_PATH_BACKUP" =~ "/".*  ]]; then
+        if [ $(echo "${CONDA_PATH_BACKUP}" | awk '{exit(match($0,/\/.*/) != 0)}') ]; then
            unset CONDA_PATH_BACKUP
         fi
         ;;
@@ -32,52 +28,68 @@ case "$(uname -s)" in
         ;;
 esac
 
-HELP=false
+# inherit whatever the user set
+# this is important for dash where you cannot pass parameters to sourced scripts
+# CONDA_HELP=false
 UNKNOWN=""
-envname=""
+# CONDA_VERBOSE=false
+# CONDA_ENVNAME=""
 
 ###############################################################################
 # parse command line, perform command line error checking
 ###############################################################################
-if [[ "$@" != "" ]]; then
-    for arg in "$@"; do
-        case "$arg" in
+num=0
+while [ $num != -1 ]; do
+    num=$(($num + 1))
+    arg=$(eval eval echo '\$$num')
+
+    if [ -z $(echo "${arg}" | sed 's| ||g') ]; then
+        num=-1
+    else
+        case "${arg}" in
             -h|--help)
-                HELP=true
+                CONDA_HELP=true
+                ;;
+            -v|--verbose)
+                CONDA_VERBOSE=true
                 ;;
             *)
-                if [[ "$envname" == "" ]]; then
-                    envname="$arg"
+                if [ "${CONDA_ENVNAME}" = "" ]; then
+                    CONDA_ENVNAME="${arg}"
                 else
-                    if [[ "$UNKNOWN" == "" ]]; then
-                        UNKNOWN="$arg"
+                    if [ "${UNKNOWN}" = "" ]; then
+                        UNKNOWN="${arg}"
                     else
-                        UNKNOWN="$UNKNOWN $arg"
+                        UNKNOWN="${UNKNOWN} ${arg}"
                     fi
-                    HELP=true
+                    CONDA_HELP=true
                 fi
                 ;;
         esac
-    done
-    unset args
-    unset arg
-fi
+    fi
+done
+unset num
+unset arg
 
-[[ "$envname" == "" ]] && envname="root"
+[ -z "${CONDA_HELP}" ] && CONDA_HELP=false
+[ -z "${CONDA_VERBOSE}" ] && CONDA_VERBOSE=false
+[ -z "${CONDA_ENVNAME}" ] && CONDA_ENVNAME="root"
 
 ######################################################################
 # help dialog
 ######################################################################
-if [[ "$HELP" == true ]]; then
-    if [[ "$UNKNOWN" != "" ]]; then
-        echo "[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter ($UNKNOWN)" 1>&2
+if [ "${CONDA_HELP}" = true ]; then
+    if [ "${UNKNOWN}" != "" ]; then
+        echo "[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
     fi
     conda ..activate ${_SHELL}${EXT} -h
 
     unset _SHELL
     unset EXT
-    unset HELP
-    if [[ "$UNKNOWN" != "" ]]; then
+    unset CONDA_ENVNAME
+    unset CONDA_HELP
+    unset CONDA_VERBOSE
+    if [ "${UNKNOWN}" != "" ]; then
         unset UNKNOWN
         return 1
     else
@@ -85,28 +97,36 @@ if [[ "$HELP" == true ]]; then
         return 0
     fi
 fi
-unset HELP
+unset CONDA_HELP
 unset UNKNOWN
 
 ######################################################################
 # configure virtual environment
 ######################################################################
-conda ..checkenv ${_SHELL}${EXT} "${envname}"
-if [[ $? != 0 ]]; then
+conda ..checkenv ${_SHELL}${EXT} "${CONDA_ENVNAME}"
+if [ $? != 0 ]; then
     unset _SHELL
     unset EXT
+    unset CONDA_ENVNAME
+    unset CONDA_VERBOSE
     return 1
 fi
 
 # store the _SHELL+EXT since it may get cleared by deactivate
+# store the CONDA_VERBOSE since it may get cleared by deactivate
 _CONDA_BIN="${_SHELL}${EXT}"
+CONDA_VERBOSE_TMP="${CONDA_VERBOSE}"
 
 # Ensure we deactivate any scripts from the old env
 # be careful since deactivate will unset certain values (like $_SHELL and $EXT)
-source "deactivate" ""
+. "`which deactivate.sh`" ""
 
-_CONDA_BIN=$(conda ..activate ${_CONDA_BIN} "${envname}" | sed 's| |\ |')
-if [[ $? == 0 ]]; then
+# restore CONDA_VERBOSE
+CONDA_VERBOSE="${CONDA_VERBOSE_TMP}"
+unset CONDA_VERBOSE_TMP
+
+_CONDA_BIN=$(conda ..activate ${_CONDA_BIN} "${CONDA_ENVNAME}" | sed 's| |\ |')
+if [ $? = 0 ]; then
     # CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
     # export these to restore upon deactivation
     export CONDA_PATH_BACKUP="${PATH}"
@@ -124,43 +144,49 @@ if [[ $? == 0 ]]; then
     # CONDA_DEFAULT_ENV
     # the shortest representation of how conda recognizes your env
     # can be an env name, or a full path (if the string contains / it's a path)
-    if [[ "$envname" =~ .*"/".* ]]; then
-        d=$(dirname "${envname}")
+    if [ $(echo "${CONDA_ENVNAME}" | awk '{exit(match($0,/.*\/.*/) != 0)}') ]; then
+        d=$(dirname "${CONDA_ENVNAME}")
         d=$(cd "${d}" && pwd)
-        f=$(basename "${envname}")
+        f=$(basename "${CONDA_ENVNAME}")
         export CONDA_DEFAULT_ENV="${d}/${f}"
         unset d
         unset f
     else
-        export CONDA_DEFAULT_ENV="$envname"
+        export CONDA_DEFAULT_ENV="${CONDA_ENVNAME}"
     fi
 
     # PS1
     # customize the PS1 to show what environment has been activated
-    if [[ $(conda ..changeps1) == "1" ]]; then
-        export PS1="(${CONDA_DEFAULT_ENV}) $PS1"
+    if [ $(conda ..changeps1) = 1 ]; then
+        export PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
     fi
 
     # load post-activate scripts
     # scripts found in $CONDA_PREFIX/etc/conda/activate.d
-    _CONDA_DIR="$CONDA_PREFIX/etc/conda/activate.d"
-    if [[ -d "${_CONDA_DIR}" ]]; then
+    _CONDA_DIR="${CONDA_PREFIX}/etc/conda/activate.d"
+    if [ -d "${_CONDA_DIR}" ]; then
         for f in $(ls "${_CONDA_DIR}" | grep \\.sh$); do
-            source "${_CONDA_DIR}/${f}"
+            [ "${CONDA_VERBOSE}" = "true" ] && echo "[ACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
+            . "${_CONDA_DIR}/${f}"
         done
     fi
 
-    if [[ -n $BASH_VERSION ]]; then
-        # sh/bash uses hash
+
+    if [ -n "${ZSH_VERSION}" ]; then
+        # zsh uses rehash
+        rehash
+    elif [ -n "${BASH_VERSION}" ]; then
+        # bash
         hash -r
     else
-        # most others uses rehash
-        rehash
+        # dash uses hash, default
+        hash -r
     fi
 
     unset _SHELL
     unset EXT
-    unset envname
+    unset CONDA_ENVNAME
+    unset CONDA_VERBOSE
     unset _CONDA_BIN
     unset _CONDA_DIR
 
@@ -168,7 +194,8 @@ if [[ $? == 0 ]]; then
 else
     unset _SHELL
     unset EXT
-    unset envname
+    unset CONDA_ENVNAME
+    unset CONDA_VERBOSE
     unset _CONDA_BIN
     return 1
 fi

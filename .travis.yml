@@ -35,6 +35,7 @@ install:
   - which -a python
   - which -a bash
   - which -a zsh
+  - which -a dash
   - which -a sh
   - which -a csh
   - which -a tcsh
