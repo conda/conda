@@ -127,11 +127,13 @@ def _main():
 
     context._add_argparse_args(args)
 
-    # if getattr(args, 'json', False):
-    #     # Silence logging info to avoid interfering with JSON output
-    #     for logger in Logger.manager.loggerDict:
-    #         if logger not in ('fetch', 'progress'):
-    #             getLogger(logger).setLevel(CRITICAL + 1)
+    if getattr(args, 'json', False):
+        # # Silence logging info to avoid interfering with JSON output
+        # for logger in Logger.manager.loggerDict:
+        #     if logger not in ('fetch', 'progress'):
+        #         getLogger(logger).setLevel(CRITICAL + 1)
+        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
+            getLogger(logger).setLevel(CRITICAL + 1)
 
     if context.debug:
         set_all_logger_level(DEBUG)
