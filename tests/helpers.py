@@ -8,8 +8,11 @@ import sys
 import os
 import re
 import json
+from shlex import split
 
 from conda.base.context import reset_context
+from conda.common.io import captured, argv
+from conda import cli
 
 try:
     from unittest import mock
@@ -21,7 +24,6 @@ except ImportError:
 
 from contextlib import contextmanager
 
-import conda.cli as cli
 from conda.compat import StringIO
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
@@ -83,42 +85,20 @@ def captured(disallow_stderr=True):
     sys.stdout = outfile = StringIO()
     sys.stderr = errfile = StringIO()
     c = CapturedText()
-    yield c
-    c.stdout = outfile.getvalue()
-    c.stderr = strip_expected(errfile.getvalue())
-    sys.stdout = stdout
-    sys.stderr = stderr
-    if disallow_stderr and c.stderr:
-        raise Exception("Got stderr output: %s" % c.stderr)
-
-
-def capture_with_argv(*argv):
-    # only used in capture_json_with_argv()
-    sys.argv = argv
-    stdout, stderr = StringIO(), StringIO()
-    oldstdout, oldstderr = sys.stdout, sys.stderr
-    sys.stdout = stdout
-    sys.stderr = stderr
-    reset_context(())
     try:
-        cli.main()
-    except SystemExit:
-        pass
-    sys.stdout = oldstdout
-    sys.stderr = oldstderr
-
-    stdout.seek(0)
-    stderr.seek(0)
-    stdout, stderr = stdout.read(), stderr.read()
-
-    print(stdout)
-    print(stderr, file=sys.stderr)
-    return stdout, strip_expected(stderr)
+        yield c
+    finally:
+        c.stdout = outfile.getvalue()
+        c.stderr = strip_expected(errfile.getvalue())
+        sys.stdout = stdout
+        sys.stderr = stderr
+        if disallow_stderr and c.stderr:
+            raise Exception("Got stderr output: %s" % c.stderr)
 
 
-def capture_json_with_argv(*argv, **kwargs):
+def capture_json_with_argv(command, **kwargs):
     # used in test_config (6 times), test_info (2 times), test_list (5 times), and test_search (10 times)
-    stdout, stderr = capture_with_argv(*argv)
+    stdout, stderr = run_inprocess_conda_command(command)
 
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
@@ -129,9 +109,8 @@ def capture_json_with_argv(*argv, **kwargs):
         return stderr
 
     try:
-        return json.loads(stdout)
+        return json.loads(stdout.strip())
     except ValueError:
-        print(str(stdout), str(stderr))
         raise
 
 
@@ -146,3 +125,15 @@ def assert_not_in(a, b, output=""):
 
 def assert_in(a, b, output=""):
     assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
+
+
+def run_inprocess_conda_command(command):
+    reset_context(())
+    with argv(split(command)), captured() as c:
+        try:
+            cli.main()
+        except SystemExit:
+            pass
+    print(c.stderr, file=sys.stderr)
+    print(c.stdout)
+    return c.stdout, c.stderr
