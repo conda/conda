@@ -142,6 +142,11 @@ class Context(Configuration):
         return get_prefix(self, self._argparse_args, True)
 
     @property
+    def clone_src(self):
+        assert self._argparse_args.clone is not None
+        return locate_prefix_by_name(self, self._argparse_args.clone)
+
+    @property
     def conda_in_root(self):
         return not conda_in_private_env()
 
@@ -254,7 +259,7 @@ def get_prefix(ctx, args, search=True):
         if args.name == ROOT_ENV_NAME:
             return ctx.root_dir
         if search:
-            return locate_prefix_by_name(ctx, getattr(args, 'clone', None) or args.name)
+            return locate_prefix_by_name(ctx, args.name)
         else:
             return join(ctx.envs_dirs[0], args.name)
     elif args.prefix:
