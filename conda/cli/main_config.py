@@ -235,7 +235,7 @@ def execute_config(args, parser):
     if args.show_sources:
         lines = []
         for source, reprs in iteritems(context.collect_all()):
-            lines.append("> %s" % source)
+            lines.append("==> %s <==" % source)
             lines.extend(itervalues(reprs))
             lines.append('')
         print('\n'.join(lines))
