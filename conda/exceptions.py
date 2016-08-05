@@ -68,6 +68,21 @@ class DirectoryNotFoundError(CondaError):
         super(DirectoryNotFoundError, self).__init__(msg, *args, **kwargs)
 
 
+class CondaEnvironmentNotFoundError(CondaError, EnvironmentError):
+    """ Raised when a requested environment cannot be found.
+
+    args:
+        environment_name_or_prefix (str): either the name or location of an environment
+    """
+
+    def __init__(self, environment_name_or_prefix, *args, **kwargs):
+        msg = ("Could not find environment: %s .\n"
+               "You can list all discoverable environments with `conda info --envs`."
+               % environment_name_or_prefix)
+        self.environment_name_or_prefix = environment_name_or_prefix
+        super(CondaEnvironmentNotFoundError, self).__init__(msg, *args, **kwargs)
+
+
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args, **kwargs):
         msg = 'Environment not found: %s\n' % message
@@ -372,6 +387,10 @@ def get_info():
 
 
 def print_unexpected_error_message(e):
+    # bomb = "\U0001F4A3 "
+    # explosion = "\U0001F4A5 "
+    # fire = "\U0001F525 "
+    # print("%s  %s  %s" % (3*bomb, 3*explosion, 3*fire))
     traceback = format_exc()
 
     from conda.base.context import context

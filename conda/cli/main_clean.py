@@ -14,7 +14,7 @@ from os.path import join, getsize, isdir
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
 from ..install import rm_rf
-from ..utils import human_bytes
+from ..utils import human_bytes, backoff_unlink
 from ..exceptions import ArgumentError
 
 descr = """
@@ -250,7 +250,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
             if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
                 if verbose:
                     print("Removing %s" % fn)
-                os.unlink(os.path.join(pkgs_dir, fn))
+                backoff_unlink(os.path.join(pkgs_dir, fn))
             else:
                 if verbose:
                     print("WARNING: cannot remove, file permissions: %s" % fn)

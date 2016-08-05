@@ -158,6 +158,10 @@ def execute(args, parser):
 
     if plan.nothing_to_do(actions):
         if args.all:
+            print()
+            print("Remove all packages in environment %s:\n" % prefix)
+            if not args.json:
+                confirm_yn(args)
             rm_rf(prefix)
 
             if args.json:

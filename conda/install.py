@@ -46,8 +46,7 @@ from .common.url import path_to_url
 from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
-from .utils import exp_backoff_fn, on_win
-
+from .utils import exp_backoff_fn, on_win, backoff_unlink
 
 if on_win:
     import ctypes
@@ -196,7 +195,7 @@ def rm_rf(path, max_retries=5, trash=True):
         # exists('/path/to/dead-link') will return False, although
         # islink('/path/to/dead-link') is True.
         try:
-            os.unlink(path)
+            backoff_unlink(path)
             return
         except (OSError, IOError):
             log.warn("Cannot remove, permission denied: {0}".format(path))
@@ -530,7 +529,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
         try:
             # try to kill stale links if they exist
             if os.path.lexists(prefix_file):
-                os.remove(prefix_file)
+                backoff_unlink(prefix_file)
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
@@ -845,7 +844,7 @@ def delete_linked_data(prefix, dist, delete=True):
     if delete:
         meta_path = join(prefix, 'conda-meta', dist2filename(dist, '.json'))
         if isfile(meta_path):
-            os.unlink(meta_path)
+            backoff_unlink(meta_path)
 
 
 def delete_linked_data_any(path):
@@ -1032,7 +1031,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         try:
             alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
             meta_dict['files'] = list(yield_lines(alt_files_path))
-            os.unlink(alt_files_path)
+            backoff_unlink(alt_files_path)
         except IOError:
             meta_dict['files'] = files
         meta_dict['link'] = {'source': source_dir,

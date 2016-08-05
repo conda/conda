@@ -6,22 +6,8 @@ import json
 import os
 import pytest
 import sys
-from contextlib import contextmanager
-from datetime import datetime
-from glob import glob
-from json import loads as json_loads
-from logging import getLogger, DEBUG
-from os.path import exists, isdir, isfile, join, relpath, basename, islink
-from requests import Session
-from requests.adapters import BaseAdapter
-from shlex import split
-from shutil import rmtree, copyfile
-from subprocess import check_call
-from tempfile import gettempdir
-from unittest import TestCase
-from uuid import uuid4
-
-from conda.base.context import context, reset_context, bits
+from conda import CondaError
+from conda.base.context import bits, context, reset_context
 from conda.cli.main import generate_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
@@ -30,14 +16,25 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.io import stderr_log_level, disable_logger
+from conda.common.io import disable_logger, stderr_log_level, captured
 from conda.common.url import path_to_url
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
-from conda import CondaError
-from conda.install import linked as install_linked, linked_data_, dist2dirname
-from conda.install import on_win, linked_data
-from tests.helpers import captured
+from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
+from contextlib import contextmanager
+from datetime import datetime
+from glob import glob
+from json import loads as json_loads
+from logging import DEBUG, getLogger
+from os.path import basename, exists, isdir, isfile, islink, join, relpath
+from requests import Session
+from requests.adapters import BaseAdapter
+from shlex import split
+from shutil import copyfile, rmtree
+from subprocess import check_call
+from tempfile import gettempdir
+from unittest import TestCase
+from uuid import uuid4
 
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -95,11 +92,10 @@ def run_command(command, prefix, *arguments):
 
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
-
-    with captured(disallow_stderr=False) as c:
+    with captured() as c:
         args.func(args, p)
-    print(c.stdout)
     print(c.stderr, file=sys.stderr)
+    print(c.stdout)
     if command is Commands.CONFIG:
         reload_config(prefix)
     return c.stdout, c.stderr
@@ -427,7 +423,7 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 1), reason="configs are borked")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 7), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
@@ -535,7 +531,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 4), reason="deal with this later")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 7), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'

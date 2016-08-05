@@ -138,6 +138,18 @@ def add_parser_json(p):
         action="store_true",
         help="Report all output as json. Suitable for using conda programmatically."
     )
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show debug output."
+    )
+    p.add_argument(
+        "--verbose", "-v",
+        action="count",
+        help="Use once for info, twice for debug.",
+        dest="verbosity",
+        default=0,
+    )
 
 
 def add_parser_quiet(p):

@@ -71,24 +71,19 @@ class TestJson(unittest.TestCase):
     #     self.assertJsonSuccess(res)
 
     def test_config(self):
-        res = capture_json_with_argv('conda', 'config', '--get', '--json')
+        res = capture_json_with_argv('conda config --get --json')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'config', '--get', 'channels',
-                                     '--json')
+        res = capture_json_with_argv('conda config --get channels --json')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'config', '--get', 'channels',
-                                     '--system', '--json')
+        res = capture_json_with_argv('conda config --get channels --system --json')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'config', '--get', 'channels',
-                                     '--file', 'tmpfile.rc', '--json')
+        res = capture_json_with_argv('conda config --get channels --file tempfile.rc --json')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'config', '--get', 'channels',
-                                     '--file', 'tmpfile.rc',
-                                     '--file', 'tmpfile.rc', '--json')
+        res = capture_json_with_argv('conda config --get channels --file tempfile.rc --file tempfile.rc --json')
         self.assertJsonSuccess(res)
 
         # res = capture_json_with_argv('conda', 'config', '--add', 'channels',
@@ -119,8 +114,7 @@ class TestJson(unittest.TestCase):
         #                              'yes', '--json')
         # self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda', 'config', '--get', 'use_pip',
-                                     '--json')
+        res = capture_json_with_argv('conda config --get use_pip --json')
         self.assertJsonSuccess(res)
         # self.assertTrue(res['get']['use_pip'])
 
@@ -138,7 +132,7 @@ class TestJson(unittest.TestCase):
 
     @pytest.mark.slow
     def test_info(self):
-        res = capture_json_with_argv('conda', 'info', '--json')
+        res = capture_json_with_argv('conda info --json')
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
                 'envs_dirs', 'pkgs_dirs', 'platform',
                 'python_version', 'rc_path', 'root_prefix', 'root_writable')
@@ -146,7 +140,7 @@ class TestJson(unittest.TestCase):
         for key in keys:
             assert key in res
 
-        res = capture_json_with_argv('conda', 'info', 'conda', '--json')
+        res = capture_json_with_argv('conda info conda --json')
         self.assertIsInstance(res, dict)
         self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
@@ -202,25 +196,25 @@ class TestJson(unittest.TestCase):
     #     self.assertJsonSuccess(res)
 
     def test_list(self):
-        res = capture_json_with_argv('conda', 'list', '--json')
+        res = capture_json_with_argv('conda list --json')
         self.assertIsInstance(res, list)
 
-        res = capture_json_with_argv('conda', 'list', '-r', '--json')
+        res = capture_json_with_argv('conda list -r --json')
         self.assertTrue(isinstance(res, list) or
                         (isinstance(res, dict) and 'error' in res))
 
-        res = capture_json_with_argv('conda', 'list', 'ipython', '--json')
+        res = capture_json_with_argv('conda list ipython --json')
         self.assertIsInstance(res, list)
 
-        res = capture_json_with_argv('conda', 'list', '--name', 'nonexistent', '--json')
+        res = capture_json_with_argv('conda list --name nonexistent --json')
         self.assertJsonError(res)
 
-        res = capture_json_with_argv('conda', 'list', '--name', 'nonexistent', '-r', '--json')
+        res = capture_json_with_argv('conda list --name nonexistent -r --json')
         self.assertJsonError(res)
 
     @pytest.mark.timeout(300)
     def test_search(self):
-        res = capture_json_with_argv('conda', 'search', '--json')
+        res = capture_json_with_argv('conda search --json')
         self.assertIsInstance(res, dict)
         self.assertIsInstance(res['conda'], list)
         self.assertIsInstance(res['conda'][0], dict)
@@ -228,22 +222,32 @@ class TestJson(unittest.TestCase):
                 'installed', 'version')
         for key in keys:
             self.assertIn(key, res['conda'][0])
-        for res in (capture_json_with_argv('conda', 'search', 'ipython', '--json'),
-            capture_json_with_argv('conda', 'search', '--unknown', '--json'),
-            capture_json_with_argv('conda', 'search', '--use-index-cache', '--json'),
-            capture_json_with_argv('conda', 'search', '--outdated', '--json'),
-            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/conda', '--json'),
-            capture_json_with_argv('conda', 'search', '-c', 'https://conda.anaconda.org/conda', '--override-channels', '--json'),
-            capture_json_with_argv('conda', 'search', '--platform', 'win-32', '--json'),):
-            self.assertIsInstance(res, dict)
 
-        res = capture_json_with_argv('conda', 'search', '*', '--json')
+        res = capture_json_with_argv('conda search * --json')
         self.assertJsonError(res)
 
-        res = capture_json_with_argv('conda', 'search', '--canonical', '--json')
+        res = capture_json_with_argv('conda search --canonical --json')
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], text_type)
 
+    def test_search_1(self):
+        self.assertIsInstance(capture_json_with_argv('conda search ipython --json'), dict)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_search_2(self):
+        self.assertIsInstance(capture_json_with_argv('conda search --unknown --json'), dict)
+
+    def test_search_3(self):
+        self.assertIsInstance(capture_json_with_argv('conda search --json --use-index-cache'), dict)
+
+    def test_search_4(self):
+        self.assertIsInstance(capture_json_with_argv('conda search --json --outdated'), dict)
+
+    def test_search_5(self):
+        self.assertIsInstance(capture_json_with_argv('conda search -c https://conda.anaconda.org/conda --json nose'), dict)
+
+    def test_search_6(self):
+        self.assertIsInstance(capture_json_with_argv('conda search -c https://conda.anaconda.org/conda --override-channel --json nose'), dict)
+
+    def test_search_7(self):
+        self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
+
