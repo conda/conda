@@ -41,7 +41,7 @@ import importlib
 import sys
 from argparse import SUPPRESS
 from conda.gateways.logging import set_all_logger_level, set_verbosity
-from logging import CRITICAL, Logger, getLogger, DEBUG
+from logging import CRITICAL, DEBUG, getLogger
 
 from .. import __version__
 from ..base.context import context
