@@ -15,6 +15,20 @@ log = logging.getLogger(__name__)
 on_win = bool(sys.platform == "win32")
 
 
+class Once(object):
+    """
+        A decorator class let function just do once
+    """
+    def __init__(self, func):
+        self.func = func
+        self.implemented = False
+
+    def __call__(self, *args, **kwargs):
+        if not self.implemented:
+            self.func(*args, **kwargs)
+            self.implemented = True
+
+
 class memoized(object):
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
