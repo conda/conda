@@ -354,6 +354,11 @@ def exp_backoff_fn(fn, *args):
                           caller_frame.f_lineno, fn.__name__,
                           sleep_time)
                 time.sleep(sleep_time)
+            elif e.errno == errno.ENOENT:
+                import inspect
+                log.error("ENOENT %s/%s %s(%s)",
+                          basename(caller_frame.f_code.co_filename),
+                          caller_frame.f_lineno, fn.__name__, inspect.getargs(fn))
             else:
                 log.error("Uncaught backoff with errno %d", e.errno)
                 raise
