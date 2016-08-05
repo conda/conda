@@ -264,14 +264,14 @@ def test_activate_deactivate(shell):
         # all unix shells support environment variables instead of parameter passing
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {source} "{syspath}{binpath}deactivate{shell_suffix}"
+            {source} "{env_vars[0]}{binpath}deactivate{shell_suffix}"
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
-                {source} "{syspath}{binpath}deactivate{shell_suffix}"
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
                 {printpath}
                 """)]
 
@@ -825,8 +825,11 @@ def test_PS1_no_changeps1(shell, bash_profile):
             print("commands:", commands)
             print("stdout:", stdout)
             print("stderr:", stderr)
+            print(os.listdir(os.path.join(env_dirs[0],"bin")))
 
             assert_equals(stdout, shell_vars['base_ps'], stderr)
+
+        assert 1 == 3
 
 
 @pytest.mark.installed
