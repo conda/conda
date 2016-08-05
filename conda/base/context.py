@@ -89,6 +89,7 @@ class Context(Configuration):
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, parameter_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
+    verbosity = PrimitiveParameter(0, aliases=('verbose',), parameter_type=int)
 
     @property
     def force_32bit(self):
