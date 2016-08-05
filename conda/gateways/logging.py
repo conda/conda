@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from logging import WARN, getLogger, ERROR, DEBUG
+from logging import WARN, getLogger, ERROR, DEBUG, Logger
 
 from ..common.io import attach_stderr_handler
 
@@ -24,3 +24,8 @@ def initialize_conda_logger(level=WARN):
 def enable_debug():
     initialize_root_logger(DEBUG)
     initialize_conda_logger(DEBUG)
+    
+    # enable all registered loggers
+    for logger in Logger.manager.loggerDict:
+        getLogger(logger).setLevel(DEBUG)
+        log.debug("enabling %s", logger)
