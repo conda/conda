@@ -62,9 +62,9 @@ SEARCH_PATH = (
     '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/.condarc',
     '$CONDA_ROOT/condarc.d/',
-    '$HOME/.conda/condarc',
-    '$HOME/.conda/condarc.d/',
-    '$HOME/.condarc',
+    '~/.conda/condarc',
+    '~/.conda/condarc.d/',
+    '~/.condarc',
     '$CONDA_PREFIX/.condarc',
     '$CONDA_PREFIX/condarc.d/',
     '$CONDARC',
@@ -92,4 +92,4 @@ else:
 ROOT_ENV_NAME = 'root'
 
 EMPTY_LIST = ()
-EMPTY_MAP = frozendict(dict())
+EMPTY_MAP = frozendict()

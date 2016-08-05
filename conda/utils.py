@@ -112,7 +112,7 @@ def try_write(dir_path, heavy=False):
         try:
             with open(temp_filename, mode='wb') as fo:
                 fo.write(b'This is a test file.\n')
-            os.unlink(temp_filename)
+            backoff_unlink(temp_filename)
             return True
         except (IOError, OSError):
             return False
@@ -127,7 +127,7 @@ def backoff_unlink(path):
         exp_backoff_fn(lambda f: exists(f) and os.unlink(f), path)
     except (IOError, OSError) as e:
         if e.errno not in (errno.ENOENT,):
-            # errno.ENOENT File not found error
+            # errno.ENOENT File not found error / No such file or directory
             raise
 
 
@@ -354,6 +354,9 @@ def exp_backoff_fn(fn, *args):
                           caller_frame.f_lineno, fn.__name__,
                           sleep_time)
                 time.sleep(sleep_time)
+            elif e.errno in (errno.ENOENT,):
+                # errno.ENOENT File not found error / No such file or directory
+                raise
             else:
                 log.error("Uncaught backoff with errno %d", e.errno)
                 raise
