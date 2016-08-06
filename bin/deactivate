@@ -52,7 +52,7 @@ instead of 'deactivate'.
     exit 1
 fi
 
-if [[ -z "$CONDA_PATH_BACKUP" ]]; then
+if [[ -z "${CONDA_PATH_BACKUP+x}" ]]; then
     if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
         exit 0
     else
@@ -71,7 +71,7 @@ if (( $? == 0 )); then
     unset CONDA_PREFIX
     export PATH="$CONDA_PATH_BACKUP"
     unset CONDA_PATH_BACKUP
-    export PS1="$CONDA_PS1_BACKUP"
+    [[ -z ${PS1+x} ]] || export PS1="$CONDA_PS1_BACKUP"
     unset CONDA_PS1_BACKUP
 else
     return $?
