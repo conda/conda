@@ -39,6 +39,7 @@ UNKNOWN=""
 # parse command line, perform command line error checking
 ###############################################################################
 num=0
+is_envname_set=false
 while [ $num != -1 ]; do
     num=$(($num + 1))
     arg=$(eval eval echo '\$$num')
@@ -54,8 +55,9 @@ while [ $num != -1 ]; do
                 CONDA_VERBOSE=true
                 ;;
             *)
-                if [ "${CONDA_ENVNAME}" = "" ]; then
+                if [ "${is_envname_set}" = false ]; then
                     CONDA_ENVNAME="${arg}"
+                    is_envname_set=true
                 else
                     if [ "${UNKNOWN}" = "" ]; then
                         UNKNOWN="${arg}"
@@ -70,6 +72,7 @@ while [ $num != -1 ]; do
 done
 unset num
 unset arg
+unset is_envname_set
 
 [ -z "${CONDA_HELP}" ] && CONDA_HELP=false
 [ -z "${CONDA_VERBOSE}" ] && CONDA_VERBOSE=false

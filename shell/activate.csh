@@ -36,6 +36,7 @@ if ( ! $?CONDA_ENVNAME ) set CONDA_ENVNAME=""
 # parse command line, perform command line error checking
 ###############################################################################
 set num=0
+set is_envname_set=false
 while ( $num != -1 )
     @ num = ($num + 1)
     set arg=`eval eval echo '\$$num'`
@@ -53,8 +54,9 @@ while ( $num != -1 )
                 set CONDA_VERBOSE=true
                 breaksw
             default:
-                if ( "${CONDA_ENVNAME}" == "" ) then
+                if ( "${is_envname_set}" == false ) then
                     set CONDA_ENVNAME="${arg}"
+                    set is_envname_set=true
                 else
                     if ( "${UNKNOWN}" == "" ) then
                         set UNKNOWN="${arg}"
@@ -69,6 +71,7 @@ while ( $num != -1 )
 end
 unset num
 unset arg
+unset is_envname_set
 
 if ( `echo "${CONDA_HELP}" | sed 's| ||g'` == "" ) set CONDA_HELP=false
 if ( `echo "${CONDA_VERBOSE}" | sed 's| ||g'` == "" ) set CONDA_VERBOSE=false
@@ -168,7 +171,7 @@ if ( $status == 0 ) then
 
     # PROMPT
     # customize the prompt to show what environment has been activated
-    if ( `conda ..changeps1` == "1" ) then
+    if ( `conda ..changeps1` == 1 ) then
         set prompt="(${CONDA_DEFAULT_ENV}) ${prompt}"
     endif
 

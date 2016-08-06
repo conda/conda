@@ -162,6 +162,7 @@ def test_activate_test1(shell):
             stdout, stderr = run_in(commands, shell)
             assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
                 stdout, shell)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -192,6 +193,7 @@ def test_activate_env_from_env_with_root_activate(shell):
             stdout, stderr = run_in(commands, shell)
             assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 2', shelldict=shell_vars)),
                 stdout, shell)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -253,6 +255,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
             stdout, stderr = run_in(commands, shell)
             assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
                 stdout, shell)
+            assert_in("Could not find environment",stderr)
 
 
 @pytest.mark.installed
@@ -264,7 +267,7 @@ def test_activate_deactivate(shell):
         # all unix shells support environment variables instead of parameter passing
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {source} "{env_vars[0]}{binpath}deactivate{shell_suffix}"
+            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
@@ -282,7 +285,13 @@ def test_activate_deactivate(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             stdout = strip_leading_library_bin(stdout, shell_vars)
+
+            print("commands:", commands)
+            print("stdout:", stdout)
+            print("stderr:", stderr)
+
             assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -311,6 +320,7 @@ def test_activate_root(shell):
             stdout, stderr = run_in(commands, shell)
             assert_in(shell_vars['pathsep'].join(_envpaths(root_dir, shelldict=shell_vars)),
                 stdout, shell)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -341,6 +351,7 @@ def test_activate_deactivate_root(shell):
             stdout, stderr = run_in(commands, shell)
             stdout = strip_leading_library_bin(stdout, shell_vars)
             assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -373,6 +384,7 @@ def test_activate_root_env_from_other_env(shell):
                 stdout, shell)
             assert_not_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
                 stdout, shell)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -398,9 +410,9 @@ def test_wrong_args(shell):
                     **shell_vars)
             stdout, stderr = run_in(commands, shell)
             stdout = strip_leading_library_bin(stdout, shell_vars)
+            assert_equals(stdout, shell_vars['base_path'], stderr)
             assert_in("[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (args)",
                 stderr, shell)
-            assert_equals(stdout, shell_vars['base_path'], stderr)
 
 
 @pytest.mark.installed
@@ -427,7 +439,7 @@ def test_activate_check_sourcing(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
-                assert_in("[activate]: error: only supports sourcing from tcsh/csh and bash/zsh/dash.",
+                assert_in("[ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash.",
                     stderr, shell)
 
 
@@ -489,7 +501,7 @@ def test_deactivate_check_sourcing(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
-                assert_in("[deactivate]: error: only supports sourcing from tcsh/csh and bash/zsh/dash.",
+                assert_in("[DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash.",
                     stderr, shell)
 
 
@@ -576,6 +588,7 @@ def test_activate_symlinking(shell):
                     env_dirs=env_dirs,
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
+                assert_equals(stdout,'')
                 assert_in("not have write access", stderr, shell)
 
             # restore permissions so the dir will get cleaned up
@@ -618,6 +631,7 @@ def test_PS1(shell, bash_profile):
             assert_equals(stdout, print_ps1(env_dirs=env_dirs,
                                             base_ps=shell_vars["base_ps"],
                                             number=0), stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 2: second activate replaces earlier activated env PS1
@@ -645,6 +659,7 @@ def test_PS1(shell, bash_profile):
             assert_equals(stdout, print_ps1(env_dirs=env_dirs,
                                             base_ps=shell_vars["base_ps"],
                                             number=1), stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 3: failed activate does not touch raw PS1
@@ -668,6 +683,7 @@ def test_PS1(shell, bash_profile):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_in("Could not find environment",stderr)
 
         #-----------------------------------------------------------------------
         # TEST 4: ensure that a failed activate does not touch PS1
@@ -695,6 +711,7 @@ def test_PS1(shell, bash_profile):
             assert_equals(stdout, print_ps1(env_dirs=env_dirs,
                                             base_ps=shell_vars["base_ps"],
                                             number=0), stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 5: deactivate doesn't do anything bad to PS1 when no env active to deactivate
@@ -709,6 +726,7 @@ def test_PS1(shell, bash_profile):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 6: deactivate script in activated env returns us to raw PS1
@@ -734,6 +752,7 @@ def test_PS1(shell, bash_profile):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 7: make sure PS1 is unchanged by faulty activate input
@@ -755,6 +774,7 @@ def test_PS1(shell, bash_profile):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_in('[ACTIVATE]: ERROR: Unknown/invalid flag/parameter',stderr)
 
 
 def test_PS1_no_changeps1(shell, bash_profile):
@@ -771,51 +791,51 @@ def test_PS1_no_changeps1(shell, bash_profile):
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""
+        scripts_with_stderr=[(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
             {printps1}
-            """),dedent("""
+            """),None),(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {env_vars[1]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
             {printps1}
-            """),dedent("""
+            """),None),(dedent("""
             {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
             {printps1}
-            """),dedent("""
+            """),'Could not find environment'),(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
             {printps1}
-            """),dedent("""
+            """),'Could not find environment'),(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
             {printps1}
-            """)]
+            """),None)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh"]:
-            scripts+=[dedent("""
+            scripts_with_stderr+=[(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {printps1}
-                """),dedent("""
+                """),None),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[1]}"
                 {printps1}
-                """),dedent("""
+                """),None),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
                 {printps1}
-                """),dedent("""
+                """),'Could not find environment'),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
                 {printps1}
-                """),dedent("""
+                """),'Could not find environment'),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
                 {printps1}
-                """),dedent("""
+                """),None),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" two args
                 {printps1}
-                """)]
+                """),'[ACTIVATE]: ERROR: Unknown/invalid flag/parameter')]
 
-        for script in scripts:
+        for script,err in scripts_with_stderr:
             commands = shell_vars['command_setup'] + condarc + script.format(
                 env_vars=env_vars,
                 env_dirs=env_dirs,
@@ -828,8 +848,10 @@ def test_PS1_no_changeps1(shell, bash_profile):
             print(os.listdir(os.path.join(env_dirs[0],"bin")))
 
             assert_equals(stdout, shell_vars['base_ps'], stderr)
-
-        assert 1 == 3
+            if err is None:
+                assert_equals(stderr,'')
+            else:
+                assert_in(err,stderr)
 
 
 @pytest.mark.installed
@@ -860,6 +882,7 @@ def test_CONDA_DEFAULT_ENV(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout.rstrip(), env_dirs[0], stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 2
@@ -885,6 +908,7 @@ def test_CONDA_DEFAULT_ENV(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout.rstrip(), env_dirs[1], stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 3
@@ -908,6 +932,7 @@ def test_CONDA_DEFAULT_ENV(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '', stderr)
+            assert_in("Could not find environment",stderr)
 
         #-----------------------------------------------------------------------
         # TEST 4
@@ -933,22 +958,25 @@ def test_CONDA_DEFAULT_ENV(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout.rstrip(), env_dirs[0], stderr)
+            assert_in("Could not find environment",stderr)
 
         #-----------------------------------------------------------------------
         # TEST 5
         #-----------------------------------------------------------------------
         scripts=[dedent("""\
             {source} "{syspath}{binpath}deactivate{shell_suffix}"
-            {printdefaultenv}
+            echo "`env | grep {var}`."
             """)]
 
         for script in scripts:
             commands = shell_vars['command_setup'] + script.format(
                 env_vars=env_vars,
                 env_dirs=env_dirs,
+                var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '', stderr)
+            assert_equals(stdout, '.', stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 6
@@ -957,23 +985,25 @@ def test_CONDA_DEFAULT_ENV(shell):
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printdefaultenv}
+            echo "`env | grep {var}`."
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-                {printdefaultenv}
+                echo "`env | grep {var}`."
                 """)]
 
         for script in scripts:
             commands = shell_vars['command_setup'] + script.format(
                 env_vars=env_vars,
                 env_dirs=env_dirs,
+                var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '', stderr)
+            assert_equals(stdout,'.',stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 7
@@ -995,6 +1025,7 @@ def test_CONDA_DEFAULT_ENV(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '', stderr)
+            assert_in('[ACTIVATE]: ERROR: Unknown/invalid flag/parameter',stderr)
 
         #-----------------------------------------------------------------------
         # TEST 8
@@ -1018,6 +1049,7 @@ def test_CONDA_DEFAULT_ENV(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout.rstrip(), 'root', stderr)
+            assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 9
@@ -1026,23 +1058,25 @@ def test_CONDA_DEFAULT_ENV(shell):
         scripts=[dedent("""\
             {env_vars[root]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" {nul}
-            {printdefaultenv}
+            echo "`env | grep {var}`."
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" {nul}
-                {printdefaultenv}
+                echo "`env | grep {var}`."
                 """)]
 
         for script in scripts:
             commands = shell_vars['command_setup'] + script.format(
                 env_vars=env_vars,
                 env_dirs=env_dirs,
+                var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '', stderr)
+            assert_equals(stdout,'.',stderr)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -1074,6 +1108,7 @@ def test_activate_from_env(shell):
             stdout, stderr = run_in(commands, shell)
             # rstrip on output is because the printing to console picks up an extra space
             assert_equals(stdout.rstrip(), env_dirs[1], stderr)
+            assert_equals(stderr,'')
 
 
 def test_deactivate_from_env(shell):
@@ -1086,23 +1121,25 @@ def test_deactivate_from_env(shell):
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
             {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printdefaultenv}
+            echo "`env | grep {var}`."
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-                {printdefaultenv}
+                echo "`env | grep {var}`."
                 """)]
 
         for script in scripts:
             commands = shell_vars['command_setup'] + script.format(
                 env_vars=env_vars,
                 env_dirs=env_dirs,
+                var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, u'', stderr)
+            assert_equals(stdout,'.',stderr)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -1149,6 +1186,7 @@ def test_activate_relative_path(shell):
             finally:
                 os.chdir(cwd)
             assert_equals(stdout.rstrip(), env_dir, stderr)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.skipif(not on_win, reason="only relevant on windows")
@@ -1199,6 +1237,7 @@ def test_activate_non_ascii_char_in_path(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, u'.', stderr)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -1250,6 +1289,7 @@ def test_activate_has_extra_env_vars(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, u'test', stderr)
+                assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST DEACTIVATE
@@ -1276,6 +1316,7 @@ def test_activate_has_extra_env_vars(shell):
                     **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, u'.', stderr)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.installed
@@ -1325,6 +1366,7 @@ def test_activate_verbose(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_in('[ACTIVATE]: Sourcing',stdout,shell)
+                assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST DEACTIVATE
@@ -1354,6 +1396,7 @@ def test_activate_verbose(shell):
             print("stderr:",stderr)
 
             assert_in('[DEACTIVATE]: Sourcing',stdout,shell)
+            assert_equals(stderr,'')
 
 
 @pytest.mark.slow
