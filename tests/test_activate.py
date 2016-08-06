@@ -202,6 +202,9 @@ def test_activate_deactivate(shell):
 
 @pytest.mark.slow
 def test_activate_deactivate_with_nounset_errexit(shell):
+    if shell not in ("bash", "bash.exe"):
+        pytest.skip("test only relevant for bash")
+
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -218,6 +221,9 @@ def test_activate_deactivate_with_nounset_errexit(shell):
 
 @pytest.mark.slow
 def test_activate_deactivate_noninteractive(shell):
+    if shell not in ("bash", "bash.exe"):
+        pytest.skip("test only relevant for bash")
+
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
