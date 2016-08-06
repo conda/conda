@@ -981,11 +981,11 @@ class Resolve(object):
             def clean(sol):
                 return [q for q in (C.from_index(s) for s in sol)
                         if q and q[0] != '!' and '@' not in q]
+
             dotlog.debug('Looking for alternate solutions')
             nsol = 1
-            psolutions = []
             psolution = clean(solution)
-            psolutions.append(psolution)
+            psolutions = [psolution]
             while True:
                 nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
                 solution = C.sat((nclause,), True)
