@@ -20,6 +20,8 @@ def find_executable(executable, include_others=True):
     else:
         dir_paths = []
 
+    dir_paths.append(os.getcwd())
+
     dir_paths.extend(os.environ['PATH'].split(os.pathsep))
 
     for dir_path in dir_paths:
