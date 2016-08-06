@@ -4,8 +4,8 @@ import unittest
 
 from conda import exceptions
 from conda import instructions
-from conda.instructions import execute_instructions, commands, PROGRESS_CMD
-
+from conda.instructions import execute_instructions, commands, pretty_label, new_plan
+from collections import OrderedDict
 
 def test_expected_operation_order():
     """Ensure expected order of operations"""
@@ -78,41 +78,35 @@ class TestExecutePlan(unittest.TestCase):
         execute_instructions(plan, index, verbose=False)
         self.assertTrue(simple_cmd.called)
 
-    def test_progess(self):
+    def test_new_plan(self):
 
-        index = {'This is an index': True}
+        plan = [('SIMPLE', (1, 5)),
+                ('SIMPLE', (10, 11)),
+                ('HARD', (10, 11)),
+                ('HARD', (21, 22)),
+                ]
 
-        plan = [
-            ('PROGRESS', '2'),
-            ('LINK', 'ipython'),
-            ('LINK', 'menuinst'),
-        ]
+        res = new_plan(plan)
+        correct = OrderedDict()
+        correct['SIMPLE'] = [(1,5), (10, 11)]
+        correct['HARD'] = [(10, 11), (21, 22)]
+        self.assertEquals(res, correct)
 
-        def cmd(state, arg):
-            pass  # NO-OP
 
-        _commands = {'PROGRESS': PROGRESS_CMD, 'LINK': cmd}
-        h = TestHandler()
+class TestLabel(unittest.TestCase):
 
-        update_logger = getLogger('progress.update')
-        update_logger.setLevel(DEBUG)
-        update_logger.addHandler(h)
+    def test_label(self):
+        general = "conda update conda"
+        args = []
+        for i in range(30):
+            arg = "".join(["*"] * i)
+            args.append(arg)
 
-        stop_logger = getLogger('progress.stop')
-        stop_logger.setLevel(DEBUG)
-        stop_logger.addHandler(h)
+        res = pretty_label(general, args)
+        length = len(res[general])
+        for val in res:
+            self.assertEquals(length, len(res[val]))
 
-        execute_instructions(plan, index, _commands=_commands)
-
-        update_logger.removeHandler(h)
-        stop_logger.removeHandler(h)
-
-        expected = [('progress.update', ('ipython', 0)),
-                    ('progress.update', ('menuinst', 1)),
-                    ('progress.stop', None)
-                    ]
-
-        self.assertEqual(h.records, expected)
 
 if __name__ == '__main__':
     unittest.main()

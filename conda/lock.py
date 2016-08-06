@@ -72,7 +72,6 @@ class FileLock(object):
         last_glob_match = None
 
         for _ in range(self.retries + 1):
-
             # search, whether there is process already locked on this file
             glob_result = glob(self.lock_file_glob_str)
             if glob_result:
@@ -114,6 +113,5 @@ class DirectoryLock(FileLock):
         assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
         assert os.access(self.directory_path,
                          os.W_OK), "{0} not writable".format(self.directory_path)
-
 
 Locked = DirectoryLock

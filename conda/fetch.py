@@ -29,7 +29,7 @@ from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, Con
 from .install import add_cached_package, find_new_location, package_cache, dist2pair, rm_rf
 from .lock import FileLock
 from .utils import exp_backoff_fn, memoized
-
+from math import floor
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stdoutlog = getLogger('stdoutlog')
@@ -353,6 +353,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
     assert "::" not in str(url), url
     assert "::" not in str(dst_path), str(dst_path)
+    from .instructions import update_bar, bar_length
     if not offline_keep(url):
         raise RuntimeError("Cannot download in offline mode: %s" % (url,))
 
@@ -408,8 +409,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         size = resp.headers.get('Content-Length')
         if size:
             size = int(size)
-            fn = basename(dst_path)
-            getLogger('fetch.start').info((fn[:14], size))
 
         if md5:
             h = hashlib.new('md5')
@@ -426,8 +425,12 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                     if md5:
                         h.update(chunk)
 
-                    if size and 0 <= index <= size:
-                        getLogger('fetch.update').info(index)
+                    if size and 0 <= index <= size and url in update_bar:
+                        tmp = floor(float(index / size) * bar_length)
+                        if tmp > bar_length:
+                            update_bar[url].value = 100
+                        else:
+                            update_bar[url].value = tmp
 
         except IOError as e:
             if e.errno == 104 and retries:  # Connection reset by pee
@@ -436,9 +439,6 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
                 return download(url, dst_path, session=session, md5=md5,
                                 urlstxt=urlstxt, retries=retries - 1)
             raise CondaRuntimeError("Could not open %r for writing (%s)." % (pp, e))
-
-        if size:
-            getLogger('fetch.stop').info(None)
 
         if md5 and h.hexdigest() != md5:
             if retries:
