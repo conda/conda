@@ -62,16 +62,18 @@ fi
 
 if (( $? == 0 )); then
     # Inverse of activation: run deactivate scripts prior to deactivating env
-    _CONDA_D="${CONDA_PREFIX}/etc/conda/deactivate.d"
-    if [[ -d $_CONDA_D ]]; then
+    [[ -n ${CONDA_PREFIX+x} ]] && _CONDA_D="${CONDA_PREFIX}/etc/conda/deactivate.d"
+    if [[ -n ${_CONDA_D+x} ]] && [[ -d $_CONDA_D ]]; then
         IFS=$(echo -en "\n\b") && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
     fi
 
     unset CONDA_DEFAULT_ENV
     unset CONDA_PREFIX
-    export PATH="$CONDA_PATH_BACKUP"
+    [[ -n ${CONDA_PATH_BACKUP+x} ]] && export PATH="$CONDA_PATH_BACKUP"
     unset CONDA_PATH_BACKUP
-    [[ -z ${PS1+x} ]] || export PS1="$CONDA_PS1_BACKUP"
+
+    # export PS1 in an interactive shell only
+    [[ -n ${PS1+x} ]] && export PS1="$CONDA_PS1_BACKUP"
     unset CONDA_PS1_BACKUP
 else
     return $?
