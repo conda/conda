@@ -102,7 +102,7 @@ class TestExecutePlan(unittest.TestCase):
         stop_logger.setLevel(DEBUG)
         stop_logger.addHandler(h)
 
-        execute_instructions(plan, index, _commands=_commands)
+        execute_instructions(plan, index, _commands=_commands, verbose=True)
 
         update_logger.removeHandler(h)
         stop_logger.removeHandler(h)
