@@ -160,6 +160,11 @@ def test_activate_test1(shell):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
+
+            print("commands:",commands)
+            print("stdout:",stdout)
+            print("stderr:",stderr)
+
             assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
                 stdout, shell)
             assert_equals(stderr,'')
@@ -846,12 +851,18 @@ def test_PS1_no_changeps1(shell, bash_profile):
             print("stdout:", stdout)
             print("stderr:", stderr)
             print(os.listdir(os.path.join(env_dirs[0],"bin")))
+            with open(os.path.join(env_dirs[0],"bin","activate")) as f:
+                print(f.read())
+            with open(os.path.join(env_dirs[0],"bin","deactivate")) as f:
+                print(f.read())
 
             assert_equals(stdout, shell_vars['base_ps'], stderr)
             if err is None:
                 assert_equals(stderr,'')
             else:
                 assert_in(err,stderr)
+
+            assert 1 == 2
 
 
 @pytest.mark.installed
