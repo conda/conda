@@ -781,7 +781,7 @@ def test_PS1(shell, bash_profile):
             assert_equals(stdout, shell_vars['base_ps'], stderr)
             assert_in('[ACTIVATE]: ERROR: Unknown/invalid flag/parameter',stderr)
 
-
+@pytest.mark.installed
 def test_PS1_no_changeps1(shell, bash_profile):
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
@@ -1122,6 +1122,7 @@ def test_activate_from_env(shell):
             assert_equals(stderr,'')
 
 
+@pytest.mark.installed
 def test_deactivate_from_env(shell):
     """Tests whether the deactivate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)

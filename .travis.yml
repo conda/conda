@@ -32,12 +32,18 @@ matrix:
       env: PYTHON_VERSION=3.5
 
 install:
+  - echo "START INSTALLING"
   - which -a python
   - env | sort
   - source ./utils/travis-run-install.sh
+  - echo "DONE INSTALLING"
 
 script:
+  - echo "START RUNNING"
+  - which -a python
+  - env | sort
   - source ./utils/travis-run-script.sh
+  - echo "DONE RUNNING"
 
 sudo: false
 
