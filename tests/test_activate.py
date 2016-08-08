@@ -465,11 +465,11 @@ def test_activate_help(shell):
             assert_equals(stdout, '', stderr)
 
             if shell in ["cmd.exe", "powershell"]:
-                assert_in("Usage: activate ENV", stderr, shell)
+                assert_in('Usage: activate [ENV] [-h] [-v]', stderr, shell)
             elif shell in ["csh","tcsh"]:
-                assert_in("Usage: source activate ENV", stderr, shell)
+                assert_in('Usage: source "`which activate`" [ENV] [-h] [-v]', stderr, shell)
             else:
-                assert_in("Usage: . activate ENV", stderr, shell)
+                assert_in('Usage: . activate [ENV] [-h] [-v]', stderr, shell)
 
 
 @pytest.mark.installed
@@ -527,11 +527,11 @@ def test_deactivate_help(shell):
             assert_equals(stdout, '', stderr)
 
             if shell in ["cmd.exe", "powershell"]:
-                assert_in("Usage: deactivate", stderr, shell)
+                assert_in('Usage: deactivate [-h] [-v]', stderr, shell)
             elif shell in ["csh","tcsh"]:
-                assert_in("Usage: source deactivate", stderr, shell)
+                assert_in('Usage: source "`which deactivate`" [-h] [-v]', stderr, shell)
             else:
-                assert_in("Usage: . deactivate", stderr, shell)
+                assert_in('Usage: . deactivate [-h] [-v]', stderr, shell)
 
 
 @pytest.mark.installed
