@@ -8,7 +8,8 @@ from os.path import exists, join
 
 from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
 from ..base.context import context
-from ..common.url import path_to_url, urlparse, urlunparse, is_url
+from ..common.compat import with_metaclass
+from ..common.url import is_url, path_to_url, urlparse, urlunparse
 
 log = getLogger(__name__)
 
@@ -33,12 +34,9 @@ def join_url(*args):
     return '/'.join(args) + '/'
 
 
-class Channel(object):
-    _cache_ = dict()
-    _local_url = get_conda_build_local_url()
-    _channel_alias_netloc = urlparse(context.channel_alias).netloc
+class ChannelType(type):
 
-    def __new__(cls, value):
+    def __call__(cls, value):
         if isinstance(value, Channel):
             return value
         elif value in Channel._cache_:
@@ -51,8 +49,16 @@ class Channel(object):
             self = object.__new__(UrlChannel)
         else:
             self = object.__new__(NamedChannel)
+        self.__init__(value)
         Channel._cache_[value] = self
         return self
+
+
+@with_metaclass(ChannelType)
+class Channel(object):
+    _cache_ = dict()
+    _local_url = get_conda_build_local_url()
+    _channel_alias_netloc = urlparse(context.channel_alias).netloc
 
     @staticmethod
     def _reset_state():
@@ -96,11 +102,18 @@ class Channel(object):
 
 
 def split_platform(value):
-    parts = value.rstrip('/').rsplit('/', 1)
+    if value is None:
+        return '/', None
+    value = value.rstrip('/')
+    parts = value.rsplit('/', 1)
     if len(parts) == 2 and parts[1] in PLATFORM_DIRECTORIES:
         return parts[0], parts[1]
     else:
-        return value, None
+        # there is definitely no platform component
+        if value in (None, '', '/', '//'):
+            return '/', None
+        else:
+            return value, None
 
 
 class UrlChannel(Channel):
@@ -108,6 +121,7 @@ class UrlChannel(Channel):
     def __init__(self, url):
         log.debug("making channel object for url: %s", url)
         if url.endswith('.tar.bz2'):
+            # throw away filename from url
             url = url.rsplit('/', 1)[0]
         if not has_scheme(url):
             url = path_to_url(url)
