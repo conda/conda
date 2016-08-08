@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
 import sys
+from logging import getLogger
 from traceback import format_exc
 
 from . import CondaError, text_type
@@ -21,7 +21,6 @@ class ArgumentError(CondaError):
 
 
 class CommandArgumentError(ArgumentError):
-
     def __init__(self, message, **kwargs):
         command = ' '.join(sys.argv)
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
@@ -95,7 +94,6 @@ class CondaEnvironmentNotFoundError(CondaError, EnvironmentError):
     args:
         environment_name_or_prefix (str): either the name or location of an environment
     """
-
     def __init__(self, environment_name_or_prefix, *args, **kwargs):
         msg = ("Could not find environment: %s .\n"
                "You can list all discoverable environments with `conda info --envs`."
@@ -377,8 +375,8 @@ class CondaSignatureError(CondaError):
 def print_conda_exception(exception):
     from conda.base.context import context
 
-    stdoutlogger = logging.getLogger('stdout')
-    stderrlogger = logging.getLogger('stderr')
+    stdoutlogger = getLogger('stdout')
+    stderrlogger = getLogger('stderr')
 
     if context.json:
         import json
@@ -414,7 +412,7 @@ def print_unexpected_error_message(e):
     # print("%s  %s  %s" % (3*bomb, 3*explosion, 3*fire))
     traceback = format_exc()
 
-    stderrlogger = logging.getLogger('stderr')
+    stderrlogger = getLogger('stderr')
 
     from conda.base.context import context
     if context.json:
