@@ -39,7 +39,7 @@ scripts = ['shell/activate',
            'shell/deactivate',
            'shell/deactivate.sh',
            'shell/deactivate.csh',
-           'shell/.de.activate.clauses',
+           'shell/whichshell.awk',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here

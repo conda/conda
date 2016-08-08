@@ -14,7 +14,6 @@ BEGIN {}
         clause=3
     } else {
         # bad clause
-        print($NF" "clause)
         exit(2)
     }
 
