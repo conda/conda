@@ -11,12 +11,16 @@ import re
 from argparse import RawDescriptionHelpFormatter
 from os.path import isdir, isfile
 
-from .common import (add_parser_help, add_parser_json, add_parser_prefix,
+from conda import Message
+from .common import (add_parser_help, add_parser_prefix, add_parser_json,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.context import context, subdir
 from ..egg_info import get_egg_info
-from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
+from ..exceptions import (CondaEnvironmentNotFoundError, CondaFileNotFoundError,
+                          CondaEnvironmentError)
 from ..install import dist2quad, is_linked, linked, linked_data, name_dist
+
+stdout = logging.getLogger('stdout')
 
 descr = "List linked packages in a conda environment."
 
@@ -103,10 +107,15 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
+def get_export_header_pieces():
+    return ('# This file may be used to create an environment using:',
+            '# $ conda create --name <env> --file <this file>',
+            '# platform: %s' % subdir
+            )
+
+
 def print_export_header():
-    print('# This file may be used to create an environment using:')
-    print('# $ conda create --name <env> --file <this file>')
-    print('# platform: %s' % subdir)
+    stdout.info(Message('export_header_printout', '\n'.join(get_export_header_pieces())))
 
 
 def get_packages(installed, regex):
@@ -148,6 +157,38 @@ def list_packages(prefix, installed, regex=None, format='human',
     return res, result
 
 
+class PrintPackages(Message):
+
+    def __init__(self, prefix, regex=None, format='human', piplist=False):
+        if not isdir(prefix):
+            raise CondaEnvironmentError("""\
+Error: environment does not exist: %s
+#
+# Use 'conda create' to create an environment before listing its packages.""" %
+                                        prefix)
+
+        installed_packages = linked(prefix)
+        if piplist and context.use_pip and format == 'human':
+            installed_packages.update(get_egg_info(prefix))
+        message_pieces = []
+        if not context.json:
+            if format == 'human':
+                message_pieces.append('# packages in environment at %s:' % prefix)
+                message_pieces.append('#')
+            if format == 'export':
+                message_pieces.extend(get_export_header_pieces())
+
+        _, output = list_packages(prefix, installed_packages, regex, format=format,
+                                  show_channel_urls=context.show_channel_urls)
+        message_pieces.extend(output)
+
+        super(PrintPackages, self).__init__(self.__class__.__name__,
+                                            message_str='\n'.join(message_pieces),
+                                            subdir=context.subdir,
+                                            installed_packages=installed_packages,
+                                            prefix=prefix)
+
+
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=context.show_channel_urls):
     if not isdir(prefix):
@@ -180,14 +221,17 @@ def print_explicit(prefix, add_md5=False):
     if not isdir(prefix):
         raise CondaEnvironmentNotFoundError(prefix)
     print_export_header()
-    print("@EXPLICIT")
+    stdout.info(Message('explicit_notify', "@EXPLICIT"))
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
         url = meta.get('url')
         if not url or url.startswith('<unknown>'):
-            print('# no URL for: %s' % meta['fn'])
+            stdout.info(Message('no_info_for_url_notify_message',
+                                '# no URL for: %s' % meta['fn'],
+                                filename=meta['fn']))
             continue
         md5 = meta.get('md5')
-        print(url + ('#%s' % md5 if add_md5 and md5 else ''))
+        stdout.info(Message('md5_printout', url + ('#%s' % md5 if add_md5 and md5 else ''),
+                            url=url, md5=md5, filename=meta['fn']))
 
 
 def execute(args, parser):

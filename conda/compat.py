@@ -18,6 +18,7 @@ if PY3:
     text_type = str
     binary_type = bytes
     input = input
+
     def lchmod(path, mode):
         try:
             os.chmod(path, mode, follow_symlinks=False)

@@ -7,6 +7,7 @@ from os.path import isdir, isfile, join, expanduser
 
 from ..utils import memoized, on_win
 
+
 def find_executable(executable, include_others=True):
     # backwards compatibility
     global dir_paths

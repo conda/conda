@@ -15,7 +15,8 @@ import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from .. import CondaError, text_type
+from conda.cli.main_list import PrintPackages
+from .. import CondaError, Message, text_type
 from .._vendor.auxlib.ish import dals
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
@@ -35,6 +36,7 @@ from ..resolve import Resolve
 from ..utils import on_win
 
 log = logging.getLogger(__name__)
+stdout = logging.getLogger('stdout')
 
 
 def install_tar(prefix, tar_path, verbose=False):
@@ -55,7 +57,7 @@ def install_tar(prefix, tar_path, verbose=False):
     shutil.rmtree(tmp_dir)
 
 
-def check_prefix(prefix, json=False):
+def check_prefix(prefix):
     name = basename(prefix)
     error = None
     if name.startswith('.'):
@@ -68,7 +70,7 @@ def check_prefix(prefix, json=False):
         error = "prefix already exists: %s" % prefix
 
     if error:
-        raise CondaValueError(error, json)
+        raise CondaValueError(error)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
@@ -80,8 +82,10 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         src_prefix = context.clone_src
 
     if not json:
-        print("Source:      %s" % src_prefix)
-        print("Destination: %s" % dst_prefix)
+        stdout.info(Message('clone_source_prefix_message', "Source:      %s" % src_prefix,
+                            src_prefix=src_prefix))
+        stdout.info(Message('clone_destination_prefix_message', "Destination: %s" % dst_prefix,
+                            dst_prefix=dst_prefix))
 
     with common.json_progress_bars(json=json and not quiet):
         actions, untracked_files = clone_env(src_prefix, dst_prefix,
@@ -89,24 +93,20 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
                                              quiet=quiet,
                                              index_args=index_args)
 
-    if json:
-        common.stdout_json_success(
-            actions=actions,
-            untracked_files=list(untracked_files),
-            src_prefix=src_prefix,
-            dst_prefix=dst_prefix
-        )
+    stdout.info(Message('clone_actions_success_message', 'success', actions=actions,
+                        untracked_files=untracked_files, src_prefix=src_prefix,
+                        dst_prefix=dst_prefix))
 
 
-def print_activate(arg):
+def get_activate_message(arg):
     if on_win:
         message = dals("""
         #
         # To activate this environment, use:
-        # > activate %s
+        # > activate %(environment_name_or_prefix)s
         #
         # To deactivate this environment, use:
-        # > deactivate %s
+        # > deactivate %(environment_name_or_prefix)s
         #
         # * for power-users using bash, you must source
         #
@@ -115,14 +115,14 @@ def print_activate(arg):
         message = dals("""
         #
         # To activate this environment, use:
-        # > source activate %s
+        # > source activate %(environment_name_or_prefix)s
         #
         # To deactivate this environment, use:
-        # > source deactivate %s
+        # > source deactivate %(environment_name_or_prefix)s
         #
         """)
 
-    return message % (arg, arg)
+    return Message('activate_message', message, environment_name_or_prefix=arg)
 
 
 def get_revision(arg, json=False):
@@ -144,7 +144,7 @@ def install(args, parser, command='install'):
         common.ensure_name_or_prefix(args, command)
     prefix = context.prefix if newenv else context.prefix_w_legacy_search
     if newenv:
-        check_prefix(prefix, json=args.json)
+        check_prefix(prefix)
     if force_32bit and is_root_prefix(prefix):
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
     if isupdate and not (args.file or args.all or args.packages):
@@ -228,8 +228,7 @@ def install(args, parser, command='install'):
         clone(args.clone, prefix, json=args.json, quiet=args.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not args.json:
-            print(print_activate(args.name if args.name else prefix))
+        stdout.info(get_activate_message(args.name if args.name else prefix))
         return
 
     index = get_index(channel_urls=index_args['channel_urls'], prepend=index_args['prepend'],
@@ -271,7 +270,9 @@ def install(args, parser, command='install'):
 
             if not args.json:
                 regex = '^(%s)$' % '|'.join(orig_packages)
-                print('# All requested packages already installed.')
+                stdout.info(Message('all_packages_installed_notify',
+                                    '# All requested packages already installed.',
+                                    prefix=prefix))
                 print_packages(prefix, regex)
             else:
                 common.stdout_json_success(
@@ -312,11 +313,10 @@ def install(args, parser, command='install'):
         if isupdate and args.all:
             # Packages not found here just means they were installed but
             # cannot be found any more. Just skip them.
-            if not args.json:
-                print("Warning: %s, skipping" % error_message)
-            else:
-                # Not sure what to do here
-                pass
+            stdout.warn(Message('revert_no_packages_found', e.msg,
+                                bad_dependencies=e.bad_dependencies))
+            stdout.warn(Message('skip_warning', "Warning: %s, skipping" % error_message,
+                                error_message=error_message))
             args._skip = getattr(args, '_skip', ['anaconda'])
             for pkg in e.pkgs:
                 p = pkg.split()[0]
@@ -372,13 +372,10 @@ def install(args, parser, command='install'):
     if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
 
-        if not args.json:
-            regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
-            print('\n# All requested packages already installed.')
-            print_packages(prefix, regex)
-        else:
-            common.stdout_json_success(
-                message='All requested packages already installed.')
+        regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
+        stdout.info('All requested packages already installed')
+        stdout.info(PrintPackages(prefix, regex))
+
         return
     elif newenv:
         # needed in the case of creating an empty env
@@ -387,8 +384,10 @@ def install(args, parser, command='install'):
             actions[SYMLINK_CONDA] = [context.root_dir]
 
     if not args.json:
-        print()
-        print("Package plan for installation in environment %s:" % prefix)
+        stdout.info(Message('blank_message', ''))
+        stdout.info(Message('package_plan_notify',
+                            "Package plan for installation in environment %s:" % prefix,
+                            environment=prefix))
         display_actions(actions, index, show_channel_urls=args.show_channel_urls)
 
     if command in {'install', 'update'}:
@@ -424,8 +423,6 @@ def install(args, parser, command='install'):
     if newenv:
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not args.json:
-            print(print_activate(args.name if args.name else prefix))
+        stdout.info(get_activate_message(args.name if args.name else prefix))
 
-    if args.json:
-        common.stdout_json_success(actions=actions)
+    stdout.info(Message('actions_success_message', 'success', actions=actions))

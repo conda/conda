@@ -5,17 +5,23 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function
 
+import logging
 import os
-import sys
 from collections import defaultdict
 from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
 
+from conda import Message
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
-from ..common.disk import backoff_unlink, rm_rf
+from ..common.disk import backoff_unlink
 from ..exceptions import ArgumentError
+from ..install import rm_rf
 from ..utils import human_bytes
+
+stdout = logging.getLogger('stdout')
+stderr = logging.getLogger('stderr')
+
 
 descr = """
 Remove unused packages and caches.
@@ -26,6 +32,7 @@ Examples:
 
     conda clean --tarballs
 """
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -192,7 +199,8 @@ def rm_lock(locks, verbose=True):
     from ..install import rm_rf
     for path in locks:
         if verbose:
-            print('removing: %s' % path)
+            stdout.info(Message('removing_lock_message', 'removing lock: %s' % path,
+                                lock_path=path))
         rm_rf(path)
 
 
@@ -217,28 +225,40 @@ def find_tarballs():
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     if verbose:
         for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
+            stdout.info(Message('tarball_cache_location_message',
+                                'Cache location: %s' % pkgs_dir,
+                                packages_dir=pkgs_dir))
 
     if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
-            print("There are no tarballs to remove")
+            stdout.info(Message('no_tarballs_to_remove_message',
+                                "There are no tarballs to remove"))
         return
 
     if verbose:
-        print("Will remove the following tarballs:")
-        print()
+        stdout.info(Message('tar_list_info_message',
+                            "Will remove the following tarballs:"))
+        stdout.info(Message('blank_message', ''))
 
         for pkgs_dir in pkgs_dirs:
-            print(pkgs_dir)
-            print('-'*len(pkgs_dir))
+            stdout.info(Message('list_packages_directory_message',
+                                pkgs_dir,
+                                packages_dir=pkgs_dir))
+            stdout.info(Message('length_of_package_dir_line_repr', '-'*len(pkgs_dir),
+                                package_dir_len=len(pkgs_dir)))
             fmt = "%-40s %10s"
             for fn in pkgs_dirs[pkgs_dir]:
                 size = getsize(join(pkgs_dir, fn))
-                print(fmt % (fn, human_bytes(size)))
-            print()
-        print('-' * 51)  # From 40 + 1 + 10 in fmt
-        print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
+                human_size = human_bytes(size)
+                stdout.info(Message('size_and_name_of_tar_file',
+                                    fmt % (fn, human_size),
+                                    filename=fn, size=human_size))
+            stdout.info(Message('blank_message', ''))
+        stdout.info(Message('dividing_line_message', '-'*51))  # From 40 + 1 + 10 in fmt
+        stdout.info(Message('total_size_message',
+                            fmt % ('Total:', human_bytes(totalsize)),
+                            total_size=human_bytes(totalsize)))
+        stdout.info(Message('blank_message', ''))
 
     if not args.json:
         confirm_yn(args)
@@ -249,11 +269,14 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         for fn in pkgs_dirs[pkgs_dir]:
             if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
                 if verbose:
-                    print("Removing %s" % fn)
+                    stdout.info(Message('removing_file_message', "Removing %s" % fn,
+                                        filename=fn))
                 backoff_unlink(os.path.join(pkgs_dir, fn))
             else:
                 if verbose:
-                    print("WARNING: cannot remove, file permissions: %s" % fn)
+                    stdout.info(Message('cannot_remove_file_permissions_warning',
+                                        "WARNING: cannot remove, file permissions: %s" % fn,
+                                        filename=fn))
 
 
 def find_pkgs():
@@ -265,7 +288,9 @@ def find_pkgs():
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in context.pkgs_dirs:
         if not os.path.exists(pkgs_dir):
-            print("WARNING: {0} does not exist".format(pkgs_dir))
+            stdout.info(Message('package_dir_does_not_exist_warning',
+                                "WARNING: {0} does not exist".format(pkgs_dir),
+                                directory=pkgs_dir))
             continue
         pkgs = [i for i in listdir(pkgs_dir)
                 if (isdir(join(pkgs_dir, i)) and  # only include actual packages
@@ -309,28 +334,39 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
             verbose=True):
     if verbose:
         for pkgs_dir in pkgs_dirs:
-            print('Cache location: %s' % pkgs_dir)
+            stdout.info(Message('cache_location_message',
+                                'Cache location: %s' % pkgs_dir,
+                                location=pkgs_dir))
             for fn, exception in warnings:
-                print(exception)
+                stdout.info(Message('package_directory_warning_exceptions',
+                                    exception,
+                                    exception=exception, filename=fn))
 
     if not any(pkgs_dirs[i] for i in pkgs_dirs):
         if verbose:
-            print("There are no unused packages to remove")
+            stdout.info(Message('no_unused_packages_to_remove_message',
+                                "There are no unused packages to remove"))
         return
 
     if verbose:
-        print("Will remove the following packages:")
+        stdout.info(Message('declaring_to_removing_packages_message',
+                            "Will remove the following packages:"))
         for pkgs_dir in pkgs_dirs:
-            print(pkgs_dir)
-            print('-' * len(pkgs_dir))
-            print()
+            stdout.info(Message('package_directory',
+                                pkgs_dir, packages_dir=pkgs_dir))
+            stdout.info(Message('packages_dir_line_repr', '-' * len(pkgs_dir),
+                                length=len(pkgs_dir)))
+            stdout.info(Message('blank_message', ''))
             fmt = "%-40s %10s"
             for pkg, pkgsize in zip(pkgs_dirs[pkgs_dir], pkgsizes[pkgs_dir]):
-                print(fmt % (pkg, human_bytes(pkgsize)))
-            print()
-        print('-' * 51)  # 40 + 1 + 10 in fmt
-        print(fmt % ('Total:', human_bytes(totalsize)))
-        print()
+                stdout.info(Message('package_name_and_size',
+                                    fmt % (pkg, human_bytes(pkgsize)),
+                                    package=pkg, size=human_bytes(pkgsize)))
+            stdout.info(Message('blank_message', ''))
+        stdout.info(Message('dividing_line_message', '-'*51))  # From 40 + 1 + 10 in fmt
+        stdout.info(Message('total_size_message', fmt % ('Total:', human_bytes(totalsize)),
+                            total_size=human_bytes(totalsize)))
+        stdout.info(Message('blank_message', ''))
 
     if not args.json:
         confirm_yn(args)
@@ -340,7 +376,8 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
     for pkgs_dir in pkgs_dirs:
         for pkg in pkgs_dirs[pkgs_dir]:
             if verbose:
-                print("removing %s" % pkg)
+                stdout.info(Message('removing_package_message', "removing %s" % pkg,
+                                    package=pkg))
             rm_rf(join(pkgs_dir, pkg))
 
 
@@ -392,15 +429,24 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     if warnings:
         if verbose:
             for warning in warnings:
-                print(warning, file=sys.stderr)
+                stderr.info(Message('clean_remove_source_cache_warning', warning))
         return
 
     for cache_type in cache_dirs:
-        print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
-        print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
-        print()
+        cache_dir = cache_dirs[cache_type]
+        cache_size = human_bytes(cache_sizes[cache_type])
 
-    print("%-40s %10s" % ("Total:", human_bytes(total_size)))
+        stdout.info(Message('rm_cache_type_message', "%s (%s)"
+                            % (cache_type, cache_dir),
+                    cache_type=cache_type, cache_dir=cache_dir))
+        stdout.info(Message('cache_size_message',
+                            "%-40s %10s" % ("Size:", cache_size),
+                            cache_size=cache_size))
+        stdout.info(Message('blank_message', ''))
+
+    stdout.info(Message('remove_cache_total_size',
+                        "%-40s %10s" % ("Total:", human_bytes(total_size)),
+                        total_size=human_bytes(total_size)))
 
     if not args.json:
         confirm_yn(args)
@@ -408,7 +454,8 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
         return
 
     for dir in cache_dirs.values():
-        print("Removing %s" % dir)
+        stdout.info(Message('removing_cache_directory_message', "Removing %s" % dir,
+                            directory=dir))
         rm_rf(dir)
 
 

@@ -6,9 +6,10 @@
 
 from __future__ import absolute_import, division, print_function
 
-from conda import text_type
-from conda.api import get_index
+import logging
 
+from conda import Message, text_type
+from conda.api import get_index
 from .common import Completer, Packages, add_parser_channels, add_parser_json, add_parser_known, \
     add_parser_offline, add_parser_prefix, add_parser_use_index_cache, add_parser_use_local, \
     disp_features, ensure_override_channels_requires_channel, ensure_use_local, stdout_json
@@ -18,6 +19,8 @@ from ..install import dist2quad
 from ..misc import make_icon_url
 from ..models.channel import Channel
 from ..resolve import NoPackagesFoundError, Package
+
+stdout = logging.getLogger('stdout')
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -45,6 +48,7 @@ platform are shown):
    conda search --platform linux-64
 '''
 
+
 class Platforms(Completer):
     """
     Tab completion for platforms
@@ -54,6 +58,7 @@ class Platforms(Completer):
     """
     def _get_items(self):
         return ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -121,11 +126,13 @@ package.""",
     add_parser_use_local(p)
     p.set_defaults(func=execute)
 
+
 def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
         raise PackageNotFoundError('', text_type(e))
+
 
 def execute_search(args, parser):
     import re
@@ -222,7 +229,7 @@ def execute_search(args, parser):
             disp_name = name
 
         if args.names_only and not args.outdated:
-            print(name)
+            stdout.info(Message('package_name_printout', name, name=name))
             continue
 
         if not args.canonical:
@@ -240,14 +247,14 @@ def execute_search(args, parser):
             if latest.version == vers_inst[0]:
                 continue
             if args.names_only:
-                print(name)
+                stdout.info(Message('package_name_printout', name, name=name))
                 continue
 
         for pkg in pkgs:
             dist = pkg.fn[:-8]
             if args.canonical:
                 if not args.json:
-                    print(dist)
+                    stdout.info(Message('dist_printout', dist, dist=dist))
                 else:
                     json.append(dist)
                 continue

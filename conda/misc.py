@@ -3,6 +3,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import logging
 import os
 import re
 import shutil
@@ -11,6 +12,7 @@ from collections import defaultdict
 from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath, curdir)
 
+from conda import Message
 from .api import get_index
 from .base.context import context
 from .common.url import path_to_url, is_url
@@ -25,6 +27,9 @@ from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, on_win
 from conda.common.disk import backoff_unlink
+
+stdout = logging.getLogger('stdout')
+stderr = logging.getLogger('stderr')
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -307,9 +312,13 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                     found = True
     if filter:
         if not quiet:
-            print('The following packages cannot be cloned out of the root environment:')
+            stdout.info(Message('cant_be_cloned_out_of_root_env',
+                                'The following packages cannot be'
+                                ' cloned out of the root environment:',
+                                packages=[package for package in itervalues(filter)]))
+
             for pkg in itervalues(filter):
-                print(' - ' + pkg)
+                stdout.info(Message('package_listing_message', ' - ' + pkg, package=pkg))
             drecs = {dist: info for dist, info in iteritems(drecs) if info['name'] not in filter}
 
     # Resolve URLs for packages that do not have URLs
@@ -353,8 +362,12 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     urls = [urls[d] for d in dists]
 
     if verbose:
-        print('Packages: %d' % len(dists))
-        print('Files: %d' % len(untracked_files))
+        package_number = len(dists)
+        untracked_number = len(untracked_files)
+        stdout.info(Message('package_number_message', 'Packages: %d' % package_number,
+                            package_number=package_number))
+        stdout.info(Message('untracked_files_message', 'Files: %d' % untracked_number,
+                            untracked_files_number=untracked_number))
 
     for f in untracked_files:
         src = join(prefix1, f)

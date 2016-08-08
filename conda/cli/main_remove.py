@@ -11,6 +11,7 @@ import logging
 from argparse import RawDescriptionHelpFormatter
 from os.path import join
 
+from conda import Message
 from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parser_no_pin,
                      add_parser_channels, add_parser_prefix, add_parser_quiet,
                      add_parser_no_use_index_cache, add_parser_use_index_cache,
@@ -26,6 +27,8 @@ from ..compat import iteritems, iterkeys
 from ..console import json_progress_bars
 from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
                           CondaValueError)
+
+stdout = logging.getLogger('stdout')
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -173,16 +176,15 @@ def execute(args, parser):
                                    'environment: %s' % prefix)
 
     if not args.json:
-        print()
-        print("Package plan for package removal in environment %s:" % prefix)
+        stdout.info(Message('blank_message', ''))
+        stdout.info(Message('package_plan_notify',
+                            "Package plan for package removal in environment %s:" % prefix,
+                            environment=prefix))
         plan.display_actions(actions, index)
 
     if args.json and args.dry_run:
-        stdout_json({
-            'success': True,
-            'dry_run': True,
-            'actions': actions
-        })
+        stdout.info(Message('dry_run_success_message', 'dry run success',
+                            success=True, dry_run=True, actions=actions))
         return
 
     if not args.json:

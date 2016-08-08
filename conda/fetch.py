@@ -59,6 +59,7 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
     if value:
         d[dict_key] = value
 
+
 # We need a decorator so that the dot gets printed *after* the repodata is fetched
 class dotlog_on_return(object):
     def __init__(self, msg):

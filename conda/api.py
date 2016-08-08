@@ -7,6 +7,7 @@ from .models.channel import prioritize_channels
 from .fetch import fetch_index
 from .resolve import Resolve
 
+
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=False, prefix=False):
     """

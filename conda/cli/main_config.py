@@ -5,18 +5,22 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function
 
+import logging
 import os
-import sys
-from conda import CondaError
 
+from conda import CondaError, Message
 from .common import (Completer, add_parser_json, stdout_json_success)
 from .._vendor.auxlib.type_coercion import boolify
 from ..base.context import context
-from ..common.yaml import yaml_dump, yaml_load
-from ..compat import iteritems, itervalues, string_types
-from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
-                      user_rc_path)
-from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
+from ..common.yaml import yaml_load, yaml_dump
+from ..compat import string_types, iteritems, itervalues
+from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
+                      user_rc_path, rc_other)
+from ..exceptions import (CondaValueError, CondaKeyError, CouldntParseError)
+
+stdout = logging.getLogger('stdout')
+stderr = logging.getLogger('stderr')
+
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -238,7 +242,9 @@ def execute_config(args, parser):
             lines.append("==> %s <==" % source)
             lines.extend(itervalues(reprs))
             lines.append('')
-        print('\n'.join(lines))
+
+        stdout.info(Message('show_context_sources_linebyline', '\n'.join(lines),
+                            sources=lines))
         return
 
     if args.show:
@@ -270,7 +276,9 @@ def execute_config(args, parser):
                              'use_pip',
                              'verbosity',
                              ))
-        print(yaml_dump(d))
+        stdout.info(Message('show_all_context_args_yaml', yaml_dump(d),
+                            context_args_dict=d))
+
         return
 
     if args.validate:
@@ -301,7 +309,8 @@ def execute_config(args, parser):
                 if key not in rc_other:
                     message = "unknown key %s" % key
                     if not args.json:
-                        print(message, file=sys.stderr)
+                        stderr.info(Message('unknown_key_message', message, message=message,
+                                            key=key))
                     else:
                         json_warnings.append(message)
                 continue
@@ -313,7 +322,9 @@ def execute_config(args, parser):
                 continue
 
             if isinstance(rc_config[key], (bool, string_types)):
-                print("--set", key, rc_config[key])
+                stdout.info(Message('boolean_context_param_printout',
+                                    "--set %s %s" % (key, rc_config[key]),
+                                    parameter=key, value=rc_config[key]))
             else:  # assume the key is a list-type
                 # Note, since conda config --add prepends, these are printed in
                 # the reverse order so that entering them in this order will
@@ -323,10 +334,14 @@ def execute_config(args, parser):
                 for q, item in enumerate(reversed(items)):
                     # Use repr so that it can be pasted back in to conda config --add
                     if key == "channels" and q in (0, numitems-1):
-                        print("--add", key, repr(item),
-                              "  # lowest priority" if q == 0 else "  # highest priority")
+                        priority = "  # lowest priority" if q == 0 else "  # highest priority"
+                        stdout.info(Message('config_key_printout', "--add %s %r %s"
+                                            % (key, item, priority),
+                                            key=key, item=repr(item), priority=priority))
                     else:
-                        print("--add", key, repr(item))
+                        stdout.info(Message('config_key_printout', "--add %s %r"
+                                            % (key, repr(item)),
+                                            key=key, item=repr(item)))
 
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
@@ -349,7 +364,8 @@ def execute_config(args, parser):
                     item, key, "top" if prepend else "bottom")
                 arglist = rc_config[key] = [p for p in arglist if p != item]
                 if not args.json:
-                    print(message, file=sys.stderr)
+                    stderr.info(Message('already_in_config_message', message,
+                                        message=message, item=item, list=key))
                 else:
                     json_warnings.append(message)
             arglist.insert(0 if prepend else len(arglist), item)
