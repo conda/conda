@@ -38,6 +38,9 @@ install:
   - source ./utils/travis-run-install.sh
   - echo "DONE INSTALLING"
 
+# CSH has issues when variables get too long
+# A common error that may occur would be a "Word too long" error and is probably related to the PATH variable
+# Here we use "travis-clean-path.sh" to remove duplicates from the path variable before trying to run the tests
 script:
   - echo "START RUNNING"
   - which -a python
