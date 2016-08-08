@@ -42,7 +42,11 @@ script:
   - echo "START RUNNING"
   - which -a python
   - env | sort
+  - export BACKUP_PATH="$PATH"
+  - export PATH="/home/travis/virtualenv/python2.7.9/bin:/home/travis/bin:/home/travis/.local/bin:/home/travis/.gimme/versions/go1.4.1.linux.amd64/bin:/opt/python/2.7.9/bin:/opt/python/2.6.9/bin:/opt/python/3.4.2/bin:/opt/python/3.3.5/bin:/opt/python/3.2.5/bin:/opt/python/pypy-2.5.0/bin:/opt/python/pypy3-2.4.0/bin:/usr/local/phantomjs/bin:/home/travis/.nvm/v0.10.36/bin:./node_modules/.bin:/usr/local/maven-3.2.5/bin:/usr/local/clang-3.4/bin:/home/travis/.rvm/gems/ruby-1.9.3-p551/bin:/home/travis/.rvm/gems/ruby-1.9.3-p551@global/bin:/home/travis/.rvm/rubies/ruby-1.9.3-p551/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/travis/.rvm/bin"
   - source ./utils/travis-run-script.sh
+  - export PATH=$BACKUP_PATH
+  - unset BACKUP_PATH
   - echo "DONE RUNNING"
 
 sudo: false
