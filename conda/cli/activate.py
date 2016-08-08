@@ -18,50 +18,137 @@ def help(command, shell):
     if command in ('..activate', '..checkenv'):
         if shell in ["cmd.exe", "powershell.exe"]:
             raise CondaSystemExit(dedent("""\
-                Usage: activate ENV
+                Usage: activate [ENV] [-h] [-v]
 
                 Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to
                 the front of PATH. ENV may either refer to just the name of the
                 environment, or the full prefix path.
+
+                Where:
+                    ENV             the virtual environment to activate (dflt: root)
+                    -h,--help       shows this dialog
+                    -v,--verbose    shows more detailed info for the activate process
+                                    (useful when there are post-activate scripts)
+
+                Alternatively use the following variables when the above parameter passing
+                doesn't work:
+                    CONDA_ENVNAME="ENV"
+                    CONDA_HELP=true
+                    CONDA_VERBOSE=true
+
+                Example(s):
+                    activate root
+                    CONDA_ENVNAME=root ; activate
                 """))
 
         elif shell in ["csh", "tcsh"]:
             raise CondaSystemExit(dedent("""\
-                Usage: source activate ENV
+                Usage: source "`which activate`" [ENV] [-h] [-v]
 
                 Adds the 'bin' directory of the environment ENV to the front of PATH. ENV
                 may either refer to just the name of the environment, or the full prefix
                 path.
+
+                Where:
+                    ENV             the virtual environment to activate (dflt: root)
+                    -h,--help       shows this dialog
+                    -v,--verbose    shows more detailed info for the activate process
+                                    (useful when there are post-activate scripts)
+
+                Alternatively use the following variables when the above parameter passing
+                doesn't work:
+                    set CONDA_ENVNAME="ENV"
+                    set CONDA_HELP=true
+                    set CONDA_VERBOSE=true
+
+                Example(s):
+                    source "`which activate`" root
+                    set CONDA_ENVNAME=root ; source "`which activate`"
                 """))
         else:
             raise CondaSystemExit(dedent("""\
-                Usage: . activate ENV
+                Usage: . activate [ENV] [-h] [-v]
 
                 Adds the 'bin' directory of the environment ENV to the front of PATH. ENV
                 may either refer to just the name of the environment, or the full prefix
                 path.
+
+                Where:
+                    ENV             the virtual environment to activate (dflt: root)
+                    -h,--help       shows this dialog
+                    -v,--verbose    shows more detailed info for the activate process
+                                    (useful when there are post-activate scripts)
+
+                Alternatively use the following variables when the above parameter passing
+                doesn't work:
+                    CONDA_ENVNAME="ENV"
+                    CONDA_HELP=true
+                    CONDA_VERBOSE=true
+
+                Example(s):
+                    . activate root
+                    set CONDA_ENVNAME=root ; . activate
                 """))
     elif command == '..deactivate':
         if shell in ["cmd.exe", "powershell.exe"]:
             raise CondaSystemExit(dedent("""\
-                Usage: deactivate
+                Usage: deactivate [-h] [-v]
 
                 Removes the environment prefix, 'Scripts' and 'Library\\bin' directory of
                 the environment ENV from the front of PATH.
+
+                Where:
+                    -h,--help       shows this dialog
+                    -v,--verbose    shows more detailed info for the activate process
+                                    (useful when there are pre-deactivate scripts)
+
+                Alternatively use the following variables when the above parameter passing
+                doesn't work:
+                    CONDA_HELP=true
+                    CONDA_VERBOSE=true
+
+                Example(s):
+                    deactivate
                 """))
         elif shell in ["csh", "tcsh"]:
             raise CondaSystemExit(dedent("""\
-                Usage: source deactivate
+                Usage: source "`which deactivate`" [-h] [-v]
 
                 Removes the 'bin' directory of the environment activated with 'source
                 activate' from PATH.
+
+                Where:
+                    -h,--help       shows this dialog
+                    -v,--verbose    shows more detailed info for the activate process
+                                    (useful when there are pre-deactivate scripts)
+
+                Alternatively use the following variables when the above parameter passing
+                doesn't work:
+                    set CONDA_HELP=true
+                    set CONDA_VERBOSE=true
+
+                Example(s):
+                    source "`which deactivate`"
                 """))
         else:
             raise CondaSystemExit(dedent("""\
-                Usage: . deactivate
+                Usage: . deactivate [-h] [-v]
 
                 Removes the 'bin' directory of the environment activated with 'source
                 activate' from PATH.
+
+                Where:
+                    -h,--help       shows this dialog
+                    -v,--verbose    shows more detailed info for the activate process
+                                    (useful when there are pre-deactivate scripts)
+
+                Alternatively use the following variables when the above parameter passing
+                doesn't work:
+                    CONDA_HELP=true
+                    CONDA_VERBOSE=true
+
+                Example(s):
+                    . deactivate
                 """))
     else:
         raise CondaSystemExit(dedent("""\
