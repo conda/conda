@@ -96,6 +96,8 @@ class Channel(object):
 
 
 def split_platform(value):
+    if not value:
+        return "/", None
     parts = value.rstrip('/').rsplit('/', 1)
     if len(parts) == 2 and parts[1] in PLATFORM_DIRECTORIES:
         return parts[0], parts[1]
