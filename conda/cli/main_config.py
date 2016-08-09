@@ -3,20 +3,20 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import os
 import sys
-
-from conda._vendor.auxlib.type_coercion import boolify
-from conda.base.context import context
-from .common import (Completer, add_parser_json, stdout_json_success)
-from ..common.yaml import yaml_load, yaml_dump
-from ..compat import string_types, iteritems, itervalues
-from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
-                      user_rc_path, rc_other)
-from ..exceptions import (CondaValueError, CondaKeyError, CouldntParseError)
 from conda import CondaError
+
+from .common import (Completer, add_parser_json, stdout_json_success)
+from .._vendor.auxlib.type_coercion import boolify
+from ..base.context import context
+from ..common.yaml import yaml_dump, yaml_load
+from ..compat import iteritems, itervalues, string_types
+from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
+                      user_rc_path)
+from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -267,7 +267,9 @@ def execute_config(args, parser):
                              'ssl_verify',
                              'track_features',
                              'update_dependencies',
-                             'use_pip'))
+                             'use_pip',
+                             'verbosity',
+                             ))
         print(yaml_dump(d))
         return
 

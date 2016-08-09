@@ -139,6 +139,7 @@ def _main():
         set_all_logger_level(DEBUG)
 
     set_verbosity(context.verbosity)
+    log.debug("verbosity set to %s", context.verbosity)
 
     exit_code = args.func(args, p)
     if isinstance(exit_code, int):
