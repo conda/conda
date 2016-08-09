@@ -122,6 +122,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         if name in linked:
             actions[UNLINK].append(linked[name])
 
+        ######################################
+        # copied from conda/plan.py   TODO: refactor
+        ######################################
+
         # check for link action
         from .install import LINK_COPY, LINK_HARD, LINK_SOFT
         from .install import try_hard_link
@@ -158,6 +162,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                     rm_rf(fetched_dist)
                 except (OSError, IOError):
                     pass
+
+    ######################################
+    # ^^^^^^^^^^ copied from conda/plan.py
+    ######################################
 
     # Pull the repodata for channels we are using
     if channels:
