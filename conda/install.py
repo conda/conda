@@ -22,6 +22,8 @@ These API functions have argument names referring to:
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from itertools import chain
+
 from collections import namedtuple
 
 import errno
@@ -251,6 +253,15 @@ def rm_empty_dir(path):
 
 
 def yield_lines(path):
+    """Generator function for lines in file.  Empty generator if path does not exist.
+
+    Args:
+        path (str): path to file
+
+    Returns:
+        iterator: each line in file, not starting with '#'
+
+    """
     try:
         with open(path) as fh:
             for line in fh:
@@ -503,13 +514,8 @@ def read_icondata(source_dir):
 
 
 def read_no_link(info_dir):
-    res = set()
-    for fn in 'no_link', 'no_softlink':
-        try:
-            res.update(set(yield_lines(join(info_dir, fn))))
-        except IOError:
-            pass
-    return res
+    return set(chain(yield_lines(join(info_dir, 'no_link')),
+                     yield_lines(join(info_dir, 'no_softlink'))))
 
 
 # Should this be an API function?
@@ -1040,11 +1046,11 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
 
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
-        try:
-            alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
+        alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
+        if isfile(alt_files_path):
+            # alt_files_path is a hack for noarch
             meta_dict['files'] = list(yield_lines(alt_files_path))
-            backoff_unlink(alt_files_path)
-        except IOError:
+        else:
             meta_dict['files'] = files
         meta_dict['link'] = {'source': source_dir,
                              'type': link_name_map.get(linktype)}
