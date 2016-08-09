@@ -3,20 +3,21 @@ import pytest
 import random
 import shutil
 import stat
+import subprocess
+import sys
 import tempfile
 import unittest
-from conda.compat import text_type
-from contextlib import contextmanager
-from os import makedirs
-from os.path import join, basename, relpath, exists, dirname
-
 from conda import install
-from conda import utils
 from conda.base.context import context
-from conda.install import (PaddingError, binary_replace, update_prefix,
-                           warn_failed_remove, dist2quad,
-                           dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
-                           move_path_to_trash, on_win, FileMode, yield_lines, read_no_link)
+from conda.compat import text_type
+from conda.fetch import download
+from conda.install import (FileMode, PaddingError, binary_replace, dist2dirname, dist2filename,
+                           dist2name, dist2pair, dist2quad, move_path_to_trash, name_dist, on_win,
+                           read_no_link, update_prefix, warn_failed_remove, yield_lines)
+from contextlib import contextmanager
+from os import chdir, getcwd, makedirs
+from os.path import dirname, exists, join, relpath
+
 from .decorators import skip_if_no_mock
 from .helpers import mock
 
@@ -67,6 +68,56 @@ class TestBinaryReplace(unittest.TestCase):
             b'bbbcbbb\x00\x00\x00')
         self.assertRaises(PaddingError, binary_replace,
                           b'aaaacaaaa\x00', b'aaaa', b'bbbbb')
+
+    @pytest.mark.skipif(not on_win, reason="exe entry points only necessary on win")
+    def test_windows_entry_point(self):
+        """
+        This emulates pip-created entry point executables on windows.  For more info,
+        refer to conda/install.py::replace_entry_point_shebang
+        """
+        tmp_dir = tempfile.mkdtemp()
+        cwd = getcwd()
+        chdir(tmp_dir)
+        original_prefix = "C:\\BogusPrefix\\python.exe"
+        try:
+            url = 'https://bitbucket.org/vinay.sajip/pyzzer/downloads/pyzzerw.pyz'
+            download(url, 'pyzzerw.pyz')
+            url = 'https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz'
+            download(url, 'conda-4.1.6.tar.gz')
+            subprocess.check_call([sys.executable, 'pyzzerw.pyz',
+                                   # output file
+                                   '-o', 'conda.exe',
+                                   # entry point
+                                   '-m', 'conda.cli.main:main',
+                                   # initial shebang
+                                   '-s', '#! ' + original_prefix,
+                                   # launcher executable to use (32-bit text should be compatible)
+                                   '-l', 't32',
+                                   # source archive to turn into executable
+                                   'conda-4.1.6.tar.gz',
+                                   ],
+                                  cwd=tmp_dir)
+            # this is the actual test: change the embedded prefix and make sure that the exe runs.
+            data = open('conda.exe', 'rb').read()
+            fixed_data = binary_replace(data, original_prefix, sys.executable)
+            with open("conda.fixed.exe", 'wb') as f:
+                f.write(fixed_data)
+            # without a valid shebang in the exe, this should fail
+            with pytest.raises(subprocess.CalledProcessError):
+                subprocess.check_call(['conda.exe', '-h'])
+
+            process = subprocess.Popen(['conda.fixed.exe', '-h'],
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            output, error = process.communicate()
+            output = output.decode('utf-8')
+            error = error.decode('utf-8')
+            assert ("conda is a tool for managing and deploying applications, "
+                    "environments and packages.") in output
+        except:
+            raise
+        finally:
+            chdir(cwd)
 
 
 class FileTests(unittest.TestCase):
