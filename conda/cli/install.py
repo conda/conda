@@ -226,7 +226,7 @@ def install(args, parser, command='install'):
         append_env(prefix)
         touch_nonadmin(prefix)
         if not args.json:
-            print_activate(args.name if args.name else prefix)
+            print(print_activate(args.name if args.name else prefix))
         return
 
     index = get_index(channel_urls=index_args['channel_urls'], prepend=index_args['prepend'],
@@ -419,7 +419,7 @@ def install(args, parser, command='install'):
         append_env(prefix)
         touch_nonadmin(prefix)
         if not args.json:
-            print_activate(args.name if args.name else prefix)
+            print(print_activate(args.name if args.name else prefix))
 
     if args.json:
         common.stdout_json_success(actions=actions)
