@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.base.context import context
 from conda.models.channel import Channel, DefaultChannel, UrlChannel, split_platform
 from logging import getLogger
 from unittest import TestCase
@@ -44,11 +45,12 @@ class ChannelTests(TestCase):
         dc = Channel('defaults')
         assert isinstance(dc, DefaultChannel)
 
+        platform = context.subdir
         assert dc.base_url == 'https://conda.anaconda.org/defaults'
         assert dc.canonical_name == 'defaults'
-        assert dc.urls == ['https://repo.continuum.io/pkgs/free/osx-64/',
+        assert dc.urls == ['https://repo.continuum.io/pkgs/free/%s/' % platform,
                            'https://repo.continuum.io/pkgs/free/noarch/',
-                           'https://repo.continuum.io/pkgs/pro/osx-64/',
+                           'https://repo.continuum.io/pkgs/pro/%s/' % platform,
                            'https://repo.continuum.io/pkgs/pro/noarch/']
 
         assert dc._scheme == "https"
@@ -78,9 +80,10 @@ class ChannelTests(TestCase):
         assert channel._path == "/pkgs/free"
         assert channel._platform is None
 
+        platform = context.subdir
         assert channel.base_url == 'https://repo.continuum.io/pkgs/free'
         assert channel.canonical_name == 'defaults'
-        assert channel.urls == ['https://repo.continuum.io/pkgs/free/osx-64/',
+        assert channel.urls == ['https://repo.continuum.io/pkgs/free/%s/' % platform,
                                 'https://repo.continuum.io/pkgs/free/noarch/']
 
     def test_split_platform(self):
