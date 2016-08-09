@@ -8,6 +8,7 @@ import sys
 import os
 import re
 import json
+from conda import initialize_logging
 from shlex import split
 
 from conda.base.context import reset_context
@@ -98,7 +99,7 @@ def captured(disallow_stderr=True):
 
 def capture_json_with_argv(command, **kwargs):
     # used in test_config (6 times), test_info (2 times), test_list (5 times), and test_search (10 times)
-    stdout, stderr = run_inprocess_conda_command(command)
+    stdout, stderr, exit_code = run_inprocess_conda_command(command)
 
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
@@ -130,10 +131,11 @@ def assert_in(a, b, output=""):
 def run_inprocess_conda_command(command):
     reset_context(())
     with argv(split(command)), captured() as c:
+        initialize_logging()
         try:
-            cli.main()
+            exit_code = cli.main()
         except SystemExit:
             pass
     print(c.stderr, file=sys.stderr)
     print(c.stdout)
-    return c.stdout, c.stderr
+    return c.stdout, c.stderr, exit_code

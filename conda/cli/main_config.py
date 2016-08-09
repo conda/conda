@@ -3,20 +3,20 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import os
 import sys
-
-from conda._vendor.auxlib.type_coercion import boolify
-from conda.base.context import context
-from .common import (Completer, add_parser_json, stdout_json_success)
-from ..common.yaml import yaml_load, yaml_dump
-from ..compat import string_types, iteritems, itervalues
-from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
-                      user_rc_path, rc_other)
-from ..exceptions import (CondaValueError, CondaKeyError, CouldntParseError)
 from conda import CondaError
+
+from .common import (Completer, add_parser_json, stdout_json_success)
+from .._vendor.auxlib.type_coercion import boolify
+from ..base.context import context
+from ..common.yaml import yaml_dump, yaml_load
+from ..compat import iteritems, itervalues, string_types
+from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
+                      user_rc_path)
+from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -225,7 +225,7 @@ def execute(args, parser):
     try:
         execute_config(args, parser)
     except (CouldntParseError, NotImplementedError) as e:
-        raise CondaError(e, args.json)
+        raise CondaError(e)
 
 
 def execute_config(args, parser):
@@ -267,7 +267,9 @@ def execute_config(args, parser):
                              'ssl_verify',
                              'track_features',
                              'update_dependencies',
-                             'use_pip'))
+                             'use_pip',
+                             'verbosity',
+                             ))
         print(yaml_dump(d))
         return
 
@@ -333,8 +335,7 @@ def execute_config(args, parser):
                 rc_config[key] = ['defaults']
             if key not in rc_list_keys:
                 raise CondaValueError("key must be one of %s, not %r" %
-                                      (', '.join(rc_list_keys), key),
-                                      args.json)
+                                      (', '.join(rc_list_keys), key))
             if not isinstance(rc_config.get(key, []), list):
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
@@ -364,26 +365,24 @@ def execute_config(args, parser):
             rc_config[key] = item
         else:
             raise CondaValueError("Error key must be one of %s, not %s" %
-                                  (', '.join(set_bools | set_strings), key),
-                                  args.json)
+                                  (', '.join(set_bools | set_strings), key))
 
     # Remove
     for key, item in args.remove:
         if key not in rc_config:
             if key != 'channels':
-                raise CondaKeyError("key %r is not in the config file" %
-                                    key, args.json)
+                raise CondaKeyError(key, "key %r is not in the config file" % key)
             rc_config[key] = ['defaults']
         if item not in rc_config[key]:
-            raise CondaKeyError("%r is not in the %r key of the config file" %
-                                (item, key), args.json)
+            raise CondaKeyError(key, "%r is not in the %r key of the config file" %
+                                (item, key))
         rc_config[key] = [i for i in rc_config[key] if i != item]
 
     # Remove Key
     for key, in args.remove_key:
         if key not in rc_config:
-            raise CondaKeyError("key %r is not in the config file" %
-                                key, args.json)
+            raise CondaKeyError(key, "key %r is not in the config file" %
+                                key)
         del rc_config[key]
 
     # config.rc_keys

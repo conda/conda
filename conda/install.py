@@ -19,8 +19,11 @@ These API functions have argument names referring to:
                  but is otherwise something like '/opt/anaconda/envs/foo',
                  or even any prefix, e.g. '/home/joe/myenv'
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-from __future__ import print_function, division, absolute_import
+from itertools import chain
+
+from collections import namedtuple
 
 import errno
 import functools
@@ -37,16 +40,17 @@ import tarfile
 import tempfile
 import time
 import traceback
-from os.path import (abspath, basename, dirname, isdir, isfile, islink,
-                     join, normpath, normcase)
+from enum import Enum
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, normcase, normpath
 
 from . import CondaError
+from .base.constants import UTF8
 from .base.context import context
 from .common.url import path_to_url
-from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
+from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
-from .utils import exp_backoff_fn, on_win, backoff_unlink
+from .utils import backoff_unlink, exp_backoff_fn, on_win
 
 if on_win:
     import ctypes
@@ -123,22 +127,16 @@ if on_win:
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
 
-class NullHandler(logging.Handler):
-    """ Copied from Python 2.7 to avoid getting
-        `No handlers could be found for logger "patch"`
-        http://bugs.python.org/issue16539
-    """
 
-    def handle(self, record):
-        pass
+SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
 
-    def emit(self, record):
-        pass
+class FileMode(Enum):
+    text = 'text'
+    binary = 'binary'
 
-    def createLock(self):
-        self.lock = None
+    def __str__(self):
+        return "%s" % self.value
 
-log.addHandler(NullHandler())
 
 LINK_HARD = 1
 LINK_SOFT = 2
@@ -254,14 +252,30 @@ def rm_empty_dir(path):
 
 
 def yield_lines(path):
-    for line in open(path):
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        yield line
+    """Generator function for lines in file.  Empty generator if path does not exist.
+
+    Args:
+        path (str): path to file
+
+    Returns:
+        iterator: each line in file, not starting with '#'
+
+    """
+    try:
+        with open(path) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                yield line
+    except (IOError, OSError) as e:
+        if e.errno == errno.ENOENT:
+            raise StopIteration
+        else:
+            raise
 
 
-prefix_placeholder = ('/opt/anaconda1anaconda2'
+PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts,
                       # such that running this program on itself
                       # will leave it unchanged
@@ -270,21 +284,29 @@ prefix_placeholder = ('/opt/anaconda1anaconda2'
 
 def read_has_prefix(path):
     """
-    reads `has_prefix` file and return dict mapping filenames to
-    tuples(placeholder, mode)
+    reads `has_prefix` file and return dict mapping filepaths to tuples(placeholder, FileMode)
+
+    A line in `has_prefix` contains one of
+      * filepath
+      * placeholder mode filepath
+
+    mode values are one of
+      * text
+      * binary
     """
-    res = {}
-    try:
-        for line in yield_lines(path):
-            try:
-                placeholder, mode, f = [x.strip('"\'') for x in
-                                        shlex.split(line, posix=False)]
-                res[f] = (placeholder, mode)
-            except ValueError:
-                res[line] = (prefix_placeholder, 'text')
-    except IOError:
-        pass
-    return res
+    ParseResult = namedtuple('ParseResult', ('placeholder', 'filemode', 'filepath'))
+
+    def parse_line(line):
+        # placeholder, filemode, filepath
+        parts = tuple(x.strip('"\'') for x in shlex.split(line, posix=False))
+        if len(parts) == 1:
+            return ParseResult(PREFIX_PLACEHOLDER, FileMode.text, parts[0])
+        elif len(parts) == 3:
+            return ParseResult(parts[0], FileMode(parts[1]), parts[2])
+        else:
+            raise RuntimeError("Invalid has_prefix file at path: %s" % path)
+    parsed_lines = (parse_line(line) for line in yield_lines(path))
+    return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 
 
 def binary_replace(data, a, b):
@@ -307,36 +329,36 @@ def binary_replace(data, a, b):
 
 
 def replace_long_shebang(mode, data):
-    if mode == 'text':
-        shebang_match = re.match(br'^(#!((?:\\ |[^ \n\r])+)(.*))', data)
+    if mode is FileMode.text:
+        shebang_match = SHEBANG_REGEX.match(data)
         if shebang_match:
             whole_shebang, executable, options = shebang_match.groups()
             if len(whole_shebang) > 127:
-                executable_name = executable.decode('utf-8').split('/')[-1]
-                new_shebang = '#!/usr/bin/env {0}{1}'.format(executable_name,
-                                                             options.decode('utf-8'))
-                data = data.replace(whole_shebang, new_shebang.encode('utf-8'))
+                executable_name = executable.decode(UTF8).split('/')[-1]
+                new_shebang = '#!/usr/bin/env %s%s' % (executable_name, options.decode(UTF8))
+                data = data.replace(whole_shebang, new_shebang.encode(UTF8))
     else:
-        pass  # TODO: binary shebangs exist; figure this out in the future if text works well
+        # TODO: binary shebangs exist; figure this out in the future if text works well
+        log.debug("TODO: binary shebangs exist; figure this out in the future if text works well")
     return data
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
-    if mode == 'text':
-        data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+    if mode is FileMode.text:
+        data = data.replace(placeholder.encode(UTF8), new_prefix.encode(UTF8))
     # Skip binary replacement in Windows.  Some files do have prefix information embedded, but
     #    this should not matter, as it is not used for things like RPATH.
-    elif mode == 'binary':
+    elif mode is FileMode.binary:
         if not on_win:
-            data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+            data = binary_replace(data, placeholder.encode(UTF8), new_prefix.encode(UTF8))
         else:
             logging.debug("Skipping prefix replacement in binary on Windows")
     else:
-        raise ArgumentError("Invalid mode: %s" % mode)
+        raise RuntimeError("Invalid mode: %r" % mode)
     return data
 
 
-def update_prefix(path, new_prefix, placeholder=prefix_placeholder, mode='text'):
+def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text):
     if on_win:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
@@ -485,20 +507,15 @@ def read_icondata(source_dir):
 
     try:
         data = open(join(source_dir, 'info', 'icon.png'), 'rb').read()
-        return base64.b64encode(data).decode('utf-8')
+        return base64.b64encode(data).decode(UTF8)
     except IOError:
         pass
     return None
 
 
 def read_no_link(info_dir):
-    res = set()
-    for fn in 'no_link', 'no_softlink':
-        try:
-            res.update(set(yield_lines(join(info_dir, fn))))
-        except IOError:
-            pass
-    return res
+    return set(chain(yield_lines(join(info_dir, 'no_link')),
+                     yield_lines(join(info_dir, 'no_softlink'))))
 
 
 # Should this be an API function?
@@ -540,6 +557,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
                           .format(root_file, prefix_file))
             else:
                 raise
+
 
 # ========================== begin API functions =========================
 
@@ -763,7 +781,6 @@ def rm_extracted(dist):
 
 
 def extract(dist):
-
     """
     Extract a package, i.e. make a package available for linkage. We assume
     that the compressed package is located in the packages directory.
@@ -797,7 +814,6 @@ def extract(dist):
 # circumstances to load the full set of files from this directory.
 # Therefore, we have implemented a full internal cache of this
 # data to eliminate redundant file reads.
-
 linked_data_ = {}
 
 
@@ -964,6 +980,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     Set up a package in a specified (environment) prefix.  We assume that
     the package has been extracted (using extract() above).
     """
+    log.debug("linking package %s with link type %s", dist, linktype)
     index = index or {}
     source_dir = is_extracted(dist)
     assert source_dir is not None
@@ -985,17 +1002,17 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         os.makedirs(prefix)
 
     with DirectoryLock(prefix), FileLock(source_dir):
-        for f in files:
-            src = join(source_dir, f)
-            dst = join(prefix, f)
+        for filepath in files:
+            src = join(source_dir, filepath)
+            dst = join(prefix, filepath)
             dst_dir = dirname(dst)
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
             if os.path.exists(dst):
-                log.warn("file already exists: %r" % dst)
+                log.warn("file exists, but clobbering: %r" % dst)
                 rm_rf(dst)
             lt = linktype
-            if f in has_prefix_files or f in no_link or islink(src):
+            if filepath in has_prefix_files or filepath in no_link or islink(src):
                 lt = LINK_COPY
 
             try:
@@ -1004,10 +1021,10 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
                 raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                                    (src, dst, lt, e))
 
-        for f in sorted(has_prefix_files):
-            placeholder, mode = has_prefix_files[f]
+        for filepath in sorted(has_prefix_files):
+            placeholder, mode = has_prefix_files[filepath]
             try:
-                update_prefix(join(prefix, f), prefix, placeholder, mode)
+                update_prefix(join(prefix, filepath), prefix, placeholder, mode)
             except PaddingError:
                 raise PaddingError("ERROR: placeholder '%s' too short in: %s\n" %
                                    (placeholder, dist))
@@ -1028,11 +1045,11 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
 
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
-        try:
-            alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
+        alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
+        if isfile(alt_files_path):
+            # alt_files_path is a hack for noarch
             meta_dict['files'] = list(yield_lines(alt_files_path))
-            backoff_unlink(alt_files_path)
-        except IOError:
+        else:
             meta_dict['files'] = files
         meta_dict['link'] = {'source': source_dir,
                              'type': link_name_map.get(linktype)}
@@ -1048,6 +1065,7 @@ def unlink(prefix, dist):
     package does not exist in the prefix.
     """
     with DirectoryLock(prefix):
+        log.debug("unlinking package %s", dist)
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)

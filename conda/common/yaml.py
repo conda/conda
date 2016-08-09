@@ -21,13 +21,14 @@ def get_yaml():
     return yaml
 
 
-def yaml_load(filehandle):
+def yaml_load(string):
     yaml = get_yaml()
-    return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.2")
+    return yaml.load(string, Loader=yaml.RoundTripLoader, version="1.2")
 
 
-def yaml_dump(string):
+def yaml_dump(object):
+    """dump object to string"""
     yaml = get_yaml()
-    return yaml.dump(string, Dumper=yaml.RoundTripDumper,
+    return yaml.dump(object, Dumper=yaml.RoundTripDumper,
                      block_seq_indent=2, default_flow_style=False,
                      indent=2)

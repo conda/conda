@@ -40,4 +40,4 @@ Missing write permissions in: ${root_dir}
     msg = msg.replace('${prefix}', prefix)
     msg = msg.replace('${name}', name_prefix(prefix))
     msg = msg.replace('${command}', command)
-    raise CondaIOError(msg, json)
+    raise CondaIOError(msg)
