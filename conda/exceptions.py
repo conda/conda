@@ -102,8 +102,7 @@ class CondaSystemExit(CondaError, SystemExit):
 
 class SubprocessExit(CondaError):
     def __init__(self, *args, **kwargs):
-        msg = 'Subprocess exiting\n'
-        super(SubprocessExit, self).__init__(msg, *args, **kwargs)
+        super(SubprocessExit, self).__init__(*args, **kwargs)
 
 
 class PaddingError(CondaError):
