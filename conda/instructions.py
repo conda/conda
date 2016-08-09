@@ -3,10 +3,9 @@ from __future__ import absolute_import, division, print_function
 from logging import getLogger
 
 from .base.context import context
-from .exceptions import InvalidInstruction
 from .fetch import fetch_pkg
-from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
-                      link, unlink, symlink_conda, name_dist)
+from .install import (LINK_HARD, extract, is_extracted, link, messages, name_dist, rm_extracted,
+                      rm_fetched, symlink_conda, unlink)
 
 
 log = getLogger(__name__)
@@ -68,7 +67,7 @@ def RM_FETCHED_CMD(state, arg):
 
 
 def split_linkarg(arg):
-    "Return tuple(dist, linktype)"
+    """Return tuple(dist, linktype)"""
     parts = arg.split()
     return (parts[0], int(LINK_HARD if len(parts) < 2 else parts[1]))
 
@@ -101,8 +100,7 @@ commands = {
 
 
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
-    """
-    Execute the instructions in the plan
+    """Execute the instructions in the plan
 
     :param plan: A list of (instruction, arg) tuples
     :param index: The meta-data index
@@ -117,20 +115,19 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         from .console import setup_verbose_handlers
         setup_verbose_handlers()
 
+    log.debug("executing plan %s", plan)
+
     state = {'i': None, 'prefix': context.root_dir, 'index': index}
 
     for instruction, arg in plan:
 
-        log.debug(' %s(%r)' % (instruction, arg))
+        log.debug(' %s(%r)', instruction, arg)
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
             getLogger('progress.update').info((name_dist(arg),
                                                state['i'] - 1))
-        cmd = _commands.get(instruction)
-
-        if cmd is None:
-            raise InvalidInstruction(instruction)
+        cmd = _commands[instruction]
 
         cmd(state, arg)
 
