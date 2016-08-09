@@ -296,6 +296,7 @@ def read_has_prefix(path):
       * binary
     """
     ParseResult = namedtuple('ParseResult', ('placeholder', 'filemode', 'filepath'))
+
     def parse_line(line):
         # placeholder, filemode, filepath
         parts = tuple(x.strip('"\'') for x in shlex.split(line, posix=False))

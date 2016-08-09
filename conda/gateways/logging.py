@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import re
 import sys
 from functools import partial
-from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger, Logger
+from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 
 from ..common.io import attach_stderr_handler
 
