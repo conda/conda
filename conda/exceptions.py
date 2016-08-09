@@ -116,7 +116,7 @@ class DryRunExit(CondaError):
 
 class CondaSystemExit(CondaError, SystemExit):
     def __init__(self, *args):
-        msg = ' '.join(text_type(arg) for arg in self.args)
+        msg = ' '.join(text_type(arg) for arg in args)
         super(CondaSystemExit, self).__init__(msg)
 
 
