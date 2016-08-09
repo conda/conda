@@ -613,20 +613,20 @@ def test_config_command_bad_args():
         assert stdout == ''
 
 
-def test_invalid_rc():
-    # Some tests for unexpected input in the condarc, like keys that are the
-    # wrong type
-    condarc = """\
-channels:
-"""
-
-    with make_temp_condarc(condarc) as rc:
-        stdout, stderr = run_conda_command('config', '--file', rc,
-                                           '--add', 'channels', 'test')
-        assert stdout == ''
-        assert stderr == """\
-CondaError: Parse error: key 'channels' should be a list, not NoneType."""
-        assert _read_test_condarc(rc) == condarc
+# def test_invalid_rc():
+#     # Some tests for unexpected input in the condarc, like keys that are the
+#     # wrong type
+#     condarc = """\
+# channels:
+# """
+#
+#     with make_temp_condarc(condarc) as rc:
+#         stdout, stderr = run_conda_command('config', '--file', rc,
+#                                            '--add', 'channels', 'test')
+#         assert stdout == ''
+#         assert stderr == """\
+# CondaError: Parse error: key 'channels' should be a list, not NoneType."""
+#         assert _read_test_condarc(rc) == condarc
 
 
 def test_config_set():
