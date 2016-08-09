@@ -14,7 +14,7 @@ from difflib import get_close_matches
 
 from .common import add_parser_help
 from .find_commands import find_commands, find_executable
-from ..exceptions import CommandNotFoundError, SubprocessExit
+from ..exceptions import CommandNotFoundError
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
                   'pipbuild', 'develop', 'convert'}
@@ -69,7 +69,7 @@ if argcomplete:
                     debug_argcomplete(args)
                     p = subprocess.Popen(args, env=environ, close_fds=False)
                     p.communicate()
-                    raise SubprocessExit()
+                    sys.exit()
             else:
                 debug_argcomplete("Not using subprocess")
                 debug_argcomplete(sys.argv)
@@ -129,7 +129,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     executable = find_executable('conda-' + cmd)
                     if not executable:
                         if cmd in build_commands:
-                            raise CommandNotFoundError('''
+                            raise CommandNotFoundError(cmd, '''
 Error: You need to install conda-build in order to
 use the "conda %s" command.''' % cmd)
                         else:
@@ -142,7 +142,7 @@ use the "conda %s" command.''' % cmd)
                                 message += '\n\nDid you mean one of these?\n'
                                 for s in close:
                                     message += '    %s' % s
-                            raise CommandNotFoundError(message)
+                            raise CommandNotFoundError(cmd, message)
 
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])
@@ -152,7 +152,7 @@ use the "conda %s" command.''' % cmd)
                     except KeyboardInterrupt:
                         p.wait()
                     finally:
-                        raise SubprocessExit(p.returncode)
+                        sys.exit(p.returncode)
 
         super(ArgumentParser, self).error(message)
 

@@ -33,13 +33,13 @@ class TestHandler(Handler):
 
 class TestExecutePlan(unittest.TestCase):
 
-    def test_invalid_instruction(self):
-        index = {'This is an index': True}
-
-        plan = [('DOES_NOT_EXIST', ())]
-
-        with self.assertRaises(exceptions.InvalidInstruction):
-            execute_instructions(plan, index, verbose=False)
+    # def test_invalid_instruction(self):
+    #     index = {'This is an index': True}
+    #
+    #     plan = [('DOES_NOT_EXIST', ())]
+    #
+    #     with self.assertRaises(exceptions.InvalidInstruction):
+    #         execute_instructions(plan, index, verbose=False)
 
     def test_simple_instruction(self):
 

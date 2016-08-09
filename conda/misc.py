@@ -64,8 +64,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             if url_p is None:
                 url_p = curdir
             elif not isdir(url_p):
-                raise CondaFileNotFoundError('file not found: %s' %
-                                             join(url_p, fn))
+                raise CondaFileNotFoundError(join(url_p, fn))
             url_p = path_to_url(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
 
@@ -106,7 +105,8 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
         if not dir_path:
             if not pkg_path:
-                _, conflict = find_new_location(dist)
+                pkg_path, conflict = find_new_location(dist)
+                pkg_path = join(pkg_path, dist2filename(dist))
                 if conflict:
                     actions[RM_FETCHED].append(conflict)
                 if not is_local:
@@ -120,7 +120,51 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         name = name_dist(dist)
         if name in linked:
             actions[UNLINK].append(linked[name])
-        actions[LINK].append(dist)
+
+        ######################################
+        # copied from conda/plan.py   TODO: refactor
+        ######################################
+
+        # check for link action
+        from .install import LINK_COPY, LINK_HARD, LINK_SOFT
+        from .install import try_hard_link
+        from .install import rm_rf
+
+        fetched_dist = dir_path or pkg_path[:-8]
+        fetched_dir = dirname(fetched_dist)
+        try:
+            # Determine what kind of linking is necessary
+            if not dir_path:
+                # If not already extracted, create some dummy
+                # data to test with
+                rm_rf(fetched_dist)
+                ppath = join(fetched_dist, 'info')
+                os.makedirs(ppath)
+                index_json = join(ppath, 'index.json')
+                with open(index_json, 'w'):
+                    pass
+            if context.always_copy:
+                lt = LINK_COPY
+            elif try_hard_link(fetched_dir, prefix, dist):
+                lt = LINK_HARD
+            elif context.allow_softlinks and not on_win:
+                lt = LINK_SOFT
+            else:
+                lt = LINK_COPY
+            actions[LINK].append('%s %d' % (dist, lt))
+        except (OSError, IOError):
+            actions[LINK].append('%s %d' % (dist, LINK_COPY))
+        finally:
+            if not dir_path:
+                # Remove the dummy data
+                try:
+                    rm_rf(fetched_dist)
+                except (OSError, IOError):
+                    pass
+
+    ######################################
+    # ^^^^^^^^^^ copied from conda/plan.py
+    ######################################
 
     # Pull the repodata for channels we are using
     if channels:
@@ -134,7 +178,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     for fn, md5 in verifies:
         info = index.get(fn)
         if info is None:
-            raise PackageNotFoundError("no package '%s' in index" % fn)
+            raise PackageNotFoundError(fn, "no package '%s' in index" % fn)
         if md5 and 'md5' not in info:
             sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
         if md5 and info['md5'] != md5:

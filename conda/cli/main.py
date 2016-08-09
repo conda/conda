@@ -94,11 +94,11 @@ def _main():
             return
         if argv1 in ('activate', 'deactivate'):
 
-            message = "Error: '%s' is not a conda command.\n" % argv1
+            message = "'%s' is not a conda command.\n" % argv1
             if not on_win:
                 message += ' Did you mean "source %s" ?\n' % ' '.join(sys.argv[1:])
 
-            raise CommandNotFoundError(message)
+            raise CommandNotFoundError(argv1, message)
 
     if len(sys.argv) == 1:
         sys.argv.append('-h')
@@ -139,6 +139,7 @@ def _main():
         set_all_logger_level(DEBUG)
 
     set_verbosity(context.verbosity)
+    log.debug("verbosity set to %s", context.verbosity)
 
     exit_code = args.func(args, p)
     if isinstance(exit_code, int):

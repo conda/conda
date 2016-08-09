@@ -144,7 +144,7 @@ def list_packages(prefix, installed, regex=None, format='human',
                 disp += '  %s' % schannel
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
-            log.debug(str(e))
+            log.debug("exception for dist %s:\n%r", dist, e)
             result.append('%-25s %-15s %15s' % dist2quad(dist)[:3])
 
     return res, result
@@ -163,8 +163,11 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
             print_export_header()
 
     installed = linked(prefix)
+    log.debug("installed conda packages:\n%s", installed)
     if piplist and context.use_pip and format == 'human':
-        installed.update(get_egg_info(prefix))
+        other_python = get_egg_info(prefix)
+        log.debug("other installed python packages:\n%s", other_python)
+        installed.update(other_python)
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
@@ -206,8 +209,7 @@ def execute(args, parser):
             else:
                 stdout_json(h.object_log())
         else:
-            raise CondaFileNotFoundError("No revision log found: %s\n" % h.path,
-                                         args.json)
+            raise CondaFileNotFoundError(h.path, "No revision log found: %s\n" % h.path)
         return
 
     if args.explicit:

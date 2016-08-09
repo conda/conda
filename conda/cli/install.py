@@ -15,7 +15,7 @@ import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from .. import CondaError
+from .. import CondaError, text_type
 from .._vendor.auxlib.ish import dals
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
@@ -75,7 +75,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            raise DirectoryNotFoundError('no such directory: %s' % src_arg, json)
+            raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
     else:
         src_prefix = context.clone_src
 
@@ -152,7 +152,7 @@ def install(args, parser, command='install'):
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
-""" % prefix, args.json)
+""" % prefix)
 
     linked = install_linked(prefix)
     lnames = {name_dist(d) for d in linked}
@@ -160,8 +160,8 @@ def install(args, parser, command='install'):
         for name in args.packages:
             common.arg2spec(name, json=args.json, update=True)
             if name not in lnames:
-                raise PackageNotFoundError("Package '%s' is not installed in %s" %
-                                           (name, prefix), args.json)
+                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
+                                           (name, prefix))
 
     if newenv and not args.no_default_packages:
         default_packages = context.create_default_packages[:]
@@ -192,7 +192,7 @@ def install(args, parser, command='install'):
             return
     elif getattr(args, 'all', False):
         if not linked:
-            raise PackageNotFoundError("There are no packages installed in the "
+            raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
         specs.extend(nm for nm in lnames)
     specs.extend(common.specs_from_args(args.packages, json=args.json))
@@ -207,7 +207,7 @@ def install(args, parser, command='install'):
             return
         else:
             raise CondaValueError("cannot mix specifications with conda package"
-                                  " filenames", args.json)
+                                  " filenames")
 
     # handle tar file containing conda packages
     if len(args.packages) == 1:
@@ -217,15 +217,16 @@ def install(args, parser, command='install'):
             return
 
     if newenv and args.clone:
-        if set(args.packages) - set(default_packages):
-            raise TooManyArgumentsError('did not expect any arguments for'
-                                        '--clone', args.json)
+        package_diff = set(args.packages) - set(default_packages)
+        if package_diff:
+            raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
+                                        'did not expect any arguments for --clone')
 
         clone(args.clone, prefix, json=args.json, quiet=args.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
         if not args.json:
-            print_activate(args.name if args.name else prefix)
+            print(print_activate(args.name if args.name else prefix))
         return
 
     index = get_index(channel_urls=index_args['channel_urls'], prepend=index_args['prepend'],
@@ -248,7 +249,7 @@ def install(args, parser, command='install'):
                 assert len(vers_inst) == 1, name
                 assert len(build_inst) == 1, name
             except AssertionError as e:
-                raise CondaAssertionError('', e, args.json)
+                raise CondaAssertionError(text_type(e))
 
             pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
@@ -283,8 +284,7 @@ def install(args, parser, command='install'):
             try:
                 os.makedirs(prefix)
             except OSError:
-                raise CondaOSError("Error: could not create directory: %s" %
-                                   prefix, args.json)
+                raise CondaOSError("Error: could not create directory: %s" % prefix)
         else:
             raise CondaEnvironmentNotFoundError(prefix)
 
@@ -355,13 +355,13 @@ def install(args, parser, command='install'):
 
             error_message = ''.join(error_message)
 
-            raise PackageNotFoundError(error_message, args.json)
+            raise PackageNotFoundError('', error_message)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
         if e.args and 'could not import' in e.args[0]:
-            raise CondaImportError('', e, args.json)
-        raise CondaError('UnsatisfiableSpecifications', e, args.json)
+            raise CondaImportError(text_type(e))
+        raise CondaError('UnsatisfiableSpecifications', e)
 
     if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
@@ -409,17 +409,17 @@ def install(args, parser, command='install'):
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked', e, args.json)
+                raise LockError('Already locked: %s' % text_type(e))
             else:
-                raise CondaRuntimeError('RuntimeError', e, args.json)
+                raise CondaRuntimeError('RuntimeError: %s' % e)
         except SystemExit as e:
-            raise CondaSystemExit('Exiting', e, args.json)
+            raise CondaSystemExit('Exiting', e)
 
     if newenv:
         append_env(prefix)
         touch_nonadmin(prefix)
         if not args.json:
-            print_activate(args.name if args.name else prefix)
+            print(print_activate(args.name if args.name else prefix))
 
     if args.json:
         common.stdout_json_success(actions=actions)
