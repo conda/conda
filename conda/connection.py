@@ -24,11 +24,10 @@ from requests.packages.urllib3.util import Url
 from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context, platform as context_platform
-from .common.io import captured
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
-from .utils import gnu_get_libc_version, backoff_unlink
+from .utils import backoff_unlink, gnu_get_libc_version
 
 RETRIES = 3
 
@@ -95,12 +94,12 @@ class BinstarAuth(AuthBase):
             base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
             if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
                 base_url = binstar_default_url
-            with captured() as c:
-                config = get_config(remote_site=base_url)
-                url_from_bs_config = config.get('url', base_url)
-                token = load_token(url_from_bs_config)
-            log.debug("binstar stdout >> %s\n"
-                      "binstar stderr >> %s", c.stdout, c.stderr)
+
+            # chatty 'binstar' logger
+            config = get_config(remote_site=base_url)
+            url_from_bs_config = config.get('url', base_url)
+            token = load_token(url_from_bs_config)
+
             return token
         except Exception as e:
             log.warn("Warning: could not capture token from anaconda-client (%r)", e)

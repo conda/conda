@@ -4,20 +4,20 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
+from conda import text_type
 from conda.api import get_index
+
+from .common import Completer, Packages, add_parser_channels, add_parser_json, add_parser_known, \
+    add_parser_offline, add_parser_prefix, add_parser_use_index_cache, add_parser_use_local, \
+    disp_features, ensure_override_channels_requires_channel, ensure_use_local, stdout_json
 from ..base.context import context
-from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
-                     add_parser_use_index_cache, add_parser_offline, add_parser_channels,
-                     add_parser_json, add_parser_use_local,
-                     ensure_use_local, ensure_override_channels_requires_channel,
-                     stdout_json, disp_features)
-from ..exceptions import CondaValueError, PackageNotFoundError
+from ..exceptions import CommandArgumentError, PackageNotFoundError
 from ..install import dist2quad
 from ..misc import make_icon_url
-from ..resolve import NoPackagesFoundError, Package
 from ..models.channel import Channel
+from ..resolve import NoPackagesFoundError, Package
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -125,7 +125,7 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
-        raise PackageNotFoundError('', e, args.json)
+        raise PackageNotFoundError('', text_type(e))
 
 def execute_search(args, parser):
     import re
@@ -149,8 +149,10 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
-                raise CondaValueError("'%s' is not a valid regex pattern (exception: %s)" %
-                                      (regex, e), args.json)
+                raise CommandArgumentError("Failed to compile regex pattern for "
+                                           "search: %(regex)s\n"
+                                           "regex error: %(regex_error)s",
+                                           regex=regex, regex_error=repr(e))
 
     prefix = context.prefix_w_legacy_search
 

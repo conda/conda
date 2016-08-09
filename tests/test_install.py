@@ -5,6 +5,7 @@ import shutil
 import stat
 import tempfile
 import unittest
+from conda.compat import text_type
 from contextlib import contextmanager
 from os import makedirs
 from os.path import join, basename, relpath, exists, dirname
@@ -15,7 +16,7 @@ from conda.base.context import context
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, dist2quad,
                            dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
-                           move_path_to_trash, on_win)
+                           move_path_to_trash, on_win, FileMode, yield_lines, read_no_link)
 from .decorators import skip_if_no_mock
 from .helpers import mock
 
@@ -104,7 +105,7 @@ class FileTests(unittest.TestCase):
         with open(self.tmpfname, 'wb') as fo:
             fo.write(b'\x7fELF.../some-placeholder/lib/libfoo.so\0')
         update_prefix(self.tmpfname, '/usr/local',
-                      placeholder='/some-placeholder', mode='binary')
+                      placeholder='/some-placeholder', mode=FileMode.binary)
         with open(self.tmpfname, 'rb') as fi:
             data = fi.read()
             self.assertEqual(
@@ -452,5 +453,29 @@ def test_dist2():
                         assert dist2filename(test, '') == dist_noprefix
 
 
-if __name__ == '__main__':
-    unittest.main()
+def _make_lines_file(path):
+    with open(path, 'w') as fh:
+        fh.write("line 1\n")
+        fh.write("line 2\n")
+        fh.write("# line 3\n")
+        fh.write("line 4\n")
+
+def test_yield_lines(tmpdir):
+    tempfile = join(text_type(tmpdir), "testfile")
+    _make_lines_file(tempfile)
+    lines = list(yield_lines(tempfile))
+    assert lines == ['line 1', 'line 2', 'line 4']
+
+
+def test_read_no_link(tmpdir):
+    tempdir = text_type(tmpdir)
+    no_link = join(tempdir, 'no_link')
+    no_softlink = join(tempdir, 'no_softlink')
+    _make_lines_file(no_link)
+    s1 = read_no_link(tempdir)
+    assert s1 == {'line 1', 'line 2', 'line 4'}
+
+    _make_lines_file(no_softlink)
+    s2 = read_no_link(tempdir)
+    assert s2 == {'line 1', 'line 2', 'line 4'}
+

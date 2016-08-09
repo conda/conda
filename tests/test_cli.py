@@ -1,12 +1,15 @@
+import json
+
 import unittest
 
 import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
+from conda.common.io import captured
 from conda.compat import text_type
 from conda.exceptions import CondaValueError
 
-from tests.helpers import capture_json_with_argv, assert_in
+from tests.helpers import capture_json_with_argv, assert_in, run_inprocess_conda_command
 
 
 class TestArg2Spec(unittest.TestCase):
@@ -206,15 +209,20 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda list ipython --json')
         self.assertIsInstance(res, list)
 
-        res = capture_json_with_argv('conda list --name nonexistent --json')
-        self.assertJsonError(res)
+        stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --json')
+        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
+        assert stderr == ''
+        assert rc > 0
 
-        res = capture_json_with_argv('conda list --name nonexistent -r --json')
-        self.assertJsonError(res)
+        stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --revisions --json')
+        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
+        assert stderr == ''
+        assert rc > 0
 
     @pytest.mark.timeout(300)
     def test_search(self):
-        res = capture_json_with_argv('conda search --json')
+        with captured():
+            res = capture_json_with_argv('conda search --json')
         self.assertIsInstance(res, dict)
         self.assertIsInstance(res['conda'], list)
         self.assertIsInstance(res['conda'][0], dict)
@@ -223,8 +231,10 @@ class TestJson(unittest.TestCase):
         for key in keys:
             self.assertIn(key, res['conda'][0])
 
-        res = capture_json_with_argv('conda search * --json')
-        self.assertJsonError(res)
+        stdout, stderr, rc = run_inprocess_conda_command('conda search * --json')
+        assert json.loads(stdout.strip())['exception_name'] == 'CommandArgumentError'
+        assert stderr == ''
+        assert rc > 0
 
         res = capture_json_with_argv('conda search --canonical --json')
         self.assertIsInstance(res, list)

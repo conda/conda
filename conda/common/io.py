@@ -4,29 +4,33 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import sys
 from contextlib import contextmanager
-from logging import CRITICAL, Formatter, StreamHandler, WARN, getLogger
+from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 
 from .._vendor.auxlib.logz import NullHandler
 from ..compat import StringIO
 
 log = getLogger(__name__)
 
-_FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d):%(message)s")
+_FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
 
 
 @contextmanager
 def captured():
+    # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
+    # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
     class CapturedText(object):
         pass
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
     sys.stdout = outfile = StringIO()
     sys.stderr = errfile = StringIO()
     c = CapturedText()
+    log.info("overtaking stderr and stdout")
     try:
         yield c
     finally:
         c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
+        log.info("stderr and stdout yielded back")
 
 
 @contextmanager
@@ -85,7 +89,7 @@ def stderr_log_level(level, logger_name=None):
             logr.propagate = _prpgt
 
 
-def attach_stderr_handler(level=WARN, logger_name=None):
+def attach_stderr_handler(level=WARN, logger_name=None, propagate=False):
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next((handler for handler in logr.handlers if handler.name == 'stderr'),
@@ -94,12 +98,13 @@ def attach_stderr_handler(level=WARN, logger_name=None):
     # create new stderr logger
     new_stderr_handler = StreamHandler(sys.stderr)
     new_stderr_handler.name = 'stderr'
-    if level is not None:
-        new_stderr_handler.setLevel(level)
-        new_stderr_handler.setFormatter(_FORMATTER)
+    new_stderr_handler.setLevel(NOTSET)
+    new_stderr_handler.setFormatter(_FORMATTER)
 
     # do the switch
     with _logger_lock():
         if old_stderr_handler:
             logr.removeHandler(old_stderr_handler)
         logr.addHandler(new_stderr_handler)
+        logr.setLevel(level)
+        logr.propagate = propagate

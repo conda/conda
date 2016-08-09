@@ -64,8 +64,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             if url_p is None:
                 url_p = curdir
             elif not isdir(url_p):
-                raise CondaFileNotFoundError('file not found: %s' %
-                                             join(url_p, fn))
+                raise CondaFileNotFoundError(join(url_p, fn))
             url_p = path_to_url(url_p).rstrip('/')
         url = "{0}/{1}".format(url_p, fn)
 
@@ -179,7 +178,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     for fn, md5 in verifies:
         info = index.get(fn)
         if info is None:
-            raise PackageNotFoundError("no package '%s' in index" % fn)
+            raise PackageNotFoundError(fn, "no package '%s' in index" % fn)
         if md5 and 'md5' not in info:
             sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
         if md5 and info['md5'] != md5:
