@@ -249,7 +249,7 @@ def execute(args, parser):
         requests_version=requests_version,
     )
 
-    if args.all or args.json:
+    if args.all:
         for option in options:
             setattr(args, option, True)
 
@@ -294,7 +294,7 @@ Current conda install:
                             offline_mode=info_dict['offline']))
 
     if args.envs:
-        handle_envs_list(info_dict['envs'], not args.json)
+        handle_envs_list(info_dict['envs'])
 
     if args.system and not args.json:
         from conda.cli.find_commands import find_commands, find_executable
