@@ -1,3 +1,21 @@
+## 4.2.2 (2016-08-09)
+
+### Improvements
+* enable binary prefix replacement on windows (#3262)
+* add `--verbose` command line flag (#3237)
+* improve logging and exception detail (#3237, #3252)
+* do not remove empty environment without asking; raise an error when a named environment can't be found (#3222)
+
+### Bug Fixes
+* fix #3226 user condarc not available on Windows (#3228)
+* fix some bugs in conda config --show* (#3212)
+* fix conda-build local channel bug (#3202)
+* remove subprocess exiting message (#3245)
+* fix comment parsing and channels in conda-env environment.yml (#3258, #3259)
+* fix context error with conda-env (#3232)
+* fix #3182 conda install silently skipping failed linking (#3184)
+
+
 ## 4.2.1 (2016-08-01)
 
 ### Improvements
