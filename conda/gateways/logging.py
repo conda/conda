@@ -4,8 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import re
 import sys
 from functools import partial
-from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
+from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger, CRITICAL
 
+from .._vendor.auxlib.logz import NullHandler
 from ..common.io import attach_stderr_handler
 
 log = getLogger(__name__)
@@ -53,6 +54,12 @@ def initialize_logging():
     stderr.addHandler(stderrhandler)
     stderr.addFilter(TokenURLFilter())
     stderr.propagate = False
+
+    binstar = getLogger('binstar')
+    binstar.setLevel(CRITICAL+1)
+    binstar.addHandler(NullHandler())
+    binstar.propagate = False
+    binstar.disabled = True
 
 
 def initialize_root_logger(level=ERROR):

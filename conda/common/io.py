@@ -22,11 +22,13 @@ def captured():
     sys.stdout = outfile = StringIO()
     sys.stderr = errfile = StringIO()
     c = CapturedText()
+    log.info("overtaking stderr and stdout")
     try:
         yield c
     finally:
         c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
+        log.info("stderr and stdout yielded back")
 
 
 @contextmanager

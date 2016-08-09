@@ -95,12 +95,12 @@ class BinstarAuth(AuthBase):
             base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
             if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
                 base_url = binstar_default_url
-            with captured() as c:
-                config = get_config(remote_site=base_url)
-                url_from_bs_config = config.get('url', base_url)
-                token = load_token(url_from_bs_config)
-            log.debug("binstar stdout >> %s\n"
-                      "binstar stderr >> %s", c.stdout, c.stderr)
+
+            # chatty 'binstar' logger
+            config = get_config(remote_site=base_url)
+            url_from_bs_config = config.get('url', base_url)
+            token = load_token(url_from_bs_config)
+
             return token
         except Exception as e:
             log.warn("Warning: could not capture token from anaconda-client (%r)", e)
