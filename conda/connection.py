@@ -24,11 +24,10 @@ from requests.packages.urllib3.util import Url
 from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context, platform as context_platform
-from .common.io import captured
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
-from .utils import gnu_get_libc_version, backoff_unlink
+from .utils import backoff_unlink, gnu_get_libc_version
 
 RETRIES = 3
 
