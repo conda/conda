@@ -316,23 +316,21 @@ def binary_replace(data, a, b):
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
+    if on_win and has_pyzzer_entry_point(data):
+        return replace_pyzzer_entry_point_shebang(data, a, b)
 
-    original_data = data
+    def replace(match):
+        occurances = match.group().count(a)
+        padding = (len(a) - len(b))*occurances
+        if padding < 0:
+            raise PaddingError(a, b, padding)
+        return match.group().replace(a, b) + b'\0' * padding
 
-    if on_win:
-        # This is a no-op if the data is not a distlib-created launcher.
-        data = replace_entry_point_shebang(data, a, b)
+    original_data_len = len(data)
+    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
+    data = pat.sub(replace, data)
+    assert len(data) == original_data_len
 
-    if original_data == data:
-        def replace(match):
-            occurances = match.group().count(a)
-            padding = (len(a) - len(b))*occurances
-            if padding < 0:
-                raise PaddingError(a, b, padding)
-            return match.group().replace(a, b) + b'\0' * padding
-        pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
-        data = pat.sub(replace, data)
-        assert len(data) == len(original_data)
     return data
 
 
@@ -351,34 +349,37 @@ def replace_long_shebang(mode, data):
     return data
 
 
-def replace_entry_point_shebang(all_data, placeholder, new_prefix):
-    """Code adapted from pyzzer.  This is meant to deal with entry point exe's created by distlib, which
-    consist of a launcher, then a shebang, then a zip archive of the entry point code to run.  We need to change
-    the shebang.
+def has_pyzzer_entry_point(data):
+    pos = data.rfind(b'PK\x05\x06')
+    return pos >= 0
+
+
+def replace_pyzzer_entry_point_shebang(all_data, placeholder, new_prefix):
+    """Code adapted from pyzzer.  This is meant to deal with entry point exe's created by distlib,
+    which consist of a launcher, then a shebang, then a zip archive of the entry point code to run.
+    We need to change the shebang.
     https://bitbucket.org/vinay.sajip/pyzzer/src/5d5740cb04308f067d5844a56fbe91e7a27efccc/pyzzer/__init__.py?at=default&fileviewer=file-view-default#__init__.py-112  # NOQA
-
-    Copyright (c) 2013 Vinay Sajip.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
     """
-
-    launcher = shebang = data = None
+    # Copyright (c) 2013 Vinay Sajip.
+    #
+    # Permission is hereby granted, free of charge, to any person obtaining a copy
+    # of this software and associated documentation files (the "Software"), to deal
+    # in the Software without restriction, including without limitation the rights
+    # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    # copies of the Software, and to permit persons to whom the Software is
+    # furnished to do so, subject to the following conditions:
+    #
+    # The above copyright notice and this permission notice shall be included in
+    # all copies or substantial portions of the Software.
+    #
+    # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    # THE SOFTWARE.
+    launcher = shebang = None
     pos = all_data.rfind(b'PK\x05\x06')
     if pos >= 0:
         end_cdr = all_data[pos + 12:pos + 20]
