@@ -14,7 +14,7 @@ from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
                      add_parser_json, add_parser_use_local,
                      ensure_use_local, ensure_override_channels_requires_channel,
                      stdout_json, disp_features)
-from ..exceptions import CondaValueError, PackageNotFoundError
+from ..exceptions import CondaValueError, PackageNotFoundError, ArgumentError, CommandArgumentError
 from ..install import dist2quad
 from ..misc import make_icon_url
 from ..resolve import NoPackagesFoundError, Package
@@ -150,8 +150,10 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
-                raise CondaValueError("'%s' is not a valid regex pattern (exception: %s)" %
-                                      (regex, e))
+                raise CommandArgumentError("Failed to compile regex pattern for "
+                                           "search: %(regex)s\n"
+                                           "regex error: %(regex_error)s",
+                                           regex=regex, regex_error=repr(e))
 
     prefix = context.prefix_w_legacy_search
 
