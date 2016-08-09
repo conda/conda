@@ -26,6 +26,7 @@ class CommandArgumentError(ArgumentError):
         command = ' '.join(sys.argv)
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
 
+
 class ArgumentNotFoundError(ArgumentError):
     def __init__(self, argument, *args):
         self.argument = argument

@@ -10,7 +10,7 @@ import os
 import sys
 
 from ._vendor.auxlib.packaging import get_version
-from .compat import text_type, text_type, iteritems
+from .compat import text_type, iteritems
 from .gateways.logging import initialize_logging
 
 __all__ = [
