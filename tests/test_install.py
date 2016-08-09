@@ -15,7 +15,7 @@ from conda.base.context import context
 from conda.install import (PaddingError, binary_replace, update_prefix,
                            warn_failed_remove, dist2quad,
                            dist2name, dist2dirname, dist2filename, dist2pair, name_dist,
-                           move_path_to_trash, on_win)
+                           move_path_to_trash, on_win, FileMode)
 from .decorators import skip_if_no_mock
 from .helpers import mock
 
@@ -104,7 +104,7 @@ class FileTests(unittest.TestCase):
         with open(self.tmpfname, 'wb') as fo:
             fo.write(b'\x7fELF.../some-placeholder/lib/libfoo.so\0')
         update_prefix(self.tmpfname, '/usr/local',
-                      placeholder='/some-placeholder', mode='binary')
+                      placeholder='/some-placeholder', mode=FileMode.binary)
         with open(self.tmpfname, 'rb') as fi:
             data = fi.read()
             self.assertEqual(
