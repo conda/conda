@@ -90,7 +90,7 @@ def execute(args, parser):
         name = args.name
     prefix = get_prefix(args)
     env = from_environment(name, prefix, no_builds=args.no_builds,
-                           ignore_channels=args.ignore_prefix)
+                           ignore_channels=args.ignore_channels)
 
     if args.override_channels:
         env.remove_channels()
