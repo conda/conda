@@ -10,9 +10,7 @@ import os
 import sys
 
 from ._vendor.auxlib.packaging import get_version
-from .common.compat import with_metaclass
-from .compat import text_type, text_type
-from .console import init_our_logging
+from .compat import text_type, text_type, iteritems
 from .gateways.logging import initialize_logging
 
 __all__ = [
@@ -35,32 +33,25 @@ if os.getenv('CONDA_ROOT') is None:
 initialize_logging()
 
 
-class CondaErrorType(type):
-    def __init__(cls, name, bases, attr):
-        super(CondaErrorType, cls).__init__(name, bases, attr)
-        key = "%s.%s" % (cls.__module__, name)
-        if key == "conda.CondaError":
-            cls.registry = dict()
-        else:
-            cls.registry[cls.__name__] = cls
-
-
-@with_metaclass(CondaErrorType)
 class CondaError(Exception):
-    def __init__(self, message):
+    def __init__(self, message, **kwargs):
         self.message = message
+        self._kwargs = kwargs
         super(CondaError, self).__init__(message)
 
     def __repr__(self):
-        return '%s: %s' % (self.__class__.__name__, text_type(self))
+        return '%s: %s\n' % (self.__class__.__name__, text_type(self))
 
     def __str__(self):
-        return text_type(self.message) + '\n'
+        return text_type(self.message % self._kwargs)
 
     def dump_map(self):
-        return dict(exception_type=text_type(type(self)),
-                    exception_class=self.__class__.__name__,
-                    message=text_type(self))
+        result = dict((k, v) for k, v in iteritems(vars(self)) if not k.startswith('_'))
+        result.update(exception_type=text_type(type(self)),
+                      exception_name=self.__class__.__name__,
+                      message=text_type(self),
+                      **self._kwargs)
+        return result
 
 
 class CondaMultiError(CondaError):
@@ -77,7 +68,5 @@ class CondaMultiError(CondaError):
 
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),
-                    exception_class=self.__class__.__name__,
+                    exception_name=self.__class__.__name__,
                     errors=tuple(error.dump_map() for error in self.errors))
-
-init_our_logging()

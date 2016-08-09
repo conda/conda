@@ -9,13 +9,6 @@ from . import CondaError, text_type
 from .compat import iteritems, iterkeys
 
 
-class InvalidInstruction(CondaError):
-    def __init__(self, instruction):
-        self.instruction = instruction
-        msg = "No handler for instruction: %r" % instruction
-        super(InvalidInstruction, self).__init__(msg)
-
-
 class LockError(CondaError, RuntimeError):
     def __init__(self, message):
         msg = "Lock error: %s" % message
@@ -23,10 +16,15 @@ class LockError(CondaError, RuntimeError):
 
 
 class ArgumentError(CondaError):
-    def __init__(self, message):
-        msg = 'Argument Error: %s' % message
-        super(ArgumentError, self).__init__(msg)
+    def __init__(self, message, **kwargs):
+        super(ArgumentError, self).__init__(message, **kwargs)
 
+
+class CommandArgumentError(ArgumentError):
+
+    def __init__(self, message, **kwargs):
+        command = ' '.join(sys.argv)
+        super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
 
 class ArgumentNotFoundError(ArgumentError):
     def __init__(self, argument, *args):
@@ -391,7 +389,6 @@ def print_conda_exception(exception):
         stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
     else:
         stderrlogger.info(repr(exception))
-
 
 def get_info():
     from conda.cli import conda_argparse
