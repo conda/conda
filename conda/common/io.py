@@ -16,6 +16,8 @@ _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(messa
 
 @contextmanager
 def captured():
+    # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
+    # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
     class CapturedText(object):
         pass
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
