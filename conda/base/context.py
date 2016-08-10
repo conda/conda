@@ -18,7 +18,6 @@ from ..common.url import urlparse
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
-stderrlog = getLogger('stderrlog')
 
 
 default_python = '%d.%d' % sys.version_info[:2]
@@ -243,11 +242,11 @@ def get_help_dict():
 
 
 def get_prefix(ctx, args, search=True):
-    """
-        Get the prefix
+    """Get the prefix to operate in
+
     Args:
         ctx: the context of conda
-        args: the args from command line
+        args: the argparse args from the command line
         search: whether search for prefix
 
     Returns: the prefix

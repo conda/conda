@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-'''conda is a tool for managing environments and packages.
+"""conda is a tool for managing environments and packages.
 
 conda provides the following commands:
 
@@ -33,7 +33,7 @@ conda provides the following commands:
 Additional help for each command can be accessed by using:
 
     conda <command> -h
-'''
+"""
 
 from __future__ import absolute_import, division, print_function
 
@@ -137,9 +137,9 @@ def _main():
 
     if context.debug:
         set_all_logger_level(DEBUG)
-
-    set_verbosity(context.verbosity)
-    log.debug("verbosity set to %s", context.verbosity)
+    elif context.verbosity:
+        set_verbosity(context.verbosity)
+        log.debug("verbosity set to %s", context.verbosity)
 
     exit_code = args.func(args, p)
     if isinstance(exit_code, int):
@@ -148,6 +148,7 @@ def _main():
 
 def main():
     return conda_exception_handler(_main)
+
 
 if __name__ == '__main__':
     main()
