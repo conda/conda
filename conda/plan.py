@@ -464,8 +464,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     mss = [ms for ms in mss if ms.name in root_only]
     if is_root_prefix(prefix):
         if context.auto_update_conda and not context.offline and not mss:
-            from . import __version__ as conda_version
-            specs.append('conda >=' + conda_version)
+            specs.append('conda')
             specs.append('conda-env')
     elif basename(prefix).startswith('_'):
         # anything (including conda) can be installed into environments
