@@ -121,11 +121,9 @@ def get_packages(installed, regex):
 
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=context.show_channel_urls):
-    res = 1
-
+    res = 0
     result = []
     for dist in get_packages(installed, regex):
-        res = 0
         if format == 'canonical':
             result.append(dist)
             continue
