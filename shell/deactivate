@@ -12,9 +12,9 @@ echo `ps -p $$ | sed 's|.*csh|THIS-IS-CSH|' | grep CSH || eval echo '$0'`       
      "$SHLVL"                                                                                       \
      "deactivate"                                                                                   \
      "error-clause" | awk -f "`which whichshell.awk`"                                               &&\
-bash -c "echo '[DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash.' 1>&2"
+bash -c "echo '[DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh.' 1>&2"
 
-# bourne shell clause (bash/zsh/dash)
+# bourne shell clause (bash/zsh/dash/posh)
 echo `ps -p $$ | sed 's|.*csh|THIS-IS-CSH|' | grep CSH || eval echo '$0'`                           \
      "`ps -p $$ | tr '\n' ' '`"                                                                     \
      "`test -x /usr/bin/lsb_release && lsb_release -si || uname -s`"                                \
