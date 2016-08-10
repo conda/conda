@@ -167,6 +167,29 @@ class NewIntegrationTest(unittest.TestCase):
         o, e, s = run("conda env remove --yes --name snowflakes")
         self.assertEqual(0, s, o)
 
+    def test_list(self):
+        """
+            Test conda env
+        """
+        if not env_is_created("snowflakes"):
+            o, e, s = run("conda create --yes --name snowflakes python")
+            self.assertEqual(0, s, e)
+            self.assertTrue(env_is_created("snowflakes"))
+
+        snowflake, e, s = run("conda list -n snowflakes -e")
+        self.assertEqual(0, s, e)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix="txt") as env_txt:
+            env_txt.write(snowflake)
+            env_txt.flush()
+            _, e, s = run("conda env remove --yes --name snowflakes")
+            self.assertEqual(0, s, e)
+            o, e, s = run("conda create -n snowflakes --file " + env_txt.name)
+            self.assertEqual(0, s, e)
+            self.assertTrue(env_is_created("snowflakes"))
+
+        o, e, s = run("conda env remove --yes --name snowflakes")
+        self.assertEqual(0, s, o)
 
 if __name__ == '__main__':
     unittest.main()
