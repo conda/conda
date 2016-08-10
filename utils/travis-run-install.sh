@@ -6,6 +6,7 @@ osx_setup() {
     brew install zsh
     brew install csh
     brew install tcsh
+    # no posh for Mac/Darwin
 
     # install pyenv
     git clone https://github.com/yyuu/pyenv.git ~/.pyenv

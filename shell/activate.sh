@@ -11,6 +11,8 @@ if [ -n "${ZSH_VERSION}" ]; then
     _SHELL="zsh"
 elif [ -n "${BASH_VERSION}" ]; then
     _SHELL="bash"
+elif [ -n "${POSH_VERSION}" ]; then
+    _SHELL="posh"
 else
     _SHELL="dash"
 fi
@@ -174,13 +176,16 @@ if [ $? = 0 ]; then
         done
     fi
 
-
     if [ -n "${ZSH_VERSION}" ]; then
         # zsh uses rehash
         rehash
     elif [ -n "${BASH_VERSION}" ]; then
         # bash
         hash -r
+    elif [ -n "${POSH_VERSION}" ]; then
+        # posh
+        # no hash command for posh
+        :
     else
         # dash uses hash, default
         hash -r

@@ -346,6 +346,9 @@ else:
         "dash": dict(
             unix_shell_base, exe="dash",
                    ),
+        "posh": dict(
+            unix_shell_base, exe="posh",
+                   ),
         "fish": dict(
             unix_shell_base, exe="fish",
             pathsep=" ",

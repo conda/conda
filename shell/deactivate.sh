@@ -11,6 +11,8 @@ if [ -n "${ZSH_VERSION}" ]; then
     _SHELL="zsh"
 elif [ -n "${BASH_VERSION}" ]; then
     _SHELL="bash"
+elif [ -n "${POSH_VERSION}" ]; then
+    _SHELL="posh"
 else
     _SHELL="dash"
 fi
@@ -133,6 +135,10 @@ if [ -n "${CONDA_PATH_BACKUP}" ]; then
     elif [ -n "${BASH_VERSION}" ]; then
         # bash
         hash -r
+    elif [ -n "${POSH_VERSION}" ]; then
+        # posh
+        # no hash command for posh
+        :
     else
         # dash uses hash, default
         hash -r

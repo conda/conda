@@ -75,6 +75,13 @@ BEGIN {}
         exit(clause != 2)
     }
     if ((match(sz,sn) == 0)                             &&
+        ((sh == ".posh")                                ||
+         (sh == ".-posh")                               ||
+         (sh == "./bin/posh")                           ||
+         (sh == ".-/bin/posh"))) {
+        exit(clause != 2)
+    }
+    if ((match(sz,sn) == 0)                             &&
         ((sh == ".sh" && sy != "Ubuntu")                ||
          (sh == ".-sh" && sy == "Darwin" && sl == "1")  ||
          (sh == ".-sh" && sy == "Linux")                ||
