@@ -66,6 +66,7 @@ miniconda_install() {
     conda info
     conda install -y -q pip
     which -a pip
+    conda config --set auto_update_conda false
 }
 
 
