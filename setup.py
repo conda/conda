@@ -78,7 +78,7 @@ setup(
         'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
         'sdist': conda._vendor.auxlib.packaging.SDistCommand,
     },
-    install_requires=install_requires,
+    install_requires=[],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
