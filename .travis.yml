@@ -9,7 +9,6 @@ addons:
   apt:
     packages:
       - zsh
-      - patchelf
 
 matrix:
   include:
