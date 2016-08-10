@@ -434,7 +434,7 @@ def test_activate_check_sourcing(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
-                assert_in("[ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash.",
+                assert_in("[ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh.",
                     stderr, shell)
 
 
@@ -496,7 +496,7 @@ def test_deactivate_check_sourcing(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
-                assert_in("[DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash.",
+                assert_in("[DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh.",
                     stderr, shell)
 
 
