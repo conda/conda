@@ -21,7 +21,7 @@ BEGIN {}
     # expect to recieve in this order:
     #  1) "`ps -p $$ | sed 's|.*csh|THIS-IS-CSH|' | grep CSH || echo $0`"
     #  2) "`ps -p $$ | tr '\n' ' '`"
-    #  3) "`test -x /usr/bin/lsb_release && lsb_release -si || uname -s`"
+    #  3) "`test -x /usr/bin/lsb_release && lsb_release -si | sed 's| ||' || uname -s`"
     #  4) "$SHLVL"
     #  5) script's name to compare $0 against
     #  6) what clause/mode (detected above)
@@ -81,6 +81,9 @@ BEGIN {}
          (sh == ".-/bin/posh"))) {
         exit(clause != 2)
     }
+    # special corner cases tests are done here (and for
+    # csh and tcsh) to address the oddities of Ubuntu vs.
+    # Mac vs. other Linux distibutions
     if ((match(sz,sn) == 0)                             &&
         ((sh == ".sh" && sy != "Ubuntu")                ||
          (sh == ".-sh" && sy == "Darwin" && sl == "1")  ||
