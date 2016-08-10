@@ -1,7 +1,9 @@
 import json
 import os
 import unittest
+import tempfile
 import subprocess
+
 environment_1 = '''
 name: env-1
 dependencies:
@@ -120,18 +122,50 @@ class NewIntegrationTest(unittest.TestCase):
     """
 
     def test_conda_env_help(self):
+        """
+            Test functionality of conda env --help
+        """
         o, e, s = run("conda env --help")
         self.assertEqual(0, s, o)
 
     def test_create_env(self):
+        """
+            Test conda create env and conda env remove env
+        """
         if env_is_created("snowflakes"):
             o, e, s = run("conda env remove --yes --name snowflakes")
             self.assertEqual(0, s, e)
 
-        o, e, s = run("conda create --yes --name snowflakes biopython")
+        o, e, s = run("conda create --yes --name snowflakes")
         self.assertEqual(0, s, e)
         self.assertTrue(env_is_created("snowflakes"))
 
+        o, e, s = run("conda env remove --yes --name snowflakes")
+        self.assertEqual(0, s, e)
+
+    def test_export(self):
+        """
+            Test conda env
+        """
+        if not env_is_created("snowflakes"):
+            o, e, s = run("conda create --yes --name snowflakes python")
+            self.assertEqual(0, s, e)
+            self.assertTrue(env_is_created("snowflakes"))
+
+        snowflake, e, s = run("conda env export -n snowflakes")
+        self.assertEqual(0, s, e)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix="yml") as env_yaml:
+            env_yaml.write(snowflake)
+            env_yaml.flush()
+            _, e, s = run("conda env remove --yes --name snowflakes")
+            self.assertEqual(0, s, e)
+            o, e, s = run("conda env create -f " + env_yaml.name)
+            self.assertEqual(0, s, e)
+            self.assertTrue(env_is_created("snowflakes"))
+
+        o, e, s = run("conda env remove --yes --name snowflakes")
+        self.assertEqual(0, s, o)
 
 
 if __name__ == '__main__':
