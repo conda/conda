@@ -17,7 +17,8 @@ main_test() {
 
     # conda-build smoke test
     python -m conda config --set auto_update_conda false
-    python -m conda install -y -q conda-build
+    python -m pip install git+https://github.com/conda/conda-build.git
+    # python -m conda install -y -q conda-build
     python -m conda build conda.recipe
 }
 
