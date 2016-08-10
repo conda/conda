@@ -53,7 +53,7 @@ flake8_extras() {
 
 test_extras() {
     python -m pip install -U mock pytest pytest-cov pytest-timeout radon \
-                             responses anaconda-client nbformat jinja2
+                             responses anaconda-client nbformat
 }
 
 
