@@ -15,16 +15,22 @@ main_test() {
     python -m conda info
     python -m pytest --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 
-    # conda-build smoke test
-    python -m conda config --set auto_update_conda false
-    python -m conda install -q -y patchelf
-    python -m pip install git+https://github.com/conda/conda-build.git
-    # python -m conda install -y -q conda-build
-    python -m conda build conda.recipe
 }
 
 flake8_test() {
     python -m flake8 --statistics
+}
+
+conda_build_test() {
+    curl http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o ~/miniconda.sh
+    bash ~/miniconda.sh -bfp ~/miniconda
+    export PATH=~/miniconda/bin:$PATH
+    hash -r
+    which -a conda
+    conda install -y -q jinja2 patchelf pip
+    which -a pip
+    pip install git+https://github.com/conda/conda-build.git
+    conda build conda.recipe
 }
 
 which -a python
@@ -32,6 +38,8 @@ env | sort
 
 if [[ $FLAKE8 == true ]]; then
     flake8_test
+elif [[ $CONDA_BUILD == true ]]; then
+    conda_build_test
 else
     main_test
 fi
