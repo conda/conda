@@ -57,10 +57,25 @@ test_extras() {
 }
 
 
-main_install
+miniconda_install() {
+    curl http://repo.continuum.io/miniconda/Miniconda3-4.0.5-Linux-x86_64.sh -o ~/miniconda.sh
+    bash ~/miniconda.sh -bfp ~/miniconda
+    export PATH=~/miniconda/bin:$PATH
+    hash -r
+    which -a conda
+    conda info
+    conda install -y -q pip
+    which -a pip
+}
+
 
 if [[ $FLAKE8 == true ]]; then
     flake8_extras
+    main_install
+elif [[ $CONDA_BUILD == true ]]; then
+    miniconda_install
 else
     test_extras
+    main_install
+
 fi
