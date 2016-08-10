@@ -284,6 +284,9 @@ PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # will leave it unchanged
                       'anaconda3')
 
+# backwards compatibility for conda-build
+prefix_placeholder = PREFIX_PLACEHOLDER
+
 
 def read_has_prefix(path):
     """
