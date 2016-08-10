@@ -11,7 +11,7 @@ main_test() {
     python -m conda info
     python -m pytest --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
     python -m conda install -y -q conda-build
-    # set +x
+    python -m conda config --set auto_update_conda false
     python -m conda build conda.recipe
 }
 
