@@ -21,6 +21,7 @@ These API functions have argument names referring to:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from itertools import chain
 
 from collections import namedtuple
@@ -51,7 +52,7 @@ from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
-from .utils import backoff_unlink, exp_backoff_fn, on_win
+from .utils import backoff_unlink, exp_backoff_fn, on_win, recursive_make_writable, backoff_rmdir
 
 if on_win:
     import ctypes
@@ -204,43 +205,19 @@ def rm_rf(path, max_retries=5, trash=True):
                 log.warn("Failed to remove %s.", path)
 
     elif isdir(path):
-        # On Windows, always move to trash first.
-        if trash and on_win and move_path_to_trash(path, preclean=False):
-            return
-
         try:
-            for i in range(max_retries):
-                try:
-                    shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
-                    return
-                except OSError as e:
-                    if trash and move_path_to_trash(path):
-                        return
-                    msg = "Unable to delete %s\n%s\n" % (path, e)
-                    if on_win:
-                        try:
-                            shutil.rmtree(path, onerror=_remove_readonly)
-                            return
-                        except OSError as e1:
-                            msg += "Retry with onerror failed (%s)\n" % e1
-
-                        p = subprocess.Popen(['cmd', '/c', 'rd', '/s', '/q', path],
-                                             stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE)
-                        (stdout, stderr) = p.communicate()
-                        if p.returncode != 0:
-                            msg += '%s\n%s\n' % (stdout, stderr)
-                        else:
-                            if not isdir(path):
-                                return
-                    log.debug(msg + "Retrying after %s seconds..." % i)
-                    time.sleep(i)
-            # Final time. pass exceptions to caller.
-            shutil.rmtree(path, ignore_errors=False, onerror=warn_failed_remove)
+            # On Windows, always move to trash first.
+            if trash and on_win and move_path_to_trash(path, preclean=False):
+                return
+            else:
+                backoff_rmdir(path)
         finally:
             # If path was removed, ensure it's not in linked_data_
             if not isdir(path):
                 delete_linked_data_any(path)
+    else:
+        log.error("This should never happen for path: %s", path)
+        raise ThisShouldNeverHappenError()
 
 
 def rm_empty_dir(path):
@@ -985,10 +962,10 @@ def delete_trash(prefix=None):
         if not isdir(trash_dir):
             continue
         try:
-            log.debug("Trying to delete the trash dir %s" % trash_dir)
-            rm_rf(trash_dir, max_retries=1, trash=False)
-        except OSError as e:
-            log.debug("Could not delete the trash dir %s (%s)" % (trash_dir, e))
+            log.debug("Trying to delete the trash dir %s", trash_dir)
+            backoff_rmdir(trash_dir)
+        except (IOError, OSError) as e:
+            log.info("Could not delete the trash dir %s\n%r", trash_dir, e)
 
 
 def move_to_trash(prefix, f, tempdir=None):
@@ -1024,9 +1001,9 @@ def move_path_to_trash(path, preclean=True):
         try:
             os.rename(path, trash_file)
         except OSError as e:
-            log.debug("Could not move %s to %s (%s)" % (path, trash_file, e))
+            log.debug("Could not move %s to %s (%s)", path, trash_file, e)
         else:
-            log.debug("Moved to trash: %s" % (path,))
+            log.debug("Moved to trash: %s", path)
             delete_linked_data_any(path)
             if not preclean:
                 rm_rf(trash_file, max_retries=1, trash=False)

@@ -1,4 +1,4 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import collections
 import errno
@@ -6,15 +6,19 @@ import hashlib
 import logging
 import os
 import re
+import shutil
 import sys
-import time
 import threading
+import time
 from functools import partial
-from os.path import isdir, join, basename, exists
-# conda build import
+from itertools import chain
+from os import chmod
+from os.path import basename, exists, isdir, join
+from stat import S_IWRITE
+
 from .common.url import path_to_url
+
 log = logging.getLogger(__name__)
-stderrlog = logging.getLogger('stderrlog')
 
 on_win = bool(sys.platform == "win32")
 
@@ -122,13 +126,49 @@ def try_write(dir_path, heavy=False):
         return os.access(dir_path, os.W_OK)
 
 
-def backoff_unlink(path):
+def backoff_unlink(file_or_symlink_path):
     try:
-        exp_backoff_fn(lambda f: exists(f) and os.unlink(f), path)
+        exp_backoff_fn(lambda f: exists(f) and os.unlink(f), file_or_symlink_path)
     except (IOError, OSError) as e:
         if e.errno not in (errno.ENOENT,):
             # errno.ENOENT File not found error / No such file or directory
             raise
+
+
+def backoff_rmdir(dirpath):
+    if not isdir(dirpath):
+        return
+
+    recursive_make_writable(dirpath)
+
+    def retry(func, path):
+        recursive_make_writable(path)
+        exp_backoff_fn(func, path)
+
+    # shutil:
+    #   if onerror is set, it is called to handle the error with arguments (func, path, exc_info)
+    #     where func is os.listdir, os.remove, or os.rmdir;
+    #     path is the argument to that function that caused it to fail; and
+    #     exc_info is a tuple returned by sys.exc_info().
+    shutil.rmtree(dirpath, onerror=retry)
+
+
+def recursive_make_writable(path):
+    # The need for this function was pointed out at
+    #   https://github.com/conda/conda/issues/3266#issuecomment-239241915
+    # Especially on windows, file removal will often fail because it is marked read-only
+    if isdir(path):
+        for root, dirs, files in os.walk(path):
+            for path in chain.from_iterable((files, dirs)):
+                try:
+                    exp_backoff_fn(chmod, join(root, path), S_IWRITE)
+                except (IOError, OSError) as e:
+                    if e.errno == errno.ENOENT:
+                        log.debug("no such file or directory: %s", path)
+                    else:
+                        raise
+    else:
+        exp_backoff_fn(chmod, path, S_IWRITE)
 
 
 def hashsum_file(path, mode='md5'):
