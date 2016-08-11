@@ -5,7 +5,7 @@
 
 ### Bug Fixes
 * allow conda to downgrade itself (#3273)
-* fix breaking changes to conda-build compatibility (#3265)
+* fix breaking changes to conda-build from 4.2.2 (#3265)
 * fix empty environment issues with conda and conda-env (#3269)
 
 ### Non-User-Facing Changes
