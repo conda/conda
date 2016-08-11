@@ -53,7 +53,7 @@ class EnvironmentFileNotDownloaded(CondaEnvRuntimeError):
         super(EnvironmentFileNotDownloaded, self).__init__(msg, *args, **kwargs)
 
 
-class SpecNotFound(CondaRuntimeError):
+class SpecNotFound(CondaEnvRuntimeError):
     def __init__(self, msg, *args, **kwargs):
         super(SpecNotFound, self).__init__(msg, *args, **kwargs)
 
