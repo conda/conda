@@ -20,7 +20,7 @@ from conda.cli.main import generate_parser
 environment_1 = '''
 name: env-1
 dependencies:
-  - ojota
+  - python
 channels:
   - malev
 '''
@@ -28,7 +28,7 @@ channels:
 environment_2 = '''
 name: env-1
 dependencies:
-  - ojota
+  - python
   - flask
 channels:
   - malev
