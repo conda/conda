@@ -24,6 +24,7 @@ conda_build_test() {
     python setup.py install
     conda install -y -q jinja2 patchelf
     pip install git+https://github.com/conda/conda-build.git
+    conda config --add channels conda-canary
     conda build conda.recipe
 }
 
