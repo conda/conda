@@ -86,8 +86,8 @@ def execute(args, parser):
         if args.prefix is None and args.name is None:
             args.name = env.name
 
-    except exceptions.SpecNotFound as e:
-        error_and_exit(str(e), json=args.json)
+    except exceptions.SpecNotFound:
+        raise
 
     prefix = get_prefix(args, search=False)
 
