@@ -196,10 +196,12 @@ def rm_rf(path, max_retries=5, trash=True):
         try:
             backoff_unlink(path)
             return
-        except (OSError, IOError):
-            log.warn("Cannot remove, permission denied: {0}".format(path))
+        except (OSError, IOError) as e:
+            log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
             if trash and move_path_to_trash(path):
                 return
+            else:
+                log.warn("Failed to remove %s.", path)
 
     elif isdir(path):
         # On Windows, always move to trash first.
@@ -281,6 +283,9 @@ PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # such that running this program on itself
                       # will leave it unchanged
                       'anaconda3')
+
+# backwards compatibility for conda-build
+prefix_placeholder = PREFIX_PLACEHOLDER
 
 
 def read_has_prefix(path):

@@ -27,6 +27,10 @@ matrix:
       language: python
     - os: osx
       env: PYTHON_VERSION=3.5
+    - python: '3.5'
+      env: CONDA_BUILD=true
+      os: linux
+      language: python
 
 install:
   - which -a python

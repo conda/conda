@@ -29,6 +29,7 @@ src_dir = os.path.join(here, "conda")
 sys.path.insert(0, src_dir)
 
 import conda  # NOQA
+from conda._vendor.auxlib import packaging  # NOQA
 
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
@@ -69,16 +70,16 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests",
-                                                                   "tests.*",
-                                                                   "build",
-                                                                   "utils",
-                                                                   ".tox")),
+    packages=packaging.find_packages(exclude=("tests",
+                                              "tests.*",
+                                              "build",
+                                              "utils",
+                                              ".tox")),
     cmdclass={
-        'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
-        'sdist': conda._vendor.auxlib.packaging.SDistCommand,
+        'build_py': packaging.BuildPyCommand,
+        'sdist': packaging.SDistCommand,
     },
-    install_requires=install_requires,
+    install_requires=[],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
