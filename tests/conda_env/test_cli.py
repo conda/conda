@@ -91,7 +91,8 @@ class IntegrationTest(unittest.TestCase):
         # smoke test for gh-254
         create_env(environment_1)
         o, e, s = run('conda env create -n new-env create')
-        self.assertEqual(1, s, e)
+        from conda_env.exceptions import SpecNotFound
+        self.assertRaises(SpecNotFound)
 
 
 def env_is_created(env_name):
@@ -172,7 +173,7 @@ class NewIntegrationTest(unittest.TestCase):
             Test conda env
         """
         if not env_is_created("snowflakes"):
-            o, e, s = run("conda create --yes --name snowflakes python")
+            o, e, s = run("conda create --yes --name snowflakes")
             self.assertEqual(0, s, e)
             self.assertTrue(env_is_created("snowflakes"))
 
