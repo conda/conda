@@ -111,7 +111,7 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.lower()):
+    for dist in sorted(installed, key=lambda x: name_dist(x).lower()):
         name = name_dist(dist)
         if pat and pat.search(name) is None:
             continue
