@@ -201,39 +201,6 @@ def test_activate_deactivate(shell):
 
 
 @pytest.mark.slow
-def test_activate_deactivate_with_nounset_errexit(shell):
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        set -o nounset
-        set -o errexit
-        {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
-        {source} "{syspath}{binpath}deactivate"
-        {printpath}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-
-        stdout, stderr = run_in(commands, shell)
-        stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_equals(stdout, u"%s" % shell_vars['base_path'])
-
-@pytest.mark.slow
-def test_activate_deactivate_noninteractive(shell):
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        set -o nounset
-        set -o errexit
-        unset PS1
-        {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
-        {source} "{syspath}{binpath}deactivate"
-        {printpath}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-
-        stdout, stderr = run_in(commands, shell)
-        stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_equals(stdout, u"%s" % shell_vars['base_path'])
-
-@pytest.mark.slow
 def test_activate_root(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
