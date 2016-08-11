@@ -1,12 +1,16 @@
 from conda import CondaError
+from conda.exceptions import CondaRuntimeError
 
 
 class CondaEnvException(CondaError):
-    pass
+    def __init__(self, message, *args, **kwargs):
+        msg = "Conda Env Exception: %s" % message
+        super(CondaEnvException, self).__init__(msg, *args, **kwargs)
 
 
-class CondaEnvRuntimeError(RuntimeError, CondaEnvException):
-    pass
+class CondaEnvRuntimeError(CondaRuntimeError):
+    def __init__(self, msg, *args, **kwargs):
+        super(CondaEnvRuntimeError, self).__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileNotFound(CondaEnvException):
@@ -49,7 +53,7 @@ class EnvironmentFileNotDownloaded(CondaEnvRuntimeError):
         super(EnvironmentFileNotDownloaded, self).__init__(msg, *args, **kwargs)
 
 
-class SpecNotFound(CondaEnvRuntimeError):
+class SpecNotFound(CondaRuntimeError):
     def __init__(self, msg, *args, **kwargs):
         super(SpecNotFound, self).__init__(msg, *args, **kwargs)
 
