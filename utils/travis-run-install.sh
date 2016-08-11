@@ -73,7 +73,7 @@ miniconda_install() {
 if [[ $FLAKE8 == true ]]; then
     main_install
     flake8_extras
-elif [[ $CONDA_BUILD == true ]]; then
+elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
 else
     main_install
