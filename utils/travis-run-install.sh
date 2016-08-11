@@ -71,12 +71,11 @@ miniconda_install() {
 
 
 if [[ $FLAKE8 == true ]]; then
-    flake8_extras
     main_install
+    flake8_extras
 elif [[ $CONDA_BUILD == true ]]; then
     miniconda_install
 else
-    test_extras
     main_install
-
+    test_extras
 fi
