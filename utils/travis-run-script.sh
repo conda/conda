@@ -20,7 +20,7 @@ flake8_test() {
     python -m flake8 --statistics
 }
 
-conda_build_test() {
+conda_build_smoke_test() {
     python setup.py install
     conda install -y -q jinja2 patchelf
     pip install git+https://github.com/conda/conda-build.git@$CONDA_BUILD
@@ -29,6 +29,13 @@ conda_build_test() {
     conda build conda.recipe
 }
 
+conda_build_unit_test() {
+    git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
+    pushd conda-build
+    python setup.py install
+    conda install -y -q pytest pytest-cov mock anaconda-client
+    python -m pytest tests
+}
 
 which -a python
 env | sort
@@ -36,7 +43,10 @@ env | sort
 if [[ $FLAKE8 == true ]]; then
     flake8_test
 elif [[ -n $CONDA_BUILD ]]; then
-    conda_build_test
+    conda_build_smoke_test
+    if [[ $CONDA_BUILD == 1.21.11 ]]; then
+        conda_build_unit_test
+    fi
 else
     main_test
 fi

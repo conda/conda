@@ -112,10 +112,10 @@ class DirectoryLock(FileLock):
         # e.g. if locking directory `/conda`, lock file will be `/conda/conda.pidXXXX.conda_lock`
         self.lock_file_glob_str = "%s.pid*.%s" % (lock_path_pre, LOCK_EXTENSION)
         assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
-        assert os.access(self.directory_path, os.W_OK), "%s not writable" % self.directory_path
         if not isdir(self.directory_path):
             os.makedirs(self.directory_path, exist_ok=True)
             log.debug("forced to create %s", self.directory_path)
+        assert os.access(self.directory_path, os.W_OK), "%s not writable" % self.directory_path
 
 
 Locked = DirectoryLock
