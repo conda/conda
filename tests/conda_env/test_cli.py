@@ -240,7 +240,7 @@ class NewIntegrationTest(unittest.TestCase):
 
     def test_export(self):
         """
-            Test conda env
+            Test conda env export
         """
 
         run_conda_command(Commands.CREATE, test_env_name_2, "flask")
@@ -258,7 +258,7 @@ class NewIntegrationTest(unittest.TestCase):
 
     def test_list(self):
         """
-            Test conda env
+            Test conda list -e and conda create from txt
         """
 
         run_conda_command(Commands.CREATE, test_env_name_2)
