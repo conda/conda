@@ -99,6 +99,12 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
+    # special case for empty environment
+    if not env.dependencies:
+        from conda.install import symlink_conda
+        from conda.base.context import context
+        symlink_conda(prefix, context.root_dir)
+
     for installer_type, pkg_specs in env.dependencies.items():
         try:
             installer = get_installer(installer_type)
