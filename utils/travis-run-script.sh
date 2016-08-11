@@ -23,7 +23,7 @@ flake8_test() {
 conda_build_test() {
     python setup.py install
     conda install -y -q jinja2 patchelf
-    pip install git+https://github.com/conda/conda-build.git
+    pip install git+https://github.com/conda/conda-build.git@$CONDA_BUILD
     conda config --add channels conda-canary
     conda build conda.recipe
 }
@@ -34,7 +34,7 @@ env | sort
 
 if [[ $FLAKE8 == true ]]; then
     flake8_test
-elif [[ $CONDA_BUILD == true ]]; then
+elif [[ -n $CONDA_BUILD ]]; then
     conda_build_test
 else
     main_test
