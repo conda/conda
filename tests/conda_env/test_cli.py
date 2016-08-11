@@ -248,9 +248,10 @@ class NewIntegrationTest(unittest.TestCase):
 
         snowflake, e,  = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="yml") as env_yaml:
+        with tempfile.NamedTemporaryFile(mode="w", suffix="yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
+            env_yaml.close()
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
             run_env_command(Commands.ENV_CREATE, env_yaml.name)
@@ -266,9 +267,10 @@ class NewIntegrationTest(unittest.TestCase):
 
         snowflake, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="txt") as env_txt:
+        with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
             env_txt.write(snowflake)
             env_txt.flush()
+            env_txt.close()
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
             run_conda_command(Commands.CREATE, test_env_name_2, "--file " + env_txt.name)
