@@ -29,7 +29,7 @@ src_dir = os.path.join(here, "conda")
 sys.path.insert(0, src_dir)
 
 import conda  # NOQA
-from conda._vendor.auxlib import packaging
+from conda._vendor.auxlib import packaging  # NOQA
 
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
