@@ -1,4 +1,7 @@
-class CondaEnvException(Exception):
+from conda import CondaError
+
+
+class CondaEnvException(CondaError):
     pass
 
 
