@@ -559,7 +559,7 @@ class IntegrationTests(TestCase):
 
                 # make sure that cleanup without specifying --shortcuts still removes shortcuts
                 run_command(Commands.REMOVE, prefix, 'console_shortcut')
-
+                assert not package_is_installed(prefix, 'console_shortcut')
                 assert not isfile(shortcut_file)
         finally:
             rmtree(prefix, ignore_errors=True)
