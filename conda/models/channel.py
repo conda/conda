@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import OrderedDict
 from itertools import chain
 from logging import getLogger
-from os.path import exists, join
+from os.path import join
 
 from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
 from ..base.context import context
@@ -12,6 +12,11 @@ from ..common.compat import with_metaclass
 from ..common.url import is_url, path_to_url, urlparse, urlunparse
 
 log = getLogger(__name__)
+
+
+# backward compatibility for conda-build
+def get_conda_build_local_url():
+    return context.local_build_root
 
 
 def has_scheme(value):

@@ -50,16 +50,6 @@ else:
     subdir = '%s-%d' % (platform, bits)
 
 
-
-def get_local():
-    _bld_root_env = os.getenv('CONDA_BLD_PATH')
-    if _bld_root_env:
-        croot = abspath(expanduser(_bld_root_env))
-    elif root_writable:
-        croot = join(root_dir, 'conda-bld')
-    else:
-        croot = abspath(expanduser('~/conda-bld'))
-
 class Context(Configuration):
 
     arch_name = property(lambda self: arch_name)
