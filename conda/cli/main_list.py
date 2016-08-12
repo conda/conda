@@ -128,7 +128,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist2quad(dist)))
+            result.append('='.join(dist2quad(dist)[:3]))
             continue
 
         try:
