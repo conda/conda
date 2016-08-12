@@ -20,14 +20,16 @@ flake8_test() {
     python -m flake8 --statistics
 }
 
-conda_build_test() {
-    python setup.py install
-    conda install -y -q jinja2 patchelf
-    pip install git+https://github.com/conda/conda-build.git@$CONDA_BUILD
+conda_build_smoke_test() {
     conda config --add channels conda-canary
     conda build conda.recipe
 }
 
+conda_build_unit_test() {
+    pushd conda-build
+    python -m pytest tests
+    popd
+}
 
 which -a python
 env | sort
@@ -35,7 +37,10 @@ env | sort
 if [[ $FLAKE8 == true ]]; then
     flake8_test
 elif [[ -n $CONDA_BUILD ]]; then
-    conda_build_test
+    conda_build_smoke_test
+    if [[ $CONDA_BUILD == master ]]; then
+        conda_build_unit_test
+    fi
 else
     main_test
 fi

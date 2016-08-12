@@ -3,8 +3,7 @@ from __future__ import print_function, division, absolute_import
 from distutils.sysconfig import get_python_lib
 from logging import getLogger
 from os import chdir, getcwd
-from os.path import (abspath, dirname, exists, expanduser, expandvars, isdir, isfile, join,
-                     normpath, sep)
+from os.path import abspath, dirname, exists, expanduser, expandvars, isdir, isfile, join, sep
 try:
     import pkg_resources
 except ImportError:
@@ -95,7 +94,7 @@ def find_file_in_site_packages(file_path, package_name):
 
 
 def expand(path):
-    return normpath(expanduser(expandvars(path)))
+    return abspath(expanduser(expandvars(path)))
 
 
 def absdirname(path):
