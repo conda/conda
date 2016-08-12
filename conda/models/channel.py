@@ -16,7 +16,7 @@ log = getLogger(__name__)
 
 # backward compatibility for conda-build
 def get_conda_build_local_url():
-    return [context.local_build_root]
+    return context.local_build_root,
 
 
 def has_scheme(value):
