@@ -186,6 +186,8 @@ def prioritize_channels(channels):
     for q, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls:
+            if url in result:
+                continue
             result[url] = channel.canonical_name, q
     return result
 
