@@ -16,6 +16,11 @@ from ..install import dist2quad
 from ..resolve import MatchSpec
 from ..utils import memoize
 
+# for conda-build 1.21.11 compatibility only
+from conda.base.context import get_prefix as context_get_prefix
+from functools import partial
+get_prefix = partial(context_get_prefix, context)
+
 
 class Completer(object):
     """

@@ -67,6 +67,9 @@ user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 
 
+get_rc_urls = lambda: context.channels
+
+
 class RC(object):
 
     def get(self, key, default=None):
