@@ -186,10 +186,10 @@ def install(args, parser, command='install'):
     specs = []
     if args.file:
         for fpath in args.file:
-            file_spec= common.specs_from_url(fpath, json=args.json)
+            file_spec=common.specs_from_url(fpath, json=args.json)
             for s in file_spec:
                 part = s.split()
-                if len(part) < 4 :
+                if len(part) < 4:
                     specs.append(s)
                 else:
                     specs.append(" ".join(part[:3]))
