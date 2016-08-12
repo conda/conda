@@ -1,5 +1,8 @@
+# {% set setup_py_data = load_setup_py_data() %}
+
 package:
   name: conda
+  # version: "{{ setup_py_data.version }}"
 
 source:
   path: ../
@@ -20,11 +23,8 @@ build:
     - bin/envvar_cleanup.awk    [unix]
     - Scripts/activate.bat      [win]
     - Scripts/deactivate.bat    [win]
-    # TODO: are these needed?  They currently break packaging, since these files don't exist yet at build time
-    # - Scripts/activate          [win]
-    # - Scripts/deactivate        [win]
-    # TODO: what about fish and powershell?
-
+    - Scripts/activate          [win]
+    - Scripts/deactivate        [win]
   entry_points:
     - conda = conda.cli:main
     - conda-env = conda_env.cli.main:main
@@ -32,7 +32,6 @@ build:
 requirements:
   build:
     - python
-    - pycosat >=0.6.1
   run:
     - python
     - conda-env >=2.6
@@ -43,23 +42,22 @@ requirements:
     - ruamel_yaml >=0.11.14
 
 test:
-  requires:
-    - pycrypto
-    - pytest
-    - pytest-cov
+  imports:
+    - conda
   commands:
     - conda --version
     - conda info
-#    - pip install pytest-timeout
-#    - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || pushd $SRC_DIR && make clean-all && popd
-#    - python -c "from platform import system as s; import sys; sys.exit(int(s()!='Windows'))" || py.test -c $SRC_DIR/setup.cfg $SRC_DIR/tests/ || true
-#    # - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || pushd %SRC_DIR% && make clean-all && popd
-#    - python -c "from platform import system as s; import sys; sys.exit(int(s()=='Windows'))" || py.test -c %SRC_DIR%/setup.cfg %SRC_DIR%/tests/ || true
-#  imports:
-#    - conda
 
 about:
   home: http://conda.pydata.org/
   license: BSD
   license_file: LICENSE.txt
-  summary: OS-agnostic, system-level binary package manager.
+  summary: OS-agnostic, system-level binary package and environment manager.
+  description: |
+    Conda is an open source package management system and environment
+    management system for installing multiple versions of software packages
+    and their dependencies and switching easily between them. It works on
+    Linux, OS X and Windows, and was created for Python programs but can
+    package and distribute any software.
+  doc_url: http://conda.pydata.org/docs/
+  dev_url: https://github.com/conda/conda

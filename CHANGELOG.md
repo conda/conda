@@ -1,3 +1,18 @@
+## 4.2.3 (2016-08-11)
+
+### Improvements
+* added zsh and zsh.exe to Windows shells (#3257)
+
+### Bug Fixes
+* allow conda to downgrade itself (#3273)
+* fix breaking changes to conda-build from 4.2.2 (#3265)
+* fix empty environment issues with conda and conda-env (#3269)
+
+### Non-User-Facing Changes
+* add integration tests for conda-env (#3270)
+* add more conda-build smoke tests (#3274)
+
+
 ## 4.2.2 (2016-08-09)
 
 ### Improvements

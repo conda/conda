@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+from conda._vendor.auxlib.path import expand
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
@@ -18,7 +19,6 @@ from ..common.url import urlparse
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
-stderrlog = getLogger('stderrlog')
 
 
 default_python = '%d.%d' % sys.version_info[:2]
@@ -62,8 +62,6 @@ class Context(Configuration):
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
-    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
-                                        parameter_type=(bool, NoneType))
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
@@ -90,6 +88,20 @@ class Context(Configuration):
     show_channel_urls = PrimitiveParameter(None, parameter_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
     verbosity = PrimitiveParameter(0, aliases=('verbose',), parameter_type=int)
+
+    # conda_build
+    bld_path = PrimitiveParameter('')
+    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
+                                        parameter_type=(bool, NoneType))
+
+    @property
+    def local_build_root(self):
+        if self.bld_path:
+            return expand(self.bld_path)
+        elif self.root_writable:
+            return join(self.root_dir, 'conda-bld')
+        else:
+            return expand('~/conda-bld')
 
     @property
     def force_32bit(self):
@@ -243,11 +255,11 @@ def get_help_dict():
 
 
 def get_prefix(ctx, args, search=True):
-    """
-        Get the prefix
+    """Get the prefix to operate in
+
     Args:
         ctx: the context of conda
-        args: the args from command line
+        args: the argparse args from the command line
         search: whether search for prefix
 
     Returns: the prefix

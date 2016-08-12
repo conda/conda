@@ -111,7 +111,7 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.lower()):
+    for dist in sorted(installed, key=lambda x: name_dist(x).lower()):
         name = name_dist(dist)
         if pat and pat.search(name) is None:
             continue
@@ -121,11 +121,9 @@ def get_packages(installed, regex):
 
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=context.show_channel_urls):
-    res = 1
-
+    res = 0
     result = []
     for dist in get_packages(installed, regex):
-        res = 0
         if format == 'canonical':
             result.append(dist)
             continue

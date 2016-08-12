@@ -56,14 +56,43 @@ flake8_extras() {
 
 
 test_extras() {
-    python -m pip install -U mock pytest pytest-cov pytest-timeout radon responses anaconda-client nbformat
+    python -m pip install -U mock pytest pytest-cov pytest-timeout radon \
+                             responses anaconda-client nbformat
 }
 
 
-main_install
+miniconda_install() {
+    curl http://repo.continuum.io/miniconda/Miniconda3-4.0.5-Linux-x86_64.sh -o ~/miniconda.sh
+    bash ~/miniconda.sh -bfp ~/miniconda
+    export PATH=~/miniconda/bin:$PATH
+    hash -r
+    which -a conda
+    conda info
+    conda install -y -q pip
+    which -a pip
+    conda config --set auto_update_conda false
+}
+
+
+conda_build_install() {
+    python setup.py install
+    conda install -y -q jinja2 patchelf
+    git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
+    pushd conda-build
+    python setup.py install
+    conda info
+    conda install -y -q pytest pytest-cov mock anaconda-client
+    popd
+}
+
 
 if [[ $FLAKE8 == true ]]; then
+    main_install
     flake8_extras
+elif [[ -n $CONDA_BUILD ]]; then
+    miniconda_install
+    conda_build_install
 else
+    main_install
     test_extras
 fi

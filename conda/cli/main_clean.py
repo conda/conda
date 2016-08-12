@@ -349,6 +349,7 @@ def rm_index_cache():
 
     rm_rf(join(context.pkgs_dirs[0], 'cache'))
 
+
 def find_source_cache():
     try:
         import conda_build.source
@@ -409,6 +410,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     for dir in cache_dirs.values():
         print("Removing %s" % dir)
         rm_rf(dir)
+
 
 def execute(args, parser):
     json_result = {
