@@ -199,6 +199,9 @@ def install(args, parser, command='install'):
 
     if isinstall and args.revision:
         get_revision(args.revision, json=args.json)
+    elif isinstall and not (args.file or args.packages):
+        raise CondaValueError("too few arguments, "
+                              "must supply command line package specs or --file")
 
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
