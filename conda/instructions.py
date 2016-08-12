@@ -1,20 +1,18 @@
 from __future__ import absolute_import, division, print_function
 
+import ctypes
+import os
+import tarfile
 from logging import getLogger
+from os import access, W_OK
+from os.path import isdir, join, dirname, exists, isfile
 
 from .base.context import context
-
 from .exceptions import CondaIOError, CondaFileIOError
 from .fetch import fetch_pkg
 from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
                       link, unlink, symlink_conda, name_dist, yield_lines, load_meta, islink)
 from .utils import on_win, Once
-from os.path import isdir, join, dirname, exists, isfile
-from os import access, W_OK
-import os
-import tarfile
-import ctypes
-
 
 log = getLogger(__name__)
 
@@ -296,8 +294,9 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         cmd(state, arg)
 
-        if (state['i'] is not None and instruction in progress_cmds and
-                    state['maxval'] == state['i']):
+        if all(state['i'] is not None,
+               instruction in progress_cmds,
+               state['maxval'] == state['i']):
             state['i'] = None
             getLogger('progress.stop').info(None)
 
