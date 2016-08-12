@@ -469,7 +469,7 @@ spec_pat = re.compile(r'''
 (?P<name>[^=<>!\s]+)               # package name
 \s*                                # ignore spaces
 (
-  (?P<cc>=[^=]+(=[^=]+)?)          # conda constraint
+  (?P<cc>=[^=]+(=[^=]+)?(=[^=]+)?)          # conda constraint
   |
   (?P<pc>(?:[=!]=|[><]=?).+)       # new (pip-style) constraint(s)
 )?
