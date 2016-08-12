@@ -20,10 +20,6 @@ case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
         export MSYS2_ENV_CONV_EXCL=CONDA_PATH
-        # ignore any windows backup paths from bat-based activation
-        if [ $(echo "${CONDA_PATH_BACKUP}" | awk '{exit(match($0,/\/.*/) != 0)}') ]; then
-           unset CONDA_PATH_BACKUP
-        fi
         ;;
     *)
         EXT=""
@@ -132,9 +128,8 @@ unset CONDA_VERBOSE_TMP
 
 _CONDA_BIN=$(conda ..activate ${_CONDA_BIN} "${CONDA_ENVNAME}" | sed 's| |\ |')
 if [ $? = 0 ]; then
-    # CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
+    # CONDA_PS1_BACKUP
     # export these to restore upon deactivation
-    export CONDA_PATH_BACKUP="${PATH}"
     export CONDA_PS1_BACKUP="${PS1}"
 
     # PATH

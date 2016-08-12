@@ -14,10 +14,6 @@ switch ( `uname -s` )
     case "MSYS*":
         set EXT=".exe"
         setenv MSYS2_ENV_CONV_EXCL CONDA_PATH
-        # ignore any windows backup paths from bat-based activation
-        if ( `echo "${CONDA_PATH_BACKUP}" | awk '{exit(match($0,/\/.*/) != 0)}'` ) then
-           unset CONDA_PATH_BACKUP
-        endif
         breaksw
     default:
         set EXT=""
@@ -131,10 +127,8 @@ unset CONDA_VERBOSE_TMP
 
 set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${CONDA_ENVNAME}" | sed 's| |\ |g'`
 if ( $status == 0 ) then
-    # CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
+    # CONDA_PS1_BACKUP
     # export these to restore upon deactivation
-    setenv CONDA_PATH_BACKUP "${PATH}"
-    setenv CONDA_path_BACKUP "${path}"
     setenv CONDA_PS1_BACKUP "${prompt}"
 
     # PATH

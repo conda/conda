@@ -14,10 +14,6 @@ switch ( `uname -s` )
     case "MSYS*":
         set EXT=".exe"
         setenv MSYS2_ENV_CONV_EXCL CONDA_PATH
-        # ignore any windows backup paths from bat-based activation
-        if ( `echo "${CONDA_PATH_BACKUP}" | awk '{exit(match($0,/\/.*/) != 0)}'` ) then
-           unset CONDA_PATH_BACKUP
-        endif
         breaksw
     default:
         set EXT=""
@@ -98,8 +94,8 @@ unset UNKNOWN
 # determine if there is anything to deactivate and deactivate
 # accordingly
 ######################################################################
-if ( $?CONDA_PATH_BACKUP ) then
-    if ( "${CONDA_PATH_BACKUP}" != "" ) then
+if ( $?CONDA_DEFAULT_ENV ) then
+    if ( "${CONDA_DEFAULT_ENV}" != "" ) then
         # unload post-activate scripts
         # scripts found in $CONDA_PREFIX/etc/conda/deactivate.d
         set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/deactivate.d"
@@ -117,17 +113,16 @@ if ( $?CONDA_PATH_BACKUP ) then
         # remove CONDA_DEFAULT_ENV
         unsetenv CONDA_DEFAULT_ENV
 
+        # remove only first instance of CONDA_PREFIX from PATH
+        set path=(`envvar_cleanup.sh "${path}" -r "${CONDA_PREFIX}/bin" --delim=" "`)
+        set PATH=(`envvar_cleanup.sh "${PATH}" -r "${CONDA_PREFIX}/bin"`)
+        unset TMP_PATH
+
         # remove CONDA_PREFIX
         unsetenv CONDA_PREFIX
 
-        # restore PATH
-        set path=(${CONDA_path_BACKUP})
-        set PATH=(${CONDA_PATH_BACKUP})
-
-        # remove CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
+        # remove CONDA_PS1_BACKUP
         unsetenv CONDA_PS1_BACKUP
-        unsetenv CONDA_path_BACKUP
-        unsetenv CONDA_PATH_BACKUP
 
         # csh/tcsh both use rehash
         rehash

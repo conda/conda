@@ -17,6 +17,7 @@ build:
     - bin/deactivate.sh         [unix]
     - bin/deactivate.csh        [unix]
     - bin/whichshell.awk        [unix]
+    - bin/envvar_cleanup.awk    [unix]
     - Scripts/activate.bat      [win]
     - Scripts/deactivate.bat    [win]
     # TODO: are these needed?  They currently break packaging, since these files don't exist yet at build time

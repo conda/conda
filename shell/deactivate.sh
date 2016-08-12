@@ -20,10 +20,6 @@ case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
         export MSYS2_ENV_CONV_EXCL=CONDA_PATH
-        # ignore any windows backup paths from bat-based activation
-        if [ $(echo "${CONDA_PATH_BACKUP}" | awk '{exit(match($0,/\/.*/) != 0)}') ]; then
-           unset CONDA_PATH_BACKUP
-        fi
         ;;
     *)
         EXT=""
@@ -101,7 +97,7 @@ unset UNKNOWN
 # determine if there is anything to deactivate and deactivate
 # accordingly
 ######################################################################
-if [ -n "${CONDA_PATH_BACKUP}" ]; then
+if [ -n "${CONDA_DEFAULT_ENV}" ]; then
     # unload post-activate scripts
     # scripts found in $CONDA_PREFIX/etc/conda/deactivate.d
     _CONDA_DIR="${CONDA_PREFIX}/etc/conda/deactivate.d"
@@ -119,15 +115,14 @@ if [ -n "${CONDA_PATH_BACKUP}" ]; then
     # remove CONDA_DEFAULT_ENV
     unset CONDA_DEFAULT_ENV
 
+    # remove only first instance of CONDA_PREFIX from PATH
+    export PATH=$(envvar_cleanup.sh "${PATH}" -r "${CONDA_PREFIX}/bin")
+
     # remove CONDA_PREFIX
     unset CONDA_PREFIX
 
-    # restore PATH
-    export PATH="${CONDA_PATH_BACKUP}"
-
-    # remove CONDA_PATH_BACKUP,CONDA_PS1_BACKUP
+    # remove CONDA_PS1_BACKUP
     unset CONDA_PS1_BACKUP
-    unset CONDA_PATH_BACKUP
 
     if [ -n "${ZSH_VERSION}" ]; then
         # zsh uses rehash

@@ -40,6 +40,7 @@ scripts = ['shell/activate',
            'shell/deactivate.sh',
            'shell/deactivate.csh',
            'shell/whichshell.awk',
+           'shell/envvar_cleanup.sh',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
