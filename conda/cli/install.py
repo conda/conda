@@ -154,6 +154,9 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
+    if isinstall and not (args.file or args.packages):
+        raise CondaValueError("no package names supplied")
+
     linked = install_linked(prefix)
     lnames = {name_dist(d) for d in linked}
     if isupdate and not args.all:
