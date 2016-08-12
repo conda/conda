@@ -28,6 +28,10 @@ class ExportIntegrationTests(TestCase):
             self.assertEqual(output, output2)
 
     def test_multi_channel(self):
+        """
+            When try to import from txt
+            every package should come from same channel
+        """
         with make_temp_env("python=3") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
