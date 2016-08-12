@@ -216,8 +216,7 @@ def rm_rf(path, max_retries=5, trash=True):
             if not isdir(path):
                 delete_linked_data_any(path)
     else:
-        log.error("This should never happen for path: %s", path)
-        raise ThisShouldNeverHappenError()
+        log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
 
 
 def rm_empty_dir(path):
