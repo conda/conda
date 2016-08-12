@@ -202,60 +202,36 @@ Build identical conda environments
 
 Explicit specification files can be used to build an identical conda environment on the same operating system platform, either on the same machine or a different machine.
 
-The command ``conda list -e`` produces a spec list such as the following:
+The command ``conda list --explicit`` produces a spec list such as the following:
 
 .. code::
 
     # This file may be used to create an environment using:
     # $ conda create --name <env> --file <this file>
     # platform: osx-64
-    astropy=1.0.4=np19py27_0
-    ncurses=5.9=1
-    numpy=1.9.2=py27_0
-    openssl=1.0.1k=1
-    pandas=0.16.2=np19py27_0
-    pip=7.1.2=py27_0
-    python=2.7.10=0
-    python-dateutil=2.4.2=py27_0
-    pytz=2015.4=py27_0
-    readline=6.2.5=1
-    setuptools=18.1=py27_0
-    six=1.9.0=py27_0
-    sqlite=3.8.4.1=1
-    tk=8.5.18=0
-    wheel=0.24.0=py27_0
-    zlib=1.2.8=1
+    @EXPLICIT
+    https://repo.continuum.io/pkgs/free/osx-64/mkl-11.3.3-0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/numpy-1.11.1-py35_0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/openssl-1.0.2h-1.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/pip-8.1.2-py35_0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/python-3.5.2-0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/readline-6.2-2.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/setuptools-25.1.6-py35_0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/sqlite-3.13.0-0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/tk-8.5.18-0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/wheel-0.29.0-py35_0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/xz-5.2.2-0.tar.bz2
+    https://repo.continuum.io/pkgs/free/osx-64/zlib-1.2.8-3.tar.bz2
 
-With the command ``conda list -e > spec-file.txt`` you can create a file containing this spec list in the current working directory. You may use the filename ``spec-file.txt`` or any other filename.
+The command ``conda list --explicit > spec-file.txt`` creates a file containing this spec list in the current working directory. You may use the filename ``spec-file.txt`` or any other filename.
 
-As the comment at the top of the file explains, with the command ``conda create --name MyEnvironment --file spec-file.txt`` you can use the spec file to create a matching environment on the same machine or another machine. Replace ``spec-file.txt`` with whatever file name you chose when you created the file. You may use the environment name ``MyEnvironment`` or substitute any other environment name to give your newly created environment.
+As the comment at the top of the file explains, the command ``conda create --name MyEnvironment --file spec-file.txt`` uses the spec file to create an identical environment on the same machine or another machine.
+
+The command ``conda install --name MyEnvironment --file spec-file.txt`` adds these packages to an existing environment.
 
 NOTE: These explicit spec files are not usually cross platform, and therefore have a comment at the top such as ``# platform: osx-64`` showing the platform where they were created. This platform is the one where this spec file is known to work. On other platforms, the packages specified might not be available or dependencies might be missing for some of the key packages already in the spec.
 
-Build identical conda environments with URLs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If two users have their conda channels set up differently, then they may inadvertently create different environments from the same spec file because conda fetches the packages from different channels. 
-
-To prevent this, starting in version 3.18.2 conda offers an option ``conda list --explicit``, which displays a list of the universal resource locators (URLs) of all conda packages installed in the current environment, as shown by this small example showing only three packages:
-
-.. code::
-
-    # This file may be used to create an environment using:
-    # $ conda create --name <env> --file <this file>
-    # platform: linux-64
-    @EXPLICIT
-    https://repo.continuum.io/pkgs/free/linux-64/xlsxwriter-0.7.5-py27_0.tar.bz2
-    https://repo.continuum.io/pkgs/pro/linux-64/iopro-1.7.1-np19py27_p1.tar.bz2
-    https://repo.continuum.io/pkgs/free/linux-64/python-2.7.10-1.tar.bz2
-
-The command ``conda list --explicit > explicit-spec-file.txt`` creates a file containing this spec list in the current working directory.
-
-As the comment at the top of the file explains, the command ``conda create --name MyEnvironment --file explicit-spec-file.txt`` uses the spec file to create an identical environment on the same machine or another machine.
-
-The command ``conda install --name MyEnvironment --file explicit-spec-file.txt`` adds these packages to an existing environment.
-
-NOTE: Conda does not check architecture or dependencies when installing from an explicit specification file. To ensure the packages work correctly, be sure that the file was created from a working environment and that it is  used on the same architecture, operating system and platform, such as ``linux-64`` or ``osx-64``.
+NOTE: Conda does not check architecture or dependencies when installing from an explicit specification file. To ensure the packages work correctly, be sure that the file was created from a working environment and that it is used on the same architecture, operating system and platform, such as ``linux-64`` or ``osx-64``.
 
 Saved environment variables
 ---------------------------
