@@ -7,11 +7,11 @@
 ###############################################################################
 # local vars
 ###############################################################################
-if [ -n "${ZSH_VERSION}" ]; then
+if [ -n "${ZSH_VERSION+x}" ]; then
     _SHELL="zsh"
-elif [ -n "${BASH_VERSION}" ]; then
+elif [ -n "${BASH_VERSION+x}" ]; then
     _SHELL="bash"
-elif [ -n "${POSH_VERSION}" ]; then
+elif [ -n "${POSH_VERSION+x}" ]; then
     _SHELL="posh"
 else
     _SHELL="dash"
@@ -64,14 +64,14 @@ done
 unset num
 unset arg
 
-[ -z "${CONDA_HELP}" ] && CONDA_HELP=false
-[ -z "${CONDA_VERBOSE}" ] && CONDA_VERBOSE=false
+[ -z "${CONDA_HELP+x}" ] && CONDA_HELP=false
+[ -z "${CONDA_VERBOSE+x}" ] && CONDA_VERBOSE=false
 
 ######################################################################
 # help dialog
 ######################################################################
 if [ "${CONDA_HELP}" = true ]; then
-    if [ "${UNKNOWN}" != "" ]; then
+    if [ -n "${UNKNOWN+x}" ]; then
         echo "[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
     fi
     conda ..deactivate ${_SHELL}${EXT} -h
@@ -80,7 +80,7 @@ if [ "${CONDA_HELP}" = true ]; then
     unset EXT
     unset CONDA_HELP
     unset CONDA_VERBOSE
-    if [ "${UNKNOWN}" != "" ]; then
+    if [ -n "${UNKNOWN+x}" ]; then
         unset UNKNOWN
         return 1
     else
@@ -124,13 +124,13 @@ if [ -n "${CONDA_DEFAULT_ENV}" ]; then
     # remove CONDA_PS1_BACKUP
     unset CONDA_PS1_BACKUP
 
-    if [ -n "${ZSH_VERSION}" ]; then
+    if [ -n "${ZSH_VERSION+x}" ]; then
         # zsh uses rehash
         rehash
-    elif [ -n "${BASH_VERSION}" ]; then
+    elif [ -n "${BASH_VERSION+x}" ]; then
         # bash
         hash -r
-    elif [ -n "${POSH_VERSION}" ]; then
+    elif [ -n "${POSH_VERSION+x}" ]; then
         # posh
         # no hash command for posh
         :

@@ -7,11 +7,11 @@
 ###############################################################################
 # local vars
 ###############################################################################
-if [ -n "${ZSH_VERSION}" ]; then
+if [ -n "${ZSH_VERSION+x}" ]; then
     _SHELL="zsh"
-elif [ -n "${BASH_VERSION}" ]; then
+elif [ -n "${BASH_VERSION+x}" ]; then
     _SHELL="bash"
-elif [ -n "${POSH_VERSION}" ]; then
+elif [ -n "${POSH_VERSION+x}" ]; then
     _SHELL="posh"
 else
     _SHELL="dash"
@@ -72,15 +72,15 @@ unset num
 unset arg
 unset is_envname_set
 
-[ -z "${CONDA_HELP}" ] && CONDA_HELP=false
-[ -z "${CONDA_VERBOSE}" ] && CONDA_VERBOSE=false
-[ -z "${CONDA_ENVNAME}" ] && CONDA_ENVNAME="root"
+[ -z "${CONDA_HELP+x}" ] && CONDA_HELP=false
+[ -z "${CONDA_VERBOSE+x}" ] && CONDA_VERBOSE=false
+[ -z "${CONDA_ENVNAME+x}" ] && CONDA_ENVNAME="root"
 
 ######################################################################
 # help dialog
 ######################################################################
 if [ "${CONDA_HELP}" = true ]; then
-    if [ "${UNKNOWN}" != "" ]; then
+    if [ -n "${UNKNOWN+x}" ]; then
         echo "[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
     fi
     conda ..activate ${_SHELL}${EXT} -h
@@ -90,7 +90,7 @@ if [ "${CONDA_HELP}" = true ]; then
     unset CONDA_ENVNAME
     unset CONDA_HELP
     unset CONDA_VERBOSE
-    if [ "${UNKNOWN}" != "" ]; then
+    if [ -n "${UNKNOWN+x}" ]; then
         unset UNKNOWN
         return 1
     else
@@ -171,13 +171,13 @@ if [ $? = 0 ]; then
         done
     fi
 
-    if [ -n "${ZSH_VERSION}" ]; then
+    if [ -n "${ZSH_VERSION+x}" ]; then
         # zsh uses rehash
         rehash
-    elif [ -n "${BASH_VERSION}" ]; then
+    elif [ -n "${BASH_VERSION+x}" ]; then
         # bash
         hash -r
-    elif [ -n "${POSH_VERSION}" ]; then
+    elif [ -n "${POSH_VERSION+x}" ]; then
         # posh
         # no hash command for posh
         :
