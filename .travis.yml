@@ -11,7 +11,7 @@ addons:
       - zsh
       - csh
       - tcsh
-      - posh
+      # - posh
 
 
 matrix:

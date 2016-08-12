@@ -141,8 +141,16 @@ if ( $status == 0 ) then
     # update both, yes this may cause issues for the user if
     # they decide to alter the path while inside a conda
     # environment
-    set path=(${_CONDA_BIN} ${path})
-    set PATH=(${_CONDA_BIN}:${PATH})
+    #
+    # use tmp_path/tmp_PATH to avoid cases when path setting
+    # succeeds and is parsed correctly from one to the other
+    # when not using the tmp* values would result in
+    # CONDA_PREFIX being added twice to PATH
+    set tmp_path="$path"
+    set tmp_PATH="$PATH"
+    set path=(${_CONDA_BIN} ${tmp_path})
+    set PATH=(${_CONDA_BIN}:${tmp_PATH})
+    unset tmp_path tmp_PATH
 
     # CONDA_PREFIX
     # always the full path to the activated environment
