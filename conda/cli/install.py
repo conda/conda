@@ -154,9 +154,6 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
-    if isinstall and not (args.file or args.packages):
-        raise CondaValueError("no package names supplied")
-
     linked = install_linked(prefix)
     lnames = {name_dist(d) for d in linked}
     if isupdate and not args.all:
@@ -202,6 +199,9 @@ def install(args, parser, command='install'):
 
     if isinstall and args.revision:
         get_revision(args.revision, json=args.json)
+    elif isinstall and not (args.file or args.packages):
+        raise CondaValueError("too few arguments, "
+                              "must supply command line package specs or --file")
 
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
