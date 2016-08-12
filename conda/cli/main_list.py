@@ -217,7 +217,8 @@ def execute(args, parser):
     if args.canonical:
         format = 'canonical'
     elif args.export:
-        format = 'export'
+        print_explicit(prefix, args.md5)
+        return
     else:
         format = 'human'
 

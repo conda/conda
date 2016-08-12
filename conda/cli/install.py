@@ -186,17 +186,7 @@ def install(args, parser, command='install'):
     specs = []
     if args.file:
         for fpath in args.file:
-            file_spec=common.specs_from_url(fpath, json=args.json)
-            for s in file_spec:
-                part = s.split()
-                if len(part) < 4:
-                    specs.append(s)
-                else:
-                    specs.append(" ".join(part[:3]))
-                    ch = part[3].strip()
-                    index_args["channel_urls"] = list(index_args["channel_urls"])
-                    if ch not in ("defaults", "local"):
-                        index_args["channel_urls"].append(ch)
+            specs.extend(common.specs_from_url(fpath, json=args.json))
         if '@EXPLICIT' in specs:
             explicit(specs, prefix, verbose=not args.quiet, index_args=index_args)
             return
