@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+from conda._vendor.auxlib.path import expand
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
@@ -49,6 +50,16 @@ else:
     subdir = '%s-%d' % (platform, bits)
 
 
+
+def get_local():
+    _bld_root_env = os.getenv('CONDA_BLD_PATH')
+    if _bld_root_env:
+        croot = abspath(expanduser(_bld_root_env))
+    elif root_writable:
+        croot = join(root_dir, 'conda-bld')
+    else:
+        croot = abspath(expanduser('~/conda-bld'))
+
 class Context(Configuration):
 
     arch_name = property(lambda self: arch_name)
@@ -61,8 +72,6 @@ class Context(Configuration):
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
-    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
-                                        parameter_type=(bool, NoneType))
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
@@ -89,6 +98,20 @@ class Context(Configuration):
     show_channel_urls = PrimitiveParameter(None, parameter_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
     verbosity = PrimitiveParameter(0, aliases=('verbose',), parameter_type=int)
+
+    # conda_build
+    bld_path = PrimitiveParameter('')
+    binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
+                                        parameter_type=(bool, NoneType))
+
+    @property
+    def local_build_root(self):
+        if self.bld_path:
+            return expand(self.bld_path)
+        elif self.root_writable:
+            return join(self.root_dir, 'conda-bld')
+        else:
+            return expand('~/conda-bld')
 
     @property
     def force_32bit(self):

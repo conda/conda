@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.base.context import context
+from conda.common.url import path_to_url
 from conda.models.channel import Channel, DefaultChannel, UrlChannel, split_platform
 from conda.utils import on_win
 from logging import getLogger
@@ -100,3 +101,19 @@ class ChannelTests(TestCase):
         assert split_platform('/') == ('/', None)
         assert split_platform('') == ('/', None)
         assert split_platform(None) == ('/', None)
+
+    def test_local_channel(self):
+        local = Channel('local')
+        assert local.canonical_name == "local"
+        build_path = path_to_url(context.local_build_root)
+        local_urls = ['%s/%s/' % (build_path, context.subdir),
+                      '%s/noarch/' % build_path]
+        assert local.urls == local_urls
+
+        lc = Channel(build_path)
+        assert lc.canonical_name == "local"
+        assert lc.urls == local_urls
+
+        lc_noarch = Channel(local_urls[1])
+        assert lc_noarch.canonical_name == "local"
+        assert lc_noarch.urls == local_urls[1:]

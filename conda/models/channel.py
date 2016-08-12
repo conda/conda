@@ -14,18 +14,6 @@ from ..common.url import is_url, path_to_url, urlparse, urlunparse
 log = getLogger(__name__)
 
 
-def get_conda_build_local_url():
-    try:
-        from conda_build.config import croot
-    except ImportError:
-        return None
-    except Exception:
-        import traceback
-        log.debug(traceback.format_exc())
-        return None
-    return [path_to_url(croot)] if exists(croot) else None
-
-
 def has_scheme(value):
     return bool(urlparse(value).scheme in RECOGNIZED_URL_SCHEMES)
 
@@ -57,13 +45,13 @@ class ChannelType(type):
 @with_metaclass(ChannelType)
 class Channel(object):
     _cache_ = dict()
-    _local_url = get_conda_build_local_url()
+    _local_url = path_to_url(context.local_build_root)
     _channel_alias_netloc = urlparse(context.channel_alias).netloc
 
     @staticmethod
     def _reset_state():
         Channel._cache_ = dict()
-        Channel._local_url = get_conda_build_local_url()
+        Channel._local_url = path_to_url(context.local_build_root)
         Channel._channel_alias_netloc = urlparse(context.channel_alias).netloc
 
     @property
@@ -77,7 +65,7 @@ class Channel(object):
     def canonical_name(self):
         if any(self == Channel(c) for c in context.default_channels):
             return 'defaults'
-        elif self._local_url and any(self == Channel(c) for c in self._local_url):
+        elif self == Channel(self._local_url):
             return 'local'
         elif self._netloc == Channel(context.channel_alias)._netloc:
             # TODO: strip token
@@ -158,7 +146,7 @@ class DefaultChannel(NamedChannel):
 class LocalChannel(UrlChannel):
 
     def __init__(self, _):
-        super(LocalChannel, self).__init__(get_conda_build_local_url())
+        super(LocalChannel, self).__init__(path_to_url(context.local_build_root))
 
     @property
     def canonical_name(self):
