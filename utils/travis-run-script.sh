@@ -25,10 +25,6 @@ main_test() {
 
     echo "POST-INSTALL CONDA TESTS"
     python -m pytest --cov-report xml --cov-append $shells -m "installed" tests
-
-    # python -m conda install -y -q conda-build
-    # set +x
-    # python -m conda build conda.recipe
 }
 
 flake8_test() {
