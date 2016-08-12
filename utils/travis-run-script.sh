@@ -21,20 +21,14 @@ flake8_test() {
 }
 
 conda_build_smoke_test() {
-    python setup.py install
-    conda install -y -q jinja2 patchelf
-    pip install git+https://github.com/conda/conda-build.git@$CONDA_BUILD
-    conda info
     conda config --add channels conda-canary
     conda build conda.recipe
 }
 
 conda_build_unit_test() {
-    git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
-    python setup.py install
-    conda install -y -q pytest pytest-cov mock anaconda-client
     python -m pytest tests
+    popd
 }
 
 which -a python
