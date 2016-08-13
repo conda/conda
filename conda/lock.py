@@ -37,6 +37,7 @@ import threading
 import time
 import logging
 from .exceptions import LockError
+from os.path import (isdir, basename, abspath, join, dirname)
 
 try:
     import warnings

@@ -1064,9 +1064,9 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
 
 
     with Locked(prefix), Locked(source_dir):
-        for f in files:
-            src = join(source_dir, f)
-            dst = join(prefix, f)
+        for filepath in files:
+            src = join(source_dir, filepath)
+            dst = join(prefix, filepath)
             dst_dir = dirname(dst)
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
