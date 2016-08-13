@@ -48,8 +48,7 @@ from . import CondaError
 from .base.constants import UTF8
 from .base.context import context
 from .common.url import path_to_url
-
-from .exceptions import PaddingError, LinkError, ArgumentError, CondaOSError
+from .exceptions import PaddingError, LinkError, CondaOSError
 from .lock import Locked
 from .models.channel import Channel
 from .utils import backoff_unlink, exp_backoff_fn, on_win
@@ -1061,7 +1060,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     # may run into lock if prefix not exist
     if not isdir(prefix):
         os.makedirs(prefix)
-
 
     with Locked(prefix), Locked(source_dir):
         for filepath in files:

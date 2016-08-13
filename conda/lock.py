@@ -398,7 +398,6 @@ class SoftFileLock(BaseFileLock):
             pass
         return None
 
-
     def __init__(self, directory_path, retries=10):
         self.directory_path = abspath(directory_path)
         directory_name = basename(self.directory_path)
