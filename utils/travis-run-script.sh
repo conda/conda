@@ -7,7 +7,7 @@ main_test() {
 
     case "$(uname -s)" in
         'Darwin') shells="";;
-        'Linux') shells="";; # "--shell=posh";;
+        'Linux') shells="--shell=posh";;
         *) ;;
     esac
     shells="$shells --shell=bash --shell=zsh --shell=dash --shell=sh --shell=csh --shell=tcsh"
