@@ -66,7 +66,7 @@ if (( $? == 0 )); then
     if [[ -d $_CONDA_D ]]; then
         # Save any previous value of IFS used
         if [[ -n $IFS ]]; then
-            OLD_IFS=IFS
+            OLD_IFS=$IFS
         fi
         IFS=$(echo -en "\n\b") && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
         # Reset IFS value to previous value, if any
