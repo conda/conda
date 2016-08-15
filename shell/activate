@@ -92,18 +92,9 @@ if (( $? == 0 )); then
     # Load any of the scripts found $PREFIX/etc/conda/activate.d AFTER activation
     _CONDA_D="${CONDA_PREFIX}/etc/conda/activate.d"
     if [[ -d "$_CONDA_D" ]]; then
-        # Save any previous value of IFS used
-        if [[ -n $IFS ]]; then
-            OLD_IFS=$IFS
-        fi
         IFS=$(echo -en "\n\b")&>/dev/null  && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
-        # Reset IFS value to previous value, if any
-        if [[ -n $OLD_IFS ]]; then
-            IFS=$OLD_IFS
-            unset OLD_IFS
-        else
-            unset IFS
-        fi
+        # Reset IFS value to empty
+        unset IFS
     fi
 else
     return $?
