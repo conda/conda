@@ -3,6 +3,8 @@ from os.path import abspath, join, isdir, expanduser
 from conda.config import root_dir, default_prefix
 import os
 from conda.base.context import context
+from ..exceptions import CondaEnvException
+from conda.exceptions import CondaValueError
 import textwrap
 root_env_name = 'root'
 envs_dirs = context.envs_dirs
@@ -40,10 +42,8 @@ def exception_and_exit(exc, **kwargs):
 def get_prefix(args, search=True):
     if args.name:
         if '/' in args.name:
-            error_and_exit("'/' not allowed in environment name: %s" %
-                           args.name,
-                           json=getattr(args, 'json', False),
-                           error_type="ValueError")
+            raise CondaValueError("'/' not allowed in environment name: %s" %
+                                  args.name, getattr(args, 'json', False))
         if args.name == root_env_name:
             return root_dir
         if search:
@@ -79,7 +79,8 @@ def check_specs(prefix, specs, json=False, create=False):
                 To set the provided packages, call conda config like this:
                     conda config --add create_default_packages PACKAGE_NAME
             """)
-        error_and_exit(msg, json=json, error_type="ValueError")
+        raise CondaEnvException(msg)
+
 
 def get_index_trap(*args, **kwargs):
     """

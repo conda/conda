@@ -3,6 +3,9 @@ from __future__ import absolute_import
 from conda.cli import common
 from conda import plan
 from conda_env.cli.common import exception_and_exit, check_specs, get_index_trap
+from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
+from conda.compat import text_type
+
 
 def install(prefix, specs, args, env, prune=False):
     # TODO: do we need this?
@@ -20,9 +23,8 @@ def install(prefix, specs, args, env, prune=False):
             plan.execute_actions(actions, index, verbose=not args.quiet)
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                error_type = "AlreadyLocked"
+                raise LockError('Already locked: %s' % text_type(e))
             else:
-                error_type = "RuntimeError"
-            exception_and_exit(e, error_type=error_type, json=args.json)
+                raise CondaRuntimeError('RuntimeError: %s' % e)
         except SystemExit as e:
-            exception_and_exit(e, json=args.json)
+            raise CondaSystemExit('Exiting', e)
