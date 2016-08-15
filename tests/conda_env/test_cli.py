@@ -276,6 +276,8 @@ class NewIntegrationTest(unittest.TestCase):
             run_conda_command(Commands.CREATE, test_env_name_2, "--file " + env_txt.name)
             self.assertTrue(env_is_created(test_env_name_2))
 
+        snowflake2, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
+        self.assertEqual(snowflake, snowflake2)
 
 if __name__ == '__main__':
     unittest.main()

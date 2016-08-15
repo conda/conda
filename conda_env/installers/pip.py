@@ -11,4 +11,3 @@ def install(prefix, specs, args, env, prune=False):
 
     if process.returncode != 0:
         raise CondaValueError("pip returned an error.")
-

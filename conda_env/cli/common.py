@@ -60,13 +60,3 @@ def check_specs(prefix, specs, json=False, create=False):
                     conda config --add create_default_packages PACKAGE_NAME
             """)
         raise CondaEnvException(msg)
-
-
-def get_index_trap(*args, **kwargs):
-    """
-    Retrieves the package index, but traps exceptions and reports them as
-    JSON if necessary.
-    """
-    from conda.api import get_index
-    kwargs.pop('json')
-    return get_index(*args, **kwargs)
