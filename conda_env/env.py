@@ -37,6 +37,17 @@ def load_from_directory(directory):
 # TODO This should lean more on conda instead of divining it from the outside
 # TODO tests!!!
 def from_environment(name, prefix, no_builds=False, ignore_channels=False):
+    """
+        Get environment object from prefix
+    Args:
+        name: The name of environment
+        prefix: The path of prefix
+        no_builds: Whether has build requirement
+        ignore_channels: whether ingore_channels
+
+    Returns:     Environment obejct
+
+    """
     installed = install.linked(prefix, ignore_channels=ignore_channels)
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed

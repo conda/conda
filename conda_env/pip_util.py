@@ -105,8 +105,7 @@ def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
 
     # TODO Refactor so installed is a real list of objects/dicts
     #      instead of strings allowing for direct comparison
-    conda_names = {d.rsplit('-', 2)[0] for d in installed_pkgs}
-
+    conda_names = {d.rsplit('-', 2)[0].split("::")[-1] for d in installed_pkgs}
     for pip_pkg in installed(prefix, output=output):
         if pip_pkg['name'] in conda_names and not 'path' in pip_pkg:
             continue
