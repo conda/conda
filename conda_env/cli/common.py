@@ -35,6 +35,7 @@ def get_prefix(args, search=True):
 
     return default_prefix
 
+
 def find_prefix_name(name):
     if name == root_env_name:
         return root_dir
@@ -44,6 +45,7 @@ def find_prefix_name(name):
         if isdir(prefix):
             return prefix
     return None
+
 
 def check_specs(prefix, specs, json=False, create=False):
     if len(specs) == 0:
