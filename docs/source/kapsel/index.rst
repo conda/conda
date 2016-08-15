@@ -26,6 +26,10 @@ NOTE: You must have `conda installed
 <http://conda.pydata.org/docs/install/quick.html>`_ before
 beginning this tutorial.
 
+NOTE: Windows users using Python 3.5.1 should upgrade to Python 3.5.2+ 
+with the command ``conda update python`` to avoid an issue with 
+Windows and Python 3.5.1.
+
 Install conda kapsel
 ====================
 
