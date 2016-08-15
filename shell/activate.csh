@@ -35,7 +35,7 @@ set num=0
 set is_envname_set=false
 while ( $num != -1 )
     @ num = ($num + 1)
-    set arg=`eval eval echo '\$$num'`
+    set arg=`eval eval echo '\${$num}'`
 
     if ( `echo "${arg}" | sed 's| ||g'` == "" ) then
         set num=-1

@@ -5,6 +5,11 @@
 # assumes that activate.* can be found on the $PATH
 #
 
+# in some cases of zsh/ps/procps the `ps -p $$` command will return an error but it is not a
+# critical terminating error:
+#    > Signal 18 (CONT) caught by ps (procps-ng version 3.3.9).
+#    > ps:display.c:66: please report this bug
+
 # error clause
 echo `ps -p $$ | sed 's|.*csh|THIS-IS-CSH|' | grep CSH || eval echo '$0'`                           \
      "`ps -p $$ | tr '\n' ' '`"                                                                     \

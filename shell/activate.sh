@@ -40,9 +40,9 @@ num=0
 is_envname_set=false
 while [ $num != -1 ]; do
     num=$(($num + 1))
-    arg=$(eval eval echo '\$$num')
+    arg=$(eval eval echo '\${$num}') >/dev/null 2>&1
 
-    if [ -z $(echo "${arg}" | sed 's| ||g') ]; then
+    if [ $? != 0 ] || [ -z $(echo "${arg}" | sed 's| ||g') ]; then
         num=-1
     else
         case "${arg}" in
