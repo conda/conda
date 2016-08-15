@@ -7,6 +7,7 @@ from conda import config
 from ..env import from_environment
 # conda env import
 from conda_env.cli.common import error_and_exit, get_prefix
+from ..exceptions import CondaEnvException
 description = """
 Export a given environment
 """
@@ -84,7 +85,7 @@ def execute(args, parser):
                 * Provide an environment name via --name or -n
                 * Re-run this command inside an activated conda environment.""").lstrip()
             # TODO Add json support
-            error_and_exit(msg, json=False)
+            raise CondaEnvException(msg)
         args.name = name
     else:
         name = args.name

@@ -16,7 +16,7 @@ from .. import exceptions
 from .. import specs
 
 # for conda env import
-from conda_env.cli.common import error_and_exit, get_prefix
+from conda_env.cli.common import get_prefix
 
 description = """
 Create an environment based on an environment file
