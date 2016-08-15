@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from conda.cli import common
 from conda import plan
-from conda_env.cli.common import exception_and_exit, check_specs, get_index_trap
+from conda_env.cli.common import check_specs, get_index_trap
 from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
 from conda.compat import text_type
 

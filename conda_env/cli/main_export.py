@@ -6,7 +6,7 @@ from argparse import RawDescriptionHelpFormatter
 from conda import config
 from ..env import from_environment
 # conda env import
-from conda_env.cli.common import error_and_exit, get_prefix
+from conda_env.cli.common import get_prefix
 from ..exceptions import CondaEnvException
 description = """
 Export a given environment
