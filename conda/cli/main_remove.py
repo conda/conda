@@ -109,7 +109,8 @@ def configure_parser(sub_parsers, name='remove'):
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
-    from conda.install import rm_rf, linked_data
+    from conda.install import linked_data
+    from conda.common.disk import rm_rf
 
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'

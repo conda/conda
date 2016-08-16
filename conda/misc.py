@@ -23,7 +23,8 @@ from .install import (name_dist, linked as install_linked, is_fetched, is_extrac
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
-from .utils import md5_file, on_win, backoff_unlink
+from .utils import md5_file, on_win
+from conda.common.disk import backoff_unlink, rm_rf
 
 
 def conda_installed_files(prefix, exclude_self_build=False):

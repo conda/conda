@@ -1,3 +1,4 @@
+import conda.common.disk
 import errno
 import pytest
 import random
@@ -12,8 +13,9 @@ from conda.base.context import context
 from conda.compat import text_type
 from conda.fetch import download
 from conda.install import (FileMode, PaddingError, binary_replace, dist2dirname, dist2filename,
-                           dist2name, dist2pair, dist2quad, move_path_to_trash, name_dist, on_win,
+                           dist2name, dist2pair, dist2quad, name_dist, on_win,
                            read_no_link, update_prefix, warn_failed_remove, yield_lines)
+from conda.common.disk import move_path_to_trash
 from contextlib import contextmanager
 from os import chdir, getcwd, makedirs
 from os.path import dirname, exists, join, relpath
@@ -305,14 +307,14 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     def test_calls_islink(self):
         with self.generate_mocks() as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         mocks['islink'].assert_called_with(some_path)
 
     @skip_if_no_mock
     def test_calls_unlink_on_true_islink(self):
         with self.generate_mocks() as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
 
     @skip_if_no_mock
@@ -320,7 +322,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_mocks() as mocks:
             mocks['unlink'].side_effect = OSError(errno.ENOEXEC, "blah")
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         assert mocks['unlink'].call_count > 1
         assert mocks['rename'].call_count == 1
         rename_args = mocks['rename'].call_args[0]
@@ -331,49 +333,49 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     def test_calls_unlink_on_os_access_false(self):
         with self.generate_mocks(os_access=False) as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
 
     @skip_if_no_mock
     def test_does_not_call_isfile_if_islink_is_true(self):
         with self.generate_mocks() as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         self.assertFalse(mocks['isfile'].called)
 
     @skip_if_no_mock
     def test_calls_isfile_with_path(self):
         with self.generate_mocks(islink=False, isfile=True) as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         mocks['isfile'].assert_called_with(some_path)
 
     @skip_if_no_mock
     def test_calls_unlink_on_false_islink_and_true_isfile(self):
         with self.generate_mocks(islink=False, isfile=True) as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         mocks['unlink'].assert_called_with(some_path)
 
     @skip_if_no_mock
     def test_does_not_call_unlink_on_false_values(self):
         with self.generate_mocks(islink=False, isfile=False) as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         self.assertFalse(mocks['unlink'].called)
 
     @skip_if_no_mock
     def test_does_not_call_shutil_on_false_isdir(self):
         with self.generate_all_false_mocks() as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         self.assertFalse(mocks['rmtree'].called)
 
     @skip_if_no_mock
     def test_calls_rmtree_at_least_once_on_isdir_true(self):
         with self.generate_directory_mocks() as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         mocks['rmtree'].assert_called_with(
             some_path, onerror=warn_failed_remove, ignore_errors=False)
 
@@ -381,7 +383,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     def test_calls_rmtree_and_rename_on_win(self):
         with self.generate_directory_mocks(on_win=True) as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         assert mocks['rename'].call_count == 1
         assert mocks['rmtree'].call_count == 1
         assert mocks['rename'].call_args[0][1] == mocks['rmtree'].call_args[0][0]
@@ -391,7 +393,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = OSError
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         assert mocks['rename'].call_count == 1
         assert mocks['rmtree'].call_count > 1
         assert dirname(mocks['rename'].call_args[0][1]) == mocks['rmtree'].call_args[0][0]
@@ -400,7 +402,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
     def test_calls_rmtree_only_once_on_success(self):
         with self.generate_directory_mocks() as mocks:
             some_path = self.generate_random_path
-            install.rm_rf(some_path)
+            conda.common.disk.rm_rf(some_path)
         self.assertEqual(1, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -410,7 +412,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rename'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path, trash=False)
+                conda.common.disk.rm_rf(some_path, trash=False)
 
     @skip_if_no_mock
     def test_retries_six_times_to_ensure_it_cant_really_remove(self):
@@ -418,7 +420,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path, trash=False)
+                conda.common.disk.rm_rf(some_path, trash=False)
         self.assertEqual(6, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -428,7 +430,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             some_path = self.generate_random_path
             with self.assertRaises(OSError):
-                install.rm_rf(some_path, max_retries=max_retries, trash=False)
+                conda.common.disk.rm_rf(some_path, max_retries=max_retries, trash=False)
         self.assertEqual(max_retries + 1, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -436,7 +438,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks() as mocks:
             mocks['rmtree'].side_effect = [OSError, OSError, None]
             some_path = self.generate_random_path
-            install.rm_rf(some_path, trash=False)
+            conda.common.disk.rm_rf(some_path, trash=False)
         self.assertEqual(3, mocks['rmtree'].call_count)
 
     @skip_if_no_mock
@@ -445,8 +447,8 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
-                install.rm_rf(self.generate_random_path,
-                              max_retries=max_retries, trash=False)
+                conda.common.disk.rm_rf(self.generate_random_path,
+                                        max_retries=max_retries, trash=False)
 
         expected = [mock.call(i) for i in range(max_retries)]
         mocks['sleep'].assert_has_calls(expected)
@@ -458,7 +460,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
             mocks['rmtree'].side_effect = OSError(random_path)
             max_retries = random.randint(1, 10)
             with self.assertRaises(OSError):
-                install.rm_rf(random_path, max_retries=max_retries, trash=False)
+                conda.common.disk.rm_rf(random_path, max_retries=max_retries, trash=False)
 
         log_template = "\n".join([
             "Unable to delete %s" % random_path,
@@ -475,7 +477,7 @@ class rm_rf_file_and_link_TestCase(unittest.TestCase):
         with self.generate_directory_mocks(on_win=True) as mocks:
             random_path = self.generate_random_path
             mocks['rmtree'].side_effect = [OSError, None]
-            install.rm_rf(random_path, trash=False)
+            conda.common.disk.rm_rf(random_path, trash=False)
 
         expected_call_list = [
             mock.call(random_path, ignore_errors=False, onerror=warn_failed_remove),

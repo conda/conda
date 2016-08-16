@@ -21,11 +21,6 @@ These API functions have argument names referring to:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda._vendor.auxlib.exceptions import ThisShouldNeverHappenError
-from itertools import chain
-
-from collections import namedtuple
-
 import errno
 import functools
 import json
@@ -39,10 +34,11 @@ import struct
 import subprocess
 import sys
 import tarfile
-import tempfile
-import time
 import traceback
+from collections import namedtuple
+from conda.common.disk import backoff_unlink, exp_backoff_fn, rm_empty_dir, rm_rf
 from enum import Enum
+from itertools import chain
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, normcase, normpath
 
 from . import CondaError
@@ -52,7 +48,7 @@ from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
-from .utils import backoff_unlink, exp_backoff_fn, on_win, recursive_make_writable, backoff_rmdir
+from .utils import exp_backoff_fn, on_win
 
 if on_win:
     import ctypes
@@ -132,6 +128,7 @@ stdoutlog = logging.getLogger('stdoutlog')
 
 SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
 
+
 class FileMode(Enum):
     text = 'text'
     binary = 'binary'
@@ -174,6 +171,7 @@ def _remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
+
 def warn_failed_remove(function, path, exc_info):
     if exc_info[1].errno == errno.EACCES:
         log.warn("Cannot remove, permission denied: {0}".format(path))
@@ -181,53 +179,6 @@ def warn_failed_remove(function, path, exc_info):
         log.warn("Cannot remove, not empty: {0}".format(path))
     else:
         log.warn("Cannot remove, unknown reason: {0}".format(path))
-
-
-def rm_rf(path, max_retries=5, trash=True):
-    """
-    Completely delete path
-    max_retries is the number of times to retry on failure. The default is
-    5. This only applies to deleting a directory.
-    If removing path fails and trash is True, files will be moved to the trash directory.
-    """
-    if islink(path) or isfile(path):
-        # Note that we have to check if the destination is a link because
-        # exists('/path/to/dead-link') will return False, although
-        # islink('/path/to/dead-link') is True.
-        try:
-            backoff_unlink(path)
-            return
-        except (OSError, IOError) as e:
-            log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
-            if trash and move_path_to_trash(path):
-                return
-            else:
-                log.warn("Failed to remove %s.", path)
-
-    elif isdir(path):
-        try:
-            # On Windows, always move to trash first.
-            if trash and on_win and move_path_to_trash(path, preclean=False):
-                return
-            else:
-                backoff_rmdir(path)
-        finally:
-            # If path was removed, ensure it's not in linked_data_
-            if not isdir(path):
-                delete_linked_data_any(path)
-    else:
-        log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
-
-
-def rm_empty_dir(path):
-    """
-    Remove the directory `path` if it is a directory and empty.
-    If the directory does not exist or is not empty, do nothing.
-    """
-    try:
-        os.rmdir(path)
-    except OSError:  # directory might not exist or not be empty
-        pass
 
 
 def yield_lines(path):
@@ -953,62 +904,6 @@ def is_linked(prefix, dist):
     """
     # FIXME Functions that begin with `is_` should return True/False
     return load_meta(prefix, dist)
-
-
-def delete_trash(prefix=None):
-    for pkg_dir in context.pkgs_dirs:
-        trash_dir = join(pkg_dir, '.trash')
-        if not isdir(trash_dir):
-            continue
-        try:
-            log.debug("Trying to delete the trash dir %s", trash_dir)
-            backoff_rmdir(trash_dir)
-        except (IOError, OSError) as e:
-            log.info("Could not delete the trash dir %s\n%r", trash_dir, e)
-
-
-def move_to_trash(prefix, f, tempdir=None):
-    """
-    Move a file or folder f from prefix to the trash
-
-    tempdir is a deprecated parameter, and will be ignored.
-
-    This function is deprecated in favor of `move_path_to_trash`.
-    """
-    return move_path_to_trash(join(prefix, f) if f else prefix)
-
-
-def move_path_to_trash(path, preclean=True):
-    """
-    Move a path to the trash
-    """
-    # Try deleting the trash every time we use it.
-    if preclean:
-        delete_trash()
-
-    for pkg_dir in context.pkgs_dirs:
-        trash_dir = join(pkg_dir, '.trash')
-
-        try:
-            os.makedirs(trash_dir)
-        except OSError as e1:
-            if e1.errno != errno.EEXIST:
-                continue
-
-        trash_file = tempfile.mktemp(dir=trash_dir)
-
-        try:
-            os.rename(path, trash_file)
-        except OSError as e:
-            log.debug("Could not move %s to %s (%s)", path, trash_file, e)
-        else:
-            log.debug("Moved to trash: %s", path)
-            delete_linked_data_any(path)
-            if not preclean:
-                rm_rf(trash_file, max_retries=1, trash=False)
-            return True
-
-    return False
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None):
