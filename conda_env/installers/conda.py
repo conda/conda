@@ -2,17 +2,17 @@ from __future__ import absolute_import
 
 from conda.cli import common
 from conda import plan
-from conda_env.cli.common import exception_and_exit, check_specs, get_index_trap
+from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
+from conda.api import get_index
+from conda.compat import text_type
+
 
 def install(prefix, specs, args, env, prune=False):
-    # TODO: do we need this?
-    check_specs(prefix, specs, json=args.json)
-
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
-    index = get_index_trap(channel_urls=[chan for chan in env.channels
-                                                     if chan != 'nodefaults'],
-                                  prepend='nodefaults' not in env.channels)
+    index = get_index(channel_urls=[chan for chan in env.channels
+                                    if chan != 'nodefaults'],
+                      prepend='nodefaults' not in env.channels)
     actions = plan.install_actions(prefix, index, specs, prune=prune)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
@@ -20,9 +20,8 @@ def install(prefix, specs, args, env, prune=False):
             plan.execute_actions(actions, index, verbose=not args.quiet)
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                error_type = "AlreadyLocked"
+                raise LockError('Already locked: %s' % text_type(e))
             else:
-                error_type = "RuntimeError"
-            exception_and_exit(e, error_type=error_type, json=args.json)
+                raise CondaRuntimeError('RuntimeError: %s' % e)
         except SystemExit as e:
-            exception_and_exit(e, json=args.json)
+            raise CondaSystemExit('Exiting', e)

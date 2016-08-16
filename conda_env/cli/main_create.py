@@ -16,7 +16,7 @@ from .. import exceptions
 from .. import specs
 
 # for conda env import
-from conda_env.cli.common import error_and_exit, get_prefix
+from conda_env.cli.common import get_prefix
 
 description = """
 Create an environment based on an environment file
@@ -86,8 +86,8 @@ def execute(args, parser):
         if args.prefix is None and args.name is None:
             args.name = env.name
 
-    except exceptions.SpecNotFound as e:
-        error_and_exit(str(e), json=args.json)
+    except exceptions.SpecNotFound:
+        raise
 
     prefix = get_prefix(args, search=False)
 

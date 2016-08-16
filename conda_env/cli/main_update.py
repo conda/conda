@@ -11,7 +11,8 @@ from ..installers.base import get_installer, InvalidInstaller
 from .. import specs as install_specs
 from .. import exceptions
 # for conda env
-from conda_env.cli.common import error_and_exit, get_prefix
+from conda_env.cli.common import get_prefix
+from ..exceptions import CondaEnvException
 description = """
 Update the current environment based on environment file
 """
@@ -76,7 +77,7 @@ def execute(args, parser):
                                     directory=os.getcwd())
         env = spec.environment
     except exceptions.SpecNotFound as e:
-        error_and_exit(str(e), json=args.json)
+        raise
 
     if not args.name:
         if not env.name:
@@ -91,7 +92,7 @@ def execute(args, parser):
                     * Provide an environment name via --name or -n
                     * Re-run this command inside an activated conda environment.""").lstrip()
                 # TODO Add json support
-                error_and_exit(msg, json=False)
+                raise CondaEnvException(msg)
 
         # Note: stubbing out the args object as all of the
         # conda.cli.common code thinks that name will always

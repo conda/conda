@@ -5,7 +5,7 @@ except ImportError:
     import mock
 
 from conda_env.installers import pip
-
+from conda.exceptions import CondaValueError
 
 class PipInstallerTest(unittest.TestCase):
     def test_straight_install(self):
@@ -27,5 +27,5 @@ class PipInstallerTest(unittest.TestCase):
                 # make sure that installed doesn't bail early
                 pip_args.return_value = ['pip']
 
-                self.assertRaises(SystemExit, pip.install,
+                self.assertRaises(CondaValueError, pip.install,
                                   '/some/prefix', ['foo'], '', '')
