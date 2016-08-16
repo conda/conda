@@ -19,8 +19,11 @@ import ctypes
 log = getLogger(__name__)
 
 # op codes
+CHECK_FETCH = 'CHECK_FETCH'
 FETCH = 'FETCH'
+CHECK_EXTRACT = 'CHECK_EXTRACT'
 EXTRACT = 'EXTRACT'
+CHECK_LINK_UNLINK = 'CHECK_LINK_UNLINK'
 UNLINK = 'UNLINK'
 LINK = 'LINK'
 RM_EXTRACTED = 'RM_EXTRACTED'
@@ -32,8 +35,11 @@ SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
+    CHECK_FETCH,
     FETCH,
+    CHECK_EXTRACT,
     EXTRACT,
+    CHECK_LINK_UNLINK,
     UNLINK,
     LINK,
     SYMLINK_CONDA,
@@ -92,21 +98,6 @@ def SYMLINK_CONDA_CMD(state, arg):
     symlink_conda(state['prefix'], arg)
 
 
-# Map instruction to command (a python function)
-commands = {
-    PREFIX: PREFIX_CMD,
-    PRINT: PRINT_CMD,
-    FETCH: FETCH_CMD,
-    PROGRESS: PROGRESS_CMD,
-    EXTRACT: EXTRACT_CMD,
-    RM_EXTRACTED: RM_EXTRACTED_CMD,
-    RM_FETCHED: RM_FETCHED_CMD,
-    LINK: LINK_CMD,
-    UNLINK: UNLINK_CMD,
-    SYMLINK_CONDA: SYMLINK_CONDA_CMD,
-}
-
-
 def get_package(plan, instruction):
     """
         get the package list based on command
@@ -122,7 +113,7 @@ def get_package(plan, instruction):
 
 
 @Once
-def check_link_unlink(state, plan):
+def CHECK_LINK_UNLINK_CMD(state, plan):
     """
         check permission issue before link and unlink
     :param state: the state of plan
@@ -197,7 +188,7 @@ def get_free_space(dir_name):
 
 def check_size(path, size):
     """
-        check whether has enough space
+        check whether the directory has enough space
     :param path:    the directory to check
     :param size:    whether has that size
     :return:    True or False
@@ -210,7 +201,7 @@ def check_size(path, size):
 
 
 @Once
-def check_download_space(state, plan):
+def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     """
         Check whether there is enough space for download packages
     :param state: the state of plan
@@ -229,7 +220,7 @@ def check_download_space(state, plan):
 
 
 @Once
-def check_extract_space(state, plan):
+def CHECK_EXTRACT_SPACE_CMD(state, plan):
     """
         check whether there is enough space for extract packages
     :param plan: the plan for the action
@@ -251,6 +242,24 @@ def check_extract_space(state, plan):
     check_size(prefix, size)
 
 
+# Map instruction to command (a python function)
+commands = {
+    PREFIX: PREFIX_CMD,
+    PRINT: PRINT_CMD,
+    CHECK_FETCH: CHECK_DOWNLOAD_SPACE_CMD,
+    FETCH: FETCH_CMD,
+    PROGRESS: PROGRESS_CMD,
+    CHECK_EXTRACT: CHECK_EXTRACT_SPACE_CMD,
+    EXTRACT: EXTRACT_CMD,
+    RM_EXTRACTED: RM_EXTRACTED_CMD,
+    RM_FETCHED: RM_FETCHED_CMD,
+    CHECK_LINK_UNLINK: CHECK_LINK_UNLINK_CMD,
+    LINK: LINK_CMD,
+    UNLINK: UNLINK_CMD,
+    SYMLINK_CONDA: SYMLINK_CONDA_CMD,
+}
+
+
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
     """Execute the instructions in the plan
 
@@ -269,14 +278,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     log.debug("executing plan %s", plan)
 
-    # Map command to check_command
-    check_cmd = {
-        FETCH_CMD: check_download_space,
-        LINK_CMD: check_link_unlink,
-        UNLINK_CMD: check_link_unlink,
-        EXTRACT_CMD: check_extract_space
-    }
-
     state = {'i': None, 'prefix': context.root_dir, 'index': index}
 
     for instruction, arg in plan:
@@ -289,15 +290,17 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                                                state['i'] - 1))
         cmd = _commands[instruction]
 
-        # perform check
-        c_cmd = check_cmd.get(cmd, None)
-        if c_cmd:
-            c_cmd(state, plan)
-
-        cmd(state, arg)
+        # check commands require the plan
+        if 'CHECK' in instruction:
+            # print('running check command: %s' % instruction)
+            cmd(state, plan)
+        else:
+            # print('running non-check command: %s' % instruction)
+            cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
-                    state['maxval'] == state['i']):
+                state['maxval'] == state['i']):
+
             state['i'] = None
             getLogger('progress.stop').info(None)
 
