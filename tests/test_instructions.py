@@ -8,8 +8,11 @@ from conda.instructions import execute_instructions, commands, PROGRESS_CMD
 def test_expected_operation_order():
     """Ensure expected order of operations"""
     expected = (
+        instructions.CHECK_FETCH,
         instructions.FETCH,
+        instructions.CHECK_EXTRACT,
         instructions.EXTRACT,
+        instructions.CHECK_LINK_UNLINK,
         instructions.UNLINK,
         instructions.LINK,
         instructions.SYMLINK_CONDA,
