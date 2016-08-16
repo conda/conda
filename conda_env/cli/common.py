@@ -45,18 +45,3 @@ def find_prefix_name(name):
         if isdir(prefix):
             return prefix
     return None
-
-
-def check_specs(prefix, specs, json=False, create=False):
-    if len(specs) == 0:
-        msg = ('too few arguments, must supply command line '
-               'package specs or --file')
-        if create:
-            msg += textwrap.dedent("""
-                You can specify one or more default packages to install when creating
-                an environment.  Doing so allows you to call conda create without
-                explicitly providing any package names.
-                To set the provided packages, call conda config like this:
-                    conda config --add create_default_packages PACKAGE_NAME
-            """)
-        raise CondaEnvException(msg)

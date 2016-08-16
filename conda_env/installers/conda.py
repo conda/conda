@@ -2,16 +2,12 @@ from __future__ import absolute_import
 
 from conda.cli import common
 from conda import plan
-from conda_env.cli.common import check_specs
 from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
 from conda.api import get_index
 from conda.compat import text_type
 
 
 def install(prefix, specs, args, env, prune=False):
-    # TODO: do we need this?
-    check_specs(prefix, specs, json=args.json)
-
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
     index = get_index(channel_urls=[chan for chan in env.channels
