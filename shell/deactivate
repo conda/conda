@@ -65,6 +65,8 @@ if (( $? == 0 )); then
     _CONDA_D="${CONDA_PREFIX}/etc/conda/deactivate.d"
     if [[ -d $_CONDA_D ]]; then
         IFS=$(echo -en "\n\b") && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
+        # Reset IFS value to empty
+        unset IFS
     fi
 
     unset CONDA_DEFAULT_ENV
