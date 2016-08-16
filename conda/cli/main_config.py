@@ -324,7 +324,7 @@ def execute_config(args, parser):
                     # Use repr so that it can be pasted back in to conda config --add
                     if key == "channels" and q in (0, numitems-1):
                         print("--add", key, repr(item),
-                              "  # lowest priority" if q == 0 else "  # highest priority")
+                              "  # highest priority" if q == 0 else "  # lowest priority")
                     else:
                         print("--add", key, repr(item))
 
