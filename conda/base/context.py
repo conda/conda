@@ -115,7 +115,7 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from ..utils import try_write
+        from conda.common.disk import try_write
         return try_write(self.root_dir)
 
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))

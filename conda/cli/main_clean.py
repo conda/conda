@@ -14,7 +14,8 @@ from os.path import join, getsize, isdir
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
 from ..install import rm_rf
-from ..utils import human_bytes, backoff_unlink
+from ..utils import human_bytes
+from conda.common.disk import backoff_unlink, rm_rf
 from ..exceptions import ArgumentError
 
 descr = """
