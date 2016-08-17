@@ -82,7 +82,7 @@ def run_command(command, prefix, *arguments):
     prefix = escape_for_winpath(prefix)
     arguments = list(map(escape_for_winpath, arguments))
     if command is Commands.CONFIG:
-        command_line = "{0} --file {1} {2}".format(command, join(prefix+"/", 'condarc'), " ".join(arguments))
+        command_line = "{0} --file {1} {2}".format(command, join(prefix, 'condarc'), " ".join(arguments))
     elif command is Commands.SEARCH:
         command_line = "{0} {1}".format(command, " ".join(arguments))
     elif command is Commands.LIST:
@@ -105,11 +105,12 @@ def run_command(command, prefix, *arguments):
 def make_temp_env(*packages, **kwargs):
     import os
     prefix = kwargs.pop('prefix', None) or make_temp_prefix()
+    prefix = escape_for_winpath(prefix)
     with stderr_log_level(DEBUG, 'conda'), stderr_log_level(DEBUG, 'requests'):
         with disable_logger('fetch'), disable_logger('dotupdate'):
             try:
                 # try to clear any config that's been set by other tests
-                reset_context([join(prefix+"/", 'condarc')])
+                reset_context([join(prefix, 'condarc')])
                 run_command(Commands.CREATE, prefix, *packages)
                 os.environ["CONDA_ROOT"] = prefix
                 os.environ["CONDA_PREFIX"] = prefix
@@ -121,7 +122,7 @@ def make_temp_env(*packages, **kwargs):
 
 
 def reload_config(prefix):
-    prefix_condarc = join(prefix+"/", 'condarc')
+    prefix_condarc = join(prefix, 'condarc')
     reset_context([prefix_condarc])
 
 
