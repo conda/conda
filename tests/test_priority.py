@@ -47,14 +47,14 @@ class PriorityTest(TestCase):
             run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge")
             assert context.channels == ('conda-forge', 'defaults'), context.channels
 
-            # update --all
+            # update python
             update_stdout, _ = run_command(Commands.UPDATE, prefix, 'python')
 
             # pycosat should be in the SUPERCEDED list
-            superceded_split = update_stdout.split('SUPERCEDED')
+            superceded_split = update_stdout.split('UPDATED')
             assert len(superceded_split) == 2
-            assert 'python' in superceded_split[1]
+            assert 'conda-forge' in superceded_split[1]
 
             # python sys.version should show conda-forge python
-            python_tuple = get_conda_list_tuple(prefix, "pycosat")
+            python_tuple = get_conda_list_tuple(prefix, "python")
             assert python_tuple[3] == 'conda-forge'
