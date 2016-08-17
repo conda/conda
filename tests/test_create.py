@@ -103,6 +103,7 @@ def run_command(command, prefix, *arguments):
 
 @contextmanager
 def make_temp_env(*packages, **kwargs):
+    import os
     prefix = kwargs.pop('prefix', None) or make_temp_prefix()
     with stderr_log_level(DEBUG, 'conda'), stderr_log_level(DEBUG, 'requests'):
         with disable_logger('fetch'), disable_logger('dotupdate'):
@@ -110,10 +111,13 @@ def make_temp_env(*packages, **kwargs):
                 # try to clear any config that's been set by other tests
                 reset_context([join(prefix, 'condarc')])
                 run_command(Commands.CREATE, prefix, *packages)
+                os.environ["CONDA_ROOT"] = prefix
+                os.environ["CONDA_PREFIX"] = prefix
                 yield prefix
             finally:
                 rmtree(prefix, ignore_errors=True)
-
+                os.environ["CONDA_ROOT"] = None
+                os.environ["CONDA_PREFIX"] = None
 
 def reload_config(prefix):
     prefix_condarc = join(prefix, 'condarc')

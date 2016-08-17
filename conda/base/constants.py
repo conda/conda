@@ -66,6 +66,7 @@ SEARCH_PATH = (
     '~/.conda/condarc.d/',
     '~/.condarc',
     '$CONDA_PREFIX/.condarc',
+    '$CONDA_PREFIX/condarc',
     '$CONDA_PREFIX/condarc.d/',
     '$CONDARC',
 )
