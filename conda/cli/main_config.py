@@ -386,7 +386,7 @@ def execute_config(args, parser):
         del rc_config[key]
 
     # config.rc_keys
-    with open(rc_path, 'w') as rc:
+    with open(rc_path, 'w+') as rc:
         rc.write(yaml_dump(rc_config))
 
     if args.json:
