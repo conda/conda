@@ -2,7 +2,6 @@ import json
 import os
 import unittest
 import tempfile
-import sys
 from shlex import split
 
 from conda_env.exceptions import SpecNotFound
@@ -15,6 +14,7 @@ from conda.install import rm_rf
 from conda.cli.main_create import configure_parser as conda_create_parser
 from conda.cli.main_list import configure_parser as list_parser
 from conda.cli.main_info import configure_parser as info_parser
+from conda.cli.main_install import configure_parser as install_parser
 from conda.cli.main import generate_parser
 
 environment_1 = '''
@@ -49,7 +49,7 @@ class Commands:
     LIST = "list"
     CREATE = "create"
     INFO = "info"
-
+    INSTALL = "install"
 
 def run_env_command(command, prefix, *arguments):
     """
@@ -91,6 +91,7 @@ parser_config = {
     Commands.CREATE: conda_create_parser,
     Commands.LIST: list_parser,
     Commands.INFO: info_parser,
+    Commands.INSTALL: install_parser
 }
 
 
@@ -278,6 +279,33 @@ class NewIntegrationTest(unittest.TestCase):
 
         snowflake2, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
         self.assertEqual(snowflake, snowflake2)
+
+    def test_export_muti_channel(self):
+        """
+            Test conda env export
+        """
+
+        run_conda_command(Commands.CREATE, test_env_name_2, "python")
+        self.assertTrue(env_is_created(test_env_name_2))
+
+        # install something from other channel not in config file
+        run_conda_command(Commands.INSTALL, test_env_name_2, "-c", "numba", "llvmlite")
+        snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
+
+        check1, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix="yml", delete=False) as env_yaml:
+            env_yaml.write(snowflake)
+            env_yaml.flush()
+            env_yaml.close()
+            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+            self.assertFalse(env_is_created(test_env_name_2))
+            run_env_command(Commands.ENV_CREATE, env_yaml.name)
+            self.assertTrue(env_is_created(test_env_name_2))
+
+        # check explicit that we have same file
+        check2, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
+        self.assertEqual(check1, check2)
 
 if __name__ == '__main__':
     unittest.main()
