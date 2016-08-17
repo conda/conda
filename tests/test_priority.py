@@ -14,9 +14,8 @@ class PriorityTest(TestCase):
 
             # add conda-forge channel
             run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge")
-            o, e = run_command(Commands.CONFIG, prefix, '--get channels')
-            assert "conda-forge" in o, o
 
+            assert context.channels == ("conda-forge", "defaults")
             # update --all
             update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
 
@@ -43,8 +42,7 @@ class PriorityTest(TestCase):
 
             # add conda-forge channel
             run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge")
-            o, e = run_command(Commands.CONFIG, prefix, '--get channels')
-            assert "conda-forge" in o, o
+            assert context.channels == ("conda-forge", "defaults")
 
             # update python
             update_stdout, _ = run_command(Commands.UPDATE, prefix, 'python')
