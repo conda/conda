@@ -116,8 +116,9 @@ def make_temp_env(*packages, **kwargs):
                 yield prefix
             finally:
                 rmtree(prefix, ignore_errors=True)
-                os.environ["CONDA_ROOT"] = None
-                os.environ["CONDA_PREFIX"] = None
+                os.environ.pop('CONDA_ROOT', None)
+                os.environ.pop('CONDA_PREFIX', None)
+
 
 def reload_config(prefix):
     prefix_condarc = join(prefix, 'condarc')
