@@ -36,7 +36,7 @@ import sys
 import tarfile
 import traceback
 from collections import namedtuple
-from conda.common.disk import backoff_unlink, exp_backoff_fn, rm_rf
+from .common.disk import backoff_unlink, exp_backoff_fn, rm_rf
 from enum import Enum
 from itertools import chain
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, normcase, normpath
@@ -49,6 +49,11 @@ from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
 from .utils import on_win
+
+
+# conda-build compatibility
+from .common.disk import delete_trash, move_to_trash  # NOQA
+
 
 if on_win:
     import ctypes
