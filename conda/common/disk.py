@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+from conda.compat import text_type
 from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
@@ -9,8 +10,8 @@ from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk
 from os.path import basename, dirname, exists, isdir, isfile, islink, join
 from shutil import rmtree
 from stat import S_IEXEC, S_IWRITE
-from tempfile import mkstemp
 from time import sleep
+from uuid import uuid4
 
 from ..utils import on_win
 
@@ -230,7 +231,7 @@ def move_path_to_trash(path, preclean=True):
             if e1.errno != EEXIST:
                 continue
 
-        trash_file = mkstemp(dir=trash_dir)
+        trash_file = join(trash_dir, text_type(uuid4()))
 
         try:
             rename(path, trash_file)

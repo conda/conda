@@ -36,7 +36,7 @@ import sys
 import tarfile
 import traceback
 from collections import namedtuple
-from conda.common.disk import backoff_unlink, exp_backoff_fn, rm_empty_dir, rm_rf
+from conda.common.disk import backoff_unlink, exp_backoff_fn, rm_rf
 from enum import Enum
 from itertools import chain
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, normcase, normpath
@@ -48,7 +48,7 @@ from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
-from .utils import exp_backoff_fn, on_win
+from .utils import on_win
 
 if on_win:
     import ctypes
@@ -568,7 +568,7 @@ def try_hard_link(pkgs_dir, prefix, dist):
         return False
     finally:
         rm_rf(dst)
-        rm_empty_dir(prefix)
+
 
 # ------- package cache ----- construction
 
@@ -1021,8 +1021,10 @@ def unlink(prefix, dist):
         dst_dirs2.add(join(prefix, 'conda-meta'))
         dst_dirs2.add(prefix)
 
+        # remove empty directories
         for path in sorted(dst_dirs2, key=len, reverse=True):
-            rm_empty_dir(path)
+            if isdir(path) and not os.listdir(path):
+                rm_rf(path)
 
 
 def messages(prefix):
