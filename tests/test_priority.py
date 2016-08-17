@@ -13,9 +13,9 @@ class PriorityTest(TestCase):
             assert_package_is_installed(prefix, 'pycosat')
 
             # add conda-forge channel
-            run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge")
+            o, e = run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge", '--json')
 
-            assert context.channels == ("conda-forge", "defaults"), prefix
+            assert context.channels == ("conda-forge", "defaults"), o + e
             # update --all
             update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
 
@@ -41,8 +41,8 @@ class PriorityTest(TestCase):
             assert_package_is_installed(prefix, 'python')
 
             # add conda-forge channel
-            run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge")
-            assert context.channels == ("conda-forge", "defaults"), prefix
+            o,e = run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge", '--json')
+            assert context.channels == ("conda-forge", "defaults"), o+e
 
             # update python
             update_stdout, _ = run_command(Commands.UPDATE, prefix, 'python')
