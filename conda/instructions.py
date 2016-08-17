@@ -292,10 +292,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         # check commands require the plan
         if 'CHECK' in instruction:
-            # print('running check command: %s' % instruction)
             cmd(state, plan)
         else:
-            # print('running non-check command: %s' % instruction)
             cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and

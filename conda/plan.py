@@ -252,21 +252,6 @@ def add_unlink(actions, dist):
     actions[inst.UNLINK].append(dist)
 
 
-def add_link_unlink_check(actions):
-    if inst.CHECK_LINK_UNLINK not in actions:
-        actions[inst.CHECK_LINK_UNLINK] = [True]
-
-
-def add_fetch_check(actions):
-    if inst.CHECK_FETCH not in actions:
-        actions[inst.CHECK_FETCH] = [True]
-
-
-def add_extract_check(actions):
-    if inst.CHECK_EXTRACT not in actions:
-        actions[inst.CHECK_EXTRACT] = [True]
-
-
 def add_checks(actions):
     """
     Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
@@ -279,12 +264,13 @@ def add_checks(actions):
     Returns:
         the actions dict with the appropriate checks added
     """
+
     if inst.LINK in actions or inst.UNLINK in actions:
-        add_link_unlink_check(actions)
+        actions.setdefault(inst.CHECK_LINK_UNLINK, [True])
     if inst.FETCH in actions:
-        add_fetch_check(actions)
+        actions.setdefault(inst.CHECK_FETCH, [True])
     if inst.EXTRACT in actions:
-        add_extract_check(actions)
+        actions.setdefault(inst.CHECK_EXTRACT, [True])
 
 
 def plan_from_actions(actions):
