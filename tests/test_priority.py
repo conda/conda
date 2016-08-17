@@ -16,7 +16,6 @@ class PriorityTest(TestCase):
             run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge")
             o, e = run_command(Commands.CONFIG, prefix, '--get channels')
             assert "conda-forge" in o, o
-            assert context.channels == ('conda-forge', 'defaults'), context.channels
 
             # update --all
             update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
@@ -34,9 +33,6 @@ class PriorityTest(TestCase):
             assert pycosat_tuple[3] == 'conda-forge'
 
 
-
-
-
     @pytest.mark.timeout(300)
     def test_channel_priority_update(self):
         """
@@ -49,7 +45,6 @@ class PriorityTest(TestCase):
             run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge")
             o, e = run_command(Commands.CONFIG, prefix, '--get channels')
             assert "conda-forge" in o, o
-            assert context.channels == ('conda-forge', 'defaults'), context.channels
 
             # update python
             update_stdout, _ = run_command(Commands.UPDATE, prefix, 'python')
