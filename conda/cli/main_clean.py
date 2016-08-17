@@ -3,21 +3,21 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import os
 import sys
 from collections import defaultdict
-from os import lstat, walk, listdir
-from os.path import join, getsize, isdir
+from os import listdir, lstat, walk
+from os.path import getsize, isdir, join
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
-from ..install import rm_rf
-from ..utils import human_bytes
-from conda.common.disk import backoff_unlink, rm_rf
+from ..common.disk import backoff_unlink, rm_rf
 from ..exceptions import ArgumentError
-from conda.lock import LOCK_EXTENSION
+from ..lock import LOCK_EXTENSION
+from ..utils import human_bytes
+
 descr = """
 Remove unused packages and caches.
 """

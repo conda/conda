@@ -24,7 +24,7 @@ from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, on_win
-from conda.common.disk import backoff_unlink, rm_rf
+from conda.common.disk import backoff_unlink
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
