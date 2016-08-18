@@ -97,7 +97,10 @@ def backoff_rmdir(dirpath):
 
 def make_writable(path):
     st = stat(path)
-    chmod(path, st.st_mode | S_IWRITE | S_IEXEC if isdir(path) else st.st_mode | S_IWRITE)
+    if isdir(path):
+        chmod(path, st.st_mode | S_IWRITE | S_IEXEC)
+    else:
+        chmod(path, st.st_mode | S_IWRITE)
 
 
 def recursive_make_writable(path):
