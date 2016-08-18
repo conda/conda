@@ -92,6 +92,7 @@ def run_command(command, prefix, *arguments):
 
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
+    print("executing command >>>", command_line)
     with captured() as c:
         args.func(args, p)
     print(c.stderr, file=sys.stderr)
