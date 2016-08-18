@@ -1,3 +1,9 @@
+## 4.1.12 (unreleased)
+
+### Bug Fixes
+* fix #2837 "File exists" in symlinked path with parallel activations (#3210)
+
+
 ## 4.2.4 (unreleased)
 
 ### Bug Fixes
