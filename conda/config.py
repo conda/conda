@@ -67,6 +67,14 @@ user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 
 
+get_rc_urls = lambda: context.channels
+
+
+def get_local_urls():
+    from conda.models.channel import get_conda_build_local_url
+    return get_conda_build_local_url() or []
+
+
 class RC(object):
 
     def get(self, key, default=None):

@@ -1,9 +1,16 @@
-class CondaEnvException(Exception):
-    pass
+from conda import CondaError
+from conda.exceptions import CondaRuntimeError
 
 
-class CondaEnvRuntimeError(RuntimeError, CondaEnvException):
-    pass
+class CondaEnvException(CondaError):
+    def __init__(self, message, *args, **kwargs):
+        msg = "Conda Env Exception: %s" % message
+        super(CondaEnvException, self).__init__(msg, *args, **kwargs)
+
+
+class CondaEnvRuntimeError(CondaRuntimeError):
+    def __init__(self, msg, *args, **kwargs):
+        super(CondaEnvRuntimeError, self).__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileNotFound(CondaEnvException):

@@ -18,3 +18,4 @@ tmpfile.rc
 .coverage*
 *.bz2
 tempfile.rc
+*.ipynb

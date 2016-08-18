@@ -27,7 +27,7 @@ conda_build_smoke_test() {
 
 conda_build_unit_test() {
     pushd conda-build
-    python -m pytest tests
+    python -m pytest tests || echo ">>> exited with code" $?
     popd
 }
 
@@ -38,7 +38,7 @@ if [[ $FLAKE8 == true ]]; then
     flake8_test
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
-    if [[ $CONDA_BUILD == master ]]; then
+    if [[ $CONDA_BUILD == 1.21.11 || $CONDA_BUILD == master ]]; then
         conda_build_unit_test
     fi
 else
