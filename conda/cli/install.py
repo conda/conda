@@ -247,10 +247,12 @@ def install(args, parser, command='install'):
         for name in orig_packages:
             vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
+            channel_inst = [m['channel'] for m in installed_metadata if m['name'] == name]
 
             try:
                 assert len(vers_inst) == 1, name
                 assert len(build_inst) == 1, name
+                assert len(channel_inst) == 1, name
             except AssertionError as e:
                 raise CondaAssertionError(text_type(e))
 
@@ -260,8 +262,9 @@ def install(args, parser, command='install'):
                 continue
             latest = pkgs[-1]
 
-            if (latest.version == vers_inst[0] and
-                    latest.build_number == build_inst[0]):
+            if all([latest.version == vers_inst[0],
+                    latest.build_number == build_inst[0],
+                    latest.channel == channel_inst[0]]):
                 args.packages.remove(name)
         if not args.packages:
             from .main_list import print_packages
