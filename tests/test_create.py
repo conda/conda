@@ -76,19 +76,20 @@ parser_config = {
 
 
 def run_command(command, prefix, *arguments):
+    arguments = list(arguments)
     p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
 
-    prefix = escape_for_winpath(prefix)
-    arguments = list(map(escape_for_winpath, arguments))
     if command is Commands.CONFIG:
-        command_line = "{0} --file {1} {2}".format(command, join(prefix+os.sep, 'condarc'), " ".join(arguments))
-    elif command is Commands.SEARCH:
-        command_line = "{0} {1}".format(command, " ".join(arguments))
-    elif command is Commands.LIST:
-        command_line = "{0} -p {1} {2}".format(command, prefix, " ".join(arguments))
-    else:  # CREATE, INSTALL, REMOVE, UPDATE
-        command_line = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments.append("--file {0}".format(join(prefix, 'condarc')))
+    if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
+                   Commands.REMOVE, Commands.UPDATE):
+        arguments.append("-p {0}".format(prefix))
+    if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
+        arguments.extend(["-y", "-q"])
+
+    arguments = list(map(escape_for_winpath, arguments))
+    command_line = "{0} {1}".format(command, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
