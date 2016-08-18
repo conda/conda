@@ -5,6 +5,7 @@ from os.path import (exists, join, basename)
 from unittest import TestCase
 import tempfile
 import pytest
+from conda.install import rm_rf
 
 class ExportIntegrationTests(TestCase):
 
@@ -23,8 +24,8 @@ class ExportIntegrationTests(TestCase):
                 run_command(Commands.CREATE, prefix2 , "--file " + env_txt.name)
 
                 assert_package_is_installed(prefix2, "python")
-
-            output2, error= run_command(Commands.LIST, prefix2, "-e")
+                rm_rf(env_txt.name)
+            output2, error = run_command(Commands.LIST, prefix2, "-e")
             self.assertEqual(output, output2)
 
     def test_multi_channel_explicit(self):
@@ -51,6 +52,6 @@ class ExportIntegrationTests(TestCase):
 
                 assert_package_is_installed(prefix2, "python")
                 assert_package_is_installed(prefix2, "six")
-
+                rm_rf(env_txt.name)
             output2, _ = run_command(Commands.LIST, prefix2, "--explicit")
             self.assertEqual(output, output2)
