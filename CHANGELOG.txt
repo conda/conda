@@ -1,3 +1,8 @@
+2016-0X-XX  4.1.12 (unreleased):
+--------------------------------
+  * fix #2837 "File exists" in symlinked path with parallel activations, #3210
+
+
 2016-07-26  4.1.11:
 -------------------
   * fix PS1 backup in activate script, #3135 via #3155
