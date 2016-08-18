@@ -17,7 +17,7 @@ class ExportIntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-3')
 
             output, error = run_command(Commands.LIST, prefix, "-e")
-            
+
             with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                 env_txt.write(output)
                 env_txt.flush()
@@ -44,20 +44,7 @@ class ExportIntegrationTests(TestCase):
 
             output, error = run_command(Commands.LIST, prefix, "-e")
             self.assertIn("conda-forge", output)
-
-            with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
-                env_txt.write(output)
-                env_txt.flush()
-                env_txt.close()
-                prefix2 = make_temp_prefix()
-                run_command(Commands.CREATE, prefix2, "--file " + env_txt.name)
-
-                assert_package_is_installed(prefix2, "python")
-                assert_package_is_installed(prefix2, "six")
-
-            output2, _ = run_command(Commands.LIST, prefix2, "-e")
-            self.assertEqual(output, output2)
-=======
+            
             try:
                 with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                     env_txt.write(output)
@@ -70,7 +57,7 @@ class ExportIntegrationTests(TestCase):
                 self.assertEqual(output, output2)
             finally:
                 rm_rf(env_txt.name)
->>>>>>> b79bbb27d03061fb11ca382cead7849a5f13aa3c
+
 
     def test_multi_channel_explicit(self):
         """
@@ -87,20 +74,6 @@ class ExportIntegrationTests(TestCase):
             output, error = run_command(Commands.LIST, prefix, "--explicit")
             self.assertIn("conda-forge", output)
 
-<<<<<<< HEAD
-            with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
-                env_txt.write(output)
-                env_txt.flush()
-                env_txt.close()
-                prefix2 = make_temp_prefix()
-                run_command(Commands.CREATE, prefix2, "--file " + env_txt.name)
-
-                assert_package_is_installed(prefix2, "python")
-                assert_package_is_installed(prefix2, "six")
-
-            output2, _ = run_command(Commands.LIST, prefix2, "--explicit")
-            self.assertEqual(output, output2)
-=======
             try:
                 with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                     env_txt.write(output)
@@ -114,4 +87,4 @@ class ExportIntegrationTests(TestCase):
                 self.assertEqual(output, output2)
             finally:
                 rm_rf(env_txt.name)
->>>>>>> b79bbb27d03061fb11ca382cead7849a5f13aa3c
+
