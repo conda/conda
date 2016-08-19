@@ -115,8 +115,8 @@ def make_writable(path):
         eno = getattr(e, 'errno', None)
         if eno in (ENOENT,):
             raise
-        elif eno in (EPERM,):
-            log.debug("conda-build problem; not sure why: %s\n%r", path, e)
+        elif eno in (EACCES, EPERM):
+            log.debug("tried make writable but failed: %s\n%r", path, e)
         else:
             log.error("Error making path writable: %s\n%r", path, e)
             raise
