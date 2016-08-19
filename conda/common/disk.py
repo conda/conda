@@ -96,13 +96,6 @@ def backoff_rmdir(dirpath):
 
 
 def make_writable(path):
-    # try:
-    #     mode = stat(path).st_mode
-    # except (IOError, OSError) as e:
-    #     if e.errno == ENOENT:
-    #         return
-    #     else:
-    #         raise
     try:
         mode = stat(path).st_mode
         if S_ISDIR(mode):
