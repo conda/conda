@@ -9,7 +9,7 @@ from logging import getLogger
 from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk
 from os.path import basename, dirname, exists, isdir, isfile, islink, join
 from shutil import rmtree
-from stat import S_IEXEC, S_IWRITE
+from stat import S_IEXEC, S_IWRITE, S_ISDIR, S_IMODE
 from time import sleep
 from uuid import uuid4
 
@@ -96,11 +96,11 @@ def backoff_rmdir(dirpath):
 
 
 def make_writable(path):
-    st = stat(path)
-    if isdir(path):
-        chmod(path, st.st_mode | S_IWRITE | S_IEXEC)
-    else:
-        chmod(path, st.st_mode | S_IWRITE)
+    mode = stat(path).st_mode
+    if S_ISDIR(mode):
+        chmod(path, S_IMODE(mode) | S_IWRITE | S_IEXEC)
+    elif exists(path):
+        chmod(path, S_IMODE(mode) | S_IWRITE)
 
 
 def recursive_make_writable(path):
