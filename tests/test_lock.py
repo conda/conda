@@ -1,6 +1,6 @@
 import pytest
-from os.path import basename, join
-from conda.lock import FileLock, LOCKSTR, LOCK_EXTENSION, LockError
+from os.path import basename, join, exists, isfile
+from conda.lock import FileLock, LockError, DirectoryLock
 from conda.install import on_win
 
 def test_filelock_passes(tmpdir):
@@ -107,8 +107,16 @@ def test_lock_retries(tmpdir):
     # lock should clean up after itself
     assert not tmpdir.join(path).exists()
 
-def test_delete_lock(tmpdir):
+
+def test_delete_lock():
     from .test_create import make_temp_env
-    from conda.base.context import context
+    from conda.exceptions import delete_lock
     with make_temp_env() as prefix:
-        assert False, context.pkgs_dirs
+        try:
+            with DirectoryLock(prefix) as lock:
+                path = basename(lock.lock_file_path)
+                assert isfile(join(prefix,path))
+                raise TypeError
+        except TypeError:
+            delete_lock(extra_path=prefix)
+            assert not exists(join(prefix, path))

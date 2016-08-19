@@ -7,7 +7,6 @@ from logging import getLogger
 from traceback import format_exc
 from . import CondaError, text_type
 from .compat import iteritems, iterkeys
-from conda.cli.main_clean import find_lock
 log = logging.getLogger(__name__)
 
 class LockError(CondaError, RuntimeError):
@@ -438,19 +437,24 @@ conda GitHub issue tracker at:
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
 
 
-def delete_lock():
+def delete_lock(extra_path=None):
     """
         Delete lock on exception accoding to pid
         log warning when delete fails
+
+        Args:
+            extra_path : The extra path that you want to search and
+            delete locks
     """
+    from conda.cli.main_clean import find_lock
     from .lock import LOCK_EXTENSION
     import os
     pid = os.getpid()
     file_end = text_type(pid) + "." + LOCK_EXTENSION
-    locks = list(find_lock(file_ending=file_end))
+    locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
     failed_delete = []
     for path in locks:
-        assert os.path.exists(path)
+        assert os.path.exists(path), path
         try:
             os.unlink(path)
         except (OSError, IOError) as e:

@@ -160,7 +160,7 @@ class CrossPlatformStLink(object):
             cls._st_nlink = cls._windows_st_nlink
 
 
-def find_lock(file_ending=LOCK_EXTENSION):
+def find_lock(file_ending=LOCK_EXTENSION, extra_path=None):
     from os.path import join
     lock_dirs = context.pkgs_dirs[:]
     lock_dirs += [context.root_dir]
@@ -176,7 +176,7 @@ def find_lock(file_ending=LOCK_EXTENSION):
     except ImportError:
         pass
 
-    for dir in lock_dirs:
+    for dir in lock_dirs + list(extra_path):
         if not os.path.exists(dir):
             continue
         for dn in os.listdir(dir):
