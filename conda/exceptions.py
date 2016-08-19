@@ -2,12 +2,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+import logging
 from logging import getLogger
 from traceback import format_exc
-
 from . import CondaError, text_type
 from .compat import iteritems, iterkeys
-
+from conda.cli.main_clean import find_lock
+log = logging.getLogger(__name__)
 
 class LockError(CondaError, RuntimeError):
     def __init__(self, message):
@@ -437,6 +438,30 @@ conda GitHub issue tracker at:
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
 
 
+def delete_lock():
+    """
+        Delete lock on exception accoding to pid
+        log warning when delete fails
+    """
+    from .lock import LOCK_EXTENSION
+    import os
+    pid = os.getpid()
+    file_end = text_type(pid) + "." + LOCK_EXTENSION
+    locks = list(find_lock(file_ending=file_end))
+    failed_delete = []
+    for path in locks:
+        assert os.path.exists(path)
+        try:
+            os.unlink(path)
+        except (OSError, IOError) as e:
+            failed_delete.append(path)
+            log.warn("%r errno %d Cannot unlink %s. \n", e, e.errno, path)
+
+    if failed_delete:
+        log.warn("Please delete those lock file by hand\
+                 It may affect conda performance !\n ")
+
+
 def conda_exception_handler(func, *args, **kwargs):
     try:
         return_value = func(*args, **kwargs)
@@ -455,3 +480,5 @@ def conda_exception_handler(func, *args, **kwargs):
     except Exception as e:
         print_unexpected_error_message(e)
         return 1
+    finally:
+        delete_lock()

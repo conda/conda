@@ -106,3 +106,9 @@ def test_lock_retries(tmpdir):
     t.join()
     # lock should clean up after itself
     assert not tmpdir.join(path).exists()
+
+def test_delete_lock(tmpdir):
+    from .test_create import make_temp_env
+    from conda.base.context import context
+    with make_temp_env() as prefix:
+        assert False, context.pkgs_dirs

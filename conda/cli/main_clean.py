@@ -16,7 +16,7 @@ from ..base.context import context
 from ..install import rm_rf
 from ..utils import human_bytes, backoff_unlink
 from ..exceptions import ArgumentError
-
+from conda.lock import LOCK_EXTENSION
 descr = """
 Remove unused packages and caches.
 """
@@ -160,11 +160,8 @@ class CrossPlatformStLink(object):
             cls._st_nlink = cls._windows_st_nlink
 
 
-def find_lock():
+def find_lock(file_ending=LOCK_EXTENSION):
     from os.path import join
-
-    from conda.lock import LOCK_EXTENSION
-
     lock_dirs = context.pkgs_dirs[:]
     lock_dirs += [context.root_dir]
     for envs_dir in context.envs_dirs:
@@ -183,7 +180,7 @@ def find_lock():
         if not os.path.exists(dir):
             continue
         for dn in os.listdir(dir):
-            if os.path.exists(join(dir, dn)) and dn.endswith(LOCK_EXTENSION):
+            if os.path.exists(join(dir, dn)) and dn.endswith(file_ending):
                 path = join(dir, dn)
                 yield path
 
