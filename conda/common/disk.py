@@ -96,11 +96,16 @@ def backoff_rmdir(dirpath):
 
 
 def make_writable(path):
-    mode = stat(path).st_mode
-    if S_ISDIR(mode):
-        chmod(path, S_IMODE(mode) | S_IWRITE | S_IEXEC)
-    elif exists(path):
-        chmod(path, S_IMODE(mode) | S_IWRITE)
+    try:
+        mode = stat(path).st_mode
+        if S_ISDIR(mode):
+            chmod(path, S_IMODE(mode) | S_IWRITE | S_IEXEC)
+        elif exists(path):
+            chmod(path, S_IMODE(mode) | S_IWRITE)
+        else:
+            log.debug("path does not exist to make writable: %s", path)
+    except Exception as e:
+        log.error("Error making path writable: %s\n%r", path, e)
 
 
 def recursive_make_writable(path):
