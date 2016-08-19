@@ -112,8 +112,11 @@ def make_writable(path):
         else:
             log.debug("path cannot be made writable: %s", path)
     except Exception as e:
-        if getattr(e, 'errno', None) == ENOENT:
+        eno = getattr(e, 'errno', None)
+        if eno in (ENOENT,):
             raise
+        elif eno in (EPERM,):
+            log.debug("conda-build problem; not sure why: %s\n%r", path, e)
         else:
             log.error("Error making path writable: %s\n%r", path, e)
             raise
