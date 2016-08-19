@@ -9,7 +9,7 @@ from logging import getLogger
 from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk
 from os.path import basename, dirname, exists, isdir, isfile, islink, join
 from shutil import rmtree
-from stat import S_IEXEC, S_IWRITE, S_ISDIR, S_IMODE
+from stat import S_IEXEC, S_IWRITE, S_ISDIR, S_IMODE, S_ISREG, S_ISLNK
 from time import sleep
 from uuid import uuid4
 
@@ -96,23 +96,27 @@ def backoff_rmdir(dirpath):
 
 
 def make_writable(path):
+    # try:
+    #     mode = stat(path).st_mode
+    # except (IOError, OSError) as e:
+    #     if e.errno == ENOENT:
+    #         return
+    #     else:
+    #         raise
     try:
         mode = stat(path).st_mode
-    except (IOError, OSError) as e:
-        if e.errno == ENOENT:
-            return
-        else:
-            raise
-    try:
         if S_ISDIR(mode):
             chmod(path, S_IMODE(mode) | S_IWRITE | S_IEXEC)
-        elif exists(path):
+        elif S_ISREG(mode) or S_ISLNK(mode):
             chmod(path, S_IMODE(mode) | S_IWRITE)
         else:
-            log.debug("path does not exist to make writable: %s", path)
+            log.debug("path cannot be made writable: %s", path)
     except Exception as e:
-        log.error("Error making path writable: %s\n%r", path, e)
-        raise
+        if getattr(e, 'errno', None) == ENOENT:
+            raise
+        else:
+            log.error("Error making path writable: %s\n%r", path, e)
+            raise
 
 
 def recursive_make_writable(path):
