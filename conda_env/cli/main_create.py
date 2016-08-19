@@ -7,7 +7,7 @@ import textwrap
 
 from conda.cli import common
 from conda.cli import install as cli_install
-from conda.install import rm_rf
+from conda.common.disk import rm_rf
 from conda.misc import touch_nonadmin
 from conda.plan import is_root_prefix
 
