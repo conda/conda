@@ -1,3 +1,25 @@
+## 4.1.12 (unreleased)
+
+### Bug Fixes
+* fix #2837 "File exists" in symlinked path with parallel activations (#3210)
+
+
+## 4.2.4 (2016-08-18)
+
+### Bug Fixes
+* fix #3277 conda list package order (#3278)
+* fix channel priority issue with duplicated channels (#3283)
+* fix local channel channels; add full conda-build unit tests (#3281)
+* fix conda install with no package specified (#3284)
+* fix #3253 exporting and importing conda environments (#3286)
+* fix priority messaging on conda config --get (#3304)
+* fix conda list --export; additional itegration tests (#3291)
+* fix conda update --all idempotency; add integration tests for channel priority (#3306)
+
+### Non-User-Facing Changes
+* additional conda-env integration tests (#3288)
+
+
 ## 4.2.3 (2016-08-11)
 
 ### Improvements

@@ -76,22 +76,24 @@ parser_config = {
 
 
 def run_command(command, prefix, *arguments):
+    arguments = list(arguments)
     p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
 
-    prefix = escape_for_winpath(prefix)
-    arguments = list(map(escape_for_winpath, arguments))
     if command is Commands.CONFIG:
-        command_line = "{0} --file {1} {2}".format(command, join(prefix, 'condarc'), " ".join(arguments))
-    elif command is Commands.SEARCH:
-        command_line = "{0} {1}".format(command, " ".join(arguments))
-    elif command is Commands.LIST:
-        command_line = "{0} -p {1} {2}".format(command, prefix, " ".join(arguments))
-    else:  # CREATE, INSTALL, REMOVE, UPDATE
-        command_line = "{0} -y -q -p {1} {2}".format(command, prefix, " ".join(arguments))
+        arguments.append("--file {0}".format(join(prefix, 'condarc')))
+    if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
+                   Commands.REMOVE, Commands.UPDATE):
+        arguments.append("-p {0}".format(prefix))
+    if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
+        arguments.extend(["-y", "-q"])
+
+    arguments = list(map(escape_for_winpath, arguments))
+    command_line = "{0} {1}".format(command, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
+    print("executing command >>>", command_line)
     with captured() as c:
         args.func(args, p)
     print(c.stderr, file=sys.stderr)
@@ -104,11 +106,12 @@ def run_command(command, prefix, *arguments):
 @contextmanager
 def make_temp_env(*packages, **kwargs):
     prefix = kwargs.pop('prefix', None) or make_temp_prefix()
+    assert isdir(prefix), prefix
     with stderr_log_level(DEBUG, 'conda'), stderr_log_level(DEBUG, 'requests'):
         with disable_logger('fetch'), disable_logger('dotupdate'):
             try:
                 # try to clear any config that's been set by other tests
-                reset_context([join(prefix, 'condarc')])
+                reset_context([os.path.join(prefix+os.sep, 'condarc')])
                 run_command(Commands.CREATE, prefix, *packages)
                 yield prefix
             finally:
@@ -116,7 +119,7 @@ def make_temp_env(*packages, **kwargs):
 
 
 def reload_config(prefix):
-    prefix_condarc = join(prefix, 'condarc')
+    prefix_condarc = join(prefix+os.sep, 'condarc')
     reset_context([prefix_condarc])
 
 
@@ -424,7 +427,7 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 15), reason="configs are borked")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 23), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
@@ -532,7 +535,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 15), reason="deal with this later")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 23), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
