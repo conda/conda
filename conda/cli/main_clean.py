@@ -176,7 +176,8 @@ def find_lock(file_ending=LOCK_EXTENSION, extra_path=None):
     except ImportError:
         pass
 
-    for dir in lock_dirs + list(extra_path):
+    lock_dirs = lock_dirs + list(extra_path) if extra_path else lock_dirs
+    for dir in lock_dirs:
         if not os.path.exists(dir):
             continue
         for dn in os.listdir(dir):
