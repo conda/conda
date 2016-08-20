@@ -121,7 +121,7 @@ class DirectoryLock(FileLock):
                 os.makedirs(self.directory_path)
                 log.debug("forced to create %s", self.directory_path)
             except (OSError, IOError) as e:
-                log.warn("Failed to create")
+                log.warn("Failed to create directory %s" % self.directory_path)
 
 
 
