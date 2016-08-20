@@ -123,6 +123,4 @@ class DirectoryLock(FileLock):
             except (OSError, IOError) as e:
                 log.warn("Failed to create directory %s" % self.directory_path)
 
-
-
 Locked = DirectoryLock
