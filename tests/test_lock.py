@@ -118,7 +118,11 @@ def test_permission_file():
         Make sure no exception raised
     """
     import tempfile
-    with tempfile.TemporaryFile(mode='r') as f:
+    from conda.compat import text_type
+    with tempfile.NamedTemporaryFile(mode='r') as f:
+        if not isinstance(f.name, text_type):
+            return
         with FileLock(f.name) as lock:
+
             path = basename(lock.lock_file_path)
             assert not exists(join(f.name, path))
