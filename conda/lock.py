@@ -45,8 +45,11 @@ def touch(file_name, times=None):
     Examples:
         touch("hello_world.py")
     """
-    with open(file_name, 'a'):
-        os.utime(file_name, times)
+    try:
+        with open(file_name, 'a'):
+            os.utime(file_name, times)
+    except (OSError, IOError) as e:
+        log.debug(repr(e))
 
 
 class FileLock(object):
