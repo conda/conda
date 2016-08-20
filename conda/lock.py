@@ -49,7 +49,7 @@ def touch(file_name, times=None):
         with open(file_name, 'a'):
             os.utime(file_name, times)
     except (OSError, IOError) as e:
-        log.debug(repr(e))
+        log.warn("Failed to create lock, do not run conda in parallel process\n")
 
 
 class FileLock(object):
