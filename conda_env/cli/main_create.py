@@ -123,8 +123,4 @@ def execute(args, parser):
 
     touch_nonadmin(prefix)
     if not args.json:
-<<<<<<< 3cdd0f365fcc34477e722e24a5c216b7912be21f
-        print(cli_install.print_activate(args.name if args.name else prefix))
-=======
-        cli_install.get_activate_message(args.name if args.name else prefix)
->>>>>>> first commit on replacing print and parameterizing as much info as possible for json output
+        print(cli_install.get_activate_message(args.name if args.name else prefix))

@@ -6,6 +6,7 @@ import sys
 from functools import partial
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger, CRITICAL
 
+from conda import text_type
 from .._vendor.auxlib.logz import NullHandler
 from ..common.io import attach_stderr_handler
 
@@ -27,7 +28,7 @@ class TokenURLFilter(Filter):
     TOKEN_REPLACE = partial(TOKEN_URL_PATTERN.sub, r'\1\2\3/t/<TOKEN>/')
 
     def filter(self, record):
-        record.msg = self.TOKEN_REPLACE(record.msg)
+        record.msg = self.TOKEN_REPLACE(text_type(record.msg))
         return True
 
 
@@ -35,7 +36,7 @@ def initialize_logging():
     initialize_root_logger()
     initialize_conda_logger()
 
-    formatter = Formatter("%(message)s\n")
+    formatter = Formatter("%(message)s")
 
     stdout = getLogger('stdout')
     stdout.setLevel(INFO)

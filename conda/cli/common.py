@@ -411,7 +411,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
                                 user_choice=user_choice, options='/'.join(options),
                                 choices=choices))
         else:
-            stdout.info('newline_message', "\n")
+            stdout.info(Message('newline_message', "\n"))
             sys.stdout.flush()
             return choices[user_choice]
 

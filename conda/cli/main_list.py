@@ -185,7 +185,7 @@ Error: environment does not exist: %s
         super(PrintPackages, self).__init__(self.__class__.__name__,
                                             message_str='\n'.join(message_pieces),
                                             subdir=context.subdir,
-                                            installed_packages=installed_packages,
+                                            installed_packages=dict.fromkeys(installed_packages),
                                             prefix=prefix)
 
 

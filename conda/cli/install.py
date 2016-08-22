@@ -98,7 +98,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
                         dst_prefix=dst_prefix))
 
 
-def get_activate_message(arg):
+def get_activate_message(env_name_or_prefix):
     if on_win:
         message = dals("""
         #
@@ -122,7 +122,7 @@ def get_activate_message(arg):
         #
         """)
 
-    return Message('activate_message', message, environment_name_or_prefix=arg)
+    return Message('activate_message', message, environment_name_or_prefix=env_name_or_prefix)
 
 
 def get_revision(arg, json=False):
@@ -373,7 +373,8 @@ def install(args, parser, command='install'):
         from .main_list import print_packages
 
         regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
-        stdout.info('All requested packages already installed')
+        stdout.info(Message('all_packages_installed_message',
+                            'All requested packages already installed'))
         stdout.info(PrintPackages(prefix, regex))
 
         return

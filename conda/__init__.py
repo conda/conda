@@ -10,7 +10,6 @@ import os
 import sys
 from logging import basicConfig, INFO
 
-from conda.compat import text_type
 from ._vendor.auxlib.packaging import get_version
 from .compat import text_type, iteritems
 from .gateways.logging import initialize_logging
@@ -68,7 +67,6 @@ class CondaMultiError(CondaError):
     def __str__(self):
         return '\n'.join(text_type(e) for e in self.errors) + '\n'
 
-
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),
                     exception_name=self.__class__.__name__,
@@ -100,4 +98,3 @@ class Message(object):
 
 
 basicConfig(level=INFO)
-

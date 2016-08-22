@@ -406,7 +406,6 @@ def print_unexpected_error_message(e):
     command = ' '.join(sys.argv)
 
     message = """\
->>>>>>> first commit on replacing print and parameterizing as much info as possible for json output
 An unexpected error has occurred.
 Please consider posting the following information to the
 conda GitHub issue tracker at:

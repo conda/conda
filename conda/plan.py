@@ -20,7 +20,7 @@ from conda.common.disk import rm_rf
 from . import instructions as inst, Message
 from .base.context import context, default_python
 from .exceptions import (InstallError, RemoveError, CondaIndexError,
-                         CondaRuntimeError)
+                         CondaRuntimeError, ArgumentError)
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
                       is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
