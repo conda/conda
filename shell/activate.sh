@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# `source activate` for sh
+# . activate for bourne-shell
 #
 
 ###############################################################################
@@ -19,7 +19,7 @@ fi
 case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
-        export MSYS2_ENV_CONV_EXCL=CONDA_PATH
+        export MSYS2_ENV_CONV_EXCL="CONDA_PATH"
         ;;
     *)
         EXT=""
@@ -27,7 +27,8 @@ case "$(uname -s)" in
 esac
 
 # inherit whatever the user set
-# this is important for dash where you cannot pass parameters to sourced scripts
+# this is important for dash (and other shells) where you cannot pass
+# parameters to sourced scripts
 # CONDA_HELP=false
 UNKNOWN=""
 # CONDA_VERBOSE=false
@@ -57,7 +58,8 @@ while [ $num != -1 ]; do
                     CONDA_ENVNAME="${arg}"
                     is_envname_set=true
                 else
-                    if [ "${UNKNOWN}" = "" ]; then
+                    # if it is undefined (check if unbounded) and if it is zero
+                    if [ -z "${UNKNOWN+x}" ] || [ -z "${UNKNOWN}" ]; then
                         UNKNOWN="${arg}"
                     else
                         UNKNOWN="${UNKNOWN} ${arg}"
@@ -72,6 +74,7 @@ unset num
 unset arg
 unset is_envname_set
 
+# if any of these variables are undefined (i.e. unbounded) set them to a default
 [ -z "${CONDA_HELP+x}" ] && CONDA_HELP=false
 [ -z "${CONDA_VERBOSE+x}" ] && CONDA_VERBOSE=false
 [ -z "${CONDA_ENVNAME+x}" ] && CONDA_ENVNAME="root"
@@ -80,7 +83,8 @@ unset is_envname_set
 # help dialog
 ######################################################################
 if [ "${CONDA_HELP}" = true ]; then
-    if [ -n "${UNKNOWN+x}" ]; then
+    # if it is defined (check if unbounded) and if it is non-zero
+    if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
         echo "[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
     fi
     conda ..activate ${_SHELL}${EXT} -h
@@ -90,7 +94,8 @@ if [ "${CONDA_HELP}" = true ]; then
     unset CONDA_ENVNAME
     unset CONDA_HELP
     unset CONDA_VERBOSE
-    if [ -n "${UNKNOWN+x}" ]; then
+    # if it is defined (check if unbounded) and if it is non-zero
+    if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
         unset UNKNOWN
         return 1
     else
@@ -130,7 +135,7 @@ _CONDA_BIN=$(conda ..activate ${_CONDA_BIN} "${CONDA_ENVNAME}" | sed 's| |\ |')
 if [ $? = 0 ]; then
     # CONDA_PS1_BACKUP
     # export these to restore upon deactivation
-    export CONDA_PS1_BACKUP="${PS1}"
+    [ -n "${PS1+x}" ] && export CONDA_PS1_BACKUP="${PS1}"
 
     # PATH
     # update path with the new conda environment
@@ -157,7 +162,7 @@ if [ $? = 0 ]; then
 
     # PS1
     # customize the PS1 to show what environment has been activated
-    if [ $(conda ..changeps1) = 1 ]; then
+    if [ $(conda ..changeps1) = 1 ] && [ -n "${PS1+x}" ]; then
         export PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
     fi
 

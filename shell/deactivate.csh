@@ -1,7 +1,7 @@
 #!/bin/csh
 
 #
-# `source deactivate` for csh
+# source "`which deactivate`" for c-shell
 #
 
 ###############################################################################
@@ -13,7 +13,7 @@ switch ( `uname -s` )
     case "MINGW*":
     case "MSYS*":
         set EXT=".exe"
-        setenv MSYS2_ENV_CONV_EXCL CONDA_PATH
+        setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
         breaksw
     default:
         set EXT=""
@@ -61,6 +61,7 @@ end
 unset num
 unset arg
 
+# if any of these variables are undefined (i.e. unbounded) set them to a default
 if ( `echo "${CONDA_HELP}" | sed 's| ||g'` == "" ) set CONDA_HELP=false
 if ( `echo "${CONDA_VERBOSE}" | sed 's| ||g'` == "" ) set CONDA_VERBOSE=false
 
@@ -108,7 +109,7 @@ if ( $?CONDA_DEFAULT_ENV ) then
         unset _CONDA_DIR
 
         # restore PROMPT
-        set prompt="${CONDA_PS1_BACKUP}"
+        if ( $?prompt ) set prompt="${CONDA_PS1_BACKUP}"
 
         # remove CONDA_DEFAULT_ENV
         unsetenv CONDA_DEFAULT_ENV

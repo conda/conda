@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# `source deactivate` for sh
+# . deactivate for bourne-shell
 #
 
 ###############################################################################
@@ -19,7 +19,7 @@ fi
 case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
-        export MSYS2_ENV_CONV_EXCL=CONDA_PATH
+        export MSYS2_ENV_CONV_EXCL="CONDA_PATH"
         ;;
     *)
         EXT=""
@@ -51,7 +51,8 @@ while [ $num != -1 ]; do
                 CONDA_VERBOSE=true
                 ;;
             *)
-                if [ "${UNKNOWN}" = "" ]; then
+                # if it is undefined (check if unbounded) and if it is zero
+                if [ -z "${UNKNOWN+x}" ] || [ -z "${UNKNOWN}" ]; then
                     UNKNOWN="${arg}"
                 else
                     UNKNOWN="${UNKNOWN} ${arg}"
@@ -64,6 +65,7 @@ done
 unset num
 unset arg
 
+# if any of these variables are undefined (i.e. unbounded) set them to a default
 [ -z "${CONDA_HELP+x}" ] && CONDA_HELP=false
 [ -z "${CONDA_VERBOSE+x}" ] && CONDA_VERBOSE=false
 
@@ -71,7 +73,8 @@ unset arg
 # help dialog
 ######################################################################
 if [ "${CONDA_HELP}" = true ]; then
-    if [ -n "${UNKNOWN+x}" ]; then
+    # if it is defined (check if unbounded) and if it is non-zero
+    if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
         echo "[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
     fi
     conda ..deactivate ${_SHELL}${EXT} -h
@@ -80,7 +83,8 @@ if [ "${CONDA_HELP}" = true ]; then
     unset EXT
     unset CONDA_HELP
     unset CONDA_VERBOSE
-    if [ -n "${UNKNOWN+x}" ]; then
+    # if it is defined (check if unbounded) and if it is non-zero
+    if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
         unset UNKNOWN
         return 1
     else
@@ -110,7 +114,7 @@ if [ -n "${CONDA_DEFAULT_ENV}" ]; then
     unset _CONDA_DIR
 
     # restore PROMPT
-    export PS1="${CONDA_PS1_BACKUP}"
+    [ -n "${PS1+x}" ] && export PS1="${CONDA_PS1_BACKUP}"
 
     # remove CONDA_DEFAULT_ENV
     unset CONDA_DEFAULT_ENV

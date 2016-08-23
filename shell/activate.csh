@@ -1,7 +1,7 @@
 #!/bin/csh
 
 #
-# `source activate` for csh
+# source "`which activate`" for c-shell
 #
 
 ###############################################################################
@@ -13,7 +13,7 @@ switch ( `uname -s` )
     case "MINGW*":
     case "MSYS*":
         set EXT=".exe"
-        setenv MSYS2_ENV_CONV_EXCL CONDA_PATH
+        setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
         breaksw
     default:
         set EXT=""
@@ -37,7 +37,7 @@ while ( $num != -1 )
     @ num = ($num + 1)
     set arg=`eval eval echo '\${$num}'`
 
-    if ( `echo "${arg}" | sed 's| ||g'` == "" ) then
+    if ( -z `echo "${arg}" | sed 's| ||g'` ) then
         set num=-1
     else
         switch ( "${arg}" )
@@ -54,7 +54,7 @@ while ( $num != -1 )
                     set CONDA_ENVNAME="${arg}"
                     set is_envname_set=true
                 else
-                    if ( "${UNKNOWN}" == "" ) then
+                    if ( -z "${UNKNOWN}" ) then
                         set UNKNOWN="${arg}"
                     else
                         set UNKNOWN="${UNKNOWN} ${arg}"
@@ -69,15 +69,16 @@ unset num
 unset arg
 unset is_envname_set
 
-if ( `echo "${CONDA_HELP}" | sed 's| ||g'` == "" ) set CONDA_HELP=false
-if ( `echo "${CONDA_VERBOSE}" | sed 's| ||g'` == "" ) set CONDA_VERBOSE=false
-if ( `echo "${CONDA_ENVNAME}" | sed 's| ||g'` == "" ) set CONDA_ENVNAME="root"
+# if any of these variables are undefined (i.e. unbounded) set them to a default
+if ( -z `echo "${CONDA_HELP}" | sed 's| ||g'` ) set CONDA_HELP=false
+if ( -z `echo "${CONDA_VERBOSE}" | sed 's| ||g'` ) set CONDA_VERBOSE=false
+if ( -z `echo "${CONDA_ENVNAME}" | sed 's| ||g'` ) set CONDA_ENVNAME="root"
 
 ######################################################################
 # help dialog
 ######################################################################
 if ( "${CONDA_HELP}" == true ) then
-    if ( "${UNKNOWN}" != "" ) then
+    if ( -n "${UNKNOWN}" ) then
         sh -c "echo '[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
     endif
     conda ..activate ${_SHELL}${EXT} -h
@@ -87,7 +88,7 @@ if ( "${CONDA_HELP}" == true ) then
     unset CONDA_ENVNAME
     unset CONDA_HELP
     unset CONDA_VERBOSE
-    if ( "${UNKNOWN}" != "" ) then
+    if ( -n "${UNKNOWN}" ) then
         unset UNKNOWN
         exit 1
     else
@@ -129,7 +130,7 @@ set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${CONDA_ENVNAME}" | sed 's| |\ |
 if ( $status == 0 ) then
     # CONDA_PS1_BACKUP
     # export these to restore upon deactivation
-    setenv CONDA_PS1_BACKUP "${prompt}"
+    if ( $?prompt ) setenv CONDA_PS1_BACKUP "${prompt}"
 
     # PATH
     # update path with the new conda environment
@@ -173,7 +174,7 @@ if ( $status == 0 ) then
 
     # PROMPT
     # customize the prompt to show what environment has been activated
-    if ( `conda ..changeps1` == 1 ) then
+    if ( `conda ..changeps1` == 1 && $?prompt ) then
         set prompt="(${CONDA_DEFAULT_ENV}) ${prompt}"
     endif
 

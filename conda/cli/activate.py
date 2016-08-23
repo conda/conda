@@ -10,148 +10,96 @@ from os.path import isdir, abspath
 from conda import text_type
 from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError,
                           TooManyArgumentsError, TooFewArgumentsError)
-from ..utils import on_win
-
+from ..utils import on_win, shells
 
 def help(command, shell):
+    activate_help_dialog = dedent("""\
+        Usage: {command} [ENV] [-h] [-v]
+
+        Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to
+        the front of PATH. ENV may either refer to just the name of the
+        environment, or the full prefix path.
+
+        Where:
+            ENV             the virtual environment to activate (dflt: root)
+            -h,--help       shows this dialog
+            -v,--verbose    shows more detailed info for the activate process
+                            (useful when there are post-activate scripts)
+
+        Alternatively use the following variables when the above parameter passing
+        doesn't work:
+            {CONDA_ENVNAME}
+            {CONDA_HELP}
+            {CONDA_VERBOSE}
+
+        Example(s):
+            {command} root
+            {CONDA_ENVNAME_root} ; {command}
+        """)
+    deactivate_help_dialog = dedent("""\
+        Usage: {command} [-h] [-v]
+
+        Removes the environment prefix, 'Scripts' and 'Library\\bin' directory of
+        the environment ENV from the front of PATH.
+
+        Where:
+            -h,--help       shows this dialog
+            -v,--verbose    shows more detailed info for the activate process
+                            (useful when there are pre-deactivate scripts)
+
+        Alternatively use the following variables when the above parameter passing
+        doesn't work:
+            {CONDA_HELP}
+            {CONDA_VERBOSE}
+
+        Example(s):
+            {command}
+        """)
+    kwargs = {
+        "CONDA_ENVNAME":        shells[shell]["setvar"].format(
+                                variable="CONDA_ENVNAME",
+                                value="ENV"),
+        "CONDA_ENVNAME_root":   shells[shell]["setvar"].format(
+                                variable="CONDA_ENVNAME",
+                                value="root"),
+        "CONDA_HELP":           shells[shell]["setvar"].format(
+                                variable="CONDA_HELP",
+                                value="true"),
+        "CONDA_VERBOSE":        shells[shell]["setvar"].format(
+                                variable="CONDA_VERBOSE",
+                                value="true"),
+    }
+
     # sys.argv[1] will be ..checkenv in activate if an environment is already
     # activated
     # get grandparent process name to see which shell we're using
     if command in ('..activate', '..checkenv'):
         if shell in ["cmd.exe", "powershell.exe"]:
-            raise CondaSystemExit(dedent("""\
-                Usage: activate [ENV] [-h] [-v]
-
-                Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to
-                the front of PATH. ENV may either refer to just the name of the
-                environment, or the full prefix path.
-
-                Where:
-                    ENV             the virtual environment to activate (dflt: root)
-                    -h,--help       shows this dialog
-                    -v,--verbose    shows more detailed info for the activate process
-                                    (useful when there are post-activate scripts)
-
-                Alternatively use the following variables when the above parameter passing
-                doesn't work:
-                    CONDA_ENVNAME="ENV"
-                    CONDA_HELP=true
-                    CONDA_VERBOSE=true
-
-                Example(s):
-                    activate root
-                    CONDA_ENVNAME=root ; activate
-                """))
+            raise CondaSystemExit(activate_help_dialog.format(
+                command='activate',
+                **kwargs))
 
         elif shell in ["csh", "tcsh"]:
-            raise CondaSystemExit(dedent("""\
-                Usage: source "`which activate`" [ENV] [-h] [-v]
-
-                Adds the 'bin' directory of the environment ENV to the front of PATH. ENV
-                may either refer to just the name of the environment, or the full prefix
-                path.
-
-                Where:
-                    ENV             the virtual environment to activate (dflt: root)
-                    -h,--help       shows this dialog
-                    -v,--verbose    shows more detailed info for the activate process
-                                    (useful when there are post-activate scripts)
-
-                Alternatively use the following variables when the above parameter passing
-                doesn't work:
-                    set CONDA_ENVNAME="ENV"
-                    set CONDA_HELP=true
-                    set CONDA_VERBOSE=true
-
-                Example(s):
-                    source "`which activate`" root
-                    set CONDA_ENVNAME=root ; source "`which activate`"
-                """))
+            raise CondaSystemExit(activate_help_dialog.format(
+                command='source "`which activate`"',
+                **kwargs))
         else:
-            raise CondaSystemExit(dedent("""\
-                Usage: . activate [ENV] [-h] [-v]
-
-                Adds the 'bin' directory of the environment ENV to the front of PATH. ENV
-                may either refer to just the name of the environment, or the full prefix
-                path.
-
-                Where:
-                    ENV             the virtual environment to activate (dflt: root)
-                    -h,--help       shows this dialog
-                    -v,--verbose    shows more detailed info for the activate process
-                                    (useful when there are post-activate scripts)
-
-                Alternatively use the following variables when the above parameter passing
-                doesn't work:
-                    CONDA_ENVNAME="ENV"
-                    CONDA_HELP=true
-                    CONDA_VERBOSE=true
-
-                Example(s):
-                    . activate root
-                    set CONDA_ENVNAME=root ; . activate
-                """))
+            raise CondaSystemExit(activate_help_dialog.format(
+                command='. activate',
+                **kwargs))
     elif command == '..deactivate':
         if shell in ["cmd.exe", "powershell.exe"]:
-            raise CondaSystemExit(dedent("""\
-                Usage: deactivate [-h] [-v]
-
-                Removes the environment prefix, 'Scripts' and 'Library\\bin' directory of
-                the environment ENV from the front of PATH.
-
-                Where:
-                    -h,--help       shows this dialog
-                    -v,--verbose    shows more detailed info for the activate process
-                                    (useful when there are pre-deactivate scripts)
-
-                Alternatively use the following variables when the above parameter passing
-                doesn't work:
-                    CONDA_HELP=true
-                    CONDA_VERBOSE=true
-
-                Example(s):
-                    deactivate
-                """))
+            raise CondaSystemExit(deactivate_help_dialog.format(
+                command='deactivate',
+                **kwargs))
         elif shell in ["csh", "tcsh"]:
-            raise CondaSystemExit(dedent("""\
-                Usage: source "`which deactivate`" [-h] [-v]
-
-                Removes the 'bin' directory of the environment activated with 'source
-                activate' from PATH.
-
-                Where:
-                    -h,--help       shows this dialog
-                    -v,--verbose    shows more detailed info for the activate process
-                                    (useful when there are pre-deactivate scripts)
-
-                Alternatively use the following variables when the above parameter passing
-                doesn't work:
-                    set CONDA_HELP=true
-                    set CONDA_VERBOSE=true
-
-                Example(s):
-                    source "`which deactivate`"
-                """))
+            raise CondaSystemExit(deactivate_help_dialog.format(
+                command='source "`which deactivate`"',
+                **kwargs))
         else:
-            raise CondaSystemExit(dedent("""\
-                Usage: . deactivate [-h] [-v]
-
-                Removes the 'bin' directory of the environment activated with 'source
-                activate' from PATH.
-
-                Where:
-                    -h,--help       shows this dialog
-                    -v,--verbose    shows more detailed info for the activate process
-                                    (useful when there are pre-deactivate scripts)
-
-                Alternatively use the following variables when the above parameter passing
-                doesn't work:
-                    CONDA_HELP=true
-                    CONDA_VERBOSE=true
-
-                Example(s):
-                    . deactivate
-                """))
+            raise CondaSystemExit(deactivate_help_dialog.format(
+                command='. deactivate [-h] [-v]',
+                **kwargs))
     else:
         raise CondaSystemExit(dedent("""\
             No help available for command {}

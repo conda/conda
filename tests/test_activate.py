@@ -120,19 +120,25 @@ def _format_vars(shell):
     return shelldict
 
 
+# temporarily standardize the user profile to make testing simpler
 @pytest.fixture(scope="module")
 def bash_profile(request):
     profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
+    profile_backup=profile+"_backup"
+
     if os.path.isfile(profile):
-        os.rename(profile, profile+"_backup")
+        os.rename(profile, profile_backup)
+
     with open(profile, "w") as f:
         f.write("export PS1=test_ps1\n")
         f.write("export PROMPT=test_ps1\n")
+
     def fin():
-        if os.path.isfile(profile+"_backup"):
+        if os.path.isfile(profile_backup):
             os.remove(profile)
-            os.rename(profile+"_backup", profile)
+            os.rename(profile_backup, profile)
     request.addfinalizer(fin)
+
     return request  # provide the fixture value
 
 
@@ -148,7 +154,7 @@ def test_activate_test1(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {printpath}
@@ -178,7 +184,7 @@ def test_activate_env_from_env_with_root_activate(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[1]}"
@@ -210,7 +216,7 @@ def test_activate_bad_directory(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
                 {printpath}
@@ -240,7 +246,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
@@ -271,7 +277,7 @@ def test_activate_deactivate(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
@@ -301,7 +307,7 @@ def test_activate_root(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}"
                 {printpath}
@@ -331,7 +337,7 @@ def test_activate_deactivate_root(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}"
                 {source} "{syspath}{binpath}deactivate{shell_suffix}"
@@ -362,7 +368,7 @@ def test_activate_root_env_from_other_env(shell):
             {printpath}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}"
@@ -392,7 +398,7 @@ def test_wrong_args(shell):
         # cannot accidentally pass too many args to program when setting environment variables
         scripts=[]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
             {source} "{syspath}{binpath}activate{shell_suffix}" two args
             {printpath}
@@ -422,7 +428,7 @@ def test_activate_check_sourcing(shell):
                 {env_vars[0]} ; "{syspath}{binpath}activate{shell_suffix}"
                 """)]
             # most unix shells support parameter passing, dash is the exception
-            if shell not in ["dash","sh","csh"]:
+            if shell not in ["dash","sh","csh","posh"]:
                 scripts+=[dedent("""\
                     "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                     """)]
@@ -450,7 +456,7 @@ def test_activate_help(shell):
             {help} ; {source} "{syspath}{binpath}activate{shell_suffix}"
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" --help
                 """)]
@@ -484,7 +490,7 @@ def test_deactivate_check_sourcing(shell):
                 "{syspath}{binpath}deactivate{shell_suffix}"
                 """)]
             # most unix shells support parameter passing, dash is the exception
-            if shell not in ["dash","sh","csh"]:
+            if shell not in ["dash","sh","csh","posh"]:
                 scripts+=[dedent("""\
                     "{syspath}{binpath}deactivate{shell_suffix}"
                     """)]
@@ -512,7 +518,7 @@ def test_deactivate_help(shell):
             {help} ; {source} "{syspath}{binpath}deactivate{shell_suffix}"
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}deactivate{shell_suffix}" --help
                 """)]
@@ -570,7 +576,7 @@ def test_activate_symlinking(shell):
                 {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
                 """)]
             # most unix shells support parameter passing, dash is the exception
-            if shell not in ["dash","sh","csh"]:
+            if shell not in ["dash","sh","csh","posh"]:
                 scripts+=[dedent("""\
                     mkdir -p "{env_dirs[2]}{binpath}"
                     chmod 444 "{env_dirs[2]}{binpath}"
@@ -611,7 +617,7 @@ def test_PS1(shell, bash_profile):
             {printps1}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {printps1}
@@ -638,7 +644,7 @@ def test_PS1(shell, bash_profile):
             {printps1}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[1]}"
@@ -665,7 +671,7 @@ def test_PS1(shell, bash_profile):
             {printps1}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
                 {printps1}
@@ -690,7 +696,7 @@ def test_PS1(shell, bash_profile):
             {printps1}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
             {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
             {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
@@ -733,7 +739,7 @@ def test_PS1(shell, bash_profile):
             {printps1}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
@@ -756,7 +762,7 @@ def test_PS1(shell, bash_profile):
         # cannot accidentally pass too many args to program when setting environment variables
         scripts=[]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" two args
                 {printps1}
@@ -806,7 +812,7 @@ def test_PS1_no_changeps1(shell, bash_profile):
             {printps1}
             """),None)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts_with_stderr+=[(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {printps1}
@@ -858,7 +864,7 @@ def test_CONDA_DEFAULT_ENV(shell):
             {printdefaultenv}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {printdefaultenv}
@@ -883,7 +889,7 @@ def test_CONDA_DEFAULT_ENV(shell):
             {printdefaultenv}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[1]}"
@@ -908,7 +914,7 @@ def test_CONDA_DEFAULT_ENV(shell):
             {printdefaultenv}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts=[dedent("""\
             {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
             {printdefaultenv}
@@ -933,7 +939,7 @@ def test_CONDA_DEFAULT_ENV(shell):
             {printdefaultenv}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
@@ -977,7 +983,7 @@ def test_CONDA_DEFAULT_ENV(shell):
             echo "`env | grep {var}`."
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
@@ -1001,7 +1007,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         # cannot accidentally pass too many args to program when setting environment variables
         scripts=[]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" two args
                 {printdefaultenv}
@@ -1025,7 +1031,7 @@ def test_CONDA_DEFAULT_ENV(shell):
             {printdefaultenv}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}" {nul}
                 {printdefaultenv}
@@ -1050,7 +1056,7 @@ def test_CONDA_DEFAULT_ENV(shell):
             echo "`env | grep {var}`."
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" {nul}
@@ -1082,7 +1088,7 @@ def test_activate_from_env(shell):
             {printdefaultenv}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}activate{shell_suffix}" "{env_dirs[1]}"
@@ -1114,7 +1120,7 @@ def test_deactivate_from_env(shell):
             echo "`env | grep {var}`."
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
@@ -1152,7 +1158,7 @@ def test_activate_relative_path(shell):
             {printdefaultenv}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 cd {work_dir}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dir}"
@@ -1213,7 +1219,7 @@ def test_activate_non_ascii_char_in_path(shell):
             {printdefaultenv}.
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
@@ -1265,7 +1271,7 @@ def test_activate_has_extra_env_vars(shell):
             {echo} {var}
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {echo} {var}
@@ -1291,7 +1297,7 @@ def test_activate_has_extra_env_vars(shell):
             echo "`env | grep {var}`."
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
@@ -1343,7 +1349,7 @@ def test_activate_verbose(shell):
             {env_vars[0]} ; {verbose_var} ; {source} "{syspath}{binpath}activate{shell_suffix}"
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" "--verbose"
                 """)]
@@ -1367,7 +1373,7 @@ def test_activate_verbose(shell):
             {verbose_var} ; {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
             """)]
         # most unix shells support parameter passing, dash is the exception
-        if shell not in ["dash","sh","csh"]:
+        if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" "--verbose"
@@ -1381,6 +1387,38 @@ def test_activate_verbose(shell):
                     **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_in('[DEACTIVATE]: Sourcing',stdout,shell)
+            assert_equals(stderr,'')
+
+
+@pytest.mark.installed
+def test_activate_noPS1(shell):
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs,env_vars=gen_test_env_paths(envs, shell)
+
+        # all unix shells support environment variables instead of parameter passing
+        scripts=[dedent("""\
+            {unsetprompt}
+            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
+            {printpath}
+            """)]
+        # most unix shells support parameter passing, dash is the exception
+        if shell not in ["dash","sh","csh","posh"]:
+            scripts+=[dedent("""\
+                {unsetprompt}
+                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
+                {printpath}
+                """)]
+
+        for script in scripts:
+            commands = shell_vars['command_setup'] + script.format(
+                env_vars=env_vars,
+                env_dirs=env_dirs,
+                unsetprompt=shell_vars["unsetenvvar"].format(variable=shell_vars["promptvar"]),
+                **shell_vars)
+            stdout, stderr = run_in(commands, shell)
+            assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
+                stdout, shell)
             assert_equals(stderr,'')
 
 
