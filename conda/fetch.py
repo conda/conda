@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
 import getpass
@@ -15,21 +15,22 @@ import shutil
 import tempfile
 import warnings
 from functools import wraps
-from logging import getLogger, DEBUG
+from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
 from requests.packages.urllib3.connectionpool import InsecureRequestWarning
 
 from ._vendor.auxlib.logz import stringify
 from .base.context import context
+from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import add_username_and_pass_to_url, url_to_path
-from .compat import itervalues, input, iteritems
+from .compat import input, iteritems, itervalues
 from .connection import CondaSession, RETRIES
-from .models.channel import Channel, offline_keep
-from .exceptions import (ProxyError, CondaRuntimeError, CondaSignatureError, CondaHTTPError,
-                         MD5MismatchError)
-from .install import add_cached_package, find_new_location, package_cache, dist2pair, rm_rf
+from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError, \
+    ProxyError
+from .install import add_cached_package, dist2pair, find_new_location, package_cache
 from .lock import FileLock
-from .utils import exp_backoff_fn, memoized
+from .models.channel import Channel, offline_keep
+from .utils import memoized
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')

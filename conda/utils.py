@@ -1,20 +1,16 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import collections
-import errno
 import hashlib
 import logging
-import os
 import re
 import sys
-import time
 import threading
 from functools import partial
-from os.path import isdir, join, basename, exists
-# conda build import
+
 from .common.url import path_to_url
+
 log = logging.getLogger(__name__)
-stderrlog = logging.getLogger('stderrlog')
 
 on_win = bool(sys.platform == "win32")
 
@@ -90,45 +86,6 @@ def gnu_get_libc_version():
     f = libc.gnu_get_libc_version
     f.restype = c_char_p
     return f()
-
-
-def try_write(dir_path, heavy=False):
-    """Test write access to a directory.
-
-    Args:
-        dir_path (str): directory to test write access
-        heavy (bool): Actually create and delete a file, or do a faster os.access test.
-           https://docs.python.org/dev/library/os.html?highlight=xattr#os.access
-
-    Returns:
-        bool
-
-    """
-    if not isdir(dir_path):
-        return False
-    if on_win or heavy:
-        # try to create a file to see if `dir_path` is writable, see #2151
-        temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
-        try:
-            with open(temp_filename, mode='wb') as fo:
-                fo.write(b'This is a test file.\n')
-            backoff_unlink(temp_filename)
-            return True
-        except (IOError, OSError):
-            return False
-        finally:
-            backoff_unlink(temp_filename)
-    else:
-        return os.access(dir_path, os.W_OK)
-
-
-def backoff_unlink(path):
-    try:
-        exp_backoff_fn(lambda f: exists(f) and os.unlink(f), path)
-    except (IOError, OSError) as e:
-        if e.errno not in (errno.ENOENT,):
-            # errno.ENOENT File not found error / No such file or directory
-            raise
 
 
 def hashsum_file(path, mode='md5'):
@@ -369,41 +326,6 @@ else:
             c_shell_base, exe="tcsh",
                     ),
     }
-
-
-def exp_backoff_fn(fn, *args):
-    """Mostly for retrying file operations that fail on Windows due to virus scanners"""
-    if not on_win:
-        return fn(*args)
-
-    import random
-    # with max_tries = 6, max total time ~= 3.2 sec
-    # with max_tries = 7, max total time ~= 6.5 sec
-    max_tries = 7
-    for n in range(max_tries):
-        try:
-            result = fn(*args)
-        except (OSError, IOError) as e:
-            log.debug(repr(e))
-            if e.errno in (errno.EPERM, errno.EACCES):
-                if n == max_tries-1:
-                    raise
-                sleep_time = ((2 ** n) + random.random()) * 0.1
-                caller_frame = sys._getframe(1)
-                log.debug("retrying %s/%s %s() in %g sec",
-                          basename(caller_frame.f_code.co_filename),
-                          caller_frame.f_lineno, fn.__name__,
-                          sleep_time)
-                time.sleep(sleep_time)
-            elif e.errno in (errno.ENOENT,):
-                # errno.ENOENT File not found error / No such file or directory
-                raise
-            else:
-                log.error("Uncaught backoff with errno %d", e.errno)
-                raise
-        else:
-            return result
-
 
 # put back because of conda build
 urlpath = url_path = path_to_url

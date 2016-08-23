@@ -27,7 +27,8 @@ from .base.context import context, platform as context_platform
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
-from .utils import backoff_unlink, gnu_get_libc_version
+from .utils import gnu_get_libc_version
+from conda.common.disk import backoff_unlink
 
 RETRIES = 3
 

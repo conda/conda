@@ -90,7 +90,7 @@ class FileLock(object):
         raise LockError(LOCKSTR.format(last_glob_match))
 
     def __exit__(self, exc_type, exc_value, traceback):
-        from .install import rm_rf
+        from conda.common.disk import rm_rf
         rm_rf(self.lock_file_path)
 
 
