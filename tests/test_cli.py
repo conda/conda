@@ -9,7 +9,7 @@ from conda.common.io import captured
 from conda.compat import text_type
 from conda.exceptions import CondaValueError
 
-from tests.helpers import capture_json_with_argv, assert_in, run_inprocess_conda_command
+from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
 
 
 class TestArg2Spec(unittest.TestCase):

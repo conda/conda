@@ -572,8 +572,6 @@ root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda', 'openssl', 'requests'
 def handle_envs_list(acc, output=True):
     from conda import misc
 
-    print('in envs list')
-
     if output:
         stdout.info(Message('conda_environments_banner', "# conda environments:"))
         stdout.info(Message('conda_environments_banner', "#"))

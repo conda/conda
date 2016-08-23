@@ -303,7 +303,7 @@ Current conda install:
                             version=sys.version[:40]))
         stdout.info(Message('system_prefix_printout', "sys.prefix: %s" % sys.prefix,
                             system_prefix=sys.prefix))
-        stdout.into(Message('', "sys.executable: %s" % sys.executable,
+        stdout.info(Message('', "sys.executable: %s" % sys.executable,
                             system_executable=sys.executable))
         stdout.info(Message('conda_location_printout',
                             "conda location: %s" % dirname(conda.__file__),
