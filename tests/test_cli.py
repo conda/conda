@@ -136,9 +136,10 @@ class TestJson(unittest.TestCase):
     @pytest.mark.slow
     def test_info(self):
         res = capture_json_with_argv('conda info --json')
-        keys = ('channels', 'conda_version', 'default_prefix', 'envs',
-                'envs_dirs', 'pkgs_dirs', 'platform',
-                'python_version', 'rc_path', 'root_prefix', 'root_writable')
+        keys = ('channel_urls', 'conda_version', 'default_environment', 'conda_env_version',
+                'envs_directories', 'package_cache', 'platform', 'requests_version',
+                'conda_build_version', 'offline_mode', 'conda_is_private',
+                'python_version', 'config_file', 'root_environment', 'environment_writable')
         self.assertIsInstance(res, dict)
         for key in keys:
             assert key in res
@@ -210,13 +211,13 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, list)
 
         stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --json')
-        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
-        assert stderr == ''
+        assert json.loads(stderr)['exception_type'] == 'CondaEnvironmentNotFoundError'
+        assert stdout == ''
         assert rc > 0
 
         stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --revisions --json')
-        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
-        assert stderr == ''
+        assert json.loads(stderr)['exception_type'] == 'CondaEnvironmentNotFoundError'
+        assert stdout == ''
         assert rc > 0
 
     @pytest.mark.timeout(300)
@@ -232,8 +233,8 @@ class TestJson(unittest.TestCase):
             self.assertIn(key, res['conda'][0])
 
         stdout, stderr, rc = run_inprocess_conda_command('conda search * --json')
-        assert json.loads(stdout.strip())['exception_name'] == 'CommandArgumentError'
-        assert stderr == ''
+        assert json.loads(stderr)['exception_type'] == 'CommandArgumentError'
+        assert stdout == ''
         assert rc > 0
 
         res = capture_json_with_argv('conda search --canonical --json')

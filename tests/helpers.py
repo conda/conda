@@ -12,7 +12,7 @@ from conda import initialize_logging
 from shlex import split
 
 from conda.base.context import reset_context
-from conda.common.io import captured, argv
+from conda.common.io import captured, argv, replace_log_streams
 from conda import cli
 
 try:
@@ -130,7 +130,7 @@ def assert_in(a, b, output=""):
 
 def run_inprocess_conda_command(command):
     reset_context(())
-    with argv(split(command)), captured() as c:
+    with argv(split(command)), captured(False) as c: # replace_log_streams():
         initialize_logging()
         try:
             exit_code = cli.main()

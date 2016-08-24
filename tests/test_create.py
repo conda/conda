@@ -16,7 +16,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.io import disable_logger, stderr_log_level, captured
+from conda.common.io import disable_logger, stderr_log_level, captured, replace_log_streams
 from conda.common.url import path_to_url
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
@@ -94,7 +94,7 @@ def run_command(command, prefix, *arguments):
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
     print("executing command >>>", command_line)
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         args.func(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout)

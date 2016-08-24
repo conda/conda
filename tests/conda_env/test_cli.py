@@ -9,7 +9,7 @@ from conda_env.cli.main import create_parser
 
 from conda.base.context import context
 from conda.base.constants import ROOT_ENV_NAME
-from conda.common.io import captured
+from conda.common.io import captured, replace_log_streams
 from conda.install import rm_rf
 from conda.cli.main_create import configure_parser as conda_create_parser
 from conda.cli.main_list import configure_parser as list_parser
@@ -119,7 +119,7 @@ def run_conda_command(command, prefix, *arguments):
 
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         args.func(args, p)
 
     return c.stdout, c.stderr

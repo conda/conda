@@ -34,6 +34,17 @@ def captured():
 
 
 @contextmanager
+def replace_log_streams():
+    stdout, stderr = getLogger('stdout'), getLogger('stderr')
+    saved_stdout_strm, saved_stderr_strm = stdout.handlers[0].stream, stderr.handlers[0].stream
+    stdout.handlers[0].stream, stderr.handlers[0].stream = sys.stdout, sys.stderr
+    try:
+        yield
+    finally:
+        stdout.handlers[0].stream, stderr.handlers[0].stream = saved_stdout_strm, saved_stderr_strm
+
+
+@contextmanager
 def argv(args_list):
     saved_args = sys.argv
     sys.argv = args_list
