@@ -155,6 +155,14 @@ NOTE: We recommend that you install all packages at once, so all the dependencie
 
       conda install scipy=0.15.0 curl=7.26.0
 
+5. How can I install a package for a specific Python version?
+
+Generally if you want to use a specific Python version it is best to use an environment with that version.  Find a detailed example in :doc:`/troubleshooting`.
+
+   .. code-block:: bash
+
+      conda install scipy=0.15.0 curl=7.26.0 -n py34_env
+
 NOTE: We recommend that you install all packages at once, so all the dependencies are installed at the same time.
 
 Updating packages
@@ -512,7 +520,7 @@ Conda can be combined with :doc:`continuous integration systems <travis>` such a
 Windows XP with proxy configuration
 ===================================
 
-Although Windows XP mainstream support and Extended Support from Microsoft have 
-ended and Windows XP is no longer one of the target systems supported by Anaconda, 
-some users have successfully installed :doc:`Anaconda on Windows XP with proxy 
+Although Windows XP mainstream support and Extended Support from Microsoft have
+ended and Windows XP is no longer one of the target systems supported by Anaconda,
+some users have successfully installed :doc:`Anaconda on Windows XP with proxy
 configuration <winxp-proxy>`.

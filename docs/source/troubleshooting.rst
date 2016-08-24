@@ -12,18 +12,19 @@ Table of contents:
 #. :ref:`shell-command-location`
 #. :ref:`wrong-python`
 #. :ref:`unsatisfiable`
+#. :ref:`version-from-channel`
 
 .. _permission-denied:
 
 Issue:  permission denied errors during install
 ===============================================
 
-umask is a command that determines the mask settings that control how file permissions are set for newly created files. If you have a very restrictive umask (such as 077), you will see "permission denied" errors. 
+umask is a command that determines the mask settings that control how file permissions are set for newly created files. If you have a very restrictive umask (such as 077), you will see "permission denied" errors.
 
 Resolution:  set less restrictive umask before calling conda commands.
 ----------------------------------------------------------------------
 
-Conda was intended as a user space tool, but often users need to use it in a global environment. One place this can go awry is with restrictive file permissions.  Conda creates links when you install files that have to be read by others on the system. 
+Conda was intended as a user space tool, but often users need to use it in a global environment. One place this can go awry is with restrictive file permissions.  Conda creates links when you install files that have to be read by others on the system.
 
 To give yourself full permissions for files and directories, but prevent the group and other users from having access, before installing set the umask to 007, install conda, then return the umask to the original setting afterwards:
 
@@ -206,15 +207,15 @@ When I run a command within a conda environment, conda does not access the corre
 Resolution:  Reactivate the environment or run ``hash -r`` (in bash) or ``rehash`` (in zsh)
 -------------------------------------------------------------------------------------------
 
-The way both bash and zsh work is that when you enter a command, the shell 
-searches the paths in ``PATH`` one by one until it finds the command. The shell 
-then caches the location (this is called "hashing" in shell terminology), so that 
-when you type the command again, the shell doesn't have to search the ``PATH`` 
+The way both bash and zsh work is that when you enter a command, the shell
+searches the paths in ``PATH`` one by one until it finds the command. The shell
+then caches the location (this is called "hashing" in shell terminology), so that
+when you type the command again, the shell doesn't have to search the ``PATH``
 again.
 
-The problem is that before you conda installed the program, you ran the command 
+The problem is that before you conda installed the program, you ran the command
 which loaded and hashed the one in some other location on the ``PATH`` (such as
-``/usr/bin``). Then you installed the program using ``conda install``, but the 
+``/usr/bin``). Then you installed the program using ``conda install``, but the
 shell still had the old instance hashed.
 
 When you run ``source activate``, conda automatically runs ``hash -r`` in bash and
@@ -260,7 +261,7 @@ folder to your ``PATH``. Then running ``python`` will invoke the system Python,
 but running ``conda`` commands, ``source activate MyEnv``, ``source activate root``,
 or ``source deactivate`` will work normally.
 
-After running ``source activate`` to activate any environment, including after 
+After running ``source activate`` to activate any environment, including after
 running ``source activate root``, running ``python`` will invoke the Python in
 the active conda environment.
 
@@ -272,15 +273,15 @@ Issue: ``UnsatisfiableSpecifications`` error
 
 Not all conda package installation specifications are possible to satisfy.
 
-For example, ``conda create -n tmp python=3 wxpython=3`` produces an 
-Unsatisfiable Specifications error because wxPython 3 depends on Python 2.7, so 
-the specification to install Python 3 conflicts with the specification to 
+For example, ``conda create -n tmp python=3 wxpython=3`` produces an
+Unsatisfiable Specifications error because wxPython 3 depends on Python 2.7, so
+the specification to install Python 3 conflicts with the specification to
 install wxPython 3.
 
 Resolution: Fix the conflicts in the installation request
 ---------------------------------------------------------
 
-When an unsatisfiable request is made to conda, conda shows a message such as 
+When an unsatisfiable request is made to conda, conda shows a message such as
 this one::
 
     The following specifications were found to be in conflict:
@@ -288,11 +289,11 @@ this one::
     - wxpython 3* -> python 2.7*
     Use "conda info <package>" to see the dependencies for each package.
 
-This indicates that the specification to install wxpython 3 depends on 
-installing Python 2.7, which conflicts with the specification to install python 
+This indicates that the specification to install wxpython 3 depends on
+installing Python 2.7, which conflicts with the specification to install python
 3.
 
-You can use "conda info wxpython" or "conda info wxpython=3" to show information 
+You can use "conda info wxpython" or "conda info wxpython=3" to show information
 about this package and its dependencies::
 
     wxpython 3.0 py27_0
@@ -315,9 +316,105 @@ about this package and its dependencies::
         python 2.7*
         python.app
 
-By examining the dependencies of each package, you should be able to determine 
-why the installation request produced a conflict, and modify the request so it 
-can be satisfied without conflicts. In our example, we could install wxPython 
+By examining the dependencies of each package, you should be able to determine
+why the installation request produced a conflict, and modify the request so it
+can be satisfied without conflicts. In our example, we could install wxPython
 with Python 2.7::
 
     conda create -n tmp python=2.7 wxpython=3
+
+.. _version-from-channel:
+
+Issue: install a specific version from channels
+-----------------------------------------------
+
+Suppose you have a specific need to install the Python ``cx_freeze`` module
+with Python 3.4.  A first step is to create a Python 3.4 environment::
+
+.. code-block:: bash
+
+   conda create -n py34 python=3.4
+
+Using this environment you should first attempt::
+
+.. code-block:: bash
+
+   conda install -n py34 cx_freeze
+
+However, when you do this you'll get the following error (at the time this was written, on the platform used)::
+
+   Using Anaconda Cloud api site https://api.anaconda.org
+   Fetching package metadata .........
+   Solving package specifications: .
+   Error: Package missing in current osx-64 channels:
+   - cx_freeze
+
+   You can search for packages on anaconda.org with
+
+     anaconda search -t conda cx_freeze
+
+This is telling us that ``cx_freeze`` cannot be found, at least not in the *default* package channels. However there may be a community-created version available and if so we can  it using exactly the command that is listed above.
+
+.. code-block:: bash
+
+   $ anaconda search -t conda cx_freeze
+   Using Anaconda Cloud api site https://api.anaconda.org
+   Run 'anaconda show <USER/PACKAGE>' to get more details:
+   Packages:
+        Name                      |  Version | Package Types   | Platforms
+        ------------------------- |   ------ | --------------- | ---------------
+        inso/cx_freeze            |    4.3.3 | conda           | linux-64
+        pyzo/cx_freeze            |    4.3.3 | conda           | linux-64, win-32, win-64, linux-32, osx-64
+                                             : http://cx-freeze.sourceforge.net/
+        silg2/cx_freeze           |    4.3.4 | conda           | linux-64
+                                             : create standalone executables from Python scripts
+        takluyver/cx_freeze       |    4.3.3 | conda           | linux-64
+   Found 4 packages
+
+In this example, there are four different places we **could** try using to get
+it. None of them are officially supported or endorsed by Continuum, but
+members of the conda community have provided many valuable packages. If we
+want to go with public opinion then `the web interface
+<https://anaconda.org/search?q=cx_freeze>`__ provides more information:
+
+.. figure:: images/package-popularity.png
+   :alt: screen shot 2016-05-16 at 2 45 17 pm
+
+Notice that the ``pyzo`` organization by far the most downloads, so you might
+choose to use their package. If so, you can add their organization's channel
+by specifying it on the command line (as shown below)::
+
+.. code-block:: bash
+
+   $ conda create -c pyzo -n cxfreeze_py34 cx_freeze python=3.4
+   Using Anaconda Cloud api site https://api.anaconda.org
+   Fetching package metadata: ..........
+   Solving package specifications: .........
+
+   Package plan for installation in environment /Users/ijstokes/anaconda/envs/cxfreeze_py34:
+
+   The following packages will be downloaded:
+
+       package                    |            build
+       ---------------------------|-----------------
+       cx_freeze-4.3.3            |           py34_4         1.8 MB
+       setuptools-20.7.0          |           py34_0         459 KB
+       ------------------------------------------------------------
+                                              Total:         2.3 MB
+
+   The following NEW packages will be INSTALLED:
+
+       cx_freeze:  4.3.3-py34_4
+       openssl:    1.0.2h-0
+       pip:        8.1.1-py34_1
+       python:     3.4.4-0
+       readline:   6.2-2
+       setuptools: 20.7.0-py34_0
+       sqlite:     3.9.2-0
+       tk:         8.5.18-0
+       wheel:      0.29.0-py34_0
+       xz:         5.0.5-1
+       zlib:       1.2.8-0
+
+Now you have a software environment sandbox created with Python 3.4 and
+``cx_freeze``.
