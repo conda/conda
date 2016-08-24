@@ -35,13 +35,18 @@ def captured():
 
 @contextmanager
 def replace_log_streams():
-    stdout, stderr = getLogger('stdout'), getLogger('stderr')
-    saved_stdout_strm, saved_stderr_strm = stdout.handlers[0].stream, stderr.handlers[0].stream
-    stdout.handlers[0].stream, stderr.handlers[0].stream = sys.stdout, sys.stderr
+    # replace the logger stream handlers with stdout and stderr handlers
+    stdout_logger, stderr_logger = getLogger('stdout'), getLogger('stderr')
+    saved_stdout_strm = stdout_logger.handlers[0].stream
+    saved_stderr_strm = stderr_logger.handlers[0].stream
+    stdout_logger.handlers[0].stream = sys.stdout
+    stderr_logger.handlers[0].stream = sys.stderr
     try:
         yield
     finally:
-        stdout.handlers[0].stream, stderr.handlers[0].stream = saved_stdout_strm, saved_stderr_strm
+        # replace the original streams
+        stdout_logger.handlers[0].stream = saved_stdout_strm
+        stderr_logger.handlers[0].stream = saved_stderr_strm
 
 
 @contextmanager

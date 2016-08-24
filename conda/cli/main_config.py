@@ -340,7 +340,7 @@ def execute_config(args, parser):
                                             key=key, item=repr(item), priority=priority))
                     else:
                         stdout.info(Message('config_key_printout', "--add %s %r"
-                                            % (key, repr(item)),
+                                            % (key, str(item)),
                                             key=key, item=repr(item)))
 
     # prepend, append, add

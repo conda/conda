@@ -11,6 +11,7 @@ from collections import defaultdict
 import pytest
 
 from conda.base.context import context, reset_context
+from conda.common.io import replace_log_streams
 from conda.install import LINK_HARD
 import conda.plan as plan
 import conda.instructions as inst
@@ -144,7 +145,7 @@ def test_display_actions():
     index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
     index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -163,7 +164,7 @@ The following packages will be downloaded:
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
     ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -180,7 +181,7 @@ The following NEW packages will be INSTALLED:
     actions['UNLINK'] = actions['LINK']
     actions['LINK'] = []
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -197,7 +198,7 @@ The following packages will be REMOVED:
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
     ['cython-0.19-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -209,7 +210,7 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -223,7 +224,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
         'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
         ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -249,7 +250,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
         'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -262,7 +263,7 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -283,7 +284,7 @@ def test_display_actions_show_channel_urls():
     index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
     index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -302,7 +303,7 @@ The following packages will be downloaded:
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
     ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -319,7 +320,7 @@ The following NEW packages will be INSTALLED:
     actions['UNLINK'] = actions['LINK']
     actions['LINK'] = []
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -336,7 +337,7 @@ The following packages will be REMOVED:
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
     ['cython-0.19-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -348,7 +349,7 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -362,7 +363,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
         'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
         ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -388,7 +389,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
         'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -401,7 +402,7 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -417,7 +418,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
     index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -430,7 +431,7 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -441,7 +442,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
-
 def test_display_actions_link_type():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
@@ -449,7 +449,7 @@ def test_display_actions_link_type():
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 2', 'dateutil-1.5-py33_0 2',
     'numpy-1.7.1-py33_0 2', 'python-3.3.2-0 2', 'readline-6.2-0 2', 'sqlite-3.7.13-0 2', 'tk-8.5.13-0 2', 'zlib-1.2.7-0 2']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -470,7 +470,7 @@ The following NEW packages will be INSTALLED:
         'dateutil-2.1-py33_1 2'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -485,7 +485,7 @@ The following packages will be UPDATED:
         'dateutil-1.5-py33_0 2'], 'UNLINK':  ['cython-0.19.1-py33_0',
             'dateutil-2.1-py33_1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -499,7 +499,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 1', 'dateutil-1.5-py33_0 1',
     'numpy-1.7.1-py33_0 1', 'python-3.3.2-0 1', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -520,7 +520,7 @@ The following NEW packages will be INSTALLED:
         'dateutil-2.1-py33_1 1'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -535,7 +535,7 @@ The following packages will be UPDATED:
         'dateutil-1.5-py33_0 1'], 'UNLINK':  ['cython-0.19.1-py33_0',
             'dateutil-2.1-py33_1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -549,7 +549,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 3', 'dateutil-1.5-py33_0 3',
     'numpy-1.7.1-py33_0 3', 'python-3.3.2-0 3', 'readline-6.2-0 3', 'sqlite-3.7.13-0 3', 'tk-8.5.13-0 3', 'zlib-1.2.7-0 3']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -570,7 +570,7 @@ The following NEW packages will be INSTALLED:
         'dateutil-2.1-py33_1 3'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -585,7 +585,7 @@ The following packages will be UPDATED:
         'dateutil-1.5-py33_0 3'], 'UNLINK':  ['cython-0.19.1-py33_0',
             'dateutil-2.1-py33_1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -604,7 +604,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 3', 'dateutil-1.5-py33_0 3',
     'numpy-1.7.1-py33_0 3', 'python-3.3.2-0 3', 'readline-6.2-0 3', 'sqlite-3.7.13-0 3', 'tk-8.5.13-0 3', 'zlib-1.2.7-0 3']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -625,7 +625,7 @@ The following NEW packages will be INSTALLED:
         'dateutil-2.1-py33_1 3'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -640,7 +640,7 @@ The following packages will be UPDATED:
         'dateutil-1.5-py33_0 3'], 'UNLINK':  ['cython-0.19.1-py33_0',
             'dateutil-2.1-py33_1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -658,7 +658,7 @@ def test_display_actions_features():
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -671,7 +671,7 @@ The following NEW packages will be INSTALLED:
 
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -684,7 +684,7 @@ The following packages will be REMOVED:
 
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -696,7 +696,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.0-py33_p0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -708,7 +708,7 @@ The following packages will be UPDATED:
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     # NB: Packages whose version do not changed are put in UPDATED
@@ -721,7 +721,7 @@ The following packages will be UPDATED:
 
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -735,7 +735,7 @@ The following packages will be UPDATED:
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -748,7 +748,7 @@ The following NEW packages will be INSTALLED:
 
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -761,7 +761,7 @@ The following packages will be REMOVED:
 
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -773,7 +773,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.0-py33_p0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -785,7 +785,7 @@ The following packages will be UPDATED:
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     # NB: Packages whose version do not changed are put in UPDATED
@@ -798,7 +798,7 @@ The following packages will be UPDATED:
 
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -814,7 +814,7 @@ def test_display_actions_no_index():
     # should only come up for removing.
     actions = defaultdict(list, {'UNLINK': ['notinstalled-1.0-py33_0']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -827,7 +827,7 @@ The following packages will be REMOVED:
     actions = defaultdict(list, {"LINK": ['numpy-1.7.1-py33_0'], "UNLINK":
         ['numpy-2.0.0-py33_1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """
@@ -842,7 +842,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     actions = defaultdict(list, {"LINK": ['tk-8.5.13-0'], "UNLINK":
         ['tk-8.5.13-1']})
 
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         display_actions(actions, index)
 
     assert c.stdout == """

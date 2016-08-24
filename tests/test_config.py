@@ -402,10 +402,10 @@ channel_alias: http://alpha.conda.anaconda.org
 --set always_yes True
 --set changeps1 False
 --set channel_alias http://alpha.conda.anaconda.org
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority
---add create_default_packages 'numpy'
---add create_default_packages 'ipython'\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority
+--add create_default_packages 'ipython'
+--add create_default_packages 'numpy'\
 """
         assert stderr == "unknown key invalid_key"
 
@@ -413,8 +413,8 @@ channel_alias: http://alpha.conda.anaconda.org
                                            '--get', 'channels')
 
         assert stdout == """\
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority\
 """
         assert stderr == ""
 
@@ -431,8 +431,8 @@ channel_alias: http://alpha.conda.anaconda.org
 
         assert stdout == """\
 --set changeps1 False
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority\
 """
         assert stderr == ""
 
@@ -489,10 +489,10 @@ always_yes: true
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
---add channels 'defaults'   # lowest priority
---add channels 'test'   # highest priority
---add create_default_packages 'numpy'
---add create_default_packages 'ipython'\
+--add channels 'test'   # lowest priority
+--add channels 'defaults'   # highest priority
+--add create_default_packages 'ipython'
+--add create_default_packages 'numpy'\
 """
         with open(rc, 'r') as fh:
             print(fh.read())

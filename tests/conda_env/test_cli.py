@@ -166,13 +166,8 @@ class IntegrationTest(unittest.TestCase):
         create_env(environment_1)
         run_env_command(Commands.ENV_CREATE, None)
         self.assertTrue(env_is_created(test_env_name_1))
-
-        o, e = run_conda_command(Commands.INFO, None, "--json")
-        parsed = json.loads(o)
-        self.assertNotEqual(
-            len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]),
-            0
-        )
+        o, e = run_conda_command(Commands.INFO, None, '-e', "--json")
+        self.assertIn(test_env_name_1, o, 'env name not in output')
 
     def test_update(self):
         create_env(environment_1)
