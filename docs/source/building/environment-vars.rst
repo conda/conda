@@ -203,13 +203,28 @@ example above using the older syntax:
      source:
        git_url: ../
 
-All of the above environment variables are also set during the test process,
-except with the test prefix instead of the build prefix everywhere.
+.. _mercurial-env-vars:
 
-Note that build.sh is run with ``bash -x -e`` (the ``-x`` makes it echo each
-command that is run, and the ``-e`` makes it exit whenever a command in the
-script returns nonzero exit status).  You can revert this in the script if you
-need to by using the ``set`` command.
+Mercurial Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When the source is a mercurial repository, the following variables are defined:
+
+.. list-table::
+
+   * - ``HG_BRANCH``
+     - string denoting the presently active branch
+   * - ``HG_BUILD_STR``
+     - a string that joins ``HG_NUM_ID`` and ``HG_SHORT_ID`` by an underscore
+   * - ``HG_LATEST_TAG``
+     - string denoting the most recent tag from the current commit
+   * - ``HG_LATEST_TAG_DISTANCE``
+     - string denoting number of commits since most recent tag
+   * - ``HG_NUM_ID``
+     - string denoting the revision number
+   * - ``HG_SHORT_ID``
+     - string denoting the hash of the commit
+
 
 The only practical difference between ``git_url`` and ``path`` as source arguments
 is that git_url is a clone of a repository and path is copy of the repository.
@@ -244,6 +259,9 @@ used with caution or avoided altogether.
 
 Environment variables that affect the build process
 ---------------------------------------------------
+
+    All of the above environment variables are also set during the test process,
+    except with the test prefix instead of the build prefix everywhere.
 
 .. list-table::
 
