@@ -110,6 +110,14 @@ will be copied to the work directory before building:
   source:
     path: ../src
 
+If the local path is a git or svn repository, you will get the corresponding environment
+variables defined in your build environment.  The only practical difference between
+``git_url`` or ``hg_url`` and ``path`` as source arguments is that ``git_url`` and ``hg_url``
+would be clones of a repository and path is copy of the repository.  Using path will allow you
+to build packages with unstaged/uncommited changes in working directory. git_url can only
+build up to the latest commit.
+
+
 Patches
 ~~~~~~~
 
@@ -560,10 +568,72 @@ For example, to store recipe maintainer information, one could do:
 Templating with Jinja
 ---------------------
 
-Conda build supports Jinja templating in the ``meta.yaml`` file.
+Conda build supports Jinja templating in the ``meta.yaml`` file. For example, here's a meta.yaml that
+would work with the GIT values defined for git repositores. In this example, the recipe is included
+at the base directory of the git repository, so the ``git_url`` is ``../``:
+
+.. code-block:: yaml
+
+     package:
+       name: mypkg
+       version: {{ GIT_DESCRIBE_TAG }}
+
+     build:
+       number: {{ GIT_DESCRIBE_NUMBER }}
+
+       # Note that this will override the default build string with the Python
+       # and NumPy versions
+       string: {{ GIT_BUILD_STR }}
+
+     source:
+       git_url: ../
+
+It is also possible to use the older syntax for these environment variables,
+although it is somewhat more verbose, and the newer syntax checks to make sure
+the variable is defined and produces a clear error if it is not. This is the
+example above using the older syntax:
+
+.. code-block:: yaml
+
+     package:
+       name: mypkg
+       version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+
+     build:
+       number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+
+       # Note that this will override the default build string with the Python
+       # and NumPy versions
+       string: {{ environ.get('GIT_BUILD_STR', '') }}
+
+     source:
+       git_url: ../
+
+One further possibility is obtaining data from your downloaded source code.  For example, we can
+process a project's setup.py and obtain the version and other metadata:
+
+.. code-block:: yaml
+
+    {% set data = load_setup_py_data() %}
+
+    package:
+      name: conda-build-test-source-setup-py-data
+      version: {{ data.get('version') }}
+
+    # source will be downloaded prior to filling in jinja templates
+    # Example assumes that this folder has setup.py in it
+    source:
+      path_url: ../
+
+These functions are completely compatible with any other variables (git, mercurial, or whatever.)
+
+Extending this to arbitrary other functions requires that functions be predefined before jinja
+processing, which in practice means changing the conda-build source code.  Please inquire at the
+`conda-build issue tracker <https://github.com/conda/conda-build/issues>`_.
 
 See the `Jinja2 template documentation <http://jinja.pocoo.org/docs/dev/templates/>`_
-for more information.
+for more information, or `the list of available environment
+variables <http://conda.pydata.org/docs/building/environment-vars.html>`_.
 
 Jinja templates are evaluated during the build process. To retrieve a fully rendered ``meta.yaml``
 use the :doc:`../commands/build/conda-render`.
