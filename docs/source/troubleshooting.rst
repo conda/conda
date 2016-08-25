@@ -353,7 +353,7 @@ However, when you do this you'll get the following error (at the time this was w
 
      anaconda search -t conda cx_freeze
 
-This is telling us that ``cx_freeze`` cannot be found, at least not in the *default* package channels. However there may be a community-created version available and if so we can  it using exactly the command that is listed above.
+This is telling us that ``cx_freeze`` cannot be found, at least not in the *default* package channels. However there may be a community-created version available and if so we can install it using exactly the command that is listed above.
 
 .. code-block:: bash
 
@@ -375,12 +375,12 @@ In this example, there are four different places we **could** try using to get
 it. None of them are officially supported or endorsed by Continuum, but
 members of the conda community have provided many valuable packages. If we
 want to go with public opinion then `the web interface
-<https://anaconda.org/search?q=cx_freeze>`__ provides more information:
+<https://anaconda.org/search?q=cx_freeze>`_ provides more information:
 
-.. figure:: images/package-popularity.png
-   :alt: screen shot 2016-05-16 at 2 45 17 pm
+.. figure:: ../images/package-popularity.png
+   :alt: cx_freeze packages on anaconda.org
 
-Notice that the ``pyzo`` organization by far the most downloads, so you might
+Notice that the ``pyzo`` organization has by far the most downloads, so you might
 choose to use their package. If so, you can add their organization's channel
 by specifying it on the command line (as shown below):
 
