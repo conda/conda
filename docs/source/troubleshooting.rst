@@ -377,7 +377,7 @@ members of the conda community have provided many valuable packages. If we
 want to go with public opinion then `the web interface
 <https://anaconda.org/search?q=cx_freeze>`_ provides more information:
 
-.. figure:: ../images/package-popularity.png
+.. figure:: images/package-popularity.png
    :alt: cx_freeze packages on anaconda.org
 
 Notice that the ``pyzo`` organization has by far the most downloads, so you might
