@@ -353,7 +353,7 @@ However, when you do this you'll get the following error (at the time this was w
 
      anaconda search -t conda cx_freeze
 
-This is telling us that ``cx_freeze`` cannot be found, at least not in the *default* package channels. However there may be a community-created version available and if so we can install it using exactly the command that is listed above.
+This is telling us that ``cx_freeze`` cannot be found, at least not in the *default* package channels. However there may be a community-created version available and if so we can search for it using exactly the command that is listed above.
 
 .. code-block:: bash
 
