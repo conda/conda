@@ -204,8 +204,9 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, dict)
 
         res = capture_json_with_argv('conda list -r --json')
+        import pdb; pdb.set_trace()
         self.assertTrue(isinstance(res, list) or
-                        (isinstance(res, dict) and 'error' in res))
+                        (isinstance(res, dict) and 'exception_type' in res))
 
         res = capture_json_with_argv('conda list ipython --json')
         self.assertIsInstance(res, dict)
