@@ -49,7 +49,7 @@ Example:
 
 SEE ALSO: For a complete list of conda config commands available, see the 
 :doc:`command reference <commands/conda-config>`. The same list is available 
-at the command prompt by typing ``conda --help config``.
+at the command prompt by typing ``conda config --help``.
 
 The .condarc configuration file follows
 simple `YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
