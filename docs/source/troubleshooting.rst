@@ -382,7 +382,7 @@ want to go with public opinion then `the web interface
 
 Notice that the ``pyzo`` organization by far the most downloads, so you might
 choose to use their package. If so, you can add their organization's channel
-by specifying it on the command line (as shown below)::
+by specifying it on the command line (as shown below):
 
 .. code-block:: bash
 
