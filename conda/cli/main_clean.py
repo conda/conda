@@ -260,9 +260,9 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
                             total_size=human_bytes(totalsize)))
         stdout.info(Message('blank_message', ''))
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
-    if args.json and args.dry_run:
+    if context.json and context.dry_run:
         return
 
     for pkgs_dir in pkgs_dirs:
@@ -368,9 +368,9 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
                             total_size=human_bytes(totalsize)))
         stdout.info(Message('blank_message', ''))
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
-    if args.json and args.dry_run:
+    if context.json and context.dry_run:
         return
 
     for pkgs_dir in pkgs_dirs:
@@ -425,7 +425,7 @@ def find_source_cache():
 
 
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
-    verbose = not args.json
+    verbose = not context.json
     if warnings:
         if verbose:
             for warning in warnings:
@@ -448,9 +448,9 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
                         "%-40s %10s" % ("Total:", human_bytes(total_size)),
                         total_size=human_bytes(total_size)))
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
-    if args.json and args.dry_run:
+    if context.json and context.dry_run:
         return
 
     for dir in cache_dirs.values():
@@ -511,5 +511,5 @@ def execute(args, parser):
         raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
                             "--source-cache, --all} required")
 
-    if args.json:
+    if context.json:
         stdout_json(json_result)

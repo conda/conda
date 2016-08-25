@@ -9,7 +9,7 @@ import logging
 import os
 
 from conda import CondaError, Message
-from .common import (Completer, add_parser_json, stdout_json_success)
+from .common import Completer, add_parser_json
 from .._vendor.auxlib.type_coercion import boolify
 from ..base.context import context
 from ..common.yaml import yaml_load, yaml_dump
@@ -308,7 +308,7 @@ def execute_config(args, parser):
             if key not in rc_list_keys + rc_bool_keys + rc_string_keys:
                 if key not in rc_other:
                     message = "unknown key %s" % key
-                    if not args.json:
+                    if not context.json:
                         stderr.info(Message('unknown_key_message', message, message=message,
                                             key=key))
                     else:
@@ -317,7 +317,7 @@ def execute_config(args, parser):
             if key not in rc_config:
                 continue
 
-            if args.json:
+            if context.json:
                 json_get[key] = rc_config[key]
                 continue
 
@@ -363,7 +363,7 @@ def execute_config(args, parser):
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
                     item, key, "top" if prepend else "bottom")
                 arglist = rc_config[key] = [p for p in arglist if p != item]
-                if not args.json:
+                if not context.json:
                     stderr.info(Message('already_in_config_message', message,
                                         message=message, item=item, list=key))
                 else:
@@ -405,10 +405,7 @@ def execute_config(args, parser):
     with open(rc_path, 'w') as rc:
         rc.write(yaml_dump(rc_config))
 
-    if args.json:
-        stdout_json_success(
-            rc_path=rc_path,
-            warnings=json_warnings,
-            get=json_get
-        )
+    if context.json:
+        stdout.info(Message('json_success', '', rc_path=rc_path, warnings=json_warnings,
+                            get=json_get, success=True))
     return

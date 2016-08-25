@@ -112,8 +112,8 @@ class CondaEnvironmentError(CondaError, EnvironmentError):
 
 
 class DryRunExit(CondaError):
-    def __init__(self, message):
-        msg = 'Dry run exiting: %s' % message
+    def __init__(self):
+        msg = 'Dry run exiting'
         super(DryRunExit, self).__init__(msg)
 
 

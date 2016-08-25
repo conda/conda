@@ -194,13 +194,12 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
     if not isdir(prefix):
         raise CondaEnvironmentNotFoundError(prefix)
 
-    if not json:
-        if format == 'human':
-            stdout.info(Message('package_list_header',
-                        '# packages in environment at %s:' % prefix, prefix=prefix))
-            stdout.info(Message('package_list_header', '#'))
-        if format == 'export':
-            print_export_header()
+    if format == 'human':
+        stdout.info(Message('package_list_header',
+                    '# packages in environment at %s:' % prefix, prefix=prefix))
+        stdout.info(Message('package_list_header', '#'))
+    if format == 'export':
+        print_export_header()
 
     installed = linked(prefix)
     log.debug("installed conda packages:\n%s", installed)
@@ -211,10 +210,9 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
-    if not json:
-        stdout.info(Message('package_list_output', '\n'.join(output)))
-    else:
-        stdout_json(output)
+
+    stdout.info(Message('package_list_output', '\n'.join(output)))
+
     return exitcode
 
 

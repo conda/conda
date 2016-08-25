@@ -18,7 +18,7 @@ from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parse
                      add_parser_use_local, add_parser_offline, add_parser_pscheck,
                      InstalledPackages, ensure_use_local,
                      ensure_override_channels_requires_channel,
-                     specs_from_args, names_in_specs, root_no_rm, stdout_json,
+                     specs_from_args, names_in_specs, root_no_rm,
                      confirm_yn)
 from ..api import get_index
 from ..base.context import check_write
@@ -160,17 +160,17 @@ def execute(args, parser):
 
     if plan.nothing_to_do(actions):
         if args.all:
-            print()
-            print("Remove all packages in environment %s:\n" % prefix)
+            stdout.info(Message('blank_message', ''))
+            stdout.info(Message('remove_packages_message',
+                                "Remove all packages in environment %s:\n" % prefix,
+                                prefix=prefix))
             if not args.json:
                 confirm_yn(args)
             rm_rf(prefix)
 
             if args.json:
-                stdout_json({
-                    'success': True,
-                    'actions': actions
-                })
+                stdout.info(Message('actions_success_message', 'success',
+                                    success=True, actions=actions))
             return
         raise PackageNotFoundError('', 'no packages found to remove from '
                                    'environment: %s' % prefix)
@@ -209,7 +209,4 @@ def execute(args, parser):
         rm_rf(prefix)
 
     if args.json:
-        stdout_json({
-            'success': True,
-            'actions': actions
-        })
+        stdout.info(Message('success_message', 'success', success=True, actions=actions))
