@@ -13,7 +13,7 @@ file which allows advanced users to configure various aspects of conda, such as 
 channels it searches for packages, proxy settings, environment directories, etc.
 
 A .condarc file is not included by default, but it is automatically created in
-the user’s home directory when you use the ``conda config`` command.
+the user’s home directory the first time you run the ``conda config`` command.
 
 A .condarc file may also be located in the root environment, in which case it
 overrides any in the home directory.
@@ -39,14 +39,25 @@ The conda configuration file can be used to change:
 
 To create or modify a .condarc configuration file, from the command line, use
 the ``conda config`` command, or use a text editor to create a new file named
-.condarc and save to your user home directory or root directory.
+.condarc and save to your user home directory or root directory. 
+
+Example: 
+
+.. code-block:: yaml
+
+  conda config --add channels r
+
+SEE ALSO: For a complete list of conda config commands available, see the 
+:doc:`command reference <commands/conda-config>`. The same list is available 
+at the command prompt by typing ``conda --help config``.
 
 The .condarc configuration file follows
 simple `YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
 
-:doc:`Download a sample .condarc file<install/sample-condarc>`.
+:doc:`Download a sample .condarc file<install/sample-condarc>` to edit in your editor 
+and save to your user home directory or root directory.
 
-Conda supports :doc:`tab completion<install/tab-completion>` with external packages
+TIP: Conda supports :doc:`tab completion<install/tab-completion>` with external packages
 instead of internal configuration.
 
 For more configuration information see: http://continuum.io/blog/advanced-conda-part-1#configuration
