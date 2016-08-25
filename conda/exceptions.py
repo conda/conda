@@ -80,8 +80,8 @@ class CommandNotFoundError(CommandError):
 class CondaFileNotFoundError(CondaError, OSError):
     def __init__(self, filename, *args):
         self.filename = filename
-        msg = "File not found: '%s'." % filename
-        super(CondaFileNotFoundError, self).__init__(msg, *args)
+        msg = "File not found: '%s'. %s" % (filename, '\n'.join(arg for arg in args))
+        super(CondaFileNotFoundError, self).__init__(msg)
 
 
 class DirectoryNotFoundError(CondaError):
