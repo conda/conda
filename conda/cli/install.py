@@ -268,15 +268,12 @@ def install(args, parser, command='install'):
         if not args.packages:
             from .main_list import print_packages
 
-            if not args.json:
-                regex = '^(%s)$' % '|'.join(orig_packages)
-                stdout.info(Message('all_packages_installed_notify',
-                                    '# All requested packages already installed.',
-                                    prefix=prefix))
-                print_packages(prefix, regex)
-            else:
-                common.stdout_json_success(
-                    message='All requested packages already installed.')
+            regex = '^(%s)$' % '|'.join(orig_packages)
+            stdout.info(Message('all_packages_installed_notify',
+                                '# All requested packages already installed.',
+                                prefix=prefix))
+            print_packages(prefix, regex)
+
             return
     if args.force:
         args.no_deps = True
@@ -384,7 +381,7 @@ def install(args, parser, command='install'):
         if not actions[LINK] and not actions[UNLINK]:
             actions[SYMLINK_CONDA] = [context.root_dir]
 
-    if not args.json:
+    if not context.json:
         stdout.info(Message('blank_message', ''))
         stdout.info(Message('package_plan_notify',
                             "Package plan for installation in environment %s:" % prefix,
@@ -394,7 +391,7 @@ def install(args, parser, command='install'):
     if command in {'install', 'update'}:
         check_write(command, prefix)
 
-    if not args.json:
+    if not context.json:
         common.confirm_yn(args)
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
@@ -426,4 +423,5 @@ def install(args, parser, command='install'):
         touch_nonadmin(prefix)
         stdout.info(get_activate_message(args.name if args.name else prefix))
 
-    stdout.info(Message('actions_success_message', 'success', actions=actions))
+    if context.json:
+        stdout.info(Message('actions_success_message', 'success', actions=actions))
