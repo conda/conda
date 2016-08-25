@@ -201,14 +201,14 @@ class TestJson(unittest.TestCase):
 
     def test_list(self):
         res = capture_json_with_argv('conda list --json')
-        self.assertIsInstance(res, list)
+        self.assertIsInstance(res, dict)
 
         res = capture_json_with_argv('conda list -r --json')
         self.assertTrue(isinstance(res, list) or
                         (isinstance(res, dict) and 'error' in res))
 
         res = capture_json_with_argv('conda list ipython --json')
-        self.assertIsInstance(res, list)
+        self.assertIsInstance(res, dict)
 
         stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --json')
         assert json.loads(stderr)['exception_type'] == 'CondaEnvironmentNotFoundError'
