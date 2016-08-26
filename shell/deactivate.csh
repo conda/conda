@@ -23,9 +23,13 @@ endsw
 # inherit whatever the user set
 # this is important for dash where you cannot pass parameters to sourced scripts
 # since this script is exclusively for csh/tcsh this is just for consistency/a bonus feature
-if ( ! $?CONDA_HELP ) set CONDA_HELP=false
+if ( ! $?CONDA_HELP ) then
+    set CONDA_HELP=false
+endif
 set UNKNOWN=""
-if ( ! $?CONDA_VERBOSE ) set CONDA_VERBOSE=false
+if ( ! $?CONDA_VERBOSE ) then
+    set CONDA_VERBOSE=false
+endif
 
 ###############################################################################
 # parse command line, perform command line error checking
@@ -35,7 +39,9 @@ while ( $num != -1 )
     @ num = ($num + 1)
     set arg=`eval eval echo '\$$num'`
 
-    if ( `echo "${arg}" | sed 's| ||g'` == "" ) then
+    # use == "" instead of -z test for robust support across
+    # different platforms (especially Ubuntu)
+    if ( $status != 0 || "`echo ${arg} | sed 's| ||g'`" == "" ) then
         set num=-1
     else
         switch ( "${arg}" )
@@ -48,6 +54,8 @@ while ( $num != -1 )
                 set CONDA_VERBOSE=true
                 breaksw
             default:
+                # use == "" instead of -z test for robust support across
+                # different platforms (especially Ubuntu)
                 if ( "${UNKNOWN}" == "" ) then
                     set UNKNOWN="${arg}"
                 else
@@ -62,15 +70,24 @@ unset num
 unset arg
 
 # if any of these variables are undefined (i.e. unbounded) set them to a default
-if ( `echo "${CONDA_HELP}" | sed 's| ||g'` == "" ) set CONDA_HELP=false
-if ( `echo "${CONDA_VERBOSE}" | sed 's| ||g'` == "" ) set CONDA_VERBOSE=false
+#
+# use == "" instead of -z test for robust support across
+# different platforms (especially Ubuntu)
+if ( "`echo ${CONDA_HELP} | sed 's| ||g'`" == "" ) then
+    set CONDA_HELP=false
+endif
+if ( "`echo ${CONDA_VERBOSE} | sed 's| ||g'`" == "" ) then
+    set CONDA_VERBOSE=false
+endif
 
 ######################################################################
 # help dialog
 ######################################################################
 if ( "${CONDA_HELP}" == true ) then
+    # use != "" instead of -n test for robust support across
+    # different platforms (especially Ubuntu)
     if ( "${UNKNOWN}" != "" ) then
-        sh -c "echo '[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
+        bash -c "echo '[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
     endif
     conda ..deactivate ${_SHELL}${EXT} -h
 
@@ -78,6 +95,8 @@ if ( "${CONDA_HELP}" == true ) then
     unset EXT
     unset CONDA_HELP
     unset CONDA_VERBOSE
+    # use != "" instead of -n test for robust support across
+    # different platforms (especially Ubuntu)
     if ( "${UNKNOWN}" != "" ) then
         unset UNKNOWN
         exit 1
@@ -96,20 +115,26 @@ unset UNKNOWN
 # accordingly
 ######################################################################
 if ( $?CONDA_DEFAULT_ENV ) then
+    # use != "" instead of -n test for robust support across
+    # different platforms (especially Ubuntu)
     if ( "${CONDA_DEFAULT_ENV}" != "" ) then
         # unload post-activate scripts
         # scripts found in $CONDA_PREFIX/etc/conda/deactivate.d
         set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/deactivate.d"
         if ( -d "${_CONDA_DIR}" ) then
             foreach f ( `ls "${_CONDA_DIR}" | grep \\.csh$` )
-                if ( "${CONDA_VERBOSE}" == true ) echo "[DEACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
+                if ( "${CONDA_VERBOSE}" == true ) then
+                    echo "[DEACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
+                endif
                 source "${_CONDA_DIR}/${f}"
             end
         endif
         unset _CONDA_DIR
 
         # restore PROMPT
-        if ( $?prompt ) set prompt="${CONDA_PS1_BACKUP}"
+        if ( $?prompt ) then
+            set prompt="${CONDA_PS1_BACKUP}"
+        endif
 
         # remove CONDA_DEFAULT_ENV
         unsetenv CONDA_DEFAULT_ENV

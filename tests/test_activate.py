@@ -88,7 +88,7 @@ def _format_vars(shell):
     if on_win:
         base_path = strip_leading_library_bin(base_path, shelldict)
 
-    base_ps, _ = run_in(shelldict["printps1"], shell)
+    base_ps, _ = run_in(shelldict["printprompt"], shell)
 
     syspath = shelldict['path_to'](sys.prefix)
 
@@ -197,6 +197,11 @@ def test_activate_env_from_env_with_root_activate(shell):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
+
+            print("commands:", commands)
+            print("stdout:", stdout)
+            print("stderr:", stderr)
+
             assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 2', shelldict=shell_vars)),
                 stdout, shell)
             assert_equals(stderr,'')
@@ -440,7 +445,9 @@ def test_activate_check_sourcing(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
-                assert_in("[ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh.",
+                assert_in(dedent("""\
+                    [ACTIVATE]: ERROR: Parsing failure.
+                    [ACTIVATE]: ERROR: This most likely means you executed the script instead of sourcing it."""),
                     stderr, shell)
 
 
@@ -502,7 +509,9 @@ def test_deactivate_check_sourcing(shell):
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
-                assert_in("[DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh.",
+                assert_in(dedent("""\
+                    [DEACTIVATE]: ERROR: Parsing failure.
+                    [DEACTIVATE]: ERROR: This most likely means you executed the script instead of sourcing it."""),
                     stderr, shell)
 
 
@@ -614,13 +623,13 @@ def test_PS1(shell, bash_profile):
         # all unix shells support environment variables instead of parameter passing
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
-                {printps1}
+                {printprompt}
                 """)]
 
         for script in scripts:
@@ -641,14 +650,14 @@ def test_PS1(shell, bash_profile):
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {env_vars[1]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[1]}"
-                {printps1}
+                {printprompt}
                 """)]
 
         for script in scripts:
@@ -668,13 +677,13 @@ def test_PS1(shell, bash_profile):
         # all unix shells support environment variables instead of parameter passing
         scripts=[dedent("""\
             {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
-                {printps1}
+                {printprompt}
                 """)]
 
         for script in scripts:
@@ -693,14 +702,14 @@ def test_PS1(shell, bash_profile):
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
             {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
             {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
-            {printps1}
+            {printprompt}
             """)]
 
         if script in scripts:
@@ -719,7 +728,7 @@ def test_PS1(shell, bash_profile):
         #-----------------------------------------------------------------------
         scripts=[dedent("""\
             {source} "{syspath}{binpath}deactivate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """)]
 
         for script in scripts:
@@ -736,14 +745,14 @@ def test_PS1(shell, bash_profile):
         scripts=[dedent("""\
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-                {printps1}
+                {printprompt}
                 """)]
 
         for script in scripts:
@@ -765,7 +774,7 @@ def test_PS1(shell, bash_profile):
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" two args
-                {printps1}
+                {printprompt}
                 """)]
 
         for script in scripts:
@@ -794,46 +803,46 @@ def test_PS1_no_changeps1(shell, bash_profile):
         # all unix shells support environment variables instead of parameter passing
         scripts_with_stderr=[(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """),None),(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {env_vars[1]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """),None),(dedent("""
             {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """),'Could not find environment'),(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """),'Could not find environment'),(dedent("""
             {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
             {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printps1}
+            {printprompt}
             """),None)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts_with_stderr+=[(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
-                {printps1}
+                {printprompt}
                 """),None),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[1]}"
-                {printps1}
+                {printprompt}
                 """),None),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
-                {printps1}
+                {printprompt}
                 """),'Could not find environment'),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
-                {printps1}
+                {printprompt}
                 """),'Could not find environment'),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-                {printps1}
+                {printprompt}
                 """),None),(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" two args
-                {printps1}
+                {printprompt}
                 """),'[ACTIVATE]: ERROR: Unknown/invalid flag/parameter')]
 
         for script,err in scripts_with_stderr:
@@ -1414,7 +1423,6 @@ def test_activate_noPS1(shell):
             commands = shell_vars['command_setup'] + script.format(
                 env_vars=env_vars,
                 env_dirs=env_dirs,
-                unsetprompt=shell_vars["unsetenvvar"].format(variable=shell_vars["promptvar"]),
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
@@ -1486,9 +1494,11 @@ def run_in(command, shell, cwd=None, env=None):
         cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
         cmd_script.write(command)
         cmd_script.close()
-        cmd_bits = ([shells[shell]["exe"]] +
-                    shells[shell]["shell_args"] +
-                    [cmd_script.name])
+        cmd_bits = dedent("""\
+            {exe} {shell_args} {script}
+            """).format(
+                script=cmd_script.name,
+                **shells[shell])
         try:
             p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  cwd=cwd, env=env)
@@ -1503,13 +1513,13 @@ def run_in(command, shell, cwd=None, env=None):
         #
         # must use heredoc to avoid Ubuntu/dash incompatibility with hereword
         cmd_bits = dedent("""\
-            {exe} <<- 'RUNINCMD'
+            {exe} {shell_args} <<- 'RUNINCMD'
             {command}
             RUNINCMD
             """).format(
-                exe=shells[shell]["exe"],
                 command=translate_stream(command, shells[shell]["path_to"]),
-                )
+                **shells[shell])
+        print("cmd_bits:",cmd_bits)
         p = subprocess.Popen(cmd_bits, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
     streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")

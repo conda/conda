@@ -10,7 +10,9 @@ main_test() {
         'Linux') shells="--shell=posh";;
         *) ;;
     esac
-    shells="$shells --shell=bash --shell=zsh --shell=dash --shell=sh --shell=csh --shell=tcsh"
+    # don't bother testing for the default shell `sh`, generally speaking the default
+    # shell will be supported if it's one of the supported shells
+    shells="$shells --shell=bash --shell=zsh --shell=dash --shell=csh --shell=tcsh"
 
     echo "PRE-INSTALL CONDA TESTS"
     python -m pytest --cov-report xml $shells -m "not installed" tests

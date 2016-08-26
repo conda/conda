@@ -1,115 +1,119 @@
-#!/bin/awk -f
+#!/usr/bin/env awk -f
 BEGIN {}
 {
+    ######################################################################
     # detect the clause/mode
-    clause=substr($NF,1,1)
+    ######################################################################
+    clause_failure = "[WHICHSHELL]: ERROR: Bad clause."
+    clause = substr($NF,1,1)
     if (clause == "e") {
         # error clause
-        clause=1
+        clause = 1
     } else if (clause == "b") {
         # bourne shell clause
-        clause=2
+        clause = 2
     } else if (clause == "c") {
         # c-shell clause
-        clause=3
+        clause = 3
     } else {
         # bad clause
+        print clause_failure > "/dev/stderr"
         exit(2)
     }
 
+    ######################################################################
     # parse parameters
+    ######################################################################
     # expect to recieve in this order:
-    #  1) "`ps -p $$ | sed 's|.*csh|THIS-IS-CSH|' | grep CSH || echo $0`"
-    #  2) "`ps -p $$ | tr '\n' ' '`"
-    #  3) "`test -x /usr/bin/lsb_release && lsb_release -si | sed 's| ||' || uname -s`"
-    #  4) "$SHLVL"
-    #  5) script's name to compare $0 against
-    #  6) what clause/mode (detected above)
-    #
-    # We parse based on knowing that the second parameter (ps -p $$)
-    # always starts with "PID".
-    # We also know that in certain cases, if the script is being
-    # executed the second paramter will contain more than 2
-    # parameters and hence we will always expect a valid parse to
-    # only contain 6 parameters.
-    num=split(substr($0,index($0,"PID")),a," ")
-    if (num != 12) {
+    #  1) the process command, this boils down to being: ps -o "comm=" -p $$
+    #  2) the current sytem, this boild down to being: lsb_release -si/uname -s
+    #  3) $SHLVL
+    #  4) script's name
+    #  5) which clause
+    scriptname = $(NF-1)
+    parse_failure = "["toupper(scriptname)"]: ERROR: Parsing failure.\n["toupper(scriptname)"]: ERROR: This most likely means you executed the script instead of sourcing it."
+    num = split($0,a," ")
+    if (num != 5) {
+        if (clause == 1) {
+            print parse_failure > "/dev/stderr"
+        }
         exit(clause != 1)
     }
-    # a[1] == "PID"
-    # a[2] == "TTY"
-    # a[3] == "TIME"
-    # a[4] == "CMD"
-    # a[5] == pid
-    # a[6] == tty
-    # a[7] == time
-    sh="."a[8]
-    sy=a[9]
-    sl=a[10]
-    sn=".*"a[11]".*"
-    # a[12] == $NF == clause
-    sz=substr($0,1,index($0,"PID")-1)
+    shell       = "."a[1]
+    sys         = a[2]
+    shlvl       = a[3]
+    scriptname  = a[4]
 
-    # match shells:
-    if ((match(sz,sn) == 0)                             &&
-        ((sh == ".bash")                                ||
-         (sh == ".-bash")                               ||
-         (sh == "./bin/bash")                           ||
-         (sh == ".-bin/bash"))) {
+    ######################################################################
+    # debug statements
+    ######################################################################
+    # enabling these are useful to see what kind of scenario to add to
+    # the below shell matching
+    # print("shell: "shell)
+    # print("sys: "sys)
+    # print("shlvl: "shlvl)
+    # print("scriptname: "scriptname)
+
+    ######################################################################
+    # match shell
+    ######################################################################
+    shell_failure = "["toupper(scriptname)"]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."
+    if ((shell == ".bash")                                      ||
+        (shell == ".-bash")                                     ||
+        (shell == "./bin/bash")                                 ||
+        (shell == ".-bin/bash")) {
         exit(clause != 2)
     }
     # when sourcing zsh $0 looks the same as executing
     # zsh being sourced vs executed is detected via the number of parameters parsed above
-    if ((sh == ".zsh")                                  ||
-        (sh == ".-zsh")                                 ||
-        (sh == "./bin/zsh")                             ||
-        (sh == ".-bin/zsh")) {
+    if ((shell == ".zsh")                                        ||
+        (shell == ".-zsh")                                       ||
+        (shell == "./bin/zsh")                                   ||
+        (shell == ".-bin/zsh")) {
         exit(clause != 2)
     }
-    if ((match(sz,sn) == 0)                             &&
-        ((sh == ".dash")                                ||
-         (sh == ".-dash")                               ||
-         (sh == "./bin/dash")                           ||
-         (sh == ".-/bin/dash")                          ||
-         (sh == ".sh" && sy == "Ubuntu"))) {
+    if ((shell == ".dash")                                      ||
+        (shell == ".-dash")                                     ||
+        (shell == "./bin/dash")                                 ||
+        (shell == ".-/bin/dash")                                ||
+        (shell == ".sh" && sys == "Ubuntu")) {
         exit(clause != 2)
     }
-    if ((match(sz,sn) == 0)                             &&
-        ((sh == ".posh")                                ||
-         (sh == ".-posh")                               ||
-         (sh == "./bin/posh")                           ||
-         (sh == ".-/bin/posh"))) {
+    if ((shell == ".posh")                                      ||
+        (shell == ".-posh")                                     ||
+        (shell == "./bin/posh")                                 ||
+        (shell == ".-/bin/posh")) {
         exit(clause != 2)
     }
     # special corner cases tests are done here (and for
     # csh and tcsh) to address the oddities of Ubuntu vs.
     # Mac vs. other Linux distibutions
-    if ((match(sz,sn) == 0)                             &&
-        ((sh == ".sh" && sy != "Ubuntu")                ||
-         (sh == ".-sh" && sy == "Darwin" && sl == "1")  ||
-         (sh == ".-sh" && sy == "Linux")                ||
-         (sh == "./bin/sh")                             ||
-         (sh == ".-bin/sh"))) {
+    if ((shell == ".sh" && sys != "Ubuntu")                     ||
+        (shell == ".-sh" && sys == "Darwin" && shlvl == "1")    ||
+        (shell == ".-sh" && sys == "Linux")                     ||
+        (shell == "./bin/sh")                                   ||
+        (shell == ".-bin/sh")) {
         exit(clause != 2)
     }
-    if ((match(sz,sn) == 0)                             &&
-        ((sh == ".csh")                                 ||
-         (sh == ".-csh" && sy == "Darwin" && sl == "1") ||
-         (sh == ".-sh"  && sy == "Darwin" && sl != "1") ||
-         (sh == ".-csh" && sy == "Linux")               ||
-         (sh == "./bin/csh")                            ||
-         (sh == ".-bin/csh"))) {
+    if ((shell == ".csh")                                       ||
+        (shell == ".-csh" && sys == "Darwin" && shlvl == "1")   ||
+        (shell == ".-sh"  && sys == "Darwin" && shlvl != "1")   ||
+        (shell == ".-sh"  && sys == "Ubuntu" && shlvl == "1")   ||
+        (shell == ".-csh" && sys == "Linux")                    ||
+        (shell == "./bin/csh")                                  ||
+        (shell == ".-bin/csh")) {
         exit(clause != 3)
     }
-    if ((match(sz,sn) == 0)                             &&
-        ((sh == ".tcsh")                                ||
-         (sh == ".-tcsh" && sy == "Darwin" && sl == "1")||
-         (sh == ".-csh"  && sy == "Darwin" && sl != "1")||
-         (sh == ".-tcsh" && sy == "Linux")              ||
-         (sh == "./bin/tcsh")                           ||
-         (sh == ".-bin/tcsh"))) {
+    if ((shell == ".tcsh")                                      ||
+        (shell == ".-tcsh" && sys == "Darwin" && shlvl == "1")  ||
+        (shell == ".-csh"  && sys == "Darwin" && shlvl != "1")  ||
+        (shell == ".-csh"  && sys == "Ubuntu" && shlvl != "1")  ||
+        (shell == ".-tcsh" && sys == "Linux")                   ||
+        (shell == "./bin/tcsh")                                 ||
+        (shell == ".-bin/tcsh")) {
         exit(clause != 3)
     }
+    print shell_failure > "/dev/stderr"
     exit(clause != 1)
 }
 END {}

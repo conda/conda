@@ -23,10 +23,16 @@ endsw
 # inherit whatever the user set
 # this is important for dash where you cannot pass parameters to sourced scripts
 # since this script is exclusively for csh/tcsh this is just for consistency/a bonus feature
-if ( ! $?CONDA_HELP ) set CONDA_HELP=false
+if ( ! $?CONDA_HELP ) then
+    set CONDA_HELP=false
+endif
 set UNKNOWN=""
-if ( ! $?CONDA_VERBOSE ) set CONDA_VERBOSE=false
-if ( ! $?CONDA_ENVNAME ) set CONDA_ENVNAME=""
+if ( ! $?CONDA_VERBOSE ) then
+    set CONDA_VERBOSE=false
+endif
+if ( ! $?CONDA_ENVNAME ) then
+    set CONDA_ENVNAME=""
+endif
 
 ###############################################################################
 # parse command line, perform command line error checking
@@ -37,7 +43,9 @@ while ( $num != -1 )
     @ num = ($num + 1)
     set arg=`eval eval echo '\${$num}'`
 
-    if ( -z `echo "${arg}" | sed 's| ||g'` ) then
+    # use == "" instead of -z test for robust support across
+    # different platforms (especially Ubuntu)
+    if ( $status != 0 || "`echo ${arg} | sed 's| ||g'`" == "" ) then
         set num=-1
     else
         switch ( "${arg}" )
@@ -54,7 +62,9 @@ while ( $num != -1 )
                     set CONDA_ENVNAME="${arg}"
                     set is_envname_set=true
                 else
-                    if ( -z "${UNKNOWN}" ) then
+                    # use == "" instead of -z test for robust support across
+                    # different platforms (especially Ubuntu)
+                    if ( "${UNKNOWN}" == "" ) then
                         set UNKNOWN="${arg}"
                     else
                         set UNKNOWN="${UNKNOWN} ${arg}"
@@ -70,16 +80,27 @@ unset arg
 unset is_envname_set
 
 # if any of these variables are undefined (i.e. unbounded) set them to a default
-if ( -z `echo "${CONDA_HELP}" | sed 's| ||g'` ) set CONDA_HELP=false
-if ( -z `echo "${CONDA_VERBOSE}" | sed 's| ||g'` ) set CONDA_VERBOSE=false
-if ( -z `echo "${CONDA_ENVNAME}" | sed 's| ||g'` ) set CONDA_ENVNAME="root"
+#
+# use == "" instead of -z test for robust support across
+# different platforms (especially Ubuntu)
+if ( "`echo ${CONDA_HELP} | sed 's| ||g'`" == "" ) then
+    set CONDA_HELP=false
+endif
+if ( "`echo ${CONDA_VERBOSE} | sed 's| ||g'`" == "" ) then
+    set CONDA_VERBOSE=false
+endif
+if ( "`echo ${CONDA_ENVNAME} | sed 's| ||g'`" == "" ) then
+    set CONDA_ENVNAME="root"
+endif
 
 ######################################################################
 # help dialog
 ######################################################################
 if ( "${CONDA_HELP}" == true ) then
-    if ( -n "${UNKNOWN}" ) then
-        sh -c "echo '[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
+    # use != "" instead of -n test for robust support across
+    # different platforms (especially Ubuntu)
+    if ( "${UNKNOWN}" != "" ) then
+        bash -c "echo '[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
     endif
     conda ..activate ${_SHELL}${EXT} -h
 
@@ -88,7 +109,9 @@ if ( "${CONDA_HELP}" == true ) then
     unset CONDA_ENVNAME
     unset CONDA_HELP
     unset CONDA_VERBOSE
-    if ( -n "${UNKNOWN}" ) then
+    # use != "" instead of -n test for robust support across
+    # different platforms (especially Ubuntu)
+    if ( "${UNKNOWN}" != "" ) then
         unset UNKNOWN
         exit 1
     else
@@ -130,7 +153,9 @@ set _CONDA_BIN=`conda ..activate ${_CONDA_BIN} "${CONDA_ENVNAME}" | sed 's| |\ |
 if ( $status == 0 ) then
     # CONDA_PS1_BACKUP
     # export these to restore upon deactivation
-    if ( $?prompt ) setenv CONDA_PS1_BACKUP "${prompt}"
+    if ( $?prompt ) then
+        setenv CONDA_PS1_BACKUP "${prompt}"
+    endif
 
     # PATH
     # update path with the new conda environment
@@ -183,7 +208,9 @@ if ( $status == 0 ) then
     set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/activate.d"
     if ( -d "${_CONDA_DIR}" ) then
         foreach f ( `ls "${_CONDA_DIR}" | grep \\.csh$` )
-            if ( "${CONDA_VERBOSE}" == true ) echo "[ACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
+            if ( "${CONDA_VERBOSE}" == true ) then
+                echo "[ACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
+            endif
             source "${_CONDA_DIR}/${f}"
         end
     endif

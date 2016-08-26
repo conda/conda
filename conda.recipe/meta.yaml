@@ -19,6 +19,7 @@ build:
     - bin/deactivate            [unix]
     - bin/deactivate.sh         [unix]
     - bin/deactivate.csh        [unix]
+    - bin/whichshell_args.bash  [unix]
     - bin/whichshell.awk        [unix]
     - bin/envvar_cleanup.awk    [unix]
     - Scripts/activate.bat      [win]
