@@ -8,8 +8,6 @@ import sys
 import types
 import os
 
-from .install import rm_rf as _rm_rf
-
 # True if we are running on Python 3.
 PY3 = sys.version_info[0] == 3
 
@@ -41,6 +39,7 @@ if PY3:
 
     class TemporaryDirectory(_TemporaryDirectory):
         def cleanup(self, _warn=False, _warnings=_warnings):
+            from .install import rm_rf as _rm_rf
             if self.name and not self._closed:
                 try:
                     _rm_rf(self.name)
@@ -110,6 +109,7 @@ else:
             return self.name
 
         def cleanup(self, _warn=False, _warnings=_warnings):
+            from .install import rm_rf as _rm_rf
             if self.name and not self._closed:
                 try:
                     _rm_rf(self.name)
