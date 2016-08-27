@@ -8,6 +8,7 @@ import sys
 import types
 import os
 import warnings as _warnings
+from tempfile import mkdtemp
 
 # True if we are running on Python 3.
 PY3 = sys.version_info[0] == 3
