@@ -6,11 +6,11 @@
 # usage: envvar_cleanup.sh "$ENV_VAR" [-d | -r "STR_TO_REMOVE" ... | -g "STR_TO_REMOVE" ...] [--delim DELIM]
 #
 # where:
-#   "$ENV_VAR"          is the variable name to cleanup
-#   -d                  remove duplicates
-#   -r "STR_TO_REMOVE"  remove first instance of provided strings
-#   -g                  remove all instances of provided strings
-#   --delim DELIM       specify what the delimit
+#   "$ENV_VAR"             is the variable name to cleanup
+#   -d                     remove duplicates
+#   -r "STR_TO_REMOVE" ... remove first instance of provided strings
+#   -g "STR_TO_REMOVE" ... remove all instances of provided strings
+#   --delim DELIM          specify what the delimit
 #
 # reference:
 # http://unix.stackexchange.com/questions/40749/remove-duplicate-path-entries-with-awk-command

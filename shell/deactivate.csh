@@ -7,16 +7,13 @@
 ###############################################################################
 # local vars
 ###############################################################################
-set _SHELL="csh"
+set WHAT_SHELL_AM_I="csh"
 switch ( `uname -s` )
     case "CYGWIN*":
     case "MINGW*":
     case "MSYS*":
-        set EXT=".exe"
+        set WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.exe"
         setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
-        breaksw
-    default:
-        set EXT=""
         breaksw
 endsw
 
@@ -89,10 +86,9 @@ if ( "${CONDA_HELP}" == true ) then
     if ( "${UNKNOWN}" != "" ) then
         bash -c "echo '[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
     endif
-    conda ..deactivate ${_SHELL}${EXT} -h
+    conda ..deactivate ${WHAT_SHELL_AM_I} -h
 
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_HELP
     unset CONDA_VERBOSE
     # use != "" instead of -n test for robust support across
@@ -105,8 +101,7 @@ if ( "${CONDA_HELP}" == true ) then
         exit 0
     endif
 endif
-unset _SHELL
-unset EXT
+unset WHAT_SHELL_AM_I
 unset CONDA_HELP
 unset UNKNOWN
 

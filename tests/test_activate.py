@@ -54,8 +54,8 @@ syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identit
                                                          "path_from": path_identity,
                                                          "sep": os.sep}))
 
-def print_ps1(env_dirs, base_ps, number):
-    return (u"({}) ".format(env_dirs[number]) + base_ps)
+def print_ps1(env_dirs, base_prompt, number):
+    return u"({}) {}".format(env_dirs[number],base_prompt)
 
 
 CONDA_ENTRY_POINT = dedent("""\
@@ -88,30 +88,45 @@ def _format_vars(shell):
     if on_win:
         base_path = strip_leading_library_bin(base_path, shelldict)
 
-    base_ps, _ = run_in(shelldict["printprompt"], shell)
+    # base_prompt, _ = run_in(shelldict["printprompt"], shell)
+    base_prompt = "test_prompt"
 
     syspath = shelldict['path_to'](sys.prefix)
 
     pythonpath=shelldict["setenvvar"].format(
         variable="PYTHONPATH",
         value=shelldict['path_to'](PYTHONPATH))
+    # remove any conda RC references
     condarc=shelldict["unsetenvvar"].format(
         variable="CONDARC")
-    condapathbackup=shelldict["unsetenvvar"].format(
-        variable="CONDA_PATH_BACKUP")
+    # clear any preset conda environment
+    condadefaultenv=shelldict["unsetenvvar"].format(
+        variable="CONDA_DEFAULT_ENV")
+    # set prompt such that we have a prompt to play
+    # around and test with since most of the below
+    # tests will not be invoked in an interactive
+    # login shell and hence wont have the prompt initialized
+    #
+    # setting this here also means that we no longer have to
+    # mess with the .bash_profile during testing to
+    # standardize the base prompt
+    setprompt=shelldict["setprompt"].format(
+        value=base_prompt)
     command_setup = dedent("""\
         {pythonpath}
         {condarc}
-        {condapathbackup}
+        {condadefaultenv}
+        {setprompt}
         """).format(pythonpath=pythonpath,
                     condarc=condarc,
-                    condapathbackup=condapathbackup)
+                    condadefaultenv=condadefaultenv,
+                    setprompt=setprompt)
 
     if shelldict["shell_suffix"] == '.bat':
         command_setup = "@echo off\n" + command_setup
 
     shelldict.update({
-        'base_ps': base_ps,
+        'base_prompt': base_prompt,
         'syspath': syspath,
         'command_setup': command_setup,
         'base_path': base_path,
@@ -121,25 +136,25 @@ def _format_vars(shell):
 
 
 # temporarily standardize the user profile to make testing simpler
-@pytest.fixture(scope="module")
-def bash_profile(request):
-    profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
-    profile_backup=profile+"_backup"
+# @pytest.fixture(scope="module")
+# def bash_profile(request):
+#     profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
+#     profile_backup=profile+"_backup"
 
-    if os.path.isfile(profile):
-        os.rename(profile, profile_backup)
+#     if os.path.isfile(profile):
+#         os.rename(profile, profile_backup)
 
-    with open(profile, "w") as f:
-        f.write("export PS1=test_ps1\n")
-        f.write("export PROMPT=test_ps1\n")
+#     with open(profile, "w") as f:
+#         f.write("export PS1=test_ps1\n")
+#         f.write("export PROMPT=test_ps1\n")
 
-    def fin():
-        if os.path.isfile(profile_backup):
-            os.remove(profile)
-            os.rename(profile_backup, profile)
-    request.addfinalizer(fin)
+#     def fin():
+#         if os.path.isfile(profile_backup):
+#             os.remove(profile)
+#             os.rename(profile_backup, profile)
+#     request.addfinalizer(fin)
 
-    return request  # provide the fixture value
+#     return request  # provide the fixture value
 
 
 @pytest.mark.installed
@@ -612,7 +627,7 @@ def test_activate_symlinking(shell):
 
 
 @pytest.mark.installed
-def test_PS1(shell, bash_profile):
+def test_PS1(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
@@ -639,7 +654,7 @@ def test_PS1(shell, bash_profile):
                     **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, print_ps1(env_dirs=env_dirs,
-                                            base_ps=shell_vars["base_ps"],
+                                            base_prompt=shell_vars["base_prompt"],
                                             number=0), stderr)
             assert_equals(stderr,'')
 
@@ -667,7 +682,7 @@ def test_PS1(shell, bash_profile):
                     **shell_vars)
             stdout, sterr = run_in(commands, shell)
             assert_equals(stdout, print_ps1(env_dirs=env_dirs,
-                                            base_ps=shell_vars["base_ps"],
+                                            base_prompt=shell_vars["base_prompt"],
                                             number=1), stderr)
             assert_equals(stderr,'')
 
@@ -692,7 +707,7 @@ def test_PS1(shell, bash_profile):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_equals(stdout, shell_vars['base_prompt'], stderr)
             assert_in("Could not find environment",stderr)
 
         #-----------------------------------------------------------------------
@@ -719,7 +734,7 @@ def test_PS1(shell, bash_profile):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, print_ps1(env_dirs=env_dirs,
-                                            base_ps=shell_vars["base_ps"],
+                                            base_prompt=shell_vars["base_prompt"],
                                             number=0), stderr)
             assert_equals(stderr,'')
 
@@ -735,7 +750,7 @@ def test_PS1(shell, bash_profile):
             commands = shell_vars['command_setup'] + script.format(
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_equals(stdout, shell_vars['base_prompt'], stderr)
             assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
@@ -761,7 +776,7 @@ def test_PS1(shell, bash_profile):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_equals(stdout, shell_vars['base_prompt'], stderr)
             assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
@@ -783,11 +798,11 @@ def test_PS1(shell, bash_profile):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_equals(stdout, shell_vars['base_prompt'], stderr)
             assert_in('[ACTIVATE]: ERROR: Unknown/invalid flag/parameter',stderr)
 
 @pytest.mark.installed
-def test_PS1_no_changeps1(shell, bash_profile):
+def test_PS1_no_changeps1(shell):
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -851,7 +866,7 @@ def test_PS1_no_changeps1(shell, bash_profile):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, shell_vars['base_ps'], stderr)
+            assert_equals(stdout, shell_vars['base_prompt'], stderr)
             if err is None:
                 assert_equals(stderr,'')
             else:
@@ -1513,7 +1528,7 @@ def run_in(command, shell, cwd=None, env=None):
         #
         # must use heredoc to avoid Ubuntu/dash incompatibility with hereword
         cmd_bits = dedent("""\
-            {exe} {shell_args} <<- 'RUNINCMD'
+            {exe} <<- 'RUNINCMD'
             {command}
             RUNINCMD
             """).format(

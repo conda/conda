@@ -8,21 +8,18 @@
 # local vars
 ###############################################################################
 if [ -n "${ZSH_VERSION+x}" ]; then
-    _SHELL="zsh"
+    WHAT_SHELL_AM_I="zsh"
 elif [ -n "${BASH_VERSION+x}" ]; then
-    _SHELL="bash"
+    WHAT_SHELL_AM_I="bash"
 elif [ -n "${POSH_VERSION+x}" ]; then
-    _SHELL="posh"
+    WHAT_SHELL_AM_I="posh"
 else
-    _SHELL="dash"
+    WHAT_SHELL_AM_I="dash"
 fi
 case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
-        EXT=".exe"
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.exe"
         export MSYS2_ENV_CONV_EXCL="CONDA_PATH"
-        ;;
-    *)
-        EXT=""
         ;;
 esac
 
@@ -77,10 +74,9 @@ if [ "${CONDA_HELP}" = true ]; then
     if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
         echo "[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
     fi
-    conda ..deactivate ${_SHELL}${EXT} -h
+    conda ..deactivate ${WHAT_SHELL_AM_I} -h
 
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_HELP
     unset CONDA_VERBOSE
     # if it is defined (check if unbounded) and if it is non-zero
@@ -92,8 +88,7 @@ if [ "${CONDA_HELP}" = true ]; then
         return 0
     fi
 fi
-unset _SHELL
-unset EXT
+unset WHAT_SHELL_AM_I
 unset CONDA_HELP
 unset UNKNOWN
 

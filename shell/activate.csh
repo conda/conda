@@ -7,16 +7,14 @@
 ###############################################################################
 # local vars
 ###############################################################################
-set _SHELL="csh"
+# keep track of WHAT_SHELL_AM_I to communicate properly with `conda ..activate`
+set WHAT_SHELL_AM_I="csh"
 switch ( `uname -s` )
     case "CYGWIN*":
     case "MINGW*":
     case "MSYS*":
-        set EXT=".exe"
+        set WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.exe"
         setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
-        breaksw
-    default:
-        set EXT=""
         breaksw
 endsw
 
@@ -102,10 +100,9 @@ if ( "${CONDA_HELP}" == true ) then
     if ( "${UNKNOWN}" != "" ) then
         bash -c "echo '[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})' 1>&2"
     endif
-    conda ..activate ${_SHELL}${EXT} -h
+    conda ..activate ${WHAT_SHELL_AM_I} -h
 
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_HELP
     unset CONDA_VERBOSE
@@ -125,22 +122,21 @@ unset UNKNOWN
 ######################################################################
 # configure virtual environment
 ######################################################################
-conda ..checkenv ${_SHELL}${EXT} "${CONDA_ENVNAME}"
+conda ..checkenv ${WHAT_SHELL_AM_I} "${CONDA_ENVNAME}"
 if ( $status != 0 ) then
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_VERBOSE
     exit 1
 endif
 
-# store the _SHELL+EXT since it may get cleared by deactivate
+# store the WHAT_SHELL_AM_I since it may get cleared by deactivate
 # store the CONDA_VERBOSE since it may get cleared by deactivate
-set _CONDA_BIN="${_SHELL}${EXT}"
+set _CONDA_BIN="${WHAT_SHELL_AM_I}"
 set CONDA_VERBOSE_TMP="${CONDA_VERBOSE}"
 
 # Ensure we deactivate any scripts from the old env
-# be careful since deactivate will unset certain values (like $_SHELL and $EXT)
+# be careful since deactivate will unset certain values (like WHAT_SHELL_AM_I and CONDA_VERBOSE)
 # beware of csh's `which` checking $PATH and aliases for matches
 # by using \deactivate we will refer to the "root" deactivate not the aliased deactivate if it exists
 source "`which \deactivate.csh`" ""
@@ -218,16 +214,14 @@ if ( $status == 0 ) then
     # csh/tcsh both use rehash
     rehash
 
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_VERBOSE
     unset _CONDA_BIN
     unset _CONDA_DIR
     exit 0
 else
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_VERBOSE
     unset _CONDA_BIN

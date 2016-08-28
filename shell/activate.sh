@@ -8,21 +8,18 @@
 # local vars
 ###############################################################################
 if [ -n "${ZSH_VERSION+x}" ]; then
-    _SHELL="zsh"
+    WHAT_SHELL_AM_I="zsh"
 elif [ -n "${BASH_VERSION+x}" ]; then
-    _SHELL="bash"
+    WHAT_SHELL_AM_I="bash"
 elif [ -n "${POSH_VERSION+x}" ]; then
-    _SHELL="posh"
+    WHAT_SHELL_AM_I="posh"
 else
-    _SHELL="dash"
+    WHAT_SHELL_AM_I="dash"
 fi
 case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
-        EXT=".exe"
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.exe"
         export MSYS2_ENV_CONV_EXCL="CONDA_PATH"
-        ;;
-    *)
-        EXT=""
         ;;
 esac
 
@@ -87,10 +84,9 @@ if [ "${CONDA_HELP}" = true ]; then
     if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
         echo "[ACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
     fi
-    conda ..activate ${_SHELL}${EXT} -h
+    conda ..activate ${WHAT_SHELL_AM_I} -h
 
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_HELP
     unset CONDA_VERBOSE
@@ -109,22 +105,21 @@ unset UNKNOWN
 ######################################################################
 # configure virtual environment
 ######################################################################
-conda ..checkenv ${_SHELL}${EXT} "${CONDA_ENVNAME}"
+conda ..checkenv ${WHAT_SHELL_AM_I} "${CONDA_ENVNAME}"
 if [ $? != 0 ]; then
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_VERBOSE
     return 1
 fi
 
-# store the _SHELL+EXT since it may get cleared by deactivate
+# store the WHAT_SHELL_AM_I since it may get cleared by deactivate
 # store the CONDA_VERBOSE since it may get cleared by deactivate
-_CONDA_BIN="${_SHELL}${EXT}"
+_CONDA_BIN="${WHAT_SHELL_AM_I}"
 CONDA_VERBOSE_TMP="${CONDA_VERBOSE}"
 
 # Ensure we deactivate any scripts from the old env
-# be careful since deactivate will unset certain values (like $_SHELL and $EXT)
+# be careful since deactivate will unset certain values (like WHAT_SHELL_AM_I and CONDA_VERBOSE)
 . "`which deactivate.sh`" ""
 
 # restore CONDA_VERBOSE
@@ -191,8 +186,7 @@ if [ $? = 0 ]; then
         hash -r
     fi
 
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_VERBOSE
     unset _CONDA_BIN
@@ -200,8 +194,7 @@ if [ $? = 0 ]; then
 
     return 0
 else
-    unset _SHELL
-    unset EXT
+    unset WHAT_SHELL_AM_I
     unset CONDA_ENVNAME
     unset CONDA_VERBOSE
     unset _CONDA_BIN
