@@ -113,9 +113,9 @@ will be copied to the work directory before building:
 If the local path is a git or svn repository, you will get the corresponding environment
 variables defined in your build environment.  The only practical difference between
 ``git_url`` or ``hg_url`` and ``path`` as source arguments is that ``git_url`` and ``hg_url``
-would be clones of a repository and path is copy of the repository.  Using path will allow you
-to build packages with unstaged/uncommited changes in working directory. git_url can only
-build up to the latest commit.
+would be clones of a repository and ``path`` would be a copy of the repository.  Using
+``path`` will allow you to build packages with unstaged/uncommitted changes in
+the working directory. ``git_url`` can only build up to the latest commit.
 
 
 Patches
