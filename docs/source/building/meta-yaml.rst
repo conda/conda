@@ -426,6 +426,21 @@ Test files which are copied from the recipe into the (temporary) test directory 
     files:
       - test-data.txt
 
+Source files
+~~~~~~~~~~~~
+
+Test files which are copied from the source work directory into the (temporary) test directory which are needed during testing:
+
+.. code-block:: yaml
+
+  test:
+    source_files:
+      - test-data.txt
+      - some/directory
+      - some/directory/pattern*.sh
+
+This capability was added in conda-build 2.0.
+
 Test requirements
 ~~~~~~~~~~~~~~~~~
 
@@ -821,10 +836,12 @@ relocatable:
   prefix at install time.  This works by padding the install prefix with null
   terminators, such that the length of the binary file remains the same.  The
   build prefix must therefore be long enough to accommodate any reasonable
-  installation prefix. Whenever the ``build/binary_has_prefix_files`` list is
-  not empty or ``build/detect_binary_files_with_prefix`` is set, conda will pad
+  installation prefix.  On Linux and Mac, conda-build will pad
   the build prefix (appending ``_placehold``\'s to the end of the build
-  directory name) to 80 characters.
+  directory name) to 255 characters.  Note that the prefix length was changed
+  in conda-build 2.0 from 80 characters to 255 characters.  Legacy packages with
+  80 character prefixes will need to be rebuilt to take advantage of the
+  longer prefix.
 
 - There may be cases where conda identified a file as binary, but it needs to
   have the build prefix replaced as if it were text (no padding with null
