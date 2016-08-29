@@ -603,10 +603,12 @@ at the base directory of the git repository, so the ``git_url`` is ``../``:
      source:
        git_url: ../
 
-It is also possible to use the older syntax for these environment variables,
-although it is somewhat more verbose, and the newer syntax checks to make sure
-the variable is defined and produces a clear error if it is not. This is the
-example above using the older syntax:
+Conda-build will make sure the jinja2 variables you use are defined and produces
+a clear error if it is not.
+
+It is also possible to use a different syntax for these environment variables
+that allows default values to be set, although it is somewhat more verbose.  This is the
+example above using the other syntax:
 
 .. code-block:: yaml
 
@@ -624,8 +626,9 @@ example above using the older syntax:
      source:
        git_url: ../
 
-One further possibility is obtaining data from your downloaded source code.  For example, we can
-process a project's setup.py and obtain the version and other metadata:
+One further possibility using templating is obtaining data from your downloaded
+source code.  For example, we can process a project's setup.py and obtain the
+version and other metadata:
 
 .. code-block:: yaml
 
