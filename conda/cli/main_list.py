@@ -13,7 +13,7 @@ from os.path import isdir, isfile
 
 from conda import Message
 from .common import (add_parser_help, add_parser_prefix, add_parser_json,
-                     add_parser_show_channel_urls, disp_features, stdout_json)
+                     add_parser_show_channel_urls, disp_features)
 from ..base.context import context, subdir
 from ..egg_info import get_egg_info
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaFileNotFoundError,
@@ -248,7 +248,7 @@ def execute(args, parser):
             if not args.json:
                 h.print_log()
             else:
-                stdout_json(h.object_log())
+                stdout.info(Message('history_log_printout', '', log=h.object_log()))
         else:
             raise CondaFileNotFoundError(h.path, "No revision log found: %s\n" % h.path)
         return

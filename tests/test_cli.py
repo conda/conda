@@ -204,7 +204,7 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, dict)
 
         res = capture_json_with_argv('conda list -r --json')
-        self.assertTrue(isinstance(res, list) or
+        self.assertTrue(isinstance(res, dict) or
                         (isinstance(res, str) and json.loads(res)['exception_type']))
 
         res = capture_json_with_argv('conda list ipython --json')
