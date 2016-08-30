@@ -450,7 +450,7 @@ In addition to the runtime requirements, you can specify requirements needed dur
 
   test:
     requires:
-      nose
+      - nose
 
 Test commands
 ~~~~~~~~~~~~~
