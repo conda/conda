@@ -608,7 +608,7 @@ a clear error if it is not.
 
 It is also possible to use a different syntax for these environment variables
 that allows default values to be set, although it is somewhat more verbose.  This is the
-example above using the other syntax:
+example above using the syntax that allows defaults:
 
 .. code-block:: yaml
 
