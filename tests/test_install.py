@@ -489,7 +489,8 @@ def test_dist2():
     for name in ('python', 'python-hyphen', ''):
         for version in ('2.7.0', '2.7.0rc1', ''):
             for build in ('0', 'py27_0', 'py35_0+g34fe21', ''):
-                for channel in ('defaults', 'test', 'test-hyphen', 'http://bremen', 'https://anaconda.org/mcg', '<unknown>'):
+                for channel in ('defaults', 'test', 'test-hyphen', 'http://bremen',
+                                'https://anaconda.org/mcg', '<unknown>'):
                     dist_noprefix = name + '-' + version + '-' + build
                     quad = (name, version, build, channel)
                     dist = dist_noprefix if channel == 'defaults' else channel + '::' + dist_noprefix
