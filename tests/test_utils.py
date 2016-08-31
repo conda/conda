@@ -33,6 +33,7 @@ def test_path_translations():
         assert utils.win_path_to_cygwin(windows_path) == cygwin_path
         assert utils.cygwin_path_to_win(cygwin_path) == windows_path
 
+
 def test_text_translations():
     test_win_text = "prepending z:\\msarahan\\code\\conda\\tests\\envsk5_b4i\\test 1 and z:\\msarahan\\code\\conda\\tests\\envsk5_b4i\\test 1\\scripts to path"
     test_unix_text = "prepending /z/msarahan/code/conda/tests/envsk5_b4i/test 1 and /z/msarahan/code/conda/tests/envsk5_b4i/test 1/scripts to path"

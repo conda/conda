@@ -1,8 +1,11 @@
 from unittest import TestCase
+
 import pytest
-from .test_create import (make_temp_env, assert_package_is_installed
-    , run_command, Commands, get_conda_list_tuple)
+
 from conda.base.context import context
+from .test_create import (make_temp_env, assert_package_is_installed,
+                          run_command, Commands, get_conda_list_tuple)
+
 
 class PriorityTest(TestCase):
 
@@ -30,7 +33,6 @@ class PriorityTest(TestCase):
             # conda list should show pycosat coming from conda-forge
             pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
             assert pycosat_tuple[3] == 'conda-forge'
-
 
     @pytest.mark.timeout(300)
     def test_channel_priority_update(self):
