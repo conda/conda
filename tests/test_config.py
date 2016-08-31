@@ -375,6 +375,16 @@ always_yes: true
 """
 
 
+def test_config_command_show():
+    # test alphabetical yaml output
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--show')
+        output_keys = yaml_load(stdout).keys()
+
+        assert stderr == ''
+        assert sorted(output_keys) == [item for item in output_keys]
+
+
 # FIXME Break into multiple tests
 @pytest.mark.slow
 def test_config_command_get():
