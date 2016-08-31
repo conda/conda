@@ -375,7 +375,10 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     with FileLock(dst_path):
         rm_rf(dst_path)
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
+            timeout=(3.05, 27)
+            if url.startswith('ftp'):
+                timeout=10
+            resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 407:  # Proxy Authentication Required
