@@ -167,7 +167,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         choices=BoolOrListKey()
     )
     action.add_argument(
-        "--append", "--add",
+        "--append",
         nargs=2,
         action="append",
         help="""Add one configuration value to the end of a list key.""",
@@ -176,7 +176,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
-        "--prepend",
+        "--prepend", "--add",
         nargs=2,
         action="append",
         help="""Add one configuration value to the beginning of a list key.""",
