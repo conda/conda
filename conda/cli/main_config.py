@@ -320,11 +320,11 @@ def execute_config(args, parser):
                 # recreate the same file
                 items = rc_config.get(key, [])
                 numitems = len(items)
-                for q, item in enumerate(items):
+                for q, item in enumerate(reversed(items)):
                     # Use repr so that it can be pasted back in to conda config --add
                     if key == "channels" and q in (0, numitems-1):
                         print("--add", key, repr(item),
-                              "  # highest priority" if q == 0 else "  # lowest priority")
+                              "  # lowest priority" if q == 0 else "  # highest priority")
                     else:
                         print("--add", key, repr(item))
 
