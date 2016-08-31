@@ -242,34 +242,36 @@ def execute_config(args, parser):
         return
 
     if args.show:
-        d = dict((key, getattr(context, key))
-                 for key in ('add_anaconda_token',
-                             'add_pip_as_python_dependency',
-                             'allow_softlinks',
-                             'always_copy',
-                             'always_yes',
-                             'binstar_upload',
-                             'auto_update_conda',
-                             'changeps1',
-                             'channel_alias',
-                             'channel_priority',
-                             'channels',
-                             'create_default_packages',
-                             'debug',
-                             'default_channels',
-                             'disallow',
-                             'json',
-                             'offline',
-                             'proxy_servers',
-                             'quiet',
-                             'shortcuts',
-                             'show_channel_urls',
-                             'ssl_verify',
-                             'track_features',
-                             'update_dependencies',
-                             'use_pip',
-                             'verbosity',
-                             ))
+        from collections import OrderedDict
+        # ordered dict for printing yaml dump in alphabetical order
+        d = OrderedDict((key, getattr(context, key))
+                        for key in ('add_anaconda_token',
+                                    'add_pip_as_python_dependency',
+                                    'allow_softlinks',
+                                    'always_copy',
+                                    'always_yes',
+                                    'binstar_upload',
+                                    'auto_update_conda',
+                                    'changeps1',
+                                    'channel_alias',
+                                    'channel_priority',
+                                    'channels',
+                                    'create_default_packages',
+                                    'debug',
+                                    'default_channels',
+                                    'disallow',
+                                    'json',
+                                    'offline',
+                                    'proxy_servers',
+                                    'quiet',
+                                    'shortcuts',
+                                    'show_channel_urls',
+                                    'ssl_verify',
+                                    'track_features',
+                                    'update_dependencies',
+                                    'use_pip',
+                                    'verbosity',
+                                    ))
         print(yaml_dump(d))
         return
 
