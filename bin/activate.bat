@@ -53,14 +53,18 @@
 @REM always store the full path to the environment, since CONDA_DEFAULT_ENV varies
 @FOR /F "tokens=1 delims=;" %%i in ("%NEW_PATH%") DO @SET "CONDA_PREFIX=%%i"
 
+@REM Do we have CONDA_PATH_PLACEHOLDER in PATH?
+@SET "CHECK_PLACEHOLDER=import os; print('CONDA_PATH_PLACEHOLDER' in os.environ['PATH'])"
+@FOR /F "tokens=1 delims=;" %%i in ('@call python -c "%CHECK_PLACEHOLDER%"') DO @SET "HAS_PLACEHOLDER=%%i"
+
 @REM look if the deactivate script left a placeholder for us.
-@IF "x%PATH%" == "x%PATH:CONDA_PATH_PLACEHOLDER=%" (
-    @REM If it did not, prepend NEW_PATH
-    @SET "PATH=%NEW_PATH%;%PATH%"
-) ELSE (
+@IF "%HAS_PLACEHOLDER%" == "True" (
     @REM If it did, replace it with our NEW_PATH
     @REM    Delayed expansion used here to do replacement with value of NEW_PATH
     @CALL SET "PATH=%%PATH:CONDA_PATH_PLACEHOLDER=!NEW_PATH!%%"
+) ELSE (
+    @REM If it did not, prepend NEW_PATH
+    @SET "PATH=%NEW_PATH%;%PATH%"
 )
 
 @REM This persists env variables, which are otherwise local to this script right now.
