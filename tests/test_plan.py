@@ -135,6 +135,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             ]:
             self.check(specs, added)
 
+
 def test_display_actions():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
@@ -182,7 +183,6 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-
     assert c.stdout == """
 The following packages will be REMOVED:
 
@@ -193,7 +193,6 @@ The following packages will be REMOVED:
     zlib:     1.2.7-0 \n\
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
     ['cython-0.19-py33_0']})
@@ -246,7 +245,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
-
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
         'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
@@ -264,7 +262,6 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-
     with captured() as c:
         display_actions(actions, index)
 
@@ -275,7 +272,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     dateutil: 2.1-py33_1    --> 1.5-py33_0 \n\
 
 """
-
 
 
 def test_display_actions_show_channel_urls():
@@ -302,7 +298,6 @@ The following packages will be downloaded:
 
 """
 
-
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
     ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
@@ -327,7 +322,6 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-
     assert c.stdout == """
 The following packages will be REMOVED:
 
@@ -338,7 +332,6 @@ The following packages will be REMOVED:
     zlib:     1.2.7-0  <unknown>
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
     ['cython-0.19-py33_0']})
@@ -355,7 +348,6 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-
     with captured() as c:
         display_actions(actions, index)
 
@@ -365,7 +357,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     cython: 0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
         'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
@@ -392,7 +383,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     dateutil: 2.1-py33_1   <unknown> --> 1.5-py33_0    <unknown>
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
         'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
@@ -439,7 +429,6 @@ The following packages will be UPDATED:
 """
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
-
 
     with captured() as c:
         display_actions(actions, index)
@@ -662,6 +651,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
+
 def test_display_actions_features():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
@@ -756,7 +746,6 @@ The following NEW packages will be INSTALLED:
 
 """
 
-
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
     with captured() as c:
@@ -794,7 +783,6 @@ The following packages will be UPDATED:
 
 """
 
-
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
 
     with captured() as c:
@@ -819,6 +807,7 @@ The following packages will be UPDATED:
     numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.1-py33_0 <unknown>
 
 """
+
 
 def test_display_actions_no_index():
     # Test removing a package that is not in the index. This issue
@@ -863,6 +852,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
+
 class TestDeprecatedExecutePlan(unittest.TestCase):
 
     def test_update_old_plan(self):
@@ -886,17 +876,14 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
             INSTRUCTION_CMD.called = True
             INSTRUCTION_CMD.arg = arg
 
-
         set_commands({'INSTRUCTION': INSTRUCTION_CMD})
 
         old_plan = ['# plan', 'INSTRUCTION arg']
 
         plan.execute_plan(old_plan)
 
-
         self.assertTrue(INSTRUCTION_CMD.called)
         self.assertEqual(INSTRUCTION_CMD.arg, 'arg')
-
 
 
 class PlanFromActionsTests(unittest.TestCase):

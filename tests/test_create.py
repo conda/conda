@@ -294,7 +294,7 @@ class IntegrationTests(TestCase):
             # install from local channel
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
-            repodata = {'info': {}, 'packages':{flask_fname: flask_data}}
+            repodata = {'info': {}, 'packages': {flask_fname: flask_data}}
             with make_temp_env() as channel:
                 subchan = join(channel, context.subdir)
                 channel = path_to_url(channel)
@@ -474,7 +474,8 @@ class IntegrationTests(TestCase):
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix):
-            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut", "--no-shortcuts")
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut",
+                                         "--no-shortcuts")
             # This test is sufficient, because it effectively verifies that the code
             #  path was not visited.
             assert ("Environment name starts with underscore '_'.  Skipping menu installation."

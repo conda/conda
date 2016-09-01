@@ -1,8 +1,6 @@
-from logging import getLogger, Handler, DEBUG
 import unittest
+from logging import getLogger, Handler, DEBUG
 
-
-from conda import exceptions
 from conda import instructions
 from conda.instructions import execute_instructions, commands, PROGRESS_CMD
 
