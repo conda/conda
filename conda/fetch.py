@@ -351,7 +351,6 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None):
-    assert "::" not in str(url), url
     assert "::" not in str(dst_path), str(dst_path)
     if not offline_keep(url):
         raise RuntimeError("Cannot download in offline mode: %s" % (url,))
