@@ -11,8 +11,8 @@ def test_info():
     conda_info_out, conda_info_err = run_conda_command('info')
     assert_equals(conda_info_err, '')
     for name in ['platform', 'conda version', 'root environment',
-        'default environment', 'envs directories', 'package cache',
-        'channel URLs', 'config file', 'offline mode']:
+                 'default environment', 'envs directories', 'package cache',
+                 'channel URLs', 'config file', 'offline mode']:
         assert_in(name, conda_info_out)
 
     conda_info_e_out, conda_info_e_err = run_conda_command('info', '-e')
@@ -22,7 +22,7 @@ def test_info():
     conda_info_s_out, conda_info_s_err = run_conda_command('info', '-s')
     assert_equals(conda_info_s_err, '')
     for name in ['sys.version', 'sys.prefix', 'sys.executable', 'conda location',
-        'conda-build', 'CIO_TEST', 'CONDA_DEFAULT_ENV', 'PATH', 'PYTHONPATH']:
+                 'conda-build', 'CIO_TEST', 'CONDA_DEFAULT_ENV', 'PATH', 'PYTHONPATH']:
         assert_in(name, conda_info_s_out)
     if config.platform == 'linux':
         assert_in('LD_LIBRARY_PATH', conda_info_s_out)

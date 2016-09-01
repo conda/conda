@@ -17,6 +17,7 @@ from conda.compat import string_types, iteritems
 # directly are NOT and OR. The rest are implemented in terms of these.
 # Peformance is not an issue.
 
+
 def my_NOT(x):
     if isinstance(x, bool):
         return not x
@@ -26,6 +27,7 @@ def my_NOT(x):
         return x[1:] if x[0] == '!' else '!' + x
     return None
 
+
 def my_ABS(x):
     if isinstance(x, bool):
         return True
@@ -34,6 +36,7 @@ def my_ABS(x):
     if isinstance(x, string_types):
         return x[1:] if x[0] == '!' else x
     return None
+
 
 def my_OR(*args):
     '''Implements a logical OR according to the logic:
@@ -56,25 +59,32 @@ def my_OR(*args):
         return True
     return None
 
+
 def my_AND(*args):
     args = list(map(my_NOT,args))
     return my_NOT(my_OR(*args))
 
+
 def my_XOR(i,j):
     return my_OR(my_AND(i,my_NOT(j)),my_AND(my_NOT(i),j))
 
+
 def my_ITE(c,t,f):
     return my_OR(my_AND(c,t),my_AND(my_NOT(c),f))
+
 
 def my_AMONE(*args):
     args = [my_NOT(v) for v in args]
     return my_AND(*[my_OR(v1,v2) for v1,v2 in combinations(args,2)])
 
+
 def my_XONE(*args):
     return my_AND(my_OR(*args),my_AMONE(*args))
 
+
 def my_SOL(ij, sol):
     return (v if type(v) is bool else (True if v in sol else False) for v in ij)
+
 
 def my_EVAL(eq, sol):
     # evaluate_eq doesn't handle True/False entries
@@ -84,6 +94,7 @@ def my_EVAL(eq, sol):
 # True, False, variables from 1 to m, and their negations, in order to exercise
 # all logical branches of the function. Test negative, positive, and full
 # polarities for each.
+
 
 def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
     for m in range(mmin,mmax+1):
@@ -129,26 +140,34 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 qsol = Mfunc(*my_SOL(ij,sol))
                 assert qsol is False, (ij, sol,'Prevent(%s)' % Cfunc.__name__, Cneg.clauses)
 
+
 def test_NOT():
     my_TEST(my_NOT, Clauses.Not, 1, 1, False)
+
 
 def test_AND():
     my_TEST(my_AND, Clauses.And, 2,2, False)
 
+
 def test_ALL():
     my_TEST(my_AND, Clauses.All, 0, 4, True)
+
 
 def test_OR():
     my_TEST(my_OR,  Clauses.Or,  2,2, False)
 
+
 def test_ANY():
     my_TEST(my_OR,  Clauses.Any, 0,4, True)
+
 
 def test_XOR():
     my_TEST(my_XOR, Clauses.Xor, 2,2, False)
 
+
 def test_ITE():
     my_TEST(my_ITE, Clauses.ITE, 3,3, False)
+
 
 def test_AMONE():
     my_TEST(my_AMONE, Clauses.AtMostOne_NSQ, 0,3, True)
@@ -160,10 +179,12 @@ def test_AMONE():
     x2 = C2.AtMostOne((1,2,3,4,5,6,7,8,9,10))
     assert x1 == x2 and C1.clauses == C2.clauses
 
+
 def test_XONE():
     my_TEST(my_XONE, Clauses.ExactlyOne_NSQ, 0,3, True)
     my_TEST(my_XONE, Clauses.ExactlyOne_BDD, 0,3, True)
     my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True)
+
 
 def test_LinearBound():
     L = [
@@ -217,6 +238,7 @@ def test_LinearBound():
         for _, sol in zip(range(max_iter), Cneg.itersolve([],N)):
             assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
 
+
 def test_sat():
     C = Clauses()
     C.new_var('x1')
@@ -228,6 +250,7 @@ def test_sat():
     C.unsat = True
     assert C.sat() is None
     assert len(Clauses(10).sat([[1]])) == 10
+
 
 def test_minimize():
     # minimize    x1 + 2 x2 + 3 x3 + ... + 10 x10
@@ -243,6 +266,7 @@ def test_minimize():
     C.unsat = False
     sol2, sval = C.minimize(objective, sol)
     assert C.minimize(objective, sol)[1] == 7, (objective, sol2, sval)
+
 
 def test_minimal_unsatisfiable_subset():
     def sat(val):

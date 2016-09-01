@@ -1,7 +1,10 @@
-import pytest
 from os.path import basename, join
-from conda.lock import FileLock, LOCKSTR, LOCK_EXTENSION, LockError
+
+import pytest
+
 from conda.install import on_win
+from conda.lock import FileLock, LockError
+
 
 def test_filelock_passes(tmpdir):
     package_name = "conda_file1"
@@ -89,7 +92,8 @@ def lock_thread_retries(tmpdir, file_path):
     with pytest.raises(LockError) as execinfo:
         with FileLock(file_path, retries=0):
             assert False  # should never enter here, since max_tires is 0
-        assert  "LOCKERROR" in str(execinfo.value)
+        assert "LOCKERROR" in str(execinfo.value)
+
 
 def test_lock_retries(tmpdir):
 

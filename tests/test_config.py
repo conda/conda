@@ -274,6 +274,7 @@ class TestConfig(unittest.TestCase):
     #       'https://conda.anaconda.org/username/noarch/'
     #     ]
 
+
 @contextmanager
 def make_temp_condarc(value=None):
     try:
@@ -288,6 +289,7 @@ def make_temp_condarc(value=None):
     finally:
         backoff_unlink(temp_path)
 
+
 def _read_test_condarc(rc):
     with open(rc) as f:
         return f.read()
@@ -300,12 +302,12 @@ def test_config_command_basics():
         # Test that creating the file adds the defaults channel
     with make_temp_condarc() as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-          'channels', 'test')
+                                           'channels', 'test')
         assert stdout == stderr == ''
         assert _read_test_condarc(rc) == """\
 channels:
-  - defaults
   - test
+  - defaults
 """
         print(_read_test_condarc(rc))
         print(_read_test_condarc(rc))
@@ -314,36 +316,36 @@ channels:
     with make_temp_condarc() as rc:
         # When defaults is explicitly given, it should not be added
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-            'channels', 'test', '--add', 'channels', 'defaults')
+                                           'channels', 'test', '--add', 'channels', 'defaults')
         assert stdout == ''
-        assert stderr == "Warning: 'defaults' already in 'channels' list, moving to the bottom"
+        assert stderr == "Warning: 'defaults' already in 'channels' list, moving to the top"
         assert _read_test_condarc(rc) == """\
 channels:
-  - test
   - defaults
+  - test
 """
     # Duplicate keys should not be added twice
     with make_temp_condarc() as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-            'channels', 'test')
+                                           'channels', 'test')
         assert stdout == stderr == ''
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-            'channels', 'test')
+                                           'channels', 'test')
         assert stdout == ''
-        assert stderr == "Warning: 'test' already in 'channels' list, moving to the bottom"
+        assert stderr == "Warning: 'test' already in 'channels' list, moving to the top"
         assert _read_test_condarc(rc) == """\
 channels:
-  - defaults
   - test
+  - defaults
 """
 
     # Test append
     with make_temp_condarc() as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-            'channels', 'test')
+                                           'channels', 'test')
         assert stdout == stderr == ''
         stdout, stderr = run_conda_command('config', '--file', rc, '--append',
-            'channels', 'test')
+                                           'channels', 'test')
         assert stdout == ''
         assert stderr == "Warning: 'test' already in 'channels' list, moving to the bottom"
         assert _read_test_condarc(rc) == """\
@@ -400,24 +402,24 @@ channel_alias: http://alpha.conda.anaconda.org
 --set always_yes True
 --set changeps1 False
 --set channel_alias http://alpha.conda.anaconda.org
---add channels 'test'   # highest priority
 --add channels 'defaults'   # lowest priority
---add create_default_packages 'ipython'
---add create_default_packages 'numpy'\
+--add channels 'test'   # highest priority
+--add create_default_packages 'numpy'
+--add create_default_packages 'ipython'\
 """
         assert stderr == "unknown key invalid_key"
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-        '--get', 'channels')
+                                           '--get', 'channels')
 
         assert stdout == """\
---add channels 'test'   # highest priority
---add channels 'defaults'   # lowest priority\
+--add channels 'defaults'   # lowest priority
+--add channels 'test'   # highest priority\
 """
         assert stderr == ""
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-        '--get', 'changeps1')
+                                           '--get', 'changeps1')
 
         assert stdout == """\
 --set changeps1 False\
@@ -425,23 +427,21 @@ channel_alias: http://alpha.conda.anaconda.org
         assert stderr == ""
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-            '--get', 'changeps1', 'channels')
+                                           '--get', 'changeps1', 'channels')
 
         assert stdout == """\
 --set changeps1 False
---add channels 'test'   # highest priority
---add channels 'defaults'   # lowest priority\
+--add channels 'defaults'   # lowest priority
+--add channels 'test'   # highest priority\
 """
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', rc,
-        '--get', 'allow_softlinks')
+        stdout, stderr = run_conda_command('config', '--file', rc, '--get', 'allow_softlinks')
 
         assert stdout == ""
         assert stderr == ""
 
-        stdout, stderr = run_conda_command('config', '--file', rc,
-        '--get', 'track_features')
+        stdout, stderr = run_conda_command('config', '--file', rc, '--get', 'track_features')
 
         assert stdout == ""
         assert stderr == ""
@@ -451,8 +451,7 @@ channel_alias: http://alpha.conda.anaconda.org
         assert stdout == ""
         assert "invalid choice: 'invalid_key'" in stderr
 
-        stdout, stderr = run_conda_command('config', '--file', rc,
-        '--get', 'not_valid_key')
+        stdout, stderr = run_conda_command('config', '--file', rc, '--get', 'not_valid_key')
 
         assert stdout == ""
         assert "invalid choice: 'not_valid_key'" in stderr
@@ -480,8 +479,9 @@ always_yes: true
 """
     # First verify that this itself is valid YAML
     assert yaml_load(condarc) == {'channels': ['test', 'defaults'],
-        'create_default_packages': ['ipython', 'numpy'], 'changeps1':
-        False, 'always_yes': True}
+                                  'create_default_packages': ['ipython', 'numpy'],
+                                  'changeps1': False,
+                                  'always_yes': True}
 
     with make_temp_condarc(condarc) as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--get')
@@ -489,15 +489,16 @@ always_yes: true
         assert stdout == """\
 --set always_yes True
 --set changeps1 False
---add channels 'test'   # highest priority
 --add channels 'defaults'   # lowest priority
---add create_default_packages 'ipython'
---add create_default_packages 'numpy'\
+--add channels 'test'   # highest priority
+--add create_default_packages 'numpy'
+--add create_default_packages 'ipython'\
 """
         with open(rc, 'r') as fh:
             print(fh.read())
 
-        stdout, stderr = run_conda_command('config', '--file', rc, '--prepend', 'channels', 'mychannel')
+        stdout, stderr = run_conda_command('config', '--file', rc, '--prepend',
+                                           'channels', 'mychannel')
         assert stdout == stderr == ''
 
         with open(rc, 'r') as fh:
@@ -520,7 +521,7 @@ always_yes: true
 """
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-            '--set', 'changeps1', 'true')
+                                           '--set', 'changeps1', 'true')
 
         assert stdout == stderr == ''
 
@@ -552,7 +553,7 @@ always_yes: true
 
     with make_temp_condarc(condarc) as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-            'disallow', 'perl')
+                                           'disallow', 'perl')
         assert stdout == stderr == ''
         assert _read_test_condarc(rc) == condarc + """\
 disallow:
@@ -566,34 +567,34 @@ def test_config_command_remove_force():
     # Finally, test --remove, --remove-key
     with make_temp_condarc() as rc:
         run_conda_command('config', '--file', rc, '--add',
-            'channels', 'test')
+                          'channels', 'test')
         run_conda_command('config', '--file', rc, '--set',
-            'always_yes', 'true')
+                          'always_yes', 'true')
         stdout, stderr = run_conda_command('config', '--file', rc,
-            '--remove', 'channels', 'test')
+                                           '--remove', 'channels', 'test')
         assert stdout == stderr == ''
         assert yaml_load(_read_test_condarc(rc)) == {'channels': ['defaults'],
-            'always_yes': True}
+                                                     'always_yes': True}
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-            '--remove', 'channels', 'test', '--force')
+                                           '--remove', 'channels', 'test', '--force')
         assert stdout == ''
         assert stderr == """\
 CondaKeyError: Error with key 'channels': 'test' is not in the 'channels' key of the config file"""
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-            '--remove', 'disallow', 'python', '--force')
+                                           '--remove', 'disallow', 'python', '--force')
         assert stdout == ''
         assert stderr == """\
 CondaKeyError: Error with key 'disallow': key 'disallow' is not in the config file"""
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-            '--remove-key', 'always_yes', '--force')
+                                           '--remove-key', 'always_yes', '--force')
         assert stdout == stderr == ''
         assert yaml_load(_read_test_condarc(rc)) == {'channels': ['defaults']}
 
         stdout, stderr = run_conda_command('config', '--file', rc,
-            '--remove-key', 'always_yes', '--force')
+                                           '--remove-key', 'always_yes', '--force')
 
         assert stdout == ''
         assert stderr == """\
@@ -605,11 +606,11 @@ CondaKeyError: Error with key 'always_yes': key 'always_yes' is not in the confi
 def test_config_command_bad_args():
     with make_temp_condarc() as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
-            'notarealkey', 'test')
+                                           'notarealkey', 'test')
         assert stdout == ''
 
         stdout, stderr = run_conda_command('config', '--file', rc, '--set',
-            'notarealkey', 'true')
+                                           'notarealkey', 'true')
         assert stdout == ''
 
 
@@ -645,6 +646,7 @@ def test_config_set():
 
         assert stdout == ''
         assert stderr == ''
+
 
 def test_set_rc_string():
     # Test setting string keys in .condarc
