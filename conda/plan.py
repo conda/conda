@@ -463,7 +463,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     if track_features:
         specs.extend(x + '@' for x in track_features)
 
-    pkgs = r.install(specs, linked, update_deps=update_deps)
+    installed = linked
+    if prune:
+        installed = []
+    pkgs = r.install(specs, installed, update_deps=update_deps)
 
     for fn in pkgs:
         dist = fn[:-8]
