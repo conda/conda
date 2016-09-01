@@ -1,6 +1,6 @@
 package:
   name: conda-docs-deps
-  version: 3.0
+  version: 4.0
 
 requirements:
   run:
@@ -8,7 +8,7 @@ requirements:
     - perl
     - sphinx
     - numpydoc
-    - continuum-sphinx-theme
+    - sphinx_rtd_theme
     - help2man
     - man2html
     - futures # [py2k]

@@ -108,11 +108,7 @@ modindex_common_prefix = ['conda.']
 # extensions += ['sphinxjp.themes.basicstrap']
 # html_theme = 'basicstrap'
 
-import continuum_sphinx_theme
-
-html_theme = "continuum_sphinx_theme"
-
-html_theme_path = [continuum_sphinx_theme.get_html_theme_path()]
+html_theme = "sphinx_rtd_theme"
 
 html_context = {
     'github_user': 'conda',
