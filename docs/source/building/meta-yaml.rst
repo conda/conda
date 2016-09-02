@@ -5,15 +5,15 @@ The meta.yaml file
 
 .. contents:: Sections of ``meta.yaml``:
 
-All the metadata in the conda build recipe is specified in the ``meta.yaml`` file, 
+All the metadata in the conda build recipe is specified in the ``meta.yaml`` file,
 as in this example of a simple meta.yaml file:
 
 .. literalinclude:: /build_tutorials/meta.yaml
 
 NOTE: All sections are optional except for package/name and package/version.
 
-NOTE: All headers should appear exactly once. If they appear multiple times, only 
-the last will be remembered. For example, the "package:" header should only appear 
+NOTE: All headers should appear exactly once. If they appear multiple times, only
+the last will be remembered. For example, the "package:" header should only appear
 once in the file.
 
 
@@ -33,9 +33,9 @@ Lower case name of package, may contain '-' but no spaces
 Package version
 ~~~~~~~~~~~~~~~
 
-Version of package. Should use the PEP-386 verlib conventions. Note that YAML will 
+Version of package. Should use the PEP-386 verlib conventions. Note that YAML will
 interpret versions like 1.0 as floats, meaning that 0.10 will be the same as 0.1. To
-avoid this, always put the version in quotes, so that it will be interpreted as a 
+avoid this, always put the version in quotes, so that it will be interpreted as a
 string.
 
 .. code-block:: yaml
@@ -46,15 +46,15 @@ string.
 NOTE: The version cannot contain a dash '-' character.
 
 
-NOTE: Post-build versioning: In some cases, you may not know the version, build 
-number, or build string of the package until after it is built. In this case, you 
+NOTE: Post-build versioning: In some cases, you may not know the version, build
+number, or build string of the package until after it is built. In this case, you
 can perform :ref:`jinja-templates` or utilize :ref:`git-env` and :ref:`inherited-env-vars`.
 
 Source section
 --------------
 
-The source section specifies where the source code of the package is coming from. 
-The source may come from a tarball file, git, hg, or svn, may be a local path, 
+The source section specifies where the source code of the package is coming from.
+The source may come from a tarball file, git, hg, or svn, may be a local path,
 and may contain patches.
 
 Source from tarball
@@ -102,7 +102,7 @@ Source from svn
 Source from a local path
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-If the path is relative it is taken relative to the recipe directory. The source 
+If the path is relative it is taken relative to the recipe directory. The source
 will be copied to the work directory before building:
 
 .. code-block:: yaml
@@ -141,14 +141,14 @@ Build section
 Build number and string
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The build number should be incremented for new builds of the same version. The number 
-defaults to zero. The string defaults to the default conda build string plus the 
+The build number should be incremented for new builds of the same version. The number
+defaults to zero. The string defaults to the default conda build string plus the
 build number.
 
 .. code-block:: yaml
 
   build:
-    number: 1       
+    number: 1
     string: abc
 
 NOTE: The build string cannot contain a dash '-' character.
@@ -168,7 +168,7 @@ This creates a Python entry point named bsdiff4 that calls bsdiff4.cli.main_bsdi
 Python.app
 ~~~~~~~~~~
 
-If osx_is_app is set, entry points will use python.app instead of python in OS X. 
+If osx_is_app is set, entry points will use python.app instead of python in OS X.
 The default is False.
 
 .. code-block:: yaml
@@ -192,9 +192,9 @@ SEE ALSO: :ref:`features` section below for additional information.
 Track features
 ~~~~~~~~~~~~~~
 
-To enable a feature, a user should install a package that tracks that feature. A 
-package can have a feature, or track that feature, or both, or neither. Usually 
-it is best for the package that tracks a feature to be a metapackage that does 
+To enable a feature, a user should install a package that tracks that feature. A
+package can have a feature, or track that feature, or both, or neither. Usually
+it is best for the package that tracks a feature to be a metapackage that does
 not have the feature.
 
 SEE ALSO: :ref:`features` section below for additional information.
@@ -229,7 +229,7 @@ A list of globs for files that should always be copied and never soft linked or 
 Script
 ~~~~~~
 
-Used instead of build.sh or bld.bat. For short build scripts, this can be more convenient. 
+Used instead of build.sh or bld.bat. For short build scripts, this can be more convenient.
 You may need to use selectors (see below) to use different scripts for different platforms.
 
 .. code-block:: yaml
@@ -630,7 +630,7 @@ One further possibility using templating is obtaining data from your downloaded
 source code.  For example, we can process a project's setup.py and obtain the
 version and other metadata:
 
-.. code-block:: yaml
+.. code-block:: none
 
     {% set data = load_setup_py_data() %}
 
