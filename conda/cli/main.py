@@ -40,9 +40,9 @@ from __future__ import absolute_import, division, print_function
 import importlib
 import sys
 from argparse import SUPPRESS
-from conda.gateways.logging import set_all_logger_level, set_verbosity
 from logging import CRITICAL, DEBUG, getLogger
 
+from conda.gateways.logging import set_all_logger_level, set_verbosity
 from .. import __version__
 from ..base.context import context
 from ..exceptions import CommandNotFoundError, conda_exception_handler

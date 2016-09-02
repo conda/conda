@@ -11,13 +11,14 @@ import logging
 from argparse import RawDescriptionHelpFormatter
 from os.path import join
 
+from conda import Message
 from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parser_no_pin,
                      add_parser_channels, add_parser_prefix, add_parser_quiet,
                      add_parser_no_use_index_cache, add_parser_use_index_cache,
                      add_parser_use_local, add_parser_offline, add_parser_pscheck,
                      InstalledPackages, ensure_use_local,
                      ensure_override_channels_requires_channel,
-                     specs_from_args, names_in_specs, root_no_rm, stdout_json,
+                     specs_from_args, names_in_specs, root_no_rm,
                      confirm_yn)
 from ..api import get_index
 from ..base.context import check_write
@@ -26,6 +27,8 @@ from ..compat import iteritems, iterkeys
 from ..console import json_progress_bars
 from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
                           CondaValueError)
+
+stdout = logging.getLogger('stdout')
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -157,32 +160,31 @@ def execute(args, parser):
 
     if plan.nothing_to_do(actions):
         if args.all:
-            print()
-            print("Remove all packages in environment %s:\n" % prefix)
+            stdout.info(Message('blank_message', ''))
+            stdout.info(Message('remove_packages_message',
+                                "Remove all packages in environment %s:\n" % prefix,
+                                prefix=prefix))
             if not args.json:
                 confirm_yn(args)
             rm_rf(prefix)
 
             if args.json:
-                stdout_json({
-                    'success': True,
-                    'actions': actions
-                })
+                stdout.info(Message('actions_success_message', 'success',
+                                    success=True, actions=actions))
             return
         raise PackageNotFoundError('', 'no packages found to remove from '
                                    'environment: %s' % prefix)
 
     if not args.json:
-        print()
-        print("Package plan for package removal in environment %s:" % prefix)
+        stdout.info(Message('blank_message', ''))
+        stdout.info(Message('package_plan_notify',
+                            "Package plan for package removal in environment %s:" % prefix,
+                            environment=prefix))
         plan.display_actions(actions, index)
 
     if args.json and args.dry_run:
-        stdout_json({
-            'success': True,
-            'dry_run': True,
-            'actions': actions
-        })
+        stdout.info(Message('dry_run_success_message', 'dry run success',
+                            success=True, dry_run=True, actions=actions))
         return
 
     if not args.json:
@@ -207,7 +209,4 @@ def execute(args, parser):
         rm_rf(prefix)
 
     if args.json:
-        stdout_json({
-            'success': True,
-            'actions': actions
-        })
+        stdout.info(Message('success_message', 'success', success=True, actions=actions))

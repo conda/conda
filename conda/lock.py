@@ -38,6 +38,7 @@ You can also use: $ conda clean --lock
 stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
 
+
 def touch(file_name, times=None):
     """ Touch function like touch in Unix shell
     :param file_name: the name of file

@@ -125,4 +125,4 @@ def execute(args, parser):
 
     touch_nonadmin(prefix)
     if not args.json:
-        print(cli_install.print_activate(args.name if args.name else prefix))
+        cli_install.get_activate_message(args.name if args.name else prefix)

@@ -6,7 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-import json
+import logging
 import os
 import re
 import sys
@@ -14,12 +14,15 @@ from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
 
+from conda import Message, text_type
 from conda.config import rc_path
 from conda.config import user_rc_path, sys_rc_path
 from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
                      handle_envs_list, add_parser_offline)
 from ..compat import itervalues
 from ..utils import on_win
+
+stdout = logging.getLogger('stdout')
 
 help = "Display information about current conda install."
 
@@ -29,6 +32,7 @@ Examples:
 
     conda info -a
 """
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -84,15 +88,17 @@ def show_pkg_info(name):
 
     index = get_index()
     r = Resolve(index)
-    print(name)
+    stdout.info(Message('show_package_info_name', name, name=name))
     if name in r.groups:
         for pkg in sorted(r.get_pkgs(name)):
-            print('    %-15s %15s  %s' % (
-                    pkg.version,
-                    pkg.build,
-                    disp_features(r.features(pkg.fn))))
+            stdout.info(Message('package_info_printout',
+                                '    %-15s %15s  %s'
+                                % (pkg.version, pkg.build, disp_features(r.features(pkg.fn))),
+                                version=pkg.version, build=pkg.build, features=r.features(pkg.fn)
+                                ))
     else:
-        print('    not available')
+        stdout.info(Message('package_not_available_message', '    not available',
+                            name=name))
     # TODO
 
 
@@ -134,15 +140,18 @@ def pretty_package(pkg):
             continue
         d[key] = rest[key]
 
-    print()
+    stdout.info(Message('blank_message', ''))
     header = "%s %s %s" % (d['name'], d['version'], d['build string'])
-    print(header)
-    print('-'*len(header))
+    stdout.info(Message('header_printout', header, header=header))
+    stdout.info(Message('header_line_printout', '-'*len(header), length=len(header)))
     for key in d:
-        print("%-12s: %s" % (key, d[key]))
-    print('dependencies:')
+        stdout.info(Message('pretty_package_printout', "%-12s: %s" % (key, d[key]),
+                            key=key, info=d[key]))
+    stdout.info(Message('dependencies_printout', 'dependencies:'))
     for dep in pkg.info['depends']:
-        print('    %s' % dep)
+        stdout.info(Message('dependency_item_message', '    %s' % dep,
+                            dependency=text_type(dep)))
+
 
 def execute(args, parser):
     import os
@@ -155,10 +164,8 @@ def execute(args, parser):
     from conda.api import get_index
 
     if args.root:
-        if args.json:
-            stdout_json({'root_prefix': context.root_dir})
-        else:
-            print(context.root_dir)
+        stdout.info(Message('root_dir_printout', context.root_dir,
+                            root_prefix=context.root_dir))
         return
 
     if args.packages:
@@ -211,10 +218,7 @@ def execute(args, parser):
     channels = context.channels
 
     if args.unsafe_channels:
-        if not args.json:
-            print("\n".join(channels))
-        else:
-            print(json.dumps({"channels": channels}))
+        stdout.info(Message('channels_printout', "\n".join(channels), channels=channels))
         return 0
 
     channels = list(channels)
@@ -245,7 +249,7 @@ def execute(args, parser):
         requests_version=requests_version,
     )
 
-    if args.all or args.json:
+    if args.all:
         for option in options:
             setattr(args, option, True)
 
@@ -254,7 +258,8 @@ def execute(args, parser):
             info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
                                'read only')
-        print("""\
+
+        stdout.info(Message('print_info_dict', """\
 Current conda install:
 
                platform : %(platform)s
@@ -271,29 +276,53 @@ Current conda install:
            channel URLs : %(_channels)s
             config file : %(rc_path)s
            offline mode : %(offline)s
-""" % info_dict)
+""" % info_dict,
+                            platform=info_dict['platform'],
+                            conda_version=info_dict['conda_version'],
+                            conda_is_private=info_dict['conda_private'],
+                            conda_env_version=info_dict['conda_env_version'],
+                            conda_build_version=info_dict['conda_build_version'],
+                            python_version=info_dict['python_version'],
+                            requests_version=info_dict['requests_version'],
+                            root_environment=info_dict['root_prefix'],
+                            environment_writable=info_dict['_rtwro'],
+                            default_environment=info_dict['default_prefix'],
+                            envs_directories=info_dict['_envs_dirs'],
+                            package_cache=info_dict['_pkgs_dirs'],
+                            channel_urls=info_dict['_channels'],
+                            config_file=info_dict['rc_path'],
+                            offline_mode=info_dict['offline']))
 
     if args.envs:
-        handle_envs_list(info_dict['envs'], not args.json)
+        handle_envs_list(info_dict['envs'])
 
     if args.system and not args.json:
         from conda.cli.find_commands import find_commands, find_executable
 
-        print("sys.version: %s..." % (sys.version[:40]))
-        print("sys.prefix: %s" % sys.prefix)
-        print("sys.executable: %s" % sys.executable)
-        print("conda location: %s" % dirname(conda.__file__))
+        stdout.info(Message('system_version_printout', "sys.version: %s..." % (sys.version[:40]),
+                            version=sys.version[:40]))
+        stdout.info(Message('system_prefix_printout', "sys.prefix: %s" % sys.prefix,
+                            system_prefix=sys.prefix))
+        stdout.info(Message('', "sys.executable: %s" % sys.executable,
+                            system_executable=sys.executable))
+        stdout.info(Message('conda_location_printout',
+                            "conda location: %s" % dirname(conda.__file__),
+                            location=dirname(conda.__file__)))
         for cmd in sorted(set(find_commands() + ['build'])):
-            print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
-        print("user site dirs: ", end='')
+            stdout.info(Message('conda_commands_printout',
+                                "conda-%s: %s" % (cmd, find_executable('conda-' + cmd)),
+                                command=cmd, executable=find_executable('conda-' + cmd)))
+
+        stdout.info(Message('site_dirs_printout', "user site dirs: "))
         site_dirs = get_user_site()
         if site_dirs:
-            print(site_dirs[0])
+            stdout.info(Message('site_dirs_printout_item', site_dirs[0], site_dir=site_dirs[0]))
         else:
-            print()
+            stdout.info(Message('blank_message', ''))
         for site_dir in site_dirs[1:]:
-            print('                %s' % site_dir)
-        print()
+            stdout.info(Message('site_dirs_printout_item', '                %s' % site_dir,
+                                site_dir=site_dir))
+        stdout.info(Message('blank_message', ''))
 
         evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
                  'CIO_TEST', 'CONDA_ENVS_PATH']
@@ -302,18 +331,18 @@ Current conda install:
         elif context.platform == 'osx':
             evars.append('DYLD_LIBRARY_PATH')
         for ev in sorted(evars):
-            print("%s: %s" % (ev, os.getenv(ev, '<not set>')))
-        print()
+            stdout.info(Message('environment_location_printout',
+                                "%s: %s" % (ev, os.getenv(ev, '<not set>')),
+                                variable=ev, environment=os.getenv(ev, '<not set>')))
+        stdout.info(Message('blank_message', ''))
 
     if args.license and not args.json:
         try:
             from _license import show_info
             show_info()
-        except ImportError:
-            print("""\
+        except ImportError as e:
+            stdout.info(Message('could_not_import_license_showinfo', """\
 WARNING: could not import _license.show_info
 # try:
-# $ conda install -n root _license""")
-
-    if args.json:
-        stdout_json(info_dict)
+# $ conda install -n root _license""",
+                                error=e))

@@ -6,6 +6,7 @@ from .common import name_prefix
 from ..base.context import context
 from ..exceptions import CondaIOError
 
+
 def read_message(fn):
     res = []
     for envs_dir in context.envs_dirs:

@@ -9,7 +9,7 @@ from conda_env.cli.main import create_parser
 
 from conda.base.context import context
 from conda.base.constants import ROOT_ENV_NAME
-from conda.common.io import captured
+from conda.common.io import captured, replace_log_streams
 from conda.install import rm_rf
 from conda.cli.main_create import configure_parser as conda_create_parser
 from conda.cli.main_list import configure_parser as list_parser
@@ -119,7 +119,7 @@ def run_conda_command(command, prefix, *arguments):
 
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         args.func(args, p)
 
     return c.stdout, c.stderr
@@ -166,13 +166,8 @@ class IntegrationTest(unittest.TestCase):
         create_env(environment_1)
         run_env_command(Commands.ENV_CREATE, None)
         self.assertTrue(env_is_created(test_env_name_1))
-
-        o, e = run_conda_command(Commands.INFO, None, "--json")
-        parsed = json.loads(o)
-        self.assertNotEqual(
-            len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]),
-            0
-        )
+        o, e = run_conda_command(Commands.INFO, None, '-e', "--json")
+        self.assertIn(test_env_name_1, o, 'env name not in output')
 
     def test_update(self):
         create_env(environment_1)

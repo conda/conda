@@ -9,10 +9,12 @@ import time
 import warnings
 from os.path import isdir, isfile, join
 
+from conda import Message
 from .install import linked, dist2quad
 from .exceptions import CondaHistoryError, CondaFileIOError
 
 log = logging.getLogger(__name__)
+stdout = logging.getLogger('stdout')
 
 
 class CondaHistoryWarning(Warning):
@@ -192,10 +194,12 @@ class History(object):
 
     def print_log(self):
         for i, (date, content, unused_com) in enumerate(self.parse()):
-            print('%s  (rev %d)' % (date, i))
+            stdout.info(Message('revision_printout', '%s  (rev %d)' % (date, i),
+                                date=date, revision_num=i))
             for line in pretty_content(content):
-                print('    %s' % line)
-            print()
+                stdout.info(Message('revision_content_line_printout', '    %s' % line,
+                                    line=line))
+            stdout.info(Message('blank_message', ''))
 
     def object_log(self):
         result = []

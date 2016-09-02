@@ -16,33 +16,35 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
+from conda.common.disk import rm_rf
+from . import instructions as inst, Message
 from .base.context import context, default_python
-from .models.channel import Channel
-from . import instructions as inst
 from .exceptions import (InstallError, RemoveError, CondaIndexError,
                          CondaRuntimeError, ArgumentError)
 from .history import History
 from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
                       is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
                       LINK_SOFT, try_hard_link)
-from conda.common.disk import rm_rf
+from .models.channel import Channel
 from .resolve import MatchSpec, Resolve, Package
 from .utils import md5_file, human_bytes, on_win
 
 # For backwards compatibility
 
 log = getLogger(__name__)
+stdout = getLogger('stdout')
+
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
-    print(fmt % ('package', 'build'))
-    print(fmt % ('-' * 27, '-' * 17))
+    stdout.info(Message('print_dists_header', fmt % ('package', 'build')))
+    stdout.info(Message('print_dists_line_header', fmt % ('-' * 27, '-' * 17)))
     for dist, extra in dists_extras:
         dist = dist2quad(dist)
         line = fmt % (dist[0]+'-'+dist[1], dist[2])
         if extra:
             line += extra
-        print(line)
+        stdout.info(Message('dist_printout', line, line=line, dist=dist))
 
 
 def display_actions(actions, index, show_channel_urls=None):
@@ -66,7 +68,8 @@ def display_actions(actions, index, show_channel_urls=None):
         return s
 
     if actions.get(inst.FETCH):
-        print("\nThe following packages will be downloaded:\n")
+        stdout.info(Message('download_packages_notify_message',
+                            "\nThe following packages will be downloaded:\n"))
 
         disp_lst = []
         for dist in actions[inst.FETCH]:
@@ -81,8 +84,10 @@ def display_actions(actions, index, show_channel_urls=None):
         if index and len(actions[inst.FETCH]) > 1:
             num_bytes = sum(index[dist + '.tar.bz2']['size']
                             for dist in actions[inst.FETCH])
-            print(' ' * 4 + '-' * 60)
-            print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
+            stdout.info(Message('line_format_printout', ' ' * 4 + '-' * 60))
+            stdout.info(Message('total_bytes_printout',
+                                " " * 43 + "Total: %14s" % human_bytes(num_bytes),
+                                total_bytes=human_bytes(num_bytes)))
 
     # package -> [oldver-oldbuild, newver-newbuild]
     packages = defaultdict(lambda: list(('', '')))
@@ -207,36 +212,53 @@ def display_actions(actions, index, show_channel_urls=None):
                                channels=chans, features=features[pkg])
 
     if new:
-        print("\nThe following NEW packages will be INSTALLED:\n")
+        stdout.info(Message('packages_installed_notify',
+                            "\nThe following NEW packages will be INSTALLED:\n"))
         for pkg in sorted(new):
             # New packages have been moved to the "old" column for display
-            print(format(oldfmt[pkg], pkg))
+            stdout.info(Message('package_installed_printout', format(oldfmt[pkg], pkg),
+                                package=pkg))
 
     if removed:
-        print("\nThe following packages will be REMOVED:\n")
+        stdout.info(Message('packages_removed_notify',
+                            "\nThe following packages will be REMOVED:\n"))
         for pkg in sorted(removed):
-            print(format(oldfmt[pkg], pkg))
+            stdout.info(Message('package_remove_printout', format(oldfmt[pkg], pkg),
+                                package=pkg))
 
     if updated:
-        print("\nThe following packages will be UPDATED:\n")
+        stdout.info(Message('packages_updated_notify',
+                            "\nThe following packages will be UPDATED:\n"))
         for pkg in sorted(updated):
-            print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+            stdout.info(Message('package_update_printout',
+                                format(oldfmt[pkg] + arrow + newfmt[pkg], pkg),
+                                package=pkg))
 
     if channeled:
-        print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
+        stdout.info(Message('packages_superceded_notify',
+                            "\nThe following packages will be SUPERCEDED \
+by a higher-priority channel:\n"))
         for pkg in sorted(channeled):
-            print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+            stdout.info(Message('package_supercede_printout',
+                                format(oldfmt[pkg] + arrow + newfmt[pkg], pkg),
+                                package=pkg))
 
     if downgraded:
-        print("\nThe following packages will be DOWNGRADED due to dependency conflicts:\n")
+        stdout.info(Message('packages_downgraded_notify',
+                            "\nThe following packages will be DOWNGRADED \
+due to dependency conflicts:\n"))
         for pkg in sorted(downgraded):
-            print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+            stdout.info(Message('package_downgrade_printout',
+                                format(oldfmt[pkg] + arrow + newfmt[pkg], pkg),
+                                package=pkg))
 
     if empty and actions.get(inst.SYMLINK_CONDA):
-        print("\nThe following empty environments will be CREATED:\n")
-        print(actions['PREFIX'])
+        stdout.info(Message('environments_created_notify',
+                            "\nThe following empty environments will be CREATED:\n"))
+        stdout.info(Message('environments_created_printout', actions['PREFIX'],
+                            environment=actions['PREFIX']))
 
-    print()
+    stdout.info(Message('blank_message', ''))
 
 
 def nothing_to_do(actions):

@@ -82,6 +82,7 @@ class Context(Configuration):
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
+    dry_run = PrimitiveParameter(False)
     offline = PrimitiveParameter(False)
     quiet = PrimitiveParameter(False)
     shortcuts = PrimitiveParameter(True)

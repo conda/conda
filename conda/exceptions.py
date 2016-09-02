@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import logging
 import sys
-from logging import getLogger
 from traceback import format_exc
 
-from . import CondaError, text_type
+from . import CondaError, Message, text_type
 from .compat import iteritems, iterkeys
+
+stdout = logging.getLogger('stdout')
+stderr = logging.getLogger('stderr')
 
 
 class LockError(CondaError, RuntimeError):
@@ -77,8 +80,8 @@ class CommandNotFoundError(CommandError):
 class CondaFileNotFoundError(CondaError, OSError):
     def __init__(self, filename, *args):
         self.filename = filename
-        msg = "File not found: '%s'." % filename
-        super(CondaFileNotFoundError, self).__init__(msg, *args)
+        msg = "File not found: '%s'. %s" % (filename, '\n'.join(arg for arg in args))
+        super(CondaFileNotFoundError, self).__init__(msg)
 
 
 class DirectoryNotFoundError(CondaError):
@@ -109,8 +112,8 @@ class CondaEnvironmentError(CondaError, EnvironmentError):
 
 
 class DryRunExit(CondaError):
-    def __init__(self, message):
-        msg = 'Dry run exiting: %s' % message
+    def __init__(self):
+        msg = 'Dry run exiting'
         super(DryRunExit, self).__init__(msg)
 
 
@@ -252,6 +255,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
             what = "Packages" if len(bad_deps) > 1 else "Package"
         else:
             what = "Packages/dependencies"
+        self.bad_dependencies = bad_deps
         bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
         msg = '%s missing in current %s channels: %s' % (what, subdir, bad_deps)
         super(NoPackagesFoundError, self).__init__(msg)
@@ -372,21 +376,10 @@ class CondaSignatureError(CondaError):
 
 
 def print_conda_exception(exception):
-    from conda.base.context import context
+    message = repr(exception)
+    stderr.info(Message('conda_error_message', message,
+                        exception_type=exception.__class__.__name__))
 
-    stdoutlogger = getLogger('stdout')
-    stderrlogger = getLogger('stderr')
-
-    if context.json:
-        import json
-        # stdoutlogger.info('https://anaconda.org/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('https://hello.world.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('https://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('http://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('http://helloworld.com:8888/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
-    else:
-        stderrlogger.info(repr(exception))
 
 def get_info():
     from conda.cli import conda_argparse
@@ -410,15 +403,9 @@ def print_unexpected_error_message(e):
     # fire = "\U0001F525 "
     # print("%s  %s  %s" % (3*bomb, 3*explosion, 3*fire))
     traceback = format_exc()
+    command = ' '.join(sys.argv)
 
-    stderrlogger = getLogger('stderr')
-
-    from conda.base.context import context
-    if context.json:
-        from conda.cli.common import stdout_json
-        stdout_json(dict(error=traceback))
-    else:
-        message = """\
+    message = """\
 An unexpected error has occurred.
 Please consider posting the following information to the
 conda GitHub issue tracker at:
@@ -426,15 +413,19 @@ conda GitHub issue tracker at:
     https://github.com/conda/conda/issues
 
 """
-        stderrlogger.info(message)
-        command = ' '.join(sys.argv)
-        if ' info' not in command:
-            # get and print `conda info`
-            info_stdout, info_stderr = get_info()
-            stderrlogger.info(info_stdout if info_stdout else info_stderr)
-        stderrlogger.info("`$ {0}`".format(command))
-        stderrlogger.info('\n')
-        stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
+    stdout.info(Message('unexpected_error_message', message))
+    if ' info' not in command:
+        # get and print `conda info`
+        info_stdout, info_stderr = get_info()
+        stdout.info(Message('conda_info_from_unexpected_error',
+                            info_stdout if info_stdout else info_stderr,
+                            info_stdout=info_stdout, info_stderr=info_stderr))
+    stdout.info(Message('command_from_unexpected_error', "`$ {0}`".format(command),
+                        command=command))
+    stdout.info(Message('newline_message', '\n'))
+    stdout.info(Message('traceback_info_from_unexpected',
+                        '\n'.join('    ' + line for line in traceback.splitlines()),
+                        traceback=traceback))
 
 
 def conda_exception_handler(func, *args, **kwargs):

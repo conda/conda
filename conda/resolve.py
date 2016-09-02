@@ -25,6 +25,7 @@ setup_handlers()
 Unsatisfiable = UnsatisfiableError
 NoPackagesFound = NoPackagesFoundError
 
+
 def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
 

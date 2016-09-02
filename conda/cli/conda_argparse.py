@@ -7,17 +7,21 @@
 from __future__ import print_function, division, absolute_import
 
 import argparse
+import logging
 import os
 import subprocess
 import sys
 from difflib import get_close_matches
 
+from conda import Message
 from .common import add_parser_help
 from .find_commands import find_commands, find_executable
 from ..exceptions import CommandNotFoundError
 
 build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
                   'pipbuild', 'develop', 'convert'}
+
+stdout = logging.getLogger('stdout')
 
 _ARGCOMPLETE_DEBUG = False
 def debug_argcomplete(msg):
@@ -160,10 +164,10 @@ use the "conda %s" command.''' % cmd)
         super(ArgumentParser, self).print_help()
 
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
-            print("""
+            stdout.info(Message('commands_help_message', """
 other commands, such as "conda build", are avaialble when additional conda
 packages (e.g. conda-build) are installed
-""")
+"""))
 
     def parse_args(self, *args, **kwargs):
         if argcomplete:

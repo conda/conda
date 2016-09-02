@@ -657,7 +657,6 @@ def package_cache():
         return package_cache_
     # Stops recursion
     package_cache_['@'] = None
-    # import pdb; pdb.set_trace()
     for pdir in context.pkgs_dirs:
         try:
             data = open(join(pdir, 'urls.txt')).read()

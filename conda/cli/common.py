@@ -2,12 +2,13 @@ from __future__ import print_function, division, absolute_import
 
 import argparse
 import contextlib
+import logging
 import os
 import re
 import sys
 from os.path import abspath, basename
 
-from .. import console
+from .. import console, Message
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, platform
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
@@ -20,6 +21,9 @@ from ..utils import memoize
 from conda.base.context import get_prefix as context_get_prefix
 from functools import partial
 get_prefix = partial(context_get_prefix, context)
+
+
+stdout = logging.getLogger('stdout')
 
 
 class Completer(object):
@@ -399,13 +403,15 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     choices[''] = default
     while True:
         # raw_input has a bug and prints to stderr, not desirable
-        sys.stdout.write(message)
+        stdout.info(Message('proceed_yn_message', message))
         sys.stdout.flush()
         user_choice = sys.stdin.readline().strip().lower()
         if user_choice not in choices:
-            print("Invalid choice: %s" % user_choice)
+            stdout.info(Message('invalid_choice_on_confirm_yn', "Invalid choice: %s" % user_choice,
+                                user_choice=user_choice, options='/'.join(options),
+                                choices=choices))
         else:
-            sys.stdout.write("\n")
+            stdout.info(Message('newline_message', "\n"))
             sys.stdout.flush()
             return choices[user_choice]
 
@@ -567,8 +573,8 @@ def handle_envs_list(acc, output=True):
     from conda import misc
 
     if output:
-        print("# conda environments:")
-        print("#")
+        stdout.info(Message('conda_environments_banner', "# conda environments:"))
+        stdout.info(Message('conda_environments_banner', "#"))
 
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
@@ -576,7 +582,8 @@ def handle_envs_list(acc, output=True):
         name = (ROOT_ENV_NAME if prefix == context.root_dir else
                 basename(prefix))
         if output:
-            print(fmt % (name, default, prefix))
+            stdout.info(Message('display_environment_message', fmt % (name, default, prefix),
+                                env_name=name, default_prefix=default, prefix=prefix))
 
     for prefix in misc.list_prefixes():
         disp_env(prefix)
@@ -584,4 +591,4 @@ def handle_envs_list(acc, output=True):
             acc.append(prefix)
 
     if output:
-        print()
+        stdout.info(Message('blank_message', ''))

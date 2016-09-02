@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+from logging import basicConfig, INFO
 
 from ._vendor.auxlib.packaging import get_version
 from .compat import text_type, iteritems
@@ -70,3 +71,30 @@ class CondaMultiError(CondaError):
         return dict(exception_type=text_type(type(self)),
                     exception_name=self.__class__.__name__,
                     errors=tuple(error.dump_map() for error in self.errors))
+
+
+class Message(object):
+
+    def __init__(self, message_name, message_str, **kwargs):
+        self._message_name = message_name
+        self._message_str = message_str
+        self._kwargs = kwargs
+
+    @property
+    def message(self):
+        return self._message_str % self._kwargs
+
+    def __str__(self):
+        from .base.context import context
+        if context.json:
+            return self.to_json()
+        else:
+            return self.message
+
+    def to_json(self):
+        from json import dumps
+        return dumps(dict(message_name=self._message_name, message=self.message,
+                          **self._kwargs), indent=2)
+
+
+basicConfig(level=INFO)
