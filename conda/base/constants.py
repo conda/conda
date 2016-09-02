@@ -93,6 +93,12 @@ ROOT_ENV_NAME = 'root'
 
 EMPTY_LIST = ()
 EMPTY_MAP = frozendict()
-NULL = object()
+
+
+class _Null(object):
+    def __nonzero__(self):
+        return False
+
+NULL = _Null()
 
 UTF8 = 'UTF-8'

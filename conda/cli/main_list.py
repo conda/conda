@@ -192,7 +192,6 @@ def print_explicit(prefix, add_md5=False):
 
 def execute(args, parser):
     prefix = context.prefix_w_legacy_search
-
     regex = args.regex
     if args.full_name:
         regex = r'^%s$' % regex

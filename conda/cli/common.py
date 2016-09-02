@@ -22,6 +22,19 @@ from functools import partial
 get_prefix = partial(context_get_prefix, context)
 
 
+class NullCountAction(argparse._CountAction):
+
+    @staticmethod
+    def _ensure_value(namespace, name, value):
+        if getattr(namespace, name, NULL) in (NULL, None):
+            setattr(namespace, name, value)
+        return getattr(namespace, name)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        new_count = self._ensure_value(namespace, self.dest, 0) + 1
+        setattr(namespace, self.dest, new_count)
+
+
 class Completer(object):
     """
     Subclass this class to get tab completion from argcomplete
@@ -153,10 +166,10 @@ def add_parser_json(p):
     )
     p.add_argument(
         "--verbose", "-v",
-        action="count",
+        action=NullCountAction,
         help="Use once for info, twice for debug.",
         dest="verbosity",
-        default=0,
+        default=NULL,
     )
 
 

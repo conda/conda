@@ -57,7 +57,6 @@ def generate_parser():
     p = conda_argparse.ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
                     ' environments and packages.',
-        argument_default=NULL,
     )
     p.add_argument(
         '-V', '--version',
