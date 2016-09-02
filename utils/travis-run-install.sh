@@ -77,7 +77,7 @@ conda_build_install() {
     pushd conda-build
     python setup.py install
     conda info
-    conda install -y -q pytest pytest-cov mock anaconda-client
+    conda install -y -q pytest pytest-cov mock anaconda-client filelock
     popd
 }
 
