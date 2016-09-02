@@ -40,11 +40,11 @@ except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
 
 from .. import CondaError, CondaMultiError
-from .._vendor.auxlib.collection import first, frozendict, last
+from .._vendor.auxlib.collection import first, frozendict, last, AttrDict
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
-from ..base.constants import EMPTY_MAP
+from ..base.constants import EMPTY_MAP, NULL
 from .compat import (isiterable, iteritems, odict, primitive_types, text_type,
                      with_metaclass, string_types, itervalues)
 from .yaml import yaml_load
@@ -241,7 +241,7 @@ class ArgParseRawParameter(RawParameter):
     @classmethod
     def make_raw_parameters(cls, args_from_argparse):
         return super(ArgParseRawParameter, cls).make_raw_parameters(ArgParseRawParameter.source,
-                                                                    vars(args_from_argparse))
+                                                                    args_from_argparse)
 
 
 class YamlRawParameter(RawParameter):
@@ -687,7 +687,8 @@ class Configuration(object):
         return self
 
     def _add_argparse_args(self, argparse_args):
-        self._argparse_args = argparse_args
+        self._argparse_args = AttrDict((k, v) for k, v, in iteritems(vars(argparse_args))
+                                       if v is not NULL)
         source = ArgParseRawParameter.source
         self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
         self._cache = dict()
