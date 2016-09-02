@@ -303,7 +303,7 @@ def install(args, parser, command='install'):
                                           force=args.force,
                                           only_names=only_names,
                                           pinned=args.pinned,
-                                          always_copy=args.copy,
+                                          always_copy=context.always_copy,
                                           minimal_hint=args.alt_hint,
                                           update_deps=args.update_deps)
     except NoPackagesFoundError as e:

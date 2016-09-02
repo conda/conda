@@ -230,7 +230,7 @@ def add_parser_copy(p):
     p.add_argument(
         '--copy',
         action="store_true",
-        default=context.always_copy,
+        default=NULL,
         help="Install all packages using copies instead of hard- or soft-linking."
         )
 
@@ -302,17 +302,19 @@ def add_parser_install(p):
         "--channel-priority", "--channel-pri", "--chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=context.channel_priority,
-        help="Channel priority takes precedence over package version (default: %(default)s). "
+        default=NULL,
+        help="Channel priority takes precedence over package version (default: %s). "
              "Note: This feature is in beta and may change in a future release."
+             "" % (context.channel_priority,)
     )
     p.add_argument(
         "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
-        action="store_true",
+        action="store_false",
         dest="channel_priority",
-        default=not context.channel_priority,
+        default=NULL,
         help="Package version takes precedence over channel priority (default: %s). "
              "Note: This feature is in beta and may change in a future release."
+             "" % (not context.channel_priority,)
     )
     add_parser_show_channel_urls(p)
 
@@ -372,7 +374,7 @@ def add_parser_show_channel_urls(p):
         action="store_true",
         dest="show_channel_urls",
         default=context.show_channel_urls,
-        help = "Show channel urls (default: %(default)s).",
+        help="Show channel urls (default: %(default)s).",
     )
     p.add_argument(
         "--no-show-channel-urls",

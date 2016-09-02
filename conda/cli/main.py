@@ -43,7 +43,6 @@ from argparse import SUPPRESS
 from logging import CRITICAL, DEBUG, getLogger
 
 from .. import __version__
-from ..base.constants import NULL
 from ..base.context import context
 from ..exceptions import CommandNotFoundError, conda_exception_handler
 from ..gateways.logging import set_all_logger_level, set_verbosity
