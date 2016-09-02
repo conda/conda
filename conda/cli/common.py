@@ -177,7 +177,7 @@ def add_parser_quiet(p):
     p.add_argument(
         '-q', "--quiet",
         action="store_true",
-        default=NULL,
+        default=context.quiet,
         help="Do not display progress bar.",
     )
 
@@ -230,7 +230,7 @@ def add_parser_copy(p):
     p.add_argument(
         '--copy',
         action="store_true",
-        default=NULL,
+        default=context.always_copy,
         help="Install all packages using copies instead of hard- or soft-linking."
         )
 
@@ -288,33 +288,31 @@ def add_parser_install(p):
         "--update-dependencies", "--update-deps",
         action="store_true",
         dest="update_deps",
-        default=NULL,
-        help="Update dependencies (default: %s)." % context.update_dependencies,
+        default=context.update_dependencies,
+        help="Don't update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--no-update-dependencies", "--no-update-deps",
         action="store_false",
         dest="update_deps",
-        default=NULL,
-        help="Don't update dependencies (default: %s)." % (not context.update_dependencies,),
+        default=not context.update_dependencies,
+        help="Don't update dependencies (default: %(default)s).",
     )
     p.add_argument(
         "--channel-priority", "--channel-pri", "--chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=NULL,
-        help="Channel priority takes precedence over package version (default: %s). "
+        default=context.channel_priority,
+        help="Channel priority takes precedence over package version (default: %(default)s). "
              "Note: This feature is in beta and may change in a future release."
-             "" % context.channel_priority
     )
     p.add_argument(
         "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=NULL,
+        default=not context.channel_priority,
         help="Package version takes precedence over channel priority (default: %s). "
              "Note: This feature is in beta and may change in a future release."
-             "" % (not context.channel_priority,)
     )
     add_parser_show_channel_urls(p)
 
@@ -354,7 +352,7 @@ def add_parser_offline(p):
     p.add_argument(
         "--offline",
         action=OfflineAction,
-        default=NULL,
+        default=context.offline,
         help="Offline mode, don't connect to the Internet.",
         nargs=0
     )
@@ -373,14 +371,13 @@ def add_parser_show_channel_urls(p):
         "--show-channel-urls",
         action="store_true",
         dest="show_channel_urls",
-        default=NULL,
-        help="Show channel urls (default: %s)." % context.show_channel_urls,
+        default=context.show_channel_urls,
+        help = "Show channel urls (default: %(default)s).",
     )
     p.add_argument(
         "--no-show-channel-urls",
         action="store_false",
         dest="show_channel_urls",
-        default=NULL,
         help="Don't show channel urls.",
     )
 
