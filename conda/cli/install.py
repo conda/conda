@@ -188,7 +188,7 @@ def install(args, parser, command='install'):
         for fpath in args.file:
             specs.extend(common.specs_from_url(fpath, json=args.json))
         if '@EXPLICIT' in specs:
-            explicit(specs, prefix, verbose=not args.quiet, index_args=index_args)
+            explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
     elif getattr(args, 'all', False):
         if not linked:
@@ -206,7 +206,7 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            explicit(args.packages, prefix, verbose=not args.quiet)
+            explicit(args.packages, prefix, verbose=not context.quiet)
             return
         else:
             raise CondaValueError("cannot mix specifications with conda package"
@@ -216,7 +216,7 @@ def install(args, parser, command='install'):
     if len(args.packages) == 1:
         tar_path = args.packages[0]
         if tar_path.endswith('.tar'):
-            install_tar(prefix, tar_path, verbose=not args.quiet)
+            install_tar(prefix, tar_path, verbose=not context.quiet)
             return
 
     if newenv and args.clone:
@@ -225,7 +225,7 @@ def install(args, parser, command='install'):
             raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
                                         'did not expect any arguments for --clone')
 
-        clone(args.clone, prefix, json=args.json, quiet=args.quiet, index_args=index_args)
+        clone(args.clone, prefix, json=args.json, quiet=context.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
         if not args.json:
@@ -298,14 +298,14 @@ def install(args, parser, command='install'):
         if isinstall and args.revision:
             actions = revert_actions(prefix, get_revision(args.revision), index)
         else:
-            with common.json_progress_bars(json=args.json and not args.quiet):
+            with common.json_progress_bars(json=args.json and not context.quiet):
                 actions = install_actions(prefix, index, specs,
                                           force=args.force,
                                           only_names=only_names,
                                           pinned=args.pinned,
                                           always_copy=context.always_copy,
                                           minimal_hint=args.alt_hint,
-                                          update_deps=args.update_deps)
+                                          update_deps=context.update_dependencies)
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
@@ -389,7 +389,7 @@ def install(args, parser, command='install'):
     if not args.json:
         print()
         print("Package plan for installation in environment %s:" % prefix)
-        display_actions(actions, index, show_channel_urls=args.show_channel_urls)
+        display_actions(actions, index, show_channel_urls=context.show_channel_urls)
 
     if command in {'install', 'update'}:
         check_write(command, prefix)
@@ -400,9 +400,9 @@ def install(args, parser, command='install'):
         common.stdout_json_success(actions=actions, dry_run=True)
         raise DryRunExit
 
-    with common.json_progress_bars(json=args.json and not args.quiet):
+    with common.json_progress_bars(json=args.json and not context.quiet):
         try:
-            execute_actions(actions, index, verbose=not args.quiet)
+            execute_actions(actions, index, verbose=not context.quiet)
             if not (command == 'update' and args.all):
                 try:
                     with open(join(prefix, 'conda-meta', 'history'), 'a') as f:

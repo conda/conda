@@ -187,11 +187,11 @@ def execute(args, parser):
     if not args.json:
         confirm_yn(args)
 
-    if args.json and not args.quiet:
+    if args.json and not context.quiet:
         with json_progress_bars():
-            plan.execute_actions(actions, index, verbose=not args.quiet)
+            plan.execute_actions(actions, index, verbose=not context.quiet)
     else:
-        plan.execute_actions(actions, index, verbose=not args.quiet)
+        plan.execute_actions(actions, index, verbose=not context.quiet)
         if specs:
             try:
                 with open(join(prefix, 'conda-meta', 'history'), 'a') as f:

@@ -177,7 +177,7 @@ def add_parser_quiet(p):
     p.add_argument(
         '-q', "--quiet",
         action="store_true",
-        default=context.quiet,
+        default=NULL,
         help="Do not display progress bar.",
     )
 
@@ -288,15 +288,15 @@ def add_parser_install(p):
         "--update-dependencies", "--update-deps",
         action="store_true",
         dest="update_deps",
-        default=context.update_dependencies,
-        help="Don't update dependencies (default: %(default)s).",
+        default=NULL,
+        help="Don't update dependencies (default: %s)." % context.update_dependencies,
     )
     p.add_argument(
         "--no-update-dependencies", "--no-update-deps",
         action="store_false",
         dest="update_deps",
-        default=not context.update_dependencies,
-        help="Don't update dependencies (default: %(default)s).",
+        default=NULL,
+        help="Don't update dependencies (default: %s)." % (not context.update_dependencies,),
     )
     p.add_argument(
         "--channel-priority", "--channel-pri", "--chan-pri",
@@ -346,18 +346,15 @@ def add_parser_use_local(p):
         help="Use locally built packages.",
     )
 
-class OfflineAction(argparse.Action):
-    def __call__(self, *args, **kwargs):
-        pass
 
 def add_parser_offline(p):
     p.add_argument(
         "--offline",
-        action=OfflineAction,
-        default=context.offline,
+        action='store_true',
+        default=NULL,
         help="Offline mode, don't connect to the Internet.",
-        nargs=0
     )
+
 
 def add_parser_no_pin(p):
     p.add_argument(
@@ -368,13 +365,14 @@ def add_parser_no_pin(p):
         help="Ignore pinned file.",
     )
 
+
 def add_parser_show_channel_urls(p):
     p.add_argument(
         "--show-channel-urls",
         action="store_true",
         dest="show_channel_urls",
-        default=context.show_channel_urls,
-        help="Show channel urls (default: %(default)s).",
+        default=NULL,
+        help="Show channel urls (default: %s)." % context.show_channel_urls,
     )
     p.add_argument(
         "--no-show-channel-urls",

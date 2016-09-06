@@ -226,5 +226,5 @@ def execute(args, parser):
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
                               json=args.json,
-                              show_channel_urls=args.show_channel_urls)
+                              show_channel_urls=context.show_channel_urls)
     return exitcode
