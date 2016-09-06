@@ -299,6 +299,8 @@ class FTPAdapter(requests.adapters.BaseAdapter):
 
         # Sort out the timeout.
         timeout = kwargs.get('timeout', None)
+        if not isinstance(timeout, int):
+            timeout = None
 
         # Establish the connection and login if needed.
         self.conn = ftplib.FTP()
