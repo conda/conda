@@ -245,7 +245,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
     '''
     def __init__(self, bad_deps):
         from .resolve import dashlist
-        from .base.context import subdir
+        from .base import context
 
         deps = set(q[-1].spec for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
@@ -255,7 +255,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
         else:
             what = "Packages/dependencies"
         bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current %s channels: %s' % (what, subdir, bad_deps)
+        msg = '%s missing in current %s channels: %s' % (what, context.subdir, bad_deps)
         super(NoPackagesFoundError, self).__init__(msg)
         self.pkgs = deps
 

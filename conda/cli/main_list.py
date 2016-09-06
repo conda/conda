@@ -13,7 +13,7 @@ from os.path import isdir, isfile
 
 from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
-from ..base.context import context, subdir
+from ..base.context import context
 from ..egg_info import get_egg_info
 from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
 from ..install import dist2quad, is_linked, linked, linked_data, name_dist
@@ -106,7 +106,7 @@ def configure_parser(sub_parsers):
 def print_export_header():
     print('# This file may be used to create an environment using:')
     print('# $ conda create --name <env> --file <this file>')
-    print('# platform: %s' % subdir)
+    print('# platform: %s' % context.subdir)
 
 
 def get_packages(installed, regex):

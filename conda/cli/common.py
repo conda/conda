@@ -9,7 +9,7 @@ from os.path import abspath, basename
 
 from .. import console
 from ..base.constants import ROOT_ENV_NAME, NULL
-from ..base.context import context, platform
+from ..base.context import context
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
                           CondaValueError, CondaFileIOError)
 from ..install import dist2quad
@@ -239,7 +239,7 @@ def add_parser_pscheck(p):
         "--force-pscheck",
         action="store_true",
         help=("No-op. Included for backwards compatibility (deprecated)."
-              if platform == 'win' else argparse.SUPPRESS)
+              if context.platform == 'win' else argparse.SUPPRESS)
     )
 
 def add_parser_install(p):
