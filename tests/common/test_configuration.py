@@ -183,7 +183,6 @@ class ConfigurationTests(TestCase):
         try:
             environ.update(test_dict)
             assert 'MYAPP_ALWAYS_YES' in environ
-            raw_data = load_from_string_data('file1', 'file2')
             config = TestConfiguration(app_name=appname)
             assert config.changeps1 is False
             assert config.always_yes is True
@@ -201,10 +200,39 @@ class ConfigurationTests(TestCase):
         try:
             environ.update(test_dict)
             assert 'MYAPP_YES' in environ
-            raw_data = load_from_string_data('file1', 'file2')
             config = TestConfiguration()._add_env_vars(appname)
             assert config.always_yes is True
             assert config.changeps1 is False
+        finally:
+            [environ.pop(key) for key in test_dict]
+
+    def test_env_var_config_split_sequence(self):
+        def make_key(appname, key):
+            return "{0}_{1}".format(appname.upper(), key.upper())
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, 'channels')] = 'channel1,channel2'
+
+        try:
+            environ.update(test_dict)
+            assert 'MYAPP_CHANNELS' in environ
+            config = TestConfiguration()._add_env_vars(appname)
+            assert config.channels == ('channel1', 'channel2')
+        finally:
+            [environ.pop(key) for key in test_dict]
+
+    def test_env_var_config_no_split_sequence(self):
+        def make_key(appname, key):
+            return "{0}_{1}".format(appname.upper(), key.upper())
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, 'channels')] = 'channel1'
+
+        try:
+            environ.update(test_dict)
+            assert 'MYAPP_CHANNELS' in environ
+            config = TestConfiguration()._add_env_vars(appname)
+            assert config.channels == ('channel1',)
         finally:
             [environ.pop(key) for key in test_dict]
 
