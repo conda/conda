@@ -1069,7 +1069,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
             if os.path.exists(dst):
-                log.warn("file exists, but clobbering: %r" % dst)
+                log.info("file exists, but clobbering: %r" % dst)
                 rm_rf(dst)
             lt = linktype
             if filepath in has_prefix_files or filepath in no_link or islink(src):

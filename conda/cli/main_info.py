@@ -155,7 +155,7 @@ def execute(args, parser):
     from conda.api import get_index
 
     if args.root:
-        if args.json:
+        if context.json:
             stdout_json({'root_prefix': context.root_dir})
         else:
             print(context.root_dir)
@@ -164,7 +164,7 @@ def execute(args, parser):
     if args.packages:
         index = get_index()
         r = Resolve(index)
-        if args.json:
+        if context.json:
             stdout_json({
                 package: [p._asdict()
                           for p in sorted(r.get_pkgs(arg2spec(package)))]
@@ -211,14 +211,14 @@ def execute(args, parser):
     channels = context.channels
 
     if args.unsafe_channels:
-        if not args.json:
+        if not context.json:
             print("\n".join(channels))
         else:
             print(json.dumps({"channels": channels}))
         return 0
 
     channels = list(channels)
-    if not args.json:
+    if not context.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]
 
@@ -245,7 +245,7 @@ def execute(args, parser):
         requests_version=requests_version,
     )
 
-    if args.all or args.json:
+    if args.all or context.json:
         for option in options:
             setattr(args, option, True)
 
@@ -274,9 +274,9 @@ Current conda install:
 """ % info_dict)
 
     if args.envs:
-        handle_envs_list(info_dict['envs'], not args.json)
+        handle_envs_list(info_dict['envs'], not context.json)
 
-    if args.system and not args.json:
+    if args.system and not context.json:
         from conda.cli.find_commands import find_commands, find_executable
 
         print("sys.version: %s..." % (sys.version[:40]))
@@ -305,7 +305,7 @@ Current conda install:
             print("%s: %s" % (ev, os.getenv(ev, '<not set>')))
         print()
 
-    if args.license and not args.json:
+    if args.license and not context.json:
         try:
             from _license import show_info
             show_info()
@@ -315,5 +315,5 @@ WARNING: could not import _license.show_info
 # try:
 # $ conda install -n root _license""")
 
-    if args.json:
+    if context.json:
         stdout_json(info_dict)

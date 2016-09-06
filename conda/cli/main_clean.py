@@ -240,9 +240,9 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
-    if args.json and args.dry_run:
+    if context.json and args.dry_run:
         return
 
     for pkgs_dir in pkgs_dirs:
@@ -332,9 +332,9 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
-    if args.json and args.dry_run:
+    if context.json and args.dry_run:
         return
 
     for pkgs_dir in pkgs_dirs:
@@ -388,7 +388,7 @@ def find_source_cache():
 
 
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
-    verbose = not args.json
+    verbose = not context.json
     if warnings:
         if verbose:
             for warning in warnings:
@@ -402,9 +402,9 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
 
     print("%-40s %10s" % ("Total:", human_bytes(total_size)))
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
-    if args.json and args.dry_run:
+    if context.json and args.dry_run:
         return
 
     for dir in cache_dirs.values():
@@ -422,7 +422,7 @@ def execute(args, parser):
         json_result['lock'] = {
             'files': locks
         }
-        rm_lock(locks, verbose=not args.json)
+        rm_lock(locks, verbose=not context.json)
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
@@ -433,7 +433,7 @@ def execute(args, parser):
             'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
-        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not args.json)
+        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not context.json)
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
@@ -453,7 +453,7 @@ def execute(args, parser):
             'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
         }
         rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
-                verbose=not args.json)
+                verbose=not context.json)
 
     if args.source_cache or args.all:
         json_result['source_cache'] = find_source_cache()
@@ -464,5 +464,5 @@ def execute(args, parser):
         raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
                             "--source-cache, --all} required")
 
-    if args.json:
+    if context.json:
         stdout_json(json_result)

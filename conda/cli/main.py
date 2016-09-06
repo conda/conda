@@ -40,12 +40,12 @@ from __future__ import absolute_import, division, print_function
 import importlib
 import sys
 from argparse import SUPPRESS
-from conda.gateways.logging import set_all_logger_level, set_verbosity
 from logging import CRITICAL, DEBUG, getLogger
 
 from .. import __version__
 from ..base.context import context
 from ..exceptions import CommandNotFoundError, conda_exception_handler
+from ..gateways.logging import set_all_logger_level, set_verbosity
 from ..utils import on_win
 
 log = getLogger(__name__)
@@ -55,7 +55,7 @@ def generate_parser():
     from ..cli import conda_argparse
     p = conda_argparse.ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.'
+                    ' environments and packages.',
     )
     p.add_argument(
         '-V', '--version',

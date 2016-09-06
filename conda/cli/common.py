@@ -8,7 +8,7 @@ import sys
 from os.path import abspath, basename
 
 from .. import console
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME, NULL
 from ..base.context import context, platform
 from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
                           CondaValueError, CondaFileIOError)
@@ -20,6 +20,19 @@ from ..utils import memoize
 from conda.base.context import get_prefix as context_get_prefix
 from functools import partial
 get_prefix = partial(context_get_prefix, context)
+
+
+class NullCountAction(argparse._CountAction):
+
+    @staticmethod
+    def _ensure_value(namespace, name, value):
+        if getattr(namespace, name, NULL) in (NULL, None):
+            setattr(namespace, name, value)
+        return getattr(namespace, name)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        new_count = self._ensure_value(namespace, self.dest, 0) + 1
+        setattr(namespace, self.dest, new_count)
 
 
 class Completer(object):
@@ -128,6 +141,7 @@ def add_parser_yes(p):
     p.add_argument(
         "-y", "--yes",
         action="store_true",
+        default=NULL,
         help="Do not ask for confirmation.",
     )
     p.add_argument(
@@ -141,19 +155,21 @@ def add_parser_json(p):
     p.add_argument(
         "--json",
         action="store_true",
+        default=NULL,
         help="Report all output as json. Suitable for using conda programmatically."
     )
     p.add_argument(
         "--debug",
         action="store_true",
-        help="Show debug output."
+        default=NULL,
+        help="Show debug output.",
     )
     p.add_argument(
         "--verbose", "-v",
-        action="count",
+        action=NullCountAction,
         help="Use once for info, twice for debug.",
         dest="verbosity",
-        default=0,
+        default=NULL,
     )
 
 
@@ -161,6 +177,7 @@ def add_parser_quiet(p):
     p.add_argument(
         '-q', "--quiet",
         action="store_true",
+        default=NULL,
         help="Do not display progress bar.",
     )
 
@@ -213,6 +230,7 @@ def add_parser_copy(p):
     p.add_argument(
         '--copy',
         action="store_true",
+        default=NULL,
         help="Install all packages using copies instead of hard- or soft-linking."
         )
 
@@ -270,31 +288,33 @@ def add_parser_install(p):
         "--update-dependencies", "--update-deps",
         action="store_true",
         dest="update_deps",
-        default=context.update_dependencies,
-        help="Update dependencies (default: %(default)s).",
+        default=NULL,
+        help="Don't update dependencies (default: %s)." % context.update_dependencies,
     )
     p.add_argument(
         "--no-update-dependencies", "--no-update-deps",
         action="store_false",
         dest="update_deps",
-        default=not context.update_dependencies,
-        help="Don't update dependencies (default: %(default)s).",
+        default=NULL,
+        help="Don't update dependencies (default: %s)." % (not context.update_dependencies,),
     )
     p.add_argument(
         "--channel-priority", "--channel-pri", "--chan-pri",
         action="store_true",
         dest="channel_priority",
-        default=context.channel_priority,
-        help="Channel priority takes precedence over package version (default: %(default)s). "
+        default=NULL,
+        help="Channel priority takes precedence over package version (default: %s). "
              "Note: This feature is in beta and may change in a future release."
+             "" % (context.channel_priority,)
     )
     p.add_argument(
         "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
-        action="store_true",
+        action="store_false",
         dest="channel_priority",
-        default=not context.channel_priority,
-        help="Package version takes precedence over channel priority (default: %(default)s). "
+        default=NULL,
+        help="Package version takes precedence over channel priority (default: %s). "
              "Note: This feature is in beta and may change in a future release."
+             "" % (not context.channel_priority,)
     )
     add_parser_show_channel_urls(p)
 
@@ -326,18 +346,15 @@ def add_parser_use_local(p):
         help="Use locally built packages.",
     )
 
-class OfflineAction(argparse.Action):
-    def __call__(self, *args, **kwargs):
-        pass
 
 def add_parser_offline(p):
     p.add_argument(
         "--offline",
-        action=OfflineAction,
-        default=context.offline,
+        action='store_true',
+        default=NULL,
         help="Offline mode, don't connect to the Internet.",
-        nargs=0
     )
+
 
 def add_parser_no_pin(p):
     p.add_argument(
@@ -348,13 +365,14 @@ def add_parser_no_pin(p):
         help="Ignore pinned file.",
     )
 
+
 def add_parser_show_channel_urls(p):
     p.add_argument(
         "--show-channel-urls",
         action="store_true",
         dest="show_channel_urls",
-        default=context.show_channel_urls,
-        help="Show channel urls (default: %(default)s).",
+        default=NULL,
+        help="Show channel urls (default: %s)." % context.show_channel_urls,
     )
     p.add_argument(
         "--no-show-channel-urls",
@@ -413,7 +431,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
         raise DryRunExit
-    if args.yes or context.always_yes:
+    if context.always_yes:
         return True
     try:
         choice = confirm(args, message=message, choices=('yes', 'no'),

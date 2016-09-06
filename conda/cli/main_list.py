@@ -192,7 +192,6 @@ def print_explicit(prefix, add_md5=False):
 
 def execute(args, parser):
     prefix = context.prefix_w_legacy_search
-
     regex = args.regex
     if args.full_name:
         regex = r'^%s$' % regex
@@ -202,7 +201,7 @@ def execute(args, parser):
 
         h = History(prefix)
         if isfile(h.path):
-            if not args.json:
+            if not context.json:
                 h.print_log()
             else:
                 stdout_json(h.object_log())
@@ -222,10 +221,10 @@ def execute(args, parser):
     else:
         format = 'human'
 
-    if args.json:
+    if context.json:
         format = 'canonical'
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
-                              json=args.json,
-                              show_channel_urls=args.show_channel_urls)
+                              json=context.json,
+                              show_channel_urls=context.show_channel_urls)
     return exitcode
