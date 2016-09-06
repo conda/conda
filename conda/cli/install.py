@@ -144,7 +144,7 @@ def install(args, parser, command='install'):
         common.ensure_name_or_prefix(args, command)
     prefix = context.prefix if newenv else context.prefix_w_legacy_search
     if newenv:
-        check_prefix(prefix, json=args.json)
+        check_prefix(prefix, json=context.json)
     if force_32bit and is_root_prefix(prefix):
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
     if isupdate and not (args.file or args.all or args.packages):
@@ -158,7 +158,7 @@ def install(args, parser, command='install'):
     lnames = {name_dist(d) for d in linked}
     if isupdate and not args.all:
         for name in args.packages:
-            common.arg2spec(name, json=args.json, update=True)
+            common.arg2spec(name, json=context.json, update=True)
             if name not in lnames:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
@@ -186,7 +186,7 @@ def install(args, parser, command='install'):
     specs = []
     if args.file:
         for fpath in args.file:
-            specs.extend(common.specs_from_url(fpath, json=args.json))
+            specs.extend(common.specs_from_url(fpath, json=context.json))
         if '@EXPLICIT' in specs:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
@@ -195,10 +195,10 @@ def install(args, parser, command='install'):
             raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
         specs.extend(nm for nm in lnames)
-    specs.extend(common.specs_from_args(args.packages, json=args.json))
+    specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:
-        get_revision(args.revision, json=args.json)
+        get_revision(args.revision, json=context.json)
     elif isinstall and not (args.file or args.packages):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
@@ -225,10 +225,10 @@ def install(args, parser, command='install'):
             raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
                                         'did not expect any arguments for --clone')
 
-        clone(args.clone, prefix, json=args.json, quiet=context.quiet, index_args=index_args)
+        clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not args.json:
+        if not context.json:
             print(print_activate(args.name if args.name else prefix))
         return
 
@@ -269,7 +269,7 @@ def install(args, parser, command='install'):
         if not args.packages:
             from .main_list import print_packages
 
-            if not args.json:
+            if not context.json:
                 regex = '^(%s)$' % '|'.join(orig_packages)
                 print('# All requested packages already installed.')
                 print_packages(prefix, regex)
@@ -298,7 +298,7 @@ def install(args, parser, command='install'):
         if isinstall and args.revision:
             actions = revert_actions(prefix, get_revision(args.revision), index)
         else:
-            with common.json_progress_bars(json=args.json and not context.quiet):
+            with common.json_progress_bars(json=context.json and not context.quiet):
                 actions = install_actions(prefix, index, specs,
                                           force=args.force,
                                           only_names=only_names,
@@ -312,7 +312,7 @@ def install(args, parser, command='install'):
         if isupdate and args.all:
             # Packages not found here just means they were installed but
             # cannot be found any more. Just skip them.
-            if not args.json:
+            if not context.json:
                 print("Warning: %s, skipping" % error_message)
             else:
                 # Not sure what to do here
@@ -372,7 +372,7 @@ def install(args, parser, command='install'):
     if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
 
-        if not args.json:
+        if not context.json:
             regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
             print('\n# All requested packages already installed.')
             print_packages(prefix, regex)
@@ -386,7 +386,7 @@ def install(args, parser, command='install'):
         if not actions[LINK] and not actions[UNLINK]:
             actions[SYMLINK_CONDA] = [context.root_dir]
 
-    if not args.json:
+    if not context.json:
         print()
         print("Package plan for installation in environment %s:" % prefix)
         display_actions(actions, index, show_channel_urls=context.show_channel_urls)
@@ -394,13 +394,13 @@ def install(args, parser, command='install'):
     if command in {'install', 'update'}:
         check_write(command, prefix)
 
-    if not args.json:
+    if not context.json:
         common.confirm_yn(args)
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
         raise DryRunExit
 
-    with common.json_progress_bars(json=args.json and not context.quiet):
+    with common.json_progress_bars(json=context.json and not context.quiet):
         try:
             execute_actions(actions, index, verbose=not context.quiet)
             if not (command == 'update' and args.all):
@@ -424,8 +424,8 @@ def install(args, parser, command='install'):
     if newenv:
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not args.json:
+        if not context.json:
             print(print_activate(args.name if args.name else prefix))
 
-    if args.json:
+    if context.json:
         common.stdout_json_success(actions=actions)

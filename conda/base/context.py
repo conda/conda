@@ -81,7 +81,7 @@ class Context(Configuration):
     always_yes = PrimitiveParameter(False, aliases=('yes',))
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
-    json = PrimitiveParameter(False)  # TODO: remove args.json
+    json = PrimitiveParameter(False)
     offline = PrimitiveParameter(False)
     quiet = PrimitiveParameter(False)
     shortcuts = PrimitiveParameter(True)
