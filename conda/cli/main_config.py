@@ -232,6 +232,26 @@ def execute(args, parser):
         raise CondaError(e)
 
 
+def format_dict(d):
+    lines = []
+    for k, v in iteritems(d):
+        if isinstance(v, collections.Mapping):
+            if v:
+                lines.append("%s:" % k)
+                lines.append(pretty_map(v))
+            else:
+                lines.append("%s: {}" % k)
+        elif isiterable(v):
+            if v:
+                lines.append("%s:" % k)
+                lines.append(pretty_list(v))
+            else:
+                lines.append("%s: []" % k)
+        else:
+            lines.append("%s: %s" % (k, v if v is not None else "None"))
+    return lines
+
+
 def execute_config(args, parser):
     json_warnings = []
     json_get = {}
@@ -244,7 +264,7 @@ def execute_config(args, parser):
             lines = []
             for source, reprs in iteritems(context.collect_all()):
                 lines.append("==> %s <==" % source)
-                lines.extend(itervalues(reprs))
+                lines.extend(format_dict(reprs))
                 lines.append('')
             print('\n'.join(lines))
         return
@@ -282,21 +302,7 @@ def execute_config(args, parser):
         if context.json:
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': ')))
         else:
-            for k, v in iteritems(d):
-                if isinstance(v, collections.Mapping):
-                    if v:
-                        print("%s:" % k)
-                        sys.stdout.write(pretty_map(v))
-                    else:
-                        print("%s: {}" % k)
-                elif isiterable(v):
-                    if v:
-                        print("%s:" % k)
-                        sys.stdout.write(pretty_list(v))
-                    else:
-                        print("%s: []" % k)
-                else:
-                    print("%s: %s" % (k, v if v is not None else "None"))
+            print('\n'.join(format_dict(d)))
         return
 
     if args.validate:

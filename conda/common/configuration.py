@@ -58,11 +58,11 @@ log = getLogger(__name__)
 def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
-    return ''.join("%s- %s\n" % (padding, item) for item in iterable)
+    return '\n'.join("%s- %s" % (padding, item) for item in iterable)
 
 
 def pretty_map(dictionary, padding='  '):
-    return ''.join("%s%s: %s\n" % (padding, key, value) for key, value in iteritems(dictionary))
+    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
 
 
 class ConfigurationError(CondaError):
@@ -726,7 +726,7 @@ class Configuration(object):
                     if collected_errors:
                         validation_errors.extend(collected_errors)
                     else:
-                        parameter_repr[match.key] = parameter.repr_raw(match)
+                        parameter_repr[match.key] = typed_value  # parameter.repr_raw(match)
             else:
                 # this situation will happen if there is a multikey_error and none of the
                 # matched keys is the primary key
@@ -743,5 +743,12 @@ class Configuration(object):
         validation_errors = odict()
         for source in self.raw_data:
             parameter_reprs[source], validation_errors[source] = self.check_source(source)
+        raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
+        return odict((k, v) for k, v in iteritems(parameter_reprs) if v)
+
+    def dump_all(self):
+        validation_errors = odict()
+        for source in self.raw_data:
+            _, validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
         return odict((k, v) for k, v in iteritems(parameter_reprs) if v)
