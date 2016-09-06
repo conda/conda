@@ -55,10 +55,14 @@ __all__ = ["Configuration", "PrimitiveParameter",
 log = getLogger(__name__)
 
 
-def pretty_list(iterable):  # TODO: move elsewhere in conda.common
+def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
-    return ''.join("  - %s\n" % item for item in iterable)
+    return ''.join("%s- %s\n" % (padding, item) for item in iterable)
+
+
+def pretty_map(dictionary, padding='  '):
+    return ''.join("%s%s: %s\n" % (padding, key, value) for key, value in iteritems(dictionary))
 
 
 class ConfigurationError(CondaError):
