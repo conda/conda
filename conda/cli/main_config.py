@@ -300,7 +300,7 @@ def execute_config(args, parser):
             if key not in rc_list_keys + rc_bool_keys + rc_string_keys:
                 if key not in rc_other:
                     message = "unknown key %s" % key
-                    if not  context.json:
+                    if not context.json:
                         print(message, file=sys.stderr)
                     else:
                         json_warnings.append(message)
