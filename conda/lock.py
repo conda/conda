@@ -49,7 +49,8 @@ def touch(file_name, times=None):
         with open(file_name, 'a'):
             os.utime(file_name, times)
     except (OSError, IOError) as e:
-        log.warn("Failed to create lock, do not run conda in parallel process\n")
+        log.warn("Failed to create lock, do not run conda in parallel processes [errno %d]",
+                 e.errno)
 
 
 class FileLock(object):
@@ -80,7 +81,7 @@ class FileLock(object):
             glob_result = glob(self.lock_file_glob_str)
             if glob_result:
                 log.debug(LOCKSTR.format(glob_result))
-                log.debug("Sleeping for %s seconds\n" % sleep_time)
+                log.debug("Sleeping for %s seconds", sleep_time)
 
                 time.sleep(sleep_time / 10)
                 sleep_time *= 2
@@ -121,6 +122,6 @@ class DirectoryLock(FileLock):
                 os.makedirs(self.directory_path)
                 log.debug("forced to create %s", self.directory_path)
             except (OSError, IOError) as e:
-                log.warn("Failed to create directory %s" % self.directory_path)
+                log.warn("Failed to create directory %s [errno %d]", self.directory_path, e.errno)
 
 Locked = DirectoryLock
