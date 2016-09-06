@@ -15,9 +15,9 @@ Bug Fixes
 * fix local channel channels; add full conda-build unit tests (#3281)
 * fix conda install with no package specified (#3284)
 * fix #3253 exporting and importing conda environments (#3286)
-* fix priority messaging on conda config --get (#3304)
-* fix conda list --export; additional integration tests (#3291)
-* fix conda update --all idempotence; add integration tests for channel priority (#3306)
+* fix priority messaging on ``conda config --get`` (#3304)
+* fix ``conda list --export``; additional integration tests (#3291)
+* fix ``conda update --all`` idempotence; add integration tests for channel priority (#3306)
 
 Non-User-Facing Changes
 ^^^^^^^^^^^^^^^^^^^^^^^
