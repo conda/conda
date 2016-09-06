@@ -55,10 +55,14 @@ __all__ = ["Configuration", "PrimitiveParameter",
 log = getLogger(__name__)
 
 
-def pretty_list(iterable):  # TODO: move elsewhere in conda.common
+def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
-    return ''.join("  - %s\n" % item for item in iterable)
+    return '\n'.join("%s- %s" % (padding, item) for item in iterable)
+
+
+def pretty_map(dictionary, padding='  '):
+    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
 
 
 class ConfigurationError(CondaError):
@@ -702,7 +706,7 @@ class Configuration(object):
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__
         # I haven't yet found a way to make it more DRY though
-        parameter_repr = {}
+        typed_values = {}
         validation_errors = []
         raw_parameters = self.raw_data[source]
         for key in self.parameter_names:
@@ -723,12 +727,12 @@ class Configuration(object):
                     if collected_errors:
                         validation_errors.extend(collected_errors)
                     else:
-                        parameter_repr[match.key] = parameter.repr_raw(match)
+                        typed_values[match.key] = typed_value  # parameter.repr_raw(match)
             else:
                 # this situation will happen if there is a multikey_error and none of the
                 # matched keys is the primary key
                 pass
-        return parameter_repr, validation_errors
+        return typed_values, validation_errors
 
     def validate_all(self):
         validation_errors = list(chain.from_iterable(self.check_source(source)[1]
@@ -736,9 +740,9 @@ class Configuration(object):
         raise_errors(validation_errors)
 
     def collect_all(self):
-        parameter_reprs = odict()
+        typed_values = odict()
         validation_errors = odict()
         for source in self.raw_data:
-            parameter_reprs[source], validation_errors[source] = self.check_source(source)
+            typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
-        return odict((k, v) for k, v in iteritems(parameter_reprs) if v)
+        return odict((k, v) for k, v in iteritems(typed_values) if v)
