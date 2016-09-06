@@ -146,7 +146,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                     pass
             if context.always_copy:
                 lt = LINK_COPY
-            elif context.always_symlink:
+            elif context.always_softlink:
                 lt = LINK_SOFT
             elif try_hard_link(fetched_dir, prefix, dist):
                 lt = LINK_HARD
