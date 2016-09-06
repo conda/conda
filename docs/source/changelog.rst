@@ -4,6 +4,176 @@ Conda changelog
 
 This page is drawn from the GitHub conda project changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+2016-08-18  4.2.4
+-----------------
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #3277 conda list package order (#3278)
+* fix channel priority issue with duplicated channels (#3283)
+* fix local channel channels; add full conda-build unit tests (#3281)
+* fix conda install with no package specified (#3284)
+* fix #3253 exporting and importing conda environments (#3286)
+* fix priority messaging on conda config --get (#3304)
+* fix conda list --export; additional integration tests (#3291)
+* fix conda update --all idempotence; add integration tests for channel priority (#3306)
+
+Non-User-Facing Changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* additional conda-env integration tests (#3288)
+
+
+2016-08-11  4.2.3
+-----------------
+
+Improvements
+^^^^^^^^^^^^
+
+* added zsh and zsh.exe to Windows shells (#3257)
+
+Bug Fixes
+^^^^^^^^^
+
+* allow conda to downgrade itself (#3273)
+* fix breaking changes to conda-build from 4.2.2 (#3265)
+* fix empty environment issues with conda and conda-env (#3269)
+
+Non-User-Facing Changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* add integration tests for conda-env (#3270)
+* add more conda-build smoke tests (#3274)
+
+
+2016-08-09  4.2.2
+-----------------
+
+Improvements
+^^^^^^^^^^^^
+
+* enable binary prefix replacement on windows (#3262)
+* add ``--verbose`` command line flag (#3237)
+* improve logging and exception detail (#3237, #3252)
+* do not remove empty environment without asking; raise an error when a named environment can't be found (#3222)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #3226 user condarc not available on Windows (#3228)
+* fix some bugs in conda config --show* (#3212)
+* fix conda-build local channel bug (#3202)
+* remove subprocess exiting message (#3245)
+* fix comment parsing and channels in conda-env environment.yml (#3258, #3259)
+* fix context error with conda-env (#3232)
+* fix #3182 conda install silently skipping failed linking (#3184)
+
+
+2016-08-01  4.2.1
+-----------------
+
+Improvements
+^^^^^^^^^^^^
+
+* improve an error message that can happen during conda install --revision (#3181)
+* use clean sys.exit with user choice 'No' (#3196)
+
+Bug Fixes
+^^^^^^^^^
+
+* critical fix for 4.2.0 error when no git is on PATH (#3193)
+* revert #3171 lock cleaning on exit pending further refinement
+* patches for conda-build compatibility with 4.2 (#3187)
+* fix a bug in --show-sources output that ignored aliased parameter names (#3189)
+
+Non-User-Facing Changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* move scripts in bin to shell directory (#3186)
+
+
+2016-07-28  4.2.0
+-----------------
+
+New Features
+^^^^^^^^^^^^
+
+* **New Configuration Engine**: Configuration and "operating context" are the foundation of conda's functionality. Conda now has the ability to pull configuration information from a multitude of on-disk locations, including ``.d`` directories and a ``.condarc`` file *within* a conda environment), along with full ``CONDA_`` environment variable support. Helpful validation errors are given for improperly-specified configuration. Full documentation updates pending. (#2537, #3160, #3178)
+* **New Exception Handling Engine**: Previous releases followed a pattern of premature exiting (with hard calls to ``sys.exit()``) when exceptional circumstances were encountered. This release replaces over 100 ``sys.exit`` calls with python exceptions.  For conda developers, this will result in tests that are easier to write.  For developers using conda, this is a first step on a long path toward conda being directly importable.  For conda users, this will eventually result in more helpful and descriptive errors messages.  (#2899, #2993, #3016, #3152, #3045)
+* **Empty Environments**: Conda can now create "empty" environments when no initial packages are specified, alleviating a common source of confusion. (#3072, #3174)
+* **Conda in Private Env**: Conda can now be configured to live within its own private environment.  While it's not yet default behavior, this represents a first step toward separating the ``root`` environment into a "conda private" environment and a "user default" environment. (#3068)
+* **Regex Version Specification**: Regular expressions are now valid version specifiers.  For example, ``^1\.[5-8]\.1$|2.2``. (#2933)
+
+Deprecations/Breaking Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* remove conda init (#2759)
+* remove conda package and conda bundle (#2760)
+* deprecate conda-env repo; pull into conda proper (#2950, #2952, #2954, #3157, #3163, #3170)
+* force use of ruamel_yaml (#2762)
+* implement conda config --prepend; change behavior of --add to --append (#3041)
+* exit on link error instead of logging it (#2639)
+
+Improvements
+^^^^^^^^^^^^
+
+* improve locking (#2962, #2989, #3048, #3075)
+* clean up requests usage for fetching packages (#2755)
+* remove excess output from conda --help (#2872)
+* remove os.remove in update_prefix (#3006)
+* better error behavior if conda is spec'd for a non-root environment (#2956)
+* scale back try_write function on unix (#3076)
+
+Bug Fixes
+^^^^^^^^^
+
+* remove psutil requirement, fixes annoying error message (#3135, #3183)
+* fix #3124 add threading lock to memoize (#3134)
+* fix a failure with multi-threaded repodata downloads (#3078)
+* fix windows file url (#3139)
+* address #2800, error with environment.yml and non-default channels (#3164)
+
+Non-User-Facing Changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* project structure enhancement (#2929, #3132, #3133, #3136)
+* clean up channel handling with new channel model (#3130, #3151)
+* add Anaconda Cloud / Binstar auth handler (#3142)
+* remove dead code (#2761, #2969)
+* code refactoring and additional tests (#3052, #3020)
+* remove auxlib from project root (#2931)
+* vendor auxlib 0.0.40 (#2932, #2943, #3131)
+* vendor toolz 0.8.0 (#2994)
+* move progressbar to vendor directory (#2951)
+* fix conda.recipe for new quirks with conda-build (#2959)
+* move captured function to common module (#3083)
+* rename CHANGELOG to md (#3087)
+
+
+2016-07-26  4.1.11
+------------------
+
+* fix PS1 backup in activate script, #3135 via #3155
+* correct resolution for 'handle failures in binstar_client more generally', #3156
+
+
+2016-07-25  4.1.10
+------------------
+
+* ignore symlink failure because of read-only file system, #3055
+* backport shortcut tests, #3064
+* fix #2979 redefinition of $SHELL variable, #3081
+* fix #3060 --clone root --copy exception, #3080
+
+
+2016-07-20  4.1.9
+-----------------
+
+* fix #3104, add global BINSTAR_TOKEN_PAT
+* handle failures in binstar_client more generally
+
+
 2016-07-12  4.1.8:
 ------------------
 
