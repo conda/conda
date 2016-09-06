@@ -13,8 +13,8 @@
 * fix conda install with no package specified (#3284)
 * fix #3253 exporting and importing conda environments (#3286)
 * fix priority messaging on conda config --get (#3304)
-* fix conda list --export; additional itegration tests (#3291)
-* fix conda update --all idempotency; add integration tests for channel priority (#3306)
+* fix conda list --export; additional integration tests (#3291)
+* fix conda update --all idempotence; add integration tests for channel priority (#3306)
 
 ### Non-User-Facing Changes
 * additional conda-env integration tests (#3288)
@@ -76,7 +76,7 @@
 * **New Exception Handling Engine**: Previous releases followed a pattern of premature exiting (with hard calls to `sys.exit()` when exceptional circumstances were encountered. This release replaces over 100 `sys.exit` calls with python exceptions.  For conda developers, this will result in tests that are easier to write.  For developers using conda, this is a first step on a long path toward conda being directly importable.  For conda users, this will eventually result in more helpful and descriptive errors messages.  (#2899, #2993, #3016, #3152, #3045)
 * **Empty Environments**: Conda can now create "empty" environments when no initial packages are specified, alleviating a common source of confusion. (#3072, #3174)
 * **Conda in Private Env**: Conda can now be configured to live within its own private environment.  While it's not yet default behavior, this represents a first step toward separating the `root` environment into a "conda private" environment and a "user default" environment. (#3068)
-* **Regex Version Specification**: Regelar expressions are now valid version specifiers.  For example, `^1\.[5-8]\.1$|2.2`. (#2933)
+* **Regex Version Specification**: Regular expressions are now valid version specifiers.  For example, `^1\.[5-8]\.1$|2.2`. (#2933)
 
 ### Deprecations/Breaking Changes
 * remove conda init (#2759)
@@ -119,14 +119,14 @@
 ## 4.1.11 (2016-07-26)
 
 * fix PS1 backup in activate script, #3135 via #3155
-* correct resolution for 'handle failures in binstar_client more generaly', #3156
+* correct resolution for 'handle failures in binstar_client more generally', #3156
 
 
 ## 4.1.10 (2016-07-25)
 
 * ignore symlink failure because of read-only file system, #3055
-* backpaort shortcut tests, #3064
-* fix #2979 redefition of $SHELL variable, #3081
+* backport shortcut tests, #3064
+* fix #2979 redefinition of $SHELL variable, #3081
 * fix #3060 --clone root --copy exception, #3080
 
 
