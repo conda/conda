@@ -77,6 +77,7 @@ class Context(Configuration):
     default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
 
     # command line
+    always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
     always_yes = PrimitiveParameter(False, aliases=('yes',))
     channel_priority = PrimitiveParameter(True)
@@ -211,6 +212,8 @@ def get_help_dict():
         'always_yes': dals("""
             """),
         'always_copy': dals("""
+            """),
+        'always_softlink': dals("""
             """),
         'changeps1': dals("""
             """),

@@ -37,6 +37,7 @@ rc_bool_keys = [
     'always_yes',
     'always_copy',
     'allow_softlinks',
+    'always_softlink',
     'auto_update_conda',
     'changeps1',
     'use_pip',
