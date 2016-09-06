@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
 import logging
+import os
+import sys
 from logging import getLogger
 from traceback import format_exc
+
 from . import CondaError, text_type
 from .compat import iteritems, iterkeys
 log = logging.getLogger(__name__)
@@ -446,24 +448,22 @@ def delete_lock(extra_path=None):
             extra_path : The extra path that you want to search and
             delete locks
     """
-    from conda.cli.main_clean import find_lock
+    from .cli.main_clean import find_lock
     from .lock import LOCK_EXTENSION
-    import os
-    pid = os.getpid()
-    file_end = text_type(pid) + "." + LOCK_EXTENSION
+    from .install import rm_rf
+    file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
     locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
     failed_delete = []
     for path in locks:
-        assert os.path.exists(path), path
         try:
-            os.unlink(path)
+            rm_rf(path)
         except (OSError, IOError) as e:
             failed_delete.append(path)
-            log.warn("%r errno %d Cannot unlink %s. \n", e, e.errno, path)
+            log.warn("%r Cannot unlink %s.", e, path)
 
     if failed_delete:
-        log.warn("Please delete those lock file by hand\
-                 It may affect conda performance !\n ")
+        log.warn("Unable to remove all for this processlocks.\n"
+                 "Please run `conda clean --lock`.")
 
 
 def conda_exception_handler(func, *args, **kwargs):
@@ -473,6 +473,7 @@ def conda_exception_handler(func, *args, **kwargs):
             return return_value
     except CondaRuntimeError as e:
         print_unexpected_error_message(e)
+        delete_lock()
         return 1
     except CondaError as e:
         from conda.base.context import context
@@ -480,9 +481,9 @@ def conda_exception_handler(func, *args, **kwargs):
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
+        delete_lock()
         return 1
     except Exception as e:
         print_unexpected_error_message(e)
-        return 1
-    finally:
         delete_lock()
+        return 1

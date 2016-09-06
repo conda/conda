@@ -115,7 +115,7 @@ def test_delete_lock():
         try:
             with DirectoryLock(prefix) as lock:
                 path = basename(lock.lock_file_path)
-                assert isfile(join(prefix,path))
+                assert isfile(join(prefix, path))
                 raise TypeError
         except TypeError:
             delete_lock(extra_path=prefix)
