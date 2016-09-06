@@ -22,41 +22,25 @@ log = getLogger(__name__)
 
 
 default_python = '%d.%d' % sys.version_info[:2]
-# CONDA_FORCE_32BIT should only be used when running conda-build (in order
-# to build 32-bit packages on a 64-bit system).  We don't want to mention it
-# in the documentation, because it can mess up a lot of things.
-force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
 
 # ----- operating system and architecture -----
 
-_sys_map = {
+_platform_map = {
     'linux2': 'linux',
     'linux': 'linux',
     'darwin': 'osx',
     'win32': 'win',
-    'openbsd5': 'openbsd',
 }
 non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
-platform = _sys_map.get(sys.platform, 'unknown')
-bits = 8 * tuple.__itemsize__
-if force_32bit:
-    bits = 32
-
-if platform == 'linux' and machine() in non_x86_linux_machines:
-    arch_name = machine()
-    subdir = 'linux-%s' % arch_name
-else:
-    arch_name = {64: 'x86_64', 32: 'x86'}[bits]
-    subdir = '%s-%d' % (platform, bits)
+_arch_names = {
+    32: 'x86',
+    64: 'x86_64',
+}
 
 
 class Context(Configuration):
 
-    arch_name = property(lambda self: arch_name)
-    bits = property(lambda self: bits)
     default_python = property(lambda self: default_python)
-    platform = property(lambda self: platform)
-    subdir = property(lambda self: subdir)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
@@ -65,6 +49,7 @@ class Context(Configuration):
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
+    force_32bit = PrimitiveParameter(False)
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
@@ -95,6 +80,33 @@ class Context(Configuration):
                                         parameter_type=(bool, NoneType))
 
     @property
+    def arch_name(self):
+        m = machine()
+        if self.platform == 'linux' and m in non_x86_linux_machines:
+            return m
+        else:
+            return _arch_names[self.bits]
+
+    @property
+    def platform(self):
+        return _platform_map.get(sys.platform, 'unknown')
+
+    @property
+    def subdir(self):
+        m = machine()
+        if m in non_x86_linux_machines:
+            return 'linux-%s' % m
+        else:
+            return '%s-%d' % (self.platform, self.bits)
+
+    @property
+    def bits(self):
+        if self.force_32bit:
+            return 32
+        else:
+            return 8 * tuple.__itemsize__
+
+    @property
     def local_build_root(self):
         if self.bld_path:
             return expand(self.bld_path)
@@ -102,10 +114,6 @@ class Context(Configuration):
             return join(self.root_dir, 'conda-bld')
         else:
             return expand('~/conda-bld')
-
-    @property
-    def force_32bit(self):
-        return False
 
     @property
     def root_dir(self):
@@ -251,6 +259,11 @@ def get_help_dict():
             """),
         'proxy_servers': dals("""
             """),
+        'force_32bit': dals("""
+            CONDA_FORCE_32BIT should only be used when running conda-build (in order
+            to build 32-bit packages on a 64-bit system).  We don't want to mention it
+            in the documentation, because it can mess up a lot of things.
+        """)
     }
 
 
