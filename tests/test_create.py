@@ -6,8 +6,9 @@ import json
 import os
 import pytest
 import sys
-from conda import CondaError
-from conda.base.context import bits, context, reset_context
+from conda import CondaError, plan
+from conda.base.context import context, reset_context
+from conda.cli.common import get_index_trap
 from conda.cli.main import generate_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
@@ -16,7 +17,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.io import disable_logger, stderr_log_level, captured
+from conda.common.io import captured, disable_logger, stderr_log_level
 from conda.common.url import path_to_url
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
@@ -371,7 +372,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
-    @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
@@ -405,6 +406,23 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
 
+    @pytest.mark.timeout(300)
+    def test_install_prune(self):
+        with make_temp_env("python=2 decorator") as prefix:
+            assert_package_is_installed(prefix, 'decorator')
+
+            # prune is a feature used by conda-env
+            # conda itself does not provide a public API for it
+            index = get_index_trap(prefix=prefix)
+            actions = plan.install_actions(prefix,
+                                           index,
+                                           specs=['flask'],
+                                           prune=True)
+            plan.execute_actions(actions, index, verbose=True)
+
+            assert_package_is_installed(prefix, 'flask')
+            assert not package_is_installed(prefix, 'decorator')
+
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     @pytest.mark.timeout(300)
     def test_install_features(self):
@@ -427,7 +445,7 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 23), reason="configs are borked")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 9, 23), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
@@ -536,7 +554,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 8, 23), reason="deal with this later")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 9, 23), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'

@@ -332,7 +332,7 @@ def execute_config(args, parser):
             if key not in rc_list_keys + rc_bool_keys + rc_string_keys:
                 if key not in rc_other:
                     message = "unknown key %s" % key
-                    if not args.json:
+                    if not context.json:
                         print(message, file=sys.stderr)
                     else:
                         json_warnings.append(message)
@@ -340,7 +340,7 @@ def execute_config(args, parser):
             if key not in rc_config:
                 continue
 
-            if args.json:
+            if context.json:
                 json_get[key] = rc_config[key]
                 continue
 
@@ -380,7 +380,7 @@ def execute_config(args, parser):
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
                     item, key, "top" if prepend else "bottom")
                 arglist = rc_config[key] = [p for p in arglist if p != item]
-                if not args.json:
+                if not context.json:
                     print(message, file=sys.stderr)
                 else:
                     json_warnings.append(message)
@@ -421,7 +421,7 @@ def execute_config(args, parser):
     with open(rc_path, 'w') as rc:
         rc.write(yaml_dump(rc_config))
 
-    if args.json:
+    if context.json:
         stdout_json_success(
             rc_path=rc_path,
             warnings=json_warnings,

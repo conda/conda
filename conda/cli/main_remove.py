@@ -120,7 +120,7 @@ def execute(args, parser):
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
-    check_write('remove', prefix, json=args.json)
+    check_write('remove', prefix, json=context.json)
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
@@ -159,11 +159,11 @@ def execute(args, parser):
         if args.all:
             print()
             print("Remove all packages in environment %s:\n" % prefix)
-            if not args.json:
+            if not context.json:
                 confirm_yn(args)
             rm_rf(prefix)
 
-            if args.json:
+            if context.json:
                 stdout_json({
                     'success': True,
                     'actions': actions
@@ -172,12 +172,12 @@ def execute(args, parser):
         raise PackageNotFoundError('', 'no packages found to remove from '
                                    'environment: %s' % prefix)
 
-    if not args.json:
+    if not context.json:
         print()
         print("Package plan for package removal in environment %s:" % prefix)
         plan.display_actions(actions, index)
 
-    if args.json and args.dry_run:
+    if context.json and args.dry_run:
         stdout_json({
             'success': True,
             'dry_run': True,
@@ -185,14 +185,14 @@ def execute(args, parser):
         })
         return
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
 
-    if args.json and not args.quiet:
+    if context.json and not context.quiet:
         with json_progress_bars():
-            plan.execute_actions(actions, index, verbose=not args.quiet)
+            plan.execute_actions(actions, index, verbose=not context.quiet)
     else:
-        plan.execute_actions(actions, index, verbose=not args.quiet)
+        plan.execute_actions(actions, index, verbose=not context.quiet)
         if specs:
             try:
                 with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
@@ -206,7 +206,7 @@ def execute(args, parser):
     if args.all:
         rm_rf(prefix)
 
-    if args.json:
+    if context.json:
         stdout_json({
             'success': True,
             'actions': actions

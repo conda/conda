@@ -23,7 +23,7 @@ from requests.packages.urllib3.util import Url
 
 from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
-from .base.context import context, platform as context_platform
+from .base.context import context
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
@@ -42,10 +42,10 @@ _user_agent = ("conda/{conda_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
 glibc_ver = gnu_get_libc_version()
-if context_platform == 'linux':
+if context.platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
-elif context_platform == 'osx':
+elif context.platform == 'osx':
     dist = 'OSX'
     ver = platform.mac_ver()[0]
 else:
@@ -300,6 +300,9 @@ class FTPAdapter(requests.adapters.BaseAdapter):
 
         # Sort out the timeout.
         timeout = kwargs.get('timeout', None)
+        if not isinstance(timeout, int):
+            # https://github.com/conda/conda/pull/3392
+            timeout = 10
 
         # Establish the connection and login if needed.
         self.conn = ftplib.FTP()
