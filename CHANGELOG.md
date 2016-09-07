@@ -1,10 +1,4 @@
-## 4.1.12 (unreleased)
-
-### Bug Fixes
-* fix #2837 "File exists" in symlinked path with parallel activations (#3210)
-
-
-## 4.2.5 (2016-09-XX)
+## 4.2.5 (2016-09-XX unreleased)
 
 ### Deprecations/Breaking Changes
 * partially revert #3041 giving conda config --add previous --prepend behavior (#3364 via #3370)
@@ -19,6 +13,14 @@
 * fix ftp fetch timeout (#3392)
 * fix #3307 add try/except block for touch lock (#3326)
 * fix CONDA_CHANNELS environment variable splitting (#3390)
+
+
+## 4.1.12 (unreleased)
+
+### Bug Fixes
+* fix #2837 "File exists" in symlinked path with parallel activations (#3210)
+* fix prune option when installing packages (#3354)
+* change check for placeholder to be more friendly to long PATH (#3349)
 
 
 ## 4.2.4 (2016-08-18)
