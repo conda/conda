@@ -1,6 +1,8 @@
 2016-0X-XX  4.1.12 (unreleased):
 --------------------------------
   * fix #2837 "File exists" in symlinked path with parallel activations, #3210
+  * fix prune option when installing packages, #3354
+  * change check for placeholder to be more friendly to long PATH, #3349
 
 
 2016-07-26  4.1.11:
