@@ -4,6 +4,23 @@
 * fix #2837 "File exists" in symlinked path with parallel activations (#3210)
 
 
+## 4.2.5 (2016-09-XX)
+
+### Deprecations/Breaking Changes
+* partially revert #3041 giving conda config --add previous --prepend behavior (#3364 via #3370)
+
+### Improvements
+* order output of conda config --show; make --json friendly (#3384 via #3386)
+* clean the pid based lock on exception (#3325)
+
+### Bug Fixes
+* fix #3332 allow download urls with :: in them (#3335)
+* fix always_yes and not-set argparse args overriding other sources (#3374)
+* fix ftp fetch timeout (#3392)
+* fix #3307 add try/except block for touch lock (#3326)
+* fix CONDA_CHANNELS environment variable splitting (#3390)
+
+
 ## 4.2.4 (2016-08-18)
 
 ### Bug Fixes
