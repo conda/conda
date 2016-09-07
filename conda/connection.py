@@ -41,10 +41,10 @@ _user_agent = ("conda/{conda_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
 glibc_ver = gnu_get_libc_version()
-if context.context_platform == 'linux':
+if context.platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
-elif context.context_platform == 'osx':
+elif context.platform == 'osx':
     dist = 'OSX'
     ver = platform.mac_ver()[0]
 else:
