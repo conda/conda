@@ -75,7 +75,7 @@ optional dependencies (MKL vs. ATLAS linkage), etc.  Nothing in conda actually
 inspects the build string---strings such as ``np18py34_1`` are only
 designed for human readability, but are never parsed by conda.
 
-Unlike the build sting, the build number is inspected by conda.
+Unlike the build string, the build number is inspected by conda.
 It is used to sort packages (with otherwise same name and version) to
 determine the latest one.
 This is important, because new builds (bug fixes to the way a package is
