@@ -20,10 +20,10 @@ from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
 
-
-default_python = '%d.%d' % sys.version_info[:2]
-
-# ----- operating system and architecture -----
+try:
+    import cio_test  # NOQA
+except ImportError:
+    log.info("No cio_test package found.")
 
 _platform_map = {
     'linux2': 'linux',
@@ -39,8 +39,6 @@ _arch_names = {
 
 
 class Context(Configuration):
-
-    default_python = property(lambda self: default_python)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
@@ -78,6 +76,11 @@ class Context(Configuration):
     bld_path = PrimitiveParameter('')
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
                                         parameter_type=(bool, NoneType))
+
+    @property
+    def default_python(self):
+        ver = sys.version_info
+        return '%d.%d' % (ver.major, ver.minor)
 
     @property
     def arch_name(self):
