@@ -20,10 +20,10 @@ from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
 
-
-default_python = '%d.%d' % sys.version_info[:2]
-
-# ----- operating system and architecture -----
+try:
+    import cio_test  # NOQA
+except ImportError:
+    log.info("No cio_test package found.")
 
 _platform_map = {
     'linux2': 'linux',
