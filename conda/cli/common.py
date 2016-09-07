@@ -560,7 +560,7 @@ def get_index_trap(*args, **kwargs):
     JSON if necessary.
     """
     from ..api import get_index
-    kwargs.pop('json')
+    kwargs.pop('json', None)
     return get_index(*args, **kwargs)
 
 

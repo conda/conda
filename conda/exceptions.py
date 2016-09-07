@@ -245,7 +245,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
     '''
     def __init__(self, bad_deps):
         from .resolve import dashlist
-        from .base import context
+        from .base.context import context
 
         deps = set(q[-1].spec for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
