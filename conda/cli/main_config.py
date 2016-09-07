@@ -294,6 +294,7 @@ def execute_config(args, parser):
                                            'shortcuts',
                                            'show_channel_urls',
                                            'ssl_verify',
+                                           'client_cert',
                                            'track_features',
                                            'update_dependencies',
                                            'use_pip',
