@@ -15,7 +15,7 @@ from uuid import uuid4
 from ..compat import text_type
 from ..utils import on_win
 
-__all__ = ["rm_rf", "backoff_unlink", "exp_backoff_fn", "try_write"]
+__all__ = ["rm_rf", "exp_backoff_fn", "try_write"]
 
 log = getLogger(__name__)
 
@@ -176,36 +176,42 @@ def rm_rf(path, max_retries=5, trash=True):
     to deleting a directory.
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
-    if islink(path) or isfile(path):
-        # Note that we have to check if the destination is a link because
-        # exists('/path/to/dead-link') will return False, although
-        # islink('/path/to/dead-link') is True.
-        try:
-            backoff_unlink(path)
-            return
-        except (OSError, IOError) as e:
-            log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
-            if trash:
-                move_result = move_path_to_trash(path)
-                if move_result:
-                    return
-            log.warn("Failed to remove %s.", path)
+    try:
+        if islink(path) or isfile(path):
+            # Note that we have to check if the destination is a link because
+            # exists('/path/to/dead-link') will return False, although
+            # islink('/path/to/dead-link') is True.
+            try:
+                backoff_unlink(path)
+                return True
+            except (OSError, IOError) as e:
+                log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
+                if trash:
+                    move_result = move_path_to_trash(path)
+                    if move_result:
+                        return True
+                log.warn("Failed to remove %s.", path)
 
-    elif isdir(path):
-        try:
-            # On Windows, always move to trash first.
-            if trash and on_win:
-                move_result = move_path_to_trash(path, preclean=False)
-                if move_result:
-                    return
-            backoff_rmdir(path)
-        finally:
-            # If path was removed, ensure it's not in linked_data_
-            if not isdir(path):
-                from conda.install import delete_linked_data_any
-                delete_linked_data_any(path)
-    else:
-        log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
+        elif isdir(path):
+            try:
+                # On Windows, always move to trash first.
+                if trash and on_win:
+                    move_result = move_path_to_trash(path, preclean=False)
+                    if move_result:
+                        return True
+                backoff_rmdir(path)
+            finally:
+                # If path was removed, ensure it's not in linked_data_
+                if not isdir(path):
+                    from conda.install import delete_linked_data_any
+                    delete_linked_data_any(path)
+        else:
+            log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
+        return True
+    finally:
+        if exists(path):
+            log.error("rm_rf failed for %s", path)
+            return False
 
 
 def delete_trash(prefix=None):

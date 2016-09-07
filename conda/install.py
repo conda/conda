@@ -44,7 +44,7 @@ from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, 
 from . import CondaError
 from .base.constants import UTF8
 from .base.context import context
-from .common.disk import backoff_unlink, exp_backoff_fn, rm_rf
+from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
@@ -539,7 +539,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
         try:
             # try to kill stale links if they exist
             if os.path.lexists(prefix_file):
-                backoff_unlink(prefix_file)
+                rm_rf(prefix_file)
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
@@ -859,7 +859,7 @@ def delete_linked_data(prefix, dist, delete=True):
     if delete:
         meta_path = join(prefix, 'conda-meta', dist2filename(dist, '.json'))
         if isfile(meta_path):
-            backoff_unlink(meta_path)
+            rm_rf(meta_path)
 
 
 def delete_linked_data_any(path):

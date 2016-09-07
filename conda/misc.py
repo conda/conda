@@ -24,7 +24,7 @@ from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
 from .utils import md5_file, on_win
-from conda.common.disk import backoff_unlink
+from .common.disk import rm_rf
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -361,7 +361,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         dst = join(prefix2, f)
         dst_dir = dirname(dst)
         if islink(dst_dir) or isfile(dst_dir):
-            backoff_unlink(dst_dir)
+            rm_rf(dst_dir)
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         if islink(src):

@@ -1,4 +1,4 @@
-# (c) 2012# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2016 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -13,7 +13,7 @@ from os.path import getsize, isdir, join
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
-from ..common.disk import backoff_unlink, rm_rf
+from ..common.disk import rm_rf
 from ..exceptions import ArgumentError
 from ..lock import LOCK_EXTENSION
 from ..utils import human_bytes
@@ -249,7 +249,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
             if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
                 if verbose:
                     print("Removing %s" % fn)
-                backoff_unlink(os.path.join(pkgs_dir, fn))
+                rm_rf(os.path.join(pkgs_dir, fn))
             else:
                 if verbose:
                     print("WARNING: cannot remove, file permissions: %s" % fn)
