@@ -80,7 +80,6 @@ class Channel(object):
 
     @property
     def urls(self):
-        # TODO: figure out how to add token
         if self._platform is None:
             return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
         else:

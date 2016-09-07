@@ -7,7 +7,7 @@ import os
 import pytest
 import sys
 from conda import CondaError, plan
-from conda.base.context import bits, context, reset_context
+from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
 from conda.cli.main import generate_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
@@ -372,7 +372,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
-    @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606

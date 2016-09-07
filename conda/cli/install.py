@@ -19,7 +19,7 @@ from .. import CondaError, text_type
 from .._vendor.auxlib.ish import dals
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import check_write, context, force_32bit
+from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
 from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
@@ -145,7 +145,7 @@ def install(args, parser, command='install'):
     prefix = context.prefix if newenv else context.prefix_w_legacy_search
     if newenv:
         check_prefix(prefix, json=context.json)
-    if force_32bit and is_root_prefix(prefix):
+    if context.force_32bit and is_root_prefix(prefix):
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
     if isupdate and not (args.file or args.all or args.packages):
         raise CondaValueError("""no package names supplied
