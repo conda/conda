@@ -217,7 +217,7 @@ def execute(args, parser):
             print(json.dumps({"channels": channels}))
         return 0
 
-    channels = prioritize_channels(channels).keys()
+    channels = list(prioritize_channels(channels).keys())
     if not context.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]
