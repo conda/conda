@@ -4,22 +4,21 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import json
 import os
 import re
 import sys
 from collections import OrderedDict
-from conda.models.channel import prioritize_channels
 from os import listdir
 from os.path import exists, expanduser, join
 
-from conda.config import rc_path
-from conda.config import user_rc_path, sys_rc_path
-from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
-                     handle_envs_list, add_parser_offline)
+from .common import (add_parser_json, add_parser_offline, arg2spec, disp_features,
+                     handle_envs_list, stdout_json)
 from ..compat import itervalues
+from ..config import rc_path, sys_rc_path, user_rc_path
+from ..models.channel import prioritize_channels
 from ..utils import on_win
 
 help = "Display information about current conda install."
