@@ -1,3 +1,12 @@
+## 4.3.0 (unreleased)
+
+### Improvements
+* improved file removal on all platforms (#3280)
+
+### Bug Fixes
+* account for the Windows Python 2.7 os.environ unicode aversion (#3363)
+
+
 ## 4.1.12 (unreleased)
 
 ### Bug Fixes
