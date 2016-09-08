@@ -15,7 +15,7 @@ from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import (reset_context, pkgs_dir_from_envs_dir, context)
 from conda.common.yaml import yaml_load
-from conda.utils import backoff_unlink
+from conda.common.disk import rm_rf
 from tests.helpers import run_conda_command
 
 # use condarc from source tree to run these tests against
@@ -287,7 +287,7 @@ def make_temp_condarc(value=None):
         reset_context([temp_path])
         yield temp_path
     finally:
-        backoff_unlink(temp_path)
+        rm_rf(temp_path)
 
 
 def _read_test_condarc(rc):

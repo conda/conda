@@ -23,7 +23,10 @@ from .install import (name_dist, linked as install_linked, is_fetched, is_extrac
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions
 from .resolve import Resolve, MatchSpec
-from .utils import md5_file, on_win, backoff_unlink
+from .utils import md5_file, on_win
+from .common.disk import rm_rf
+from .install import LINK_COPY, LINK_HARD, LINK_SOFT
+from .install import try_hard_link
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -126,10 +129,6 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         ######################################
 
         # check for link action
-        from .install import LINK_COPY, LINK_HARD, LINK_SOFT
-        from .install import try_hard_link
-        from .install import rm_rf
-
         fetched_dist = dir_path or pkg_path[:-8]
         fetched_dir = dirname(fetched_dist)
         try:
@@ -360,7 +359,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         dst = join(prefix2, f)
         dst_dir = dirname(dst)
         if islink(dst_dir) or isfile(dst_dir):
-            backoff_unlink(dst_dir)
+            rm_rf(dst_dir)
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         if islink(src):

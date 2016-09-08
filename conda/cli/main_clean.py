@@ -1,22 +1,23 @@
-# (c) 2012# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2016 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import os
 import sys
 from collections import defaultdict
-from os import lstat, walk, listdir
-from os.path import join, getsize, isdir
+from os import listdir, lstat, walk
+from os.path import getsize, isdir, join
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
-from ..install import rm_rf
-from ..utils import human_bytes, backoff_unlink
+from ..common.disk import rm_rf
 from ..exceptions import ArgumentError
-from conda.lock import LOCK_EXTENSION
+from ..lock import LOCK_EXTENSION
+from ..utils import human_bytes
+
 descr = """
 Remove unused packages and caches.
 """
@@ -248,7 +249,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
             if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
                 if verbose:
                     print("Removing %s" % fn)
-                backoff_unlink(os.path.join(pkgs_dir, fn))
+                rm_rf(os.path.join(pkgs_dir, fn))
             else:
                 if verbose:
                     print("WARNING: cannot remove, file permissions: %s" % fn)
