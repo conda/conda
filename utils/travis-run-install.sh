@@ -80,7 +80,7 @@ conda_build_install() {
     conda info
 
     # install conda-build test dependencies
-    conda install -y -q pytest pytest-cov pytest-timeout
+    conda install -y -q pytest pytest-cov pytest-timeout mock
     python -m pip install pytest-capturelog
     conda install -y -q anaconda-client numpy
     conda install -y -q -c conda-forge perl pytest-xdist
