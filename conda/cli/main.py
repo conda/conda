@@ -106,7 +106,7 @@ def _main():
     p, sub_parsers = generate_parser()
 
     main_modules = ["info", "help", "list", "search", "create", "install", "update",
-                    "remove", "config", "clean"]
+                    "remove", "config", "clean", "package"]
     modules = ["conda.cli.main_"+suffix for suffix in main_modules]
     for module in modules:
         imported = importlib.import_module(module)

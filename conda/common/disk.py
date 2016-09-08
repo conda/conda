@@ -2,18 +2,20 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-from conda.compat import text_type
 from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
-from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk
-from os.path import basename, dirname, exists, isdir, isfile, islink, join
+from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk, listdir
+from os.path import basename, dirname, exists, isdir, isfile, islink, join, abspath
 from shutil import rmtree
-from stat import S_IEXEC, S_IWRITE, S_ISDIR, S_IMODE, S_ISREG, S_ISLNK
+from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 from time import sleep
 from uuid import uuid4
 
+from ..compat import text_type
 from ..utils import on_win
+
+__all__ = ["rm_rf", "exp_backoff_fn", "try_write"]
 
 log = getLogger(__name__)
 
@@ -76,7 +78,7 @@ def backoff_rmdir(dirpath):
         recursive_make_writable(dirname(path))
         func(path)
 
-    def rmdir(path):
+    def _rmdir(path):
         try:
             recursive_make_writable(path)
             exp_backoff_fn(rmtree, path, onerror=retry)
@@ -90,9 +92,9 @@ def backoff_rmdir(dirpath):
         for file in files:
             backoff_unlink(join(root, file))
         for dir in dirs:
-            rmdir(join(root, dir))
+            _rmdir(join(root, dir))
 
-    rmdir(dirpath)
+    _rmdir(dirpath)
 
 
 def make_writable(path):
@@ -170,51 +172,69 @@ def exp_backoff_fn(fn, *args, **kwargs):
 def rm_rf(path, max_retries=5, trash=True):
     """
     Completely delete path
-    max_retries is the number of times to retry on failure. The default is
-    5. This only applies to deleting a directory.
+    max_retries is the number of times to retry on failure. The default is 5. This only applies
+    to deleting a directory.
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
-    if islink(path) or isfile(path):
-        # Note that we have to check if the destination is a link because
-        # exists('/path/to/dead-link') will return False, although
-        # islink('/path/to/dead-link') is True.
-        try:
-            backoff_unlink(path)
-            return
-        except (OSError, IOError) as e:
-            log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
-            if trash and move_path_to_trash(path):
-                return
-            else:
+    try:
+        path = abspath(path)
+        log.debug("rm_rf %s", path)
+        if islink(path) or isfile(path):
+            # Note that we have to check if the destination is a link because
+            # exists('/path/to/dead-link') will return False, although
+            # islink('/path/to/dead-link') is True.
+            try:
+                backoff_unlink(path)
+                return True
+            except (OSError, IOError) as e:
+                log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
+                if trash:
+                    move_result = move_path_to_trash(path)
+                    if move_result:
+                        return True
                 log.warn("Failed to remove %s.", path)
 
-    elif isdir(path):
-        try:
-            # On Windows, always move to trash first.
-            if trash and on_win and move_path_to_trash(path, preclean=False):
-                return
-            else:
+        elif isdir(path):
+            try:
+                # On Windows, always move to trash first.
+                if trash and on_win:
+                    move_result = move_path_to_trash(path, preclean=False)
+                    if move_result:
+                        return True
                 backoff_rmdir(path)
-        finally:
-            # If path was removed, ensure it's not in linked_data_
-            if not isdir(path):
-                from conda.install import delete_linked_data_any
-                delete_linked_data_any(path)
-    else:
-        log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
+            finally:
+                # If path was removed, ensure it's not in linked_data_
+                if not isdir(path):
+                    from conda.install import delete_linked_data_any
+                    delete_linked_data_any(path)
+        else:
+            log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
+        return True
+    finally:
+        if exists(path):
+            log.error("rm_rf failed for %s", path)
+            return False
 
 
 def delete_trash(prefix=None):
     from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
-        if not isdir(trash_dir):
+        if not exists(trash_dir):
+            log.debug("Trash directory %s doesn't exist. Moving on.", trash_dir)
             continue
-        try:
-            log.debug("Trying to delete the trash dir %s", trash_dir)
-            backoff_rmdir(trash_dir)
-        except (IOError, OSError) as e:
-            log.info("Could not delete the trash dir %s\n%r", trash_dir, e)
+        log.debug("removing trash for %s", trash_dir)
+        for p in listdir(trash_dir):
+            path = join(trash_dir, p)
+            try:
+                if isdir(path):
+                    backoff_rmdir(path)
+                else:
+                    backoff_unlink(path)
+            except (IOError, OSError) as e:
+                log.info("Could not delete path in trash dir %s\n%r", path, e)
+        if listdir(trash_dir):
+            log.warn("Unable to clean trash directory %s", trash_dir)
 
 
 def move_to_trash(prefix, f, tempdir=None):
@@ -232,17 +252,13 @@ def move_path_to_trash(path, preclean=True):
     """
     Move a path to the trash
     """
-    # Try deleting the trash every time we use it.
-    if preclean:
-        delete_trash()
-
     from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
 
         try:
             makedirs(trash_dir)
-        except OSError as e1:
+        except (IOError, OSError) as e1:
             if e1.errno != EEXIST:
                 continue
 
@@ -250,14 +266,12 @@ def move_path_to_trash(path, preclean=True):
 
         try:
             rename(path, trash_file)
-        except OSError as e:
-            log.debug("Could not move %s to %s (%s)", path, trash_file, e)
+        except (IOError, OSError) as e:
+            log.debug("Could not move %s to %s.\n%r", path, trash_file, e)
         else:
             log.debug("Moved to trash: %s", path)
-            from conda.install import delete_linked_data_any
+            from ..install import delete_linked_data_any
             delete_linked_data_any(path)
-            if not preclean:
-                rm_rf(trash_file, max_retries=1, trash=False)
             return True
 
     return False

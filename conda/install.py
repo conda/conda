@@ -36,14 +36,15 @@ import sys
 import tarfile
 import traceback
 from collections import namedtuple
-from .common.disk import backoff_unlink, exp_backoff_fn, rm_rf
 from enum import Enum
 from itertools import chain
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, normcase, normpath
+from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
+                     normpath)
 
 from . import CondaError
 from .base.constants import UTF8
 from .base.context import context
+from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
@@ -538,7 +539,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
         try:
             # try to kill stale links if they exist
             if os.path.lexists(prefix_file):
-                backoff_unlink(prefix_file)
+                rm_rf(prefix_file)
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
@@ -732,9 +733,13 @@ def rm_fetched(dist):
         del fname_table_[path_to_url(fname)]
         with FileLock(fname):
             rm_rf(fname)
+            if exists(fname):
+                log.warn("File not removed during RM_FETCHED instruction: %s", fname)
     for fname in rec['dirs']:
         with FileLock(fname):
             rm_rf(fname)
+            if exists(fname):
+                log.warn("Directory not removed during RM_FETCHED instruction: %s", fname)
     del package_cache_[dist]
 
 
@@ -766,6 +771,8 @@ def rm_extracted(dist):
     for fname in rec['dirs']:
         with FileLock(fname):
             rm_rf(fname)
+            if exists(fname):
+                log.warn("Directory not removed during RM_EXTRACTED instruction: %s", fname)
     if rec['files']:
         rec['dirs'] = []
     else:
@@ -852,7 +859,7 @@ def delete_linked_data(prefix, dist, delete=True):
     if delete:
         meta_path = join(prefix, 'conda-meta', dist2filename(dist, '.json'))
         if isfile(meta_path):
-            backoff_unlink(meta_path)
+            rm_rf(meta_path)
 
 
 def delete_linked_data_any(path):

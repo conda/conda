@@ -7,14 +7,16 @@
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
 
 
-## 4.2.5 (2016-09-XX unreleased)
+## 4.2.5 (2016-09-08)
 
 ### Deprecations/Breaking Changes
 * partially revert #3041 giving conda config --add previous --prepend behavior (#3364 via #3370)
+* partially revert #2760 adding back conda package command (#3398)
 
 ### Improvements
 * order output of conda config --show; make --json friendly (#3384 via #3386)
 * clean the pid based lock on exception (#3325)
+* improve file removal on all platforms (#3280 via #3396)
 
 ### Bug Fixes
 * fix #3332 allow download urls with :: in them (#3335)
@@ -23,9 +25,11 @@
 * fix #3307 add try/except block for touch lock (#3326)
 * fix CONDA_CHANNELS environment variable splitting (#3390)
 * fix #3378 CONDA_FORCE_32BIT environment variable (#3391)
+* make conda info channel urls actually give urls (#3397)
+* fix cio_test compatibility (#3395 via #3400)
 
 
-## 4.1.12 (unreleased)
+## 4.1.12 (2016-09-08)
 
 ### Bug Fixes
 * fix #2837 "File exists" in symlinked path with parallel activations (#3210)

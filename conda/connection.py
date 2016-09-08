@@ -28,7 +28,7 @@ from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
 from .utils import gnu_get_libc_version
-from conda.common.disk import backoff_unlink
+from conda.common.disk import rm_rf
 
 RETRIES = 3
 
@@ -223,7 +223,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
     def close(self):
         if self._temp_file:
-            backoff_unlink(self._temp_file)
+            rm_rf(self._temp_file)
 
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):

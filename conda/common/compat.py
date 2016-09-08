@@ -7,3 +7,5 @@ log = getLogger(__name__)
 from .._vendor.auxlib.compat import (iteritems, with_metaclass, itervalues,  # NOQA
                                      string_types, primitive_types, text_type, odict,  # NOQA
                                      StringIO, isiterable)  # NOQA
+
+from ..compat import *  # NOQA
