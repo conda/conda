@@ -1,4 +1,4 @@
-## 4.2.5 (2016-09-XX unreleased)
+## 4.2.5 (2016-09-08)
 
 ### Deprecations/Breaking Changes
 * partially revert #3041 giving conda config --add previous --prepend behavior (#3364 via #3370)
@@ -7,6 +7,7 @@
 ### Improvements
 * order output of conda config --show; make --json friendly (#3384 via #3386)
 * clean the pid based lock on exception (#3325)
+* improve file removal on all platforms (#3280 via #3396)
 
 ### Bug Fixes
 * fix #3332 allow download urls with :: in them (#3335)
