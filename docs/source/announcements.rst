@@ -7,7 +7,7 @@ from the Conda core team. It is not a marketing list. We will never sell,
 give away, or further distribute your email address to third parties.
 
 * No more than one email per week--usually less.
-* Substantive announcements for all conda users.
+* Substantive project announcements relevant to all conda users.
 * No corporate marketing hype.
 * No spam.
 
