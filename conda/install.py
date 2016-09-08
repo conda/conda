@@ -36,6 +36,7 @@ import sys
 import tarfile
 import traceback
 from collections import namedtuple
+from conda._vendor.auxlib.entity import EntityEncoder
 from enum import Enum
 from itertools import chain
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
@@ -421,7 +422,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
     with open(join(meta_dir, dist2filename(dist, '.json')), 'w') as fo:
-        json.dump(meta, fo, indent=2, sort_keys=True)
+        json.dump(meta, fo, indent=2, sort_keys=True, cls=EntityEncoder)
     if prefix in linked_data_:
         load_linked_data(prefix, dist, meta)
 

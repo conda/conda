@@ -28,6 +28,9 @@ class Arch(Enum):
     def from_sys(cls):
         return cls[machine()]
 
+    def __json__(self):
+        return self.value
+
 
 class Platform(Enum):
     linux = 'linux'
@@ -45,6 +48,10 @@ class Platform(Enum):
             # be set to 'linux'
             p = 'linux'
         return cls(p)
+
+    def __json__(self):
+        return self.value
+
 
 machine_bits = 8 * tuple.__itemsize__
 

@@ -33,7 +33,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
             key = prefix + fn
             if key in index:
                 # Copy the link information so the resolver knows this is installed
-                index[key] = index[key].copy()
+                # index[key] = index[key].copy()  # TODO: don't understand; ask mcg about this line
                 index[key]['link'] = info.get('link') or True
             else:
                 # only if the package in not in the repodata, use local

@@ -14,6 +14,7 @@ import requests
 import shutil
 import tempfile
 import warnings
+from conda._vendor.auxlib.entity import EntityEncoder
 from functools import wraps
 from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
@@ -188,7 +189,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     cache['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
-            json.dump(cache, fo, indent=2, sort_keys=True)
+            json.dump(cache, fo, indent=2, sort_keys=True, cls=EntityEncoder)
     except IOError:
         pass
 
@@ -256,9 +257,9 @@ def add_unknown(index, priorities):
 
 def add_pip_dependency(index):
     for info in itervalues(index):
-        if (info['name'] == 'python' and
-                info['version'].startswith(('2.', '3.'))):
-            info.setdefault('depends', []).append('pip')
+        if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
+            info['depends'] = info['depends'] + ('pip',)
+            # info.setdefault('depends', []).append('pip')
 
 def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     log.debug('channel_urls=' + repr(channel_urls))
@@ -308,6 +309,23 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             info['url'] = channel + '/' + fn
             key = url_s + '::' + fn if url_s != 'defaults' else fn
             index[key] = info
+
+    def make_index_db(repodatas):
+        result = dict()
+        from conda.models.record import Record
+        for channel, repodata in repodatas:
+            if repodata is None:
+                continue
+            url_s, priority = channel_urls[channel]
+            channel = channel.rstrip('/')
+            for fn, info in iteritems(repodata['packages']):
+                key = url_s + '::' + fn if url_s != 'defaults' else fn
+                url = channel + '/' + fn
+                info.update(dict(fn=fn, schannel=url_s, channel=channel, priority=priority, url=url))
+                result[key] = Record(**info)
+        return result
+
+    index = make_index_db(repodatas)
 
     stdoutlog.info('\n')
     if unknown:

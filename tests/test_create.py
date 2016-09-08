@@ -587,3 +587,21 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
+
+    # def test_clone_with_channel_url_change(self):
+    #     try:
+    #         with make_temp_env() as prefix:
+    #             run_command(Commands.INSTALL, prefix, 'python=3')
+    #
+    #             os.environ['CONDA_DEFAULT_CHANNELS'] = "anaconda"
+    #             reload_config(prefix)
+    #
+    #             with make_temp_env("--clone", prefix) as clone_prefix:
+    #                 assert_package_is_installed(clone_prefix, 'python-3')
+    #                 python_json = glob(join(clone_prefix, "conda-meta", "python-3*.json"))[0]
+    #                 with open(python_json, 'r') as fh:
+    #                     print(fh.read())
+    #
+    #             assert False
+    #     finally:
+    #         del os.environ['CONDA_DEFAULT_CHANNELS']

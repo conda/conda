@@ -237,6 +237,8 @@ Chapter X: The del and null Weeds
 """
 from __future__ import absolute_import, division, print_function
 
+from json import JSONEncoder
+
 from collections import Iterable
 from datetime import datetime
 from functools import reduce
@@ -810,3 +812,17 @@ class ImmutableEntity(Entity):
             raise AttributeError("Deletion not allowed. {0} is immutable."
                                  .format(self.__class__.__name__))
         super(ImmutableEntity, self).__delattr__(item)
+
+
+class EntityEncoder(JSONEncoder):
+    # json.dumps(obj, cls=SetEncoder)
+    def default(self, obj):
+       if hasattr(obj, 'json'):
+          return obj.json()
+       elif hasattr(obj, '__json__'):
+          return obj.__json__()
+       elif hasattr(obj, 'to_json'):
+          return obj.to_json()
+       elif hasattr(obj, 'as_json'):
+          return obj.as_json()
+       return JSONEncoder.default(self, obj)
