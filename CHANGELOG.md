@@ -20,7 +20,7 @@
 * fix cio_test compatibility (#3395 via #3400)
 
 
-## 4.1.12 (unreleased)
+## 4.1.12 (2016-09-08)
 
 ### Bug Fixes
 * fix #2837 "File exists" in symlinked path with parallel activations (#3210)
