@@ -4,28 +4,25 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import errno
 import logging
 from argparse import RawDescriptionHelpFormatter
 from os.path import join
 
-from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parser_no_pin,
-                     add_parser_channels, add_parser_prefix, add_parser_quiet,
-                     add_parser_no_use_index_cache, add_parser_use_index_cache,
-                     add_parser_use_local, add_parser_offline, add_parser_pscheck,
-                     InstalledPackages, ensure_use_local,
-                     ensure_override_channels_requires_channel,
-                     specs_from_args, names_in_specs, root_no_rm, stdout_json,
-                     confirm_yn)
+from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
+                     add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
+                     add_parser_prefix, add_parser_pscheck, add_parser_quiet,
+                     add_parser_use_index_cache, add_parser_use_local, add_parser_yes,
+                     confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
+                     names_in_specs, root_no_rm, specs_from_args, stdout_json)
 from ..api import get_index
-from ..base.context import check_write
-from ..base.context import context
+from ..base.context import check_write, context
+from ..common.disk import delete_trash
 from ..compat import iteritems, iterkeys
 from ..console import json_progress_bars
-from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
-                          CondaValueError)
+from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -154,6 +151,8 @@ def execute(args, parser):
                                         ', '.join(root_no_rm))
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
+
+    delete_trash()
 
     if plan.nothing_to_do(actions):
         if args.all:

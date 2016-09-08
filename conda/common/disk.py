@@ -5,7 +5,7 @@ import sys
 from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
-from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk
+from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk, listdir
 from os.path import basename, dirname, exists, isdir, isfile, islink, join
 from shutil import rmtree
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
@@ -218,13 +218,17 @@ def delete_trash(prefix=None):
     from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
-        if not isdir(trash_dir):
-            continue
-        try:
-            log.debug("Trying to delete the trash dir %s", trash_dir)
-            backoff_rmdir(trash_dir)
-        except (IOError, OSError) as e:
-            log.info("Could not delete the trash dir %s\n%r", trash_dir, e)
+        log.debug("removing trash for %s", trash_dir)
+        for path in listdir(trash_dir):
+            try:
+                if isdir(path):
+                    backoff_rmdir(path)
+                else:
+                    backoff_unlink(path)
+            except (IOError, OSError) as e:
+                log.info("Could not delete path in trash dir %s\n%r", path, e)
+        if listdir(trash_dir):
+            log.warn("Unable to clean trash directory %s", trash_dir)
 
 
 def move_to_trash(prefix, f, tempdir=None):
@@ -242,10 +246,6 @@ def move_path_to_trash(path, preclean=True):
     """
     Move a path to the trash
     """
-    # Try deleting the trash every time we use it.
-    if preclean:
-        delete_trash()
-
     from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
@@ -264,10 +264,8 @@ def move_path_to_trash(path, preclean=True):
             log.debug("Could not move %s to %s.\n%r", path, trash_file, e)
         else:
             log.debug("Moved to trash: %s", path)
-            from conda.install import delete_linked_data_any
+            from ..install import delete_linked_data_any
             delete_linked_data_any(path)
-            if not preclean:
-                rm_rf(trash_file, max_retries=1, trash=False)
             return True
 
     return False
