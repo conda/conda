@@ -71,16 +71,23 @@ miniconda_install() {
 
 
 conda_build_install() {
+    # install conda
     python setup.py install
+
+    # install conda-build test dependencies
+    conda install -y -q pytest pytest-cov pytest-timeout
+    conda install -y -q anaconda-client numpy
+    conda install -y -q -c conda-forge perl
+    python -m pip install pytest-capturelog pytest-xdist
+
+    # install conda-build runtime dependencies
     conda install -y -q filelock jinja2 patchelf
+
+    # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
     python setup.py install
     conda info
-    conda install -y -q pytest pytest-cov pytest-timeout
-    conda install -y -q anaconda-client numpy
-    conda install -y -q -c conda-forge perl
-    pip install pytest-capturelog pytest-xdist
     popd
 }
 
