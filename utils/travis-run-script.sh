@@ -27,7 +27,7 @@ conda_build_smoke_test() {
 
 conda_build_unit_test() {
     pushd conda-build
-    python -m pytest tests || echo ">>> exited with code" $?
+    python -m pytest -n 2 --basetemp /tmp/cb tests || echo ">>> exited with code" $?
     popd
 }
 

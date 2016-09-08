@@ -72,12 +72,15 @@ miniconda_install() {
 
 conda_build_install() {
     python setup.py install
-    conda install -y -q jinja2 patchelf
+    conda install -y -q filelock jinja2 patchelf
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
     python setup.py install
     conda info
-    conda install -y -q pytest pytest-cov mock anaconda-client filelock
+    conda install -y -q pytest pytest-cov pytest-timeout
+    conda install -y -q anaconda-client numpy
+    conda install -y -q -c conda-forge perl
+    pip install pytest-capturelog pytest-xdist
     popd
 }
 
