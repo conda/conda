@@ -6,7 +6,7 @@ from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
 from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk, listdir
-from os.path import basename, dirname, exists, isdir, isfile, islink, join
+from os.path import basename, dirname, exists, isdir, isfile, islink, join, abspath
 from shutil import rmtree
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 from time import sleep
@@ -177,6 +177,8 @@ def rm_rf(path, max_retries=5, trash=True):
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
     try:
+        path = abspath(path)
+        log.debug("rm_rf %s", path)
         if islink(path) or isfile(path):
             # Note that we have to check if the destination is a link because
             # exists('/path/to/dead-link') will return False, although
@@ -219,7 +221,8 @@ def delete_trash(prefix=None):
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
         log.debug("removing trash for %s", trash_dir)
-        for path in listdir(trash_dir):
+        for p in listdir(trash_dir):
+            path = join(trash_dir, p)
             try:
                 if isdir(path):
                     backoff_rmdir(path)
