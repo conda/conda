@@ -220,6 +220,9 @@ def delete_trash(prefix=None):
     from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
+        if not exists(trash_dir):
+            log.debug("Trash directory %s doesn't exist. Moving on.", trash_dir)
+            continue
         log.debug("removing trash for %s", trash_dir)
         for p in listdir(trash_dir):
             path = join(trash_dir, p)
