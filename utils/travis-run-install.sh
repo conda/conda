@@ -78,6 +78,7 @@ conda_build_install() {
     conda install -y -q pytest pytest-cov pytest-timeout
     conda install -y -q anaconda-client numpy
     conda install -y -q -c conda-forge perl
+    conda config --set add_pip_as_python_dependency true
     python -m pip install pytest-capturelog pytest-xdist
 
     # install conda-build runtime dependencies
