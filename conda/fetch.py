@@ -296,24 +296,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         finally:
             executor.shutdown(wait=True)
 
-    for channel, repodata in repodatas:
-        if repodata is None:
-            continue
-        new_index = repodata['packages']
-        url_s, priority = channel_urls[channel]
-        channel = channel.rstrip('/')
-        for fn, info in iteritems(new_index):
-            if isinstance(info, string_types):
-                import pdb; pdb.set_trace()
-            info['fn'] = fn
-            info['schannel'] = url_s
-            info['channel'] = channel
-            info['priority'] = priority
-            info['url'] = channel + '/' + fn
-            key = url_s + '::' + fn if url_s != 'defaults' else fn
-            index[key] = info
-
-    def make_index_db(repodatas):
+    def make_index(repodatas):
         result = dict()
         for channel, repodata in repodatas:
             if repodata is None:
@@ -323,11 +306,12 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             for fn, info in iteritems(repodata['packages']):
                 key = url_s + '::' + fn if url_s != 'defaults' else fn
                 url = channel + '/' + fn
-                info.update(dict(fn=fn, schannel=url_s, channel=channel, priority=priority, url=url))
+                info.update(dict(fn=fn, schannel=url_s, channel=channel, priority=priority,
+                                 url=url))
                 result[key] = Record(**info)
         return result
 
-    index = make_index_db(repodatas)
+    index = make_index(repodatas)
 
     stdoutlog.info('\n')
     if unknown:

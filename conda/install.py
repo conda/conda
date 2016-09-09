@@ -824,7 +824,7 @@ def load_linked_data(prefix, dist, rec=None, ignore_channels=False):
     if rec is None:
         try:
             with open(meta_file) as fi:
-                rec = json.load(fi)
+                rec = Record(**json.load(fi))
         except IOError:
             return None
     else:
