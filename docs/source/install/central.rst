@@ -46,9 +46,11 @@ If allow_other_channels is set to false, only those channels explicitly specifie
 
   allow_other_channels: False
 
-When set to true or not specified, then each user will have access to the default channels and to any
-channels that the user specifies in their local .condarc file. If the user specifies other channels, the
-other channels will be blocked and the user will receive a message explaining this. See example below.
+When ``allow_other_channels`` is set to true or not specified, then each user 
+will have access to the default channels and to any channels that the user 
+specifies in their local .condarc file. When ``allow_other_channels`` is set to 
+false, if the user specifies other channels, the other channels will be blocked 
+and the user will receive a message explaining this. See example below.
 
 If the system .condarc  file specifies a channel_alias, it will override any channel aliases set in users'
 .condarc  files. See channel alias below.
