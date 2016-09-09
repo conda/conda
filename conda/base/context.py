@@ -49,6 +49,7 @@ class Context(Configuration):
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
+    client_cert = MapParameter(string_types)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
     proxy_servers = MapParameter(string_types)
@@ -245,6 +246,11 @@ def get_help_dict():
             """),
         'ssl_verify': dals("""
             # ssl_verify can be a boolean value or a filename string
+            """),
+        'client_cert': dals("""
+            # client_cert can have a 'cert' key pointing to a single file
+            # (containing the private key and the certificate) or both 'cert'
+            # and 'key' keys pointing to the individual files
             """),
         'track_features': dals("""
             """),
