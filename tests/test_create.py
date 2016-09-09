@@ -7,6 +7,7 @@ import os
 import pytest
 import sys
 from conda import CondaError, plan
+from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
 from conda.cli.main import generate_parser
@@ -303,7 +304,7 @@ class IntegrationTests(TestCase):
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
                 with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
-                    f.write(json.dumps(repodata).encode('utf-8'))
+                    f.write(json.dumps(repodata, cls=EntityEncoder).encode('utf-8'))
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 

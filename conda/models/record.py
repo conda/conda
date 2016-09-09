@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from copy import deepcopy
-
-from conda.base.constants import Arch, Platform
-from conda.compat import string_types
 from logging import getLogger
 
-from .._vendor.auxlib.entity import Entity, EnumField, StringField, IntegerField, ListField, \
-    ComposableField, BooleanField, MapField
+from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
+                                     EnumField, IntegerField, ListField, StringField)
+from ..base.constants import Arch, Platform
+from ..common.compat import string_types
 
 log = getLogger(__name__)
+
+
+# install.create_meta()
+# install.load_linked_data()
+# install.linked_data_
+
 
 # {
 #   "arch": "x86_64",
@@ -41,37 +45,6 @@ log = getLogger(__name__)
 #   "url": "https://repo.continuum.io/pkgs/free/osx-64/pip-8.1.1-py34_0.tar.bz2",
 #   "version": "8.1.1"
 # }
-
-# install.create_meta()
-# install.load_linked_data()
-# install.linked_data_
-
-
-# class Link(Entity):
-#     source = StringField()
-#     type = StringField()
-#
-#
-# # LinkedPackageData
-# class LinkedPackageData(Entity):
-#     arch = EnumField(Arch, nullable=True)
-#     build = StringField()
-#     build_number = IntegerField()
-#     channel = StringField()
-#     date = StringField()
-#     depends = ListField(string_types)
-#     files = ListField(string_types)
-#     license = StringField()
-#     link = ComposableField(Link)
-#     md5 = StringField()
-#     name = StringField()
-#     platform = EnumField(Platform)
-#     requires = ListField(string_types)
-#     size = IntegerField()
-#     subdir = StringField()
-#     url = StringField()
-#     version = StringField()
-
 
 
 # {
@@ -172,56 +145,56 @@ log = getLogger(__name__)
 # key = url_s + '::' + fn if url_s != 'defaults' else fn
 # index[key] = info
 
-class Record(Entity):
+
+class Link(DictSafeMixin, Entity):
+    source = StringField()
+    type = StringField()
+
+
+# class LinkedPackageData(DictSafeMixin, Entity):
+#     arch = EnumField(Arch, nullable=True)
+#     build = StringField()
+#     build_number = IntegerField()
+#     channel = StringField(required=False)
+#     date = StringField(required=False)
+#     depends = ListField(string_types)
+#     files = ListField(string_types, required=False)
+#     license = StringField(required=False)
+#     link = ComposableField(Link, required=False)
+#     md5 = StringField(required=False, nullable=True)
+#     name = StringField()
+#     platform = EnumField(Platform)
+#     requires = ListField(string_types, required=False)
+#     size = IntegerField(required=False)
+#     subdir = StringField(required=False)
+#     url = StringField(required=False)
+#     version = StringField()
+
+
+class Record(DictSafeMixin, Entity):
     arch = EnumField(Arch, required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()
     date = StringField(required=False)
     depends = ListField(string_types)
     features = StringField(required=False)
-    files = ListField(string_types, required=False)
     has_prefix = BooleanField(required=False)
     license = StringField(required=False)
     license_family = StringField(required=False)
-    md5 = StringField()
+    md5 = StringField(required=False, nullable=True)
     name = StringField()
     platform = EnumField(Platform, required=False, nullable=True)
     requires = ListField(string_types, required=False)
-    size = IntegerField()
+    size = IntegerField(required=False)
     subdir = StringField(required=False)
     track_features = StringField(required=False)
     version = StringField()
 
-    fn = StringField()
-    schannel = StringField()
-    channel = StringField()
-    priority = IntegerField()
-    url = StringField()
+    fn = StringField(required=False)
+    schannel = StringField(required=False)
+    channel = StringField(required=False)
+    priority = IntegerField(required=False)
+    url = StringField(required=False)
 
-    link = MapField(required=False)
-
-    def __getitem__(self, item):
-        return getattr(self, item)
-
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
-
-    def get(self, item, default=None):
-        return getattr(self, item, default)
-
-    def __contains__(self, item):
-        value = getattr(self, item, None)
-        if value is None:
-            return False
-        field = self.__fields__[item]
-        if isinstance(field, (MapField, ListField)):
-            return len(value) > 0
-        return True
-
-    def __iter__(self):
-        for key in self.__fields__:
-            if key in self:
-                yield key, getattr(self, key)
-
-    def copy(self):
-        return deepcopy(self)
+    files = ListField(string_types, required=False)
+    link = ComposableField(Link, required=False)

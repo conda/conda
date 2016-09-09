@@ -36,13 +36,13 @@ import sys
 import tarfile
 import traceback
 from collections import namedtuple
-from conda._vendor.auxlib.entity import EntityEncoder
 from enum import Enum
 from itertools import chain
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
                      normpath)
 
 from . import CondaError
+from ._vendor.auxlib.entity import EntityEncoder
 from .base.constants import UTF8
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
@@ -50,6 +50,7 @@ from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
+from .models.record import Record
 from .utils import on_win
 
 
@@ -412,7 +413,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
     """
     # read info/index.json first
     with open(join(info_dir, 'index.json')) as fi:
-        meta = json.load(fi)
+        meta = Record(**json.load(fi))  # TODO: change to LinkedPackageData
     # add extra info, add to our intenral cache
     meta.update(extra_info)
     if not meta.get('url'):

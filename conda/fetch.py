@@ -14,23 +14,24 @@ import requests
 import shutil
 import tempfile
 import warnings
-from conda._vendor.auxlib.entity import EntityEncoder
 from functools import wraps
 from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
 from requests.packages.urllib3.connectionpool import InsecureRequestWarning
 
+from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.logz import stringify
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import add_username_and_pass_to_url, url_to_path
-from .compat import input, iteritems, itervalues
+from .compat import input, iteritems, itervalues, string_types
 from .connection import CondaSession, RETRIES
-from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError, \
-    ProxyError
+from .exceptions import (CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError,
+                         ProxyError)
 from .install import add_cached_package, dist2pair, find_new_location, package_cache
 from .lock import FileLock
 from .models.channel import Channel, offline_keep
+from .models.record import Record
 from .utils import memoized
 
 log = getLogger(__name__)
@@ -230,7 +231,7 @@ def add_unknown(index, priorities):
             continue
         try:
             with open(join(info['dirs'][0], 'info', 'index.json')) as fi:
-                meta = json.load(fi)
+                meta = Record(**json.load(fi))
         except IOError:
             continue
         if info['urls']:
@@ -302,6 +303,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         url_s, priority = channel_urls[channel]
         channel = channel.rstrip('/')
         for fn, info in iteritems(new_index):
+            if isinstance(info, string_types):
+                import pdb; pdb.set_trace()
             info['fn'] = fn
             info['schannel'] = url_s
             info['channel'] = channel
@@ -312,7 +315,6 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
 
     def make_index_db(repodatas):
         result = dict()
-        from conda.models.record import Record
         for channel, repodata in repodatas:
             if repodata is None:
                 continue
