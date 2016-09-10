@@ -622,7 +622,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
         return
     if url:
         url = url
-    _, schannel = Channel(url).url_channel_wtf
+    schannel = Channel(url).canonical_name
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
     fname_table_[xkey] = fname_table_[path_to_url(xkey)] = prefix

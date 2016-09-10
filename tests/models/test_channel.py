@@ -45,7 +45,7 @@ class ChannelTests(TestCase):
 
     def test_default_channel(self):
         dc = Channel('defaults')
-        assert isinstance(dc, DefaultChannel)
+        # assert isinstance(dc, DefaultChannel)
 
         platform = context.subdir
         assert dc.base_url == 'https://conda.anaconda.org/defaults'
@@ -116,4 +116,32 @@ class ChannelTests(TestCase):
 
         lc_noarch = Channel(local_urls[1])
         assert lc_noarch.canonical_name == "local"
-        assert lc_noarch.urls == local_urls[1:]
+        assert lc_noarch.urls == local_urls
+
+    def test_canonical_name(self):
+        assert Channel('https://repo.continuum.io/pkgs/free').canonical_name == "defaults"
+        assert Channel('http://repo.continuum.io/pkgs/free/linux-64').canonical_name == "defaults"
+        assert Channel('https://conda.anaconda.org/bioconda').canonical_name == "bioconda"
+        assert Channel('http://conda.anaconda.org/bioconda/win-64').canonical_name == "bioconda"
+        assert Channel('http://conda.anaconda.org/bioconda/label/main/osx-64').canonical_name == "bioconda/label/main"
+        assert Channel('http://conda.anaconda.org/t/tk-abc-123-456/bioconda/win-64').canonical_name == "bioconda"
+
+    def test_urls_from_name(self):
+        platform = context.subdir
+        assert Channel("bioconda").urls == ["https://conda.anaconda.org/bioconda/%s/" % platform,
+                                            "https://conda.anaconda.org/bioconda/noarch/"]
+        assert Channel("bioconda/label/dev").urls == [
+            "https://conda.anaconda.org/bioconda/label/dev/%s/" % platform,
+            "https://conda.anaconda.org/bioconda/label/dev/noarch/"]
+
+    def test_regular_url_channels(self):
+        platform = context.subdir
+        c = Channel('https://some.other.com/pkgs/free/')
+        assert c.canonical_name == "https://some.other.com/pkgs/free"
+        assert c.urls == ["https://some.other.com/pkgs/free/%s/" % platform,
+                          "https://some.other.com/pkgs/free/noarch/"]
+
+        c = Channel('https://some.other.com/pkgs/free/noarch')
+        assert c.canonical_name == "https://some.other.com/pkgs/free"
+        assert c.urls == ["https://some.other.com/pkgs/free/%s/" % platform,
+                          "https://some.other.com/pkgs/free/noarch/"]
