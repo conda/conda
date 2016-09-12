@@ -52,6 +52,7 @@ from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
 from .models.record import Record, EMPTY_LINK, Link
 from .utils import on_win
+from .noarch import get_noarch_cls
 
 
 # conda-build compatibility
@@ -924,6 +925,10 @@ def is_linked(prefix, dist):
     return load_meta(prefix, dist)
 
 
+def link_noarch(meta_dict, src_dir):
+    get_noarch_cls(meta_dict.get("noarch"))().link(src_dir)
+
+
 def link(prefix, dist, linktype=LINK_HARD, index=None):
     """
     Set up a package in a specified (environment) prefix.  We assume that
@@ -993,6 +998,10 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
 
         meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
+
+        if meta_dict.get('noarch'):
+            link_noarch(meta_dict, source_dir)
+
         alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
         if isfile(alt_files_path):
             # alt_files_path is a hack for noarch
