@@ -21,7 +21,7 @@ class ContextTests(TestCase):
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://another.url:8080/with/path
-        mapped_custom_channels:
+        old_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
         old_channel_alias: https://conda.anaconda.org

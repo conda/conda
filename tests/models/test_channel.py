@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from conda.base.context import context
 from conda.common.url import path_to_url
-from conda.models.channel import Channel, DefaultChannel, UrlChannel, split_platform
+from conda.models.channel import Channel, UrlChannel, split_platform
 from conda.utils import on_win
 from logging import getLogger
 from unittest import TestCase

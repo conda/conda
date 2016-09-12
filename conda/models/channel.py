@@ -2,10 +2,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import re
-from conda.compat import text_type
 from itertools import chain
 from logging import getLogger
 from os.path import join
+
+try:
+    from cytoolz.functoolz import excepts
+except ImportError:
+    from .._vendor.toolz.functoolz import excepts
 
 from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
 from ..base.context import context
@@ -51,19 +55,24 @@ class ChannelType(type):
 @with_metaclass(ChannelType)
 class Channel(object):
     _cache_ = dict()
-    _channel_alias_netloc = (urlparse(context.channel_alias).netloc,
-                             urlparse(context.old_channel_alias).netloc)
+    _channel_alias_netloc = urlparse(context.channel_alias).netloc
+    _old_channel_alias_netloc = tuple(urlparse(ca).netloc for ca in context.old_channel_aliases)
 
     @staticmethod
     def _reset_state():
         Channel._cache_ = dict()
-        Channel._channel_alias_netloc = (urlparse(context.channel_alias).netloc,
-                                         urlparse(context.old_channel_alias).netloc)
+        Channel._channel_alias_netloc = urlparse(context.channel_alias).netloc
+        Channel._old_channel_alias_netloc = tuple(urlparse(ca).netloc
+                                                  for ca in context.old_channel_aliases)
 
     @property
     def base_url(self):
-        # TODO: account for context.old_channel_alias
-        return urlunparse((self._scheme, self._netloc, self._path.lstrip('/'), None, None, None))
+        _path = excepts(AttributeError, lambda: self._path.lstrip('/'))()
+        if self._netloc in Channel._old_channel_alias_netloc:
+            ca = Channel(context.channel_alias)
+            return urlunparse((ca._scheme, ca._netloc, _path, None, None, None))
+        else:
+            return urlunparse((self._scheme, self._netloc, _path, None, None, None))
 
     def __eq__(self, other):
         return self._netloc == other._netloc and self._path == other._path
@@ -75,7 +84,9 @@ class Channel(object):
     def canonical_name(self):
         if self in context.inverted_channel_map:
             return context.inverted_channel_map[self]
-        elif self._netloc in Channel._channel_alias_netloc:
+        elif self._netloc == Channel._channel_alias_netloc:
+            return self._path.strip('/')
+        elif self._netloc in Channel._old_channel_alias_netloc:
             return self._path.strip('/')
         else:
             return self.base_url
@@ -119,7 +130,7 @@ def split_platform(value):
 
 
 TOKEN_RE = re.compile(r'(/t/[a-z0-9A-Z-]+)?(\S*)?')
-def split_token(value):
+def split_token(value):  # NOQA
     token, path = TOKEN_RE.match(value).groups()
     return token, path or '/'
 
@@ -141,7 +152,8 @@ class UrlChannel(Channel):
         self._token, self._path = split_token(_path)
 
     def __repr__(self):
-        return "UrlChannel(%s)" % urlunparse(('', self._netloc, self._path.lstrip('/'), None, None, None)).lstrip('/')
+        return "UrlChannel(%s)" % urlunparse(('', self._netloc, self._path.lstrip('/'),
+                                              None, None, None)).lstrip('/')
 
 
 class NamedChannel(Channel):

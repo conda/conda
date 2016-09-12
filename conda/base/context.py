@@ -60,7 +60,7 @@ class Context(Configuration):
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))
     channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
-    old_channel_alias = PrimitiveParameter(None, parameter_type=(NoneType, string_types))  # TODO: also take a list of strings  # NOQA
+    old_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings  # NOQA
     default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
     custom_channels = MapParameter(string_types)
     old_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
@@ -222,7 +222,7 @@ class Context(Configuration):
             inverted_channel_map[c] = channel_name
 
         # mapped custom channels (legacy channels)
-        for channel_name, url in iteritems(self.mapped_custom_channels):
+        for channel_name, url in iteritems(self.old_custom_channels):
             c = Channel(url)
             inverted_channel_map[c] = channel_name
 
