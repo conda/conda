@@ -17,6 +17,16 @@ patch = mock.patch
 log = getLogger(__name__)
 
 
+platform = context.subdir
+DEFAULT_URLS = ['https://repo.continuum.io/pkgs/free/%s/' % platform,
+                 'https://repo.continuum.io/pkgs/free/noarch/',
+                 'https://repo.continuum.io/pkgs/pro/%s/' % platform,
+                 'https://repo.continuum.io/pkgs/pro/noarch/']
+if on_win:
+    DEFAULT_URLS.extend(['https://repo.continuum.io/pkgs/msys2/%s/' % platform,
+                          'https://repo.continuum.io/pkgs/msys2/noarch/'])
+
+
 class ChannelTests(TestCase):
 
     def test_channel_cache(self):
@@ -47,17 +57,9 @@ class ChannelTests(TestCase):
         dc = Channel('defaults')
         # assert isinstance(dc, DefaultChannel)
 
-        platform = context.subdir
         assert dc.base_url == 'https://conda.anaconda.org/defaults'
         assert dc.canonical_name == 'defaults'
-        expected_urls = ['https://repo.continuum.io/pkgs/free/%s/' % platform,
-                         'https://repo.continuum.io/pkgs/free/noarch/',
-                         'https://repo.continuum.io/pkgs/pro/%s/' % platform,
-                         'https://repo.continuum.io/pkgs/pro/noarch/']
-        if on_win:
-            expected_urls.extend(['https://repo.continuum.io/pkgs/msys2/%s/' % platform,
-                                  'https://repo.continuum.io/pkgs/msys2/noarch/'])
-        assert dc.urls == expected_urls
+        assert dc.urls == DEFAULT_URLS
 
         assert dc._scheme == "https"
         assert dc._netloc == "conda.anaconda.org"
@@ -75,7 +77,7 @@ class ChannelTests(TestCase):
 
         assert channel.base_url == 'https://repo.continuum.io/pkgs/free'
         assert channel.canonical_name == 'defaults'
-        assert channel.urls == ['https://repo.continuum.io/pkgs/free/osx-64/']
+        assert channel.urls == DEFAULT_URLS
 
     def test_url_channel_wo_platform(self):
         channel = Channel('https://repo.continuum.io/pkgs/free/')
@@ -89,8 +91,7 @@ class ChannelTests(TestCase):
         platform = context.subdir
         assert channel.base_url == 'https://repo.continuum.io/pkgs/free'
         assert channel.canonical_name == 'defaults'
-        assert channel.urls == ['https://repo.continuum.io/pkgs/free/%s/' % platform,
-                                'https://repo.continuum.io/pkgs/free/noarch/']
+        assert channel.urls == DEFAULT_URLS
 
     def test_split_platform(self):
         assert split_platform('/pkgs/free/') == ('/pkgs/free', None)
