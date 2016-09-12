@@ -1,6 +1,8 @@
 Intro to conda
 ==============
 
+**Package, dependency and environment management for any language: Python, R, Scala, Java, Javascript, C/ C++, FORTRAN**
+
 **Conda** is a package manager application that quickly installs, runs, and updates packages and their dependencies.  The **conda command** is the primary interface for managing installations of various packages. It can query and search the package index and current installation, create new environments, and install and update packages into existing conda environments. See our 
 :doc:`/using/index` section for more information.
 
