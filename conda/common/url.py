@@ -7,17 +7,21 @@ from os.path import abspath, expanduser
 
 try:
     # Python 3
-    from urllib.parse import quote, unquote, urlunparse, urljoin  # NOQA
+    from urllib.parse import quote, unquote, urlunparse as stdlib_urlparse, urljoin  # NOQA
     from urllib.request import pathname2url
 except ImportError:
     # Python 2
     from urllib import quote, unquote, pathname2url
-    from urlparse import urlunparse, urljoin  # NOQA
+    from urlparse import urlunparse as stdlib_urlparse, urljoin  # NOQA
 
 from requests.packages.urllib3.util.url import parse_url
 from requests.packages.urllib3.exceptions import LocationParseError
 
 log = getLogger(__name__)
+
+
+def urlunparse(data):
+    return stdlib_urlparse(data) or None
 
 
 def path_to_url(path):

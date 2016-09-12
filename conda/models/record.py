@@ -191,10 +191,10 @@ class Record(DictSafeMixin, Entity):
     version = StringField()
 
     fn = StringField(required=False)
-    schannel = StringField(required=False)
-    channel = StringField(required=False)
+    schannel = StringField(required=False, nullable=True)
+    channel = StringField(required=False, nullable=True)
     priority = IntegerField(required=False)
-    url = StringField(required=False)
+    url = StringField(required=False, nullable=True)
 
     files = ListField(string_types, required=False)
     link = ComposableField(Link, required=False)

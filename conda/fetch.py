@@ -24,7 +24,7 @@ from ._vendor.auxlib.logz import stringify
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import add_username_and_pass_to_url, url_to_path
-from .compat import input, iteritems, itervalues, string_types
+from .compat import input, iteritems, itervalues
 from .connection import CondaSession, RETRIES
 from .exceptions import (CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError,
                          ProxyError)
