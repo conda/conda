@@ -39,8 +39,8 @@ class ChannelType(type):
             return value
         elif value in Channel._cache_:
             return Channel._cache_[value]
-        elif value in _SPECIAL_CHANNELS:
-            self = object.__new__(_SPECIAL_CHANNELS[value])
+        elif value is None:
+            self = object.__new__(NoneChannel)
         elif value.endswith('.tar.bz2'):
             self = object.__new__(UrlChannel)
         elif has_scheme(value):
@@ -205,8 +205,3 @@ def prioritize_channels(channels):
 
 def offline_keep(url):
     return not context.offline or not is_url(url) or url.startswith('file:/')
-
-
-_SPECIAL_CHANNELS = {
-    None: NoneChannel,
-}
