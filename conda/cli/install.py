@@ -15,7 +15,7 @@ import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from .. import CondaError, text_type
+from .. import text_type
 from .._vendor.auxlib.ish import dals
 from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
