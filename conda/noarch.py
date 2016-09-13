@@ -45,7 +45,7 @@ class NoArchPython(NoArch):
 
     def link(self, src_dir):
         # map directories (site-packages)
-        # deal with setup.py scripts
+        # deal with setup.py scripts (copied into right dir)
         # deal with entry points
         # compile pyc files
 
@@ -62,9 +62,28 @@ class NoArchPython(NoArch):
         pass
 
 
+def get_files_in_dir(src_dir):
+    return [os.path.join(src_dir, fn) for fn in next(
+        os.walk(src_dir))[2]]
+
+
+def get_dirs_in_dir(src_dir):
+    return [os.path.join(src_dir, fn) for fn in next(
+        os.walk(src_dir))[1]]
+
+
+def get_all_files_in_dir(src_dir):
+    files = []
+    files.extend(get_files_in_dir(src_dir))
+    paths = get_dirs_in_dir(src_dir)
+    for path in paths:
+        files.extend(get_all_files_in_dir(path))
+    return files
+
+
 def list_site_package(src_dir):
-    # TODO: return a list of all the files in src_dir/site-packages
-    pass
+    site_packages_dir = os.path.join(src_dir, "site-packages")
+    return get_all_files_in_dir(site_packages_dir)
 
 
 def link_files(src_root, dst_root, files, src_dir):
@@ -77,9 +96,8 @@ def link_files(src_root, dst_root, files, src_dir):
         if exists(dst):
             unlink_package(dst)
         link_package(src, dst)
-        f = '%s/%s' % (dst_root, f)
         # TODO: do we need to keep track of files?
-
+        # f = '%s/%s' % (dst_root, f)
         # FILES.append(f)
         # if f.endswith('.py'):
         #     FILES.append(pyc_f(f))
