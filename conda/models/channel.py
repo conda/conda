@@ -169,7 +169,7 @@ class NamedChannel(Channel):
             parsed = urlparse(context.channel_alias)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
-        self._path = join(parsed.path, name)
+        self._path = join(parsed.path or '/', name)
         self._platform = None
 
     def __repr__(self):

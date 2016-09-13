@@ -13,10 +13,12 @@ from unittest import TestCase
 
 log = getLogger(__name__)
 
+platform = context.subdir
+
 
 class ContextTests(TestCase):
 
-    def test_old_custom_channels(self):
+    def setUp(self):
         string = dals("""
         custom_channels:
           darwin: https://some.url.somewhere/stuff
@@ -24,14 +26,19 @@ class ContextTests(TestCase):
         old_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
-        old_channel_alias: https://conda.anaconda.org
+        old_channel_aliases:
+          - https://conda.anaconda.org
         channel_alias: ftp://new.url:8082
         """)
-        platform = context.subdir
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._add_raw_data(rd)
+        Channel._reset_state()
 
+    def tearDown(self):
+        reset_context()
+
+    def test_old_custom_channels(self):
         assert Channel('https://some.url.somewhere/stuff/noarch/a-mighty-fine.tar.bz2').canonical_name == 'darwin'
         assert Channel('s3://just/cant/noarch/a-mighty-fine.tar.bz2').canonical_name == 'darwin'
         assert Channel('s3://just/cant/noarch/a-mighty-fine.tar.bz2').urls == [
@@ -39,6 +46,14 @@ class ContextTests(TestCase):
             'https://some.url.somewhere/stuff/noarch/']
 
     def test_old_channel_alias(self):
-        assert False
+        cf_urls = ["ftp://new.url:8082/conda-forge/%s/" % platform, "ftp://new.url:8082/conda-forge/noarch/"]
+        assert Channel('conda-forge').urls == cf_urls
 
-
+        url = "https://conda.anaconda.org/conda-forge/osx-64/some-great-package.tar.bz2"
+        assert Channel(url).canonical_name == 'conda-forge'
+        assert Channel(url).base_url == 'ftp://new.url:8082/conda-forge'
+        assert Channel(url).urls == cf_urls
+        assert Channel("https://conda.anaconda.org/conda-forge/label/dev/linux-64/"
+                       "some-great-package.tar.bz2").urls == [
+            "ftp://new.url:8082/conda-forge/label/dev/%s/" % platform,
+            "ftp://new.url:8082/conda-forge/label/dev/noarch/"]
