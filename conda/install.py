@@ -390,7 +390,7 @@ def dist2pair(dist):
 def dist2quad(dist):
     channel, dist = dist2pair(dist)
     parts = dist.rsplit('-', 2) + ['', '']
-    return (parts[0], parts[1], parts[2], channel)
+    return (str(parts[0]), str(parts[1]), str(parts[2]), str(channel))
 
 
 def dist2name(dist):
@@ -482,11 +482,11 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         args = [shell_path, path]
     env = os.environ
-    env['ROOT_PREFIX'] = sys.prefix
-    env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'], _ = dist2quad(dist)
+    env[str('ROOT_PREFIX')] = sys.prefix
+    env[str('PREFIX')] = str(env_prefix or prefix)
+    env[str('PKG_NAME')], env[str('PKG_VERSION')], env[str('PKG_BUILDNUM')], _ = dist2quad(dist)
     if action == 'pre-link':
-        env['SOURCE_DIR'] = str(prefix)
+        env[str('SOURCE_DIR')] = str(prefix)
     try:
         subprocess.check_call(args, env=env)
     except subprocess.CalledProcessError:
