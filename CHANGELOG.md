@@ -1,10 +1,18 @@
 ## 4.3.0 (unreleased)
 
-### Improvements
-* improved file removal on all platforms (#3280)
-
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
+
+
+## 4.2.6 (2016-09-14)
+
+### Improvements
+* add support for client TLS certificates (#3419)
+
+### Bug Fixes
+* fix #3409 unsatisfiable dependecy error message (#3412)
+* fix #3408 quiet rm_rf (#3413)
+* fix #3407 padding error messaging (#3416)
 
 
 ## 4.2.5 (2016-09-08)
