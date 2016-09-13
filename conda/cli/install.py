@@ -367,7 +367,7 @@ def install(args, parser, command='install'):
         # Unsatisfiable package specifications/no such revision/import error
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError(text_type(e))
-        raise CondaError('UnsatisfiableSpecifications', e)
+        raise
 
     if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
