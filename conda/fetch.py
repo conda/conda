@@ -256,11 +256,12 @@ def add_unknown(index, priorities):
         log.debug("adding cached pkg to index: %s" % fkey)
         index[fkey] = meta
 
+
 def add_pip_dependency(index):
     for info in itervalues(index):
         if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
             info['depends'] = info['depends'] + ('pip',)
-            # info.setdefault('depends', []).append('pip')
+
 
 def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     log.debug('channel_urls=' + repr(channel_urls))
