@@ -23,10 +23,10 @@ class ContextTests(TestCase):
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://another.url:8080/with/path
-        old_custom_channels:
+        migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
-        old_channel_aliases:
+        migrated_channel_aliases:
           - https://conda.anaconda.org
         channel_alias: ftp://new.url:8082
         """)
@@ -38,7 +38,7 @@ class ContextTests(TestCase):
     def tearDown(self):
         reset_context()
 
-    def test_old_custom_channels(self):
+    def test_migrated_custom_channels(self):
         assert Channel('https://some.url.somewhere/stuff/noarch/a-mighty-fine.tar.bz2').canonical_name == 'darwin'
         assert Channel('s3://just/cant/noarch/a-mighty-fine.tar.bz2').canonical_name == 'darwin'
         assert Channel('s3://just/cant/noarch/a-mighty-fine.tar.bz2').urls == [

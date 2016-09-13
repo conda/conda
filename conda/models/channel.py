@@ -56,14 +56,15 @@ class ChannelType(type):
 class Channel(object):
     _cache_ = dict()
     _channel_alias_netloc = urlparse(context.channel_alias).netloc
-    _old_channel_alias_netloc = tuple(urlparse(ca).netloc for ca in context.old_channel_aliases)
+    _old_channel_alias_netloc = tuple(urlparse(ca).netloc
+                                      for ca in context.migrated_channel_aliases)
 
     @staticmethod
     def _reset_state():
         Channel._cache_ = dict()
         Channel._channel_alias_netloc = urlparse(context.channel_alias).netloc
         Channel._old_channel_alias_netloc = tuple(urlparse(ca).netloc
-                                                  for ca in context.old_channel_aliases)
+                                                  for ca in context.migrated_channel_aliases)
 
     @property
     def base_url(self):
