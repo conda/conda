@@ -1,4 +1,4 @@
-## 4.2.5 (2016-09-14)
+## 4.2.6 (2016-09-14)
 
 ### Improvements
 * add support for client TLS certificates (#3419)
