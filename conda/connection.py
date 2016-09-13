@@ -147,6 +147,11 @@ class CondaSession(requests.Session):
 
         self.verify = context.ssl_verify
 
+        if context.client_cert_key:
+            self.cert = (context.client_cert, context.client_cert_key)
+        elif context.client_cert:
+            self.cert = context.client_cert
+
 
 class S3Adapter(requests.adapters.BaseAdapter):
 

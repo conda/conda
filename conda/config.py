@@ -53,6 +53,8 @@ rc_bool_keys = [
 rc_string_keys = [
     'ssl_verify',
     'channel_alias',
+    'client_cert',
+    'client_cert_key',
 ]
 
 # Not supported by conda config yet

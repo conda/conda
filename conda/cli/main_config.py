@@ -283,6 +283,8 @@ def execute_config(args, parser):
                                            'channel_alias',
                                            'channel_priority',
                                            'channels',
+                                           'client_cert',
+                                           'client_cert_key',
                                            'create_default_packages',
                                            'debug',
                                            'default_channels',
