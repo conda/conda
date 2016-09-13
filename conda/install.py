@@ -248,6 +248,10 @@ def read_has_prefix(path):
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 
 
+class _PaddingError(Exception):
+    pass
+
+
 def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
@@ -261,7 +265,7 @@ def binary_replace(data, a, b):
         occurances = match.group().count(a)
         padding = (len(a) - len(b))*occurances
         if padding < 0:
-            raise PaddingError(a, b, padding)
+            raise _PaddingError
         return match.group().replace(a, b) + b'\0' * padding
 
     original_data_len = len(data)
@@ -968,9 +972,8 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             placeholder, mode = has_prefix_files[filepath]
             try:
                 update_prefix(join(prefix, filepath), prefix, placeholder, mode)
-            except PaddingError:
-                raise PaddingError("ERROR: placeholder '%s' too short in: %s\n" %
-                                   (placeholder, dist))
+            except _PaddingError:
+                raise PaddingError(dist, placeholder, len(placeholder))
 
         # make sure that the child environment behaves like the parent,
         #    wrt user/system install on win

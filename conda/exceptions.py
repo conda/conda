@@ -128,8 +128,9 @@ class SubprocessExit(CondaError):
 
 
 class PaddingError(CondaError):
-    def __init__(self, *args):
-        msg = 'Padding error: %s' % ' '.join(text_type(arg) for arg in self.args)
+    def __init__(self, dist, placeholder, placeholder_length):
+        msg = ("Placeholder of length '%d' too short in package %s.\n"
+               "The package must be rebuilt with conda-build > 2.0." % (placeholder_length, dist))
         super(PaddingError, self).__init__(msg)
 
 
