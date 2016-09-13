@@ -192,7 +192,7 @@ def rm_rf(path, max_retries=5, trash=True):
                     move_result = move_path_to_trash(path)
                     if move_result:
                         return True
-                log.warn("Failed to remove %s.", path)
+                log.info("Failed to remove %s.", path)
 
         elif isdir(path):
             try:
@@ -212,7 +212,7 @@ def rm_rf(path, max_retries=5, trash=True):
         return True
     finally:
         if exists(path):
-            log.error("rm_rf failed for %s", path)
+            log.info("rm_rf failed for %s", path)
             return False
 
 
