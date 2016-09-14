@@ -19,17 +19,19 @@ from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
 from requests.packages.urllib3.connectionpool import InsecureRequestWarning
 
+from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.logz import stringify
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import add_username_and_pass_to_url, url_to_path
 from .compat import input, iteritems, itervalues
 from .connection import CondaSession, RETRIES
-from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError, \
-    ProxyError
+from .exceptions import (CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError,
+                         ProxyError)
 from .install import add_cached_package, dist2pair, find_new_location, package_cache
 from .lock import FileLock
 from .models.channel import Channel, offline_keep
+from .models.record import Record
 from .utils import memoized
 
 log = getLogger(__name__)
@@ -188,7 +190,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     cache['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
-            json.dump(cache, fo, indent=2, sort_keys=True)
+            json.dump(cache, fo, indent=2, sort_keys=True, cls=EntityEncoder)
     except IOError:
         pass
 
@@ -229,7 +231,7 @@ def add_unknown(index, priorities):
             continue
         try:
             with open(join(info['dirs'][0], 'info', 'index.json')) as fi:
-                meta = json.load(fi)
+                meta = Record(**json.load(fi))
         except IOError:
             continue
         if info['urls']:
@@ -254,11 +256,12 @@ def add_unknown(index, priorities):
         log.debug("adding cached pkg to index: %s" % fkey)
         index[fkey] = meta
 
+
 def add_pip_dependency(index):
     for info in itervalues(index):
-        if (info['name'] == 'python' and
-                info['version'].startswith(('2.', '3.'))):
-            info.setdefault('depends', []).append('pip')
+        if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
+            info['depends'] = info['depends'] + ('pip',)
+
 
 def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     log.debug('channel_urls=' + repr(channel_urls))
@@ -294,20 +297,22 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         finally:
             executor.shutdown(wait=True)
 
-    for channel, repodata in repodatas:
-        if repodata is None:
-            continue
-        new_index = repodata['packages']
-        url_s, priority = channel_urls[channel]
-        channel = channel.rstrip('/')
-        for fn, info in iteritems(new_index):
-            info['fn'] = fn
-            info['schannel'] = url_s
-            info['channel'] = channel
-            info['priority'] = priority
-            info['url'] = channel + '/' + fn
-            key = url_s + '::' + fn if url_s != 'defaults' else fn
-            index[key] = info
+    def make_index(repodatas):
+        result = dict()
+        for channel, repodata in repodatas:
+            if repodata is None:
+                continue
+            url_s, priority = channel_urls[channel]
+            channel = channel.rstrip('/')
+            for fn, info in iteritems(repodata['packages']):
+                key = url_s + '::' + fn if url_s != 'defaults' else fn
+                url = channel + '/' + fn
+                info.update(dict(fn=fn, schannel=url_s, channel=channel, priority=priority,
+                                 url=url))
+                result[key] = Record(**info)
+        return result
+
+    index = make_index(repodatas)
 
     stdoutlog.info('\n')
     if unknown:

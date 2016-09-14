@@ -16,6 +16,7 @@ import re
 import shutil
 import tarfile
 import tempfile
+from conda._vendor.auxlib.entity import EntityEncoder
 from os.path import basename, dirname, isfile, islink, join, abspath, isdir
 
 from ..base.context import context, get_prefix
@@ -170,7 +171,7 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
             fo.write(f + '\n')
 
     with open(join(info_dir, 'index.json'), 'w') as fo:
-        json.dump(info, fo, indent=2, sort_keys=True)
+        json.dump(info, fo, indent=2, sort_keys=True, cls=EntityEncoder)
 
     if has_prefix:
         with open(join(info_dir, 'has_prefix'), 'w') as fo:

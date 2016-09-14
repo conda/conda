@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import os
 import sys
+from conda._vendor.auxlib.entity import EntityEncoder
 from logging import getLogger
 from traceback import format_exc
 
@@ -387,7 +388,8 @@ def print_conda_exception(exception):
         # stdoutlogger.info('https://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
         # stdoutlogger.info('http://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
         # stdoutlogger.info('http://helloworld.com:8888/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
+        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
+                                     cls=EntityEncoder))
     else:
         stderrlogger.info(repr(exception))
 
