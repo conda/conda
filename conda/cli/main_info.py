@@ -194,10 +194,14 @@ def execute(args, parser):
         requests_version = "Error %s" % e
 
     try:
-        cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
-        conda_env_version = cenv[0]['version']
+        import conda_env
+        conda_env_version = conda_env.__version__
     except:
-        conda_env_version = "not installed"
+        try:
+            cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
+            conda_env_version = cenv[0]['version']
+        except:
+            conda_env_version = "not installed"
 
     try:
         import conda_build
