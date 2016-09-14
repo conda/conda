@@ -95,6 +95,8 @@ conda_build_install() {
     python setup.py install
     conda info
     popd
+
+    git clone https://github.com/conda/conda_build_test_recipe.git
 }
 
 
