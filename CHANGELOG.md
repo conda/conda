@@ -2,6 +2,8 @@
 
 ### Improvements
 * add support for client TLS certificates (#3419)
+* address #3267 allow migration of channel_alias (#3410)
+* conda-env version matches conda version (#3422)
 
 ### Bug Fixes
 * fix #3409 unsatisfiable dependecy error message (#3412)
