@@ -16,6 +16,8 @@ class Link(DictSafeMixin, Entity):
     type = StringField()
 
 
+EMPTY_LINK = Link(source='', type='')
+
 # TODO: eventually stop mixing Record with LinkedPackageData
 # class LinkedPackageData(DictSafeMixin, Entity):
 #     arch = EnumField(Arch, nullable=True)
