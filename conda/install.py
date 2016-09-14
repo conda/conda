@@ -50,7 +50,7 @@ from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
-from .models.record import Record
+from .models.record import Record, EMPTY_LINK, Link
 from .utils import on_win
 
 
@@ -849,7 +849,7 @@ def load_linked_data(prefix, dist, rec=None, ignore_channels=False):
     rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
-    rec['link'] = rec.get('link') or True
+    rec['link'] = rec.get('link') or EMPTY_LINK
     if ignore_channels:
         linked_data_[prefix][dname] = rec
     else:
@@ -999,8 +999,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             meta_dict['files'] = list(yield_lines(alt_files_path))
         else:
             meta_dict['files'] = files
-        meta_dict['link'] = {'source': source_dir,
-                             'type': link_name_map.get(linktype)}
+        meta_dict['link'] = Link(source=source_dir, type=link_name_map.get(linktype))
         if 'icon' in meta_dict:
             meta_dict['icondata'] = read_icondata(source_dir)
 

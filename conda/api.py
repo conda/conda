@@ -1,5 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
+from conda.models.record import EMPTY_LINK
+
 from . import install
 from .base.context import context
 from .compat import iteritems, itervalues
@@ -34,7 +36,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
             if key in index:
                 # Copy the link information so the resolver knows this is installed
                 index[key] = index[key].copy()
-                index[key]['link'] = info.get('link') or True
+                index[key]['link'] = info.get('link') or EMPTY_LINK
             else:
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
