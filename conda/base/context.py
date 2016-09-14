@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from collections import defaultdict
+
 import os
 import sys
-from conda._vendor.auxlib.path import expand
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
@@ -12,11 +13,13 @@ from platform import machine
 from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda
 from .._vendor.auxlib.compat import NoneType, string_types
 from .._vendor.auxlib.ish import dals
+from .._vendor.auxlib.path import expand
 from .._vendor.toolz.itertoolz import concatv
 from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
                                     SequenceParameter)
-from ..common.url import urlparse
+from ..common.url import urlparse, path_to_url
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
+from ..common.compat import iteritems
 
 log = getLogger(__name__)
 
@@ -57,9 +60,12 @@ class Context(Configuration):
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
 
     # channels
-    channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
     channels = SequenceParameter(string_types, default=('defaults',))
+    channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
+    migrated_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings  # NOQA
     default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
+    custom_channels = MapParameter(string_types)
+    migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
 
     # command line
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -193,6 +199,49 @@ class Context(Configuration):
         return (urlparse(self.channel_alias).hostname,
                 'anaconda.org',
                 'binstar.org')
+
+    def _build_channel_map(self):
+        from ..models.channel import Channel
+        channel_map = defaultdict(list)
+        inverted_channel_map = dict()
+
+        # local
+        local = Channel(path_to_url(self.local_build_root))
+        channel_map['local'].append(local)
+        inverted_channel_map[local] = 'local'
+
+        # defaults
+        if self.default_channels:
+            for url in self.default_channels:
+                c = Channel(url)
+                channel_map['defaults'].append(c)
+                inverted_channel_map[c] = 'defaults'
+
+        # custom channels
+        for channel_name, url in iteritems(self.custom_channels):
+            c = Channel(url)
+            channel_map[channel_name].append(c)
+            inverted_channel_map[c] = channel_name
+
+        # mapped custom channels (legacy channels)
+        for channel_name, url in iteritems(self.migrated_custom_channels):
+            c = Channel(url)
+            inverted_channel_map[c] = channel_name
+
+        self._cache['channel_map'] = channel_map
+        self._cache['inverted_channel_map'] = inverted_channel_map
+
+    @property
+    def channel_map(self):
+        if 'channel_map' not in self._cache:
+            self._build_channel_map()
+        return self._cache['channel_map']
+
+    @property
+    def inverted_channel_map(self):
+        if 'inverted_channel_map' not in self._cache:
+            self._build_channel_map()
+        return self._cache['inverted_channel_map']
 
 
 def conda_in_private_env():
