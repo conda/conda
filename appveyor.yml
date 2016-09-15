@@ -51,7 +51,7 @@ install:
   - setx PATH "%ANACONDA_PATH%"
   - conda info
   - conda config --set always_yes yes
-  - conda install --force --no-deps -q conda psutil requests
+  - conda update conda
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
@@ -60,16 +60,14 @@ install:
   - conda install -q pytest requests mock
   - conda install -q pycrypto pyflakes pycosat
   - conda install -q git menuinst
-  - conda install yaml
-  - conda install anaconda-client
-  - conda install nbformat
+  - conda install -q ruamel_yaml
+  - conda install -q anaconda-client
+  - conda install -q nbformat
   - conda install -q enum34 || WHOAMI
   - pip install flake8 pytest-cov pytest-timeout responses
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
-  - python setup.py install --old-and-unmanageable
-  - conda remove --force -q -y ruamel_yaml || WHOAMI
-  - pip install -U ruamel.yaml
+  - python setup.py install
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
