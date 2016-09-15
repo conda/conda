@@ -240,7 +240,7 @@ class EnvRawParameter(RawParameter):
     @classmethod
     def make_raw_parameters(cls, appname):
         keystart = "{0}_".format(appname.upper())
-        raw_env = dict((k.replace(keystart, '').lower(), v)
+        raw_env = dict((k.replace(keystart, '', 1).lower(), v)
                        for k, v in iteritems(environ) if k.startswith(keystart))
         return super(EnvRawParameter, cls).make_raw_parameters(EnvRawParameter.source, raw_env)
 

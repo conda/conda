@@ -46,6 +46,7 @@ class Context(Configuration):
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
+    anaconda_token = PrimitiveParameter('')
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)

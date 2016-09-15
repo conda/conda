@@ -31,14 +31,6 @@ matrix:
       env: CONDA_BUILD=2.0.1
       os: linux
       language: python
-    - python: '3.5'
-      env: CONDA_BUILD=2.0.0
-      os: linux
-      language: python
-    - python: '3.5'
-      env: CONDA_BUILD=1.21.11
-      os: linux
-      language: python
 
 install:
   - which -a python

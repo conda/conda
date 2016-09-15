@@ -8,6 +8,22 @@
 * remove unnecessary eval (#3428)
 
 
+## 4.1.13 (unreleased)
+
+### Non-User-Facing Changes
+* use install.rm_rf for TemporaryDirectory cleanup (#3425)
+
+
+## 4.2.7 (2016-09-15)
+
+### Bug Fixes
+* don't add binstar token if it's given in the channel spec (#3427, #3440)
+* fix #3433 failure to remove broken symlinks (#3436)
+
+### Non-User-Facing Changes
+* use install.rm_rf for TemporaryDirectory cleanup (#3425)
+
+
 ## 4.2.6 (2016-09-14)
 
 ### Improvements

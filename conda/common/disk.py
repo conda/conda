@@ -5,14 +5,14 @@ import sys
 from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
-from os import W_OK, access, chmod, getpid, makedirs, rename, stat, unlink, walk, listdir
-from os.path import basename, dirname, exists, isdir, isfile, islink, join, abspath
+from os import W_OK, access, chmod, getpid, listdir, lstat, makedirs, rename, unlink, walk
+from os.path import abspath, basename, dirname, isdir, join, lexists
 from shutil import rmtree
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 from time import sleep
 from uuid import uuid4
 
-from ..compat import text_type
+from ..compat import lchmod, text_type
 from ..utils import on_win
 
 __all__ = ["rm_rf", "exp_backoff_fn", "try_write"]
@@ -56,7 +56,7 @@ def backoff_unlink(file_or_symlink_path):
         unlink(path)
 
     try:
-        exp_backoff_fn(lambda f: exists(f) and _unlink(f), file_or_symlink_path)
+        exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path)
     except (IOError, OSError) as e:
         if e.errno not in (ENOENT,):
             # errno.ENOENT File not found error / No such file or directory
@@ -99,16 +99,19 @@ def backoff_rmdir(dirpath):
 
 def make_writable(path):
     try:
-        mode = stat(path).st_mode
+        mode = lstat(path).st_mode
         if S_ISDIR(mode):
             chmod(path, S_IMODE(mode) | S_IWRITE | S_IEXEC)
-        elif S_ISREG(mode) or S_ISLNK(mode):
+        elif S_ISREG(mode):
             chmod(path, S_IMODE(mode) | S_IWRITE)
+        elif S_ISLNK(mode):
+            lchmod(path, S_IMODE(mode) | S_IWRITE)
         else:
             log.debug("path cannot be made writable: %s", path)
     except Exception as e:
         eno = getattr(e, 'errno', None)
         if eno in (ENOENT,):
+            log.debug("tried to make writable, but didn't exist: %s", path)
             raise
         elif eno in (EACCES, EPERM):
             log.debug("tried make writable but failed: %s\n%r", path, e)
@@ -179,22 +182,7 @@ def rm_rf(path, max_retries=5, trash=True):
     try:
         path = abspath(path)
         log.debug("rm_rf %s", path)
-        if islink(path) or isfile(path):
-            # Note that we have to check if the destination is a link because
-            # exists('/path/to/dead-link') will return False, although
-            # islink('/path/to/dead-link') is True.
-            try:
-                backoff_unlink(path)
-                return True
-            except (OSError, IOError) as e:
-                log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
-                if trash:
-                    move_result = move_path_to_trash(path)
-                    if move_result:
-                        return True
-                log.info("Failed to remove %s.", path)
-
-        elif isdir(path):
+        if isdir(path):
             try:
                 # On Windows, always move to trash first.
                 if trash and on_win:
@@ -207,11 +195,23 @@ def rm_rf(path, max_retries=5, trash=True):
                 if not isdir(path):
                     from conda.install import delete_linked_data_any
                     delete_linked_data_any(path)
+        elif lexists(path):
+            try:
+                backoff_unlink(path)
+                return True
+            except (OSError, IOError) as e:
+                log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
+                if trash:
+                    move_result = move_path_to_trash(path)
+                    if move_result:
+                        return True
+                log.info("Failed to remove %s.", path)
+
         else:
             log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
         return True
     finally:
-        if exists(path):
+        if lexists(path):
             log.info("rm_rf failed for %s", path)
             return False
 
@@ -220,7 +220,7 @@ def delete_trash(prefix=None):
     from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
-        if not exists(trash_dir):
+        if not lexists(trash_dir):
             log.debug("Trash directory %s doesn't exist. Moving on.", trash_dir)
             continue
         log.debug("removing trash for %s", trash_dir)

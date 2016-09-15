@@ -55,7 +55,7 @@ from .utils import on_win
 
 
 # conda-build compatibility
-from .common.disk import delete_trash, move_to_trash  # NOQA
+from .common.disk import delete_trash, move_to_trash, move_path_to_trash  # NOQA
 
 
 if on_win:
@@ -483,7 +483,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     else:
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         args = [shell_path, path]
-    env = os.environ
+    env = os.environ.copy()
     env[str('ROOT_PREFIX')] = sys.prefix
     env[str('PREFIX')] = str(env_prefix or prefix)
     env[str('PKG_NAME')], env[str('PKG_VERSION')], env[str('PKG_BUILDNUM')], _ = dist2quad(dist)
