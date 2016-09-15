@@ -53,7 +53,7 @@ from .utils import on_win
 
 
 # conda-build compatibility
-from .common.disk import delete_trash, move_to_trash  # NOQA
+from .common.disk import delete_trash, move_to_trash, move_path_to_trash  # NOQA
 
 
 if on_win:
