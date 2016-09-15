@@ -61,29 +61,10 @@ class NoArchPython(NoArch):
     def unlink(self):
         pass
 
-
-def get_files_in_dir(src_dir):
-    return [os.path.join(src_dir, fn) for fn in next(
-        os.walk(src_dir))[2]]
-
-
-def get_dirs_in_dir(src_dir):
-    return [os.path.join(src_dir, fn) for fn in next(
-        os.walk(src_dir))[1]]
-
-
-def get_all_files_in_dir(src_dir):
-    files = []
-    files.extend(get_files_in_dir(src_dir))
-    paths = get_dirs_in_dir(src_dir)
-    for path in paths:
-        files.extend(get_all_files_in_dir(path))
-    return files
-
-
 def list_site_package(src_dir):
     site_packages_dir = os.path.join(src_dir, "site-packages")
-    return get_all_files_in_dir(site_packages_dir)
+    import pdb; pdb.set_trace()
+    # return get_all_files_in_dir(site_packages_dir)
 
 
 def link_files(src_root, dst_root, files, src_dir):
