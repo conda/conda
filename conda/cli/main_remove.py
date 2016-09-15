@@ -195,7 +195,7 @@ def execute(args, parser):
         if specs:
             try:
                 with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                    f.write('# remove specs: %s\n' % specs)
+                    f.write('# remove specs: %s\n' % ','.join(specs))
             except IOError as e:
                 if e.errno == errno.EACCES:
                     log.debug("Can't write the history file")

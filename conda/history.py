@@ -1,5 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
+import json
+
 import errno
 import logging
 import os
@@ -153,7 +155,7 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    item['specs'] = eval(specs)
+                    item['specs'] = json.loads(specs.replace("'", '"'))
             if 'cmd' in item:
                 res.append(item)
         return res
