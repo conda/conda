@@ -67,8 +67,8 @@ from conda.version import VersionOrder  # NOQA
 VersionOrder = VersionOrder
 
 
-import conda.base.context
-import conda.exceptions
+import conda.base.context  # NOQA
+import conda.exceptions  # NOQA
 from conda.base.context import get_prefix as context_get_prefix, non_x86_linux_machines  # NOQA
 non_x86_linux_machines = non_x86_linux_machines
 
