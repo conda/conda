@@ -258,6 +258,10 @@ class IntegrationTests(TestCase):
             assert any(line.endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
+            # regression test for #3433
+            run_command(Commands.INSTALL, prefix, "python=3.4")
+            assert_package_is_installed(prefix, 'python-3.4.')
+
     @pytest.mark.timeout(300)
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1") as prefix:
