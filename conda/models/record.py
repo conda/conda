@@ -42,7 +42,7 @@ class Record(DictSafeMixin, Entity):
     build = StringField()
     build_number = IntegerField()
     date = StringField(required=False)
-    depends = ListField(string_types)
+    depends = ListField(string_types, required=False)
     features = StringField(required=False)
     has_prefix = BooleanField(required=False)
     license = StringField(required=False)
