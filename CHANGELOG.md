@@ -1,3 +1,9 @@
+## 4.2.7 (2016-09-15)
+
+### Bug Fixes
+* don't add binstar token if it's given in the channel spec (#3427)
+
+
 ## 4.2.6 (2016-09-14)
 
 ### Improvements
