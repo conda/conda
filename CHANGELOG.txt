@@ -1,3 +1,8 @@
+4.1.13 (unreleased):
+--------------------
+  * use install.rm_rf for TemporaryDirectory cleanup, #3425
+
+
 2016-09-08  4.1.12:
 -------------------
   * fix #2837 "File exists" in symlinked path with parallel activations, #3210
