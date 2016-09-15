@@ -62,7 +62,10 @@ class ContextTests(TestCase):
             "ftp://new.url:8082/conda-forge/label/dev/noarch/"]
 
     def test_anaconda_token(self):
-        assert context.anaconda_token == 'tk-123-456-cba'
-        os.environ['CONDA_ANACONDA_TOKEN'] = 'tk-123-789-def'
-        reset_context()
-        assert context.anaconda_token == 'tk-123-789-def'
+        try:
+            assert context.anaconda_token == 'tk-123-456-cba'
+            os.environ['CONDA_ANACONDA_TOKEN'] = 'tk-123-789-def'
+            reset_context()
+            assert context.anaconda_token == 'tk-123-789-def'
+        finally:
+            os.environ.pop('CONDA_ANACONDA_TOKEN', None)
