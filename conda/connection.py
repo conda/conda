@@ -24,11 +24,12 @@ from requests.packages.urllib3.util import Url
 from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context
+from .common.disk import rm_rf
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
+from .models.channel import split_token
 from .utils import gnu_get_libc_version
-from conda.common.disk import rm_rf
 
 RETRIES = 3
 
@@ -70,7 +71,7 @@ class BinstarAuth(AuthBase):
 
     @staticmethod
     def add_binstar_token(url):
-        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url(url):
+        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url_needing_token(url):
             return url
         token = BinstarAuth.get_binstar_token(url)
         if token is None:
@@ -107,8 +108,11 @@ class BinstarAuth(AuthBase):
             return None
 
     @staticmethod
-    def is_binstar_url(url):
+    def is_binstar_url_needing_token(url):
         urlparts = urlparse(url)
+        token, path = split_token(urlparts.path)
+        if token:  # url already has token
+            return False
         return (urlparts.scheme in ('http', 'https') and
                 any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
 

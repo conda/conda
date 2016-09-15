@@ -69,6 +69,8 @@ class Channel(object):
     @property
     def base_url(self):
         _path = excepts(AttributeError, lambda: self._path.lstrip('/'))()
+        if self._token:
+            _path = self._token + '/' + _path
         if self._netloc in Channel._old_channel_alias_netloc:
             ca = Channel(context.channel_alias)
             return urlunparse((ca._scheme, ca._netloc, _path, None, None, None))
@@ -94,10 +96,6 @@ class Channel(object):
 
     def _urls_helper(self):
         return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
-        # if self._platform is None:
-        #     return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
-        # else:
-        #     return [join_url(self.base_url, self._platform)]
 
     @property
     def urls(self):
@@ -170,6 +168,7 @@ class NamedChannel(Channel):
             parsed = urlparse(context.channel_alias)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
+        self._token = None
         self._path = join(parsed.path or '/', name)
         self._platform = None
 
@@ -181,7 +180,7 @@ class NoneChannel(NamedChannel):
 
     def __init__(self, value):
         self._raw_value = value
-        self._scheme = self._netloc = self._path = self._platform = None
+        self._scheme = self._netloc = self._token = self._path = self._platform = None
 
     @property
     def canonical_name(self):
