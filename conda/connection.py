@@ -73,8 +73,8 @@ class BinstarAuth(AuthBase):
     def add_binstar_token(url):
         if not context.add_anaconda_token or not BinstarAuth.is_binstar_url_needing_token(url):
             return url
-        token = BinstarAuth.get_binstar_token(url)
-        if token is None:
+        token = context.anaconda_token or BinstarAuth.get_binstar_token(url)
+        if not token:
             return url
         log.debug("Adding binstar token to url %s", url)
         u = urlparse(url)

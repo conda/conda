@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
+
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
@@ -29,6 +31,7 @@ class ContextTests(TestCase):
         migrated_channel_aliases:
           - https://conda.anaconda.org
         channel_alias: ftp://new.url:8082
+        anaconda_token: tk-123-456-cba
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -57,3 +60,9 @@ class ContextTests(TestCase):
                        "some-great-package.tar.bz2").urls == [
             "ftp://new.url:8082/conda-forge/label/dev/%s/" % platform,
             "ftp://new.url:8082/conda-forge/label/dev/noarch/"]
+
+    def test_anaconda_token(self):
+        assert context.anaconda_token == 'tk-123-456-cba'
+        os.environ['CONDA_ANACONDA_TOKEN'] = 'tk-123-789-def'
+        reset_context()
+        assert context.anaconda_token == 'tk-123-789-def'
