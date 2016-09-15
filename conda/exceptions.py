@@ -478,7 +478,7 @@ def conda_exception_handler(func, *args, **kwargs):
         return 1
     except CondaError as e:
         from conda.base.context import context
-        if context.debug:
+        if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
