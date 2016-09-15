@@ -46,7 +46,7 @@ from .._vendor.auxlib.collection import first, frozendict, last, AttrDict
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
-from ..base.constants import EMPTY_MAP, NULL
+from ..base.constants import EMPTY_MAP, NULL, EMPTY_LIST
 from .compat import (isiterable, iteritems, odict, primitive_types, text_type,
                      with_metaclass, string_types, itervalues)
 from .yaml import yaml_load
@@ -87,10 +87,6 @@ class ValidationError(ConfigurationError):
         self.parameter_value = parameter_value
         self.source = source
         super(ConfigurationError, self).__init__(msg, **kwargs)
-
-        def __str__(self):
-            return ("Parameter %s = %r declared in %s is invalid."
-                    % (self.parameter_name, self.parameter_value, self.source))
 
 
 class MultipleKeysError(ValidationError):
@@ -769,6 +765,23 @@ class Configuration(object):
         validation_errors = list(chain.from_iterable(self.check_source(source)[1]
                                                      for source in self.raw_data))
         raise_errors(validation_errors)
+
+    @staticmethod
+    def _collect_validation_error(func, *args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except ConfigurationError as e:
+            return e.errors if hasattr(e, 'errors') else e,
+        return EMPTY_LIST
+
+    def validate_configuration(self):
+        errors = chain.from_iterable(Configuration._collect_validation_error(getattr, self, name)
+                                     for name in self.parameter_names)
+        post_errors = Configuration._collect_validation_error(self.post_build_validation)
+        raise_errors(tuple(chain.from_iterable((errors, post_errors))))
+
+    def post_build_validation(self):
+        pass
 
     def collect_all(self):
         typed_values = odict()

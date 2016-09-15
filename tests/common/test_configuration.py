@@ -380,10 +380,10 @@ class ConfigurationTests(TestCase):
 
     def test_validate_all(self):
         config = SampleConfiguration()._add_raw_data(load_from_string_data('file1'))
-        config.validate_all()
+        config.validate_configuration()
 
         config = SampleConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
-        raises(ValidationError, config.validate_all)
+        raises(ValidationError, config.validate_configuration)
 
     def test_cross_parameter_validation(self):
         pass

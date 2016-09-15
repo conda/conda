@@ -136,7 +136,7 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
-    context.validate_all()
+    context.validate_configuration()
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
