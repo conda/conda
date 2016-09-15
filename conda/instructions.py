@@ -74,10 +74,12 @@ def split_linkarg(arg):
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
+    log.debug("=======> LINKING %s <=======", dist)
     link(state['prefix'], dist, lt, index=state['index'])
 
 
 def UNLINK_CMD(state, arg):
+    log.debug("=======> UNLINKING %s <=======", arg)
     unlink(state['prefix'], arg)
 
 
