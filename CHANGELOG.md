@@ -7,7 +7,7 @@
 ## 4.2.7 (2016-09-16)
 
 ### Deprecations/Breaking Changes
-* revert to 4.1.x behavior of `conda list --export` (#3450)
+* revert to 4.1.x behavior of `conda list --export` (#3450, #3451)
 
 ### Bug Fixes
 * don't add binstar token if it's given in the channel spec (#3427, #3440, #3444)
