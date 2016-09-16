@@ -23,12 +23,13 @@ from requests.packages.urllib3.util import Url
 
 from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
-from .base.context import context, platform as context_platform
+from .base.context import context
+from .common.disk import rm_rf
 from .common.url import url_to_path, url_to_s3_info, urlparse
 from .compat import StringIO
 from .exceptions import AuthenticationError
+from .models.channel import split_token
 from .utils import gnu_get_libc_version
-from conda.common.disk import backoff_unlink
 
 RETRIES = 3
 
@@ -42,10 +43,10 @@ _user_agent = ("conda/{conda_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
 glibc_ver = gnu_get_libc_version()
-if context_platform == 'linux':
+if context.platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
-elif context_platform == 'osx':
+elif context.platform == 'osx':
     dist = 'OSX'
     ver = platform.mac_ver()[0]
 else:
@@ -70,10 +71,10 @@ class BinstarAuth(AuthBase):
 
     @staticmethod
     def add_binstar_token(url):
-        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url(url):
+        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url_needing_token(url):
             return url
-        token = BinstarAuth.get_binstar_token(url)
-        if token is None:
+        token = context.anaconda_token or BinstarAuth.get_binstar_token(url)
+        if not token:
             return url
         log.debug("Adding binstar token to url %s", url)
         u = urlparse(url)
@@ -96,8 +97,7 @@ class BinstarAuth(AuthBase):
             if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
                 base_url = binstar_default_url
 
-            # chatty 'binstar' logger
-            config = get_config(remote_site=base_url)
+            config = get_config()  # remote_site is site name, not url
             url_from_bs_config = config.get('url', base_url)
             token = load_token(url_from_bs_config)
 
@@ -107,8 +107,11 @@ class BinstarAuth(AuthBase):
             return None
 
     @staticmethod
-    def is_binstar_url(url):
+    def is_binstar_url_needing_token(url):
         urlparts = urlparse(url)
+        token, path = split_token(urlparts.path)
+        if token:  # url already has token
+            return False
         return (urlparts.scheme in ('http', 'https') and
                 any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
 
@@ -146,6 +149,11 @@ class CondaSession(requests.Session):
         self.headers['User-Agent'] = user_agent
 
         self.verify = context.ssl_verify
+
+        if context.client_cert_key:
+            self.cert = (context.client_cert, context.client_cert_key)
+        elif context.client_cert:
+            self.cert = context.client_cert
 
 
 class S3Adapter(requests.adapters.BaseAdapter):
@@ -223,7 +231,7 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
     def close(self):
         if self._temp_file:
-            backoff_unlink(self._temp_file)
+            rm_rf(self._temp_file)
 
 
 class LocalFSAdapter(requests.adapters.BaseAdapter):
@@ -300,6 +308,9 @@ class FTPAdapter(requests.adapters.BaseAdapter):
 
         # Sort out the timeout.
         timeout = kwargs.get('timeout', None)
+        if not isinstance(timeout, int):
+            # https://github.com/conda/conda/pull/3392
+            timeout = 10
 
         # Establish the connection and login if needed.
         self.conn = ftplib.FTP()

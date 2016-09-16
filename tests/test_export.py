@@ -1,12 +1,15 @@
-from .test_create import (make_temp_env, package_is_installed, PYTHON_BINARY,
+from datetime import datetime
+
+from .test_create import (make_temp_env, PYTHON_BINARY,
                           assert_package_is_installed, run_command, Commands,
                           make_temp_prefix)
-from os.path import (exists, join, basename)
+from os.path import (exists, join)
 from unittest import TestCase
 import tempfile
 import pytest
 
 from conda.install import rm_rf
+
 
 class ExportIntegrationTests(TestCase):
 
@@ -30,6 +33,7 @@ class ExportIntegrationTests(TestCase):
             output2, error= run_command(Commands.LIST, prefix2, "-e")
             self.assertEqual(output, output2)
 
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 10, 1), reason="Bring back `conda list --export` #3445")
     def test_multi_channel_export(self):
         """
             When try to import from txt
@@ -57,7 +61,6 @@ class ExportIntegrationTests(TestCase):
                 self.assertEqual(output, output2)
             finally:
                 rm_rf(env_txt.name)
-
 
     def test_multi_channel_explicit(self):
         """
@@ -87,4 +90,3 @@ class ExportIntegrationTests(TestCase):
                 self.assertEqual(output, output2)
             finally:
                 rm_rf(env_txt.name)
-

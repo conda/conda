@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import logging
+import os
 import sys
+from conda._vendor.auxlib.entity import EntityEncoder
 from logging import getLogger
 from traceback import format_exc
 
 from . import CondaError, text_type
 from .compat import iteritems, iterkeys
-
+log = logging.getLogger(__name__)
 
 class LockError(CondaError, RuntimeError):
     def __init__(self, message):
@@ -126,8 +129,9 @@ class SubprocessExit(CondaError):
 
 
 class PaddingError(CondaError):
-    def __init__(self, *args):
-        msg = 'Padding error: %s' % ' '.join(text_type(arg) for arg in self.args)
+    def __init__(self, dist, placeholder, placeholder_length):
+        msg = ("Placeholder of length '%d' too short in package %s.\n"
+               "The package must be rebuilt with conda-build > 2.0." % (placeholder_length, dist))
         super(PaddingError, self).__init__(msg)
 
 
@@ -243,7 +247,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
     '''
     def __init__(self, bad_deps):
         from .resolve import dashlist
-        from .base.context import subdir
+        from .base.context import context
 
         deps = set(q[-1].spec for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
@@ -253,7 +257,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
         else:
             what = "Packages/dependencies"
         bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current %s channels: %s' % (what, subdir, bad_deps)
+        msg = '%s missing in current %s channels: %s' % (what, context.subdir, bad_deps)
         super(NoPackagesFoundError, self).__init__(msg)
         self.pkgs = deps
 
@@ -384,7 +388,8 @@ def print_conda_exception(exception):
         # stdoutlogger.info('https://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
         # stdoutlogger.info('http://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
         # stdoutlogger.info('http://helloworld.com:8888/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True))
+        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
+                                     cls=EntityEncoder))
     else:
         stderrlogger.info(repr(exception))
 
@@ -437,6 +442,33 @@ conda GitHub issue tracker at:
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
 
 
+def delete_lock(extra_path=None):
+    """
+        Delete lock on exception accoding to pid
+        log warning when delete fails
+
+        Args:
+            extra_path : The extra path that you want to search and
+            delete locks
+    """
+    from .cli.main_clean import find_lock
+    from .lock import LOCK_EXTENSION
+    from .install import rm_rf
+    file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
+    locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
+    failed_delete = []
+    for path in locks:
+        try:
+            rm_rf(path)
+        except (OSError, IOError) as e:
+            failed_delete.append(path)
+            log.warn("%r Cannot unlink %s.", e, path)
+
+    if failed_delete:
+        log.warn("Unable to remove all for this processlocks.\n"
+                 "Please run `conda clean --lock`.")
+
+
 def conda_exception_handler(func, *args, **kwargs):
     try:
         return_value = func(*args, **kwargs)
@@ -444,14 +476,17 @@ def conda_exception_handler(func, *args, **kwargs):
             return return_value
     except CondaRuntimeError as e:
         print_unexpected_error_message(e)
+        delete_lock()
         return 1
     except CondaError as e:
         from conda.base.context import context
-        if context.debug:
+        if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
+        delete_lock()
         return 1
     except Exception as e:
         print_unexpected_error_message(e)
+        delete_lock()
         return 1

@@ -4,28 +4,25 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import errno
 import logging
 from argparse import RawDescriptionHelpFormatter
 from os.path import join
 
-from .common import (add_parser_help, add_parser_yes, add_parser_json, add_parser_no_pin,
-                     add_parser_channels, add_parser_prefix, add_parser_quiet,
-                     add_parser_no_use_index_cache, add_parser_use_index_cache,
-                     add_parser_use_local, add_parser_offline, add_parser_pscheck,
-                     InstalledPackages, ensure_use_local,
-                     ensure_override_channels_requires_channel,
-                     specs_from_args, names_in_specs, root_no_rm, stdout_json,
-                     confirm_yn)
+from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
+                     add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
+                     add_parser_prefix, add_parser_pscheck, add_parser_quiet,
+                     add_parser_use_index_cache, add_parser_use_local, add_parser_yes,
+                     confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
+                     names_in_specs, root_no_rm, specs_from_args, stdout_json)
 from ..api import get_index
-from ..base.context import check_write
-from ..base.context import context
+from ..base.context import check_write, context
+from ..common.disk import delete_trash
 from ..compat import iteritems, iterkeys
 from ..console import json_progress_bars
-from ..exceptions import (CondaEnvironmentError, PackageNotFoundError,
-                          CondaValueError)
+from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -120,7 +117,7 @@ def execute(args, parser):
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
-    check_write('remove', prefix, json=args.json)
+    check_write('remove', prefix, json=context.json)
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
     channel_urls = args.channel or ()
@@ -155,15 +152,17 @@ def execute(args, parser):
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
 
+    delete_trash()
+
     if plan.nothing_to_do(actions):
         if args.all:
             print()
             print("Remove all packages in environment %s:\n" % prefix)
-            if not args.json:
+            if not context.json:
                 confirm_yn(args)
             rm_rf(prefix)
 
-            if args.json:
+            if context.json:
                 stdout_json({
                     'success': True,
                     'actions': actions
@@ -172,12 +171,12 @@ def execute(args, parser):
         raise PackageNotFoundError('', 'no packages found to remove from '
                                    'environment: %s' % prefix)
 
-    if not args.json:
+    if not context.json:
         print()
         print("Package plan for package removal in environment %s:" % prefix)
         plan.display_actions(actions, index)
 
-    if args.json and args.dry_run:
+    if context.json and args.dry_run:
         stdout_json({
             'success': True,
             'dry_run': True,
@@ -185,18 +184,18 @@ def execute(args, parser):
         })
         return
 
-    if not args.json:
+    if not context.json:
         confirm_yn(args)
 
-    if args.json and not args.quiet:
+    if context.json and not context.quiet:
         with json_progress_bars():
-            plan.execute_actions(actions, index, verbose=not args.quiet)
+            plan.execute_actions(actions, index, verbose=not context.quiet)
     else:
-        plan.execute_actions(actions, index, verbose=not args.quiet)
+        plan.execute_actions(actions, index, verbose=not context.quiet)
         if specs:
             try:
                 with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                    f.write('# remove specs: %s\n' % specs)
+                    f.write('# remove specs: %s\n' % ','.join(specs))
             except IOError as e:
                 if e.errno == errno.EACCES:
                     log.debug("Can't write the history file")
@@ -206,7 +205,7 @@ def execute(args, parser):
     if args.all:
         rm_rf(prefix)
 
-    if args.json:
+    if context.json:
         stdout_json({
             'success': True,
             'actions': actions

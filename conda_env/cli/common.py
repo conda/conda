@@ -1,4 +1,5 @@
 import sys
+from conda._vendor.auxlib.entity import EntityEncoder
 from os.path import abspath, join, isdir, expanduser
 from conda.config import root_dir, default_prefix
 import os
@@ -13,7 +14,7 @@ envs_dirs = context.envs_dirs
 def stdout_json(d):
     import json
 
-    json.dump(d, sys.stdout, indent=2, sort_keys=True)
+    json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
     sys.stdout.write('\n')
 
 

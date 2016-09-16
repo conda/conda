@@ -18,6 +18,7 @@ r = Resolve(index)
 
 f_mkl = set(['mkl'])
 
+
 class TestMatchSpec(unittest.TestCase):
 
     def test_match(self):
@@ -270,10 +271,12 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]
 
+
 def test_get_dists():
     dists = r.get_dists(["anaconda 1.5.0"])[0]
     assert 'anaconda-1.5.0-np17py27_0.tar.bz2' in dists
     assert 'dynd-python-0.3.0-np17py33_0.tar.bz2' in dists
+
 
 def test_generate_eq():
     specs = ['anaconda']
@@ -354,6 +357,7 @@ def test_generate_eq():
         'system-5.8-0.tar.bz2': 1,
         'zeromq-2.2.0-0.tar.bz2': 1}
 
+
 def test_unsat():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
     assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
@@ -361,11 +365,13 @@ def test_unsat():
     assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'python 3*']))
     assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
 
+
 def test_nonexistent():
     assert raises(NoPackagesFoundError, lambda: r.get_pkgs('notarealpackage 2.0*'))
     assert raises(NoPackagesFoundError, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
     assert raises(NoPackagesFoundError, lambda: r.install(['numpy 1.5']))
+
 
 def test_nonexistent_deps():
     index2 = index.copy()
@@ -540,7 +546,6 @@ def test_nonexistent_deps():
     ]
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.1']))
 
-
     assert r.install(['anotherpackage 1.0']) == [
         'anotherpackage-1.0-py33_0.tar.bz2',
         'mypackage-1.0-py33_0.tar.bz2',
@@ -674,6 +679,7 @@ def test_package_ordering():
     assert (numpy != numpy_mkl) is True
     assert (numpy == numpy_mkl) is False
 
+
 def test_irrational_version():
     assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[
         'openssl-1.0.1c-0.tar.bz2',
@@ -685,6 +691,7 @@ def test_irrational_version():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'
     ]]
+
 
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
@@ -791,6 +798,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]][0]
 
+
 def test_multiple_solution():
     index2 = index.copy()
     fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
@@ -803,6 +811,7 @@ def test_multiple_solution():
     res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
     res = set([y for x in res for y in x if y.startswith('pandas')])
     assert res <= res1
+
 
 def test_broken_install():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
@@ -826,6 +835,7 @@ def test_broken_install():
     installed2 = r.install(['numpy'], installed)
     installed3 = r.remove(['pandas'], installed)
     assert set(installed3) == set(installed[:3] + installed[4:])
+
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
@@ -871,6 +881,7 @@ def test_remove():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']
 
+
 def test_channel_priority():
     fn1 = 'pandas-0.10.1-np17py27_0.tar.bz2'
     fn2 = 'other::' + fn1
@@ -903,6 +914,7 @@ def test_channel_priority():
     assert installed1 != installed3
     assert installed2 == installed3
 
+
 def test_dependency_sort():
     specs = ['pandas','python 2.7*','numpy 1.6*']
     installed = r.install(specs)
@@ -922,6 +934,7 @@ def test_dependency_sort():
         'dateutil-2.1-py27_1',
         'scipy-0.12.0-np16py27_0',
         'pandas-0.11.0-np16py27_1']
+
 
 def test_update_deps():
     installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])

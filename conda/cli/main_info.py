@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import json
 import os
@@ -14,11 +14,11 @@ from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
 
-from conda.config import rc_path
-from conda.config import user_rc_path, sys_rc_path
-from .common import (add_parser_json, stdout_json, disp_features, arg2spec,
-                     handle_envs_list, add_parser_offline)
+from .common import (add_parser_json, add_parser_offline, arg2spec, disp_features,
+                     handle_envs_list, stdout_json)
 from ..compat import itervalues
+from ..config import rc_path, sys_rc_path, user_rc_path
+from ..models.channel import prioritize_channels
 from ..utils import on_win
 
 help = "Display information about current conda install."
@@ -155,7 +155,7 @@ def execute(args, parser):
     from conda.api import get_index
 
     if args.root:
-        if args.json:
+        if context.json:
             stdout_json({'root_prefix': context.root_dir})
         else:
             print(context.root_dir)
@@ -164,7 +164,7 @@ def execute(args, parser):
     if args.packages:
         index = get_index()
         r = Resolve(index)
-        if args.json:
+        if context.json:
             stdout_json({
                 package: [p._asdict()
                           for p in sorted(r.get_pkgs(arg2spec(package)))]
@@ -194,10 +194,14 @@ def execute(args, parser):
         requests_version = "Error %s" % e
 
     try:
-        cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
-        conda_env_version = cenv[0]['version']
+        import conda_env
+        conda_env_version = conda_env.__version__
     except:
-        conda_env_version = "not installed"
+        try:
+            cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
+            conda_env_version = cenv[0]['version']
+        except:
+            conda_env_version = "not installed"
 
     try:
         import conda_build
@@ -211,14 +215,14 @@ def execute(args, parser):
     channels = context.channels
 
     if args.unsafe_channels:
-        if not args.json:
+        if not context.json:
             print("\n".join(channels))
         else:
             print(json.dumps({"channels": channels}))
         return 0
 
-    channels = list(channels)
-    if not args.json:
+    channels = list(prioritize_channels(channels).keys())
+    if not context.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]
 
@@ -245,7 +249,7 @@ def execute(args, parser):
         requests_version=requests_version,
     )
 
-    if args.all or args.json:
+    if args.all or context.json:
         for option in options:
             setattr(args, option, True)
 
@@ -274,9 +278,9 @@ Current conda install:
 """ % info_dict)
 
     if args.envs:
-        handle_envs_list(info_dict['envs'], not args.json)
+        handle_envs_list(info_dict['envs'], not context.json)
 
-    if args.system and not args.json:
+    if args.system and not context.json:
         from conda.cli.find_commands import find_commands, find_executable
 
         print("sys.version: %s..." % (sys.version[:40]))
@@ -305,7 +309,7 @@ Current conda install:
             print("%s: %s" % (ev, os.getenv(ev, '<not set>')))
         print()
 
-    if args.license and not args.json:
+    if args.license and not context.json:
         try:
             from _license import show_info
             show_info()
@@ -315,5 +319,5 @@ WARNING: could not import _license.show_info
 # try:
 # $ conda install -n root _license""")
 
-    if args.json:
+    if context.json:
         stdout_json(info_dict)

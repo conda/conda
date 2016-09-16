@@ -4,10 +4,11 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 from .common import add_parser_install, add_parser_json
 from .install import install
+from ..common.disk import delete_trash
 
 help = "Updates conda packages to the latest compatible version."
 descr = help + """
@@ -62,3 +63,4 @@ def configure_parser(sub_parsers, name='update'):
 
 def execute(args, parser):
     install(args, parser, 'update')
+    delete_trash()

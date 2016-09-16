@@ -1,7 +1,74 @@
-## 4.1.12 (unreleased)
+## 4.3.0 (unreleased)
+
+### Bug Fixes
+* account for the Windows Python 2.7 os.environ unicode aversion (#3363)
+* fix link field in record object (#3424)
+
+### Non-User-Facing Changes
+* remove unnecessary eval (#3428)
+
+
+## 4.1.13 (unreleased)
+
+### Non-User-Facing Changes
+* use install.rm_rf for TemporaryDirectory cleanup (#3425)
+
+
+## 4.2.7 (2016-09-16)
+
+### Deprecations/Breaking Changes
+* revert to 4.1.x behavior of `conda list --export` (#3450, #3451)
+
+### Bug Fixes
+* don't add binstar token if it's given in the channel spec (#3427, #3440, #3444)
+* fix #3433 failure to remove broken symlinks (#3436)
+
+### Non-User-Facing Changes
+* use install.rm_rf for TemporaryDirectory cleanup (#3425)
+
+
+## 4.2.6 (2016-09-14)
+
+### Improvements
+* add support for client TLS certificates (#3419)
+* address #3267 allow migration of channel_alias (#3410)
+* conda-env version matches conda version (#3422)
+
+### Bug Fixes
+* fix #3409 unsatisfiable dependecy error message (#3412)
+* fix #3408 quiet rm_rf (#3413)
+* fix #3407 padding error messaging (#3416)
+* account for the Windows Python 2.7 os.environ unicode aversion (#3363 via #3420)
+
+
+## 4.2.5 (2016-09-08)
+
+### Deprecations/Breaking Changes
+* partially revert #3041 giving conda config --add previous --prepend behavior (#3364 via #3370)
+* partially revert #2760 adding back conda package command (#3398)
+
+### Improvements
+* order output of conda config --show; make --json friendly (#3384 via #3386)
+* clean the pid based lock on exception (#3325)
+* improve file removal on all platforms (#3280 via #3396)
+
+### Bug Fixes
+* fix #3332 allow download urls with :: in them (#3335)
+* fix always_yes and not-set argparse args overriding other sources (#3374)
+* fix ftp fetch timeout (#3392)
+* fix #3307 add try/except block for touch lock (#3326)
+* fix CONDA_CHANNELS environment variable splitting (#3390)
+* fix #3378 CONDA_FORCE_32BIT environment variable (#3391)
+* make conda info channel urls actually give urls (#3397)
+* fix cio_test compatibility (#3395 via #3400)
+
+
+## 4.1.12 (2016-09-08)
 
 ### Bug Fixes
 * fix #2837 "File exists" in symlinked path with parallel activations (#3210)
+* fix prune option when installing packages (#3354)
+* change check for placeholder to be more friendly to long PATH (#3349)
 
 
 ## 4.2.4 (2016-08-18)
@@ -13,8 +80,8 @@
 * fix conda install with no package specified (#3284)
 * fix #3253 exporting and importing conda environments (#3286)
 * fix priority messaging on conda config --get (#3304)
-* fix conda list --export; additional itegration tests (#3291)
-* fix conda update --all idempotency; add integration tests for channel priority (#3306)
+* fix conda list --export; additional integration tests (#3291)
+* fix conda update --all idempotence; add integration tests for channel priority (#3306)
 
 ### Non-User-Facing Changes
 * additional conda-env integration tests (#3288)
@@ -76,7 +143,7 @@
 * **New Exception Handling Engine**: Previous releases followed a pattern of premature exiting (with hard calls to `sys.exit()` when exceptional circumstances were encountered. This release replaces over 100 `sys.exit` calls with python exceptions.  For conda developers, this will result in tests that are easier to write.  For developers using conda, this is a first step on a long path toward conda being directly importable.  For conda users, this will eventually result in more helpful and descriptive errors messages.  (#2899, #2993, #3016, #3152, #3045)
 * **Empty Environments**: Conda can now create "empty" environments when no initial packages are specified, alleviating a common source of confusion. (#3072, #3174)
 * **Conda in Private Env**: Conda can now be configured to live within its own private environment.  While it's not yet default behavior, this represents a first step toward separating the `root` environment into a "conda private" environment and a "user default" environment. (#3068)
-* **Regex Version Specification**: Regelar expressions are now valid version specifiers.  For example, `^1\.[5-8]\.1$|2.2`. (#2933)
+* **Regex Version Specification**: Regular expressions are now valid version specifiers.  For example, `^1\.[5-8]\.1$|2.2`. (#2933)
 
 ### Deprecations/Breaking Changes
 * remove conda init (#2759)
@@ -119,14 +186,14 @@
 ## 4.1.11 (2016-07-26)
 
 * fix PS1 backup in activate script, #3135 via #3155
-* correct resolution for 'handle failures in binstar_client more generaly', #3156
+* correct resolution for 'handle failures in binstar_client more generally', #3156
 
 
 ## 4.1.10 (2016-07-25)
 
 * ignore symlink failure because of read-only file system, #3055
-* backpaort shortcut tests, #3064
-* fix #2979 redefition of $SHELL variable, #3081
+* backport shortcut tests, #3064
+* fix #2979 redefinition of $SHELL variable, #3081
 * fix #3060 --clone root --copy exception, #3080
 
 

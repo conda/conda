@@ -37,6 +37,7 @@ def make_mock_directory(tmpdir, mock_directory):
         else:
             make_mock_directory(tmpdir.mkdir(key), value)
 
+
 def test_walk_prefix(tmpdir):  # tmpdir is a py.test utility
     # Each directory is a dict whose keys are names. If the value is
     # None, then that key represents a file. If it's another dict, that key is

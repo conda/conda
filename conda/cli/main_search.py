@@ -246,7 +246,7 @@ def execute_search(args, parser):
         for pkg in pkgs:
             dist = pkg.fn[:-8]
             if args.canonical:
-                if not args.json:
+                if not context.json:
                     print(dist)
                 else:
                     json.append(dist)
@@ -260,7 +260,7 @@ def execute_search(args, parser):
             else:
                 inst = ' '
 
-            if not args.json:
+            if not context.json:
                 print('%-25s %s  %-15s %15s  %-15s %s' % (
                     disp_name, inst,
                     pkg.version,
@@ -292,5 +292,5 @@ def execute_search(args, parser):
                     data['icon'] = make_icon_url(pkg.info)
                 json[name].append(data)
 
-    if args.json:
+    if context.json:
         stdout_json(json)

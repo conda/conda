@@ -128,7 +128,7 @@ test_yaml_raw = {
 }
 
 
-class TestConfiguration(Configuration):
+class SampleConfiguration(Configuration):
     always_yes = PrimitiveParameter(False, aliases=('always_yes_altname1', 'yes',
                                                     'always_yes_altname2'))
     changeps1 = PrimitiveParameter(True)
@@ -148,13 +148,13 @@ def load_from_string_data(*seq):
 class ConfigurationTests(TestCase):
 
     def test_simple_merges_and_caching(self):
-        config = TestConfiguration()._add_raw_data(load_from_string_data('file1', 'file2'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('file1', 'file2'))
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.channels == ('porky', 'bugs', 'elmer', 'daffy', 'tweety')
         assert config.proxy_servers == {'http': 'marv', 'https': 'sam', 's3': 'pepé'}
 
-        config = TestConfiguration()._add_raw_data(load_from_string_data('file2', 'file1'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('file2', 'file1'))
         assert len(config._cache) == 0
         assert config.changeps1 is False
         assert len(config._cache) == 1
@@ -166,7 +166,7 @@ class ConfigurationTests(TestCase):
         assert config.proxy_servers == {'http': 'taz', 'https': 'sly', 's3': 'pepé'}
 
     def test_default_values(self):
-        config = TestConfiguration()
+        config = SampleConfiguration()
         assert config.channels == ()
         assert config.always_yes is False
         assert config.proxy_servers == {}
@@ -183,8 +183,7 @@ class ConfigurationTests(TestCase):
         try:
             environ.update(test_dict)
             assert 'MYAPP_ALWAYS_YES' in environ
-            raw_data = load_from_string_data('file1', 'file2')
-            config = TestConfiguration(app_name=appname)
+            config = SampleConfiguration(app_name=appname)
             assert config.changeps1 is False
             assert config.always_yes is True
         finally:
@@ -201,10 +200,39 @@ class ConfigurationTests(TestCase):
         try:
             environ.update(test_dict)
             assert 'MYAPP_YES' in environ
-            raw_data = load_from_string_data('file1', 'file2')
-            config = TestConfiguration()._add_env_vars(appname)
+            config = SampleConfiguration()._add_env_vars(appname)
             assert config.always_yes is True
             assert config.changeps1 is False
+        finally:
+            [environ.pop(key) for key in test_dict]
+
+    def test_env_var_config_split_sequence(self):
+        def make_key(appname, key):
+            return "{0}_{1}".format(appname.upper(), key.upper())
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, 'channels')] = 'channel1,channel2'
+
+        try:
+            environ.update(test_dict)
+            assert 'MYAPP_CHANNELS' in environ
+            config = SampleConfiguration()._add_env_vars(appname)
+            assert config.channels == ('channel1', 'channel2')
+        finally:
+            [environ.pop(key) for key in test_dict]
+
+    def test_env_var_config_no_split_sequence(self):
+        def make_key(appname, key):
+            return "{0}_{1}".format(appname.upper(), key.upper())
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, 'channels')] = 'channel1'
+
+        try:
+            environ.update(test_dict)
+            assert 'MYAPP_CHANNELS' in environ
+            config = SampleConfiguration()._add_env_vars(appname)
+            assert config.channels == ('channel1',)
         finally:
             [environ.pop(key) for key in test_dict]
 
@@ -232,7 +260,7 @@ class ConfigurationTests(TestCase):
             assert raw_data[f1]['always_yes'].value(None) == "no"
             assert raw_data[f2]['proxy_servers'].value(None)['http'] == "marv"
 
-            config = TestConfiguration(search_path)
+            config = SampleConfiguration(search_path)
             assert config.channels == ('wile', 'porky', 'bugs', 'elmer', 'daffy',
                                        'tweety', 'foghorn')
 
@@ -241,105 +269,105 @@ class ConfigurationTests(TestCase):
 
     def test_important_primitive_map_merges(self):
         raw_data = load_from_string_data('file1', 'file3', 'file2')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.channels == ('wile', 'porky', 'bugs', 'elmer', 'daffy', 'foghorn', 'tweety')
         assert config.proxy_servers == {'http': 'foghorn', 'https': 'sam', 's3': 'porky'}
 
         raw_data = load_from_string_data('file3', 'file2', 'file1')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.channels == ('wile', 'bugs', 'daffy', 'tweety', 'porky', 'elmer', 'foghorn')
         assert config.proxy_servers == {'http': 'foghorn', 'https': 'sly', 's3': 'pepé'}
 
         raw_data = load_from_string_data('file4', 'file3', 'file1')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.proxy_servers == {'https': 'daffy', 'http': 'bugs'}
 
         raw_data = load_from_string_data('file1', 'file4', 'file3', 'file2')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.proxy_servers == {'http': 'bugs', 'https': 'daffy', 's3': 'pepé'}
 
         raw_data = load_from_string_data('file1', 'file2', 'file3', 'file4')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.proxy_servers == {'https': 'daffy', 'http': 'foghorn', 's3': 'porky'}
 
         raw_data = load_from_string_data('file3', 'file1')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.changeps1 is True
         assert config.always_yes is True
         assert config.proxy_servers == {'https': 'sly', 'http': 'foghorn', 's3': 'pepé'}
 
         raw_data = load_from_string_data('file4', 'file3')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.changeps1 is False
         assert config.always_yes is True
         assert config.proxy_servers == {'http': 'bugs', 'https': 'daffy'}
 
     def test_list_merges(self):
         raw_data = load_from_string_data('file5', 'file3')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('marv', 'wile', 'daffy', 'foghorn', 'pepé', 'sam')
 
         raw_data = load_from_string_data('file6', 'file5', 'file4', 'file3')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('pepé', 'sam', 'elmer', 'bugs', 'marv')
 
         raw_data = load_from_string_data('file3', 'file4', 'file5', 'file6')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('wile', 'pepé', 'marv', 'sam', 'daffy', 'foghorn')
 
         raw_data = load_from_string_data('file6', 'file3', 'file4', 'file5')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('wile', 'pepé', 'sam', 'daffy', 'foghorn',
                                    'elmer', 'bugs', 'marv')
 
         raw_data = load_from_string_data('file7', 'file8', 'file9')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('sam', 'marv', 'wile', 'foghorn', 'daffy', 'pepé')
 
         raw_data = load_from_string_data('file7', 'file9', 'file8')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('sam', 'marv', 'pepé', 'wile', 'foghorn', 'daffy')
 
         raw_data = load_from_string_data('file8', 'file7', 'file9')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('marv', 'sam', 'wile', 'foghorn', 'daffy', 'pepé')
 
         raw_data = load_from_string_data('file8', 'file9', 'file7')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('marv', 'sam', 'wile', 'daffy', 'pepé')
 
         raw_data = load_from_string_data('file9', 'file7', 'file8')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('marv', 'sam', 'pepé', 'daffy')
 
         raw_data = load_from_string_data('file9', 'file8', 'file7')
-        config = TestConfiguration()._add_raw_data(raw_data)
+        config = SampleConfiguration()._add_raw_data(raw_data)
         assert config.channels == ('marv', 'sam', 'pepé', 'daffy')
 
     def test_validation(self):
-        config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('bad_boolean'))
         raises(ValidationError, lambda: config.always_yes)
 
-        config = TestConfiguration()._add_raw_data(load_from_string_data('too_many_aliases'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('too_many_aliases'))
         raises(ValidationError, lambda: config.always_yes)
 
-        config = TestConfiguration()._add_raw_data(load_from_string_data('not_an_int'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('not_an_int'))
         raises(ValidationError, lambda: config.always_an_int)
 
-        config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
         raises(ValidationError, lambda: config.boolean_map)
 
-        config = TestConfiguration()._add_raw_data(load_from_string_data('good_boolean_map'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('good_boolean_map'))
         assert config.boolean_map['a_true'] is True
         assert config.boolean_map['a_yes'] is True
         assert config.boolean_map['a_1'] is True
@@ -351,10 +379,10 @@ class ConfigurationTests(TestCase):
         assert ParameterFlag.from_name('top') is ParameterFlag.top
 
     def test_validate_all(self):
-        config = TestConfiguration()._add_raw_data(load_from_string_data('file1'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('file1'))
         config.validate_all()
 
-        config = TestConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
+        config = SampleConfiguration()._add_raw_data(load_from_string_data('bad_boolean_map'))
         raises(ValidationError, config.validate_all)
 
     def test_cross_parameter_validation(self):

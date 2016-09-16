@@ -238,17 +238,18 @@ Chapter X: The del and null Weeds
 from __future__ import absolute_import, division, print_function
 
 from collections import Iterable
+from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 from functools import reduce
-from json import loads as json_loads, dumps as json_dumps
+from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
 
-from enum import Enum
 from ._vendor.boltons.timeutils import isoparse
 from .collection import AttrDict
-from .compat import (with_metaclass, string_types, text_type, integer_types, iteritems,
-                     itervalues, odict)
-from .exceptions import ValidationError, Raise
+from .compat import (integer_types, iteritems, itervalues, odict, string_types, text_type,
+                     with_metaclass)
+from .exceptions import Raise, ValidationError
 from .ish import find_or_none
 from .logz import DumpEncoder
 from .type_coercion import maybecall
@@ -631,7 +632,8 @@ class ComposableField(Field):
             # assuming val is a dict now
             try:
                 # if there is a key named 'self', have to rename it
-                val['slf'] = val.pop('self')
+                if hasattr(val, 'pop'):
+                    val['slf'] = val.pop('self')
             except KeyError:
                 pass  # no key of 'self', so no worries
             return val if isinstance(val, self._type) else self._type(**val)
@@ -810,3 +812,68 @@ class ImmutableEntity(Entity):
             raise AttributeError("Deletion not allowed. {0} is immutable."
                                  .format(self.__class__.__name__))
         super(ImmutableEntity, self).__delattr__(item)
+
+
+class DictSafeMixin(object):
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def __delitem__(self, key):
+        delattr(self, key)
+
+    def get(self, item, default=None):
+        return getattr(self, item, default)
+
+    def __contains__(self, item):
+        value = getattr(self, item, None)
+        if value is None:
+            return False
+        field = self.__fields__[item]
+        if isinstance(field, (MapField, ListField)):
+            return len(value) > 0
+        return True
+
+    def __iter__(self):
+        for key in self.__fields__:
+            if key in self:
+                yield key, getattr(self, key)
+
+    def copy(self):
+        return deepcopy(self)
+
+    def setdefault(self, key, default_value):
+        if key not in self:
+            setattr(self, key, default_value)
+
+    def update(self, E=None, **F):
+        # D.update([E, ]**F) -> None.  Update D from dict/iterable E and F.
+        # If E present and has a .keys() method, does:     for k in E: D[k] = E[k]
+        # If E present and lacks .keys() method, does:     for (k, v) in E: D[k] = v
+        # In either case, this is followed by: for k in F: D[k] = F[k]
+        if E is not None:
+            if hasattr(E, 'keys'):
+                for k in E:
+                    self[k] = E[k]
+            else:
+                for k, v in E:
+                    self[k] = v
+        for k in F:
+            self[k] = F[k]
+
+
+class EntityEncoder(JSONEncoder):
+    # json.dumps(obj, cls=SetEncoder)
+    def default(self, obj):
+       if hasattr(obj, 'dump'):
+          return obj.dump()
+       elif hasattr(obj, '__json__'):
+          return obj.__json__()
+       elif hasattr(obj, 'to_json'):
+          return obj.to_json()
+       elif hasattr(obj, 'as_json'):
+          return obj.as_json()
+       return JSONEncoder.default(self, obj)

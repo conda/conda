@@ -36,23 +36,26 @@ import sys
 import tarfile
 import traceback
 from collections import namedtuple
-from .common.disk import backoff_unlink, exp_backoff_fn, rm_rf
 from enum import Enum
 from itertools import chain
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, normcase, normpath
+from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
+                     normpath)
 
 from . import CondaError
+from ._vendor.auxlib.entity import EntityEncoder
 from .base.constants import UTF8
 from .base.context import context
+from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import path_to_url
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
+from .models.record import Record, EMPTY_LINK, Link
 from .utils import on_win
 
 
 # conda-build compatibility
-from .common.disk import delete_trash, move_to_trash  # NOQA
+from .common.disk import delete_trash, move_to_trash, move_path_to_trash  # NOQA
 
 
 if on_win:
@@ -247,6 +250,10 @@ def read_has_prefix(path):
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 
 
+class _PaddingError(Exception):
+    pass
+
+
 def binary_replace(data, a, b):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
@@ -260,7 +267,7 @@ def binary_replace(data, a, b):
         occurances = match.group().count(a)
         padding = (len(a) - len(b))*occurances
         if padding < 0:
-            raise PaddingError(a, b, padding)
+            raise _PaddingError
         return match.group().replace(a, b) + b'\0' * padding
 
     original_data_len = len(data)
@@ -385,7 +392,7 @@ def dist2pair(dist):
 def dist2quad(dist):
     channel, dist = dist2pair(dist)
     parts = dist.rsplit('-', 2) + ['', '']
-    return (parts[0], parts[1], parts[2], channel)
+    return (str(parts[0]), str(parts[1]), str(parts[2]), str(channel))
 
 
 def dist2name(dist):
@@ -410,7 +417,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
     """
     # read info/index.json first
     with open(join(info_dir, 'index.json')) as fi:
-        meta = json.load(fi)
+        meta = Record(**json.load(fi))  # TODO: change to LinkedPackageData
     # add extra info, add to our intenral cache
     meta.update(extra_info)
     if not meta.get('url'):
@@ -420,7 +427,7 @@ def create_meta(prefix, dist, info_dir, extra_info):
     if not isdir(meta_dir):
         os.makedirs(meta_dir)
     with open(join(meta_dir, dist2filename(dist, '.json')), 'w') as fo:
-        json.dump(meta, fo, indent=2, sort_keys=True)
+        json.dump(meta, fo, indent=2, sort_keys=True, cls=EntityEncoder)
     if prefix in linked_data_:
         load_linked_data(prefix, dist, meta)
 
@@ -476,12 +483,12 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     else:
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         args = [shell_path, path]
-    env = os.environ
-    env['ROOT_PREFIX'] = sys.prefix
-    env['PREFIX'] = str(env_prefix or prefix)
-    env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'], _ = dist2quad(dist)
+    env = os.environ.copy()
+    env[str('ROOT_PREFIX')] = sys.prefix
+    env[str('PREFIX')] = str(env_prefix or prefix)
+    env[str('PKG_NAME')], env[str('PKG_VERSION')], env[str('PKG_BUILDNUM')], _ = dist2quad(dist)
     if action == 'pre-link':
-        env['SOURCE_DIR'] = str(prefix)
+        env[str('SOURCE_DIR')] = str(prefix)
     try:
         subprocess.check_call(args, env=env)
     except subprocess.CalledProcessError:
@@ -538,7 +545,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
         try:
             # try to kill stale links if they exist
             if os.path.lexists(prefix_file):
-                backoff_unlink(prefix_file)
+                rm_rf(prefix_file)
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
@@ -621,7 +628,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
         return
     if url:
         url = url
-    _, schannel = Channel(url).url_channel_wtf
+    schannel = Channel(url).canonical_name
     prefix = '' if schannel == 'defaults' else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
     fname_table_[xkey] = fname_table_[path_to_url(xkey)] = prefix
@@ -732,9 +739,13 @@ def rm_fetched(dist):
         del fname_table_[path_to_url(fname)]
         with FileLock(fname):
             rm_rf(fname)
+            if exists(fname):
+                log.warn("File not removed during RM_FETCHED instruction: %s", fname)
     for fname in rec['dirs']:
         with FileLock(fname):
             rm_rf(fname)
+            if exists(fname):
+                log.warn("Directory not removed during RM_FETCHED instruction: %s", fname)
     del package_cache_[dist]
 
 
@@ -766,6 +777,8 @@ def rm_extracted(dist):
     for fname in rec['dirs']:
         with FileLock(fname):
             rm_rf(fname)
+            if exists(fname):
+                log.warn("Directory not removed during RM_EXTRACTED instruction: %s", fname)
     if rec['files']:
         rec['dirs'] = []
     else:
@@ -815,7 +828,7 @@ def load_linked_data(prefix, dist, rec=None, ignore_channels=False):
     if rec is None:
         try:
             with open(meta_file) as fi:
-                rec = json.load(fi)
+                rec = Record(**json.load(fi))
         except IOError:
             return None
     else:
@@ -836,7 +849,7 @@ def load_linked_data(prefix, dist, rec=None, ignore_channels=False):
     rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
-    rec['link'] = rec.get('link') or True
+    rec['link'] = rec.get('link') or EMPTY_LINK
     if ignore_channels:
         linked_data_[prefix][dname] = rec
     else:
@@ -852,7 +865,7 @@ def delete_linked_data(prefix, dist, delete=True):
     if delete:
         meta_path = join(prefix, 'conda-meta', dist2filename(dist, '.json'))
         if isfile(meta_path):
-            backoff_unlink(meta_path)
+            rm_rf(meta_path)
 
 
 def delete_linked_data_any(path):
@@ -945,7 +958,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
             if os.path.exists(dst):
-                log.warn("file exists, but clobbering: %r" % dst)
+                log.info("file exists, but clobbering: %r" % dst)
                 rm_rf(dst)
             lt = linktype
             if filepath in has_prefix_files or filepath in no_link or islink(src):
@@ -961,9 +974,8 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             placeholder, mode = has_prefix_files[filepath]
             try:
                 update_prefix(join(prefix, filepath), prefix, placeholder, mode)
-            except PaddingError:
-                raise PaddingError("ERROR: placeholder '%s' too short in: %s\n" %
-                                   (placeholder, dist))
+            except _PaddingError:
+                raise PaddingError(dist, placeholder, len(placeholder))
 
         # make sure that the child environment behaves like the parent,
         #    wrt user/system install on win
@@ -987,8 +999,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             meta_dict['files'] = list(yield_lines(alt_files_path))
         else:
             meta_dict['files'] = files
-        meta_dict['link'] = {'source': source_dir,
-                             'type': link_name_map.get(linktype)}
+        meta_dict['link'] = Link(source=source_dir, type=link_name_map.get(linktype))
         if 'icon' in meta_dict:
             meta_dict['icondata'] = read_icondata(source_dir)
 

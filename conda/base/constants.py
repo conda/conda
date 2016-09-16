@@ -28,6 +28,9 @@ class Arch(Enum):
     def from_sys(cls):
         return cls[machine()]
 
+    def __json__(self):
+        return self.value
+
 
 class Platform(Enum):
     linux = 'linux'
@@ -45,6 +48,10 @@ class Platform(Enum):
             # be set to 'linux'
             p = 'linux'
         return cls(p)
+
+    def __json__(self):
+        return self.value
+
 
 machine_bits = 8 * tuple.__itemsize__
 
@@ -93,5 +100,12 @@ ROOT_ENV_NAME = 'root'
 
 EMPTY_LIST = ()
 EMPTY_MAP = frozendict()
+
+
+class _Null(object):
+    def __nonzero__(self):
+        return False
+
+NULL = _Null()
 
 UTF8 = 'UTF-8'

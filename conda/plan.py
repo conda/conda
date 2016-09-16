@@ -16,7 +16,7 @@ from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, join, exists
 
-from .base.context import context, default_python
+from .base.context import context
 from .models.channel import Channel
 from . import instructions as inst
 from .exceptions import (InstallError, RemoveError, CondaIndexError,
@@ -53,7 +53,7 @@ def display_actions(actions, index, show_channel_urls=None):
         if rec.get('schannel'):
             return rec['schannel']
         if rec.get('url'):
-            return Channel(rec['url']).url_channel_wtf[1]  # <-- same thing as canonical_name
+            return Channel(rec['url']).canonical_name
         if rec.get('channel'):
             return Channel(rec['channel']).canonical_name
         return '<unknown>'
@@ -394,7 +394,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     names_linked = {r.index[fn]['name']: fn for fn in linked if fn in r.index}
     mspecs = list(map(MatchSpec, specs))
 
-    for name, def_ver in [('python', default_python),
+    for name, def_ver in [('python', context.default_python),
                           # Default version required, but only used for Python
                           ('lua', None)]:
         if any(s.name == name and not s.is_simple() for s in mspecs):
@@ -478,7 +478,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
 
-    pkgs = r.install(specs, linked, update_deps=update_deps)
+    installed = linked
+    if prune:
+        installed = []
+    pkgs = r.install(specs, installed, update_deps=update_deps)
 
     for fn in pkgs:
         dist = fn[:-8]

@@ -32,15 +32,7 @@ matrix:
     - os: osx
       env: PYTHON_VERSION=3.5
     - python: '3.5'
-      env: CONDA_BUILD=master
-      os: linux
-      language: python
-    - python: '3.5'
-      env: CONDA_BUILD=1.21.11
-      os: linux
-      language: python
-    - python: '3.5'
-      env: CONDA_BUILD=1.20.3
+      env: CONDA_BUILD=2.0.1
       os: linux
       language: python
 

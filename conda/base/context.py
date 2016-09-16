@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from collections import defaultdict
+
 import os
 import sys
-from conda._vendor.auxlib.path import expand
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
@@ -12,69 +13,60 @@ from platform import machine
 from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda
 from .._vendor.auxlib.compat import NoneType, string_types
 from .._vendor.auxlib.ish import dals
+from .._vendor.auxlib.path import expand
 from .._vendor.toolz.itertoolz import concatv
 from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
                                     SequenceParameter)
-from ..common.url import urlparse
+from ..common.url import urlparse, path_to_url
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
+from ..common.compat import iteritems
 
 log = getLogger(__name__)
 
+try:
+    import cio_test  # NOQA
+except ImportError:
+    log.info("No cio_test package found.")
 
-default_python = '%d.%d' % sys.version_info[:2]
-# CONDA_FORCE_32BIT should only be used when running conda-build (in order
-# to build 32-bit packages on a 64-bit system).  We don't want to mention it
-# in the documentation, because it can mess up a lot of things.
-force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
-
-# ----- operating system and architecture -----
-
-_sys_map = {
+_platform_map = {
     'linux2': 'linux',
     'linux': 'linux',
     'darwin': 'osx',
     'win32': 'win',
-    'openbsd5': 'openbsd',
 }
 non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
-platform = _sys_map.get(sys.platform, 'unknown')
-bits = 8 * tuple.__itemsize__
-if force_32bit:
-    bits = 32
-
-if platform == 'linux' and machine() in non_x86_linux_machines:
-    arch_name = machine()
-    subdir = 'linux-%s' % arch_name
-else:
-    arch_name = {64: 'x86_64', 32: 'x86'}[bits]
-    subdir = '%s-%d' % (platform, bits)
+_arch_names = {
+    32: 'x86',
+    64: 'x86_64',
+}
 
 
 class Context(Configuration):
 
-    arch_name = property(lambda self: arch_name)
-    bits = property(lambda self: bits)
-    default_python = property(lambda self: default_python)
-    platform = property(lambda self: platform)
-    subdir = property(lambda self: subdir)
-
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
+    anaconda_token = PrimitiveParameter('')
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
+    force_32bit = PrimitiveParameter(False)
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
+    client_cert = PrimitiveParameter('')
+    client_cert_key = PrimitiveParameter('')
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
     proxy_servers = MapParameter(string_types)
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
 
     # channels
-    channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
     channels = SequenceParameter(string_types, default=('defaults',))
+    channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
+    migrated_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings  # NOQA
     default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
+    custom_channels = MapParameter(string_types)
+    migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
 
     # command line
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -95,6 +87,38 @@ class Context(Configuration):
                                         parameter_type=(bool, NoneType))
 
     @property
+    def default_python(self):
+        ver = sys.version_info
+        return '%d.%d' % (ver.major, ver.minor)
+
+    @property
+    def arch_name(self):
+        m = machine()
+        if self.platform == 'linux' and m in non_x86_linux_machines:
+            return m
+        else:
+            return _arch_names[self.bits]
+
+    @property
+    def platform(self):
+        return _platform_map.get(sys.platform, 'unknown')
+
+    @property
+    def subdir(self):
+        m = machine()
+        if m in non_x86_linux_machines:
+            return 'linux-%s' % m
+        else:
+            return '%s-%d' % (self.platform, self.bits)
+
+    @property
+    def bits(self):
+        if self.force_32bit:
+            return 32
+        else:
+            return 8 * tuple.__itemsize__
+
+    @property
     def local_build_root(self):
         if self.bld_path:
             return expand(self.bld_path)
@@ -102,10 +126,6 @@ class Context(Configuration):
             return join(self.root_dir, 'conda-bld')
         else:
             return expand('~/conda-bld')
-
-    @property
-    def force_32bit(self):
-        return False
 
     @property
     def root_dir(self):
@@ -181,6 +201,49 @@ class Context(Configuration):
                 'anaconda.org',
                 'binstar.org')
 
+    def _build_channel_map(self):
+        from ..models.channel import Channel
+        channel_map = defaultdict(list)
+        inverted_channel_map = dict()
+
+        # local
+        local = Channel(path_to_url(self.local_build_root))
+        channel_map['local'].append(local)
+        inverted_channel_map[local] = 'local'
+
+        # defaults
+        if self.default_channels:
+            for url in self.default_channels:
+                c = Channel(url)
+                channel_map['defaults'].append(c)
+                inverted_channel_map[c] = 'defaults'
+
+        # custom channels
+        for channel_name, url in iteritems(self.custom_channels):
+            c = Channel(url)
+            channel_map[channel_name].append(c)
+            inverted_channel_map[c] = channel_name
+
+        # mapped custom channels (legacy channels)
+        for channel_name, url in iteritems(self.migrated_custom_channels):
+            c = Channel(url)
+            inverted_channel_map[c] = channel_name
+
+        self._cache['channel_map'] = channel_map
+        self._cache['inverted_channel_map'] = inverted_channel_map
+
+    @property
+    def channel_map(self):
+        if 'channel_map' not in self._cache:
+            self._build_channel_map()
+        return self._cache['channel_map']
+
+    @property
+    def inverted_channel_map(self):
+        if 'inverted_channel_map' not in self._cache:
+            self._build_channel_map()
+        return self._cache['inverted_channel_map']
+
 
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda'
@@ -235,6 +298,14 @@ def get_help_dict():
         'ssl_verify': dals("""
             # ssl_verify can be a boolean value or a filename string
             """),
+        'client_cert': dals("""
+            # client_cert can be a path pointing to a single file
+            # containing the private key and the certificate (e.g. .pem),
+            # or use 'client_cert_key' in conjuction with 'client_cert' for individual files
+            """),
+        'client_cert_key': dals("""
+            # used in conjunction with 'client_cert' for a matching key file
+            """),
         'track_features': dals("""
             """),
         'channels': dals("""
@@ -251,6 +322,11 @@ def get_help_dict():
             """),
         'proxy_servers': dals("""
             """),
+        'force_32bit': dals("""
+            CONDA_FORCE_32BIT should only be used when running conda-build (in order
+            to build 32-bit packages on a 64-bit system).  We don't want to mention it
+            in the documentation, because it can mess up a lot of things.
+        """)
     }
 
 

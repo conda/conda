@@ -18,7 +18,8 @@ from conda.compat import text_type
 from conda.fetch import download
 from conda.install import (FileMode, PaddingError, binary_replace, dist2dirname, dist2filename,
                            dist2name, dist2pair, dist2quad, name_dist, on_win,
-                           read_no_link, update_prefix, warn_failed_remove, yield_lines)
+                           read_no_link, update_prefix, warn_failed_remove, yield_lines,
+                           _PaddingError)
 from contextlib import contextmanager
 from os import chdir, getcwd, makedirs
 from os.path import dirname, exists, join, relpath
@@ -46,7 +47,7 @@ class TestBinaryReplace(unittest.TestCase):
             b'xxxbbbbxyz\x00\x00zz')
 
     def test_too_long(self):
-        self.assertRaises(PaddingError, binary_replace,
+        self.assertRaises(_PaddingError, binary_replace,
                           b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb')
 
     def test_no_extra(self):
@@ -71,7 +72,7 @@ class TestBinaryReplace(unittest.TestCase):
         self.assertEqual(
             binary_replace(b'aaaacaaaa\x00', b'aaaa', b'bbb'),
             b'bbbcbbb\x00\x00\x00')
-        self.assertRaises(PaddingError, binary_replace,
+        self.assertRaises(_PaddingError, binary_replace,
                           b'aaaacaaaa\x00', b'aaaa', b'bbbbb')
 
     @pytest.mark.skipif(not on_win, reason="exe entry points only necessary on win")
@@ -487,7 +488,8 @@ def test_dist2():
     for name in ('python', 'python-hyphen', ''):
         for version in ('2.7.0', '2.7.0rc1', ''):
             for build in ('0', 'py27_0', 'py35_0+g34fe21', ''):
-                for channel in ('defaults', 'test', 'test-hyphen', 'http://bremen', 'https://anaconda.org/mcg', '<unknown>'):
+                for channel in ('defaults', 'test', 'test-hyphen', 'http://bremen',
+                                'https://anaconda.org/mcg', '<unknown>'):
                     dist_noprefix = name + '-' + version + '-' + build
                     quad = (name, version, build, channel)
                     dist = dist_noprefix if channel == 'defaults' else channel + '::' + dist_noprefix

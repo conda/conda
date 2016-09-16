@@ -1,3 +1,6 @@
+set -e
+set -x
+
 osx_setup() {
     brew update || brew update
 
@@ -70,19 +73,34 @@ miniconda_install() {
     conda info
     conda install -y -q pip
     which -a pip
+    which -a python
     conda config --set auto_update_conda false
 }
 
 
 conda_build_install() {
+    # install conda
     python setup.py install
-    conda install -y -q jinja2 patchelf
+    conda info
+
+    # install conda-build test dependencies
+    conda install -y -q pytest pytest-cov pytest-timeout mock
+    python -m pip install pytest-capturelog
+    conda install -y -q anaconda-client numpy
+    conda install -y -q -c conda-forge perl pytest-xdist
+    conda config --set add_pip_as_python_dependency true
+
+    # install conda-build runtime dependencies
+    conda install -y -q filelock jinja2 patchelf
+
+    # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
     python setup.py install
     conda info
-    conda install -y -q pytest pytest-cov mock anaconda-client
     popd
+
+    git clone https://github.com/conda/conda_build_test_recipe.git
 }
 
 

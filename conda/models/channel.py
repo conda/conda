@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict
+import re
 from itertools import chain
 from logging import getLogger
 from os.path import join
 
+try:
+    from cytoolz.functoolz import excepts
+except ImportError:
+    from .._vendor.toolz.functoolz import excepts
+
 from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
 from ..base.context import context
-from ..common.compat import with_metaclass
+from ..common.compat import odict, with_metaclass
 from ..common.url import is_url, path_to_url, urlparse, urlunparse
 
 log = getLogger(__name__)
@@ -34,8 +39,8 @@ class ChannelType(type):
             return value
         elif value in Channel._cache_:
             return Channel._cache_[value]
-        elif value in _SPECIAL_CHANNELS:
-            self = object.__new__(_SPECIAL_CHANNELS[value])
+        elif value is None:
+            self = object.__new__(NoneChannel)
         elif value.endswith('.tar.bz2'):
             self = object.__new__(UrlChannel)
         elif has_scheme(value):
@@ -50,41 +55,55 @@ class ChannelType(type):
 @with_metaclass(ChannelType)
 class Channel(object):
     _cache_ = dict()
-    _local_url = path_to_url(context.local_build_root)
     _channel_alias_netloc = urlparse(context.channel_alias).netloc
+    _old_channel_alias_netloc = tuple(urlparse(ca).netloc
+                                      for ca in context.migrated_channel_aliases)
 
     @staticmethod
     def _reset_state():
         Channel._cache_ = dict()
-        Channel._local_url = path_to_url(context.local_build_root)
         Channel._channel_alias_netloc = urlparse(context.channel_alias).netloc
+        Channel._old_channel_alias_netloc = tuple(urlparse(ca).netloc
+                                                  for ca in context.migrated_channel_aliases)
 
     @property
     def base_url(self):
-        return urlunparse((self._scheme, self._netloc, self._path, None, None, None))
+        _path = excepts(AttributeError, lambda: self._path.lstrip('/'))()
+        if self._token:
+            _path = self._token + '/' + _path
+        if self._netloc in Channel._old_channel_alias_netloc:
+            ca = Channel(context.channel_alias)
+            return urlunparse((ca._scheme, ca._netloc, _path, None, None, None))
+        else:
+            return urlunparse((self._scheme, self._netloc, _path, None, None, None))
 
     def __eq__(self, other):
         return self._netloc == other._netloc and self._path == other._path
 
+    def __hash__(self):
+        return hash((self._netloc, self._path))
+
     @property
     def canonical_name(self):
-        if any(self == Channel(c) for c in context.default_channels):
-            return 'defaults'
-        elif self == Channel(self._local_url):
-            return 'local'
-        elif self._netloc == Channel(context.channel_alias)._netloc:
-            # TODO: strip token
-            return self._path.lstrip('/')
+        if self in context.inverted_channel_map:
+            return context.inverted_channel_map[self]
+        elif self._netloc == Channel._channel_alias_netloc:
+            return self._path.strip('/')
+        elif self._netloc in Channel._old_channel_alias_netloc:
+            return self._path.strip('/')
         else:
             return self.base_url
 
+    def _urls_helper(self):
+        return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
+
     @property
     def urls(self):
-        # TODO: figure out how to add token
-        if self._platform is None:
-            return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
+        if self.canonical_name in context.channel_map:
+            url_channels = context.channel_map[self.canonical_name]
+            return list(chain.from_iterable(c._urls_helper() for c in url_channels))
         else:
-            return [join_url(self.base_url, self._platform)]
+            return self._urls_helper()
 
     @property
     def url_channel_wtf(self):
@@ -109,6 +128,12 @@ def split_platform(value):
             return value, None
 
 
+TOKEN_RE = re.compile(r'(/t/[a-z0-9A-Z-]+)?(\S*)?')
+def split_token(value):  # NOQA
+    token, path = TOKEN_RE.match(value).groups()
+    return token, path or '/'
+
+
 class UrlChannel(Channel):
 
     def __init__(self, url):
@@ -122,7 +147,12 @@ class UrlChannel(Channel):
         parsed = urlparse(url)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
-        self._path, self._platform = split_platform(parsed.path)
+        _path, self._platform = split_platform(parsed.path)
+        self._token, self._path = split_token(_path)
+
+    def __repr__(self):
+        return "UrlChannel(%s)" % urlunparse(('', self._netloc, self._path.lstrip('/'),
+                                              None, None, None)).lstrip('/')
 
 
 class NamedChannel(Channel):
@@ -130,39 +160,27 @@ class NamedChannel(Channel):
     def __init__(self, name):
         log.debug("making channel object for named channel: %s", name)
         self._raw_value = name
-        parsed = urlparse(context.channel_alias)
+        if name in context.custom_channels:
+            parsed = urlparse(context.custom_channels[name])
+        elif name.split('/')[0] in context.custom_channels:
+            parsed = urlparse(context.custom_channels[name.split('/')[0]])
+        else:
+            parsed = urlparse(context.channel_alias)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
-        self._path = join(parsed.path, name)
+        self._token = None
+        self._path = join(parsed.path or '/', name)
         self._platform = None
 
-
-class DefaultChannel(NamedChannel):
-
-    @property
-    def canonical_name(self):
-        return "defaults"
-
-    @property
-    def urls(self):
-        return list(chain.from_iterable(Channel(c).urls for c in context.default_channels))
-
-
-class LocalChannel(UrlChannel):
-
-    def __init__(self, _):
-        super(LocalChannel, self).__init__(path_to_url(context.local_build_root))
-
-    @property
-    def canonical_name(self):
-        return "local"
+    def __repr__(self):
+        return "NamedChannel(%s)" % self._raw_value
 
 
 class NoneChannel(NamedChannel):
 
     def __init__(self, value):
         self._raw_value = value
-        self._scheme = self._netloc = self._path = self._platform = None
+        self._scheme = self._netloc = self._token = self._path = self._platform = None
 
     @property
     def canonical_name(self):
@@ -175,7 +193,7 @@ class NoneChannel(NamedChannel):
 
 def prioritize_channels(channels):
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
-    result = OrderedDict()
+    result = odict()
     for q, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls:
@@ -187,10 +205,3 @@ def prioritize_channels(channels):
 
 def offline_keep(url):
     return not context.offline or not is_url(url) or url.startswith('file:/')
-
-
-_SPECIAL_CHANNELS = {
-    'defaults': DefaultChannel,
-    'local': LocalChannel,
-    None: NoneChannel,
-}

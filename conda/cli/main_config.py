@@ -5,15 +5,19 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function
 
+import collections
+import json
 import os
 import sys
-from conda import CondaError
 
 from .common import (Completer, add_parser_json, stdout_json_success)
+from .. import CondaError
+from .._vendor.auxlib.compat import isiterable
 from .._vendor.auxlib.type_coercion import boolify
 from ..base.context import context
+from ..common.configuration import pretty_list, pretty_map
 from ..common.yaml import yaml_dump, yaml_load
-from ..compat import iteritems, itervalues, string_types
+from ..compat import iteritems, string_types
 from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
                       user_rc_path)
 from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
@@ -167,7 +171,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         choices=BoolOrListKey()
     )
     action.add_argument(
-        "--append", "--add",
+        "--append",
         nargs=2,
         action="append",
         help="""Add one configuration value to the end of a list key.""",
@@ -176,7 +180,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
-        "--prepend",
+        "--prepend", "--add",
         nargs=2,
         action="append",
         help="""Add one configuration value to the beginning of a list key.""",
@@ -228,49 +232,79 @@ def execute(args, parser):
         raise CondaError(e)
 
 
+def format_dict(d):
+    lines = []
+    for k, v in iteritems(d):
+        if isinstance(v, collections.Mapping):
+            if v:
+                lines.append("%s:" % k)
+                lines.append(pretty_map(v))
+            else:
+                lines.append("%s: {}" % k)
+        elif isiterable(v):
+            if v:
+                lines.append("%s:" % k)
+                lines.append(pretty_list(v))
+            else:
+                lines.append("%s: []" % k)
+        else:
+            lines.append("%s: %s" % (k, v if v is not None else "None"))
+    return lines
+
+
 def execute_config(args, parser):
     json_warnings = []
     json_get = {}
 
     if args.show_sources:
-        lines = []
-        for source, reprs in iteritems(context.collect_all()):
-            lines.append("==> %s <==" % source)
-            lines.extend(itervalues(reprs))
-            lines.append('')
-        print('\n'.join(lines))
+        if context.json:
+            print(json.dumps(context.collect_all(), sort_keys=True,
+                             indent=2, separators=(',', ': ')))
+        else:
+            lines = []
+            for source, reprs in iteritems(context.collect_all()):
+                lines.append("==> %s <==" % source)
+                lines.extend(format_dict(reprs))
+                lines.append('')
+            print('\n'.join(lines))
         return
 
     if args.show:
-        d = dict((key, getattr(context, key))
-                 for key in ('add_anaconda_token',
-                             'add_pip_as_python_dependency',
-                             'allow_softlinks',
-                             'always_copy',
-                             'always_yes',
-                             'binstar_upload',
-                             'auto_update_conda',
-                             'changeps1',
-                             'channel_alias',
-                             'channel_priority',
-                             'channels',
-                             'create_default_packages',
-                             'debug',
-                             'default_channels',
-                             'disallow',
-                             'json',
-                             'offline',
-                             'proxy_servers',
-                             'quiet',
-                             'shortcuts',
-                             'show_channel_urls',
-                             'ssl_verify',
-                             'track_features',
-                             'update_dependencies',
-                             'use_pip',
-                             'verbosity',
-                             ))
-        print(yaml_dump(d))
+        from collections import OrderedDict
+        d = OrderedDict((key, getattr(context, key))
+                        for key in sorted(('add_anaconda_token',
+                                           'add_pip_as_python_dependency',
+                                           'allow_softlinks',
+                                           'always_copy',
+                                           'always_yes',
+                                           'auto_update_conda',
+                                           'binstar_upload',
+                                           'changeps1',
+                                           'channel_alias',
+                                           'channel_priority',
+                                           'channels',
+                                           'client_cert',
+                                           'client_cert_key',
+                                           'create_default_packages',
+                                           'debug',
+                                           'default_channels',
+                                           'disallow',
+                                           'json',
+                                           'offline',
+                                           'proxy_servers',
+                                           'quiet',
+                                           'shortcuts',
+                                           'show_channel_urls',
+                                           'ssl_verify',
+                                           'track_features',
+                                           'update_dependencies',
+                                           'use_pip',
+                                           'verbosity',
+                                           )))
+        if context.json:
+            print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': ')))
+        else:
+            print('\n'.join(format_dict(d)))
         return
 
     if args.validate:
@@ -300,7 +334,7 @@ def execute_config(args, parser):
             if key not in rc_list_keys + rc_bool_keys + rc_string_keys:
                 if key not in rc_other:
                     message = "unknown key %s" % key
-                    if not args.json:
+                    if not context.json:
                         print(message, file=sys.stderr)
                     else:
                         json_warnings.append(message)
@@ -308,7 +342,7 @@ def execute_config(args, parser):
             if key not in rc_config:
                 continue
 
-            if args.json:
+            if context.json:
                 json_get[key] = rc_config[key]
                 continue
 
@@ -320,11 +354,11 @@ def execute_config(args, parser):
                 # recreate the same file
                 items = rc_config.get(key, [])
                 numitems = len(items)
-                for q, item in enumerate(items):
+                for q, item in enumerate(reversed(items)):
                     # Use repr so that it can be pasted back in to conda config --add
                     if key == "channels" and q in (0, numitems-1):
                         print("--add", key, repr(item),
-                              "  # highest priority" if q == 0 else "  # lowest priority")
+                              "  # lowest priority" if q == 0 else "  # highest priority")
                     else:
                         print("--add", key, repr(item))
 
@@ -348,7 +382,7 @@ def execute_config(args, parser):
                 message = "Warning: '%s' already in '%s' list, moving to the %s" % (
                     item, key, "top" if prepend else "bottom")
                 arglist = rc_config[key] = [p for p in arglist if p != item]
-                if not args.json:
+                if not context.json:
                     print(message, file=sys.stderr)
                 else:
                     json_warnings.append(message)
@@ -389,7 +423,7 @@ def execute_config(args, parser):
     with open(rc_path, 'w') as rc:
         rc.write(yaml_dump(rc_config))
 
-    if args.json:
+    if context.json:
         stdout_json_success(
             rc_path=rc_path,
             warnings=json_warnings,
