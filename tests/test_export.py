@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from .test_create import (make_temp_env, PYTHON_BINARY,
                           assert_package_is_installed, run_command, Commands,
                           make_temp_prefix)
@@ -31,6 +33,7 @@ class ExportIntegrationTests(TestCase):
             output2, error= run_command(Commands.LIST, prefix2, "-e")
             self.assertEqual(output, output2)
 
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 10, 1), reason="Bring back `conda list --export` #3445")
     def test_multi_channel_export(self):
         """
             When try to import from txt
