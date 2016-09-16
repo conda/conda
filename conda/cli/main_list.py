@@ -219,8 +219,7 @@ def execute(args, parser):
         print_explicit(prefix, args.md5)
         return
     else:
-        format = 'human'
-
+        format = 'export'
     if context.json:
         format = 'canonical'
 

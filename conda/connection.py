@@ -97,8 +97,7 @@ class BinstarAuth(AuthBase):
             if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
                 base_url = binstar_default_url
 
-            # chatty 'binstar' logger
-            config = get_config(remote_site=base_url)
+            config = get_config()  # remote_site is site name, not url
             url_from_bs_config = config.get('url', base_url)
             token = load_token(url_from_bs_config)
 
