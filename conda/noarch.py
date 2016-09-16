@@ -53,18 +53,16 @@ class NoArchPython(NoArch):
         # that is inside src_dir/site-packages
 
         # create_scripts(DATA['python-scripts'])
-        link_files('site-packages', SITE_PACKAGES, list_site_package(src_dir), src_dir)
+        with open(join(src_dir, "info/files")) as f:
+            files = f.read()
+        files.split("\n")
+        link_files('site-packages', SITE_PACKAGES, files, src_dir)
         with open(join(PREFIX, 'conda-meta.files'), 'w') as fo:
             for f in FILES:
                 fo.write('%s\n' % f)
 
     def unlink(self):
         pass
-
-def list_site_package(src_dir):
-    site_packages_dir = os.path.join(src_dir, "site-packages")
-    import pdb; pdb.set_trace()
-    # return get_all_files_in_dir(site_packages_dir)
 
 
 def link_files(src_root, dst_root, files, src_dir):
@@ -88,11 +86,3 @@ NOARCH_CLASSES = {
     'python': NoArchPython,
     True: NoArch,
 }
-
-
-
-
-
-
-
-

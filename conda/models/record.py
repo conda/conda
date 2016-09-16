@@ -51,6 +51,8 @@ class Record(DictSafeMixin, Entity):
     license_family = StringField(required=False)
     md5 = StringField(required=False, nullable=True)
     name = StringField()
+    # TODO: noarch should support being a string or bool
+    noarch = StringField(required=False)
     platform = EnumField(Platform, required=False, nullable=True)
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)
