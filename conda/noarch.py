@@ -7,10 +7,10 @@ PREFIX = normpath(sys.prefix)
 FILES = []
 if sys.platform == 'win32':
     BIN_DIR = join(PREFIX, 'Scripts')
-    SITE_PACKAGES = 'Lib/site-packages'
+    SITE_PACKAGES = 'Lib'
 else:
     BIN_DIR = join(PREFIX, 'bin')
-    SITE_PACKAGES = 'lib/python%s/site-packages' % sys.version[:3]
+    SITE_PACKAGES = 'lib/python%s' % sys.version[:3]
 
 
 def get_noarch_cls(noarch_type):
@@ -55,8 +55,9 @@ class NoArchPython(NoArch):
         # create_scripts(DATA['python-scripts'])
         with open(join(src_dir, "info/files")) as f:
             files = f.read()
-        files.split("\n")
-        link_files('site-packages', SITE_PACKAGES, files, src_dir)
+        files = files.split("\n")[:-1]
+
+        link_files('', SITE_PACKAGES, files, src_dir)
         with open(join(PREFIX, 'conda-meta.files'), 'w') as fo:
             for f in FILES:
                 fo.write('%s\n' % f)
@@ -74,6 +75,7 @@ def link_files(src_root, dst_root, files, src_dir):
             os.makedirs(dst_dir)
         if exists(dst):
             unlink_package(dst)
+
         link_package(src, dst)
         # TODO: do we need to keep track of files?
         # f = '%s/%s' % (dst_root, f)
