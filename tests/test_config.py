@@ -39,7 +39,7 @@ if len(config.defaults_) > 2:
     config.defaults_ = config.defaults_[:2]
 
 class BinstarTester(object):
-    def __init__(self, domain='https://mybinstar.com', token='01234abcde'):
+    def __init__(self, domain='https://myapistar.com', token='01234abcde'):
        self.domain = domain
        self.token = token
 
@@ -90,15 +90,15 @@ class TestConfig(unittest.TestCase):
         assert config.DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
         assert config.rc.get('channel_alias') == 'https://your.repo/'
         assert config.channel_prefix(False) == 'https://your.repo/'
-        assert config.binstar_domain == 'https://mybinstar.com/'
-        assert config.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
+        assert config.binstar_domain == 'https://myapistar.com/'
+        assert config.binstar_domain_tok == 'https://myapistar.com/t/01234abcde/'
 
         channel_urls = [
             'defaults', 'system', 
             'https://conda.anaconda.org/username',
             'file:///Users/username/repo', 
-            'https://mybinstar.com/t/5768wxyz/test2', 
-            'https://mybinstar.com/test', 
+            'https://myapistar.com/t/5768wxyz/test2', 
+            'https://myapistar.com/test', 
             'https://conda.anaconda.org/t/abcdefgh/username', 
             'username'
         ]
@@ -126,12 +126,12 @@ class TestConfig(unittest.TestCase):
            'https://conda.anaconda.org/username/noarch/',
            'file:///Users/username/repo/osx-64/',
            'file:///Users/username/repo/noarch/',
-           # mybinstar.com is not channel_alias, but we still add tokens
-           'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
-           'https://mybinstar.com/t/5768wxyz/test2/noarch/',
+           # myapistar.com is not channel_alias, but we still add tokens
+           'https://myapistar.com/t/5768wxyz/test2/osx-64/',
+           'https://myapistar.com/t/5768wxyz/test2/noarch/',
            # token already supplied, do not change/remove it
-           'https://mybinstar.com/t/01234abcde/test/osx-64/',
-           'https://mybinstar.com/t/01234abcde/test/noarch/',
+           'https://myapistar.com/t/01234abcde/test/osx-64/',
+           'https://myapistar.com/t/01234abcde/test/noarch/',
            # we do not remove tokens from conda.anaconda.org
            'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
            'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
@@ -157,10 +157,10 @@ class TestConfig(unittest.TestCase):
            # the tokenized version came first, but we still give it the same priority
            'https://conda.anaconda.org/username/noarch/': ('https://conda.anaconda.org/username', 4),
            'https://conda.anaconda.org/username/osx-64/': ('https://conda.anaconda.org/username', 4),
-           'https://mybinstar.com/t/5768wxyz/test2/noarch/': ('https://mybinstar.com/test2', 6),
-           'https://mybinstar.com/t/5768wxyz/test2/osx-64/': ('https://mybinstar.com/test2', 6),
-           'https://mybinstar.com/t/01234abcde/test/noarch/': ('https://mybinstar.com/test', 7),
-           'https://mybinstar.com/t/01234abcde/test/osx-64/': ('https://mybinstar.com/test', 7),
+           'https://myapistar.com/t/5768wxyz/test2/noarch/': ('https://myapistar.com/test2', 6),
+           'https://myapistar.com/t/5768wxyz/test2/osx-64/': ('https://myapistar.com/test2', 6),
+           'https://myapistar.com/t/01234abcde/test/noarch/': ('https://myapistar.com/test', 7),
+           'https://myapistar.com/t/01234abcde/test/osx-64/': ('https://myapistar.com/test', 7),
            'https://your.repo/username/noarch/': ('username', 8),
            'https://your.repo/username/osx-64/': ('username', 8)
         }
@@ -171,14 +171,14 @@ class TestConfig(unittest.TestCase):
         config.load_condarc()
         config.binstar_client = BinstarTester()
         normurls = config.normalize_urls(channel_urls, platform)
-        # all your.repo references should be changed to mybinstar.com
+        # all your.repo references should be changed to myapistar.com
         assert normurls == [
            'https://repo.continuum.io/pkgs/free/osx-64/',
            'https://repo.continuum.io/pkgs/free/noarch/',
            'https://repo.continuum.io/pkgs/pro/osx-64/',
            'https://repo.continuum.io/pkgs/pro/noarch/',
-           'https://mybinstar.com/t/01234abcde/binstar_username/osx-64/',
-           'https://mybinstar.com/t/01234abcde/binstar_username/noarch/',
+           'https://myapistar.com/t/01234abcde/binstar_username/osx-64/',
+           'https://myapistar.com/t/01234abcde/binstar_username/noarch/',
            'http://some.custom/channel/osx-64/',
            'http://some.custom/channel/noarch/',
            'https://repo.continuum.io/pkgs/free/osx-64/',
@@ -189,14 +189,14 @@ class TestConfig(unittest.TestCase):
            'https://conda.anaconda.org/username/noarch/',
            'file:///Users/username/repo/osx-64/',
            'file:///Users/username/repo/noarch/',
-           'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
-           'https://mybinstar.com/t/5768wxyz/test2/noarch/',
-           'https://mybinstar.com/t/01234abcde/test/osx-64/',
-           'https://mybinstar.com/t/01234abcde/test/noarch/',
+           'https://myapistar.com/t/5768wxyz/test2/osx-64/',
+           'https://myapistar.com/t/5768wxyz/test2/noarch/',
+           'https://myapistar.com/t/01234abcde/test/osx-64/',
+           'https://myapistar.com/t/01234abcde/test/noarch/',
            'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
            'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
-           'https://mybinstar.com/t/01234abcde/username/osx-64/',
-           'https://mybinstar.com/t/01234abcde/username/noarch/'
+           'https://myapistar.com/t/01234abcde/username/osx-64/',
+           'https://myapistar.com/t/01234abcde/username/noarch/'
         ]
 
         # Delete the anaconda token
@@ -209,8 +209,8 @@ class TestConfig(unittest.TestCase):
            'https://repo.continuum.io/pkgs/free/noarch/',
            'https://repo.continuum.io/pkgs/pro/osx-64/',
            'https://repo.continuum.io/pkgs/pro/noarch/',
-           'https://mybinstar.com/binstar_username/osx-64/',
-           'https://mybinstar.com/binstar_username/noarch/',
+           'https://myapistar.com/binstar_username/osx-64/',
+           'https://myapistar.com/binstar_username/noarch/',
            'http://some.custom/channel/osx-64/',
            'http://some.custom/channel/noarch/',
            'https://repo.continuum.io/pkgs/free/osx-64/',
@@ -221,14 +221,14 @@ class TestConfig(unittest.TestCase):
            'https://conda.anaconda.org/username/noarch/',
            'file:///Users/username/repo/osx-64/',
            'file:///Users/username/repo/noarch/',
-           'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
-           'https://mybinstar.com/t/5768wxyz/test2/noarch/',
-           'https://mybinstar.com/test/osx-64/',
-           'https://mybinstar.com/test/noarch/',
+           'https://myapistar.com/t/5768wxyz/test2/osx-64/',
+           'https://myapistar.com/t/5768wxyz/test2/noarch/',
+           'https://myapistar.com/test/osx-64/',
+           'https://myapistar.com/test/noarch/',
            'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
            'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
-           'https://mybinstar.com/username/osx-64/',
-           'https://mybinstar.com/username/noarch/'
+           'https://myapistar.com/username/osx-64/',
+           'https://myapistar.com/username/noarch/'
         ]
 
         # Turn off add_anaconda_token
@@ -261,10 +261,10 @@ class TestConfig(unittest.TestCase):
           'https://conda.anaconda.org/username/noarch/',
           'file:///Users/username/repo/osx-64/',
           'file:///Users/username/repo/noarch/',
-          'https://mybinstar.com/t/5768wxyz/test2/osx-64/',
-          'https://mybinstar.com/t/5768wxyz/test2/noarch/',
-          'https://mybinstar.com/test/osx-64/',
-          'https://mybinstar.com/test/noarch/',
+          'https://myapistar.com/t/5768wxyz/test2/osx-64/',
+          'https://myapistar.com/t/5768wxyz/test2/noarch/',
+          'https://myapistar.com/test/osx-64/',
+          'https://myapistar.com/test/noarch/',
           'https://conda.anaconda.org/t/abcdefgh/username/osx-64/',
           'https://conda.anaconda.org/t/abcdefgh/username/noarch/',
           'https://conda.anaconda.org/username/osx-64/',
