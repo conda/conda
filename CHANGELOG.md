@@ -4,10 +4,13 @@
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 
 
-## 4.2.7 (2016-09-15)
+## 4.2.7 (2016-09-16)
+
+### Deprecations/Breaking Changes
+* revert to 4.1.x behavior of `conda list --export` (#3450)
 
 ### Bug Fixes
-* don't add binstar token if it's given in the channel spec (#3427, #3440)
+* don't add binstar token if it's given in the channel spec (#3427, #3440, #3444)
 * fix #3433 failure to remove broken symlinks (#3436)
 
 ### Non-User-Facing Changes
