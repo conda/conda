@@ -216,10 +216,9 @@ def execute(args, parser):
     if args.canonical:
         format = 'canonical'
     elif args.export:
-        print_explicit(prefix, args.md5)
-        return
-    else:
         format = 'export'
+    else:
+        format = 'human'
     if context.json:
         format = 'canonical'
 
