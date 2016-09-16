@@ -19,6 +19,7 @@ from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.io import captured, disable_logger, stderr_log_level
 from conda.common.url import path_to_url
+from conda.common.yaml import yaml_load
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
 from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
@@ -46,12 +47,15 @@ def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
-def make_temp_prefix(name=None):
+def make_temp_prefix(name=None, create_directory=True):
     tempdir = gettempdir()
     dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
     os.makedirs(prefix)
-    assert isdir(prefix)
+    if create_directory:
+        assert isdir(prefix)
+    else:
+        os.removedirs(prefix)
     return prefix
 
 
@@ -591,3 +595,51 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
+
+    def test_create_default_packages(self):
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+
+            # set packages
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+
+            assert not package_is_installed(prefix, 'python-2')
+            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'flask')
+
+            with make_temp_env("python=2", "numpy", prefix=prefix):
+                assert_package_is_installed(prefix, 'python-2')
+                assert_package_is_installed(prefix, 'numpy')
+                assert_package_is_installed(prefix, 'flask')
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
+
+    def test_create_default_packages_no_default_packages(self):
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+
+            # set packages
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+
+            assert not package_is_installed(prefix, 'python-2')
+            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'flask')
+
+            with make_temp_env("python=2", "numpy", "--no-default-packages", prefix=prefix):
+                assert_package_is_installed(prefix, 'python-2')
+                assert_package_is_installed(prefix, 'numpy')
+                assert not package_is_installed(prefix, 'flask')
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
