@@ -2,14 +2,17 @@ import os
 from os.path import dirname, exists, isdir, join, normpath
 import sys
 import shutil
+from subprocess import call
 
-PREFIX = normpath(sys.prefix)
-FILES = []
+from conda.base.context import context
+from conda.compat import itervalues
+from conda.install import linked_data_
+
 if sys.platform == 'win32':
-    BIN_DIR = join(PREFIX, 'Scripts')
+    BIN_DIR = join(normpath(sys.prefix), 'Scripts')
     SITE_PACKAGES = 'Lib'
 else:
-    BIN_DIR = join(PREFIX, 'bin')
+    BIN_DIR = join(normpath(sys.prefix), 'bin')
     SITE_PACKAGES = 'lib/python%s' % sys.version[:3]
 
 
@@ -32,6 +35,57 @@ def unlink_package(path):
         pass
 
 
+def get_python_version_for_prefix(prefix):
+    import pdb; pdb.set_trace()
+
+    record = next((record for record in itervalues(linked_data_[prefix]) if record.name == 'python'), None)
+    if record is not None:
+        return record.version
+    raise RuntimeError()
+
+
+def link_files(prefix, src_root, dst_root, files, src_dir):
+    prefix = normpath(prefix)
+
+    get_python_version_for_prefix(prefix)
+
+    dst_files = []
+    for f in files:
+        src = join(src_dir, src_root, f)
+        dst = join(prefix, dst_root, f)
+        dst_dir = dirname(dst)
+        dst_files.append(dst)
+        if not isdir(dst_dir):
+            os.makedirs(dst_dir)
+        if exists(dst):
+            unlink_package(dst)
+
+        link_package(src, dst)
+    return dst_files
+
+
+def compile_missing_pyc(files, cwd):
+    compile_files = []
+    for fn in files:
+        # omit files in Library/bin, Scripts, and the root prefix - they are not generally imported
+        if sys.platform == 'win32':
+            if any([fn.lower().startswith(start) for start in ['library/bin', 'library\\bin',
+                                                               'scripts']]):
+                continue
+        else:
+            if fn.startswith('bin'):
+                continue
+        cache_prefix = ("__pycache__" + os.sep) if sys.version_info.major == 3 else ""
+        if (fn.endswith(".py") and
+                os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c' not in files):
+            compile_files.append(fn)
+
+    if compile_files:
+        print('compiling .pyc files...')
+        for f in compile_files:
+            call(["python", '-Wi', '-m', 'py_compile', f], cwd=cwd)
+
+
 class NoArch(object):
 
     def link(self, src_dir):
@@ -48,40 +102,17 @@ class NoArchPython(NoArch):
         # deal with setup.py scripts (copied into right dir)
         # deal with entry points
         # compile pyc files
+        # get python scripts and put them in bin/
 
-        # DATA is a list of files in site-packages
-        # that is inside src_dir/site-packages
-
-        # create_scripts(DATA['python-scripts'])
         with open(join(src_dir, "info/files")) as f:
             files = f.read()
         files = files.split("\n")[:-1]
 
-        link_files('', SITE_PACKAGES, files, src_dir)
-        with open(join(PREFIX, 'conda-meta.files'), 'w') as fo:
-            for f in FILES:
-                fo.write('%s\n' % f)
+        linked_files = link_files(context.prefix, '', SITE_PACKAGES, files, src_dir)
+        compile_missing_pyc(linked_files, os.path.join(sys.prefix, SITE_PACKAGES, 'site-packages'))
 
     def unlink(self):
         pass
-
-
-def link_files(src_root, dst_root, files, src_dir):
-    for f in files:
-        src = join(src_dir, src_root, f)
-        dst = join(PREFIX, dst_root, f)
-        dst_dir = dirname(dst)
-        if not isdir(dst_dir):
-            os.makedirs(dst_dir)
-        if exists(dst):
-            unlink_package(dst)
-
-        link_package(src, dst)
-        # TODO: do we need to keep track of files?
-        # f = '%s/%s' % (dst_root, f)
-        # FILES.append(f)
-        # if f.endswith('.py'):
-        #     FILES.append(pyc_f(f))
 
 
 NOARCH_CLASSES = {
