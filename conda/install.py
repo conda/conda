@@ -956,6 +956,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         os.makedirs(prefix)
 
     with DirectoryLock(prefix), FileLock(source_dir):
+        meta_dict = index.get(dist + '.tar.bz2', {})
         for filepath in files:
             src = join(source_dir, filepath)
             dst = join(prefix, filepath)
@@ -970,7 +971,10 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
                 lt = LINK_COPY
 
             try:
-                _link(src, dst, lt)
+                if meta_dict.get('noarch'):
+                    link_noarch(meta_dict, source_dir)
+                else:
+                    _link(src, dst, lt)
             except OSError as e:
                 raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                                    (src, dst, lt, e))
@@ -996,11 +1000,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         if not run_script(prefix, dist, 'post-link'):
             raise LinkError("Error: post-link failed for: %s" % dist)
 
-        meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
-
-        if meta_dict.get('noarch'):
-            link_noarch(meta_dict, source_dir)
 
         alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
         if isfile(alt_files_path):
