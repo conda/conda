@@ -36,8 +36,6 @@ def unlink_package(path):
 
 
 def get_python_version_for_prefix(prefix):
-    import pdb; pdb.set_trace()
-
     record = next((record for record in itervalues(linked_data_[prefix]) if record.name == 'python'), None)
     if record is not None:
         return record.version
@@ -64,7 +62,7 @@ def link_files(prefix, src_root, dst_root, files, src_dir):
     return dst_files
 
 
-def compile_missing_pyc(files, cwd):
+def compile_missing_pyc(prefix, files, cwd):
     compile_files = []
     for fn in files:
         # omit files in Library/bin, Scripts, and the root prefix - they are not generally imported
@@ -75,7 +73,7 @@ def compile_missing_pyc(files, cwd):
         else:
             if fn.startswith('bin'):
                 continue
-        cache_prefix = ("__pycache__" + os.sep) if sys.version_info.major == 3 else ""
+        cache_prefix = ("__pycache__" + os.sep) if get_python_version_for_prefix(prefix) == 3 else ""
         if (fn.endswith(".py") and
                 os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c' not in files):
             compile_files.append(fn)
@@ -109,7 +107,9 @@ class NoArchPython(NoArch):
         files = files.split("\n")[:-1]
 
         linked_files = link_files(context.prefix, '', SITE_PACKAGES, files, src_dir)
-        compile_missing_pyc(linked_files, os.path.join(sys.prefix, SITE_PACKAGES, 'site-packages'))
+        compile_missing_pyc(
+            context.prefix, linked_files, os.path.join(sys.prefix, SITE_PACKAGES, 'site-packages')
+        )
 
     def unlink(self):
         pass
