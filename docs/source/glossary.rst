@@ -43,5 +43,11 @@ Miniconda:
 Noarch package:
   A conda package that contains nothing specific to any system architecture, so it may be installed from any system. When conda does a search for packages on any system in a channel, conda always checks both the system-specific subdirectory, for example, "linux-64" *and* the ``noarch`` directory. 
 
+Package Manager:
+  A collection of software tools that automates the process of installing, upgdating, configuring, and removing computer programs for a computer's operating system. Also known as a package management system. Conda is a a package manager.
+
+Packages:
+  Software files and information about the software, such as its name, the specific version and a description, bundled into a file that can be installed and managed by a package manager.
+
 Repository: 
   Any storage location from which software software assets may be retrieved and installed on a local computer. See also Anaconda Cloud and conda repository.
