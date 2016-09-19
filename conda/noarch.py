@@ -6,14 +6,6 @@ from subprocess import call
 
 from conda.base.context import context
 from conda.compat import itervalues
-from conda.install import linked_data_
-
-if sys.platform == 'win32':
-    BIN_DIR = join(normpath(sys.prefix), 'Scripts')
-    SITE_PACKAGES = 'Lib'
-else:
-    BIN_DIR = join(normpath(sys.prefix), 'bin')
-    SITE_PACKAGES = 'lib/python%s' % sys.version[:3]
 
 
 def get_noarch_cls(noarch_type):
@@ -40,6 +32,13 @@ def get_python_version_for_prefix(prefix):
     if record is not None:
         return record.version
     raise RuntimeError()
+
+
+def get_site_packages(prefix):
+    if sys.platform == 'win32':
+        return 'Lib'
+    else:
+        return'lib/python%s' % get_python_version_for_prefix(prefix)
 
 
 def link_files(prefix, src_root, dst_root, files, src_dir):
@@ -96,19 +95,23 @@ class NoArch(object):
 class NoArchPython(NoArch):
 
     def link(self, src_dir):
-        # map directories (site-packages)
-        # deal with setup.py scripts (copied into right dir)
-        # deal with entry points
-        # compile pyc files
-        # get python scripts and put them in bin/
-
         with open(join(src_dir, "info/files")) as f:
             files = f.read()
         files = files.split("\n")[:-1]
 
-        linked_files = link_files(context.prefix, '', SITE_PACKAGES, files, src_dir)
+        site_package_files = []
+        bin_files = []
+        for f in files:
+            if f.find("site-packages"):
+                site_package_files.append(f[f.find("site-packages"):])
+            else:
+                bin_files.append(f)
+
+        prefix = context.default_prefix
+        site_packages = get_site_packages(prefix)
+        linked_files = link_files(prefix, '', site_packages, site_package_files, src_dir)
         compile_missing_pyc(
-            context.prefix, linked_files, os.path.join(sys.prefix, SITE_PACKAGES, 'site-packages')
+            prefix, linked_files, os.path.join(prefix, site_packages, 'site-packages')
         )
 
     def unlink(self):
