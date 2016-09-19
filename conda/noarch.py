@@ -28,9 +28,12 @@ def unlink_package(path):
 
 
 def get_python_version_for_prefix(prefix):
-    record = next((record for record in itervalues(linked_data_[prefix]) if record.name == 'python'), None)
+    from conda.install import linked_data_
+    record = next((record for record in itervalues(linked_data_[prefix]) if
+                   record.name == 'python'), None)
+
     if record is not None:
-        return record.version
+        return record.version[:3]
     raise RuntimeError()
 
 
@@ -72,7 +75,7 @@ def compile_missing_pyc(prefix, files, cwd):
         else:
             if fn.startswith('bin'):
                 continue
-        cache_prefix = ("__pycache__" + os.sep) if get_python_version_for_prefix(prefix) == 3 else ""
+        cache_prefix = ("__pycache__" + os.sep) if get_python_version_for_prefix(prefix)[0] == '3' else ""
         if (fn.endswith(".py") and
                 os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c' not in files):
             compile_files.append(fn)
