@@ -39,9 +39,9 @@ def get_python_version_for_prefix(prefix):
 
 def get_site_packages_dir(prefix):
     if sys.platform == 'win32':
-        return 'Lib'
+        return join(prefix, 'Lib')
     else:
-        return'lib/python%s' % get_python_version_for_prefix(prefix)
+        return join(prefix, 'lib/python%s' % get_python_version_for_prefix(prefix))
 
 
 def get_bin_dir(prefix):
