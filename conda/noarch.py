@@ -37,18 +37,21 @@ def get_python_version_for_prefix(prefix):
     raise RuntimeError()
 
 
-def get_site_packages(prefix):
+def get_site_packages_dir(prefix):
     if sys.platform == 'win32':
         return 'Lib'
     else:
         return'lib/python%s' % get_python_version_for_prefix(prefix)
 
 
+def get_bin_dir(prefix):
+    if sys.platform == 'win32':
+        return join(prefix, 'Scripts')
+    else:
+        return join(prefix, 'bin')
+
+
 def link_files(prefix, src_root, dst_root, files, src_dir):
-    prefix = normpath(prefix)
-
-    get_python_version_for_prefix(prefix)
-
     dst_files = []
     for f in files:
         src = join(src_dir, src_root, f)
@@ -105,16 +108,19 @@ class NoArchPython(NoArch):
         site_package_files = []
         bin_files = []
         for f in files:
-            if f.find("site-packages"):
+            if f.find("site-packages") > 0:
                 site_package_files.append(f[f.find("site-packages"):])
             else:
-                bin_files.append(f)
+                if f.find("bin") == 0:
+                    bin_files.append(f.replace("bin/", ""))
 
         prefix = context.default_prefix
-        site_packages = get_site_packages(prefix)
-        linked_files = link_files(prefix, '', site_packages, site_package_files, src_dir)
+        site_packages_dir = get_site_packages_dir(prefix)
+        bin_dir = get_bin_dir(prefix)
+        linked_files = link_files(prefix, '', site_packages_dir, site_package_files, src_dir)
+        link_files(prefix, 'python-scripts', bin_dir, bin_files, src_dir)
         compile_missing_pyc(
-            prefix, linked_files, os.path.join(prefix, site_packages, 'site-packages')
+            prefix, linked_files, os.path.join(prefix, site_packages_dir, 'site-packages')
         )
 
     def unlink(self):
