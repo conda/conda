@@ -28,13 +28,14 @@ def unlink_package(path):
 
 
 def get_python_version_for_prefix(prefix):
-    from conda.install import linked_data_
-    record = next((record for record in itervalues(linked_data_[prefix]) if
+    from conda.install import linked_data
+    record = next((record for record in itervalues(linked_data(prefix)) if
                    record.name == 'python'), None)
-
     if record is not None:
         return record.version[:3]
-    raise RuntimeError()
+    raise RuntimeError(
+        "No python version found in %s. Python required to install noarch package" % prefix
+    )
 
 
 def get_site_packages_dir(prefix):
