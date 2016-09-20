@@ -925,8 +925,8 @@ def is_linked(prefix, dist):
     return load_meta(prefix, dist)
 
 
-def link_noarch(meta_dict, src_dir):
-    get_noarch_cls(meta_dict.get("noarch"))().link(src_dir)
+def link_noarch(prefix, meta_dict, src_dir):
+    get_noarch_cls(meta_dict.get("noarch"))().link(prefix, src_dir)
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None):
@@ -958,27 +958,27 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     with DirectoryLock(prefix), FileLock(source_dir):
         meta_dict = index.get(dist + '.tar.bz2', {})
         if meta_dict.get('noarch'):
-            link_noarch(meta_dict, source_dir)
+            link_noarch(prefix, meta_dict, source_dir)
+        else:
+            for filepath in files:
+                src = join(source_dir, filepath)
+                dst = join(prefix, filepath)
+                dst_dir = dirname(dst)
+                if not isdir(dst_dir):
+                    os.makedirs(dst_dir)
+                if os.path.exists(dst):
+                    log.info("file exists, but clobbering: %r" % dst)
+                    rm_rf(dst)
+                lt = linktype
+                if filepath in has_prefix_files or filepath in no_link or islink(src):
+                    lt = LINK_COPY
 
-        for filepath in files:
-            src = join(source_dir, filepath)
-            dst = join(prefix, filepath)
-            dst_dir = dirname(dst)
-            if not isdir(dst_dir):
-                os.makedirs(dst_dir)
-            if os.path.exists(dst):
-                log.info("file exists, but clobbering: %r" % dst)
-                rm_rf(dst)
-            lt = linktype
-            if filepath in has_prefix_files or filepath in no_link or islink(src):
-                lt = LINK_COPY
-
-            try:
-                if not meta_dict.get('noarch'):
-                    _link(src, dst, lt)
-            except OSError as e:
-                raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                                   (src, dst, lt, e))
+                try:
+                    if not meta_dict.get('noarch'):
+                        _link(src, dst, lt)
+                except OSError as e:
+                    raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                                       (src, dst, lt, e))
 
         for filepath in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[filepath]

@@ -91,7 +91,7 @@ def compile_missing_pyc(prefix, files, cwd):
 
 class NoArch(object):
 
-    def link(self, src_dir):
+    def link(self, prefix, src_dir):
         pass
 
     def unlink(self):
@@ -100,7 +100,7 @@ class NoArch(object):
 
 class NoArchPython(NoArch):
 
-    def link(self, src_dir):
+    def link(self, prefix, src_dir):
         with open(join(src_dir, "info/files")) as f:
             files = f.read()
         files = files.split("\n")[:-1]
@@ -114,7 +114,6 @@ class NoArchPython(NoArch):
                 if f.find("bin") == 0:
                     bin_files.append(f.replace("bin/", ""))
 
-        prefix = context.default_prefix
         site_packages_dir = get_site_packages_dir(prefix)
         bin_dir = get_bin_dir(prefix)
         linked_files = link_files(prefix, '', site_packages_dir, site_package_files, src_dir)
