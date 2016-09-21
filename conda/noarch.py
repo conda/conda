@@ -1,11 +1,20 @@
 import os
-from os.path import dirname, exists, isdir, join, normpath
+from os.path import dirname, exists, isdir, join
 import sys
 import shutil
 from subprocess import call
+from json import load
 
 from conda.base.context import context
 from conda.compat import itervalues
+
+PY_TMPL = """\
+if __name__ == '__main__':
+    import sys
+    import %(module)s
+
+    sys.exit(%(module)s.%(func)s())
+"""
 
 
 def get_noarch_cls(noarch_type):
@@ -90,6 +99,34 @@ def compile_missing_pyc(prefix, files, cwd):
             call(["python", '-Wi', '-m', 'py_compile', f], cwd=cwd)
 
 
+def create_entry_points(src_dir, bin_dir, prefix):
+    from conda.install import linked
+    python_path = join(prefix, "bin/python")
+    get_module = lambda point: point[point.find("= ") + 1:point.find(":")].strip()
+    get_func = lambda point: point[point.find(":") + 1:]
+    get_cmd = lambda point: point[:point.find("= ")].strip()
+    with open(join(src_dir, "info/noarch.json"), "r") as noarch_file:
+        entry_points = load(noarch_file)["entry_points"]
+
+    for entry_point in entry_points:
+        path = join(bin_dir, get_cmd(entry_point))
+        pyscript = PY_TMPL % {'module': get_module(entry_point), 'func': get_func(entry_point)}
+
+        if sys.platform == 'win32':
+            with open(path + '-script.py', 'w') as fo:
+                packages = linked(prefix)
+                packages_names = (pkg.split('-')[0] for pkg in packages)
+                if 'debug' in packages_names:
+                    fo.write('#!python_d\n')
+                fo.write(pyscript)
+            link_package(join(dirname(__file__), 'cli-%d.exe' % context.bits), path + '.exe')
+        else:
+            with open(path, 'w') as fo:
+                fo.write('#!%s\n' % python_path)
+                fo.write(pyscript)
+            os.chmod(path, int('755', 8))
+
+
 class NoArch(object):
 
     def link(self, prefix, src_dir):
@@ -120,8 +157,10 @@ class NoArchPython(NoArch):
         linked_files = link_files(prefix, '', site_packages_dir, site_package_files, src_dir)
         link_files(prefix, 'python-scripts', bin_dir, bin_files, src_dir)
         compile_missing_pyc(
-            prefix, linked_files, os.path.join(prefix, site_packages_dir, 'site-packages')
+            prefix, linked_files, join(prefix, site_packages_dir, 'site-packages')
         )
+
+        create_entry_points(src_dir, bin_dir, prefix)
 
     def unlink(self):
         pass
