@@ -653,16 +653,16 @@ class IntegrationTests(TestCase):
     def test_create_dry_run(self):
         # Regression test for #3453
         prefix = '/some/place'
-        with pytest.raises(DryRunExit):
-            run_command(Commands.CREATE, prefix, "--dry-run")
         stdout, stderr = run_command(Commands.CREATE, prefix, "--dry-run", use_exception_handler=True)
         assert "The following empty environments will be CREATED" in stdout
         assert prefix in stdout
+        with pytest.raises(DryRunExit):
+            run_command(Commands.CREATE, prefix, "--dry-run")
 
         prefix = '/another/place'
-        with pytest.raises(DryRunExit):
-            run_command(Commands.CREATE, prefix, "flask", "--dry-run")
         stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", use_exception_handler=True)
         assert "flask:" in stdout
         assert "python:" in stdout
         assert prefix in stdout
+        with pytest.raises(DryRunExit):
+            run_command(Commands.CREATE, prefix, "flask", "--dry-run")
