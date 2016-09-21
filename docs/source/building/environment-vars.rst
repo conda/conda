@@ -221,6 +221,11 @@ Environment variables that affect the build process
    * - ``CONDA_NPY``
      - This is the NumPy version used to build the package, such as ``19``,
        ``110``, or ``111``.
+   * - ``CONDA_PREFIX``
+     - This is the path to the conda environment used to build the package,
+       e.g. ``/path/to/conda/env``. Useful to pass as the environment prefix
+       parameter to various conda tools, usually labeled
+       ``-p`` or ``--prefix``.
 
 .. _build-features:
 
