@@ -244,7 +244,8 @@ def init_binstar(quiet=False):
         binstar_domain = DEFAULT_CHANNEL_ALIAS
         binstar_domain_tok = None
     else:
-        binstar_domain = binstar_client.domain.replace("api", "conda").rstrip('/') + '/'
+        binstar_domain = binstar_client.domain.rstrip('/') + '/'
+        binstar_domain = re.sub('/api/$', '/conda/', binstar_domain)
         if add_anaconda_token and binstar_client.token:
             binstar_domain_tok = binstar_domain + 't/%s/' % (binstar_client.token,)
     binstar_regex = (r'((:?%s|binstar\.org|anaconda\.org)/?)(t/[0-9a-zA-Z\-<>]{4,})/' %
