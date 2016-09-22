@@ -187,6 +187,92 @@ def test_activate_test1(shell):
 
 
 @pytest.mark.installed
+def test_activate_noleftoverargs(shell):
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs,env_vars=gen_test_env_paths(envs, shell)
+
+        # get env results before any changes
+        commands = shell_vars['command_setup'] + dedent("""\
+            env
+            """)
+        stdout_init, _ = run_in(commands, shell)
+        stdout_init = set(s.split("=")[0] for s in stdout_init.split("\n"))
+
+        # all unix shells support environment variables instead of parameter passing
+        scripts=[dedent("""\
+            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
+            env
+            """)]
+        # most unix shells support parameter passing, dash is the exception
+        if shell not in ["dash","sh","csh","posh"]:
+            scripts+=[dedent("""\
+                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
+                env
+                """)]
+
+        for script in scripts:
+            commands = shell_vars['command_setup'] + script.format(
+                env_vars=env_vars,
+                env_dirs=env_dirs,
+                **shell_vars)
+            stdout, stderr = run_in(commands, shell)
+            stdout = set(s.split("=")[0] for s in stdout.split("\n"))
+            stdout_diff = list(stdout - stdout_init)
+
+            # since this is the deactivate process we expect 3 new variables
+            # since other variable's value may be updated we do not check for that
+            assert len(stdout_diff) == 3
+            assert "CONDA_PS1_BACKUP" in stdout_diff
+            assert "CONDA_DEFAULT_ENV" in stdout_diff
+            assert "CONDA_PREFIX" in stdout_diff
+            assert_equals(stderr,'')
+
+
+@pytest.mark.installed
+def test_deactivate_noleftoverargs(shell):
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs,env_vars=gen_test_env_paths(envs, shell)
+
+        # get env results before any changes
+        commands = shell_vars['command_setup'] + dedent("""\
+            env
+            """)
+        stdout_init, _ = run_in(commands, shell)
+        stdout_init = set(stdout_init.split("\n"))
+
+        # all unix shells support environment variables instead of parameter passing
+        scripts=[dedent("""\
+            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
+            {source} "{syspath}{binpath}deactivate{shell_suffix}"
+            env
+            """)]
+        # most unix shells support parameter passing, dash is the exception
+        if shell not in ["dash","sh","csh","posh"]:
+            scripts+=[dedent("""\
+                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
+                {source} "{syspath}{binpath}deactivate{shell_suffix}"
+                env
+                """)]
+
+        for script in scripts:
+            commands = shell_vars['command_setup'] + script.format(
+                env_vars=env_vars,
+                env_dirs=env_dirs,
+                **shell_vars)
+            stdout, stderr = run_in(commands, shell)
+            stdout = set(stdout.split("\n"))
+            stdout_diff = list(stdout - stdout_init)
+
+            # since this is the deactivate process we expect absolutely no differences
+            # from the original environment, this includes the actual values of the
+            # variables as well
+            assert len(stdout_diff) == 0
+            assert_equals(stderr,'')
+
+
+@pytest.mark.installed
 def test_activate_env_from_env_with_root_activate(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
@@ -461,8 +547,7 @@ def test_activate_check_sourcing(shell):
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
                 assert_in(dedent("""\
-                    [ACTIVATE]: ERROR: Parsing failure.
-                    [ACTIVATE]: ERROR: This most likely means you executed the script instead of sourcing it."""),
+                    [ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
                     stderr, shell)
 
 
@@ -525,8 +610,7 @@ def test_deactivate_check_sourcing(shell):
                 stdout, stderr = run_in(commands, shell)
                 assert_equals(stdout, '', stderr)
                 assert_in(dedent("""\
-                    [DEACTIVATE]: ERROR: Parsing failure.
-                    [DEACTIVATE]: ERROR: This most likely means you executed the script instead of sourcing it."""),
+                    [DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
                     stderr, shell)
 
 

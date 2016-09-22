@@ -7,6 +7,8 @@
 ###############################################################################
 # local vars
 ###############################################################################
+TRUE=0
+FALSE=1
 if [ -n "${ZSH_VERSION+x}" ]; then
     WHAT_SHELL_AM_I="zsh"
 elif [ -n "${BASH_VERSION+x}" ]; then
@@ -23,11 +25,27 @@ case "$(uname -s)" in
         ;;
 esac
 
+# note whether or not the CONDA_* variables are exported, if so we need to
+# preserve that status
+[ $(env | grep CONDA_HELP) ]    && IS_ENV_CONDA_HELP="${TRUE}"    || IS_ENV_CONDA_HELP="${FALSE}"
+[ $(env | grep CONDA_VERBOSE) ] && IS_ENV_CONDA_VERBOSE="${TRUE}" || IS_ENV_CONDA_VERBOSE="${FALSE}"
+
 # inherit whatever the user set
 # this is important for dash where you cannot pass parameters to sourced scripts
-# CONDA_HELP=false
+if [ -z "${CONDA_HELP+x}" ] || [ "${CONDA_HELP}" = "false" ] || [ "${CONDA_HELP}" = "FALSE" ] || [ "${CONDA_HELP}" = "False" ]; then
+    CONDA_HELP="${FALSE}"
+elif [ "${CONDA_HELP}" = "true" ] || [ "${CONDA_HELP}" = "TRUE" ] || [ "${CONDA_HELP}" = "True" ]; then
+    CONDA_HELP="${TRUE}"
+fi
 UNKNOWN=""
-# CONDA_VERBOSE=false
+if [ -z "${CONDA_VERBOSE+x}" ] || [ "${CONDA_VERBOSE}" = "false" ] || [ "${CONDA_VERBOSE}" = "FALSE" ] || [ "${CONDA_VERBOSE}" = "False" ]; then
+    CONDA_VERBOSE="${FALSE}"
+elif [ "${CONDA_VERBOSE}" = "true" ] || [ "${CONDA_VERBOSE}" = "TRUE" ] || [ "${CONDA_VERBOSE}" = "True" ]; then
+    CONDA_VERBOSE="${TRUE}"
+fi
+
+# at this point CONDA_HELP, UNKNOWN, and CONDA_VERBOSE are
+# defined and do not need to be checked for unbounded again
 
 ###############################################################################
 # parse command line, perform command line error checking
@@ -42,19 +60,19 @@ while [ $num != -1 ]; do
     else
         case "${arg}" in
             -h|--help)
-                CONDA_HELP=true
+                CONDA_HELP="${TRUE}"
                 ;;
             -v|--verbose)
-                CONDA_VERBOSE=true
+                CONDA_VERBOSE="${TRUE}"
                 ;;
             *)
                 # if it is undefined (check if unbounded) and if it is zero
-                if [ -z "${UNKNOWN+x}" ] || [ -z "${UNKNOWN}" ]; then
+                if [ -z "${UNKNOWN}" ]; then
                     UNKNOWN="${arg}"
                 else
                     UNKNOWN="${UNKNOWN} ${arg}"
                 fi
-                CONDA_HELP=true
+                CONDA_HELP="${TRUE}"
                 ;;
         esac
     fi
@@ -63,24 +81,28 @@ unset num
 unset arg
 
 # if any of these variables are undefined (i.e. unbounded) set them to a default
-[ -z "${CONDA_HELP+x}" ] && CONDA_HELP=false
-[ -z "${CONDA_VERBOSE+x}" ] && CONDA_VERBOSE=false
+[ -z "${CONDA_HELP}" ]    && CONDA_HELP="${FALSE}"
+[ -z "${CONDA_VERBOSE}" ] && CONDA_VERBOSE="${FALSE}"
+
+# export CONDA_* variables as necessary
+[ "${IS_ENV_CONDA_HELP}" = "${TRUE}" ]    && export CONDA_HELP="${CONDA_HELP}"
+[ "${IS_ENV_CONDA_VERBOSE}" = "${TRUE}" ] && export CONDA_VERBOSE="${CONDA_VERBOSE}"
 
 ######################################################################
 # help dialog
 ######################################################################
-if [ "${CONDA_HELP}" = true ]; then
-    # if it is defined (check if unbounded) and if it is non-zero
-    if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
-        echo "[DEACTIVATE]: ERROR: Unknown/Invalid flag/parameter (${UNKNOWN})" 1>&2
-    fi
-    conda ..deactivate ${WHAT_SHELL_AM_I} -h
+if [ "${CONDA_HELP}" = "${TRUE}" ]; then
+    conda ..deactivate ${WHAT_SHELL_AM_I} -h ${UNKNOWN}
 
     unset WHAT_SHELL_AM_I
-    unset CONDA_HELP
-    unset CONDA_VERBOSE
+    [ "${IS_ENV_CONDA_HELP}" = "${FALSE}" ]    && unset CONDA_HELP
+    [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
+    unset IS_ENV_CONDA_HELP
+    unset IS_ENV_CONDA_VERBOSE
+    unset TRUE
+    unset FALSE
     # if it is defined (check if unbounded) and if it is non-zero
-    if [ -n "${UNKNOWN+x}" ] && [ -n "${UNKNOWN}" ]; then
+    if [ -n "${UNKNOWN}" ]; then
         unset UNKNOWN
         return 1
     else
@@ -89,7 +111,8 @@ if [ "${CONDA_HELP}" = true ]; then
     fi
 fi
 unset WHAT_SHELL_AM_I
-unset CONDA_HELP
+[ "${IS_ENV_CONDA_HELP}" = "${FALSE}" ] && unset CONDA_HELP
+unset IS_ENV_CONDA_HELP
 unset UNKNOWN
 
 ######################################################################
@@ -102,14 +125,17 @@ if [ -n "${CONDA_DEFAULT_ENV}" ]; then
     _CONDA_DIR="${CONDA_PREFIX}/etc/conda/deactivate.d"
     if [ -d "${_CONDA_DIR}" ]; then
         for f in $(ls "${_CONDA_DIR}" | grep \\.sh$); do
-            [ "${CONDA_VERBOSE}" = "true" ] && echo "[DEACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
+            [ "${CONDA_VERBOSE}" = "${TRUE}" ] && echo "[DEACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
             . "${_CONDA_DIR}/${f}"
         done
     fi
     unset _CONDA_DIR
 
     # restore PROMPT
-    [ -n "${PS1+x}" ] && export PS1="${CONDA_PS1_BACKUP}"
+    if [ -n "${CONDA_PS1_BACKUP+x}" ] && [ -n "${PS1+x}" ]; then
+        export PS1="${CONDA_PS1_BACKUP}"
+        unset CONDA_PS1_BACKUP
+    fi
 
     # remove CONDA_DEFAULT_ENV
     unset CONDA_DEFAULT_ENV
@@ -119,9 +145,6 @@ if [ -n "${CONDA_DEFAULT_ENV}" ]; then
 
     # remove CONDA_PREFIX
     unset CONDA_PREFIX
-
-    # remove CONDA_PS1_BACKUP
-    unset CONDA_PS1_BACKUP
 
     if [ -n "${ZSH_VERSION+x}" ]; then
         # zsh uses rehash
@@ -139,6 +162,8 @@ if [ -n "${CONDA_DEFAULT_ENV}" ]; then
     fi
 fi
 
-unset CONDA_VERBOSE
-
+[ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
+unset IS_ENV_CONDA_VERBOSE
+unset TRUE
+unset FALSE
 return 0

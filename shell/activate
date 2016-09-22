@@ -1,20 +1,61 @@
-#!/bin/sh
-#
-# `source activate` initial conditional check to determine which `source activate` to actually run
-#
-# assumes that activate.* can be found on the $PATH
-#
+#!/usr/bin/env bash
+###########################################################################
+# the above shebang is irrelevant since this is supposed to be sourced    #
+# it just forces bad executions of this to be in a supported shell that   #
+# can error properly                                                      #
+###########################################################################
 
-# in some cases of zsh/ps/procps the `ps -p $$` command will return an error but it is not a
-# critical terminating error:
-#    > Signal 18 (CONT) caught by ps (procps-ng version 3.3.9).
-#    > ps:display.c:66: please report this bug
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# #                                                                     # #
+# # ACTIVATE                                                            # #
+# # if tree that determined which activate script to run                # #
+# #                                                                     # #
+# # assumes that activate*/deactivate*/whichshell*/envvar_cleanup*      # #
+# # exists on the user's $PATH                                          # #
+# #                                                                     # #
+# # in some versions of zsh/ps/procps the `ps -p $$` command will       # #
+# # return an error but it is not a critical terminating error:         # #
+# #     > ps -p $$                                                      # #
+# #     > Signal 18 (CONT) caught by ps (procps-ng version 3.3.9).      # #
+# #     > ps:display.c:66: please report this bug                       # #
+# #                                                                     # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# error clause
-whichshell_args.bash "activate" "error-clause" | awk -f "`which whichshell.awk`"
+###########################################################################
+# ERROR CLAUSE                                                            #
+whichshell_args.bash "activate" "error-clause" \
+`whichshell_ps.bash && eval 'echo $0' || echo 'csh'` | \
+awk -f "`which whichshell.awk`" && :
+# END ERROR CLAUSE                                                        #
+###########################################################################
 
-# bourne shell clause (bash/zsh/dash/posh)
-whichshell_args.bash "activate" "bourne-shell-clause" | awk -f "`which whichshell.awk`" && . activate.sh
+###########################################################################
+# BOURNE SHELL CLAUSE                                                     #
+# bash/zsh/dash/posh                                                      #
+whichshell_args.bash "activate" "bourne-shell-clause" \
+`whichshell_ps.bash && eval 'echo $0' || echo 'csh'` | \
+awk -f "`which whichshell.awk`" && . activate.sh
+# END BOURNE SHELL CLAUSE                                                 #
+###########################################################################
 
-# c-shell clause (tcsh/csh)
-whichshell_args.bash "activate" "c-shell-clause" | awk -f "`which whichshell.awk`" && source "`which activate.csh`"
+###########################################################################
+# C-SHELL CLAUSE                                                          #
+# tcsh/csh                                                                #
+whichshell_args.bash "activate" "c-shell-clause" \
+`whichshell_ps.bash && eval 'echo $0' || echo 'csh'` | \
+awk -f "`which whichshell.awk`" && source "`which activate.csh`"
+# END C-SHELL CLAUSE                                                      #
+###########################################################################
+
+###########################################################################
+# NO-OP RETURN                                                            #
+# this will ensure that activate will consistently return                 #
+#                                                                         #
+# since we rely heavily on the usage of return codes to detect what       #
+# scripts to run above, zero vs non-zero return codes does not            #
+# necessarily mean error                                                  #
+:
+# END NO-OP RETURN                                                        #
+###########################################################################

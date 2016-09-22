@@ -12,20 +12,22 @@ build:
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
   always_include_files:
-    - bin/conda                 [unix]
-    - bin/activate              [unix]
-    - bin/activate.sh           [unix]
-    - bin/activate.csh          [unix]
-    - bin/deactivate            [unix]
-    - bin/deactivate.sh         [unix]
-    - bin/deactivate.csh        [unix]
-    - bin/whichshell_args.bash  [unix]
-    - bin/whichshell.awk        [unix]
-    - bin/envvar_cleanup.awk    [unix]
-    - Scripts/activate.bat      [win]
-    - Scripts/deactivate.bat    [win]
-    - Scripts/activate          [win]
-    - Scripts/deactivate        [win]
+    - bin/conda                   [unix]
+    - bin/activate                [unix]
+    - bin/activate.sh             [unix]
+    - bin/activate.csh            [unix]
+    - bin/deactivate              [unix]
+    - bin/deactivate.sh           [unix]
+    - bin/deactivate.csh          [unix]
+    - bin/whichshell_args.bash    [unix]
+    - bin/whichshell_ps.bash      [unix]
+    - bin/whichshell.awk          [unix]
+    - bin/envvar_cleanup.bash     [unix]
+    - Scripts/activate.bat        [win]
+    - Scripts/deactivate.bat      [win]
+    - Scripts/envvar_cleanup.bat  [win]
+    - Scripts/activate            [win]
+    - Scripts/deactivate          [win]
   entry_points:
     - conda = conda.cli:main
     - conda-env = conda_env.cli.main:main

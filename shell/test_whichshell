@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+###########################################################################
+# the above shebang is irrelevant since this is supposed to be sourced    #
+# it just forces bad executions of this to be in a supported shell that   #
+# can error properly                                                      #
+###########################################################################
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# #                                                                     # #
+# # TEST_WHICHSHELL                                                     # #
+# # interact with the whichshell* scripts to see how they respond in    # #
+# # certain scenarios                                                   # #
+# #                                                                     # #
+# # assumes that whichshell*/envvar_cleanup* exists on the user's $PATH # #
+# #                                                                     # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+echo "TEST_WHICHSHELL"
+echo ""
+
+echo "WHICHSHELL_PS.BASH"
+whichshell_ps.bash && echo "NOT (t)csh" || echo "IS (t)csh"
+whichshell_ps.bash && eval 'echo $0' || echo "csh"
+echo ""
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+echo "WHICHSHELL_ARGS.BASH: ERROR-CLAUSE"
+whichshell_args.bash "test_whichshell" "error-clause" \
+`whichshell_ps.bash && eval 'echo $0' || echo "csh"`
+echo ""
+
+echo "WHICHSHELL_ARGS.BASH: BOURNE-SHELL-CLAUSE"
+whichshell_args.bash "test_whichshell" "bourne-shell-clause" \
+`whichshell_ps.bash && eval 'echo $0' || echo "csh"`
+echo ""
+
+echo "WHICHSHELL_ARGS.BASH: C-SHELL-CLAUSE"
+whichshell_args.bash "test_whichshell" "c-shell-clause" \
+`whichshell_ps.bash && eval 'echo $0' || echo "csh"`
+echo ""
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+echo "WHICHSHELL.AWK: ERROR-CLAUSE"
+whichshell_args.bash "test_whichshell" "ed" \
+`whichshell_ps.bash && eval 'echo $0' || echo "csh"` | \
+awk -f "`which whichshell.awk`" && :
+echo ""
+
+echo "WHICHSHELL.AWK: BOURNE-SHELL-CLAUSE"
+whichshell_args.bash "test_whichshell" "bd" \
+`whichshell_ps.bash && eval 'echo $0' || echo "csh"` | \
+awk -f "`which whichshell.awk`" && echo "++ SELECTED ++"
+echo ""
+
+echo "WHICHSHELL.AWK: C-SHELL-CLAUSE"
+whichshell_args.bash "test_whichshell" "cd" \
+`whichshell_ps.bash && eval 'echo $0' || echo "csh"` | \
+awk -f "`which whichshell.awk`" && echo "++ SELECTED ++"
+echo ""

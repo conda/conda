@@ -41,13 +41,15 @@ scripts = ['shell/activate',
            'shell/deactivate.sh',
            'shell/deactivate.csh',
            'shell/whichshell_args.bash',
+           'shell/whichshell_ps.bash',
            'shell/whichshell.awk',
-           'shell/envvar_cleanup.sh',
+           'shell/envvar_cleanup.bash',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
     scripts.extend(['shell/activate.bat',
-                    'shell/deactivate.bat'])
+                    'shell/deactivate.bat',
+                    'shell/envvar_cleanup.bat'])
 
 install_requires = [
     'pycosat >=0.6.1',

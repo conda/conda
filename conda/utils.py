@@ -202,6 +202,8 @@ unix_shell_base = dict(
                        source=".",
                        test_echo_extra="",
                        var_format="${}",
+                       singleflag="-",
+                       doubleflag="--",
 )
 
 msys2_shell_base = dict(
@@ -238,13 +240,15 @@ if on_win:
             source="call",
             test_echo_extra="",
             nul='1>NUL 2>&1',
-            setvar='set {variable}="{value}"',
+            setvar='set {variable}={value}',
             unsetvar='set {variable}=',
-            setenvvar='set {variable}="{value}"',
+            setenvvar='set {variable}={value}',
             unsetenvvar='set {variable}=',
             shell_suffix=".bat",
             env_script_suffix=".bat",
             printprompt="@echo %PROMPT%",
+            setprompt='set PROMPT={value}',
+            unsetprompt='set PROMPT=',
             promptvar="PROMPT",
             # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
             printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
@@ -258,6 +262,8 @@ if on_win:
             slash_convert=("/", "\\"),
             sep="\\",
             pathsep=";",
+            singleflag="/",
+            doubleflag="/",
         ),
         "cygwin": dict(
             unix_shell_base,

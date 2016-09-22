@@ -12,18 +12,33 @@ from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, Conda
                           TooManyArgumentsError, TooFewArgumentsError)
 from ..utils import on_win, shells
 
-def help(command, shell):
-    activate_help_dialog = dedent("""\
-        Usage: {command} [ENV] [-h] [-v]
-
-        Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to
+def help(mode, shell, unknown):
+    activate_blurbs = { "win": dedent("""\
+        Adds the 'Scripts' and 'Library\\bin' directories of the environment ENV to
         the front of PATH. ENV may either refer to just the name of the
-        environment, or the full prefix path.
+        environment, or the full prefix path."""),
+                        "unix": dedent("""\
+        Adds the 'bin' directory of the environment ENV to the front of PATH.
+        ENV may either refer to just the name of the environment, or the full
+        prefix path.""")
+    }
+    deactivate_blurbs = { "win": dedent("""\
+        Removes the 'Scripts' and 'Library\\bin' directories of
+        the currently active environment from the front of PATH."""),
+                        "unix": dedent("""\
+        Removes the 'bin' directory of the currently active environment from the
+        front of PATH.""")
+    }
+
+    activate_help_dialog = dedent("""\
+        {unknown}Usage: {command} [ENV] [{singleflag}h] [{singleflag}v]
+
+        {blurb}
 
         Where:
             ENV             the virtual environment to activate (dflt: root)
-            -h,--help       shows this dialog
-            -v,--verbose    shows more detailed info for the activate process
+            {singleflag}h,{doubleflag:>2}help       shows this dialog
+            {singleflag}v,{doubleflag:>2}verbose    shows more detailed info for the activate process
                             (useful when there are post-activate scripts)
 
         Alternatively use the following variables when the above parameter passing
@@ -37,14 +52,13 @@ def help(command, shell):
             {CONDA_ENVNAME_root} ; {command}
         """)
     deactivate_help_dialog = dedent("""\
-        Usage: {command} [-h] [-v]
+        {unknown}Usage: {command} [{singleflag}h] [{singleflag}v]
 
-        Removes the environment prefix, 'Scripts' and 'Library\\bin' directory of
-        the environment ENV from the front of PATH.
+        {blurb}
 
         Where:
-            -h,--help       shows this dialog
-            -v,--verbose    shows more detailed info for the activate process
+            {singleflag}h,{doubleflag: >2}help       shows this dialog
+            {singleflag}v,{doubleflag: >2}verbose    shows more detailed info for the activate process
                             (useful when there are pre-deactivate scripts)
 
         Alternatively use the following variables when the above parameter passing
@@ -68,42 +82,63 @@ def help(command, shell):
         "CONDA_VERBOSE":        shells[shell]["setvar"].format(
                                 variable="CONDA_VERBOSE",
                                 value="true"),
+        "singleflag":          shells[shell]["singleflag"],
+        "doubleflag":          shells[shell]["doubleflag"],
     }
 
-    # sys.argv[1] will be ..checkenv in activate if an environment is already
+    unknown = [u for u in unknown if not re.match(r'^\s*$',u)]
+    if len(unknown) > 0:
+        unknown = "[{{program}}]: ERROR: Unknown/Invalid flag/parameter ({unknown})\n".format(unknown=" ".join(unknown))
+    else:
+        unknown = ""
+
+    # mode will be ..checkenv in activate if an environment is already
     # activated
-    # get grandparent process name to see which shell we're using
-    if command in ('..activate', '..checkenv'):
+    if mode in ('..activate', '..checkenv'):
+        unknown = unknown.format(program="ACTIVATE")
+
         if shell in ["cmd.exe", "powershell.exe"]:
             raise CondaSystemExit(activate_help_dialog.format(
                 command='activate',
+                unknown=unknown,
+                blurb=activate_blurbs["win"],
                 **kwargs))
 
         elif shell in ["csh", "tcsh"]:
             raise CondaSystemExit(activate_help_dialog.format(
                 command='source "`which activate`"',
+                unknown=unknown,
+                blurb=activate_blurbs["unix"],
                 **kwargs))
         else:
             raise CondaSystemExit(activate_help_dialog.format(
                 command='. activate',
+                unknown=unknown,
+                blurb=activate_blurbs["unix"],
                 **kwargs))
-    elif command == '..deactivate':
+    elif mode == '..deactivate':
+        unknown = unknown.format(program="DEACTIVATE")
+
         if shell in ["cmd.exe", "powershell.exe"]:
             raise CondaSystemExit(deactivate_help_dialog.format(
                 command='deactivate',
+                unknown=unknown,
+                blurb=deactivate_blurbs["win"],
                 **kwargs))
         elif shell in ["csh", "tcsh"]:
             raise CondaSystemExit(deactivate_help_dialog.format(
                 command='source "`which deactivate`"',
+                unknown=unknown,
+                blurb=deactivate_blurbs["unix"],
                 **kwargs))
         else:
             raise CondaSystemExit(deactivate_help_dialog.format(
-                command='. deactivate [-h] [-v]',
+                command='. deactivate',
+                unknown=unknown,
+                blurb=deactivate_blurbs["unix"],
                 **kwargs))
     else:
-        raise CondaSystemExit(dedent("""\
-            No help available for command {}
-            """).format(sys.argv[1]))
+        raise CondaSystemExit(dedent("No help available for command {mode}").format(mode=mode))
 
 
 def prefix_from_arg(arg, shelldict):
@@ -117,7 +152,7 @@ def prefix_from_arg(arg, shelldict):
         if isdir(abspath(native_path.strip("\""))):
             prefix = abspath(native_path.strip("\""))
         else:
-            raise CondaValueError('Could not find environment: %s' % native_path)
+            raise CondaValueError('Could not find environment: {env}'.format(env=native_path))
     else:
         prefix = locate_prefix_by_name(context, arg.replace('/', os.path.sep))
     return prefix
@@ -160,46 +195,75 @@ def main():
     from conda.base.context import context
     from conda.base.constants import ROOT_ENV_NAME
     from conda.utils import shells
-    if '-h' in sys.argv or '--help' in sys.argv:
-        # all execution paths sys.exit at end.
-        help(sys.argv[1], sys.argv[2])
 
-    if len(sys.argv) > 2:
+    # possible cases:
+    #   > conda ..activate <SHELL> <ENV>
+    #   > conda ..checkenv <SHELL> <ENV>
+    #   > conda ..changeps1
+
+    received = len(sys.argv)
+    if received >= 2:
+        mode = sys.argv[1]
+    if received >= 3:
         shell = sys.argv[2]
-        shelldict = shells[shell]
-    if sys.argv[1] == '..activate':
-        arg_num = len(sys.argv)
-        if arg_num != 4:
-            num_expected = 2
-            if arg_num < 4:
-                raise TooFewArgumentsError(num_expected, arg_num - num_expected,
-                                           "..activate expected exactly two arguments:\
-                                            shell and env name")
-            if arg_num > 4:
-                raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
-                                            "..activate expected exactly two arguments:\
-                                             shell and env name")
-        binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
+    if received >= 4:
+        env = sys.argv[3]
+
+    if '-h' in sys.argv or '--help' in sys.argv:
+        # all unknown values will be listed after the -h/--help flag
+        try:
+            i=sys.argv.index("-h")
+        except ValueError:
+            i=sys.argv.index("--help")
+        unknown = sys.argv[i+1:]
+
+        help(mode, shell, unknown)
+        # note: will never return from the help method
+
+    if mode == '..activate':
+        # conda ..activate <SHELL> <ENV>
+
+        # dont't count conda and ..activate
+        received -= 2
+        if received != 2:
+            expected = 2
+            offset = sys.argv[2:]
+            opt_msg = "..activate expected exactly two arguments: SHELL and ENV"
+            if received < 2:
+                raise TooFewArgumentsError(expected, received, opt_msg)
+            if received > 2:
+                raise TooManyArgumentsError(expected, received, offset, opt_msg)
+
+        binpath = binpath_from_arg(sys.argv[3], shelldict=shells[shell])
 
         # prepend our new entries onto the existing path and make sure that the separator is native
-        path = shelldict['pathsep'].join(binpath)
+        path = shells[shell]['pathsep'].join(binpath)
 
-    # deactivation is handled completely in shell scripts - it restores backups of env variables.
-    #    It is done in shell scripts because they handle state much better than we can here.
+    # deactivation is handled completely in shell scripts - it restores backups of env variables
+    # it is done in shell scripts because they handle state much better than we can here
 
-    elif sys.argv[1] == '..checkenv':
-        if len(sys.argv) < 4:
-            raise ArgumentError("Invalid arguments to checkenv.  Need shell and env name/path")
-        if len(sys.argv) > 4:
-            raise ArgumentError("did not expect more than one argument.")
-        if sys.argv[3].lower() == ROOT_ENV_NAME.lower():
+    elif mode == '..checkenv':
+        # conda ..checkenv <SHELL> <ENV>
+
+        # dont't count conda and ..checkenv
+        received -= 2
+        if received != 2:
+            expected = 2
+            offset = sys.argv[2:]
+            opt_msg = "..checkenv expected exactly two arguments: SHELL and ENV"
+            if received < 2:
+                raise TooFewArgumentsError(expected, received, opt_msg)
+            if received > 2:
+                raise TooManyArgumentsError(expected, received, offset, opt_msg)
+
+        if env.lower() == ROOT_ENV_NAME.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
             # raise CondaSystemExit
 
         # this should throw an error and exit if the env or path can't be found.
         try:
-            prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
+            prefix = prefix_from_arg(env, shelldict=shells[shell])
         except ValueError as e:
             raise CondaValueError(text_type(e))
 
@@ -209,14 +273,14 @@ def main():
             conda.install.symlink_conda(prefix, context.root_dir, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                msg = ("Cannot activate environment {0}.\n"
-                       "User does not have write access for conda symlinks."
-                       .format(sys.argv[2]))
-                raise CondaEnvironmentError(msg)
+                raise CondaEnvironmentError(dedent("""\
+                    Cannot activate environment {env}
+                    User does not have write access for conda symlinks
+                    """).format(env=env))
             raise
         sys.exit(0)
         # raise CondaSystemExit
-    elif sys.argv[1] == '..changeps1':
+    elif mode == '..changeps1':
         from conda.base.context import context
         path = int(context.changeps1)
 
