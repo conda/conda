@@ -101,7 +101,10 @@ def compile_missing_pyc(prefix, files, cwd):
 
 def create_entry_points(src_dir, bin_dir, prefix):
     from conda.install import linked
-    python_path = join(prefix, "bin/python")
+    if sys.platform == 'win32':
+        python_path = join(prefix, "python.exe")
+    else:
+        python_path = join(prefix, "bin/python")
     get_module = lambda point: point[point.find("= ") + 1:point.find(":")].strip()
     get_func = lambda point: point[point.find(":") + 1:]
     get_cmd = lambda point: point[:point.find("= ")].strip()
@@ -119,7 +122,7 @@ def create_entry_points(src_dir, bin_dir, prefix):
                 if 'debug' in packages_names:
                     fo.write('#!python_d\n')
                 fo.write(pyscript)
-            link_package(join(dirname(__file__), 'cli-%d.exe' % context.bits), path + '.exe')
+            link_package(join(src_dir, 'cli-%d.exe' % context.bits), path + '.exe')
         else:
             with open(path, 'w') as fo:
                 fo.write('#!%s\n' % python_path)
