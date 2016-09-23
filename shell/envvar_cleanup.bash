@@ -3,7 +3,7 @@
 #
 # function to cleanup a :-delimited string
 #
-# usage: envvar_cleanup.sh "$ENV_VAR" [-d | -r "STR_TO_REMOVE" ... | -g "STR_TO_REMOVE" ...] [--delim=DELIM] [-f]
+# usage: envvar_cleanup.bash "$ENV_VAR" [-d | -r "STR_TO_REMOVE" ... | -g "STR_TO_REMOVE" ...] [--delim=DELIM] [-f]
 #
 # where:
 #   "$ENV_VAR"              is the variable name to cleanup
@@ -175,7 +175,7 @@ if [ -n "${VARIABLE}" ]; then
             if [ -n $(echo "${arg}" | sed 's| ||g') ]; then
                 # certain patterns will not be properly stripped by sed
                 # as in this example:
-                #   > envvar_cleanup.sh "blue-blue-red" -g "blue"
+                #   > envvar_cleanup.bash "blue-blue-red" -g "blue"
                 #   > # $VARIABLE = "-blue-blue-red-"
                 #   > # $MODE = "global"
                 #   > # $GLOBAL = "g"

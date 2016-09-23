@@ -177,8 +177,8 @@ if ( $?CONDA_DEFAULT_ENV ) then
         # CONDA_PREFIX being added twice to PATH
         set tmp_path="$path"
         set tmp_PATH="$PATH"
-        set path=(`envvar_cleanup.sh "${tmp_path}" -r "${CONDA_PREFIX}/bin" --delim=" "`)
-        set PATH=(`envvar_cleanup.sh "${tmp_PATH}" -r "${CONDA_PREFIX}/bin"`)
+        set path=(`envvar_cleanup.bash "${tmp_path}" -r "${CONDA_PREFIX}/bin" --delim=" "`)
+        set PATH=(`envvar_cleanup.bash "${tmp_PATH}" -r "${CONDA_PREFIX}/bin"`)
         unset tmp_path tmp_PATH
 
         # remove CONDA_PREFIX

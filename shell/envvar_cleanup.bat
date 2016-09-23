@@ -1,7 +1,7 @@
 @REM
 @REM function to cleanup a :-delimited string
 @REM
-@REM usage: envvar_cleanup.sh "$ENV_VAR" [/d | /r "STR_TO_REMOVE" ... | /g "STR_TO_REMOVE" ...] [/delim=DELIM] [/f]
+@REM usage: envvar_cleanup.bat "$ENV_VAR" [/d | /r "STR_TO_REMOVE" ... | /g "STR_TO_REMOVE" ...] [/delim=DELIM] [/f]
 @REM
 @REM where:
 @REM    "$ENV_VAR"                  is the variable name to cleanup

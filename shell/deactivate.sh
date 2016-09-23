@@ -141,7 +141,7 @@ if [ -n "${CONDA_DEFAULT_ENV}" ]; then
     unset CONDA_DEFAULT_ENV
 
     # remove only first instance of CONDA_PREFIX from PATH
-    export PATH=$(envvar_cleanup.sh "${PATH}" -r "${CONDA_PREFIX}/bin")
+    export PATH=$(envvar_cleanup.bash "${PATH}" -r "${CONDA_PREFIX}/bin")
 
     # remove CONDA_PREFIX
     unset CONDA_PREFIX
