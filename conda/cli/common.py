@@ -270,7 +270,7 @@ def add_parser_install(p):
     p.add_argument(
         "--deps-only",
         action="store_true",
-        help="Install dependencies but not the specified packages "
+        help="Install all dependencies excepted the specified packages "
              "(useful for development purposes).",
     )
     p.add_argument(
