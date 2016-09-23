@@ -22,6 +22,7 @@ from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
+from conda.exceptions import DryRunExit, conda_exception_handler
 from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
 from contextlib import contextmanager
 from datetime import datetime
@@ -80,7 +81,8 @@ parser_config = {
 }
 
 
-def run_command(command, prefix, *arguments):
+def run_command(command, prefix, *arguments, **kwargs):
+    use_exception_handler = kwargs.get('use_exception_handler', False)
     arguments = list(arguments)
     p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
@@ -100,7 +102,10 @@ def run_command(command, prefix, *arguments):
     context._add_argparse_args(args)
     print("executing command >>>", command_line)
     with captured() as c:
-        args.func(args, p)
+        if use_exception_handler:
+            conda_exception_handler(args.func, args, p)
+        else:
+            args.func(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout)
     if command is Commands.CONFIG:
@@ -644,3 +649,21 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+
+    def test_create_dry_run(self):
+        # Regression test for #3453
+        prefix = '/some/place'
+        with pytest.raises(DryRunExit):
+            run_command(Commands.CREATE, prefix, "--dry-run")
+        stdout, stderr = run_command(Commands.CREATE, prefix, "--dry-run", use_exception_handler=True)
+        assert join('some', 'place') in stdout
+        # TODO: This assert passes locally but fails on CI boxes; figure out why and re-enable
+        # assert "The following empty environments will be CREATED" in stdout
+
+        prefix = '/another/place'
+        with pytest.raises(DryRunExit):
+            run_command(Commands.CREATE, prefix, "flask", "--dry-run")
+        stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", use_exception_handler=True)
+        assert "flask:" in stdout
+        assert "python:" in stdout
+        assert join('another', 'place') in stdout

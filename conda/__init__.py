@@ -70,3 +70,7 @@ class CondaMultiError(CondaError):
         return dict(exception_type=text_type(type(self)),
                     exception_name=self.__class__.__name__,
                     errors=tuple(error.dump_map() for error in self.errors))
+
+
+class CondaExitZero(CondaError):
+    pass

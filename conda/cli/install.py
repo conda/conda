@@ -398,7 +398,7 @@ def install(args, parser, command='install'):
         common.confirm_yn(args)
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
-        raise DryRunExit
+        raise DryRunExit()
 
     with common.json_progress_bars(json=context.json and not context.quiet):
         try:
