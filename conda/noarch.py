@@ -2,7 +2,7 @@ import os
 from os.path import dirname, exists, isdir, join
 import sys
 import shutil
-from subprocess import call
+import subprocess
 from json import load
 
 from conda.base.context import context
@@ -80,8 +80,8 @@ def link_files(prefix, src_root, dst_root, files, src_dir):
 def compile_missing_pyc(prefix, files, cwd):
     compile_files = []
     for fn in files:
-        python_major_version = get_python_version_for_prefix(prefix)[0] == '3'
-        cache_prefix = ("__pycache__" + os.sep) if python_major_version else ""
+        python_major_version = get_python_version_for_prefix(prefix)[0]
+        cache_prefix = ("__pycache__" + os.sep) if python_major_version == '3' else ""
         pyc_name = os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c'
         if fn.endswith(".py") and pyc_name not in files:
             compile_files.append(fn)
@@ -89,7 +89,7 @@ def compile_missing_pyc(prefix, files, cwd):
     if compile_files:
         print('compiling .pyc files...')
         for f in compile_files:
-            call(["python", '-Wi', '-m', 'py_compile', f], cwd=cwd)
+            subprocess.call(["python", '-Wi', '-m', 'py_compile', f], cwd=cwd)
 
 
 def create_entry_points(src_dir, bin_dir, prefix):

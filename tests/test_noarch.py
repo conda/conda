@@ -51,8 +51,11 @@ class TestHelpers(unittest.TestCase):
     def test_link_files(self):
         pass
 
-    def test_compile_missing_pyc(self):
-        pass
+    @patch("conda.noarch.get_python_version_for_prefix", return_value="2")
+    @patch("subprocess.call")
+    def test_compile_missing_pyc(self, get_python_version, subprocess_call):
+        noarch.compile_missing_pyc("", ["test.py"], "")
+        subprocess_call.called_with(["python", '-Wi', '-m', 'py_compile', "test.py"], cwd="")
 
 
 class TestEntryPointCreation(unittest.TestCase):
