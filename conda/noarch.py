@@ -80,17 +80,9 @@ def link_files(prefix, src_root, dst_root, files, src_dir):
 def compile_missing_pyc(prefix, files, cwd):
     compile_files = []
     for fn in files:
-        # omit files in Library/bin, Scripts, and the root prefix - they are not generally imported
-        if sys.platform == 'win32':
-            if any([fn.lower().startswith(start) for start in ['library/bin', 'library\\bin',
-                                                               'scripts']]):
-                continue
-        else:
-            if fn.startswith('bin'):
-                continue
         cache_prefix = ("__pycache__" + os.sep) if get_python_version_for_prefix(prefix)[0] == '3' else ""
-        if (fn.endswith(".py") and
-                os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c' not in files):
+        pyc_name = os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c'
+        if fn.endswith(".py") and pyc_name not in files:
             compile_files.append(fn)
 
     if compile_files:
