@@ -7,6 +7,12 @@ from conda import noarch
 class TestHelpers(unittest.TestCase):
 
     def test_get_python_version(self):
+        self.assertEquals(noarch.get_noarch_cls("python"), noarch.NoArchPython)
+        self.assertEquals(noarch.get_noarch_cls("none"), noarch.NoArch)
+        self.assertEquals(noarch.get_noarch_cls(True), noarch.NoArch)
+        self.assertEquals(noarch.get_noarch_cls(None), None)
+
+    def test_get_python_version_for_prefix(self):
         pass
 
     def test_get_site_packages_dir(self):
