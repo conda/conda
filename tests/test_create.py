@@ -656,7 +656,7 @@ class IntegrationTests(TestCase):
         with pytest.raises(DryRunExit):
             run_command(Commands.CREATE, prefix, "--dry-run")
         stdout, stderr = run_command(Commands.CREATE, prefix, "--dry-run", use_exception_handler=True)
-        assert prefix in stdout
+        assert join('some', 'place') in stdout
         # TODO: This assert passes locally but fails on CI boxes; figure out why and re-enable
         # assert "The following empty environments will be CREATED" in stdout
 
@@ -666,4 +666,4 @@ class IntegrationTests(TestCase):
         stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", use_exception_handler=True)
         assert "flask:" in stdout
         assert "python:" in stdout
-        assert prefix in stdout
+        assert join('another', 'place') in stdout
