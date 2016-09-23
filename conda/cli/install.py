@@ -285,6 +285,11 @@ def install(args, parser, command='install'):
     else:
         only_names = None
 
+    if args.deps_only:
+        skip_names = set(s.split()[0] for s in ospecs)
+    else:
+        skip_names = None
+
     if not isdir(prefix) and not newenv:
         if args.mkdir:
             try:
@@ -302,6 +307,7 @@ def install(args, parser, command='install'):
                 actions = install_actions(prefix, index, specs,
                                           force=args.force,
                                           only_names=only_names,
+                                          skip_names=skip_names,
                                           pinned=args.pinned,
                                           always_copy=context.always_copy,
                                           minimal_hint=args.alt_hint,
