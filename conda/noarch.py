@@ -80,7 +80,8 @@ def link_files(prefix, src_root, dst_root, files, src_dir):
 def compile_missing_pyc(prefix, files, cwd):
     compile_files = []
     for fn in files:
-        cache_prefix = ("__pycache__" + os.sep) if get_python_version_for_prefix(prefix)[0] == '3' else ""
+        python_major_version = get_python_version_for_prefix(prefix)[0] == '3'
+        cache_prefix = ("__pycache__" + os.sep) if python_major_version else ""
         pyc_name = os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c'
         if fn.endswith(".py") and pyc_name not in files:
             compile_files.append(fn)
