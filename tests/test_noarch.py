@@ -36,8 +36,15 @@ class TestHelpers(unittest.TestCase):
             site_packages_dir = noarch.get_site_packages_dir("")
             self.assertEquals(site_packages_dir, 'lib/python3.5')
 
+    @stub_sys_platform("win32")
     def test_get_bin_dir_win(self):
-        pass
+        bin_dir = noarch.get_bin_dir("")
+        self.assertEquals(bin_dir, "Scripts")
+
+    @stub_sys_platform("darwin")
+    def test_get_bin_dir_unix(self):
+        bin_dir = noarch.get_bin_dir("")
+        self.assertEquals(bin_dir, "bin")
 
     def test_link_files(self):
         pass
