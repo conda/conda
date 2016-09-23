@@ -369,6 +369,27 @@ by default. This can be disabled with
       include_recipe: False
 
 
+Use Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Normally the build script in ``build.sh`` or ``build.bat`` does not
+inherit any environment variables from the build environment and only
+those listed under :ref:`env-vars` are seen by the build script.  But
+you can list some environment variables to be inherited instead:
+
+.. code-block:: yaml
+
+   build:
+     script_env:
+       - MYVAR
+       - ANOTHER_VAR
+
+If a listed environment variable is missing from the environment seen
+by the ``conda build`` process itself then a ``UserWarning`` will be
+emitted during the build process and the variable will remain
+undefined.
+
+
 Requirements section
 --------------------
 
