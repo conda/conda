@@ -1,10 +1,10 @@
 @REM
 @REM function to cleanup a :-delimited string
 @REM
-@REM usage: envvar_cleanup.bat "$ENV_VAR" [/d | /r "STR_TO_REMOVE" ... | /g "STR_TO_REMOVE" ...] [/delim=DELIM] [/f]
+@REM usage: envvar_cleanup.bat "%ENV_VAR%" [/d | /r "STR_TO_REMOVE" ... | /g "STR_TO_REMOVE" ...] [/delim=DELIM] [/f]
 @REM
 @REM where:
-@REM    "$ENV_VAR"                  is the variable name to cleanup
+@REM    "%ENV_VAR%"                 is the variable name to cleanup
 @REM    /d,-d                       remove duplicates
 @REM    /r,-r "STR_TO_REMOVE" ...   remove first instance of provided strings
 @REM    /g,-g "STR_TO_REMOVE" ...   remove all instances of provided strings
@@ -186,7 +186,7 @@
 @IF /I "%MODE%"=="" @SET "MODE=duplicate"
 @IF /I "%DELIM%"=="" @SET "DELIM=:"
 
-@REM check that $STR_TO_REMOVE is allocated correctly for the various $MODE
+@REM check that %STR_TO_REMOVE% is allocated correctly for the various %MODE%
 @IF /I "%MODE%"=="duplicate" (
     @IF /I NOT "%STR_TO_REMOVE_I%"=="-1" (
         @ECHO [ENVVAR_CLEANUP]: ERROR: Unknown/Invalid parameters for mode=%MODE% 1>&2
@@ -202,18 +202,19 @@
 @REM ##########################################################################
 @REM help dialog
 @REM ##########################################################################
+@REM TODO
 
 @REM ##########################################################################
 @REM process for removal(s)
 @REM ##########################################################################
 @IF /I NOT "%VARIABLE%"=="" (
-    @REM add DELIM to the beginning and end to simplify the matching process
-    @REM but only if the delim hasn't already been added
+    @REM remove DELIM from the beginning and append DELIM to the end
+    @REM *only if the delim hasn't already been added/removed
     @IF /I "%VARIABLE:~0,1%"=="%DELIM%" (
         @SET "RM_PRE_DELIM=%FALSE%"
+        @FOR /F "tokens=1,* delims=%DELIM%" %%c IN ("!VARIABLE!") DO @SET "VARIABLE=%%d"
     ) ELSE (
         @SET "RM_PRE_DELIM=%TRUE%"
-        @SET "VARIABLE=%DELIM%%VARIABLE%"
     )
 
     @IF /I "%VARIABLE:~-1%"=="%DELIM%" (
@@ -223,26 +224,25 @@
         @SET "VARIABLE=%VARIABLE%%DELIM%"
     )
 
+    @SET "old_VARIABLE=!VARIABLE!"
+    @SET "VARIABLE=%DELIM%"
+
+    @CALL :strlen MAX_ITER "!old_VARIABLE!"
+    @CALL :strlen NUM_NONDELIMS "!old_VARIABLE:%DELIM%=!"
+    @SET /A "MAX_ITER-=!NUM_NONDELIMS!"
+
     @IF /I "%MODE%"=="duplicate" (
-        @SET "old_VARIABLE=!VARIABLE!"
-        @SET "VARIABLE=%DELIM%"
-
-        @CALL :strlen MAX_ITER "!old_VARIABLE!"
-        @CALL :strlen NUM_NONDELIMS "!old_VARIABLE:%DELIM%=!"
-        @SET /A "MAX_ITER-=!NUM_NONDELIMS!"
-        @SET /A "MAX_ITER-=1"
-
         @REM iterate over all phrases split by delim
-        @FOR /L %%b IN (1,1,!MAX_ITER!) DO @(
+        @FOR /L %%i IN (1,1,!MAX_ITER!) DO @(
             @REM chop off the first phrase available
-            @FOR /F "tokens=1,* delims=%DELIM%" %%c IN ("!old_VARIABLE!") DO @(
-                @SET "x=%%c"
+            @FOR /F "tokens=1,* delims=%DELIM%" %%j IN ("!old_VARIABLE!") DO @(
+                @SET "x=%%j"
                 @SET "old_VARIABLE=%%d"
             )
 
             @SET "FROM=%DELIM%!x!%DELIM%"
 
-            @FOR /F "delims=" %%c IN ("!FROM!") DO @SET "TMP=!VARIABLE:%%c=%DELIM%!"
+            @FOR /F "delims=" %%j IN ("!FROM!") DO @SET "TMP=!VARIABLE:%%j=%DELIM%!"
 
             @REM if removing the current phrase from the %VARIABLE% didn't change
             @REM anything that means that it doesn't exist yet in the new unique
@@ -250,35 +250,27 @@
             @IF /I "!TMP!"=="!VARIABLE!" @SET "VARIABLE=!VARIABLE!!x!%DELIM%"
         )
     ) ELSE (
-        @SET "old_VARIABLE=!VARIABLE!"
-        @SET "VARIABLE=%DELIM%"
-
-        @CALL :strlen MAX_ITER "!old_VARIABLE!"
-        @CALL :strlen NUM_NONDELIMS "!old_VARIABLE:%DELIM%=!"
-        @SET /A "MAX_ITER-=!NUM_NONDELIMS!"
-        @SET /A "MAX_ITER-=1"
-
         @REM iterate over all phrases split by delim
-        @FOR /L %%b IN (1,1,!MAX_ITER!) DO @(
+        @FOR /L %%i IN (1,1,!MAX_ITER!) DO @(
             @REM chop off the first phrase available
-            @FOR /F "tokens=1,* delims=%DELIM%" %%c IN ("!old_VARIABLE!") DO @(
-                @SET "x=%%c"
+            @FOR /F "tokens=1,* delims=%DELIM%" %%j IN ("!old_VARIABLE!") DO @(
+                @SET "x=%%j"
                 @SET "old_VARIABLE=%%d"
             )
 
             @SET "MATCH=-1"
             @SET "FUZZY_MATCH=-1"
-            @FOR /L %%i IN (0,1,!STR_TO_REMOVE_I!) DO @(
-                @IF /I NOT "!STR_TO_REMOVE[%%i]!"=="" (
+            @FOR /L %%j IN (0,1,!STR_TO_REMOVE_I!) DO @(
+                @IF /I NOT "!STR_TO_REMOVE[%%j]!"=="" (
                     @REM check for an exact match
-                    @IF /I "!STR_TO_REMOVE[%%i]!"=="!x!" (
-                        @SET "MATCH=%%i"
+                    @IF /I "!STR_TO_REMOVE[%%j]!"=="!x!" (
+                        @SET "MATCH=%%j"
                     ) ELSE (
                         @REM check for a fuzzy match (if applicable)
                         @IF /I "%FUZZY%"=="%TRUE%" (
-                            @FOR /F "delims=" %%c IN ("!STR_TO_REMOVE[%%i]!") DO @SET "TMP=!x:%%c=!"
+                            @FOR /F "delims=" %%k IN ("!STR_TO_REMOVE[%%j]!") DO @SET "TMP=!x:%%k=!"
                             @IF /I NOT "!TMP!"=="!x!" (
-                                @SET "FUZZY_MATCH=%%i"
+                                @SET "FUZZY_MATCH=%%j"
                             )
                         )
                     )
@@ -302,7 +294,7 @@
     )
 
     @REM trim off the first and last DELIM that was added at the start
-    @IF /I "!RM_PRE_DELIM!"=="%TRUE%"  @SET "VARIABLE=!VARIABLE:~1!"
+    @IF /I "!RM_PRE_DELIM!"=="%TRUE%"  @SET "VARIABLE=%DELIM%!VARIABLE!"
     @IF /I "!RM_POST_DELIM!"=="%TRUE%" @SET "VARIABLE=!VARIABLE:~0,-1!"
 )
 

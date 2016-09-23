@@ -171,15 +171,14 @@ if ( $?CONDA_DEFAULT_ENV ) then
         unsetenv CONDA_DEFAULT_ENV
 
         # remove only first instance of CONDA_PREFIX from PATH
-        # use tmp_path/tmp_PATH to avoid cases when path setting
+        # use tmp_PATH to avoid cases when path setting
         # succeeds and is parsed correctly from one to the other
         # when not using the tmp* values would result in
         # CONDA_PREFIX being added twice to PATH
-        set tmp_path="$path"
-        set tmp_PATH="$PATH"
-        set path=(`envvar_cleanup.bash "${tmp_path}" -r "${CONDA_PREFIX}/bin" --delim=" "`)
-        set PATH=(`envvar_cleanup.bash "${tmp_PATH}" -r "${CONDA_PREFIX}/bin"`)
-        unset tmp_path tmp_PATH
+        set tmp_PATH="${PATH}"
+        set PATH=(`envvar_cleanup.bash "${tmp_PATH}" --delim=":" -g "${CONDA_PREFIX}" -f`)
+        set path=(`echo "${PATH}" | sed s'|:| |g'`)
+        unset tmp_PATH
 
         # remove CONDA_PREFIX
         unsetenv CONDA_PREFIX
