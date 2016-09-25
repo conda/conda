@@ -243,12 +243,20 @@ def test_sat():
     C = Clauses()
     C.new_var('x1')
     C.new_var('x2')
-    assert C.sat([(+1,),(+2,)], names=True) == {'x1','x2'}
-    assert C.sat([(-1,),(+2,)], names=True) == {'x2'}
-    assert C.sat([(-1,),(-2,)], names=True) == set()
-    assert C.sat([(+1,),(-1,)], names=True) is None
+    assert C.sat() is not None
+    assert C.sat([]) is not None
+    assert C.sat([()]) is None
+    assert C.sat([(False,)]) is None
+    assert C.sat([(True,),()]) is None
+    assert C.sat([(True,False,-1)]) is not None
+    assert C.sat([(+1,False),(+2,),(True,)], names=True) == {'x1','x2'}
+    assert C.sat([(-1,False),(True,),(+2,)], names=True) == {'x2'}
+    assert C.sat([(True,),(-1,),(-2,False)], names=True) == set()
+    assert C.sat([(+1,),(-1,False)], names=True) is None
     C.unsat = True
     assert C.sat() is None
+    assert C.sat([]) is None
+    assert C.sat([(True,)]) is None
     assert len(Clauses(10).sat([[1]])) == 10
 
 
