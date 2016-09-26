@@ -123,6 +123,15 @@ if __name__ == '__main__':
         os.rmdir(bin_dir)
 
 
+class TestEntryLinkFiles(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+
 class TestNoArch(unittest.TestCase):
 
     def test_link(self):
