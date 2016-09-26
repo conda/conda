@@ -4,6 +4,7 @@ from unittest.mock import patch, Mock
 import sys
 from os.path import join
 import os
+from shutil import rmtree
 
 from conda import noarch
 
@@ -19,9 +20,15 @@ def stub_sys_platform(platform):
     return sys_platform
 
 
+def setup_info_dir(info_dir):
+    entry_point_info = '{"type": "python", "entry_points": ["cmd = module.foo:func"]}'
+    with open(join(info_dir, "noarch.json"), "w") as noarch_json:
+        noarch_json.write(entry_point_info)
+
+
 class TestHelpers(unittest.TestCase):
 
-    def test_get_python_version(self):
+    def test_get_noarch_cls(self):
         self.assertEquals(noarch.get_noarch_cls("python"), noarch.NoArchPython)
         self.assertEquals(noarch.get_noarch_cls("none"), noarch.NoArch)
         self.assertEquals(noarch.get_noarch_cls(True), noarch.NoArch)
@@ -61,13 +68,10 @@ class TestEntryPointCreation(unittest.TestCase):
         config = Mock()
         config.info_dir = join(os.path.dirname(__file__), "info")
         os.mkdir(config.info_dir)
-        entry_point_info = '{"type": "python", "entry_points": ["cmd = module.foo:func"]}'
-        with open(join(config.info_dir, "noarch.json"), "w") as noarch_json:
-            noarch_json.write(entry_point_info)
+        setup_info_dir(config.info_dir)
 
     def tearDown(self):
-        os.remove(join(os.path.dirname(__file__), "info/noarch.json"))
-        os.rmdir(join(os.path.dirname(__file__), "info"))
+        rmtree(join(os.path.dirname(__file__), "info"))
 
     @stub_sys_platform("darwin")
     def test_create_entry_points_unix(self):
@@ -90,8 +94,7 @@ if __name__ == '__main__':
         with open(entry_point, 'r') as script:
             data = script.read()
             self.assertEqual(data, entry_point_content)
-        os.remove(entry_point)
-        os.rmdir(bin_dir)
+        rmtree(bin_dir)
 
     @stub_sys_platform("win32")
     def test_create_entry_points_win(self):
@@ -117,10 +120,8 @@ if __name__ == '__main__':
         with open(entry_point, 'r') as script:
             data = script.read()
             self.assertEqual(data, entry_point_content)
-        os.remove(entry_point)
-        os.remove(cli_script_dst)
+        rmtree(bin_dir)
         os.remove(cli_script_src)
-        os.rmdir(bin_dir)
 
 
 class TestEntryLinkFiles(unittest.TestCase):
@@ -136,10 +137,8 @@ class TestEntryLinkFiles(unittest.TestCase):
     def tearDown(self):
         src_root = join(os.path.dirname(__file__), "src_test")
         dst_root = join(os.path.dirname(__file__), "dst_test")
-        os.remove(join(src_root, "testfile1"))
-        os.remove(join(src_root, "testfile2"))
-        os.rmdir(src_root)
-        os.rmdir(dst_root)
+        rmtree(src_root)
+        rmtree(dst_root)
 
     def check_files(self, files, dst_root, dst_files):
         for f in files:
@@ -165,7 +164,6 @@ class TestEntryLinkFiles(unittest.TestCase):
 
         dst_files = noarch.link_files(prefix, src_root, dst_root, files, src_root)
         self.check_files(files, dst_root, dst_files)
-        os.rmdir(dst_root)
 
     def test_file_already_exists(self):
         prefix = os.path.dirname(__file__)
