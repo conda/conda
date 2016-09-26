@@ -358,7 +358,6 @@ class Resolve(object):
         Note that this does not attempt to resolve circular dependencies.
         """
         bad_deps = []
-        opts = []
         spec2 = []
         feats = set()
         for s in specs:
@@ -367,22 +366,20 @@ class Resolve(object):
                 self.add_feature(ms.name[:-1])
                 feats.add(ms.name[:-1])
                 continue
-            if not ms.optional:
-                spec2.append(ms)
             else:
-                opts.append(ms)
+                spec2.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
             if not self.valid(ms, filter):
                 bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFoundError(bad_deps)
-        return spec2, opts, feats
+        return spec2, feats
 
     def get_dists(self, specs):
         log.debug('Retrieving packages for: %s' % specs)
 
-        specs, optional, features = self.verify_specs(specs)
+        specs, features = self.verify_specs(specs)
         filter = {}
         touched = {}
         snames = set()
@@ -397,6 +394,7 @@ class Resolve(object):
             if unsat:
                 return False
             match1 = next(ms for ms in matches)
+            isopt = any(ms.optional for ms in matches)
             name = match1.name
             first = name not in snames
             group = self.groups.get(name, [])
@@ -423,6 +421,8 @@ class Resolve(object):
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
+                if isopt:
+                    return nnew != 0
                 bad_deps = [fkey for fkey in bad_deps if self.match_any(matches, fkey)]
                 matches = [(ms,) for ms in matches]
                 chains = [a + b for a in chains for b in matches] if chains else matches
@@ -462,12 +462,8 @@ class Resolve(object):
             return reduced
 
         # Iterate in the filtering process until no more progress is made
-        def full_prune(specs, optional, features):
+        def full_prune(specs, features):
             self.default_filter(features, filter)
-            for ms in optional:
-                for fkey in self.groups.get(ms.name, []):
-                    if not self.match_fast(ms, fkey):
-                        filter[fkey] = False
             feats = set(self.trackers.keys())
             snames.clear()
             specs = slist = list(specs)
@@ -484,7 +480,7 @@ class Resolve(object):
                 touched.clear()
                 for fstr in features:
                     touched[fstr+'@'] = True
-                for spec in chain(specs, optional):
+                for spec in specs:
                     self.touch(spec, touched, filter)
                 nfeats = set()
                 for fkey, val in iteritems(touched):
@@ -506,10 +502,9 @@ class Resolve(object):
         # In the case of a conflict, look for the minimum satisfiable subset
         #
 
-        if not full_prune(specs, optional, features):
+        if not full_prune(specs, features):
             def minsat_prune(specs):
-                return full_prune(specs, optional, features)
-
+                return full_prune(specs, features)
             save_unsat = set(s for s in unsat if s[0] in specs)
             stderrlog.info('...')
             hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
@@ -614,66 +609,50 @@ class Resolve(object):
         ms = MatchSpec(ms)
         name = self.ms_to_v(ms)
         m = C.from_name(name)
-        if m is None and not ms.optional:
-            ms2 = MatchSpec(ms.spec, optional=True)
-            m = C.from_name(self.ms_to_v(ms2))
+        if m is not None:
+            return name
+        tgroup = libs = (self.trackers.get(ms.name[1:], []) if ms.name[0] == '@'
+                         else self.groups.get(ms.name, []))
+        if not ms.is_simple():
+            libs = [fkey for fkey in tgroup if self.match_fast(ms, fkey)]
+        if len(libs) == len(tgroup):
+            if ms.optional:
+                m = True
+            elif not ms.is_simple():
+                m = C.from_name(self.push_MatchSpec(C, ms.name))
         if m is None:
-            libs = [fkey for fkey in self.find_matches(ms)]
-            tgroup = (self.trackers.get(ms.name[1:], []) if ms.name[0] == '@'
-                      else self.groups.get(ms.name, []))
-            if len(libs) == len(tgroup):
-                m = C.from_name(self.ms_to_v(ms.name))
-        if m is None:
-            # If the MatchSpec is optional, then there may be cases where we want
-            # to assert that it is *not* True. This requires polarity=None. We do
-            # the same for features as well for the same reason.
-            polarity = None if ms.optional else True
-            m = C.Any(libs, polarity=None if ms.optional else True)
-            if polarity is None and ms.optional:
-                # If we've created an optional variable, it works for non-optional too
-                ms.optional = False
-                C.name_var(m, self.ms_to_v(ms))
+            if ms.optional:
+                libs.append('!@s@'+ms.name)
+            m = C.Any(libs)
         C.name_var(m, name)
         return name
 
-    def gen_clauses(self, specs):
+    def gen_clauses(self):
         C = Clauses()
-
-        # Creates a variable that represents the proposition:
-        #     Does the package set include package "fn"?
         for name, group in iteritems(self.groups):
+            # Create one variable for each package
             for fkey in group:
                 C.new_var(fkey)
-            # Install no more than one version of each package
-            C.Require(C.AtMostOne, group)
-            # Create an on/off variable for the entire group
-            name = self.ms_to_v(name)
-            C.name_var(C.Any(group, polarity=None, name=name), name+'?')
-
-        # Creates a variable that represents the proposition:
-        #    Does the package set include track_feature "feat"?
-        for name, group in iteritems(self.trackers):
-            name = self.ms_to_v('@' + name)
-            C.name_var(C.Any(group, polarity=None, name=name), name+'?')
-
-        # Create propositions that assert:
-        #     If package "fn" is installed, its dependencie must be satisfied
-        for group in itervalues(self.groups):
-            for fkey in group:
-                nkey = C.Not(fkey)
-                for ms in self.ms_depends(fkey):
-                    if not ms.optional:
-                        C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
+            # Create one variable for the group
+            m = C.new_var(self.ms_to_v(name))
+            # Exactly one of the package variables, OR
+            # the negation of the group variable, is true
+            C.Require(C.ExactlyOne, group + [C.Not(m)])
+        # If a package is installed, its dependencies must be as well
+        for fkey in iterkeys(self.index):
+            nkey = C.Not(fkey)
+            for ms in self.ms_depends(fkey):
+                C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
         return C
 
     def generate_spec_constraints(self, C, specs):
-        return [(self.push_MatchSpec(C, ms),) for ms in specs if not ms.optional]
+        return [(self.push_MatchSpec(C, ms),) for ms in specs]
 
     def generate_feature_count(self, C):
-        return {self.ms_to_v('@' + name): 1 for name in iterkeys(self.trackers)}
+        return {self.push_MatchSpec(C, '@'+name): 1 for name in iterkeys(self.trackers)}
 
     def generate_update_count(self, C, specs):
-        return {'!' + spec.target: 1 for spec in specs if C.from_name(spec.target)}
+        return {'!'+ms.target: 1 for ms in specs if ms.target and C.from_name(ms.target)}
 
     def generate_feature_metric(self, C):
         eq = {}
@@ -686,10 +665,10 @@ class Resolve(object):
         return eq, total
 
     def generate_removal_count(self, C, specs):
-        return {'!'+self.ms_to_v(ms): 1 for ms in specs}
+        return {'!'+self.push_MatchSpec(C, ms.name): 1 for ms in specs}
 
     def generate_package_count(self, C, missing):
-        return {self.ms_to_v(nm): 1 for nm in missing}
+        return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
     def generate_version_metrics(self, C, specs):
         eqv = {}
@@ -811,7 +790,7 @@ class Resolve(object):
         if xtra:
             log.debug('Packages missing from index: %s' % ', '.join(xtra))
         r2 = Resolve(dists, True, True)
-        C = r2.gen_clauses(specs)
+        C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         try:
             solution = C.sat(constraints)
@@ -912,7 +891,7 @@ class Resolve(object):
             # Check if satisfiable
             dotlog.debug('Checking satisfiability')
             r2 = Resolve(dists, True, True)
-            C = r2.gen_clauses(specs)
+            C = r2.gen_clauses()
             constraints = r2.generate_spec_constraints(C, specs)
             solution = C.sat(constraints, True)
             if not solution:
