@@ -116,7 +116,7 @@ def make_writable(path):
         elif eno in (EACCES, EPERM):
             log.debug("tried make writable but failed: %s\n%r", path, e)
         else:
-            log.error("Error making path writable: %s\n%r", path, e)
+            log.warn("Error making path writable: %s\n%r", path, e)
             raise
 
 
@@ -166,7 +166,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
                 # errno.ENOENT File not found error / No such file or directory
                 raise
             else:
-                log.error("Uncaught backoff with errno %d", e.errno)
+                log.warn("Uncaught backoff with errno %d", e.errno)
                 raise
         else:
             return result
@@ -234,7 +234,7 @@ def delete_trash(prefix=None):
             except (IOError, OSError) as e:
                 log.info("Could not delete path in trash dir %s\n%r", path, e)
         if listdir(trash_dir):
-            log.warn("Unable to clean trash directory %s", trash_dir)
+            log.info("Unable to clean trash directory %s", trash_dir)
 
 
 def move_to_trash(prefix, f, tempdir=None):
