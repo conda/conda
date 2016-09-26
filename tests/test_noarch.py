@@ -126,10 +126,56 @@ if __name__ == '__main__':
 class TestEntryLinkFiles(unittest.TestCase):
 
     def setUp(self):
-        pass
+        src_root = join(os.path.dirname(__file__), "src_test")
+        dst_root = join(os.path.dirname(__file__), "dst_test")
+        os.mkdir(src_root)
+        os.mkdir(dst_root)
+        open(join(src_root, "testfile1"), 'a').close()
+        open(join(src_root, "testfile2"), 'a').close()
 
     def tearDown(self):
-        pass
+        src_root = join(os.path.dirname(__file__), "src_test")
+        dst_root = join(os.path.dirname(__file__), "dst_test")
+        os.remove(join(src_root, "testfile1"))
+        os.remove(join(src_root, "testfile2"))
+        os.rmdir(src_root)
+        os.rmdir(dst_root)
+
+    def check_files(self, files, dst_root, dst_files):
+        for f in files:
+            dst_file = join(dst_root, f)
+            self.assertTrue(os.path.isfile(dst_file))
+            self.assertTrue(dst_files.index(dst_file) >= 0)
+            os.remove(dst_file)
+
+    def test_link(self):
+        prefix = os.path.dirname(__file__)
+        src_root = join(os.path.dirname(__file__), "src_test")
+        dst_root = join(os.path.dirname(__file__), "dst_test")
+        files = ["testfile1", "testfile2"]
+
+        dst_files = noarch.link_files(prefix, src_root, dst_root, files, src_root)
+        self.check_files(files, dst_root, dst_files)
+
+    def test_requires_mkdir(self):
+        prefix = os.path.dirname(__file__)
+        src_root = join(os.path.dirname(__file__), "src_test")
+        dst_root = join(os.path.dirname(__file__), "dst_test/not_exist")
+        files = ["testfile1", "testfile2"]
+
+        dst_files = noarch.link_files(prefix, src_root, dst_root, files, src_root)
+        self.check_files(files, dst_root, dst_files)
+        os.rmdir(dst_root)
+
+    def test_file_already_exists(self):
+        prefix = os.path.dirname(__file__)
+        src_root = join(os.path.dirname(__file__), "src_test")
+        dst_root = join(os.path.dirname(__file__), "dst_test")
+        files = ["testfile1", "testfile2"]
+        open(join(dst_root, "testfile1"), 'a').close()
+
+        dst_files = noarch.link_files(prefix, src_root, dst_root, files, src_root)
+        self.check_files(files, dst_root, dst_files)
 
 
 class TestNoArch(unittest.TestCase):
