@@ -2,6 +2,7 @@ import pytest
 import unittest
 from unittest.mock import patch, Mock
 import sys
+from os.path import join
 import os
 
 from conda import noarch
@@ -48,9 +49,6 @@ class TestHelpers(unittest.TestCase):
         bin_dir = noarch.get_bin_dir("")
         self.assertEquals(bin_dir, "bin")
 
-    def test_link_files(self):
-        pass
-
     @patch("conda.noarch.get_python_version_for_prefix", return_value="2")
     @patch("subprocess.call")
     def test_compile_missing_pyc(self, get_python_version, subprocess_call):
@@ -63,22 +61,22 @@ class TestEntryPointCreation(unittest.TestCase):
     def setUp(self):
         test_entry_points = ["cmd = module.foo:func"]
         config = Mock()
-        config.info_dir = os.path.join(os.path.dirname(__file__), "info")
+        config.info_dir = join(os.path.dirname(__file__), "info")
         os.mkdir(config.info_dir)
         noarch_python.create_entry_point_information("python", test_entry_points, config)
 
     def tearDown(self):
-        os.remove(os.path.join(os.path.dirname(__file__), "info/noarch.json"))
-        os.rmdir(os.path.join(os.path.dirname(__file__), "info"))
+        os.remove(join(os.path.dirname(__file__), "info/noarch.json"))
+        os.rmdir(join(os.path.dirname(__file__), "info"))
 
     @stub_sys_platform("darwin")
     def test_create_entry_points_unix(self):
         src_dir = os.path.dirname(__file__)
-        bin_dir = os.path.join(os.path.dirname(__file__), "tmp_bin")
-        entry_point = os.path.join(bin_dir, "cmd")
+        bin_dir = join(os.path.dirname(__file__), "tmp_bin")
+        entry_point = join(bin_dir, "cmd")
         os.mkdir(bin_dir)
         prefix = ""
-        expected_script = """\
+        entry_point_content = """\
 #!bin/python
 if __name__ == '__main__':
     import sys
@@ -86,37 +84,39 @@ if __name__ == '__main__':
 
     sys.exit(module.foo.func())
 """
+
         noarch.create_entry_points(src_dir, bin_dir, prefix)
         self.assertTrue(os.path.isfile(entry_point))
         with open(entry_point, 'r') as script:
             data = script.read()
-            self.assertEqual(data, expected_script)
+            self.assertEqual(data, entry_point_content)
         os.remove(entry_point)
         os.rmdir(bin_dir)
 
     @stub_sys_platform("win32")
     def test_create_entry_points_win(self):
         src_dir = os.path.dirname(__file__)
-        bin_dir = os.path.join(os.path.dirname(__file__), "tmp_bin")
-        entry_point = os.path.join(bin_dir, "cmd-script.py")
+        bin_dir = join(os.path.dirname(__file__), "tmp_bin")
+        entry_point = join(bin_dir, "cmd-script.py")
         os.mkdir(bin_dir)
-        cli_script_src = os.path.join(src_dir, 'cli-64.exe')
-        cli_script_dst = os.path.join(bin_dir, "cmd.exe")
+        cli_script_src = join(src_dir, 'cli-64.exe')
+        cli_script_dst = join(bin_dir, "cmd.exe")
         open(cli_script_src, 'a').close()
         prefix = ""
-        expected_script = """\
+        entry_point_content = """\
 if __name__ == '__main__':
     import sys
     import module.foo
 
     sys.exit(module.foo.func())
 """
+
         noarch.create_entry_points(src_dir, bin_dir, prefix)
         self.assertTrue(os.path.isfile(entry_point))
         self.assertTrue(os.path.isfile(cli_script_dst))
         with open(entry_point, 'r') as script:
             data = script.read()
-            self.assertEqual(data, expected_script)
+            self.assertEqual(data, entry_point_content)
         os.remove(entry_point)
         os.remove(cli_script_dst)
         os.remove(cli_script_src)
