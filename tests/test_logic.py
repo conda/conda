@@ -261,19 +261,25 @@ def test_sat():
 
 
 def test_minimize():
-    # minimize    x1 + 2 x2 + 3 x3 + ... + 10 x10
+    # minimize    x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5
     # subject to  x1 + x2 + x3 + x4 + x5  == 1
-    #             x6 + x7 + x8 + x9 + x10 == 1
-    C = Clauses(10)
+    C = Clauses(15)
     C.Require(C.ExactlyOne, range(1,6))
-    C.Require(C.ExactlyOne, range(6,11))
-    objective = [(k,k) for k in range(1,11)]
     sol = C.sat()
     C.unsat = True
-    assert C.minimize(objective, sol)[1] == 56
+    # Unsatisfiable constraints
+    assert C.minimize([(k,k) for k in range(1,6)], sol)[1] == 16
     C.unsat = False
-    sol2, sval = C.minimize(objective, sol)
-    assert C.minimize(objective, sol)[1] == 7, (objective, sol2, sval)
+    sol, sval = C.minimize([(k,k) for k in range(1,6)], sol)
+    assert sval == 1
+    C.Require(C.ExactlyOne, range(6,11))
+    # Supply an initial vector that is too short, forcing recalculation
+    sol, sval = C.minimize([(k,k) for k in range(6,11)], sol)
+    assert sval == 6
+    C.Require(C.ExactlyOne, range(11,16))
+    # Don't supply an initial vector
+    sol, sval = C.minimize([(k,k) for k in range(11,16)])
+    assert sval == 11
 
 
 def test_minimal_unsatisfiable_subset():

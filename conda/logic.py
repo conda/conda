@@ -31,7 +31,7 @@ import logging
 import pycosat
 from itertools import chain, combinations
 
-from .compat import iteritems, string_types
+from .compat import iteritems
 from .exceptions import CondaValueError
 
 dotlog = logging.getLogger('dotupdate')
@@ -468,19 +468,22 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    def minimize(self, objective, bestsol, trymax=False):
+    def minimize(self, objective, bestsol=None, trymax=False):
         """
         Minimize the objective function given either by (coeff, integer)
         tuple pairs, or a dictionary of varname: coeff values. The actual
         minimization is multiobjective: first, we minimize the largest
         active coefficient value, then we minimize the sum.
         """
+        if bestsol is None or len(bestsol) < self.m:
+            log.debug('Clauses added, recomputing solution')
+            bestsol = self.sat()
+        if bestsol is None or self.unsat:
+            log.debug('Constraints are unsatisfiable')
+            return bestsol, sum(abs(c) for c, a in objective) + 1 if objective else 1
         if not objective:
             log.debug('Empty objective, trivial solution')
             return bestsol, 0
-        elif self.unsat:
-            log.debug('Constraints are unsatisfiable')
-            return bestsol, sum(abs(c) for c, a in objective) + 1
 
         if type(objective) is dict:
             objective = [(v, self.names.get(k, k)) for k, v in iteritems(objective)]
