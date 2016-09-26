@@ -4,6 +4,18 @@
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 
 
+## 4.2.8 (2016-09-26)
+
+### Improvements
+* add "error" key back to json error output (#3523)
+
+### Bug Fixes
+* fix #3453 conda fails with create_default_packages (#3454)
+* fix #3455 --dry-run fails (#3457)
+* dial down error messages for rm_rf (#3522)
+* fix #3467 AttributeError encountered for map config parameter validation (#3521)
+
+
 ## 4.2.7 (2016-09-16)
 
 ### Deprecations/Breaking Changes
