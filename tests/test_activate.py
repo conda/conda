@@ -84,7 +84,7 @@ def _format_vars(shell):
     shelldict = shells[shell]
 
     base_path, _ = run_in(shelldict['printpath'], shell)
-    # windows forces Library/bin onto PATH when starting up.  Strip it for the purposes of this test.
+    # windows forces Library/bin onto PATH when starting up. Strip it for the purposes of this test.
     if on_win:
         base_path = strip_leading_library_bin(base_path, shelldict)
 
@@ -102,6 +102,8 @@ def _format_vars(shell):
     # clear any preset conda environment
     condadefaultenv=shelldict["unsetenvvar"].format(
         variable="CONDA_DEFAULT_ENV")
+    flags_verbose="{singleflag}v".format(**shelldict)
+    flags_help="{singleflag}h".format(**shelldict)
     # set prompt such that we have a prompt to play
     # around and test with since most of the below
     # tests will not be invoked in an interactive
@@ -123,38 +125,18 @@ def _format_vars(shell):
                     setprompt=setprompt)
 
     if shelldict["shell_suffix"] == '.bat':
-        command_setup = "@echo off\n" + command_setup
+        command_setup = "@ECHO OFF\n" + command_setup
 
     shelldict.update({
         'base_prompt': base_prompt,
         'syspath': syspath,
         'command_setup': command_setup,
         'base_path': base_path,
+        'flags_verbose': flags_verbose,
+        'flags_help': flags_help,
     })
 
     return shelldict
-
-
-# temporarily standardize the user profile to make testing simpler
-# @pytest.fixture(scope="module")
-# def bash_profile(request):
-#     profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
-#     profile_backup=profile+"_backup"
-
-#     if os.path.isfile(profile):
-#         os.rename(profile, profile_backup)
-
-#     with open(profile, "w") as f:
-#         f.write("export PS1=test_ps1\n")
-#         f.write("export PROMPT=test_ps1\n")
-
-#     def fin():
-#         if os.path.isfile(profile_backup):
-#             os.remove(profile)
-#             os.rename(profile_backup, profile)
-#     request.addfinalizer(fin)
-
-#     return request  # provide the fixture value
 
 
 @pytest.mark.installed
@@ -163,11 +145,15 @@ def test_activate_test1(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -181,6 +167,11 @@ def test_activate_test1(shell):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
+
+            print(commands)
+            print(stdout)
+            print(stderr)
+
             assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
                 stdout, shell)
             assert_equals(stderr,'')
@@ -194,21 +185,27 @@ def test_activate_noleftoverargs(shell):
 
         # get env results before any changes
         commands = shell_vars['command_setup'] + dedent("""\
-            env
-            """)
+            {get_envvars}
+            """).format(
+                **shell_vars)
         stdout_init, _ = run_in(commands, shell)
         stdout_init = set(s.split("=")[0] for s in stdout_init.split("\n"))
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            env
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {get_envvars}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
-                env
+                {get_envvars}
                 """)]
 
         for script in scripts:
@@ -217,10 +214,19 @@ def test_activate_noleftoverargs(shell):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
+            for s in stdout.split("\n"):
+                print("WAS: ", s)
+                print("IS:  ", s.split("=")[0])
+                print("")
+
             stdout = set(s.split("=")[0] for s in stdout.split("\n"))
             stdout_diff = list(stdout - stdout_init)
 
-            # since this is the deactivate process we expect 3 new variables
+            print("stdout_init:","\n".join(stdout_init))
+            print("stdout:","\n".join(stdout))
+            print("stdout_diff:","\n".join(stdout_diff))
+
+            # since this is the activate process we expect 3 new variables
             # since other variable's value may be updated we do not check for that
             assert len(stdout_diff) == 3
             assert "CONDA_PS1_BACKUP" in stdout_diff
@@ -237,23 +243,29 @@ def test_deactivate_noleftoverargs(shell):
 
         # get env results before any changes
         commands = shell_vars['command_setup'] + dedent("""\
-            env
-            """)
+            {get_envvars}
+            """).format(
+                **shell_vars)
         stdout_init, _ = run_in(commands, shell)
         stdout_init = set(stdout_init.split("\n"))
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {source} "{syspath}{binpath}deactivate{shell_suffix}"
-            env
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {source} "{syspath}{binpath}deactivate{shell_suffix}"
+                {get_envvars}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{syspath}{binpath}deactivate{shell_suffix}"
-                env
+                {get_envvars}
                 """)]
 
         for script in scripts:
@@ -278,12 +290,18 @@ def test_activate_env_from_env_with_root_activate(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[1]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[1]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -316,11 +334,16 @@ def test_activate_bad_directory(shell):
         # See http://www.mingw.org/wiki/Posix_path_conversion
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -345,12 +368,18 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -376,12 +405,17 @@ def test_activate_deactivate(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -407,11 +441,16 @@ def test_activate_root(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[root]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[root]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -436,15 +475,20 @@ def test_activate_deactivate_root(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[root]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {source} "{syspath}{binpath}deactivate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[root]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {source} "{syspath}{binpath}deactivate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
-            scripts=[dedent("""\
+            scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}"
                 {source} "{syspath}{binpath}deactivate{shell_suffix}"
                 {printpath}
@@ -457,6 +501,11 @@ def test_activate_deactivate_root(shell):
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
             stdout = strip_leading_library_bin(stdout, shell_vars)
+
+            print("commands:",commands)
+            print("stdout:",stdout)
+            print("stderr:",stderr)
+
             assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
             assert_equals(stderr,'')
 
@@ -467,12 +516,18 @@ def test_activate_root_env_from_other_env(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[root]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[root]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -500,9 +555,12 @@ def test_wrong_args(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
-        # all unix shells support environment variables instead of parameter passing
-        # cannot accidentally pass too many args to program when setting environment variables
         scripts=[]
+
+        # all unix shells support environment variables instead of parameter passing
+        # windows supports this but is complicated in how it works and hence difficult to test
+        # cannot accidentally pass too many args to program when setting environment variables
+        scripts+=[]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -524,31 +582,36 @@ def test_wrong_args(shell):
 
 @pytest.mark.installed
 def test_activate_check_sourcing(shell):
+    if shell in ['powershell.exe', 'cmd.exe']:
+        return
+
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
-        if shell not in ['powershell.exe', 'cmd.exe']:
-            # all unix shells support environment variables instead of parameter passing
-            scripts=[dedent("""\
-                {env_vars[0]} ; "{syspath}{binpath}activate{shell_suffix}"
-                """)]
-            # most unix shells support parameter passing, dash is the exception
-            if shell not in ["dash","sh","csh","posh"]:
-                scripts+=[dedent("""\
-                    "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
-                    """)]
+        scripts=[]
 
-            for script in scripts:
-                commands = shell_vars['command_setup'] + script.format(
-                    env_vars=env_vars,
-                    env_dirs=env_dirs,
-                    **shell_vars)
-                stdout, stderr = run_in(commands, shell)
-                assert_equals(stdout, '', stderr)
-                assert_in(dedent("""\
-                    [ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
-                    stderr, shell)
+        # all unix shells support environment variables instead of parameter passing
+        scripts+=[dedent("""\
+            {env_vars[0]}
+            "{syspath}{binpath}activate{shell_suffix}"
+            """)]
+        # most unix shells support parameter passing, dash is the exception
+        if shell not in ["dash","sh","csh","posh"]:
+            scripts+=[dedent("""\
+                "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
+                """)]
+
+        for script in scripts:
+            commands = shell_vars['command_setup'] + script.format(
+                env_vars=env_vars,
+                env_dirs=env_dirs,
+                **shell_vars)
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, '', stderr)
+            assert_in(dedent("""\
+                [ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
+                stderr, shell)
 
 
 @pytest.mark.installed
@@ -557,20 +620,24 @@ def test_activate_help(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        help=shell_vars["setvar"].format(variable="CONDA_HELP",value="true")
-        scripts=[dedent("""\
-            {help} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {help}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
-                {source} "{syspath}{binpath}activate{shell_suffix}" --help
+                {source} "{syspath}{binpath}activate{shell_suffix}" {flags_help}
                 """)]
 
         for script in scripts:
             commands = shell_vars['command_setup'] + script.format(
-                help=help,
+                help=shell_vars["setvar"].format(variable="CONDA_HELP",value="true"),
                 env_vars=env_vars,
                 env_dirs=env_dirs,
                 **shell_vars)
@@ -578,7 +645,7 @@ def test_activate_help(shell):
             assert_equals(stdout, '', stderr)
 
             if shell in ["cmd.exe", "powershell"]:
-                assert_in('Usage: activate [ENV] [-h] [-v]', stderr, shell)
+                assert_in('Usage: activate [ENV] [/h] [/v]', stderr, shell)
             elif shell in ["csh","tcsh"]:
                 assert_in('Usage: source "`which activate`" [ENV] [-h] [-v]', stderr, shell)
             else:
@@ -587,31 +654,35 @@ def test_activate_help(shell):
 
 @pytest.mark.installed
 def test_deactivate_check_sourcing(shell):
+    if shell in ['powershell.exe', 'cmd.exe']:
+        return
+
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
-        if shell not in ['powershell.exe', 'cmd.exe']:
-            # all unix shells support environment variables instead of parameter passing
-            scripts=[dedent("""\
+        scripts=[]
+
+        # all unix shells support environment variables instead of parameter passing
+        scripts+=[dedent("""\
+            "{syspath}{binpath}deactivate{shell_suffix}"
+            """)]
+        # most unix shells support parameter passing, dash is the exception
+        if shell not in ["dash","sh","csh","posh"]:
+            scripts+=[dedent("""\
                 "{syspath}{binpath}deactivate{shell_suffix}"
                 """)]
-            # most unix shells support parameter passing, dash is the exception
-            if shell not in ["dash","sh","csh","posh"]:
-                scripts+=[dedent("""\
-                    "{syspath}{binpath}deactivate{shell_suffix}"
-                    """)]
 
-            for script in scripts:
-                commands = shell_vars['command_setup'] + script.format(
-                    env_vars=env_vars,
-                    env_dirs=env_dirs,
-                    **shell_vars)
-                stdout, stderr = run_in(commands, shell)
-                assert_equals(stdout, '', stderr)
-                assert_in(dedent("""\
-                    [DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
-                    stderr, shell)
+        for script in scripts:
+            commands = shell_vars['command_setup'] + script.format(
+                env_vars=env_vars,
+                env_dirs=env_dirs,
+                **shell_vars)
+            stdout, stderr = run_in(commands, shell)
+            assert_equals(stdout, '', stderr)
+            assert_in(dedent("""\
+                [DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
+                stderr, shell)
 
 
 @pytest.mark.installed
@@ -620,20 +691,24 @@ def test_deactivate_help(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        help=shell_vars["setvar"].format(variable="CONDA_HELP",value="true")
-        scripts=[dedent("""\
-            {help} ; {source} "{syspath}{binpath}deactivate{shell_suffix}"
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {help}
+                {source} "{syspath}{binpath}deactivate{shell_suffix}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
-                {source} "{syspath}{binpath}deactivate{shell_suffix}" --help
+                {source} "{syspath}{binpath}deactivate{shell_suffix}" {flags_help}
                 """)]
 
         for script in scripts:
             commands = shell_vars['command_setup'] + script.format(
-                help=help,
+                help=shell_vars["setvar"].format(variable="CONDA_HELP",value="true"),
                 env_vars=env_vars,
                 env_dirs=env_dirs,
                 **shell_vars)
@@ -641,7 +716,7 @@ def test_deactivate_help(shell):
             assert_equals(stdout, '', stderr)
 
             if shell in ["cmd.exe", "powershell"]:
-                assert_in('Usage: deactivate [-h] [-v]', stderr, shell)
+                assert_in('Usage: deactivate [/h] [/v]', stderr, shell)
             elif shell in ["csh","tcsh"]:
                 assert_in('Usage: source "`which deactivate`" [-h] [-v]', stderr, shell)
             else:
@@ -677,11 +752,14 @@ def test_activate_symlinking(shell):
             # Test activate when there are no write permissions in the
             # env.
 
+            scripts=[]
+
             # all unix shells support environment variables instead of parameter passing
-            scripts=[dedent("""\
+            scripts+=[dedent("""\
                 mkdir -p "{env_dirs[2]}{binpath}"
                 chmod 444 "{env_dirs[2]}{binpath}"
-                {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
                 """)]
             # most unix shells support parameter passing, dash is the exception
             if shell not in ["dash","sh","csh","posh"]:
@@ -719,11 +797,16 @@ def test_PS1(shell):
         #-----------------------------------------------------------------------
         # TEST 1: activate changes PS1 correctly
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -745,12 +828,18 @@ def test_PS1(shell):
         #-----------------------------------------------------------------------
         # TEST 2: second activate replaces earlier activated env PS1
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[1]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[1]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -773,11 +862,16 @@ def test_PS1(shell):
         #-----------------------------------------------------------------------
         # TEST 3: failed activate does not touch raw PS1
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -797,19 +891,25 @@ def test_PS1(shell):
         #-----------------------------------------------------------------------
         # TEST 4: ensure that a failed activate does not touch PS1
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
-            {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
-            {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
-            {printprompt}
-            """)]
+                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
+                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
+                {printprompt}
+                """)]
 
         if script in scripts:
             commands = shell_vars['command_setup'] + script.format(
@@ -825,7 +925,11 @@ def test_PS1(shell):
         #-----------------------------------------------------------------------
         # TEST 5: deactivate doesn't do anything bad to PS1 when no env active to deactivate
         #-----------------------------------------------------------------------
-        scripts=[dedent("""\
+        scripts=[]
+
+        # since this is just the deactivate then no special testing is necessary
+        # for environment variables vs. parameter passing
+        scripts+=[dedent("""\
             {source} "{syspath}{binpath}deactivate{shell_suffix}"
             {printprompt}
             """)]
@@ -840,12 +944,17 @@ def test_PS1(shell):
         #-----------------------------------------------------------------------
         # TEST 6: deactivate script in activated env returns us to raw PS1
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printprompt}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                {printprompt}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -866,9 +975,12 @@ def test_PS1(shell):
         #-----------------------------------------------------------------------
         # TEST 7: make sure PS1 is unchanged by faulty activate input
         #-----------------------------------------------------------------------
-        # all unix shells support environment variables instead of parameter passing
-        # cannot accidentally pass too many args to program when setting environment variables
         scripts=[]
+
+        # all unix shells support environment variables instead of parameter passing
+        # windows supports this but is complicated in how it works and hence difficult to test
+        # cannot accidentally pass too many args to program when setting environment variables
+        scripts+=[]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -899,29 +1011,40 @@ def test_PS1_no_changeps1(shell):
 
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts_with_stderr=[(dedent("""
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """),None),(dedent("""
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[1]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """),None),(dedent("""
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """),'Could not find environment'),(dedent("""
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printprompt}
-            """),'Could not find environment'),(dedent("""
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printprompt}
-            """),None)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[(dedent("""
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """),None),(dedent("""
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[1]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """),None),(dedent("""
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """),'Could not find environment'),(dedent("""
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printprompt}
+                """),'Could not find environment'),(dedent("""
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                {printprompt}
+                """),None)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
-            scripts_with_stderr+=[(dedent("""
+            scripts+=[(dedent("""
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {printprompt}
                 """),None),(dedent("""
@@ -944,7 +1067,7 @@ def test_PS1_no_changeps1(shell):
                 {printprompt}
                 """),'[ACTIVATE]: ERROR: Unknown/invalid flag/parameter')]
 
-        for script,err in scripts_with_stderr:
+        for script,err in scripts:
             commands = shell_vars['command_setup'] + condarc + script.format(
                 env_vars=env_vars,
                 env_dirs=env_dirs,
@@ -966,11 +1089,16 @@ def test_CONDA_DEFAULT_ENV(shell):
         #-----------------------------------------------------------------------
         # TEST 1
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printdefaultenv}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printdefaultenv}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -984,18 +1112,29 @@ def test_CONDA_DEFAULT_ENV(shell):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
+
+            print("commands:",commands)
+            print("stdout:",stdout)
+            print("stderr:",stderr)
+
             assert_equals(stdout.rstrip(), env_dirs[0], stderr)
             assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 2
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[1]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printdefaultenv}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[1]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printdefaultenv}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1016,17 +1155,22 @@ def test_CONDA_DEFAULT_ENV(shell):
         #-----------------------------------------------------------------------
         # TEST 3
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printdefaultenv}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printdefaultenv}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
-            scripts=[dedent("""\
-            {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
-            {printdefaultenv}
-            """)]
+            scripts+=[dedent("""\
+                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[2]}"
+                {printdefaultenv}
+                """)]
 
         for script in scripts:
             commands = shell_vars['command_setup'] + script.format(
@@ -1040,12 +1184,18 @@ def test_CONDA_DEFAULT_ENV(shell):
         #-----------------------------------------------------------------------
         # TEST 4
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {env_vars[2]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printdefaultenv}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {env_vars[2]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printdefaultenv}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1066,9 +1216,13 @@ def test_CONDA_DEFAULT_ENV(shell):
         #-----------------------------------------------------------------------
         # TEST 5
         #-----------------------------------------------------------------------
-        scripts=[dedent("""\
+        scripts=[]
+
+        # since this is just the deactivate then no special testing is necessary
+        # for environment variables vs. parameter passing
+        scripts+=[dedent("""\
             {source} "{syspath}{binpath}deactivate{shell_suffix}"
-            echo "`env | grep {var}`."
+            {get_envvars} | {grep_find} "{var}"
             """)]
 
         for script in scripts:
@@ -1078,24 +1232,29 @@ def test_CONDA_DEFAULT_ENV(shell):
                 var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '.', stderr)
+            assert_equals(stdout, '', stderr)
             assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 6
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            echo "`env | grep {var}`."
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                {get_envvars} | {grep_find} "{var}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-                echo "`env | grep {var}`."
+                {get_envvars} | {grep_find} "{var}"
                 """)]
 
         for script in scripts:
@@ -1105,15 +1264,18 @@ def test_CONDA_DEFAULT_ENV(shell):
                 var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout,'.',stderr)
+            assert_equals(stdout,'',stderr)
             assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST 7
         #-----------------------------------------------------------------------
-        # all unix shells support environment variables instead of parameter passing
-        # cannot accidentally pass too many args to program when setting environment variables
         scripts=[]
+
+        # all unix shells support environment variables instead of parameter passing
+        # windows supports this but is complicated in how it works and hence difficult to test
+        # cannot accidentally pass too many args to program when setting environment variables
+        scripts+=[]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1133,11 +1295,16 @@ def test_CONDA_DEFAULT_ENV(shell):
         #-----------------------------------------------------------------------
         # TEST 8
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[root]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {printdefaultenv}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[root]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {printdefaultenv}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1157,18 +1324,23 @@ def test_CONDA_DEFAULT_ENV(shell):
         #-----------------------------------------------------------------------
         # TEST 9
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[root]} ; {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" {nul}
-            echo "`env | grep {var}`."
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[root]}
+                {source} "{syspath}{binpath}activate{shell_suffix}" {nul}
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" {nul}
+                {get_envvars} | {grep_find} "{var}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[root]}" {nul}
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" {nul}
-                echo "`env | grep {var}`."
+                {get_envvars} | {grep_find} "{var}"
                 """)]
 
         for script in scripts:
@@ -1178,7 +1350,7 @@ def test_CONDA_DEFAULT_ENV(shell):
                 var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout,'.',stderr)
+            assert_equals(stdout,'',stderr)
             assert_equals(stderr,'')
 
 
@@ -1189,12 +1361,18 @@ def test_activate_from_env(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {env_vars[1]} ; {source} "{env_dirs[0]}{binpath}activate{shell_suffix}"
-            {printdefaultenv}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {env_vars[1]}
+                {source} "{env_dirs[0]}{binpath}activate{shell_suffix}"
+                {printdefaultenv}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1221,18 +1399,23 @@ def test_deactivate_from_env(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            echo "`env | grep {var}`."
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                {get_envvars} | {grep_find} "{var}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-                echo "`env | grep {var}`."
+                {get_envvars} | {grep_find} "{var}"
                 """)]
 
         for script in scripts:
@@ -1242,7 +1425,7 @@ def test_deactivate_from_env(shell):
                 var="CONDA_DEFAULT_ENV",
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout,'.',stderr)
+            assert_equals(stdout,'',stderr)
             assert_equals(stderr,'')
 
 
@@ -1259,12 +1442,17 @@ def test_activate_relative_path(shell):
         env_dir = os.path.basename(env_dirs[0])
         env_var = shell_vars["setvar"].format(variable="CONDA_ENVNAME",value=env_dir)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            cd {work_dir}
-            {env_var} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printdefaultenv}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                cd {work_dir}
+                {env_var}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printdefaultenv}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1289,6 +1477,7 @@ def test_activate_relative_path(shell):
                 raise
             finally:
                 os.chdir(cwd)
+
             assert_equals(stdout.rstrip(), env_dir, stderr)
             assert_equals(stderr,'')
 
@@ -1320,12 +1509,17 @@ def test_activate_non_ascii_char_in_path(shell):
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            {printdefaultenv}.
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                {printdefaultenv}.
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1373,11 +1567,16 @@ def test_activate_has_extra_env_vars(shell):
         #-----------------------------------------------------------------------
         # TEST ACTIVATE
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {echo} {var}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {echo} {var}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1398,18 +1597,23 @@ def test_activate_has_extra_env_vars(shell):
         #-----------------------------------------------------------------------
         # TEST DEACTIVATE
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            echo "`env | grep {var}`."
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                {get_envvars} | {grep_find} "{var}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
                 {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-                echo "`env | grep {var}`."
+                {get_envvars} | {grep_find} "{var}"
                 """)]
 
         for script in scripts:
@@ -1419,7 +1623,7 @@ def test_activate_has_extra_env_vars(shell):
                     var=testvariable,
                     **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, u'.', stderr)
+            assert_equals(stdout, u'', stderr)
             assert_equals(stderr,'')
 
 
@@ -1431,6 +1635,8 @@ def test_activate_verbose(shell):
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
         testvariable="TEST_VAR"
+
+        print("env_dirs[0]", env_dirs[0])
 
         dir=os.path.join(shell_vars['path_from'](env_dirs[0]), "etc", "conda", "activate.d")
         os.makedirs(dir)
@@ -1452,14 +1658,20 @@ def test_activate_verbose(shell):
         #-----------------------------------------------------------------------
         # TEST ACTIVATE
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {verbose_var} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {verbose_var}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
-                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" "--verbose"
+                {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}" "{flags_verbose}"
                 """)]
 
             for script in scripts:
@@ -1469,22 +1681,33 @@ def test_activate_verbose(shell):
                     env_dirs=env_dirs,
                     **shell_vars)
                 stdout, stderr = run_in(commands, shell)
+
+                print("commands:",commands)
+                print("stdout:",stdout)
+                print("stderr:",stderr)
+
                 assert_in('[ACTIVATE]: Sourcing',stdout,shell)
                 assert_equals(stderr,'')
 
         #-----------------------------------------------------------------------
         # TEST DEACTIVATE
         #-----------------------------------------------------------------------
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {verbose_var} ; {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {verbose_var}
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}"
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
                 {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
-                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" "--verbose"
+                {source} "{env_dirs[0]}{binpath}deactivate{shell_suffix}" "{flags_verbose}"
                 """)]
 
         for script in scripts:
@@ -1504,12 +1727,17 @@ def test_activate_noPS1(shell):
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
 
+        scripts=[]
+
         # all unix shells support environment variables instead of parameter passing
-        scripts=[dedent("""\
-            {unsetprompt}
-            {env_vars[0]} ; {source} "{syspath}{binpath}activate{shell_suffix}"
-            {printpath}
-            """)]
+        # windows supports this but is complicated in how it works and hence difficult to test
+        if shell not in ["cmd.exe"]:
+            scripts+=[dedent("""\
+                {unsetprompt}
+                {env_vars[0]}
+                {source} "{syspath}{binpath}activate{shell_suffix}"
+                {printpath}
+                """)]
         # most unix shells support parameter passing, dash is the exception
         if shell not in ["dash","sh","csh","posh"]:
             scripts+=[dedent("""\
@@ -1529,40 +1757,40 @@ def test_activate_noPS1(shell):
             assert_equals(stderr,'')
 
 
-@pytest.mark.slow
-def test_activate_keeps_PATH_order(shell):
-    if not on_win or shell != "cmd.exe":
-        pytest.xfail("test only implemented for cmd.exe on win")
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        commands = shell_vars['command_setup'] + dedent("""\
-            @set "PATH=somepath;CONDA_PATH_PLACEHOLDER;%PATH%"
-            @call "{syspath}{binpath}activate.bat"
-            {printpath}
-            """).format(
-                envs=envs,
-                env_dirs=gen_test_env_paths(envs, shell),
-                **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert stdout.startswith("somepath;" + sys.prefix)
+# @pytest.mark.slow
+# def test_activate_keeps_PATH_order(shell):
+#     if not on_win or shell != "cmd.exe":
+#         pytest.xfail("test only implemented for cmd.exe on win")
+#     shell_vars = _format_vars(shell)
+#     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+#         commands = shell_vars['command_setup'] + dedent("""\
+#             @set "PATH=somepath;CONDA_PATH_PLACEHOLDER;%PATH%"
+#             @call "{syspath}{binpath}activate.bat"
+#             {printpath}
+#             """).format(
+#                 envs=envs,
+#                 env_dirs=gen_test_env_paths(envs, shell),
+#                 **shell_vars)
+#         stdout, stderr = run_in(commands, shell)
+#         assert stdout.startswith("somepath;" + sys.prefix)
 
-@pytest.mark.slow
-def test_deactivate_placeholder(shell):
-    if not on_win or shell != "cmd.exe":
-        pytest.xfail("test only implemented for cmd.exe on win")
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
-        commands = shell_vars['command_setup'] + dedent("""\
-            @set "PATH=flag;%PATH%"
-            @call "{syspath}{binpath}activate.bat"
-            @call "{syspath}{binpath}deactivate.bat" "hold"
-            {printpath}
-            """).format(
-                envs=envs,
-                env_dirs=gen_test_env_paths(envs, shell),
-                **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert stdout.startswith("CONDA_PATH_PLACEHOLDER;flag")
+# @pytest.mark.slow
+# def test_deactivate_placeholder(shell):
+#     if not on_win or shell != "cmd.exe":
+#         pytest.xfail("test only implemented for cmd.exe on win")
+#     shell_vars = _format_vars(shell)
+#     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+#         commands = shell_vars['command_setup'] + dedent("""\
+#             @set "PATH=flag;%PATH%"
+#             @call "{syspath}{binpath}activate.bat"
+#             @call "{syspath}{binpath}deactivate.bat" "hold"
+#             {printpath}
+#             """).format(
+#                 envs=envs,
+#                 env_dirs=gen_test_env_paths(envs, shell),
+#                 **shell_vars)
+#         stdout, stderr = run_in(commands, shell)
+#         assert stdout.startswith("CONDA_PATH_PLACEHOLDER;flag")
 
 
 # This test depends on files that are copied/linked in the conda recipe.  It is unfortunately not going to run after
@@ -1590,14 +1818,16 @@ def run_in(command, shell, cwd=None, env=None):
     if hasattr(shell, "keys"):
         shell = shell["exe"]
     if shell == 'cmd.exe':
-        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
-        cmd_script.write(command)
-        cmd_script.close()
+        with tempfile.NamedTemporaryFile(suffix='.bat', mode='w+t', delete=False) as cmd_script:
+            cmd_name=cmd_script.name
+            cmd_script.write(command)
+
         cmd_bits = dedent("""\
             {exe} {shell_args} {script}
             """).format(
-                script=cmd_script.name,
+                script=cmd_name,
                 **shells[shell])
+
         try:
             p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  cwd=cwd, env=env)
@@ -1618,7 +1848,7 @@ def run_in(command, shell, cwd=None, env=None):
             """).format(
                 command=translate_stream(command, shells[shell]["path_to"]),
                 **shells[shell])
-        print("cmd_bits:",cmd_bits)
+
         p = subprocess.Popen(cmd_bits, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
     streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")

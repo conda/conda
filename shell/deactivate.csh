@@ -1,14 +1,20 @@
-#!/bin/csh
+#!/usr/bin/env csh
 
-#
-# source "`which deactivate`" for c-shell
-#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# #                                                                     # #
+# # DEACTIVATE FOR C-SHELL                                              # #
+# #                                                                     # #
+# # use == "" instead of -z test (and != "" for -n) for robust support  # #
+# # across different platforms (especially Ubuntu)                      # #
+# #                                                                     # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-###############################################################################
-# local vars
-###############################################################################
-set TRUE=0
-set FALSE=1
+###########################################################################
+# DEFINE BASIC VARS                                                       #
+set TRUE=1
+set FALSE=0
 set WHAT_SHELL_AM_I="csh"
 switch ( `uname -s` )
     case "CYGWIN*":
@@ -19,8 +25,8 @@ switch ( `uname -s` )
         breaksw
 endsw
 
-# note whether or not the CONDA_* variables are exported, if so we need to
-# preserve that status
+# note whether or not the CONDA_* variables are exported, if so we need   #
+# to preserve that status                                                 #
 set IS_ENV_CONDA_HELP="${FALSE}"
 set IS_ENV_CONDA_VERBOSE="${FALSE}"
 if ( `env | grep CONDA_HELP` != "" ) then
@@ -30,35 +36,37 @@ if ( `env | grep CONDA_VERBOSE` != "" ) then
     set IS_ENV_CONDA_VERBOSE="${TRUE}"
 endif
 
-# inherit whatever the user set
-# this is important for dash where you cannot pass parameters to sourced scripts
-# since this script is exclusively for csh/tcsh this is just for consistency/a bonus feature
+# inherit whatever the user set                                           #
+# this is important for dash (and other shells) where you cannot pass     #
+# parameters to sourced scripts                                           #
 if ( ! $?CONDA_HELP ) then
     set CONDA_HELP="${FALSE}"
-else if ( "${CONDA_HELP}" == "false" || "${CONDA_HELP}" == "FALSE" || "${CONDA_HELP}" == "False") then
+else if ( "${CONDA_HELP}" == "${FALSE}" || "${CONDA_HELP}" == "false" || "${CONDA_HELP}" == "FALSE" || "${CONDA_HELP}" == "False") then
     set CONDA_HELP="${FALSE}"
-else if ( "${CONDA_HELP}" == "true" || "${CONDA_HELP}" == "TRUE" || "${CONDA_HELP}" == "True" ) then
+else if ( "${CONDA_HELP}" == "${TRUE}" || "${CONDA_HELP}" == "true" || "${CONDA_HELP}" == "TRUE" || "${CONDA_HELP}" == "True" ) then
     set CONDA_HELP="${TRUE}"
 endif
 set UNKNOWN=""
 if ( ! $?CONDA_VERBOSE ) then
     set CONDA_VERBOSE="${FALSE}"
-else if ( "${CONDA_VERBOSE}" == "false" || "${CONDA_VERBOSE}" == "FALSE" || "${CONDA_VERBOSE}" == "False") then
+else if ( "${CONDA_VERBOSE}" == "${FALSE}" || "${CONDA_VERBOSE}" == "false" || "${CONDA_VERBOSE}" == "FALSE" || "${CONDA_VERBOSE}" == "False") then
     set CONDA_VERBOSE="${FALSE}"
-else if ( "${CONDA_VERBOSE}" == "true" || "${CONDA_VERBOSE}" == "TRUE" || "${CONDA_VERBOSE}" == "True" ) then
+else if ( "${CONDA_VERBOSE}" == "${TRUE}" || "${CONDA_VERBOSE}" == "true" || "${CONDA_VERBOSE}" == "TRUE" || "${CONDA_VERBOSE}" == "True" ) then
     set CONDA_VERBOSE="${TRUE}"
 endif
+# at this point CONDA_HELP, UNKNOWN, CONDA_VERBOSE, and CONDA_ENVNAME are #
+# defined and do not need to be checked for unbounded again               #
+# END DEFINE BASIC VARS                                                   #
+###########################################################################
 
-###############################################################################
-# parse command line, perform command line error checking
-###############################################################################
+###########################################################################
+# PARSE COMMAND LINE                                                      #
 set num=0
 while ( $num != -1 )
     @ num = ($num + 1)
     set arg=`eval eval echo '\$$num'`
 
-    # use == "" instead of -z test for robust support across
-    # different platforms (especially Ubuntu)
+    # check if variable is blank, if so stop parsing
     if ( $status != 0 || "`echo ${arg} | sed 's| ||g'`" == "" ) then
         set num=-1
     else
@@ -72,8 +80,6 @@ while ( $num != -1 )
                 set CONDA_VERBOSE="${TRUE}"
                 breaksw
             default:
-                # use == "" instead of -z test for robust support across
-                # different platforms (especially Ubuntu)
                 if ( "${UNKNOWN}" == "" ) then
                     set UNKNOWN="${arg}"
                 else
@@ -87,10 +93,7 @@ end
 unset num
 unset arg
 
-# if any of these variables are undefined (i.e. unbounded) set them to a default
-#
-# use == "" instead of -z test for robust support across
-# different platforms (especially Ubuntu)
+# if any of these variables are undefined set them to a default           #
 if ( "`echo ${CONDA_HELP} | sed 's| ||g'`" == "" ) then
     set CONDA_HELP="${FALSE}"
 endif
@@ -98,19 +101,20 @@ if ( "`echo ${CONDA_VERBOSE} | sed 's| ||g'`" == "" ) then
     set CONDA_VERBOSE="${FALSE}"
 endif
 
-# export CONDA_* variables as necessary
+# export CONDA_* variables as necessary                                   #
 if ( "${IS_ENV_CONDA_HELP}" == "${TRUE}" ) then
     setenv CONDA_HELP "${CONDA_HELP}"
 endif
 if ( "${IS_ENV_CONDA_VERBOSE}" == "${TRUE}" ) then
     setenv CONDA_VERBOSE "${CONDA_VERBOSE}"
 endif
+# END PARSE COMMAND LINE                                                  #
+###########################################################################
 
-######################################################################
-# help dialog
-######################################################################
+###########################################################################
+# HELP DIALOG                                                             #
 if ( "${CONDA_HELP}" == "${TRUE}" ) then
-    conda ..deactivate ${WHAT_SHELL_AM_I} -h ${UNKNOWN}
+    conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     unset WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_HELP}" == "${FALSE}" ) then
@@ -123,8 +127,7 @@ if ( "${CONDA_HELP}" == "${TRUE}" ) then
     unset IS_ENV_CONDA_VERBOSE
     unset TRUE
     unset FALSE
-    # use != "" instead of -n test for robust support across
-    # different platforms (especially Ubuntu)
+    # check if UNKNOWN is blank, error accordingly
     if ( "${UNKNOWN}" != "" ) then
         unset UNKNOWN
         exit 1
@@ -139,59 +142,95 @@ if ( "${IS_ENV_CONDA_HELP}" == "${FALSE}" ) then
 endif
 unset IS_ENV_CONDA_HELP
 unset UNKNOWN
+# END HELP DIALOG                                                         #
+###########################################################################
 
-######################################################################
-# determine if there is anything to deactivate and deactivate
-# accordingly
-######################################################################
+###########################################################################
+# CHECK IF CAN DEACTIVATE                                                 #
+set BAD_DEACTIVATE="${FALSE}"
 if ( $?CONDA_DEFAULT_ENV ) then
-    # use != "" instead of -n test for robust support across
-    # different platforms (especially Ubuntu)
-    if ( "${CONDA_DEFAULT_ENV}" != "" ) then
-        # unload post-activate scripts
-        # scripts found in $CONDA_PREFIX/etc/conda/deactivate.d
-        set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/deactivate.d"
-        if ( -d "${_CONDA_DIR}" ) then
-            foreach f ( `ls "${_CONDA_DIR}" | grep \\.csh$` )
-                if ( "${CONDA_VERBOSE}" == "${TRUE}" ) then
-                    echo "[DEACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
-                endif
-                source "${_CONDA_DIR}/${f}"
-            end
-        endif
-        unset _CONDA_DIR
-
-        # restore PROMPT
-        if ( $?CONDA_PS1_BACKUP && $?prompt ) then
-            set prompt="${CONDA_PS1_BACKUP}"
-            unsetenv CONDA_PS1_BACKUP
-        endif
-
-        # remove CONDA_DEFAULT_ENV
-        unsetenv CONDA_DEFAULT_ENV
-
-        # remove only first instance of CONDA_PREFIX from PATH
-        # use tmp_PATH to avoid cases when path setting
-        # succeeds and is parsed correctly from one to the other
-        # when not using the tmp* values would result in
-        # CONDA_PREFIX being added twice to PATH
-        set tmp_PATH="${PATH}"
-        set PATH=(`envvar_cleanup.bash "${tmp_PATH}" --delim=":" -g "${CONDA_PREFIX}" -f`)
-        set path=(`echo "${PATH}" | sed s'|:| |g'`)
-        unset tmp_PATH
-
-        # remove CONDA_PREFIX
-        unsetenv CONDA_PREFIX
-
-        # csh/tcsh both use rehash
-        rehash
+    if ( "${CONDA_DEFAULT_ENV}" == "" ) then
+        set BAD_DEACTIVATE="${TRUE}"
     endif
+else
+    set BAD_DEACTIVATE="${TRUE}"
 endif
+if ( "${BAD_DEACTIVATE}" == "${TRUE}" ) then
+    if ( "${IS_ENV_CONDA_VERBOSE}" == "${FALSE}" ) then
+        unset CONDA_VERBOSE
+    endif
+    unset IS_ENV_CONDA_VERBOSE
+    unset TRUE
+    unset FALSE
+    exit 1
+endif
+# END CHECK IF CAN DEACTIVATE                                             #
+###########################################################################
 
+###########################################################################
+# RESTORE PATH                                                            #
+# remove only first instance of $CONDA_PREFIX from $PATH, use $tmp_PATH   #
+# to avoid cases when path setting succeeds and is parsed correctly from  #
+# one to the other                                                        #
+set tmp_PATH="${PATH}"
+set PATH=(`envvar_cleanup.bash "${tmp_PATH}" --delim=":" -u -f "${CONDA_PREFIX}"`)
+set path=(`echo "${PATH}" | sed s'|:| |g'`)
+unset tmp_PATH
+# END RESTORE PATH                                                        #
+###########################################################################
+
+###########################################################################
+# REMOVE CONDA_PREFIX                                                     #
+# set $_CONDA_DIR for post-deactivate loading                             #
+set _CONDA_DIR="${CONDA_PREFIX}/etc/conda/deactivate.d"
+unsetenv CONDA_PREFIX
+# END REMOVE CONDA_PREFIX                                                 #
+###########################################################################
+
+###########################################################################
+# REMOVE CONDA_DEFAULT_ENV                                                #
+unsetenv CONDA_DEFAULT_ENV
+# END REMOVE CONDA_DEFAULT_ENV                                            #
+###########################################################################
+
+###########################################################################
+# RESTORE PS1 & REMOVE CONDA_PS1_BACKUP                                   #
+if ( $?CONDA_PS1_BACKUP && $?prompt ) then
+    set prompt="${CONDA_PS1_BACKUP}"
+    unsetenv CONDA_PS1_BACKUP
+endif
+# END RESTORE PS1 & REMOVE CONDA_PS1_BACKUP                               #
+###########################################################################
+
+###########################################################################
+# LOAD POST-DEACTIVATE SCRIPTS                                            #
+if ( -d "${_CONDA_DIR}" ) then
+    foreach f ( `ls "${_CONDA_DIR}" | grep \\.csh$` )
+        if ( "${CONDA_VERBOSE}" == "${TRUE}" ) then
+            echo "[DEACTIVATE]: Sourcing ${_CONDA_DIR}/${f}."
+        endif
+        source "${_CONDA_DIR}/${f}"
+    end
+endif
+unset _CONDA_DIR
 if ( "${IS_ENV_CONDA_VERBOSE}" == "${FALSE}" ) then
     unset CONDA_VERBOSE
 endif
 unset IS_ENV_CONDA_VERBOSE
+# END LOAD POST-DEACTIVATE SCRIPTS                                        #
+###########################################################################
+
+###########################################################################
+# REHASH                                                                  #
+# CSH/TCSH both use rehash
+rehash
+# END REHASH                                                              #
+###########################################################################
+
+###########################################################################
+# CLEANUP VARS FOR THIS SCOPE                                             #
 unset TRUE
 unset FALSE
 exit 0
+# END CLEANUP VARS FOR THIS SCOPE                                         #
+###########################################################################

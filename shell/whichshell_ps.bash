@@ -96,14 +96,14 @@ fi
 #                                                                         #
 # also useful for supporting unique corner cases of login/interactive     #
 # sub-shells                                                              #
-if [[ "${PARENT_PROCESS}" =~ "--login" ]]; then
-    PARENT_PROCESS="-$(echo ${PARENT_PROCESS} | sed 's|--login||g;')"
+if [[ "${PARENT_PROCESS}" =~ --login ]]; then
+    PARENT_PROCESS="-${PARENT_PROCESS/--login/}"
 fi
-if [[ "${PARENT_PROCESS}" =~ "-l" ]]; then
-    PARENT_PROCESS="-$(echo ${PARENT_PROCESS} | sed 's|-l||g;')"
+if [[ "${PARENT_PROCESS}" =~ -l ]]; then
+    PARENT_PROCESS="-${PARENT_PROCESS/-l/}"
 fi
-if [[ "${PARENT_PROCESS}" =~ "-i" ]]; then
-    PARENT_PROCESS="$(echo ${PARENT_PROCESS} | sed 's|-i||g;')"
+if [[ "${PARENT_PROCESS}" =~ -i ]]; then
+    PARENT_PROCESS="${PARENT_PROCESS/-i/}"
 fi
 # END IGNORE SPECIAL FLAGS                                                #
 ###########################################################################

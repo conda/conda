@@ -1,18 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #
 # function to cleanup a :-delimited string
 #
-# usage: envvar_cleanup.bash "$ENV_VAR" [-d | -r "STR_TO_REMOVE" ... | -g "STR_TO_REMOVE" ...] [--delim=DELIM] [-f]
+# usage: envvar_cleanup.bash "$ENV_VAR" [-d | [-u | -r | -g] "STR_TO_REMOVE" ...] [--delim=DELIM] [-f]
 #
 # where:
-#   "$ENV_VAR"              is the variable name to cleanup
-#   -d                      remove duplicates
-#   -r "STR_TO_REMOVE" ...  remove first instance of provided strings
-#   -g "STR_TO_REMOVE" ...  remove all instances of provided strings
-#   --delim=DELIM           specify what the delimit
-#   -f                      fuzzy matching in conjunction with -r and -g
-#                           (not compatible with -d)
+#   "$ENV_VAR"                      is the variable name to cleanup
+#   -d                              remove duplicates
+#   -u "STR_TO_REMOVE" ...          remove first UNIQUE match of provided strings
+#                                   (with fuzzy match, -f, this may remove multiple elements)
+#   -r "STR_TO_REMOVE" ...          remove first match of provided strings
+#                                   (even with fuzzy match, -f, this will only remove the first match)
+#   -g "STR_TO_REMOVE" ...          remove all instances of provided strings
+#   --delim=DELIM                   specify what the delimit
+#   -f                              fuzzy matching in conjunction with -u, -r, and -g
+#                                   (not compatible with -d)
 #
 # reference:
 # http://unix.stackexchange.com/questions/40749/remove-duplicate-path-entries-with-awk-command
@@ -24,8 +27,8 @@
 ###############################################################################
 # local vars
 ###############################################################################
-TRUE=0
-FALSE=1
+TRUE=1
+FALSE=0
 SETTING=2
 VARIABLE=""
 MODE="duplicate"
@@ -33,6 +36,8 @@ DELIM=":"
 FUZZY="${FALSE}"
 STR_TO_REMOVE=""
 STR_TO_REMOVE_I=-1
+UNIQUE_MATCHES=""
+UNIQUE_MATCHES_I=-1
 
 # at this point VARIABLE, MODE, DELIM, and STR_TO_REMOVE are
 # defined and do not need to be checked for unbounded again
@@ -45,10 +50,10 @@ is_mode_set="${FALSE}"
 is_delim_set="${FALSE}"
 is_fuzzy_set="${FALSE}"
 while [ $num != -1 ]; do
-    num=$((${num} + 1))
-    arg=$(eval eval echo '\$$num')
+    num=$((num + 1))
+    arg=$(eval eval echo '\${$num}') >/dev/null 2>&1
 
-    if [ -z $(echo "${arg}" | sed 's| ||g') ]; then
+    if [ $? != 0 ] || [ -z "${arg/ /}" ]; then
         num=-1
     else
         if [ "${is_delim_set}" = "${SETTING}" ]; then
@@ -59,6 +64,15 @@ while [ $num != -1 ]; do
                 -d)
                     if [ "${is_mode_set}" = "${FALSE}" ]; then
                         MODE="duplicate"
+                        is_mode_set="${TRUE}"
+                    else
+                        echo "[ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once (${arg})" 1>&2
+                        exit 1
+                    fi
+                    ;;
+                -u)
+                    if [ "${is_mode_set}" = "${FALSE}" ]; then
+                        MODE="unique"
                         is_mode_set="${TRUE}"
                     else
                         echo "[ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once (${arg})" 1>&2
@@ -117,7 +131,7 @@ while [ $num != -1 ]; do
                     if [ -z "${VARIABLE}" ]; then
                         VARIABLE="${arg}"
                     else
-                        STR_TO_REMOVE_I=$(( ${STR_TO_REMOVE_I} + 1 ))
+                        STR_TO_REMOVE_I=$((STR_TO_REMOVE_I + 1))
                         STR_TO_REMOVE[${STR_TO_REMOVE_I}]="${arg}"
                     fi
                     ;;
@@ -184,11 +198,11 @@ if [ -n "${VARIABLE}" ]; then
     MAX_ITER=${#old_VARIABLE}
     NUM_NONDELIMS="${old_VARIABLE//${DELIM}/}"
     NUM_NONDELIMS=${#NUM_NONDELIMS}
-    MAX_ITER=$(( ${MAX_ITER} - ${NUM_NONDELIMS} ))
+    MAX_ITER=$((MAX_ITER - NUM_NONDELIMS))
 
     if [ "${MODE}" == "duplicate" ]; then
         # iterate over all phrases split by delim
-        for (( i = 1; i <= ${MAX_ITER}; i++ )); do
+        for (( i = 1; i <= MAX_ITER; i++ )); do
             # chop off the first phrase available
             x="${old_VARIABLE%%${DELIM}*}"
             old_VARIABLE="${old_VARIABLE#*${DELIM}}"
@@ -202,33 +216,16 @@ if [ -n "${VARIABLE}" ]; then
             # list, consequently append the value
             [ "${TMP}" = "${VARIABLE}" ] && VARIABLE="${VARIABLE}${x}${DELIM}"
         done
-
-        # # remove duplicate entries from $VARIABLE
-        # # append delimiter to end of $VARIABLE to simplify matching logic
-        # old_VARIABLE="${VARIABLE}${DELIM}"
-        # VARIABLE=""
-        # # iterate over $old_VARIABLE and pop substrings based on the delimiter
-        # # then decide whether to append the substring to the new $VARIABLE or discard it as a duplicate
-        # while [ -n "${old_VARIABLE}" ]; do
-        #     x="${old_VARIABLE%%${DELIM}*}"              # the first remaining entry
-        #     case "${VARIABLE}${DELIM}" in
-        #         *"${DELIM}${x}${DELIM}"*) ;;            # already there
-        #         *) VARIABLE="${VARIABLE}${DELIM}${x}";; # not there yet
-        #     esac
-        #     old_VARIABLE="${old_VARIABLE#*$DELIM}"
-        # done
-        # # finalize new $VARIABLE by removing the terminating delimiter
-        # VARIABLE="${VARIABLE#${DELIM}}"
     else
         # iterate over all phrases split by delim
-        for (( i = 1; i <= ${MAX_ITER}; i++ )); do
+        for (( i = 1; i <= MAX_ITER; i++ )); do
             # chop off the first phrase available
             x="${old_VARIABLE%%${DELIM}*}"
             old_VARIABLE="${old_VARIABLE#*${DELIM}}"
 
             MATCH=-1
             FUZZY_MATCH=-1
-            for (( j = 0; j < 10; j++ )); do
+            for (( j = 0; j <= STR_TO_REMOVE_I; j++ )); do
                 if ! [ "${STR_TO_REMOVE[${j}]}" = "" ]; then
                     # check for an exact match
                     if [ "${STR_TO_REMOVE[${j}]}" = "${x}" ]; then
@@ -245,12 +242,30 @@ if [ -n "${VARIABLE}" ]; then
                 fi
             done
 
-            if [ "${MATCH}" = -1 ]; then
-                if [ "${FUZZY_MATCH}" = -1 ]; then
-                    VARIABLE="${VARIABLE}${x}${DELIM}"
+            PRIOR_MATCH=-1
+            for (( j = 0; j <= UNIQUE_MATCHES_I; j++ )); do
+                if ! [ "${UNIQUE_MATCHES[${j}]}" = "" ]; then
+                    # check if we have matched this before
+                    if [ "${UNIQUE_MATCHES[${j}]}" = "${x}" ]; then
+                        PRIOR_MATCH="${j}"
+                    fi
                 fi
+            done
+
+            if [ "${MATCH}" = -1 ] && [ "${FUZZY_MATCH}" = -1 ]; then
+                VARIABLE="${VARIABLE}${x}${DELIM}"
             else
-                if [ "${MODE}" = "remove" ]; then
+                if [ "${MODE}" = "unique" ]; then
+                    # collect all matches
+                    if [ "${PRIOR_MATCH}" = -1 ]; then
+                        # this is a unique match
+                        UNIQUE_MATCHES_I=$((UNIQUE_MATCHES_I + 1))
+                        UNIQUE_MATCHES[${UNIQUE_MATCHES_I}]="${x}"
+                    else
+                        # this is a non-unique match
+                        VARIABLE="${VARIABLE}${x}${DELIM}"
+                    fi
+                elif [ "${MODE}" = "remove" ]; then
                     if ! [ "${MATCH}" = -1 ]; then
                         STR_TO_REMOVE[${MATCH}]=""
                     else
@@ -259,39 +274,6 @@ if [ -n "${VARIABLE}" ]; then
                 fi
             fi
         done
-
-        # # set global/local sed flag
-        # GLOBAL="g"
-        # [ "${MODE}" == "remove" ] && GLOBAL=""
-
-        # # iterate over all of the $STR_TO_REMOVE and strip them from $VARIABLE
-        # VARIABLE="${DELIM}${VARIABLE}${DELIM}"
-        # for num in "${STR_TO_REMOVE[@]}"; do
-        #     arg=$(eval eval echo '\$$num')
-
-        #     if [ -n $(echo "${arg}" | sed 's| ||g') ]; then
-        #         # certain patterns will not be properly stripped by sed
-        #         # as in this example:
-        #         #   > envvar_cleanup.bash "blue-blue-red" -g "blue"
-        #         #   > # $VARIABLE = "-blue-blue-red-"
-        #         #   > # $MODE = "global"
-        #         #   > # $GLOBAL = "g"
-        #         #   > # $STR_TO_REMOVE = ("blue")
-        #         # with this example sed will be able to remove the first
-        #         # occurrence of "-blue-" but since the "-" is shared we
-        #         # must recursively check for the "-blue-" phrase until
-        #         # it no longer exists
-        #         while [[ "${VARIABLE}" =~ .*${DELIM}${arg}${DELIM}.* ]]; do
-        #             VARIABLE=$(echo "${VARIABLE}" | sed "s|${DELIM}${arg}${DELIM}|${DELIM}|${GLOBAL}")
-
-        #             # only remove first occurrence if not global
-        #             [ "${MODE}" == "remove" ] && break
-        #         done
-        #     fi
-        # done
-
-        # VARIABLE="${VARIABLE#${DELIM}}"
-        # VARIABLE="${VARIABLE%${DELIM}}"
     fi
 
     # trim off the first and last DELIM that was added at the start
@@ -299,4 +281,4 @@ if [ -n "${VARIABLE}" ]; then
     [ "${RM_POST_DELIM}" = "${TRUE}" ] && VARIABLE="${VARIABLE:0:${#VARIABLE}-1}"
 fi
 
-echo $(echo ${VARIABLE} | sed 's| |\ |g')
+echo "${VARIABLE}"

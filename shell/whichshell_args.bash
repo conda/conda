@@ -35,21 +35,21 @@ SYSTEM="${SYSTEM2}"
 # on openSUSE:                                                            #
 #   > lsb_release -si                                                     #
 #   > SUSE LINUX                                                          #
-SYSTEM=$(echo "${SYSTEM}" | sed 's| ||')
+SYSTEM="${SYSTEM/ /}"
 # END GET SYSTEM                                                          #
 ###########################################################################
 
 ###########################################################################
 # OFFSET $SHLVL                                                           #
 # since we are currently inside an executed program (not sourced)         #
-SHELL_LEVEL=$((${SHLVL} - 1))
+SHELL_LEVEL=$((SHLVL - 1))
 # END OFFSET $SHLVL                                                       #
 ###########################################################################
 
 ###########################################################################
 # $0
 ZERO="${3}"
-[[ "${PARENT_PROCESS}" =~ ".*csh" ]] && ZERO="CSH"
+[[ "${PARENT_PROCESS}" =~ .*csh ]] && ZERO="CSH"
 # END $0
 ###########################################################################
 

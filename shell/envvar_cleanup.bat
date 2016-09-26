@@ -1,16 +1,19 @@
 @REM
 @REM function to cleanup a :-delimited string
 @REM
-@REM usage: envvar_cleanup.bat "%ENV_VAR%" [/d | /r "STR_TO_REMOVE" ... | /g "STR_TO_REMOVE" ...] [/delim=DELIM] [/f]
+@REM usage: envvar_cleanup.bat "%ENV_VAR%" [/d OR [/u OR /r OR /g] "STR_TO_REMOVE" ...] [/delim=DELIM] [/f]
 @REM
 @REM where:
 @REM    "%ENV_VAR%"                 is the variable name to cleanup
 @REM    /d,-d                       remove duplicates
-@REM    /r,-r "STR_TO_REMOVE" ...   remove first instance of provided strings
+@REM    /u,-u "STR_TO_REMOVE" ...   remove first UNIQUE match of provided strings
+@REM                                [with fuzzy match, /f, this may remove multiple elements]
+@REM    /r,-r "STR_TO_REMOVE" ...   remove first match of provided strings
+@REM                                [even with fuzzy match, /f, this will only remove the first match]
 @REM    /g,-g "STR_TO_REMOVE" ...   remove all instances of provided strings
 @REM    /delim=DELIM,--delim=DELIM  specify what the delimit
-@REM    /f,-f                       fuzzy matching in conjunction with /r and /g
-@REM                                (not compatible with /d)
+@REM    /f,-f                       fuzzy matching in conjunction with /u, /r, and /g
+@REM                                [not compatible with /d]
 @REM
 @REM reference:
 @REM http://stackoverflow.com/questions/5837418/how-do-you-get-the-string-length-in-a-batch-file
@@ -18,16 +21,20 @@
 @REM TODO:
 @REM consider adding more path cleanup like symlinking paths that are longer than __
 @REM
+
 @REM @ symbols in this file indicate that output should not be printed
 @REM setting it this way allows us to not touch the user's echo setting
-@REM
+
+@REM this file is also indented using TABS instead of SPACES to avoid
+@REM very odd syntax errors
+
 @SETLOCAL EnableDelayedExpansion
 
 @REM ##########################################################################
 @REM Local vars
 @REM ##########################################################################
-@SET "TRUE=0"
-@SET "FALSE=1"
+@SET "TRUE=1"
+@SET "FALSE=0"
 @SET "SETTING=2"
 @SET VARIABLE=
 @SET "MODE=duplicate"
@@ -35,6 +42,8 @@
 @SET "FUZZY=%FALSE%"
 @SET STR_TO_REMOVE=
 @SET STR_TO_REMOVE_I=-1
+@SET UNIQUE_MATCHES=
+@SET UNIQUE_MATCHES_I=-1
 
 @REM at this point VARIABLE, MODE, DELIM, and STR_TO_REMOVE are
 @REM defined and do not need to be checked for unbounded again
@@ -46,136 +55,156 @@
 @SET "is_delim_set=%FALSE%"
 @SET "is_fuzzy_set=%FALSE%"
 :while_argparse_start
-    @SET "arg=%~1"
+	@SET "arg=%~1"
 
-    :: check if variable is blank, if so no need to check any further
-    @IF "%arg%"=="" GOTO while_argparse_end
+	@REM check if variable is blank, if so no need to check any further
+	@IF "%arg%"=="" GOTO while_argparse_end
 
-    @IF /I "%is_delim_set%"=="%SETTING%" (
-        @SET "DELIM=%arg%"
-        @SET "is_delim_set=%TRUE%"
-    ) ELSE (
-        @IF /I "%arg%"=="/d" (
-            @IF /I "%is_mode_set%"=="%FALSE%" (
-                @SET "MODE=duplicate"
-                @SET "is_mode_set=%TRUE%"
-            ) ELSE (
-                @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
-                @EXIT /B 1
-            )
-        ) ELSE (
-            @IF /I "%arg%"=="-d" (
-                @IF /I "%is_mode_set%"=="%FALSE%" (
-                    @SET "MODE=duplicate"
-                    @SET "is_mode_set=%TRUE%"
-                ) ELSE (
-                    @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
-                    @EXIT /B 1
-                )
-            ) ELSE (
-                @IF /I "%arg%"=="/r" (
-                    @IF /I "%is_mode_set%"=="%FALSE%" (
-                        @SET "MODE=remove"
-                        @SET "is_mode_set=%TRUE%"
-                    ) ELSE (
-                        @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
-                        @EXIT /B 1
-                    )
-                ) ELSE (
-                    @IF /I "%arg%"=="-r" (
-                        @IF /I "%is_mode_set%"=="%FALSE%" (
-                            @SET "MODE=remove"
-                            @SET "is_mode_set=%TRUE%"
-                        ) ELSE (
-                            @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
-                            @EXIT /B 1
-                        )
-                    ) ELSE (
-                        @IF /I "%arg%"=="/g" (
-                            @IF /I "%is_mode_set%"=="%FALSE%" (
-                                @SET "MODE=global"
-                                @SET "is_mode_set=%TRUE%"
-                            ) ELSE (
-                                @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
-                                @EXIT /B 1
-                            )
-                        ) ELSE (
-                            @IF /I "%arg%"=="-g" (
-                                @IF /I "%is_mode_set%"=="%FALSE%" (
-                                    @SET "MODE=global"
-                                    @SET "is_mode_set=%TRUE%"
-                                ) ELSE (
-                                    @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
-                                    @EXIT /B 1
-                                )
-                            ) ELSE (
-                                @IF /I "%arg%"=="/f" (
-                                    @IF /I "%is_fuzzy_set%"=="%FALSE%" (
-                                        @SET "FUZZY=%TRUE%"
-                                        @SET "is_fuzzy_set=%TRUE%"
-                                    ) ELSE (
-                                        @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set fuzzy more than once ^(%arg%^) 1>&2
-                                        @EXIT /B 1
-                                    )
-                                ) ELSE (
-                                    @IF /I "%arg%"=="-f" (
-                                        @IF /I "%is_fuzzy_set%"=="%FALSE%" (
-                                            @SET "FUZZY=%TRUE%"
-                                            @SET "is_fuzzy_set=%TRUE%"
-                                        ) ELSE (
-                                            @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set fuzzy more than once ^(%arg%^) 1>&2
-                                            @EXIT /B 1
-                                        )
-                                    ) ELSE (
-                                        @IF /I "%arg%"=="/delim" (
-                                            @IF /I "%is_delim_set%"=="%FALSE%" (
-                                                @SET "is_delim_set=%SETTING%"
-                                            ) ELSE (
-                                                @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set delim more than once ^(%arg%^) 1>&2
-                                                @EXIT /B 1
-                                            )
-                                        ) ELSE (
-                                            @IF /I "%arg%"=="--delim" (
-                                                @IF /I "%is_delim_set%"=="%FALSE%" (
-                                                    @SET "is_delim_set=%SETTING%"
-                                                ) ELSE (
-                                                    @ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set delim more than once ^(%arg%^) 1>&2
-                                                    @EXIT /B 1
-                                                )
-                                            ) ELSE (
-                                                @IF /I "%arg%"=="/*" (
-                                                    @ECHO [ENVVAR_CLEANUP]: ERROR: Unknown/Invalid flag/parameter ^(%arg%^) 1>&2
-                                                ) ELSE (
-                                                    @IF /I "%arg%"=="-*" (
-                                                        @ECHO [ENVVAR_CLEANUP]: ERROR: Unknown/Invalid flag/parameter ^(%arg%^) 1>&2
-                                                    ) ELSE (
-                                                        @IF /I "%VARIABLE%"=="" (
-                                                            @SET "VARIABLE=%arg%"
-                                                        ) ELSE (
-                                                            @SET /A "STR_TO_REMOVE_I+=1"
-                                                            @SET "STR_TO_REMOVE[!STR_TO_REMOVE_I!]=%arg%"
-                                                        )
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )
+	@IF /I "%is_delim_set%"=="%SETTING%" (
+		@SET "DELIM=%arg%"
+		@SET "is_delim_set=%TRUE%"
+	) ELSE (
+		@IF /I "%arg%"=="/d" (
+			@IF /I "%is_mode_set%"=="%FALSE%" (
+				@SET "MODE=duplicate"
+				@SET "is_mode_set=%TRUE%"
+			) ELSE (
+				@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+				@EXIT /B 1
+			)
+		) ELSE (
+			@IF /I "%arg%"=="-d" (
+				@IF /I "%is_mode_set%"=="%FALSE%" (
+					@SET "MODE=duplicate"
+					@SET "is_mode_set=%TRUE%"
+				) ELSE (
+					@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+					@EXIT /B 1
+				)
+			) ELSE (
+				@IF /I "%arg%"=="/u" (
+					@IF /I "%is_mode_set%"=="%FALSE%" (
+						@SET "MODE=unique"
+						@SET "is_mode_set=%TRUE%"
+					) ELSE (
+						@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+						@EXIT /B 1
+					)
+				) ELSE (
+					@IF /I "%arg%"=="-u" (
+						@IF /I "%is_mode_set%"=="%FALSE%" (
+							@SET "MODE=unique"
+							@SET "is_mode_set=%TRUE%"
+						) ELSE (
+							@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+							@EXIT /B 1
+						)
+					) ELSE (
+						@IF /I "%arg%"=="/r" (
+							@IF /I "%is_mode_set%"=="%FALSE%" (
+								@SET "MODE=remove"
+								@SET "is_mode_set=%TRUE%"
+							) ELSE (
+								@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+								@EXIT /B 1
+							)
+						) ELSE (
+							@IF /I "%arg%"=="-r" (
+								@IF /I "%is_mode_set%"=="%FALSE%" (
+									@SET "MODE=remove"
+									@SET "is_mode_set=%TRUE%"
+								) ELSE (
+									@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+									@EXIT /B 1
+								)
+							) ELSE (
+								@IF /I "%arg%"=="/g" (
+									@IF /I "%is_mode_set%"=="%FALSE%" (
+										@SET "MODE=global"
+										@SET "is_mode_set=%TRUE%"
+									) ELSE (
+										@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+										@EXIT /B 1
+									)
+								) ELSE (
+									@IF /I "%arg%"=="-g" (
+										@IF /I "%is_mode_set%"=="%FALSE%" (
+											@SET "MODE=global"
+											@SET "is_mode_set=%TRUE%"
+										) ELSE (
+											@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set mode more than once ^(%arg%^) 1>&2
+											@EXIT /B 1
+										)
+									) ELSE (
+										@IF /I "%arg%"=="/f" (
+											@IF /I "%is_fuzzy_set%"=="%FALSE%" (
+												@SET "FUZZY=%TRUE%"
+												@SET "is_fuzzy_set=%TRUE%"
+											) ELSE (
+												@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set fuzzy more than once ^(%arg%^) 1>&2
+												@EXIT /B 1
+											)
+										) ELSE (
+											@IF /I "%arg%"=="-f" (
+												@IF /I "%is_fuzzy_set%"=="%FALSE%" (
+													@SET "FUZZY=%TRUE%"
+													@SET "is_fuzzy_set=%TRUE%"
+												) ELSE (
+													@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set fuzzy more than once ^(%arg%^) 1>&2
+													@EXIT /B 1
+												)
+											) ELSE (
+												@IF /I "%arg%"=="/delim" (
+													@IF /I "%is_delim_set%"=="%FALSE%" (
+														@SET "is_delim_set=%SETTING%"
+													) ELSE (
+														@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set delim more than once ^(%arg%^) 1>&2
+														@EXIT /B 1
+													)
+												) ELSE (
+													@IF /I "%arg%"=="--delim" (
+														@IF /I "%is_delim_set%"=="%FALSE%" (
+															@SET "is_delim_set=%SETTING%"
+														) ELSE (
+															@ECHO [ENVVAR_CLEANUP]: ERROR: Cannot set delim more than once ^(%arg%^) 1>&2
+															@EXIT /B 1
+														)
+													) ELSE (
+														@IF /I "%arg%"=="/*" (
+															@ECHO [ENVVAR_CLEANUP]: ERROR: Unknown/Invalid flag/parameter ^(%arg%^) 1>&2
+														) ELSE (
+															@IF /I "%arg%"=="-*" (
+																@ECHO [ENVVAR_CLEANUP]: ERROR: Unknown/Invalid flag/parameter ^(%arg%^) 1>&2
+															) ELSE (
+																@IF /I "%VARIABLE%"=="" (
+																	@SET "VARIABLE=%arg%"
+																) ELSE (
+																	@SET /A "STR_TO_REMOVE_I+=1"
+																	@SET "STR_TO_REMOVE[!STR_TO_REMOVE_I!]=%arg%"
+																)
+															)
+														)
+													)
+												)
+											)
+										)
+									)
+								)
+							)
+						)
+					)
+				)
+			)
+		)
+	)
 
-    @SHIFT
-    @GOTO while_argparse_start
+	@SHIFT
+	@GOTO while_argparse_start
 :while_argparse_end
 
 @IF /I "%is_delim_set%"=="%SETTING%" (
-    @ECHO [ENVVAR_CLEANUP]: ERROR: Delim flag has been provided without any delimiter 1>&2
-    @EXIT /B 1
+	@ECHO [ENVVAR_CLEANUP]: ERROR: Delim flag has been provided without any delimiter 1>&2
+	@EXIT /B 1
 )
 @SET arg=
 @SET is_mode_set=
@@ -188,15 +217,15 @@
 
 @REM check that %STR_TO_REMOVE% is allocated correctly for the various %MODE%
 @IF /I "%MODE%"=="duplicate" (
-    @IF /I NOT "%STR_TO_REMOVE_I%"=="-1" (
-        @ECHO [ENVVAR_CLEANUP]: ERROR: Unknown/Invalid parameters for mode=%MODE% 1>&2
-        @EXIT /B 1
-    )
+	@IF /I NOT "%STR_TO_REMOVE_I%"=="-1" (
+		@ECHO [ENVVAR_CLEANUP]: ERROR: Unknown/Invalid parameters for mode=%MODE% 1>&2
+		@EXIT /B 1
+	)
 ) ELSE (
-    @IF /I "%STR_TO_REMOVE_I%"=="-1" (
-        @ECHO [ENVVAR_CLEANUP]: ERROR: Missing arguments to remove for mode=%MODE% 1>&2
-        @EXIT /B 1
-    )
+	@IF /I "%STR_TO_REMOVE_I%"=="-1" (
+		@ECHO [ENVVAR_CLEANUP]: ERROR: Missing arguments to remove for mode=%MODE% 1>&2
+		@EXIT /B 1
+	)
 )
 
 @REM ##########################################################################
@@ -205,97 +234,123 @@
 @REM TODO
 
 @REM ##########################################################################
-@REM process for removal(s)
+@REM process for removal[s]
 @REM ##########################################################################
 @IF /I NOT "%VARIABLE%"=="" (
-    @REM remove DELIM from the beginning and append DELIM to the end
-    @REM *only if the delim hasn't already been added/removed
-    @IF /I "%VARIABLE:~0,1%"=="%DELIM%" (
-        @SET "RM_PRE_DELIM=%FALSE%"
-        @FOR /F "tokens=1,* delims=%DELIM%" %%c IN ("!VARIABLE!") DO @SET "VARIABLE=%%d"
-    ) ELSE (
-        @SET "RM_PRE_DELIM=%TRUE%"
-    )
+	@REM remove DELIM from the beginning and append DELIM to the end
+	@REM *only if the delim hasn't already been added/removed
+	@IF /I "%VARIABLE:~0,1%"=="%DELIM%" (
+		@SET "RM_PRE_DELIM=%FALSE%"
+		@SET "VARIABLE=%VARIABLE:~1%"
+	) ELSE (
+		@SET "RM_PRE_DELIM=%TRUE%"
+	)
 
-    @IF /I "%VARIABLE:~-1%"=="%DELIM%" (
-        @SET "RM_POST_DELIM=%FALSE%"
-    ) ELSE (
-        @SET "RM_POST_DELIM=%TRUE%"
-        @SET "VARIABLE=%VARIABLE%%DELIM%"
-    )
+	@IF /I "%VARIABLE:~-1%"=="%DELIM%" (
+		@SET "RM_POST_DELIM=%FALSE%"
+	) ELSE (
+		@SET "RM_POST_DELIM=%TRUE%"
+		@SET "VARIABLE=%VARIABLE%%DELIM%"
+	)
 
-    @SET "old_VARIABLE=!VARIABLE!"
-    @SET "VARIABLE=%DELIM%"
+	@SET "old_VARIABLE=!VARIABLE!"
+	@SET "VARIABLE=%DELIM%"
 
-    @CALL :strlen MAX_ITER "!old_VARIABLE!"
-    @CALL :strlen NUM_NONDELIMS "!old_VARIABLE:%DELIM%=!"
-    @SET /A "MAX_ITER-=!NUM_NONDELIMS!"
+	@CALL :strlen MAX_ITER "!old_VARIABLE!"
+	@CALL :strlen NUM_NONDELIMS "!old_VARIABLE:%DELIM%=!"
+	@SET /A "MAX_ITER-=!NUM_NONDELIMS!"
 
-    @IF /I "%MODE%"=="duplicate" (
-        @REM iterate over all phrases split by delim
-        @FOR /L %%i IN (1,1,!MAX_ITER!) DO @(
-            @REM chop off the first phrase available
-            @FOR /F "tokens=1,* delims=%DELIM%" %%j IN ("!old_VARIABLE!") DO @(
-                @SET "x=%%j"
-                @SET "old_VARIABLE=%%d"
-            )
+	@IF /I "%MODE%"=="duplicate" (
+		@REM iterate over all phrases split by delim
+		@FOR /L %%i IN (1,1,!MAX_ITER!) DO @(
+			@REM chop off the first phrase available
+			@FOR /F "tokens=1,* delims=%DELIM%" %%j IN ("!old_VARIABLE!") DO @(
+				@SET "x=%%j"
+				@SET "old_VARIABLE=%%d"
+			)
 
-            @SET "FROM=%DELIM%!x!%DELIM%"
+			@SET "FROM=%DELIM%!x!%DELIM%"
 
-            @FOR /F "delims=" %%j IN ("!FROM!") DO @SET "TMP=!VARIABLE:%%j=%DELIM%!"
+			@FOR /F "delims=" %%j IN ("!FROM!") DO @SET "TMP=!VARIABLE:%%j=%DELIM%!"
 
-            @REM if removing the current phrase from the %VARIABLE% didn't change
-            @REM anything that means that it doesn't exist yet in the new unique
-            @REM list, consequently append the value
-            @IF /I "!TMP!"=="!VARIABLE!" @SET "VARIABLE=!VARIABLE!!x!%DELIM%"
-        )
-    ) ELSE (
-        @REM iterate over all phrases split by delim
-        @FOR /L %%i IN (1,1,!MAX_ITER!) DO @(
-            @REM chop off the first phrase available
-            @FOR /F "tokens=1,* delims=%DELIM%" %%j IN ("!old_VARIABLE!") DO @(
-                @SET "x=%%j"
-                @SET "old_VARIABLE=%%d"
-            )
+			@REM if removing the current phrase from the %VARIABLE% didn't change
+			@REM anything that means that it doesn't exist yet in the new unique
+			@REM list, consequently append the value
+			@IF /I "!TMP!"=="!VARIABLE!" @SET "VARIABLE=!VARIABLE!!x!%DELIM%"
+		)
+	) ELSE (
+		@REM iterate over all phrases split by delim
 
-            @SET "MATCH=-1"
-            @SET "FUZZY_MATCH=-1"
-            @FOR /L %%j IN (0,1,!STR_TO_REMOVE_I!) DO @(
-                @IF /I NOT "!STR_TO_REMOVE[%%j]!"=="" (
-                    @REM check for an exact match
-                    @IF /I "!STR_TO_REMOVE[%%j]!"=="!x!" (
-                        @SET "MATCH=%%j"
-                    ) ELSE (
-                        @REM check for a fuzzy match (if applicable)
-                        @IF /I "%FUZZY%"=="%TRUE%" (
-                            @FOR /F "delims=" %%k IN ("!STR_TO_REMOVE[%%j]!") DO @SET "TMP=!x:%%k=!"
-                            @IF /I NOT "!TMP!"=="!x!" (
-                                @SET "FUZZY_MATCH=%%j"
-                            )
-                        )
-                    )
-                )
-            )
+		@FOR /L %%i IN (1,1,!MAX_ITER!) DO @(
+			@REM chop off the first phrase available
+			@FOR /F "tokens=1,* delims=%DELIM%" %%j IN ("!old_VARIABLE!") DO @(
+				@SET "x=%%j"
+				@SET "old_VARIABLE=%%k"
+			)
 
-            @IF /I "!MATCH!"=="-1" (
-                @IF /I "!FUZZY_MATCH!"=="-1" (
-                    @SET "VARIABLE=!VARIABLE!!x!%DELIM%"
-                )
-            ) ELSE (
-                @IF /I "%MODE%"=="remove" (
-                    @IF /I NOT "!MATCH!"=="-1" (
-                        @SET STR_TO_REMOVE[!MATCH!]=
-                    ) ELSE (
-                        @SET STR_TO_REMOVE[!FUZZY_MATCH!]=
-                    )
-                )
-            )
-        )
-    )
+			@SET "MATCH=-1"
+			@SET "FUZZY_MATCH=-1"
+			@FOR /L %%j IN (0,1,!STR_TO_REMOVE_I!) DO @(
+				@IF /I NOT "!STR_TO_REMOVE[%%j]!"=="" (
+					@REM check for an exact match
+					@IF /I "!STR_TO_REMOVE[%%j]!"=="!x!" (
+						@SET "MATCH=%%j"
+					) ELSE (
+						@REM check for a fuzzy match [if applicable]
+						@IF /I "%FUZZY%"=="%TRUE%" (
+							@FOR /F "delims=" %%k IN ("!STR_TO_REMOVE[%%j]!") DO @SET "TMP=!x:%%k=!"
+							@IF /I NOT "!TMP!"=="!x!" (
+								@SET "FUZZY_MATCH=%%j"
+							)
+						)
+					)
+				)
+			)
 
-    @REM trim off the first and last DELIM that was added at the start
-    @IF /I "!RM_PRE_DELIM!"=="%TRUE%"  @SET "VARIABLE=%DELIM%!VARIABLE!"
-    @IF /I "!RM_POST_DELIM!"=="%TRUE%" @SET "VARIABLE=!VARIABLE:~0,-1!"
+			@SET "PRIOR_MATCH=-1"
+			@FOR /L %%j IN (0,1,!UNIQUE_MATCHES_I!) DO @(
+				@IF /I NOT "!UNIQUE_MATCHES[%%j]!"=="" (
+					@REM check if we have matched this before
+					@IF /I "!UNIQUE_MATCHES[%%j]!"=="!x!" (
+						@SET "PRIOR_MATCH=%%j"
+					)
+				)
+			)
+
+			@SET "KEEPER=%FALSE%"
+			@IF /I "!MATCH!"=="-1" @IF /I "!FUZZY_MATCH!"=="-1" (
+				@SET "KEEPER=%TRUE%"
+			)
+
+			@IF /I "!KEEPER!"=="%TRUE%" (
+				@SET "VARIABLE=!VARIABLE!!x!%DELIM%"
+			) ELSE (
+				@IF /I "%MODE%"=="unique" (
+					@REM collect all matches
+					@IF /I "!PRIOR_MATCH!"=="-1" (
+						@REM this is a unique match
+						@SET /A "UNIQUE_MATCHES_I+=1"
+						@SET "UNIQUE_MATCHES[!UNIQUE_MATCHES_I!]=!x!"
+					) ELSE (
+						@REM this is a non-unique match
+						@SET "VARIABLE=!VARIABLE!!x!%DELIM%"
+					)
+				) ELSE (
+					@IF /I "%MODE%"=="remove" (
+						@IF /I NOT "!MATCH!"=="-1" (
+							@SET STR_TO_REMOVE[!MATCH!]=
+						) ELSE (
+							@SET STR_TO_REMOVE[!FUZZY_MATCH!]=
+						)
+					)
+				)
+			)
+		)
+	)
+
+	@REM trim off the first and last DELIM that was added at the start
+	@IF /I "!RM_PRE_DELIM!"=="%TRUE%"  @SET "VARIABLE=!VARIABLE:~1!"
+	@IF /I "!RM_POST_DELIM!"=="%TRUE%" @SET "VARIABLE=!VARIABLE:~0,-1!"
 )
 
 @ECHO !VARIABLE!
@@ -304,30 +359,30 @@
 
 @REM ##########################################################################
 @REM subroutine: strlen
-@REM
+::
 @REM works to first detect the last index in the string and then
 @REM converts that index to the length by adding 1
 @REM ##########################################################################
 :strlen <resultVar> <stringVar>
 @(
-    @SETLOCAL EnableDelayedExpansion
-    @SET "string=%~2"
-    @SET "len=0"
-    @IF /I NOT "!string!"=="" (
-        @REM find last valid index
-        @FOR %%p IN (4096 2048 1024 512 256 128 64 32 16 8 4 2 1) DO @(
-            @IF /I NOT "!string:~%%p,1!"=="" (
-                @SET /A "len+=%%p"
-                @SET "string=!string:~%%p!"
-            )
-        )
+	@SETLOCAL EnableDelayedExpansion
+	@SET "string=%~2"
+	@SET "len=0"
+	@IF /I NOT "!string!"=="" (
+		@REM find last valid index
+		@FOR %%p IN (4096 2048 1024 512 256 128 64 32 16 8 4 2 1) DO @(
+			@IF /I NOT "!string:~%%p,1!"=="" (
+				@SET /A "len+=%%p"
+				@SET "string=!string:~%%p!"
+			)
+		)
 
-        @REM convert index to length
-        @SET /A "len+=1"
-    )
+		@REM convert index to length
+		@SET /A "len+=1"
+	)
 )
 @(
-    @ENDLOCAL
-    @SET "%~1=%len%"
-    @EXIT /B
+	@ENDLOCAL
+	@SET "%~1=%len%"
+	@EXIT /B
 )

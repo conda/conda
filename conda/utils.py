@@ -204,6 +204,8 @@ unix_shell_base = dict(
                        var_format="${}",
                        singleflag="-",
                        doubleflag="--",
+                       get_envvars="env",
+                       grep_find="grep",
 )
 
 msys2_shell_base = dict(
@@ -234,27 +236,27 @@ if on_win:
         #    slash_convert = ("/", "\\"),
         # ),
         "cmd.exe": dict(
-            echo="@echo",
+            echo="@ECHO",
             var_format="%{}%",
             binpath="\\Scripts\\",  # mind the trailing slash.
-            source="call",
+            source="@CALL",
             test_echo_extra="",
             nul='1>NUL 2>&1',
-            setvar='set {variable}={value}',
-            unsetvar='set {variable}=',
-            setenvvar='set {variable}={value}',
-            unsetenvvar='set {variable}=',
+            setvar='@SET "{variable}={value}"',
+            unsetvar='@SET {variable}=',
+            setenvvar='@SET "{variable}={value}"',
+            unsetenvvar='@SET {variable}=',
             shell_suffix=".bat",
             env_script_suffix=".bat",
-            printprompt="@echo %PROMPT%",
-            setprompt='set PROMPT={value}',
-            unsetprompt='set PROMPT=',
+            printprompt="@ECHO %PROMPT%",
+            setprompt='@SET "PROMPT={value}"',
+            unsetprompt='@SET PROMPT=',
             promptvar="PROMPT",
             # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
-            printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
-                            'echo %CONDA_DEFAULT_ENV% ) ELSE (\n'
-                            'echo()',
-            printpath="@echo %PATH%",
+            printdefaultenv=('@IF /I NOT "%CONDA_DEFAULT_ENV%"=="" (\n'
+                             '@ECHO %CONDA_DEFAULT_ENV% ) ELSE (\n'
+                             'ECHO()'),
+            printpath="@ECHO %PATH%",
             exe="cmd.exe",
             shell_args="/d /c",
             path_from=path_identity,
@@ -264,6 +266,8 @@ if on_win:
             pathsep=";",
             singleflag="/",
             doubleflag="/",
+            get_envvars="@SET",
+            grep_find="find",
         ),
         "cygwin": dict(
             unix_shell_base,
