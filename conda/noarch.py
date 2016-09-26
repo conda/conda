@@ -115,7 +115,7 @@ def create_entry_points(src_dir, bin_dir, prefix):
                 if 'debug' in packages_names:
                     fo.write('#!python_d\n')
                 fo.write(pyscript)
-            link_package(join(src_dir, 'cli-%d.exe' % context.bits), path + '.exe')
+            link_package(join(dirname(__file__), 'cli-%d.exe' % context.bits), path + '.exe')
         else:
             with open(path, 'w') as fo:
                 fo.write('#!%s\n' % python_path)
