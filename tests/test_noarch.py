@@ -184,5 +184,63 @@ class TestNoArch(unittest.TestCase):
 
 class TestNoArchPython(unittest.TestCase):
 
+    def setUp(self):
+        prefix = os.path.dirname(__file__)
+        src_dir = join(os.path.dirname(__file__), "src_test")
+        info_dir = join(src_dir, "info")
+        os.mkdir(src_dir)
+        os.mkdir(info_dir)
+
+        setup_info_dir(info_dir)
+
+        os.mkdir(join(src_dir, "python-scripts"))
+        os.mkdir(join(src_dir, "site-packages"))
+
+        open(join(src_dir, "python-scripts/test3"), 'a').close()
+        open(join(src_dir, "site-packages/test2"), 'a').close()
+
+        file_content = ["test1", "dir/site-packages/test2", "bin/test3"]
+        with open(join(info_dir, "files"), "w") as f:
+            for content in file_content:
+                f.write("%s\n" % content)
+
+    def tearDown(self):
+        prefix = os.path.dirname(__file__)
+        src_dir = join(os.path.dirname(__file__), "src_test")
+        info_dir = join(src_dir, "info")
+        rmtree(info_dir)
+        rmtree(src_dir)
+
+    @stub_sys_platform("win32")
     def test_link(self):
-        pass
+        prefix = os.path.dirname(__file__)
+        os.mkdir(join(prefix, "Lib"))
+        os.mkdir(join(prefix, "Lib/site-packages"))
+        os.mkdir(join(prefix, "Scripts"))
+
+        src_dir = join(os.path.dirname(__file__), "src_test")
+        with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
+            prefix = os.path.dirname(__file__)
+            src_dir = join(os.path.dirname(__file__), "src_test")
+            noarch.NoArchPython().link(prefix, src_dir)
+
+        rmtree(join(prefix, "Lib"))
+        rmtree(join(prefix, "Scripts"))
+
+    @stub_sys_platform("darwin")
+    def test_link(self):
+        prefix = os.path.dirname(__file__)
+        os.mkdir(join(prefix, "lib"))
+        os.mkdir(join(prefix, "lib/python3.5"))
+        os.mkdir(join(prefix, "lib/python3.5/site-packages"))
+        os.mkdir(join(prefix, "bin"))
+
+        src_dir = join(os.path.dirname(__file__), "src_test")
+        with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
+            prefix = os.path.dirname(__file__)
+            src_dir = join(os.path.dirname(__file__), "src_test")
+            noarch.NoArchPython().link(prefix, src_dir)
+
+        rmtree(join(prefix, "lib"))
+        rmtree(join(prefix, "bin"))
+
