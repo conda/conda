@@ -6,7 +6,6 @@ from os.path import join
 import os
 
 from conda import noarch
-from conda_build import noarch_python
 
 
 def stub_sys_platform(platform):
@@ -59,11 +58,12 @@ class TestHelpers(unittest.TestCase):
 class TestEntryPointCreation(unittest.TestCase):
 
     def setUp(self):
-        test_entry_points = ["cmd = module.foo:func"]
         config = Mock()
         config.info_dir = join(os.path.dirname(__file__), "info")
         os.mkdir(config.info_dir)
-        noarch_python.create_entry_point_information("python", test_entry_points, config)
+        entry_point_info = '{"type": "python", "entry_points": ["cmd = module.foo:func"]}'
+        with open(join(config.info_dir, "noarch.json"), "w") as noarch_json:
+            noarch_json.write(entry_point_info)
 
     def tearDown(self):
         os.remove(join(os.path.dirname(__file__), "info/noarch.json"))
