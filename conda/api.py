@@ -21,7 +21,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     if prepend:
         channel_urls += context.channels
     channel_urls, channel_auth = prioritize_channels(channel_urls)
-    index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown, channel_auths=channel_auth)
+    index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown,
+                        channel_auths=channel_auth)
     if prefix:
         priorities = {c: p for c, p in itervalues(channel_urls)}
         maxp = max(itervalues(priorities)) + 1 if priorities else 1

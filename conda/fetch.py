@@ -272,7 +272,6 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None, channe
     #     channel_urls = prioritize_channels(channel_urls)
 
     urls = tuple(filter(offline_keep, channel_urls))
-    auths = tuple(filter(offline_keep, channel_auths))
     try:
         import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(10)
@@ -286,7 +285,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None, channe
     else:
         try:
             futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                                            session=CondaSession(), auth=channel_auths[url]) for url in urls)
+                                            session=CondaSession(), auth=channel_auths[url])
+                                            for url in urls)
             repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
         except RuntimeError as e:
             # Cannot start new thread, then give up parallel execution
