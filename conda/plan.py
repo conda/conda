@@ -259,7 +259,7 @@ def add_unlink(actions, dist):
 def add_checks(actions):
     """
     Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
-    has a LINK action, add a CHECK_LINK_UNLINK, which will check if permissions are
+    has a LINK action, add a CHECK_LINK, which will check if permissions are
     suitable for linking.
 
     Args:
@@ -269,8 +269,10 @@ def add_checks(actions):
         the actions dict with the appropriate checks added
     """
 
-    if inst.LINK in actions or inst.UNLINK in actions:
-        actions.setdefault(inst.CHECK_LINK_UNLINK, [True])
+    if inst.LINK in actions:
+        actions.setdefault(inst.CHECK_LINK, [True])
+    if inst.UNLINK in actions:
+        actions.setdefault(inst.CHECK_UNLINK, [True])
     if inst.FETCH in actions:
         actions.setdefault(inst.CHECK_FETCH, [True])
     if inst.EXTRACT in actions:
@@ -328,8 +330,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.CHECK_FETCH, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.CHECK_EXTRACT, inst.EXTRACT, inst.CHECK_LINK_UNLINK,
-                           inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+                           inst.CHECK_EXTRACT, inst.EXTRACT, inst.CHECK_UNLINK,
+                           inst.UNLINK, inst.CHECK_LINK, inst.LINK, inst.SYMLINK_CONDA)
 
     for dist in dists:
         fetched_in = is_fetched(dist)
