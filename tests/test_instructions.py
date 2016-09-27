@@ -1,8 +1,13 @@
 import unittest
 from logging import getLogger, Handler, DEBUG
+from os import mkdir, chmod
+from os.path import dirname, join
+import stat
+from shutil import rmtree
 
 from conda import instructions
 from conda.instructions import execute_instructions, commands, PROGRESS_CMD
+from conda.exceptions import CondaFileIOError
 
 
 def test_expected_operation_order():
@@ -114,6 +119,28 @@ class TestExecutePlan(unittest.TestCase):
                     ]
 
         self.assertEqual(h.records, expected)
+
+    def test_check_write_permissions_real_path(self):
+        permission = instructions.check_write_permission(dirname(__file__))
+        self.assertTrue(permission)
+
+    def test_check_write_permissions_non_existent_path(self):
+        path = join(dirname(__file__), "test-permission")
+        permission = instructions.check_write_permission(path)
+        self.assertTrue(permission)
+
+    def test_check_write_permissions_no_permissions(self):
+        path = join(dirname(__file__), "test-permission")
+        mkdir(path)
+        chmod(path, stat.S_IRUSR)
+        try:
+            instructions.check_write_permission(path)
+        except CondaFileIOError as e:
+            self.assertEquals(type(e), CondaFileIOError)
+        else:
+            rmtree(path)
+            self.fail('CondaFileIOError not raised')
+        rmtree(path)
 
 if __name__ == '__main__':
     unittest.main()
