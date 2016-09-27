@@ -732,7 +732,7 @@ def test_activate_symlinking(shell):
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
         for k in [0,1]:
             for f in ["conda", "activate", "deactivate"]:
-                file_path = "{env_dir}{binpath}{f}{script_suffix}".format(
+                file_path = "{env_dir}{binpath}{f}{executable_suffix}".format(
                     env_dir=env_dirs[k],
                     f=f,
                     **shell_vars)
@@ -741,7 +741,7 @@ def test_activate_symlinking(shell):
                     file_path = shell_vars["path_from"](file_path)
                     assert(os.path.lexists(file_path))
                 else:
-                    real_path = "{syspath}{binpath}{f}{script_suffix}".format(
+                    real_path = "{syspath}{binpath}{f}{executable_suffix}".format(
                         f=f,
                         **shell_vars)
                     assert(os.path.lexists(file_path))
