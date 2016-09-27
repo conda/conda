@@ -133,6 +133,16 @@ def remove_pycache(package_dir):
             remove_pycache(doc_path)
 
 
+def remove_pyc(package_dir):
+    track_path = package_dir
+    for doc in os.listdir(package_dir):
+        doc_path = join(track_path, doc)
+        if doc.endswith("pyc"):
+            os.remove(doc_path)
+        elif isdir(doc_path):
+            remove_pyc(doc_path)
+
+
 class NoArch(object):
 
     def link(self, prefix, src_dir, dist):
@@ -182,7 +192,7 @@ class NoArchPython(NoArch):
         if python_major_version == "3":
             remove_pycache(package_dir)
         else:
-            pass
+            remove_pyc(package_dir)
 
 
 NOARCH_CLASSES = {
