@@ -5,16 +5,7 @@ from logging import getLogger
 
 from .base.context import context
 from conda.core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
-8from .install import (LINK_HARD, link, messages, symlink_conda, unlink)
-
-from .exceptions import CondaIOError, CondaFileIOError
-from .utils import on_win, Once
-from os.path import isdir, join, dirname, exists, isfile
-from os import access, W_OK
-import os
-import tarfile
-import ctypes
-
+from .install import (LINK_HARD, link, messages, symlink_conda, unlink)
 
 log = getLogger(__name__)
 
@@ -120,7 +111,7 @@ def get_package(plan, instruction):
     return link_list
 
 
-@Once
+@memoize
 def CHECK_LINK_UNLINK_CMD(state, plan):
     """
         check permission issue before link and unlink
@@ -208,7 +199,7 @@ def check_size(path, size):
         raise CondaIOError("Not enough space in {}".format(path))
 
 
-@Once
+@memoize
 def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     """
         Check whether there is enough space for download packages
@@ -227,7 +218,7 @@ def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     check_size(prefix, size)
 
 
-@Once
+@memoize
 def CHECK_EXTRACT_SPACE_CMD(state, plan):
     """
         check whether there is enough space for extract packages
