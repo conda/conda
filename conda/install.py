@@ -1047,6 +1047,10 @@ def unlink(prefix, dist):
         dst_dirs2.add(join(prefix, 'conda-meta'))
         dst_dirs2.add(prefix)
 
+        noarch = meta.get("noarch")
+        if noarch:
+            get_noarch_cls(noarch)().unlink(prefix, dist)
+
         # remove empty directories
         for path in sorted(dst_dirs2, key=len, reverse=True):
             if isdir(path) and not os.listdir(path):

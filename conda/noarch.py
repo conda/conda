@@ -123,12 +123,22 @@ def create_entry_points(src_dir, bin_dir, prefix):
             os.chmod(path, int('755', 8))
 
 
+def remove_pycache(package_dir):
+    track_path = package_dir
+    for doc in os.listdir(package_dir):
+        doc_path = join(track_path, doc)
+        if doc == '__pycache__':
+            shutil.rmtree(doc_path)
+        elif isdir(doc_path):
+            remove_pycache(doc_path)
+
+
 class NoArch(object):
 
     def link(self, prefix, src_dir):
         pass
 
-    def unlink(self):
+    def unlink(self, prefix, dist):
         pass
 
 
@@ -158,8 +168,15 @@ class NoArchPython(NoArch):
 
         create_entry_points(src_dir, bin_dir, prefix)
 
-    def unlink(self):
-        pass
+    def unlink(self, prefix, dist):
+        package = dist[dist.find("::")+2:dist.find("-")]
+        package_dir = os.path.join(get_site_packages_dir(prefix), "site-packages", package)
+
+        python_major_version = get_python_version_for_prefix(prefix)[0]
+        if python_major_version == "3":
+            remove_pycache(package_dir)
+        else:
+            pass
 
 
 NOARCH_CLASSES = {
