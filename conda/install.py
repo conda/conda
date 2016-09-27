@@ -1046,7 +1046,8 @@ def messages(prefix):
     path = join(prefix, '.messages.txt')
     try:
         with open(path) as fi:
-            sys.stdout.write(fi.read())
+            fh = sys.stderr if context.json else sys.stdout
+            fh.write(fi.read())
     except IOError:
         pass
     finally:
