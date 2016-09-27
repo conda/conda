@@ -167,7 +167,7 @@ def check_write_permission(path):
     while not exists(path):
         path = dirname(path)
 
-    w_permission = access(path, W_OK)
+    w_permission = os.access(path, W_OK)
     if not w_permission:
         raise CondaFileIOError(path, "Cannot write to path %s" % path)
     return True
