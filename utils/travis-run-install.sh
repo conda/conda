@@ -5,11 +5,16 @@ osx_setup() {
     brew update || brew update
 
     brew outdated openssl || brew upgrade openssl
-    brew install dash
-    brew install zsh
-    brew install csh
-    brew install tcsh
-    # no posh for Mac/Darwin
+
+    # test for shells before trying to install them
+    [[ $(which -s dash) ]] || brew install dash
+    [[ $(which -s zsh) ]] || brew install zsh
+    [[ $(which -s tcsh) ]] || brew install tcsh
+    # pure csh is not available via brew, but since many users of
+    # csh are actually using tcsh whether they know it or not this
+    # is a decent substitute
+    [[ $(which -s csh) ]] || ln -s "$(which tcsh)" "$(which tcsh | sed 's|tcsh|csh|')"
+    # no posh or substitute available via brew
 
     # install pyenv
     git clone https://github.com/yyuu/pyenv.git ~/.pyenv

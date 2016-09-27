@@ -8,67 +8,64 @@ from textwrap import dedent
 from os.path import isdir, abspath
 
 from conda import text_type
-from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError,
+from ..exceptions import (CondaSystemExit, CondaValueError, CondaEnvironmentError,
                           TooManyArgumentsError, TooFewArgumentsError)
 from ..utils import on_win, shells
 
+# help dialog texts
+WIN_ACTIVATE = dedent("""\
+    Adds the 'Scripts' and 'Library\\bin' directories of the environment ENV to
+    the front of PATH. ENV may either refer to just the name of the
+    environment, or the full prefix path.""")
+UNIX_ACTIVATE = dedent("""\
+    Adds the 'bin' directory of the environment ENV to the front of PATH. ENV
+    may either refer to just the name of the environment, or the full prefix
+    path.""")
+WIN_DEACTIVATE = dedent("""\
+    Removes the 'Scripts' and 'Library\\bin' directories of the currently
+    active environment from the front of PATH."""),
+UNIX_DEACTIVATE = dedent("""\
+    Removes the 'bin' directory of the currently active environment from the
+    front of PATH.""")
+HELP_ACTIVATE = dedent("""\
+    {unknown}Usage: {command} [ENV] [{singleflag}h] [{singleflag}v]
+
+    {blurb}
+
+    Where:
+        ENV             the virtual environment to activate (dflt: root)
+        {singleflag}h,{doubleflag:>2}help       shows this dialog
+        {singleflag}v,{doubleflag:>2}verbose    shows more detailed info for the activate process
+                        (useful when there are post-activate scripts)
+
+    Alternatively use the following variables when the above parameter passing
+    doesn't work:
+        {CONDA_ENVNAME}
+        {CONDA_HELP}
+        {CONDA_VERBOSE}
+
+    Example(s):
+        {command} root
+        {CONDA_ENVNAME_root} ; {command}""")
+HELP_DEACTIVATE = dedent("""\
+    {unknown}Usage: {command} [{singleflag}h] [{singleflag}v]
+
+    {blurb}
+
+    Where:
+        {singleflag}h,{doubleflag:>2}help       shows this dialog
+        {singleflag}v,{doubleflag:>2}verbose    shows more detailed info for the activate process
+                        (useful when there are pre-deactivate scripts)
+
+    Alternatively use the following variables when the above parameter passing
+    doesn't work:
+        {CONDA_HELP}
+        {CONDA_VERBOSE}
+
+    Example(s):
+        {command}""")
+
 def help(mode, shell, unknown):
-    activate_blurbs = { "win": dedent("""\
-        Adds the 'Scripts' and 'Library\\bin' directories of the environment ENV to
-        the front of PATH. ENV may either refer to just the name of the
-        environment, or the full prefix path."""),
-                        "unix": dedent("""\
-        Adds the 'bin' directory of the environment ENV to the front of PATH.
-        ENV may either refer to just the name of the environment, or the full
-        prefix path.""")
-    }
-    deactivate_blurbs = { "win": dedent("""\
-        Removes the 'Scripts' and 'Library\\bin' directories of
-        the currently active environment from the front of PATH."""),
-                        "unix": dedent("""\
-        Removes the 'bin' directory of the currently active environment from the
-        front of PATH.""")
-    }
-
-    activate_help_dialog = dedent("""\
-        {unknown}Usage: {command} [ENV] [{singleflag}h] [{singleflag}v]
-
-        {blurb}
-
-        Where:
-            ENV             the virtual environment to activate (dflt: root)
-            {singleflag}h,{doubleflag:>2}help       shows this dialog
-            {singleflag}v,{doubleflag:>2}verbose    shows more detailed info for the activate process
-                            (useful when there are post-activate scripts)
-
-        Alternatively use the following variables when the above parameter passing
-        doesn't work:
-            {CONDA_ENVNAME}
-            {CONDA_HELP}
-            {CONDA_VERBOSE}
-
-        Example(s):
-            {command} root
-            {CONDA_ENVNAME_root} ; {command}
-        """)
-    deactivate_help_dialog = dedent("""\
-        {unknown}Usage: {command} [{singleflag}h] [{singleflag}v]
-
-        {blurb}
-
-        Where:
-            {singleflag}h,{doubleflag: >2}help       shows this dialog
-            {singleflag}v,{doubleflag: >2}verbose    shows more detailed info for the activate process
-                            (useful when there are pre-deactivate scripts)
-
-        Alternatively use the following variables when the above parameter passing
-        doesn't work:
-            {CONDA_HELP}
-            {CONDA_VERBOSE}
-
-        Example(s):
-            {command}
-        """)
     kwargs = {
         "CONDA_ENVNAME":        shells[shell]["setvar"].format(
                                 variable="CONDA_ENVNAME",
@@ -86,9 +83,11 @@ def help(mode, shell, unknown):
         "doubleflag":          shells[shell]["doubleflag"],
     }
 
-    unknown = [u for u in unknown if not re.match(r'^\s*$',u)]
+    unknown = [u for u in unknown if not re.match(r'^\s*$', u)]
     if len(unknown) > 0:
-        unknown = "[{{program}}]: ERROR: Unknown/Invalid flag/parameter ({unknown})\n".format(unknown=" ".join(unknown))
+        unknown = ("[{{program}}]: ERROR: "
+                   "Unknown/Invalid flag/parameter ({unknown})\n").format(
+                   unknown=" ".join(unknown))
     else:
         unknown = ""
 
@@ -98,47 +97,47 @@ def help(mode, shell, unknown):
         unknown = unknown.format(program="ACTIVATE")
 
         if shell in ["cmd.exe", "powershell.exe"]:
-            raise CondaSystemExit(activate_help_dialog.format(
+            raise CondaSystemExit(HELP_ACTIVATE.format(
                 command='activate',
                 unknown=unknown,
-                blurb=activate_blurbs["win"],
+                blurb=WIN_ACTIVATE,
                 **kwargs))
 
         elif shell in ["csh", "tcsh"]:
-            raise CondaSystemExit(activate_help_dialog.format(
+            raise CondaSystemExit(HELP_ACTIVATE.format(
                 command='source "`which activate`"',
                 unknown=unknown,
-                blurb=activate_blurbs["unix"],
+                blurb=UNIX_ACTIVATE,
                 **kwargs))
         else:
-            raise CondaSystemExit(activate_help_dialog.format(
+            raise CondaSystemExit(HELP_ACTIVATE.format(
                 command='. activate',
                 unknown=unknown,
-                blurb=activate_blurbs["unix"],
+                blurb=UNIX_ACTIVATE,
                 **kwargs))
     elif mode == '..deactivate':
         unknown = unknown.format(program="DEACTIVATE")
 
         if shell in ["cmd.exe", "powershell.exe"]:
-            raise CondaSystemExit(deactivate_help_dialog.format(
+            raise CondaSystemExit(HELP_DEACTIVATE.format(
                 command='deactivate',
                 unknown=unknown,
-                blurb=deactivate_blurbs["win"],
+                blurb=WIN_DEACTIVATE,
                 **kwargs))
         elif shell in ["csh", "tcsh"]:
-            raise CondaSystemExit(deactivate_help_dialog.format(
+            raise CondaSystemExit(HELP_DEACTIVATE.format(
                 command='source "`which deactivate`"',
                 unknown=unknown,
-                blurb=deactivate_blurbs["unix"],
+                blurb=UNIX_DEACTIVATE,
                 **kwargs))
         else:
-            raise CondaSystemExit(deactivate_help_dialog.format(
+            raise CondaSystemExit(HELP_DEACTIVATE.format(
                 command='. deactivate',
                 unknown=unknown,
-                blurb=deactivate_blurbs["unix"],
+                blurb=UNIX_DEACTIVATE,
                 **kwargs))
     else:
-        raise CondaSystemExit(dedent("No help available for command {mode}").format(mode=mode))
+        raise CondaSystemExit("No help available for command {mode}".format(mode=mode))
 
 
 def prefix_from_arg(arg, shelldict):
@@ -212,9 +211,9 @@ def main():
     if '-h' in sys.argv or '--help' in sys.argv:
         # all unknown values will be listed after the -h/--help flag
         try:
-            i=sys.argv.index("-h")
+            i = sys.argv.index("-h")
         except ValueError:
-            i=sys.argv.index("--help")
+            i = sys.argv.index("--help")
         unknown = sys.argv[i+1:]
 
         help(mode, shell, unknown)
@@ -236,11 +235,13 @@ def main():
 
         binpath = binpath_from_arg(sys.argv[3], shelldict=shells[shell])
 
-        # prepend our new entries onto the existing path and make sure that the separator is native
+        # prepend our new entries onto the existing path and make sure that
+        # the separator is native
         path = shells[shell]['pathsep'].join(binpath)
 
-    # deactivation is handled completely in shell scripts - it restores backups of env variables
-    # it is done in shell scripts because they handle state much better than we can here
+    # deactivation is handled completely in shell scripts - it restores backups
+    # of env variables it is done in shell scripts because they handle state
+    # much better than we can here
 
     elif mode == '..checkenv':
         # conda ..checkenv <SHELL> <ENV>
@@ -288,7 +289,7 @@ def main():
         # This means there is a bug in main.py
         raise CondaValueError("unexpected command")
 
-    # This print is actually what sets the PATH or PROMPT variable.  The shell
+    # This print is actually what sets the PATH or PROMPT variable. The shell
     # script gets this value, and finishes the job.
     print(path)
 
