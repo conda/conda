@@ -281,12 +281,12 @@ Whether binary files should be made relocatable using install_name_tool on OS X 
 Detect binary files with prefix
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Binary files may contain the build prefix and need it replaced with the install prefix at installation time.  Conda can automatically identify and register such files. Default is False.
+Binary files may contain the build prefix and need it replaced with the install prefix at installation time.  Conda can automatically identify and register such files. Default is True.
 
 .. code-block:: yaml
 
   build:
-    detect_binary_files_with_prefix: True
+    detect_binary_files_with_prefix: False
 
 Binary has prefix files
 ~~~~~~~~~~~~~~~~~~~~~~~
