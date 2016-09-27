@@ -74,7 +74,7 @@ class dotlog_on_return(object):
 
 
 @dotlog_on_return("fetching repodata:")
-def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
+def fetch_repodata(url, cache_dir=None, use_cache=False, session=None, auth=None):
     if not offline_keep(url):
         return {'packages': {}}
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
@@ -92,6 +92,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
     session = session or CondaSession()
+    if auth:
+        session.auth = auth
 
     headers = {}
     if "_etag" in cache:
@@ -260,7 +262,7 @@ def add_pip_dependency(index):
                 info['version'].startswith(('2.', '3.'))):
             info.setdefault('depends', []).append('pip')
 
-def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
+def fetch_index(channel_urls, use_cache=False, unknown=False, index=None, channel_auths=None):
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
     if index is None:
@@ -270,6 +272,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     #     channel_urls = prioritize_channels(channel_urls)
 
     urls = tuple(filter(offline_keep, channel_urls))
+    auths = tuple(filter(offline_keep, channel_auths))
     try:
         import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(10)
@@ -283,7 +286,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     else:
         try:
             futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                                            session=CondaSession()) for url in urls)
+                                            session=CondaSession(), auth=channel_auths[url]) for url in urls)
             repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
         except RuntimeError as e:
             # Cannot start new thread, then give up parallel execution
@@ -299,6 +302,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             continue
         new_index = repodata['packages']
         url_s, priority = channel_urls[channel]
+        auth_s = channel_auths[channel]
         channel = channel.rstrip('/')
         for fn, info in iteritems(new_index):
             info['fn'] = fn
@@ -306,6 +310,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             info['channel'] = channel
             info['priority'] = priority
             info['url'] = channel + '/' + fn
+            info['auth'] = auth_s
             key = url_s + '::' + fn if url_s != 'defaults' else fn
             index[key] = info
 
@@ -326,6 +331,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     fn = info['fn']
     url = info.get('url')
+    session.auth = info.get('auth')
     if url is None:
         url = info['channel'] + '/' + fn
     log.debug("url=%r" % url)

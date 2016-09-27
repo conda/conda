@@ -147,6 +147,7 @@ class UrlChannel(Channel):
         parsed = urlparse(url)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
+        self._auth = parsed.auth
         _path, self._platform = split_platform(parsed.path)
         self._token, self._path = split_token(_path)
 
@@ -168,6 +169,7 @@ class NamedChannel(Channel):
             parsed = urlparse(context.channel_alias)
         self._scheme = parsed.scheme
         self._netloc = parsed.netloc
+        self._auth = parsed.auth
         self._token = None
         self._path = join(parsed.path or '/', name)
         self._platform = None
@@ -194,13 +196,15 @@ class NoneChannel(NamedChannel):
 def prioritize_channels(channels):
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
     result = odict()
+    auths = odict()
     for q, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls:
             if url in result:
                 continue
             result[url] = channel.canonical_name, q
-    return result
+            auths[url] = tuple(channel._auth.split(':')) if channel._auth else None
+    return result, auths
 
 
 def offline_keep(url):
