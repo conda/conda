@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-from collections import defaultdict
-
 import os
 import sys
+from collections import defaultdict
+from conda.common.io import captured
+from conda.compat import itervalues
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 
-from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda
+from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda, \
+    DEFAULT_ANACONDA_API
 from .._vendor.auxlib.compat import NoneType, string_types
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from .._vendor.toolz.itertoolz import concatv
+from ..common.compat import iteritems
 from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
                                     SequenceParameter)
-from ..common.url import urlparse, path_to_url
+from ..common.url import path_to_url
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
-from ..common.compat import iteritems
 
 log = getLogger(__name__)
 
@@ -43,26 +45,29 @@ _arch_names = {
 
 class Context(Configuration):
 
-    add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
-    anaconda_token = PrimitiveParameter('')
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
-    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
-    client_cert = PrimitiveParameter('')
-    client_cert_key = PrimitiveParameter('')
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
-    proxy_servers = MapParameter(string_types)
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
+
+    # connection details
+    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
+    client_tls_cert = PrimitiveParameter('')
+    client_tls_cert_key = PrimitiveParameter('')
+    proxy_servers = MapParameter(string_types)
+
+    add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
+    anaconda_site = PrimitiveParameter('')
+    _channel_alias = PrimitiveParameter('', aliases=('channel_alias',))
 
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))
-    channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
     migrated_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings  # NOQA
     default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
     custom_channels = MapParameter(string_types)
@@ -196,10 +201,48 @@ class Context(Configuration):
         return sys.prefix
 
     @property
-    def binstar_hosts(self):
-        return (urlparse(self.channel_alias).hostname,
-                'anaconda.org',
-                'binstar.org')
+    def channel_alias(self):
+        return self.conda_repo_url
+
+    @property
+    def binstar_api_url(self):
+        if 'binstar_api_url' not in self._cache:
+            self._set_channel_alias_and_token()
+        return self._cache['binstar_api_url']
+
+    @property
+    def conda_repo_url(self):
+        if 'conda_repo_url' not in self._cache:
+            self._set_channel_alias_and_token()
+        return self._cache['conda_repo_url']
+
+    @property
+    def conda_repo_token(self):
+        if 'conda_repo_token' not in self._cache:
+            self._set_channel_alias_and_token()
+        return self._cache['conda_repo_token']
+
+    def _set_channel_alias_and_token(self):
+        from ..gateways.anaconda_client import (get_anaconda_site_components,
+                                                get_channel_url_components,
+                                                binstar_load_token)
+
+        # Step 1. Use 'channel_alias' config parameter if set.
+        if self._channel_alias:
+            binstar_url, conda_url, token = get_channel_url_components(self._channel_alias)
+
+        # Step 2. If the 'anaconda_site' configuration parameter is set, use that.
+        elif self.anaconda_site:
+            binstar_url, conda_url, token = get_anaconda_site_components(self.anaconda_site)
+
+        # Step 3. Use DEFAULT_CHANNEL_ALIAS
+        else:
+            binstar_url, conda_url = DEFAULT_ANACONDA_API, DEFAULT_CHANNEL_ALIAS
+            token = binstar_load_token(binstar_url)
+
+        self._cache['binstar_api_url'] = binstar_url
+        self._cache['conda_repo_url'] = conda_url
+        self._cache['conda_repo_token'] = token
 
     def _build_channel_map(self):
         from ..models.channel import Channel
@@ -224,7 +267,7 @@ class Context(Configuration):
             channel_map[channel_name].append(c)
             inverted_channel_map[c] = channel_name
 
-        # mapped custom channels (legacy channels)
+        # migrated custom channels (legacy channels)
         for channel_name, url in iteritems(self.migrated_custom_channels):
             c = Channel(url)
             inverted_channel_map[c] = channel_name
@@ -243,6 +286,18 @@ class Context(Configuration):
         if 'inverted_channel_map' not in self._cache:
             self._build_channel_map()
         return self._cache['inverted_channel_map']
+
+    @property
+    def known_channel_locations(self):
+        return set(chain.from_iterable((
+            (path_to_url(self.local_build_root), self.channel_alias),
+            itervalues(self.custom_channels),
+            itervalues(self.migrated_custom_channels),
+            self.migrated_channel_aliases,
+        )))
+
+
+
 
 
 def conda_in_private_env():

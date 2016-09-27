@@ -7,12 +7,13 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+from enum import Enum
 from logging import getLogger
+from os.path import join
 from platform import machine
 
-from enum import Enum
-
-from conda._vendor.auxlib.collection import frozendict
+from .._vendor.auxlib.collection import frozendict
+from ..common.url import path_to_url
 
 log = getLogger(__name__)
 
@@ -70,7 +71,8 @@ SEARCH_PATH = (
     '$CONDARC',
 )
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
+DEFAULT_ANACONDA_API = 'https://api.anaconda.org'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
 
 PLATFORM_DIRECTORIES = ("linux-64",
                         "linux-32",
@@ -94,6 +96,15 @@ else:
                         'https://repo.continuum.io/pkgs/pro',
                         )
 
+RESERVED_CHANNELS = {
+    'free': 'https://repo.continuum.io/pkgs',
+    'pro': 'https://repo.continuum.io/pkgs',
+    'r': 'https://repo.continuum.io/pkgs',
+    'mro': 'https://repo.continuum.io/pkgs',
+    'msys2': 'https://repo.continuum.io/pkgs',
+    'local': path_to_url(join(sys.prefix, 'conda-bld')),
+}
+
 ROOT_ENV_NAME = 'root'
 
 EMPTY_LIST = ()
@@ -106,6 +117,10 @@ class _Null(object):
 
     def __bool__(self):
         return False
+
+    def __len__(self):
+        return 0
+
 
 NULL = _Null()
 
