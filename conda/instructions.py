@@ -9,6 +9,7 @@ from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, 
 from .models.dist import Dist
 
 
+
 log = getLogger(__name__)
 
 # op codes
@@ -16,7 +17,8 @@ CHECK_FETCH = 'CHECK_FETCH'
 FETCH = 'FETCH'
 CHECK_EXTRACT = 'CHECK_EXTRACT'
 EXTRACT = 'EXTRACT'
-CHECK_LINK_UNLINK = 'CHECK_LINK_UNLINK'
+CHECK_LINK= 'CHECK_LINK'
+CHECK_UNLINK= 'CHECK_UNLINK'
 UNLINK = 'UNLINK'
 LINK = 'LINK'
 RM_EXTRACTED = 'RM_EXTRACTED'
@@ -32,7 +34,8 @@ action_codes = (
     FETCH,
     CHECK_EXTRACT,
     EXTRACT,
-    CHECK_LINK_UNLINK,
+    CHECK_LINK,
+    CHECK_UNLINK,
     UNLINK,
     LINK,
     SYMLINK_CONDA,
@@ -115,8 +118,12 @@ def get_package(plan, instruction):
     return link_list
 
 
-@memoize
-def CHECK_LINK_UNLINK_CMD(state, plan):
+def check_prefix(prefix):
+    assert isdir(prefix), "prefix is not exist {0}".format(prefix)
+    check_write_permission(prefix)
+
+
+def CHECK_LINK_CMD(state, plan):
     """
         check permission issue before link and unlink
     :param state: the state of plan
@@ -124,15 +131,9 @@ def CHECK_LINK_UNLINK_CMD(state, plan):
     :return: the result of permission checking
     """
     link_list = get_package(plan, LINK)
-    unlink_list = get_package(plan, UNLINK)
-
-    # check for permission
-    # the folder may not exist now, just check whether can write to prefix
     prefix = state['prefix']
-    assert isdir(prefix), "prefix is not exist {0}".format(prefix)
-    check_write_permission(prefix)
+    check_prefix(prefix)
 
-    # check for link package
     for arg in link_list:
         dist, lt = split_linkarg(arg)
         source_dir = is_extracted(dist)
@@ -142,9 +143,21 @@ def CHECK_LINK_UNLINK_CMD(state, plan):
         # check write permission for every file
         for f in files:
             dst = join(prefix, f)
+            # TODO: make sure this does not already exists
             check_write_permission(dst)
 
-    # check for unlink
+
+def CHECK_UNLINK_CMD(state, plan):
+    """
+        check permission issue before link and unlink
+    :param state: the state of plan
+    :param plan: the plan from action
+    :return: the result of permission checking
+    """
+    unlink_list = get_package(plan, UNLINK)
+    prefix = state['prefix']
+    check_prefix(prefix)
+
     for dist in unlink_list:
         meta = load_meta(prefix, dist)
         for f in meta['files']:
@@ -203,7 +216,6 @@ def check_size(path, size):
         raise CondaIOError("Not enough space in {}".format(path))
 
 
-@memoize
 def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     """
         Check whether there is enough space for download packages
@@ -222,7 +234,6 @@ def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     check_size(prefix, size)
 
 
-@memoize
 def CHECK_EXTRACT_SPACE_CMD(state, plan):
     """
         check whether there is enough space for extract packages
@@ -256,7 +267,8 @@ commands = {
     EXTRACT: EXTRACT_CMD,
     RM_EXTRACTED: RM_EXTRACTED_CMD,
     RM_FETCHED: RM_FETCHED_CMD,
-    CHECK_LINK_UNLINK: CHECK_LINK_UNLINK_CMD,
+    CHECK_LINK: CHECK_LINK_CMD,
+    CHECK_UNLINK: CHECK_UNLINK_CMD,
     LINK: LINK_CMD,
     UNLINK: UNLINK_CMD,
     SYMLINK_CONDA: SYMLINK_CONDA_CMD,
