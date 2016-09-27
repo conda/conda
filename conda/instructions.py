@@ -115,7 +115,7 @@ def get_package(plan, instruction):
     return link_list
 
 
-@Once
+@memoize
 def CHECK_LINK_UNLINK_CMD(state, plan):
     """
         check permission issue before link and unlink
@@ -203,7 +203,7 @@ def check_size(path, size):
         raise CondaIOError("Not enough space in {}".format(path))
 
 
-@Once
+@memoize
 def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     """
         Check whether there is enough space for download packages
@@ -222,7 +222,7 @@ def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     check_size(prefix, size)
 
 
-@Once
+@memoize
 def CHECK_EXTRACT_SPACE_CMD(state, plan):
     """
         check whether there is enough space for extract packages
