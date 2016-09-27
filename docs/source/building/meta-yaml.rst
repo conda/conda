@@ -266,7 +266,7 @@ Force files to always be included, even if they are already in the environment f
 Relocation
 ~~~~~~~~~~
 
-Advanced features. The following four keys (binary_relocation, detect_binary_files_with_prefix, has_prefix_files and binary_has_prefix_files) may be required to relocate files from the build environment to the installation environment.  See :ref:`relocatable` section below.
+Advanced features. The following four keys (binary_relocation, has_prefix_files and binary_has_prefix_files, ignore_prefix_files) may be used to control relocatability files from the build environment to the installation environment.  See :ref:`relocatable` section below.
 
 Binary relocation
 ~~~~~~~~~~~~~~~~~
@@ -278,20 +278,10 @@ Whether binary files should be made relocatable using install_name_tool on OS X 
   build:
     binary_relocation: False
 
-Detect binary files with prefix
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Binary files may contain the build prefix and need it replaced with the install prefix at installation time.  Conda can automatically identify and register such files. Default is True.
-
-.. code-block:: yaml
-
-  build:
-    detect_binary_files_with_prefix: False
-
 Binary has prefix files
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-You may also elect to specify files with prefixes individually:
+By default, conda-build tries to detect prefixes in all files.  You may also elect to specify files with binary prefixes individually.  This allows you to specify the type of file as binary, when it may be incorrectly detected as text for some reason.  Binary files are those containing NULL bytes.
 
 .. code-block:: yaml
 
@@ -303,7 +293,7 @@ You may also elect to specify files with prefixes individually:
 Text files with prefix files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Text files (files containing no NULL bytes) may contain the build prefix and need it replaced with the install prefix at installation time.  Conda will automatically register such files.  Binary files that contain the  build prefix are generally handled differently (see binary_has_prefix_files or detect_binary_files_with_prefix), but there may be cases where such a binary file needs to be treated as an ordinary text file, in which case they need to be identified:
+Text files (files containing no NULL bytes) may contain the build prefix and need it replaced with the install prefix at installation time.  Conda will automatically register such files.  Binary files that contain the  build prefix are generally handled differently (see binary_has_prefix_files), but there may be cases where such a binary file needs to be treated as an ordinary text file, in which case they need to be identified:
 
 .. code-block:: yaml
 
@@ -332,6 +322,8 @@ To specify individual file names use
     build:
       ignore_prefix_files:
         - file1
+
+Files that are ignored from prefix detection are also ignored from RPATH replacement, similar to the binary_relocation setting, but with finer granularity.
 
 Skipping builds
 ~~~~~~~~~~~~~~~
