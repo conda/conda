@@ -1,12 +1,16 @@
 import pytest
 import unittest
-from unittest.mock import patch, Mock
 import sys
 from os.path import join
 import os
 from shutil import rmtree
 
 from conda import noarch
+
+try:
+    from unittest.mock import patch, Mock
+except ImportError:
+    from mock import patch, Mock
 
 
 def stub_sys_platform(platform):
