@@ -4,6 +4,14 @@
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 
 
+## 4.2.9 (2016-09-27)
+
+### Bug Fixes
+* fix #3536 conda-env messaging to stdout with --json flag (#3537)
+* fix #3525 writing to sys.stdout with --json flag for post-link scripts (#3538)
+* fix #3492 make NULL falsey with python 3 (#3524)
+
+
 ## 4.2.8 (2016-09-26)
 
 ### Improvements
