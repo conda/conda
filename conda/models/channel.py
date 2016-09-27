@@ -182,7 +182,7 @@ class NoneChannel(NamedChannel):
 
     def __init__(self, value):
         self._raw_value = value
-        self._scheme = self._netloc = self._token = self._path = self._platform = None
+        self._scheme = self._netloc = self._auth = self._token = self._path = self._platform = None
 
     @property
     def canonical_name(self):
