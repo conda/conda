@@ -925,8 +925,8 @@ def is_linked(prefix, dist):
     return load_meta(prefix, dist)
 
 
-def link_noarch(prefix, meta_dict, src_dir):
-    get_noarch_cls(meta_dict.get("noarch"))().link(prefix, src_dir)
+def link_noarch(prefix, meta_dict, src_dir, dist):
+    get_noarch_cls(meta_dict.get("noarch"))().link(prefix, src_dir, dist)
 
 
 def link(prefix, dist, linktype=LINK_HARD, index=None):
@@ -958,7 +958,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     with DirectoryLock(prefix), FileLock(source_dir):
         meta_dict = index.get(dist + '.tar.bz2', {})
         if meta_dict.get('noarch'):
-            link_noarch(prefix, meta_dict, source_dir)
+            link_noarch(prefix, meta_dict, source_dir, dist)
         else:
             for filepath in files:
                 src = join(source_dir, filepath)
@@ -1002,7 +1002,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
             raise LinkError("Error: post-link failed for: %s" % dist)
 
         meta_dict['url'] = read_url(dist)
-
         alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
         if isfile(alt_files_path):
             # alt_files_path is a hack for noarch

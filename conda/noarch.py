@@ -135,7 +135,7 @@ def remove_pycache(package_dir):
 
 class NoArch(object):
 
-    def link(self, prefix, src_dir):
+    def link(self, prefix, src_dir, dist):
         pass
 
     def unlink(self, prefix, dist):
@@ -144,7 +144,7 @@ class NoArch(object):
 
 class NoArchPython(NoArch):
 
-    def link(self, prefix, src_dir):
+    def link(self, prefix, src_dir, dist):
         with open(join(src_dir, "info/files")) as f:
             files = f.read()
         files = files.split("\n")[:-1]
@@ -161,12 +161,18 @@ class NoArchPython(NoArch):
         site_packages_dir = get_site_packages_dir(prefix)
         bin_dir = get_bin_dir(prefix)
         linked_files = link_files(prefix, '', site_packages_dir, site_package_files, src_dir)
-        link_files(prefix, 'python-scripts', bin_dir, bin_files, src_dir)
+        linked_files.extend(link_files(prefix, 'python-scripts', bin_dir, bin_files, src_dir))
         compile_missing_pyc(
             prefix, linked_files, join(prefix, site_packages_dir, 'site-packages')
         )
 
         create_entry_points(src_dir, bin_dir, prefix)
+
+        from conda.install import dist2filename
+        alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
+        with open(alt_files_path, "w") as alt_files:
+            for linked_file in linked_files:
+                alt_files.write("%s\n" % linked_file[len(prefix)+1:])
 
     def unlink(self, prefix, dist):
         package = dist[dist.find("::")+2:dist.find("-")]
