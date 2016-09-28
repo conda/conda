@@ -236,6 +236,10 @@ class Channel(object):
     def __hash__(self):
         return hash((self.location, self.name))
 
+    @property
+    def url_channel_wtf(self):
+        return self.base_url, self.canonical_name
+
 
 
 class MultiChannel(Channel):
@@ -265,7 +269,7 @@ class MultiChannel(Channel):
 
     @property
     def base_url(self):
-        raise NotImplementedError()
+        return None
 
 
 

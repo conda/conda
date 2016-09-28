@@ -55,8 +55,8 @@ class Context(Configuration):
 
     # connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
-    client_tls_cert = PrimitiveParameter('')
-    client_tls_cert_key = PrimitiveParameter('')
+    client_tls_cert = PrimitiveParameter('', aliases=('client_cert',))
+    client_tls_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
     proxy_servers = MapParameter(string_types)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
@@ -354,13 +354,13 @@ def get_help_dict():
         'ssl_verify': dals("""
             # ssl_verify can be a boolean value or a filename string
             """),
-        'client_cert': dals("""
-            # client_cert can be a path pointing to a single file
+        'client_tls_cert': dals("""
+            # client_tls_cert can be a path pointing to a single file
             # containing the private key and the certificate (e.g. .pem),
-            # or use 'client_cert_key' in conjuction with 'client_cert' for individual files
+            # or use 'client_tls_cert_key' in conjuction with 'client_tls_cert' for individual files
             """),
-        'client_cert_key': dals("""
-            # used in conjunction with 'client_cert' for a matching key file
+        'client_tls_cert_key': dals("""
+            # used in conjunction with 'client_tls_cert' for a matching key file
             """),
         'track_features': dals("""
             """),
