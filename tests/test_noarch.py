@@ -287,3 +287,62 @@ class TestNoArchPythonUnixLink(unittest.TestCase):
         self.assertTrue(files.index("bin/test3") >= 0)
         self.assertTrue(os.path.isfile(join(prefix, "lib/python3.5/site-packages/test2")))
         self.assertTrue(os.path.isfile(join(prefix, "bin/test3")))
+
+
+class TestNoArchPython2Unlink(unittest.TestCase):
+
+    def setUp(self):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        os.mkdir(prefix)
+        site_packages = join(prefix, "site-packages")
+        os.mkdir(site_packages)
+        open(join(site_packages, "testfile1.pyc"), 'a').close()
+        open(join(site_packages, "testfile2.py"), 'a').close()
+        os.mkdir(join(site_packages, "foo"))
+        open(join(site_packages, "foo/testfile3.pyc"), 'a').close()
+
+    def tearDown(self):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        rmtree(prefix)
+
+    @patch("conda.noarch.get_python_version_for_prefix", return_value="2.7")
+    @patch("conda.noarch.get_site_packages_dir",
+           return_value=join(os.path.dirname(__file__), "test-dir"))
+    def test_unlink(self, get_python_version_for_prefix, get_site_packages_dir):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        dist = ""
+        site_packages_dir = join(prefix, "site-packages")
+        noarch.NoArchPython().unlink(prefix, dist)
+        self.assertFalse(os.path.exists(join(site_packages_dir, "testfile1.pyc")))
+        self.assertFalse(os.path.exists(join(site_packages_dir, "foo/testfile3.pyc")))
+        self.assertTrue(os.path.isfile(join(site_packages_dir, "testfile2.py")))
+
+
+class TestNoArchPython3Unlink(unittest.TestCase):
+
+    def setUp(self):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        os.mkdir(prefix)
+        site_packages = join(prefix, "site-packages")
+        os.mkdir(site_packages)
+        open(join(site_packages, "testfile1.py"), 'a').close()
+        os.mkdir(join(site_packages, "__pycache__"))
+        os.mkdir(join(site_packages, "foo"))
+        os.mkdir(join(site_packages, "foo/_pycache_"))
+
+    def tearDown(self):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        rmtree(prefix)
+
+    @patch("conda.noarch.get_python_version_for_prefix", return_value="3.2")
+    @patch("conda.noarch.get_site_packages_dir",
+           return_value=join(os.path.dirname(__file__), "test-dir"))
+    def test_unlink(self, get_python_version_for_prefix, get_site_packages_dir):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        dist = ""
+        site_packages_dir = join(prefix, "site-packages")
+        noarch.NoArchPython().unlink(prefix, dist)
+        self.assertFalse(os.path.isdir(join(site_packages_dir, "__pycache__")))
+        self.assertFalse(os.path.isdir(join(site_packages_dir, "foo/__pycache__")))
+        self.assertTrue(os.path.isdir(join(site_packages_dir, "foo")))
+        self.assertTrue(os.path.isfile(join(site_packages_dir, "testfile1.py")))
