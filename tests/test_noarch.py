@@ -30,6 +30,35 @@ def setup_info_dir(info_dir):
         noarch_json.write(entry_point_info)
 
 
+def setup_env_for_linkning(prefix):
+    src_dir = join(os.path.dirname(__file__), "src_test")
+    info_dir = join(src_dir, "info")
+    os.mkdir(src_dir)
+    os.mkdir(info_dir)
+
+    setup_info_dir(info_dir)
+
+    os.mkdir(join(src_dir, "python-scripts"))
+    os.mkdir(join(src_dir, "site-packages"))
+    os.mkdir(join(prefix, 'conda-meta'))
+
+    open(join(src_dir, "python-scripts/test3"), 'a').close()
+    open(join(src_dir, "site-packages/test2"), 'a').close()
+
+    file_content = ["test1", "dir/site-packages/test2", "bin/test3"]
+    with open(join(info_dir, "files"), "w") as f:
+        for content in file_content:
+            f.write("%s\n" % content)
+
+
+def tear_down_env_for_linking(prefix):
+    src_dir = join(os.path.dirname(__file__), "src_test")
+    info_dir = join(src_dir, "info")
+    rmtree(info_dir)
+    rmtree(src_dir)
+    rmtree(join(prefix, "conda-meta"))
+
+
 class TestHelpers(unittest.TestCase):
 
     def test_get_noarch_cls(self):
@@ -186,65 +215,75 @@ class TestNoArch(unittest.TestCase):
         pass
 
 
-class TestNoArchPython(unittest.TestCase):
+class TestNoArchPythonWindowsLink(unittest.TestCase):
 
     def setUp(self):
-        prefix = os.path.dirname(__file__)
-        src_dir = join(os.path.dirname(__file__), "src_test")
-        info_dir = join(src_dir, "info")
-        os.mkdir(src_dir)
-        os.mkdir(info_dir)
-
-        setup_info_dir(info_dir)
-
-        os.mkdir(join(src_dir, "python-scripts"))
-        os.mkdir(join(src_dir, "site-packages"))
-
-        open(join(src_dir, "python-scripts/test3"), 'a').close()
-        open(join(src_dir, "site-packages/test2"), 'a').close()
-
-        file_content = ["test1", "dir/site-packages/test2", "bin/test3"]
-        with open(join(info_dir, "files"), "w") as f:
-            for content in file_content:
-                f.write("%s\n" % content)
-
-    def tearDown(self):
-        prefix = os.path.dirname(__file__)
-        src_dir = join(os.path.dirname(__file__), "src_test")
-        info_dir = join(src_dir, "info")
-        rmtree(info_dir)
-        rmtree(src_dir)
-
-    @stub_sys_platform("win32")
-    def test_link(self):
-        prefix = os.path.dirname(__file__)
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        os.mkdir(prefix)
+        setup_env_for_linkning(prefix)
         os.mkdir(join(prefix, "Lib"))
         os.mkdir(join(prefix, "Lib/site-packages"))
         os.mkdir(join(prefix, "Scripts"))
 
-        src_dir = join(os.path.dirname(__file__), "src_test")
-        with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
-            prefix = os.path.dirname(__file__)
-            src_dir = join(os.path.dirname(__file__), "src_test")
-            noarch.NoArchPython().link(prefix, src_dir)
-
+    def tearDown(self):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        tear_down_env_for_linking(prefix)
         rmtree(join(prefix, "Lib"))
         rmtree(join(prefix, "Scripts"))
+        rmtree(prefix)
 
-    @stub_sys_platform("darwin")
-    def test_link(self):
-        prefix = os.path.dirname(__file__)
+    @stub_sys_platform("win32")
+    @patch("conda.install.dist2filename", return_value="test.files")
+    def test_link(self, dist2filename):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+
+        with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
+            src_dir = join(os.path.dirname(__file__), "src_test")
+            noarch.NoArchPython().link(prefix, src_dir, "dist-test")
+
+        alt_files_path = join(prefix, "conda-meta/test.files")
+        self.assertTrue(os.path.isfile(alt_files_path))
+        with open(alt_files_path, "r") as alt_files:
+            files = alt_files.read().split("\n")[:-1]
+
+        self.assertTrue(files.index("Lib/site-packages/test2") >= 0)
+        self.assertTrue(files.index("Scripts/test3") >= 0)
+        self.assertTrue(os.path.isfile(join(prefix, "Lib/site-packages/test2")))
+        self.assertTrue(os.path.isfile(join(prefix, "Scripts/test3")))
+
+
+class TestNoArchPythonUnixLink(unittest.TestCase):
+
+    def setUp(self):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        os.mkdir(prefix)
+        setup_env_for_linkning(prefix)
         os.mkdir(join(prefix, "lib"))
         os.mkdir(join(prefix, "lib/python3.5"))
         os.mkdir(join(prefix, "lib/python3.5/site-packages"))
         os.mkdir(join(prefix, "bin"))
 
-        src_dir = join(os.path.dirname(__file__), "src_test")
-        with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
-            prefix = os.path.dirname(__file__)
-            src_dir = join(os.path.dirname(__file__), "src_test")
-            noarch.NoArchPython().link(prefix, src_dir)
-
+    def tearDown(self):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        tear_down_env_for_linking(prefix)
         rmtree(join(prefix, "lib"))
         rmtree(join(prefix, "bin"))
+        rmtree(prefix)
 
+    @stub_sys_platform("darwin")
+    @patch("conda.install.dist2filename", return_value="test.files")
+    def test_link(self, dist2filename):
+        prefix = join(os.path.dirname(__file__), "test-dir")
+        with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
+            src_dir = join(os.path.dirname(__file__), "src_test")
+            noarch.NoArchPython().link(prefix, src_dir, "dist-test")
+
+        alt_files_path = join(prefix, "conda-meta/test.files")
+        self.assertTrue(os.path.isfile(alt_files_path))
+        with open(alt_files_path, "r") as alt_files:
+            files = alt_files.read().split("\n")[:-1]
+
+        self.assertTrue(files.index("lib/python3.5/site-packages/test2") >= 0)
+        self.assertTrue(files.index("bin/test3") >= 0)
+        self.assertTrue(os.path.isfile(join(prefix, "lib/python3.5/site-packages/test2")))
+        self.assertTrue(os.path.isfile(join(prefix, "bin/test3")))
