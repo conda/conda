@@ -8,7 +8,7 @@ from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
-from conda.models.channel import Channel, UrlChannel, CondaChannelUrl
+from conda.models.channel import  CondaChannelUrl
 from conda.utils import on_win
 from logging import getLogger
 from unittest import TestCase
@@ -185,7 +185,7 @@ class ContextTests(TestCase):
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._add_raw_data(rd)
-        Channel._reset_state()
+        CondaChannelUrl._reset_state()
 
     def tearDown(self):
         reset_context()

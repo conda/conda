@@ -105,6 +105,16 @@ RESERVED_CHANNELS = {
     'conda-bld': path_to_url(sys.prefix),
 }
 
+RESERVED_MULTICHANNELS = {
+    'defaults': [
+        'free',
+        'pro'
+    ],
+}
+if Platform.from_sys() is Platform.win:
+    RESERVED_MULTICHANNELS['defaults'].append('msys2')
+
+
 ROOT_ENV_NAME = 'root'
 
 EMPTY_LIST = ()

@@ -3,25 +3,21 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
-from collections import defaultdict, namedtuple
-from conda.common.io import captured
-from conda.compat import itervalues
+from collections import Sequence
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
-from requests.packages.urllib3.util import Url
 
-from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda, \
-    DEFAULT_ANACONDA_API
+from .constants import (DEFAULT_ANACONDA_API, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
+                        ROOT_ENV_NAME, SEARCH_PATH, conda)
 from .._vendor.auxlib.compat import NoneType, string_types
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from .._vendor.toolz.itertoolz import concatv
-from ..common.compat import iteritems
+from ..common.compat import iteritems, odict
 from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
                                     SequenceParameter)
-from ..common.url import path_to_url, split_conda_url_easy_parts
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
@@ -70,9 +66,10 @@ class Context(Configuration):
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))
     migrated_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings  # NOQA
-    default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
+    _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS, aliases=('default_channels',))
     custom_channels = MapParameter(string_types)
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
+    _custom_multichannels = MapParameter(Sequence, aliases=('custom_multichannels',))
 
     # command line
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -223,6 +220,17 @@ class Context(Configuration):
             self._set_channel_alias_and_token()
         return self._cache['conda_repo_token']
 
+    @property
+    def default_channels(self):
+        from ..models.channel import CondaChannelUrl
+        return tuple(CondaChannelUrl.from_value(v) for v in self._default_channels)
+
+    @property
+    def custom_multichannels(self):
+        from ..models.channel import CondaChannelUrl
+        return odict((name, tuple(CondaChannelUrl.from_value(v) for v in c))
+                     for name, c in iteritems(self._custom_multichannels))
+
     def _set_channel_alias_and_token(self):
         from ..gateways.anaconda_client import (get_anaconda_site_components,
                                                 get_channel_url_components,
@@ -244,49 +252,49 @@ class Context(Configuration):
         self._cache['binstar_api_url'] = binstar_url
         self._cache['conda_repo_url'] = conda_url
         self._cache['conda_repo_token'] = token
-
-    def _build_channel_map(self):
-        from ..models.channel import Channel
-        channel_map = defaultdict(list)
-        inverted_channel_map = dict()
-
-        # local
-        local = Channel(path_to_url(self.local_build_root))
-        channel_map['local'].append(local)
-        inverted_channel_map[local] = 'local'
-
-        # defaults
-        if self.default_channels:
-            for url in self.default_channels:
-                c = Channel(url)
-                channel_map['defaults'].append(c)
-                inverted_channel_map[c] = 'defaults'
-
-        # custom channels
-        for channel_name, url in iteritems(self.custom_channels):
-            c = Channel(url)
-            channel_map[channel_name].append(c)
-            inverted_channel_map[c] = channel_name
-
-        # migrated custom channels (legacy channels)
-        for channel_name, url in iteritems(self.migrated_custom_channels):
-            c = Channel(url)
-            inverted_channel_map[c] = channel_name
-
-        self._cache['channel_map'] = channel_map
-        self._cache['inverted_channel_map'] = inverted_channel_map
-
-    @property
-    def channel_map(self):
-        if 'channel_map' not in self._cache:
-            self._build_channel_map()
-        return self._cache['channel_map']
-
-    @property
-    def inverted_channel_map(self):
-        if 'inverted_channel_map' not in self._cache:
-            self._build_channel_map()
-        return self._cache['inverted_channel_map']
+    #
+    # def _build_channel_map(self):
+    #     from ..models.channel import Channel
+    #     channel_map = defaultdict(list)
+    #     inverted_channel_map = dict()
+    #
+    #     # local
+    #     local = Channel(path_to_url(self.local_build_root))
+    #     channel_map['local'].append(local)
+    #     inverted_channel_map[local] = 'local'
+    #
+    #     # defaults
+    #     if self.default_channels:
+    #         for url in self.default_channels:
+    #             c = Channel(url)
+    #             channel_map['defaults'].append(c)
+    #             inverted_channel_map[c] = 'defaults'
+    #
+    #     # custom channels
+    #     for channel_name, url in iteritems(self.custom_channels):
+    #         c = Channel(url)
+    #         channel_map[channel_name].append(c)
+    #         inverted_channel_map[c] = channel_name
+    #
+    #     # migrated custom channels (legacy channels)
+    #     for channel_name, url in iteritems(self.migrated_custom_channels):
+    #         c = Channel(url)
+    #         inverted_channel_map[c] = channel_name
+    #
+    #     self._cache['channel_map'] = channel_map
+    #     self._cache['inverted_channel_map'] = inverted_channel_map
+    #
+    # @property
+    # def channel_map(self):
+    #     if 'channel_map' not in self._cache:
+    #         self._build_channel_map()
+    #     return self._cache['channel_map']
+    #
+    # @property
+    # def inverted_channel_map(self):
+    #     if 'inverted_channel_map' not in self._cache:
+    #         self._build_channel_map()
+    #     return self._cache['inverted_channel_map']
 
 
 
@@ -301,8 +309,8 @@ context = Context(SEARCH_PATH, conda, None)
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, conda, argparse_args)
-    from ..models.channel import Channel
-    Channel._reset_state()
+    from ..models.channel import CondaChannelUrl
+    CondaChannelUrl._reset_state()
     return context
 
 
