@@ -191,6 +191,10 @@ def norm_url_path(path):
     return p or '/'
 
 
+def is_windows_path(value):
+    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
+
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

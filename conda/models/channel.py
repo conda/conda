@@ -16,7 +16,7 @@ from ..base.constants import RECOGNIZED_URL_SCHEMES, RESERVED_CHANNELS
 from ..base.context import context
 from ..common.compat import odict, with_metaclass, iteritems
 from ..common.url import (is_url, urlparse, join_url, split_scheme_auth_token,
-                          split_conda_url_easy_parts)
+                          split_conda_url_easy_parts, is_windows_path, path_to_url, on_win)
 
 log = getLogger(__name__)
 
@@ -98,7 +98,7 @@ def _read_channel_configuration(host, port, path):
         name = test_url.replace(channel_alias_location, '', 1).strip('/')
         return channel_alias_location, name, scheme, auth, token
 
-    # Step 5. fall through to host:port as location
+    # Step 5. fall through to host:port as channel_location and path as channel_name
     return Url(host=host, port=port).url.rstrip('/'), path.strip('/'), None, None, None
 
 
@@ -121,11 +121,8 @@ def parse_conda_channel_url(url):
                    package_filename)
 
 
-
-
 def split_name_subname(name):
     return name.split('/', 1) if '/' in name else (name, None)
-
 
 
 class ChannelType(type):
@@ -143,7 +140,6 @@ class ChannelType(type):
                 return c
         else:
             return super(ChannelType, cls).__call__(*args, **kwargs)
-
 
 
 @with_metaclass(ChannelType)
@@ -187,7 +183,15 @@ class Channel(object):
     def from_value(value):
         if value is None:
             return Channel(name="<unknown>")
-        elif value.endswith('.tar.bz2') or has_scheme(value):
+        elif has_scheme(value):
+            if value.startswith('file:') and on_win:
+                value = value.replace('\\', '/')
+            return Channel.from_url(value)
+        elif value.startswith(('./', '..', '~', '/')) or is_windows_path(value):
+            return Channel.from_url(path_to_url(value))
+        elif value.endswith('.tar.bz2'):
+            if value.startswith('file:') and on_win:
+                value = value.replace('\\', '/')
             return Channel.from_url(value)
         else:
             # at this point assume we don't have a bare (non-scheme) url
@@ -241,7 +245,6 @@ class Channel(object):
         return self.base_url, self.canonical_name
 
 
-
 class MultiChannel(Channel):
 
     def __init__(self, name, channels):
@@ -270,7 +273,6 @@ class MultiChannel(Channel):
     @property
     def base_url(self):
         return None
-
 
 
 def prioritize_channels(channels):

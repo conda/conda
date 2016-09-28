@@ -90,7 +90,7 @@ class TestConfig(unittest.TestCase):
         context = reset_context([join(dirname(__file__), 'condarc')])
         current_platform = context.subdir
         assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org'
-        assert context.channel_alias == 'https://your.repo'
+        assert context.channel_alias == 'https://your.repo/'
         # assert binstar.channel_prefix(False) == 'https://your.repo/'
         # assert binstar.binstar_domain == 'https://mybinstar.com/'
         # assert binstar.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'

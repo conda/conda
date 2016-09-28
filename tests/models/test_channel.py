@@ -16,13 +16,13 @@ log = getLogger(__name__)
 
 
 platform = context.subdir
-DEFAULT_URLS = ['https://repo.continuum.io/pkgs/free/%s' % platform,
-                 'https://repo.continuum.io/pkgs/free/noarch',
-                 'https://repo.continuum.io/pkgs/pro/%s' % platform,
-                 'https://repo.continuum.io/pkgs/pro/noarch']
+DEFAULT_URLS = ['https://repo.continuum.io/pkgs/free/%s/' % platform,
+                 'https://repo.continuum.io/pkgs/free/noarch/',
+                 'https://repo.continuum.io/pkgs/pro/%s/' % platform,
+                 'https://repo.continuum.io/pkgs/pro/noarch/']
 if on_win:
-    DEFAULT_URLS.extend(['https://repo.continuum.io/pkgs/msys2/%s' % platform,
-                          'https://repo.continuum.io/pkgs/msys2/noarch'])
+    DEFAULT_URLS.extend(['https://repo.continuum.io/pkgs/msys2/%s/' % platform,
+                          'https://repo.continuum.io/pkgs/msys2/noarch/'])
 
 
 # class ChannelTests(TestCase):
@@ -186,8 +186,8 @@ class ContextTests(TestCase):
         assert channel.channel_location == "repo.continuum.io/pkgs"
         assert channel.canonical_name == "defaults"
         assert channel.urls == [
-            'https://repo.continuum.io/pkgs/free/%s' % platform,
-            'https://repo.continuum.io/pkgs/free/noarch',
+            'https://repo.continuum.io/pkgs/free/%s/' % platform,
+            'https://repo.continuum.io/pkgs/free/noarch/',
         ]
 
         channel = Channel('https://repo.continuum.io/pkgs/free')
@@ -195,8 +195,8 @@ class ContextTests(TestCase):
         assert channel.channel_location == "repo.continuum.io/pkgs"
         assert channel.canonical_name == "defaults"
         assert channel.urls == [
-            'https://repo.continuum.io/pkgs/free/%s' % platform,
-            'https://repo.continuum.io/pkgs/free/noarch',
+            'https://repo.continuum.io/pkgs/free/%s/' % platform,
+            'https://repo.continuum.io/pkgs/free/noarch/',
         ]
 
         channel = Channel('https://repo.continuum.io/pkgs/free/noarch')
@@ -204,7 +204,7 @@ class ContextTests(TestCase):
         assert channel.channel_location == "repo.continuum.io/pkgs"
         assert channel.canonical_name == "defaults"
         assert channel.urls == [
-            'https://repo.continuum.io/pkgs/free/noarch',
+            'https://repo.continuum.io/pkgs/free/noarch/',
         ]
 
         channel = Channel('https://repo.continuum.io/pkgs/free/label/dev')
@@ -212,8 +212,8 @@ class ContextTests(TestCase):
         assert channel.channel_location == "repo.continuum.io/pkgs"
         assert channel.canonical_name == "free/label/dev"
         assert channel.urls == [
-            'https://repo.continuum.io/pkgs/free/label/dev/%s' % platform,
-            'https://repo.continuum.io/pkgs/free/label/dev/noarch',
+            'https://repo.continuum.io/pkgs/free/label/dev/%s/' % platform,
+            'https://repo.continuum.io/pkgs/free/label/dev/noarch/',
         ]
 
         channel = Channel('https://repo.continuum.io/pkgs/free/noarch/flask-1.0.tar.bz2')
@@ -223,7 +223,7 @@ class ContextTests(TestCase):
         assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.canonical_name == "defaults"
         assert channel.urls == [
-            'https://repo.continuum.io/pkgs/free/noarch',
+            'https://repo.continuum.io/pkgs/free/noarch/',
         ]
 
     def test_custom_channels(self):
