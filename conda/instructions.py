@@ -119,6 +119,10 @@ def check_prefix(prefix):
     check_write_permission(prefix)
 
 
+def check_dir_exists(dst):
+    return os.path.isdir(os.path.dirname(dst))
+
+
 def CHECK_LINK_CMD(state, plan):
     """
         check permission issue before link and unlink
@@ -139,7 +143,7 @@ def CHECK_LINK_CMD(state, plan):
         # check write permission for every file
         for f in files:
             dst = join(prefix, f)
-            # TODO: make sure this does not already exists
+            check_dir_exists(dst)
             check_write_permission(dst)
 
 
