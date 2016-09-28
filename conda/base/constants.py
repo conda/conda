@@ -102,7 +102,7 @@ RESERVED_CHANNELS = {
     'r': 'https://repo.continuum.io/pkgs',
     'mro': 'https://repo.continuum.io/pkgs',
     'msys2': 'https://repo.continuum.io/pkgs',
-    'local': path_to_url(join(sys.prefix, 'conda-bld')),
+    'conda-bld': path_to_url(sys.prefix),
 }
 
 ROOT_ENV_NAME = 'root'

@@ -3,13 +3,14 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from conda.common.io import captured
 from conda.compat import itervalues
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
+from requests.packages.urllib3.util import Url
 
 from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda, \
     DEFAULT_ANACONDA_API
@@ -20,7 +21,7 @@ from .._vendor.toolz.itertoolz import concatv
 from ..common.compat import iteritems
 from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
                                     SequenceParameter)
-from ..common.url import path_to_url
+from ..common.url import path_to_url, split_conda_url_easy_parts
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 log = getLogger(__name__)
@@ -286,15 +287,6 @@ class Context(Configuration):
         if 'inverted_channel_map' not in self._cache:
             self._build_channel_map()
         return self._cache['inverted_channel_map']
-
-    @property
-    def known_channel_locations(self):
-        return set(chain.from_iterable((
-            (path_to_url(self.local_build_root), self.channel_alias),
-            itervalues(self.custom_channels),
-            itervalues(self.migrated_custom_channels),
-            self.migrated_channel_aliases,
-        )))
 
 
 

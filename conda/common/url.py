@@ -5,6 +5,7 @@ import re
 import socket
 from logging import getLogger
 from os.path import abspath, expanduser
+import sys
 
 try:
     # Python 3
@@ -22,6 +23,8 @@ from .._vendor.auxlib.decorators import memoize
 
 log = getLogger(__name__)
 
+
+on_win = bool(sys.platform == "win32")
 
 def path_to_url(path):
     path = abspath(expanduser(path))
@@ -51,6 +54,8 @@ def add_username_and_pass_to_url(url, username, passwd):
 
 @memoize
 def urlparse(url):
+    if on_win and url.startswith('file:'):
+        url.replace('\\', '/')
     return parse_url(url)
 
 
@@ -106,7 +111,7 @@ def replace_host(url_parts, new_host):
 
 
 def join(*args):
-    return '/'.join(x.strip('/') for x in args)
+    return '/'.join(y for y in (x.strip('/') for x in args if x) if y)
 
 
 join_url = join
@@ -133,7 +138,28 @@ def split_anaconda_token(url):
     _token_match = re.search(r'/t/([a-zA-Z0-9-]*)', url)
     token = _token_match.groups()[0] if _token_match else None
     cleaned_url = url.replace('/t/' + token, '', 1) if token is not None else url
-    return cleaned_url, token
+    return cleaned_url.rstrip('/'), token
+
+
+def split_platform(url):
+    """
+
+    Examples:
+        >>> split_platform("https://1.2.3.4/t/tk-123/osx-64/path")
+        (u'https://1.2.3.4/t/tk-123/path', u'osx-64')
+
+    """
+    from conda.base.constants import PLATFORM_DIRECTORIES
+    _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in PLATFORM_DIRECTORIES)
+    _platform_match = re.search(_platform_match_regex, url, re.IGNORECASE)
+    platform = _platform_match.groups()[0] if _platform_match else None
+    cleaned_url = url.replace('/' + platform, '', 1) if platform is not None else url
+    return cleaned_url.rstrip('/'), platform
+
+
+def split_package_filename(url):
+    cleaned_url, package_filename = url.rsplit('/', 1) if url.endswith('.tar.bz2') else (url, None)
+    return cleaned_url, package_filename
 
 
 def split_scheme_auth_token(url):
@@ -144,6 +170,24 @@ def split_scheme_auth_token(url):
     remainder_url = Url(host=url_parts.host, port=url_parts.port, path=url_parts.path,
                         query=url_parts.query).url
     return remainder_url, url_parts.scheme, url_parts.auth, token
+
+
+def split_conda_url_easy_parts(url):
+    cleaned_url, token = split_anaconda_token(url)
+    cleaned_url, platform = split_platform(cleaned_url)
+    cleaned_url, package_filename = split_package_filename(cleaned_url)
+
+    # TODO: split out namespace using regex
+
+    url_parts = urlparse(cleaned_url)
+
+    return url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host, url_parts.port, url_parts.path, url_parts.query
+
+
+
+def norm_url_path(path):
+    p = path.strip('/')
+    return p or '/'
 
 
 if __name__ == "__main__":

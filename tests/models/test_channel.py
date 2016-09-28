@@ -2,12 +2,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda._vendor.auxlib.ish import dals
+from conda.base.constants import RESERVED_CHANNELS
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
-from conda.models.channel import Channel, UrlChannel, split_platform, CondaChannelUrl
+from conda.models.channel import Channel, UrlChannel, CondaChannelUrl
 from conda.utils import on_win
 from logging import getLogger
 from unittest import TestCase
@@ -189,83 +190,83 @@ class ContextTests(TestCase):
     def tearDown(self):
         reset_context()
 
-    # def test_reserved_channels(self):
-    #     channel = CondaChannelUrl.from_channel_name('free')
-    #     assert channel.channel_name == "free"
-    #     assert channel.channel_location == "repo.continuum.io/pkgs"
-    #
-    #     channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free')
-    #     assert channel.channel_name == "free"
-    #     assert channel.channel_location == "repo.continuum.io/pkgs"
-    #
-    #     channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free/noarch')
-    #     assert channel.channel_name == "free"
-    #     assert channel.channel_location == "repo.continuum.io/pkgs"
-    #
-    #     channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free/label/dev')
-    #     assert channel.channel_name == "free/label/dev"
-    #     assert channel.channel_location == "repo.continuum.io/pkgs"
-    #
-    #     channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free/noarch/flask-1.0.tar.bz2')
-    #     assert channel.channel_name == "free"
-    #     assert channel.channel_location == "repo.continuum.io/pkgs"
-    #     assert channel.platform == "noarch"
-    #     assert channel.package_filename == "flask-1.0.tar.bz2"
-    #
-    # def test_custom_channels(self):
-    #     channel = CondaChannelUrl.from_channel_name('darwin')
-    #     assert channel.channel_name == "darwin"
-    #     assert channel.channel_location == "some.url.somewhere/stuff"
-    #
-    #     channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin')
-    #     assert channel.channel_name == "darwin"
-    #     assert channel.channel_location == "some.url.somewhere/stuff"
-    #
-    #     channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/')
-    #     assert channel.channel_name == "darwin/label/dev"
-    #     assert channel.channel_location == "some.url.somewhere/stuff"
-    #     assert channel.platform is None
-    #
-    #     channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/linux-64')
-    #     assert channel.channel_name == "darwin/label/dev"
-    #     assert channel.channel_location == "some.url.somewhere/stuff"
-    #     assert channel.platform == 'linux-64'
-    #     assert channel.package_filename is None
-    #
-    #     channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2')
-    #     assert channel.channel_name == "darwin/label/dev"
-    #     assert channel.channel_location == "some.url.somewhere/stuff"
-    #     assert channel.platform == 'linux-64'
-    #     assert channel.package_filename == 'flask-1.0.tar.bz2'
-    #     assert channel.auth is None
-    #     assert channel.token is None
-    #     assert channel.scheme == "https"
-    #
-    #     channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2')
-    #     assert channel.channel_name == "darwin/label/dev"
-    #     assert channel.channel_location == "some.url.somewhere/stuff"
-    #     assert channel.platform == 'linux-64'
-    #     assert channel.package_filename == 'flask-1.0.tar.bz2'
-    #     assert channel.auth is None
-    #     assert channel.token is None
-    #     assert channel.scheme == "https"
-    #
-    # def test_custom_channels_port_token_auth(self):
-    #     channel = CondaChannelUrl.from_channel_name('chuck')
-    #     assert channel.channel_name == "chuck"
-    #     assert channel.channel_location == "another.url:8080/with/path"
-    #     assert channel.auth == 'user1:pass2'
-    #     assert channel.token == 'tk-1234'
-    #     assert channel.scheme == "http"
-    #
-    #     channel = CondaChannelUrl.from_url('https://another.url:8080/with/path/chuck/label/dev/linux-64/flask-1.0.tar.bz2')
-    #     assert channel.channel_name == "chuck/label/dev"
-    #     assert channel.channel_location == "another.url:8080/with/path"
-    #     assert channel.auth == 'user1:pass2'
-    #     assert channel.token == 'tk-1234'
-    #     assert channel.scheme == "https"
-    #     assert channel.platform == 'linux-64'
-    #     assert channel.package_filename == 'flask-1.0.tar.bz2'
+    def test_reserved_channels(self):
+        channel = CondaChannelUrl.from_channel_name('free')
+        assert channel.channel_name == "free"
+        assert channel.channel_location == "repo.continuum.io/pkgs"
+
+        channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free')
+        assert channel.channel_name == "free"
+        assert channel.channel_location == "repo.continuum.io/pkgs"
+
+        channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free/noarch')
+        assert channel.channel_name == "free"
+        assert channel.channel_location == "repo.continuum.io/pkgs"
+
+        channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free/label/dev')
+        assert channel.channel_name == "free/label/dev"
+        assert channel.channel_location == "repo.continuum.io/pkgs"
+
+        channel = CondaChannelUrl.from_url('https://repo.continuum.io/pkgs/free/noarch/flask-1.0.tar.bz2')
+        assert channel.channel_name == "free"
+        assert channel.channel_location == "repo.continuum.io/pkgs"
+        assert channel.platform == "noarch"
+        assert channel.package_filename == "flask-1.0.tar.bz2"
+
+    def test_custom_channels(self):
+        channel = CondaChannelUrl.from_channel_name('darwin')
+        assert channel.channel_name == "darwin"
+        assert channel.channel_location == "some.url.somewhere/stuff"
+
+        channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin')
+        assert channel.channel_name == "darwin"
+        assert channel.channel_location == "some.url.somewhere/stuff"
+
+        channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/')
+        assert channel.channel_name == "darwin/label/dev"
+        assert channel.channel_location == "some.url.somewhere/stuff"
+        assert channel.platform is None
+
+        channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/linux-64')
+        assert channel.channel_name == "darwin/label/dev"
+        assert channel.channel_location == "some.url.somewhere/stuff"
+        assert channel.platform == 'linux-64'
+        assert channel.package_filename is None
+
+        channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2')
+        assert channel.channel_name == "darwin/label/dev"
+        assert channel.channel_location == "some.url.somewhere/stuff"
+        assert channel.platform == 'linux-64'
+        assert channel.package_filename == 'flask-1.0.tar.bz2'
+        assert channel.auth is None
+        assert channel.token is None
+        assert channel.scheme == "https"
+
+        channel = CondaChannelUrl.from_url('https://some.url.somewhere/stuff/darwin/label/dev/linux-64/flask-1.0.tar.bz2')
+        assert channel.channel_name == "darwin/label/dev"
+        assert channel.channel_location == "some.url.somewhere/stuff"
+        assert channel.platform == 'linux-64'
+        assert channel.package_filename == 'flask-1.0.tar.bz2'
+        assert channel.auth is None
+        assert channel.token is None
+        assert channel.scheme == "https"
+
+    def test_custom_channels_port_token_auth(self):
+        channel = CondaChannelUrl.from_channel_name('chuck')
+        assert channel.channel_name == "chuck"
+        assert channel.channel_location == "another.url:8080/with/path"
+        assert channel.auth == 'user1:pass2'
+        assert channel.token == 'tk-1234'
+        assert channel.scheme == "http"
+
+        channel = CondaChannelUrl.from_url('https://another.url:8080/with/path/chuck/label/dev/linux-64/flask-1.0.tar.bz2')
+        assert channel.channel_name == "chuck/label/dev"
+        assert channel.channel_location == "another.url:8080/with/path"
+        assert channel.auth == 'user1:pass2'
+        assert channel.token == 'tk-1234'
+        assert channel.scheme == "http"
+        assert channel.platform == 'linux-64'
+        assert channel.package_filename == 'flask-1.0.tar.bz2'
 
     def test_migrated_custom_channels(self):
         channel = CondaChannelUrl.from_url('s3://just/cant/darwin/osx-64')
@@ -276,6 +277,28 @@ class ContextTests(TestCase):
         assert channel.auth is None
         assert channel.token is None
         assert channel.scheme == "https"
+
+    def test_local_channel(self):
+        channel = CondaChannelUrl.from_channel_name('local')
+        assert channel.channel_name == "local"
+        assert channel.channel_location == RESERVED_CHANNELS['local']
+        assert channel.platform is None
+        assert channel.package_filename is None
+        assert channel.auth is None
+        assert channel.token is None
+        assert channel.scheme == "file"
+
+
+
+
+
+# TODO: test file:// urls REALLY well
+
+
+
+
+
+
 
     #     # assert Channel('free').urls == [
     #     #     'https://repo.continuum.io/pkgs/free/%s' % platform,
