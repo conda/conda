@@ -49,8 +49,6 @@ class Platform(Enum):
 
 machine_bits = 8 * tuple.__itemsize__
 
-# UID = os.getuid()
-PWD = os.getcwd()
 CONDA = 'CONDA'
 CONDA_ = 'CONDA_'
 conda = 'conda'
@@ -106,13 +104,16 @@ RESERVED_CHANNELS = {
 }
 
 RESERVED_MULTICHANNELS = {
-    'defaults': [
-        'free',
-        'pro'
+    # 'defaults': [
+    #     'free',
+    #     'pro'
+    # ],
+    'local': [
+        path_to_url(join(sys.prefix, 'conda-bld')),
     ],
 }
-if Platform.from_sys() is Platform.win:
-    RESERVED_MULTICHANNELS['defaults'].append('msys2')
+# if Platform.from_sys() is Platform.win:
+#     RESERVED_MULTICHANNELS['defaults'].append('msys2')
 
 
 ROOT_ENV_NAME = 'root'

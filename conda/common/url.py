@@ -111,7 +111,8 @@ def replace_host(url_parts, new_host):
 
 
 def join(*args):
-    return '/'.join(y for y in (x.strip('/') for x in args if x) if y)
+    start = '/' if args[0].startswith('/') else ''
+    return start + '/'.join(y for y in (x.strip('/') for x in args if x) if y)
 
 
 join_url = join

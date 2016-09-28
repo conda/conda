@@ -27,7 +27,7 @@ from . import __version__ as VERSION
 from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context
 from .common.disk import rm_rf
-from .common.url import url_to_path, url_to_s3_info, urlparse
+from .common.url import url_to_path, url_to_s3_info, urlparse, split_anaconda_token
 from .compat import StringIO
 from .exceptions import AuthenticationError
 from .utils import gnu_get_libc_version
@@ -140,7 +140,7 @@ class BinstarAuth(AuthBase):
     def add_binstar_token(url):
         if not context.add_anaconda_token or not BinstarAuth.is_binstar_url_needing_token(url):
             return url
-        token = context.anaconda_token or BinstarAuth.get_binstar_token(url)
+        token = BinstarAuth.get_binstar_token(url)
         if not token:
             return url
         log.debug("Adding binstar token to url %s", url)
@@ -176,12 +176,12 @@ class BinstarAuth(AuthBase):
     @staticmethod
     def is_binstar_url_needing_token(url):
         urlparts = urlparse(url)
-        from conda.gateways.anaconda_client import extract_token_from_url
-        cleaned_url, token = extract_token_from_url(url)
+        cleaned_url, token = split_anaconda_token(url)
         if token:  # url already has token
             return False
-        return (urlparts.scheme in ('http', 'https') and
-                any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
+        return False
+        # return (urlparts.scheme in ('http', 'https') and
+        #         any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
 
 
 

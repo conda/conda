@@ -10,7 +10,7 @@ from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 
 from .constants import (DEFAULT_ANACONDA_API, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        ROOT_ENV_NAME, SEARCH_PATH, conda)
+                        ROOT_ENV_NAME, SEARCH_PATH, conda, RESERVED_MULTICHANNELS)
 from .._vendor.auxlib.compat import NoneType, string_types
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
@@ -222,14 +222,15 @@ class Context(Configuration):
 
     @property
     def default_channels(self):
-        from ..models.channel import CondaChannelUrl
-        return tuple(CondaChannelUrl.from_value(v) for v in self._default_channels)
+        from ..models.channel import Channel
+        return tuple(Channel.from_value(v) for v in self._default_channels)
 
     @property
     def custom_multichannels(self):
-        from ..models.channel import CondaChannelUrl
-        return odict((name, tuple(CondaChannelUrl.from_value(v) for v in c))
-                     for name, c in iteritems(self._custom_multichannels))
+        from ..models.channel import Channel
+        return odict((name, tuple(Channel.from_value(v) for v in c))
+                     for name, c in concatv(iteritems(RESERVED_MULTICHANNELS),
+                                            iteritems(self._custom_multichannels)))
 
     def _set_channel_alias_and_token(self):
         from ..gateways.anaconda_client import (get_anaconda_site_components,
@@ -309,8 +310,8 @@ context = Context(SEARCH_PATH, conda, None)
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, conda, argparse_args)
-    from ..models.channel import CondaChannelUrl
-    CondaChannelUrl._reset_state()
+    from ..models.channel import Channel
+    Channel._reset_state()
     return context
 
 
