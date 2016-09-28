@@ -164,6 +164,8 @@ def CHECK_UNLINK_CMD(state, plan):
             dst = join(prefix, f)
             # make sure the dst is something
             if islink(dst) or isfile(dst) or isdir(dst):
+                if islink(dst):
+                    check_write_permission(os.readlink(dst))
                 check_write_permission(dst)
 
 
