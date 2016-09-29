@@ -23,34 +23,29 @@ osx_setup() {
     brew update || brew update
 
     # install/update openssl
-    brew list | grep openssl
-    if [[ $? == 0 ]]; then
+    if [[ $(brew list | grep openssl) ]]; then
         brew outdated openssl || brew upgrade openssl
     else
         brew install openssl
     fi
 
     # test for shells before trying to install them
-    which -s dash
-    if [[ $? == 0 ]]; then
+    if [[ $(which dash) ]]; then
         brew outdated dash || brew upgrade dash
     else
         brew install dash
     fi
-    which -s zsh
-    if [[ $? == 0 ]]; then
+    if [[ $(which zsh) ]]; then
         brew outdated zsh || brew upgrade zsh
     else
         brew install zsh
     fi
-    which -s ksh
-    if [[ $? == 0 ]]; then
+    if [[ $(which ksh) ]]; then
         brew outdated ksh || brew upgrade ksh
     else
         brew install ksh
     fi
-    which -s tcsh
-    if [[ $? == 0 ]]; then
+    if [[ $(which tcsh) ]]; then
         brew outdated tcsh || brew upgrade tcsh
     else
         brew install tcsh
@@ -58,8 +53,7 @@ osx_setup() {
     # pure csh is not available via brew, but since many users of
     # csh are actually using tcsh whether they know it or not this
     # is a decent substitute
-    which -s csh
-    if [[ $? == 0 ]]; then
+    if [[ $(which csh) ]]; then
         :
     else
         ln -s "$(which tcsh)" "$(which tcsh | sed 's|tcsh|csh|')"

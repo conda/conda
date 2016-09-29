@@ -86,11 +86,12 @@ conda_build_unit_test() {
     echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
     echo ">>>>>>>>>>>>>>>>>>> conda-build py.test start <<<<<<<<<<<<<<<<<<"
     echo
-    python -m pytest -n 2 --basetemp /tmp/cb tests || :
+    python -m pytest -n 2 --basetemp /tmp/cb tests || PYTEST_STATUS=$?
     echo
-    echo ">>>>>>>>>>>> conda-build py.test exited with code $? <<<<<<<<<<<"
+    echo ">>>>>>>>>>>> conda-build py.test exited with code $PYTEST_STATUS <<<<<<<<<<<"
     echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
     echo
+    unset PYTEST_STATUS
     popd
 
     echo "END CONDA BUILD UNIT TEST"
