@@ -45,7 +45,7 @@ def setup_env_for_linkning(prefix):
     open(join(src_dir, "python-scripts/test3"), 'a').close()
     open(join(src_dir, "site-packages/test2"), 'a').close()
 
-    file_content = ["test1", "dir/site-packages/test2", "bin/test3"]
+    file_content = ["test1", "site-packages/test2", "python-scripts/test3"]
     with open(join(info_dir, "files"), "w") as f:
         for content in file_content:
             f.write("%s\n" % content)
@@ -246,6 +246,8 @@ class TestNoArchPythonWindowsLink(unittest.TestCase):
         with open(alt_files_path, "r") as alt_files:
             files = alt_files.read().split("\n")[:-1]
 
+        files = [_f.replace('\\', '/') for _f in files]
+
         self.assertTrue(files.index("Lib/site-packages/test2") >= 0)
         self.assertTrue(files.index("Scripts/test3") >= 0)
         self.assertTrue(os.path.isfile(join(prefix, "Lib/site-packages/test2")))
@@ -282,6 +284,8 @@ class TestNoArchPythonUnixLink(unittest.TestCase):
         self.assertTrue(os.path.isfile(alt_files_path))
         with open(alt_files_path, "r") as alt_files:
             files = alt_files.read().split("\n")[:-1]
+
+        files = [_f.replace('\\', '/') for _f in files]
 
         self.assertTrue(files.index("lib/python3.5/site-packages/test2") >= 0)
         self.assertTrue(files.index("bin/test3") >= 0)

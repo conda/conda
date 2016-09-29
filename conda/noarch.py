@@ -162,11 +162,11 @@ class NoArchPython(NoArch):
         site_package_files = []
         bin_files = []
         for f in files:
-            if f.find("site-packages") > 0:
-                site_package_files.append(f[f.find("site-packages"):])
+            if f.startswith("site-packages"):
+                site_package_files.append(f)
             else:
-                if f.find("bin") == 0:
-                    bin_files.append(f.replace("bin/", ""))
+                if f.startswith("python-scripts"):
+                    bin_files.append(f.replace("python-scripts/", ""))
 
         site_packages_dir = get_site_packages_dir(prefix)
         bin_dir = get_bin_dir(prefix)
