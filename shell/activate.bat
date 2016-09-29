@@ -243,6 +243,20 @@
 
 @REM # ensure we deactivate any scripts from the old env                 #
 @CALL "deactivate.bat"
+@IF NOT errorlevel 0 (
+	@ENDLOCAL && (
+		@IF /I "%IS_ENV_CONDA_ENVNAME%"=="1" (
+			@SET "CONDA_ENVNAME=%CONDA_ENVNAME%"
+		)
+		@IF /I "%_IS_ENV_CONDA_VERBOSE%"=="1" (
+			@SET "CONDA_VERBOSE=%_CONDA_VERBOSE%"
+		)
+		@IF /I "%IS_ENV_CONDA_HELP%"=="1" (
+			@SET "CONDA_HELP=%CONDA_HELP%"
+		)
+		@EXIT /B 1
+	)
+)
 
 @REM # restore boolean                                                   #
 @SET "TRUE=1"

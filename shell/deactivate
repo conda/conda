@@ -27,16 +27,16 @@
 # ERROR CLAUSE                                                            #
 whichshell_args.bash "deactivate" "error-clause" \
 `whichshell_ps.bash && eval 'echo $0' || echo 'csh'` | \
-awk -f "`which whichshell.awk`" && :
+awk -f "`which whichshell.awk`" || :
 # END ERROR CLAUSE                                                        #
 ###########################################################################
 
 ###########################################################################
 # BOURNE SHELL CLAUSE                                                     #
-# bash/zsh/dash/posh                                                      #
+# bash/zsh/dash/posh/ksh                                                  #
 whichshell_args.bash "deactivate" "bourne-shell-clause" \
 `whichshell_ps.bash && eval 'echo $0' || echo 'csh'` | \
-awk -f "`which whichshell.awk`" && . deactivate.sh
+awk -f "`which whichshell.awk`" && . deactivate.sh || :
 # END BOURNE SHELL CLAUSE                                                 #
 ###########################################################################
 
@@ -45,7 +45,7 @@ awk -f "`which whichshell.awk`" && . deactivate.sh
 # tcsh/csh                                                                #
 whichshell_args.bash "deactivate" "c-shell-clause" \
 `whichshell_ps.bash && eval 'echo $0' || echo 'csh'` | \
-awk -f "`which whichshell.awk`" && source "`which deactivate.csh`"
+awk -f "`which whichshell.awk`" && source "`which deactivate.csh`" || :
 # END C-SHELL CLAUSE                                                      #
 ###########################################################################
 

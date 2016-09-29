@@ -15,6 +15,7 @@ addons:
       - csh
       - tcsh
       - posh
+      - ksh
 
 
 matrix:
@@ -40,22 +41,10 @@ matrix:
       language: python
 
 install:
-  - echo "START INSTALLING"
-  - which -a python
-  - env | sort
   - source ./utils/travis-run-install.sh
-  - echo "DONE INSTALLING"
 
-# CSH has issues when variables get too long
-# A common error that may occur would be a "Word too long" error and is probably related to the PATH variable
-# Here we use "envvar_cleanup.bash" to remove duplicates from the path variable before trying to run the tests
 script:
-  - echo "START RUNNING"
-  - which -a python
-  - env | sort
-  - export PATH=$(./shell/envvar_cleanup.bash "$PATH" -d)
   - source ./utils/travis-run-script.sh
-  - echo "DONE RUNNING"
 
 sudo: false
 

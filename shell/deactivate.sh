@@ -18,6 +18,8 @@ elif [ -n "${BASH_VERSION+x}" ]; then
     WHAT_SHELL_AM_I="bash"
 elif [ -n "${POSH_VERSION+x}" ]; then
     WHAT_SHELL_AM_I="posh"
+elif [ -n "${KSH_VERSION+x}" ]; then
+    WHAT_SHELL_AM_I="ksh"
 else
     WHAT_SHELL_AM_I="dash"
 fi
@@ -129,12 +131,12 @@ unset UNKNOWN
 
 ###########################################################################
 # CHECK IF CAN DEACTIVATE                                                 #
-if [ -z "${CONDA_DEFAULT_ENV}" ]; then
+if [ -z "${CONDA_PREFIX+x}" ] || [ -z "${CONDA_PREFIX}" ]; then
     [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
     unset IS_ENV_CONDA_VERBOSE
     unset TRUE
     unset FALSE
-    return 1
+    return 0
 fi
 # END CHECK IF CAN DEACTIVATE                                             #
 ###########################################################################
@@ -146,6 +148,13 @@ fi
 # simplicity and consistency with the Windows *.bat scripts we will use   #
 # fuzzy matching (/f) to get all of the relevant removals                 #
 PATH=$(envvar_cleanup.bash "${PATH}" --delim=":" -u -f "${CONDA_PREFIX}")
+if [ $? != 0 ]; then
+    [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
+    unset IS_ENV_CONDA_VERBOSE
+    unset TRUE
+    unset FALSE
+    return 1
+fi
 export PATH
 # END RESTORE PATH                                                        #
 ###########################################################################
@@ -202,6 +211,9 @@ elif [ -n "${BASH_VERSION+x}" ]; then
 elif [ -n "${POSH_VERSION+x}" ]; then
     # no rehash for POSH
     :
+elif [ -n "${KSH_VERSION+x}" ]; then
+    # KSH
+    hash -r
 else
     # DASH, default
     hash -r

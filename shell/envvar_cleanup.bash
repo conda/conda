@@ -156,7 +156,7 @@ unset is_fuzzy_set
 
 # check that $STR_TO_REMOVE is allocated correctly for the various $MODE
 if [ "${MODE}" = "duplicate" ]; then
-    if ! [ "${STR_TO_REMOVE_I}" = -1 ]; then
+    if [ "${STR_TO_REMOVE_I}" != -1 ]; then
         echo "[ENVVAR_CLEANUP]: ERROR: Unknown/Invalid parameters for mode=${MODE}" 1>&2
         exit 1
     fi
@@ -226,7 +226,7 @@ if [ -n "${VARIABLE}" ]; then
             MATCH=-1
             FUZZY_MATCH=-1
             for (( j = 0; j <= STR_TO_REMOVE_I; j++ )); do
-                if ! [ "${STR_TO_REMOVE[${j}]}" = "" ]; then
+                if [ "${STR_TO_REMOVE[${j}]}" != "" ]; then
                     # check for an exact match
                     if [ "${STR_TO_REMOVE[${j}]}" = "${x}" ]; then
                         MATCH="${j}"
@@ -234,7 +234,7 @@ if [ -n "${VARIABLE}" ]; then
                         # check for a fuzzy match (if applicable)
                         if [ "${FUZZY}" = "${TRUE}" ]; then
                             TMP="${x/${STR_TO_REMOVE[${j}]}/}"
-                            if ! [ "${TMP}" = "${x}" ]; then
+                            if [ "${TMP}" != "${x}" ]; then
                                 FUZZY_MATCH="${j}"
                             fi
                         fi
@@ -244,7 +244,7 @@ if [ -n "${VARIABLE}" ]; then
 
             PRIOR_MATCH=-1
             for (( j = 0; j <= UNIQUE_MATCHES_I; j++ )); do
-                if ! [ "${UNIQUE_MATCHES[${j}]}" = "" ]; then
+                if [ "${UNIQUE_MATCHES[${j}]}" != "" ]; then
                     # check if we have matched this before
                     if [ "${UNIQUE_MATCHES[${j}]}" = "${x}" ]; then
                         PRIOR_MATCH="${j}"
@@ -266,7 +266,7 @@ if [ -n "${VARIABLE}" ]; then
                         VARIABLE="${VARIABLE}${x}${DELIM}"
                     fi
                 elif [ "${MODE}" = "remove" ]; then
-                    if ! [ "${MATCH}" = -1 ]; then
+                    if [ "${MATCH}" != -1 ]; then
                         STR_TO_REMOVE[${MATCH}]=""
                     else
                         STR_TO_REMOVE[${FUZZY_MATCH}]=""

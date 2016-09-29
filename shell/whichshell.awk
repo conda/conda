@@ -53,7 +53,7 @@ BEGIN {}
     #  6) clause/mode (detected above)                                    #
     scriptname = $(NF-1)
     shell_failure = "["toupper(scriptname)"]: ERROR: Only supports "      \
-                    "sourcing from tcsh/csh and bash/zsh/dash/posh. (1)"
+                    "sourcing from tcsh/csh and bash/zsh/dash/posh/ksh. (1)"
     num = split($0,a," ")
     if (num != 6) {
         if (clause == 1)
@@ -88,7 +88,7 @@ BEGIN {}
     #######################################################################
     # MATCH SHELL                                                         #
     shell_failure = "["toupper(scriptname)"]: ERROR: Only supports "      \
-                    "sourcing from tcsh/csh and bash/zsh/dash/posh. (2)"
+                    "sourcing from tcsh/csh and bash/zsh/dash/posh/ksh. (2)"
     if (smatch                                                  &&
         ((shell == ".bash")                                     ||
          (shell == ".-bash")                                    ||
@@ -114,6 +114,12 @@ BEGIN {}
         (shell == ".-posh")                                     ||
         (shell == "./bin/posh")                                 ||
         (shell == ".-/bin/posh")) {
+        exit(clause != 2)
+    }
+    if ((shell == ".ksh")                                       ||
+        (shell == ".-ksh")                                      ||
+        (shell == "./bin/ksh")                                  ||
+        (shell == ".-/bin/ksh")) {
         exit(clause != 2)
     }
     # the default shell is generally difficult/impossible to accurately

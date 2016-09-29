@@ -59,6 +59,12 @@ IS_ZSH=false
 [[ "${PARENT_PROCESS_2}" =~ ${REGEX_ZSH} ]] && IS_ZSH=true
 [[ "${PARENT_PROCESS_3}" =~ ${REGEX_ZSH} ]] && IS_ZSH=true
 
+REGEX_KSH="^ksh(\s+.+)*"
+IS_KSH=false
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_KSH} ]] && IS_KSH=true
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_KSH} ]] && IS_KSH=true
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_KSH} ]] && IS_KSH=true
+
 REGEX_CSH="^csh(\s+.+)*"
 IS_CSH=false
 [[ "${PARENT_PROCESS_1}" =~ ${REGEX_CSH} ]] && IS_CSH=true
@@ -79,6 +85,8 @@ elif [ "${IS_POSH}" = true ]; then
     PARENT_PROCESS="posh"
 elif [ "${IS_ZSH}" = true ]; then
     PARENT_PROCESS="zsh"
+elif [ "${IS_KSH}" = true ]; then
+    PARENT_PROCESS="ksh"
 elif [ "${IS_CSH}" = true ]; then
     PARENT_PROCESS="csh"
 elif [ "${IS_TCSH}" = true ]; then

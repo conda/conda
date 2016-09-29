@@ -214,13 +214,9 @@ def test_activate_noleftoverargs(shell):
                 env_dirs=env_dirs,
                 **shell_vars)
             stdout, stderr = run_in(commands, shell)
-            for s in stdout.split("\n"):
-                print("WAS: ", s)
-                print("IS:  ", s.split("=")[0])
-                print("")
-
             stdout = set(s.split("=")[0] for s in stdout.split("\n"))
             stdout_diff = list(stdout - stdout_init)
+            stdout_diff = [s for s in stdout_diff if not s.startswith("_")]
 
             print("stdout_init:","\n".join(stdout_init))
             print("stdout:","\n".join(stdout))
@@ -276,6 +272,7 @@ def test_deactivate_noleftoverargs(shell):
             stdout, stderr = run_in(commands, shell)
             stdout = set(stdout.split("\n"))
             stdout_diff = list(stdout - stdout_init)
+            stdout_diff = [s for s in stdout_diff if not s.startswith("_")]
 
             # since this is the deactivate process we expect absolutely no differences
             # from the original environment, this includes the actual values of the
@@ -610,7 +607,7 @@ def test_activate_check_sourcing(shell):
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '', stderr)
             assert_in(dedent("""\
-                [ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
+                [ACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh/ksh."""),
                 stderr, shell)
 
 
@@ -681,7 +678,7 @@ def test_deactivate_check_sourcing(shell):
             stdout, stderr = run_in(commands, shell)
             assert_equals(stdout, '', stderr)
             assert_in(dedent("""\
-                [DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh."""),
+                [DEACTIVATE]: ERROR: Only supports sourcing from tcsh/csh and bash/zsh/dash/posh/ksh."""),
                 stderr, shell)
 
 
@@ -1757,6 +1754,81 @@ def test_activate_noPS1(shell):
             assert_equals(stderr,'')
 
 
+@pytest.mark.installed
+def test_activate_with_e(shell):
+    if shell not in ["bash"]:
+        pytest.skip("-e only available on bash")
+    # in certain cases it is desired to run activate with -e (as is done
+    # when running conda-build)
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs,env_vars=gen_test_env_paths(envs, shell)
+
+        scripts=[]
+        scripts+=[dedent("""\
+            {env_vars[0]}
+            {source} "{syspath}{binpath}activate{executable_suffix}"
+            {printpath}
+            """)]
+        scripts+=[dedent("""\
+            {source} "{syspath}{binpath}activate{executable_suffix}" "{env_dirs[0]}"
+            {printpath}
+            """)]
+
+        for script in scripts:
+            commands = shell_vars['command_setup'] + script.format(
+                env_vars=env_vars,
+                env_dirs=env_dirs,
+                **shell_vars)
+            stdout, stderr = run_in(commands, shell, extra_args="-e")
+
+            print(commands)
+            print(stdout)
+            print(stderr)
+
+            assert_in(shell_vars['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shell_vars)),
+                stdout, shell)
+            assert_equals(stderr,'')
+
+
+@pytest.mark.installed
+def test_deactivate_with_e(shell):
+    if shell not in ["bash"]:
+        pytest.skip("-e only available on bash")
+    # in certain cases it is desired to run activate with -e (as is done
+    # when running conda-build)
+    shell_vars = _format_vars(shell)
+    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+        env_dirs,env_vars=gen_test_env_paths(envs, shell)
+
+        # get $PATH results before any changes
+        commands = shell_vars['command_setup'] + dedent("""\
+            {printpath}
+            """).format(
+                **shell_vars)
+        stdout_init, _ = run_in(commands, shell)
+
+        scripts=[]
+        scripts+=[dedent("""\
+            {source} "{syspath}{binpath}deactivate{executable_suffix}"
+            {printpath}
+            """)]
+
+        for script in scripts:
+            commands = shell_vars['command_setup'] + script.format(
+                env_vars=env_vars,
+                env_dirs=env_dirs,
+                **shell_vars)
+            stdout, stderr = run_in(commands, shell, extra_args="-e")
+
+            print(commands)
+            print(stdout)
+            print(stderr)
+
+            assert_equals(stdout, stdout_init)
+            assert_equals(stderr,'')
+
+
 # @pytest.mark.slow
 # def test_activate_keeps_PATH_order(shell):
 #     if not on_win or shell != "cmd.exe":
@@ -1814,7 +1886,7 @@ def test_activate_noPS1(shell):
 #         assert_equals(stdout, u'test', stderr)
 
 
-def run_in(command, shell, cwd=None, env=None):
+def run_in(command, shell, cwd=None, env=None, extra_args=""):
     if hasattr(shell, "keys"):
         shell = shell["exe"]
 
@@ -1850,11 +1922,12 @@ def run_in(command, shell, cwd=None, env=None):
         #
         # must use heredoc to avoid Ubuntu/dash incompatibility with hereword
         cmd_bits = dedent("""\
-            {exe} <<- 'RUNINCMD'
+            {exe} {extra_args} <<- 'RUNINCMD'
             {command}
             RUNINCMD
             """).format(
                 command=translate_stream(command, shells[shell]["path_to"]),
+                extra_args=extra_args,
                 **shells[shell])
 
         p = subprocess.Popen(cmd_bits,

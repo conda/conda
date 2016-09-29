@@ -327,6 +327,9 @@ else:
         "posh": dict(
             unix_shell_base, exe="posh",
                    ),
+        "ksh": dict(
+            unix_shell_base, exe="ksh",
+                   ),
         "fish": dict(
             unix_shell_base, exe="fish",
             pathsep=" ",

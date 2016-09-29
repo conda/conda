@@ -203,7 +203,7 @@
 
 @REM #####################################################################
 @REM # CHECK IF CAN DEACTIVATE                                           #
-@IF /I "%CONDA_DEFAULT_ENV%"=="" (
+@IF /I "%CONDA_PREFIX%"=="" (
 	@ENDLOCAL && (
 		@IF /I "%IS_ENV_CONDA_VERBOSE%"=="%TRUE%" (
 			@SET "CONDA_VERBOSE=%CONDA_VERBOSE%"
@@ -211,18 +211,10 @@
 		@IF /I "%IS_ENV_CONDA_HELP%"=="%TRUE%" (
 			@SET "CONDA_HELP=%CONDA_HELP%"
 		)
-		@EXIT /B 1
+		@EXIT /B 0
 	)
 )
 @REM # END CHECK IF CAN DEACTIVATE                                       #
-@REM #####################################################################
-
-@REM #####################################################################
-@REM # RESTORE PROMPT                                                    #
-@IF /I NOT "%CONDA_PS1_BACKUP%"=="" (
-	@SET "PROMPT=%CONDA_PS1_BACKUP%"
-)
-@REM # END RESTORE PROMPT                                                #
 @REM #####################################################################
 
 @REM #####################################################################
@@ -233,7 +225,26 @@
 @REM # consequently we will use fuzzy matching [/f] to get all of the    #
 @REM # relevant removals                                                 #
 @FOR /F "delims=" %%i IN ('@CALL "envvar_cleanup.bat" "%PATH%" /delim=";" /u /f "%CONDA_PREFIX%"') DO @SET "PATH=%%i"
+@IF NOT errorlevel 0 (
+	@ENDLOCAL && (
+		@IF /I "%IS_ENV_CONDA_VERBOSE%"=="%TRUE%" (
+			@SET "CONDA_VERBOSE=%CONDA_VERBOSE%"
+		)
+		@IF /I "%IS_ENV_CONDA_HELP%"=="%TRUE%" (
+			@SET "CONDA_HELP=%CONDA_HELP%"
+		)
+		@EXIT /B 1
+	)
+)
 @REM # END RESTORE PATH                                                  #
+@REM #####################################################################
+
+@REM #####################################################################
+@REM # RESTORE PROMPT                                                    #
+@IF /I NOT "%CONDA_PS1_BACKUP%"=="" (
+	@SET "PROMPT=%CONDA_PS1_BACKUP%"
+)
+@REM # END RESTORE PROMPT                                                #
 @REM #####################################################################
 
 @REM #####################################################################

@@ -196,6 +196,16 @@ set _IS_ENV_CONDA_VERBOSE="${IS_ENV_CONDA_VERBOSE}"
 # by using \deactivate we will refer to the "root" deactivate not the     #
 # aliased deactivate if it exists                                         #
 source "`which \deactivate.csh`" ""
+if ( $status != 0 ) then
+    unset _CONDA_WHAT_SHELL_AM_I
+    if ( "${IS_ENV_CONDA_ENVNAME}" == "0" ) then
+        unset CONDA_ENVNAME
+    endif
+    unset _CONDA_VERBOSE
+    unset IS_ENV_CONDA_ENVNAME
+    unset _IS_ENV_CONDA_VERBOSE
+    exit 1
+endif
 
 # restore boolean                                                         #
 set TRUE=1

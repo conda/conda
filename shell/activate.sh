@@ -18,6 +18,8 @@ elif [ -n "${BASH_VERSION+x}" ]; then
     WHAT_SHELL_AM_I="bash"
 elif [ -n "${POSH_VERSION+x}" ]; then
     WHAT_SHELL_AM_I="posh"
+elif [ -n "${KSH_VERSION+x}" ]; then
+    WHAT_SHELL_AM_I="ksh"
 else
     WHAT_SHELL_AM_I="dash"
 fi
@@ -164,6 +166,14 @@ _IS_ENV_CONDA_VERBOSE="${IS_ENV_CONDA_VERBOSE}"
 
 # ensure we deactivate any scripts from the old env                       #
 . deactivate.sh ""
+if [ $? != 0 ]; then
+    unset _CONDA_WHAT_SHELL_AM_I
+    [ "${IS_ENV_CONDA_ENVNAME}" = "0" ] && unset CONDA_ENVNAME
+    unset _CONDA_VERBOSE
+    unset IS_ENV_CONDA_ENVNAME
+    unset _IS_ENV_CONDA_VERBOSE
+    return 1
+fi
 
 # restore boolean                                                         #
 TRUE=1
@@ -178,7 +188,7 @@ unset _CONDA_VERBOSE
 unset _CONDA_WHAT_SHELL_AM_I
 
 _CONDA_BIN=$(conda "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}" | sed 's| |\ |')
-if ! [ $? = 0 ]; then
+if [ $? != 0 ]; then
     unset WHAT_SHELL_AM_I
     unset _CONDA_BIN
     [ "${IS_ENV_CONDA_ENVNAME}" = "${FALSE}" ] && unset CONDA_ENVNAME
@@ -197,7 +207,7 @@ unset WHAT_SHELL_AM_I
 # PATH                                                                    #
 # update path with the new conda environment                              #
 PATH="${_CONDA_BIN}:${PATH}"
-export PATH
+export PATH="${PATH}"
 # END PATH                                                                #
 ###########################################################################
 
@@ -275,6 +285,9 @@ elif [ -n "${BASH_VERSION+x}" ]; then
 elif [ -n "${POSH_VERSION+x}" ]; then
     # no rehash for POSH
     :
+elif [ -n "${KSH_VERSION+x}" ]; then
+    # KSH
+    hash -r
 else
     # DASH, default
     hash -r

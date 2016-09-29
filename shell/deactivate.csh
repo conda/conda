@@ -148,8 +148,8 @@ unset UNKNOWN
 ###########################################################################
 # CHECK IF CAN DEACTIVATE                                                 #
 set BAD_DEACTIVATE="${FALSE}"
-if ( $?CONDA_DEFAULT_ENV ) then
-    if ( "${CONDA_DEFAULT_ENV}" == "" ) then
+if ( $?CONDA_PREFIX ) then
+    if ( "${CONDA_PREFIX}" == "" ) then
         set BAD_DEACTIVATE="${TRUE}"
     endif
 else
@@ -162,7 +162,7 @@ if ( "${BAD_DEACTIVATE}" == "${TRUE}" ) then
     unset IS_ENV_CONDA_VERBOSE
     unset TRUE
     unset FALSE
-    exit 1
+    exit 0
 endif
 # END CHECK IF CAN DEACTIVATE                                             #
 ###########################################################################
@@ -174,6 +174,16 @@ endif
 # one to the other                                                        #
 set tmp_PATH="${PATH}"
 set PATH=(`envvar_cleanup.bash "${tmp_PATH}" --delim=":" -u -f "${CONDA_PREFIX}"`)
+if ( $status != 0 ) then
+    unset tmp_PATH
+    if ( "${IS_ENV_CONDA_VERBOSE}" == "${FALSE}" ) then
+        unset CONDA_VERBOSE
+    endif
+    unset IS_ENV_CONDA_VERBOSE
+    unset TRUE
+    unset FALSE
+    exit 1
+endif
 set path=(`echo "${PATH}" | sed s'|:| |g'`)
 unset tmp_PATH
 # END RESTORE PATH                                                        #
