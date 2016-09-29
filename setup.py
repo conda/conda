@@ -45,6 +45,7 @@ if sys.platform == 'win32':
 install_requires = [
     'pycosat >=0.6.1',
     'requests >=2.5.3',
+    'ruamel.yaml',
 ]
 
 if sys.version_info < (3, 4):
@@ -79,7 +80,7 @@ setup(
         'build_py': packaging.BuildPyCommand,
         'sdist': packaging.SDistCommand,
     },
-    install_requires=[],
+    install_requires=install_requires,
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"
