@@ -27,13 +27,13 @@ main_test() {
     # don't bother testing for the default shell `sh`, generally speaking the default
     # shell will be supported if it's one of the supported shells
     shells=""
-    [[ $(which -s bash) ]] || shells="${shells} --shell=bash"
-    [[ $(which -s dash) ]] || shells="${shells} --shell=dash"
-    [[ $(which -s posh) ]] || shells="${shells} --shell=posh"
-    [[ $(which -s zsh) ]]  || shells="${shells} --shell=zsh"
-    [[ $(which -s ksh) ]]  || shells="${shells} --shell=ksh"
-    [[ $(which -s csh) ]]  || shells="${shells} --shell=csh"
-    [[ $(which -s tcsh) ]] || shells="${shells} --shell=tcsh"
+    [[ $(which bash) ]] && shells="${shells} --shell=bash"
+    [[ $(which dash) ]] && shells="${shells} --shell=dash"
+    [[ $(which posh) ]] && shells="${shells} --shell=posh"
+    [[ $(which zsh) ]]  && shells="${shells} --shell=zsh"
+    [[ $(which ksh) ]]  && shells="${shells} --shell=ksh"
+    [[ $(which csh) ]]  && shells="${shells} --shell=csh"
+    [[ $(which tcsh) ]] && shells="${shells} --shell=tcsh"
 
     python -m pytest --cov-report xml ${shells} -m "not installed" tests
 
