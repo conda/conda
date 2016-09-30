@@ -35,7 +35,7 @@ main_test() {
     [[ $(which -s csh) ]]  || shells="${shells} --shell=csh"
     [[ $(which -s tcsh) ]] || shells="${shells} --shell=tcsh"
 
-    py.test --cov-report xml ${shells} -m "not installed" tests
+    python -m pytest --cov-report xml ${shells} -m "not installed" tests
 
     python setup.py --version
     python setup.py install
