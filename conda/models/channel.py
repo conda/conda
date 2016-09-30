@@ -47,18 +47,20 @@ def tokenized_conda_url_startswith(test_url, startswith_url):
                                 norm_url_path(startswith_url).split('/'))
 
 
-def _get_channel_for_name(name, subname=None):
-    if subname and join_url(name, subname) in context.custom_channels:
-        return context.custom_channels[join_url(name, subname)]
-    elif name in context.custom_channels:
-        return context.custom_channels[name]
-    else:
-        location, scheme, auth, token = split_scheme_auth_token(context.channel_alias)
-        return Channel(scheme=scheme, auth=auth, location=location, token=token, name=join_url(name, subname))
+def _get_channel_for_name(channel_name):
+    _name = channel_name.strip('/')
+    while _name:
+        if _name in context.custom_channels:
+            return context.custom_channels[_name]
+        _name = _name.rsplit('/', 1)[0]  # progressively strip off path segments
+
+    ca = context.channel_alias
+    return Channel(scheme=ca.scheme, auth=ca.auth, location=ca.location, token=ca.token,
+                   name=channel_name)
 
 
 def _read_channel_configuration(host, port, path):
-    # return location, join_url(name, subname), scheme, auth, token
+    # return location, name, scheme, auth, token
 
     test_url = Url(host=host, port=port, path=path).url.rstrip('/')
 
@@ -66,31 +68,33 @@ def _read_channel_configuration(host, port, path):
     for name, location in iteritems(context.migrated_custom_channels):
         location, scheme, auth, token = split_scheme_auth_token(location)
         if tokenized_conda_url_startswith(test_url, join_url(location, name)):
-            subname = test_url.replace(join_url(location, name), '', 1).strip('/')
             # translate location to new location, with new credentials
-            channel = _get_channel_for_name(name, subname)
-            return channel.location, join_url(name, subname), channel.scheme, channel.auth, channel.token
+            subname = test_url.replace(join_url(location, name), '', 1).strip('/')
+            channel_name = join_url(name, subname)
+            channel = _get_channel_for_name(channel_name)
+            return channel.location, channel_name, channel.scheme, channel.auth, channel.token
 
     # Step 2. migrated_channel_aliases matches
     for migrated_alias in context.migrated_channel_aliases:
         migrated_alias_location, scheme, auth, token = split_scheme_auth_token(migrated_alias)
         if test_url.startswith(migrated_alias_location):
             name = test_url.replace(migrated_alias_location, '', 1).strip('/')
-            channel_alias_location, scheme, auth, token = split_scheme_auth_token(context.channel_alias)
-            return channel_alias_location, name, scheme, auth, token
+            ca = context.channel_alias
+            return ca.location, name, ca.scheme, ca.auth, ca.token
 
     # Step 3. custom_channels matches
     for name, channel in iteritems(context.custom_channels):
         that_test_url = join_url(channel.location, channel.name)
         if test_url.startswith(that_test_url):
             subname = test_url.replace(that_test_url, '', 1).strip('/')
-            return channel.location, join_url(channel.name, subname), channel.scheme, channel.auth, channel.token
+            return (channel.location, join_url(channel.name, subname), channel.scheme,
+                    channel.auth, channel.token)
 
     # Step 4. channel_alias match
-    channel_alias_location, scheme, auth, token = split_scheme_auth_token(context.channel_alias)
-    if test_url.startswith(channel_alias_location):
-        name = test_url.replace(channel_alias_location, '', 1).strip('/')
-        return channel_alias_location, name, scheme, auth, token
+    ca = context.channel_alias
+    if test_url.startswith(ca.location):
+        name = test_url.replace(ca.location, '', 1).strip('/')
+        return ca.location, name, ca.scheme, ca.auth, ca.token
 
     # Step 5. not-otherwise-specified file://-type urls
     if host is None:
@@ -99,8 +103,7 @@ def _read_channel_configuration(host, port, path):
         location, name = test_url.rsplit('/', 1)
         if not location:
             location = '/'
-        scheme = 'file'
-        auth = token = None
+        scheme, auth, token = 'file', None, None
         return location, name, scheme, auth, token
 
     # Step 6. fall through to host:port as channel_location and path as channel_name
@@ -108,12 +111,15 @@ def _read_channel_configuration(host, port, path):
 
 
 def parse_conda_channel_url(url):
-    scheme, auth, token, platform, package_filename, host, port, path, query = split_conda_url_easy_parts(url)
+    (scheme, auth, token, platform, package_filename,
+     host, port, path, query) = split_conda_url_easy_parts(url)
 
     # recombine host, port, path to get a channel_name and channel_location
-    channel_location, channel_name, configured_scheme, configured_auth, configured_token = _read_channel_configuration(host, port, path)
+    (channel_location, channel_name, configured_scheme, configured_auth,
+     configured_token) = _read_channel_configuration(host, port, path)
 
-    # if we came out with no channel_location or channel_name, we need to figure it out from host, port, path
+    # if we came out with no channel_location or channel_name, we need to figure it out
+    # from host, port, path
     assert channel_location is not None
     assert channel_name is not None
 
@@ -126,11 +132,11 @@ def parse_conda_channel_url(url):
                    package_filename)
 
 
-def split_name_subname(name):
-    return name.split('/', 1) if '/' in name else (name, None)
-
-
 class ChannelType(type):
+    """
+    This metaclass does basic caching and enables static constructor method usage with a
+    single arg.
+    """
 
     def __call__(cls, *args, **kwargs):
         if len(args) == 1 and not kwargs:
@@ -179,8 +185,7 @@ class Channel(object):
 
     @staticmethod
     def from_channel_name(channel_name):
-        name, subname = split_name_subname(channel_name)
-        return _get_channel_for_name(name, subname)
+        return _get_channel_for_name(channel_name)
 
     @staticmethod
     def from_value(value):
@@ -199,7 +204,6 @@ class Channel(object):
         else:
             # at this point assume we don't have a bare (non-scheme) url
             #   e.g. this would be bad:  repo.continuum.io/pkgs/free
-            name, subname = split_name_subname(value)
             if value in context.custom_multichannels:
                 return MultiChannel(value, context.custom_multichannels[value])
             else:
@@ -238,6 +242,19 @@ class Channel(object):
     @property
     def base_url(self):
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+
+    def __str__(self):
+        return self.base_url
+
+    def __repr__(self):
+        return ("Channel(scheme=%s, auth=%s, location=%s, token=%s, name=%s, platform=%s, "
+                "package_filename=%s)" % (self.scheme,
+                                          self.auth and "%s:<PASSWORD>" % self.auth.split(':')[0],
+                                          self.location,
+                                          self.token and "<TOKEN>",
+                                          self.name,
+                                          self.platform,
+                                          self.package_filename))
 
     def __eq__(self, other):
         return self.location == other.location and self.name == other.name

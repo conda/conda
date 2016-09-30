@@ -8,7 +8,7 @@ from requests import get
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from ..common.io import captured
-from ..common.url import is_ip_address, replace_host, replace_path, urlparse
+from ..common.url import is_ip_address, replace_host, replace_path, split_anaconda_token, urlparse
 
 log = getLogger(__name__)
 
@@ -87,22 +87,6 @@ def get_binstar_server_url_pair(url):
     return None, url
 
 
-def extract_token_from_url(url):
-    """
-    Examples:
-        >>> extract_token_from_url("https://1.2.3.4/t/tk-123-456/path")
-        ('https://1.2.3.4/path', 'tk-123-456')
-        >>> extract_token_from_url("https://some.domain/api/t/tk-123-456/path")
-        ('https://some.domain/api/path', 'tk-123-456')
-        >>> extract_token_from_url("https://1.2.3.4/conda/t/tk-123-456/path")
-        ('https://1.2.3.4/conda/path', 'tk-123-456')
-    """
-    _token_match = re.search(r'/t/([a-zA-Z0-9-]+)', url)
-    token = _token_match.groups()[0] if _token_match else None
-    cleaned_url = url.replace('/t/' + token, '', 1) if token else url
-    return cleaned_url, token
-
-
 def get_binstar_domain_and_token_for_site(anaconda_site):
     bs_client = get_binstar_client(anaconda_site)
     return bs_client.domain, bs_client.token
@@ -110,7 +94,7 @@ def get_binstar_domain_and_token_for_site(anaconda_site):
 
 def get_channel_url_components(channel_url):
     # try to extract a binstar api token from the url
-    cleaned_url, token = extract_token_from_url(channel_url)
+    cleaned_url, token = split_anaconda_token(channel_url)
     if token:
         # a token was given in the channel_url
         # remove it and handle it separately

@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 from collections import Sequence
+from conda._vendor.auxlib.decorators import memoizedproperty
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
@@ -18,7 +19,7 @@ from .._vendor.auxlib.path import expand
 from ..common.compat import iteritems, odict
 from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
                                     SequenceParameter)
-from ..common.url import (has_scheme, join_url, path_to_url, split_scheme_auth_token, urlparse)
+from ..common.url import (has_scheme, path_to_url, split_scheme_auth_token, urlparse)
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 try:
@@ -78,8 +79,9 @@ class Context(Configuration):
 
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))
-    migrated_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings  # NOQA
-    _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS, aliases=('default_channels',))
+    migrated_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings
+    _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
+                                          aliases=('default_channels',))
     _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
     _custom_multichannels = MapParameter(Sequence, aliases=('custom_multichannels',))
@@ -212,12 +214,12 @@ class Context(Configuration):
     def conda_prefix(self):
         return sys.prefix
 
-    @property
+    @memoizedproperty
     def channel_alias(self):
-        if self.conda_repo_token:
-            return join_url(self.conda_repo_url, 't', self.conda_repo_token)
-        else:
-            return self.conda_repo_url
+        from ..models.channel import Channel
+        location, scheme, auth, token = split_scheme_auth_token(self.conda_repo_url)
+        return Channel(scheme=scheme, auth=auth, location=location,
+                       token=token or self.conda_repo_token)
 
     @property
     def binstar_api_url(self):
@@ -267,20 +269,21 @@ class Context(Configuration):
 
     def make_simple_channel(self, channel_url, name=None):
         from conda.models.channel import Channel
-        ca_location, ca_scheme, ca_auth, ca_token = split_scheme_auth_token(self.channel_alias)
+        ca = self.channel_alias
         test_url, scheme, auth, token = split_scheme_auth_token(channel_url)
         if name and scheme:
-            return Channel(scheme=scheme, auth=auth, location=test_url, token=token, name=name.strip('/'))
+            return Channel(scheme=scheme, auth=auth, location=test_url, token=token,
+                           name=name.strip('/'))
         if scheme:
-            if test_url.startswith(ca_location):
-                location, name = ca_location, test_url.replace(ca_location, '', 1)
+            if test_url.startswith(ca.location):
+                location, name = ca.location, test_url.replace(ca.location, '', 1)
             else:
                 url_parts = urlparse(test_url)
                 location, name = Url(host=url_parts.host, port=url_parts.port).url, url_parts.path
             return Channel(scheme=scheme, auth=auth, location=location, token=token,
                            name=name.strip('/'))
         else:
-            return Channel(scheme=ca_scheme, auth=ca_auth, location=ca_location, token=ca_token,
+            return Channel(scheme=ca.scheme, auth=ca.auth, location=ca.location, token=ca.token,
                            name=name and name.strip('/') or channel_url.strip('/'))
 
     @property
@@ -371,7 +374,8 @@ def get_help_dict():
         'client_tls_cert': dals("""
             # client_tls_cert can be a path pointing to a single file
             # containing the private key and the certificate (e.g. .pem),
-            # or use 'client_tls_cert_key' in conjuction with 'client_tls_cert' for individual files
+            # or use 'client_tls_cert_key' in conjuction with 'client_tls_cert' for
+            # individual files
             """),
         'client_tls_cert_key': dals("""
             # used in conjunction with 'client_tls_cert' for a matching key file

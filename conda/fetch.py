@@ -23,7 +23,7 @@ from ._vendor.auxlib.logz import stringify
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import add_username_and_pass_to_url, url_to_path
-from .compat import input, iteritems, itervalues
+from .compat import input, iteritems, itervalues, text_type
 from .connection import CondaSession, RETRIES
 from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError, \
     ProxyError
@@ -149,7 +149,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
             return None
 
-        elif e.response.status_code == 401 and context.channel_alias in url:
+        elif e.response.status_code == 401 and text_type(context.channel_alias) in url:
             # Note, this will not trigger if the binstar configured url does
             # not match the conda configured one.
             msg = ("Warning: you may need to login to anaconda.org again with "
