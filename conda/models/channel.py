@@ -12,11 +12,11 @@ except ImportError:
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concatv, topk
 
-from ..base.constants import RECOGNIZED_URL_SCHEMES
 from ..base.context import context
-from ..common.compat import odict, with_metaclass, iteritems, itervalues
+from ..common.compat import odict, with_metaclass, iteritems
 from ..common.url import (is_url, urlparse, join_url, split_scheme_auth_token,
-                          split_conda_url_easy_parts, is_windows_path, path_to_url, on_win)
+                          split_conda_url_easy_parts, is_windows_path, path_to_url, on_win,
+                          has_scheme)
 
 log = getLogger(__name__)
 
@@ -25,9 +25,6 @@ log = getLogger(__name__)
 def get_conda_build_local_url():
     return context.local_build_root,
 
-
-def has_scheme(value):
-    return bool(urlparse(value).scheme in RECOGNIZED_URL_SCHEMES)
 
 """
 scheme <> auth <> location <> token <> channel <> subchannel <> platform <> package_filename
@@ -107,7 +104,6 @@ def _read_channel_configuration(host, port, path):
         return location, name, scheme, auth, token
 
     # Step 6. fall through to host:port as channel_location and path as channel_name
-    print(6)
     return Url(host=host, port=port).url.rstrip('/'), path.strip('/'), None, None, None
 
 
@@ -206,8 +202,6 @@ class Channel(object):
             name, subname = split_name_subname(value)
             if value in context.custom_multichannels:
                 return MultiChannel(value, context.custom_multichannels[value])
-            elif value == 'defaults':
-                return MultiChannel('defaults', context.default_channels)
             else:
                 return Channel.from_channel_name(value)
 

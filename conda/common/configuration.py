@@ -442,8 +442,8 @@ class Parameter(object):
         # strategy is "extract and merge," which is actually just map and reduce
         # extract matches from each source in SEARCH_PATH
         # then merge matches together
-        if self.name in instance._cache:
-            return instance._cache[self.name]
+        if self.name in instance._cache_:
+            return instance._cache_[self.name]
 
         matches, errors = self._get_all_matches(instance)
         try:
@@ -454,7 +454,7 @@ class Parameter(object):
         else:
             errors.extend(self.collect_errors(instance, result))
         raise_errors(errors)
-        instance._cache[self.name] = result
+        instance._cache_[self.name] = result
         return result
 
     def collect_errors(self, instance, value, source="<<merged>>"):
@@ -689,7 +689,7 @@ class Configuration(object):
 
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         self.raw_data = odict()
-        self._cache = dict()
+        self._cache_ = dict()
         self._validation_errors = defaultdict(list)
         if search_path:
             self._add_search_path(search_path)
@@ -703,7 +703,7 @@ class Configuration(object):
 
     def _add_env_vars(self, app_name):
         self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def _add_argparse_args(self, argparse_args):
@@ -711,12 +711,12 @@ class Configuration(object):
                                        if v is not NULL)
         source = ArgParseRawParameter.source
         self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def _add_raw_data(self, raw_data):
         self.raw_data.update(raw_data)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def check_source(self, source):

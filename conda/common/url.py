@@ -118,6 +118,10 @@ def join(*args):
 join_url = join
 
 
+def has_scheme(value):
+    return re.match(r'[a-z][a-z0-9]{0,11}://', value)
+
+
 def strip_scheme(url):
     return url.split('://', 1)[-1]
 

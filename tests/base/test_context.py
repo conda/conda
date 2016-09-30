@@ -48,7 +48,7 @@ class ContextTests(TestCase):
         url = "https://conda.anaconda.org/conda-forge/osx-64/some-great-package.tar.bz2"
         assert Channel(url).canonical_name == 'conda-forge'
         assert Channel(url).base_url == 'ftp://new.url:8082/conda-forge'
-        assert Channel(url).urls == 'ftp://new.url:8082/conda-forge/osx-64/'
+        assert Channel(url).urls == ['ftp://new.url:8082/conda-forge/osx-64/']
         assert Channel("https://conda.anaconda.org/conda-forge/label/dev/linux-64/"
                        "some-great-package.tar.bz2"
                        ).urls == ["ftp://new.url:8082/conda-forge/label/dev/linux-64/"]

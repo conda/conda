@@ -78,13 +78,6 @@ PLATFORM_DIRECTORIES = ("linux-64",
                         "noarch",
                         )
 
-RECOGNIZED_URL_SCHEMES = ('http',
-                          'https',
-                          'ftp',
-                          's3',
-                          'file',
-                          )
-
 
 if Platform.from_sys() is Platform.win:
     DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
