@@ -45,6 +45,11 @@ osx_setup() {
     else
         brew install ksh
     fi
+    if [[ $(which posh) ]]; then
+        brew outdated posh || brew upgrade posh
+    else
+        brew install posh
+    fi
     if [[ $(which tcsh) ]]; then
         brew outdated tcsh || brew upgrade tcsh
     else
