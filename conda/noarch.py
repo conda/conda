@@ -93,6 +93,7 @@ def compile_missing_pyc(prefix, files, cwd):
 
 
 def create_entry_points(src_dir, bin_dir, prefix):
+    entry_points_dst = []
     from conda.install import linked
     if sys.platform == 'win32':
         python_path = join(prefix, "python.exe")
@@ -116,11 +117,15 @@ def create_entry_points(src_dir, bin_dir, prefix):
                     fo.write('#!python_d\n')
                 fo.write(pyscript)
             link_package(join(dirname(__file__), 'cli-%d.exe' % context.bits), path + '.exe')
+            entry_points_dst.append(path + '-script.py')
+            entry_points_dst.append(path + '.exe')
         else:
             with open(path, 'w') as fo:
                 fo.write('#!%s\n' % python_path)
                 fo.write(pyscript)
             os.chmod(path, int('755', 8))
+            entry_points_dst.append(path)
+    return entry_points_dst
 
 
 def remove_pycache(package_dir):
@@ -176,7 +181,7 @@ class NoArchPython(NoArch):
             prefix, linked_files, join(prefix, site_packages_dir, 'site-packages')
         )
 
-        create_entry_points(src_dir, bin_dir, prefix)
+        linked_files.extend(create_entry_points(src_dir, bin_dir, prefix))
 
         from conda.install import dist2filename
         alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
