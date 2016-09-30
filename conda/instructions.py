@@ -212,8 +212,6 @@ def check_size(path, size):
     :return:    True or False
     """
     free = get_free_space(path)
-    # print("The free is {0},
-    # and the required is {1}".format(free, size))
     if free < size:
         raise CondaIOError("Not enough space in {}".format(path))
 
@@ -270,8 +268,8 @@ commands = {
     RM_EXTRACTED: RM_EXTRACTED_CMD,
     RM_FETCHED: RM_FETCHED_CMD,
     CHECK_LINK: CHECK_LINK_CMD,
-    CHECK_UNLINK: CHECK_UNLINK_CMD,
     LINK: LINK_CMD,
+    CHECK_UNLINK: CHECK_UNLINK_CMD,
     UNLINK: UNLINK_CMD,
     SYMLINK_CONDA: SYMLINK_CONDA_CMD,
 }
