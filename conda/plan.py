@@ -268,7 +268,6 @@ def add_checks(actions):
     Returns:
         the actions dict with the appropriate checks added
     """
-
     if inst.LINK in actions:
         actions.setdefault(inst.CHECK_LINK, [True])
     if inst.UNLINK in actions:
@@ -329,8 +328,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.RM_FETCHED, inst.CHECK_FETCH, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.CHECK_EXTRACT, inst.EXTRACT, inst.CHECK_UNLINK,
+    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
+                           inst.RM_EXTRACTED, inst.EXTRACT, inst.CHECK_UNLINK,
                            inst.UNLINK, inst.CHECK_LINK, inst.LINK, inst.SYMLINK_CONDA)
 
     for dist in dists:
