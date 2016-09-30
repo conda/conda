@@ -514,7 +514,8 @@ class PrimitiveParameter(Parameter):
             default (Any):  The parameter's default value.
             aliases (Iterable[str]): Alternate names for the parameter.
             validation (callable): Given a parameter value as input, return a boolean indicating
-                validity, or alternately return a string describing an invalid value.
+                validity, or alternately return a string describing an invalid value. Returning
+                `None` also indicates a valid value.
             parameter_type (type or Tuple[type]): Type-validation of parameter's value. If None,
                 type(default) is used.
 

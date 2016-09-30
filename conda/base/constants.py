@@ -5,15 +5,12 @@ The exception is if a literal is specifically meant to be private to and isolate
 """
 from __future__ import absolute_import, division, print_function
 
-import os
 import sys
 from enum import Enum
 from logging import getLogger
-from os.path import join
 from platform import machine
 
 from .._vendor.auxlib.collection import frozendict
-from ..common.url import path_to_url
 
 log = getLogger(__name__)
 
@@ -81,7 +78,12 @@ PLATFORM_DIRECTORIES = ("linux-64",
                         "noarch",
                         )
 
-RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
+RECOGNIZED_URL_SCHEMES = ('http',
+                          'https',
+                          'ftp',
+                          's3',
+                          'file',
+                          )
 
 
 if Platform.from_sys() is Platform.win:
@@ -93,28 +95,6 @@ else:
     DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
                         'https://repo.continuum.io/pkgs/pro',
                         )
-
-RESERVED_CHANNELS = {
-    'free': 'https://repo.continuum.io/pkgs',
-    'pro': 'https://repo.continuum.io/pkgs',
-    'r': 'https://repo.continuum.io/pkgs',
-    'mro': 'https://repo.continuum.io/pkgs',
-    'msys2': 'https://repo.continuum.io/pkgs',
-    'conda-bld': path_to_url(sys.prefix),
-}
-
-RESERVED_MULTICHANNELS = {
-    # 'defaults': [
-    #     'free',
-    #     'pro'
-    # ],
-    'local': [
-        path_to_url(join(sys.prefix, 'conda-bld')),
-    ],
-}
-# if Platform.from_sys() is Platform.win:
-#     RESERVED_MULTICHANNELS['defaults'].append('msys2')
-
 
 ROOT_ENV_NAME = 'root'
 

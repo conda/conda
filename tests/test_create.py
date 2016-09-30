@@ -272,7 +272,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-3.4.')
 
     @pytest.mark.timeout(300)
-    def test_tarball_install_and_bad_metadata(self):
+    def test_install_tarball_from_local_channel(self):
         with make_temp_env("python flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
@@ -283,28 +283,7 @@ class IntegrationTests(TestCase):
             flask_fname = flask_data['fn']
             tar_old_path = join(context.pkgs_dirs[0], flask_fname)
 
-            # regression test for #2886 (part 1 of 2)
-            # install tarball from package cache, default channel
-            run_command(Commands.INSTALL, prefix, tar_old_path)
-            assert_package_is_installed(prefix, 'flask-0.')
-
-            # regression test for #2626
-            # install tarball with full path, outside channel
-
-            tar_new_path = join(prefix, flask_fname)
-            copyfile(tar_old_path, tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert_package_is_installed(prefix, 'flask-0')
-
-            # regression test for #2626
-            # install tarball with relative path, outside channel
-            run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask-0.10.1')
-            tar_new_path = relpath(tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert_package_is_installed(prefix, 'flask-0.')
-
-            # Regression test for 2812
+            # Regression test for #2812
             # install from local channel
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
@@ -339,6 +318,38 @@ class IntegrationTests(TestCase):
                     os.rename(subchan, conda_bld_sub)
                 run_command(Commands.INSTALL, prefix, tar_bld_path)
                 assert_package_is_installed(prefix, 'flask-')
+
+    @pytest.mark.timeout(300)
+    def test_tarball_install_and_bad_metadata(self):
+        with make_temp_env("python flask=0.10.1") as prefix:
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python')
+
+            flask_fname = flask_data['fn']
+            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+
+            # regression test for #2886 (part 1 of 2)
+            # install tarball from package cache, default channel
+            run_command(Commands.INSTALL, prefix, tar_old_path)
+            assert_package_is_installed(prefix, 'flask-0.')
+
+            # regression test for #2626
+            # install tarball with full path, outside channel
+            tar_new_path = join(prefix, flask_fname)
+            copyfile(tar_old_path, tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert_package_is_installed(prefix, 'flask-0')
+
+            # regression test for #2626
+            # install tarball with relative path, outside channel
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            tar_new_path = relpath(tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert_package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2886 (part 2 of 2)
             # install tarball from package cache, local channel

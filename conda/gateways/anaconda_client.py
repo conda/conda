@@ -44,7 +44,7 @@ def get_conda_url_from_binstar_api(url):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", InsecureRequestWarning)
-            r = get(url, timeout=(3.05, 27), headers={'Content-Type': 'application/json'},
+            r = get(url, timeout=(3.05, 6.1), headers={'Content-Type': 'application/json'},
                     verify=False)  # We'll respect context.ssl_verify on all other calls
         r.raise_for_status()
         return r.json()['conda_url']
@@ -78,7 +78,7 @@ def get_binstar_server_url_pair(url):
 
     # Step 4. Replace first occurrence of "conda" with "api"
     #         Note: Dangerous since users could legitimately have /conda in this url
-    test_url = re.sub(r'/conda([./])', r'/api\1', url, count=1)
+    test_url = re.sub(r'([./])conda([./])', r'\1api\2', url, count=1)
     result = get_conda_url_from_binstar_api(test_url)
     if result:
         return test_url, result

@@ -111,7 +111,7 @@ def replace_host(url_parts, new_host):
 
 
 def join(*args):
-    start = '/' if args[0].startswith('/') else ''
+    start = '/' if not args[0] or args[0].startswith('/') else ''
     return start + '/'.join(y for y in (x.strip('/') for x in args if x) if y)
 
 
@@ -135,6 +135,8 @@ def split_anaconda_token(url):
         (u'https://1.2.3.4/conda/path', u'tk-123-456')
         >>> split_anaconda_token("https://1.2.3.4/path")
         (u'https://1.2.3.4/path', None)
+        >>> split_anaconda_token("https://10.2.3.4:8080/conda/t/tk-123-45")
+        (u'https://10.2.3.4:8080/conda', u'tk-123-45')
     """
     _token_match = re.search(r'/t/([a-zA-Z0-9-]*)', url)
     token = _token_match.groups()[0] if _token_match else None
@@ -174,6 +176,7 @@ def split_scheme_auth_token(url):
 
 
 def split_conda_url_easy_parts(url):
+    # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(cleaned_url)
     cleaned_url, package_filename = split_package_filename(cleaned_url)

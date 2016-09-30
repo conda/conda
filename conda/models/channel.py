@@ -12,9 +12,9 @@ except ImportError:
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concatv, topk
 
-from ..base.constants import RECOGNIZED_URL_SCHEMES, RESERVED_CHANNELS
+from ..base.constants import RECOGNIZED_URL_SCHEMES
 from ..base.context import context
-from ..common.compat import odict, with_metaclass, iteritems
+from ..common.compat import odict, with_metaclass, iteritems, itervalues
 from ..common.url import (is_url, urlparse, join_url, split_scheme_auth_token,
                           split_conda_url_easy_parts, is_windows_path, path_to_url, on_win)
 
@@ -50,17 +50,14 @@ def tokenized_conda_url_startswith(test_url, startswith_url):
                                 norm_url_path(startswith_url).split('/'))
 
 
-def _get_location_for_name(name, subname=None):
+def _get_channel_for_name(name, subname=None):
     if subname and join_url(name, subname) in context.custom_channels:
-        location = context.custom_channels[join_url(name, subname)]
+        return context.custom_channels[join_url(name, subname)]
     elif name in context.custom_channels:
-        location = context.custom_channels[name]
-    elif name in RESERVED_CHANNELS:
-        location = RESERVED_CHANNELS[name]
+        return context.custom_channels[name]
     else:
-        location = context.channel_alias
-
-    return split_scheme_auth_token(location)  # location, scheme, auth, token
+        location, scheme, auth, token = split_scheme_auth_token(context.channel_alias)
+        return Channel(scheme=scheme, auth=auth, location=location, token=token, name=join_url(name, subname))
 
 
 def _read_channel_configuration(host, port, path):
@@ -74,8 +71,8 @@ def _read_channel_configuration(host, port, path):
         if tokenized_conda_url_startswith(test_url, join_url(location, name)):
             subname = test_url.replace(join_url(location, name), '', 1).strip('/')
             # translate location to new location, with new credentials
-            location, scheme, auth, token = _get_location_for_name(name, subname)
-            return location, join_url(name, subname), scheme, auth, token
+            channel = _get_channel_for_name(name, subname)
+            return channel.location, join_url(name, subname), channel.scheme, channel.auth, channel.token
 
     # Step 2. migrated_channel_aliases matches
     for migrated_alias in context.migrated_channel_aliases:
@@ -85,12 +82,12 @@ def _read_channel_configuration(host, port, path):
             channel_alias_location, scheme, auth, token = split_scheme_auth_token(context.channel_alias)
             return channel_alias_location, name, scheme, auth, token
 
-    # Step 3. RESERVED_CHANNELS matches
-    for name, location in concatv(iteritems(context.custom_channels), iteritems(RESERVED_CHANNELS)):
-        location, scheme, auth, token = split_scheme_auth_token(location)
-        if tokenized_conda_url_startswith(test_url, join_url(location, name)):
-            subname = test_url.replace(join_url(location, name), '', 1).strip('/')
-            return location, join_url(name, subname), scheme, auth, token
+    # Step 3. custom_channels matches
+    for name, channel in iteritems(context.custom_channels):
+        that_test_url = join_url(channel.location, channel.name)
+        if test_url.startswith(that_test_url):
+            subname = test_url.replace(that_test_url, '', 1).strip('/')
+            return channel.location, join_url(channel.name, subname), channel.scheme, channel.auth, channel.token
 
     # Step 4. channel_alias match
     channel_alias_location, scheme, auth, token = split_scheme_auth_token(context.channel_alias)
@@ -98,7 +95,19 @@ def _read_channel_configuration(host, port, path):
         name = test_url.replace(channel_alias_location, '', 1).strip('/')
         return channel_alias_location, name, scheme, auth, token
 
-    # Step 5. fall through to host:port as channel_location and path as channel_name
+    # Step 5. not-otherwise-specified file://-type urls
+    if host is None:
+        # this should probably only happen with a file:// type url
+        assert port is None
+        location, name = test_url.rsplit('/', 1)
+        if not location:
+            location = '/'
+        scheme = 'file'
+        auth = token = None
+        return location, name, scheme, auth, token
+
+    # Step 6. fall through to host:port as channel_location and path as channel_name
+    print(6)
     return Url(host=host, port=port).url.rstrip('/'), path.strip('/'), None, None, None
 
 
@@ -160,7 +169,6 @@ class Channel(object):
         self.platform = platform
         self.package_filename = package_filename
 
-
     @property
     def channel_location(self):
         return self.location
@@ -176,8 +184,7 @@ class Channel(object):
     @staticmethod
     def from_channel_name(channel_name):
         name, subname = split_name_subname(channel_name)
-        location, scheme, auth, token = _get_location_for_name(name, subname)
-        return Channel(scheme, auth, location, token, channel_name)
+        return _get_channel_for_name(name, subname)
 
     @staticmethod
     def from_value(value):
@@ -206,18 +213,22 @@ class Channel(object):
 
     @property
     def canonical_name(self):
-        name, subname = split_name_subname(self.name)
-
         for multiname, channels in iteritems(context.custom_multichannels):
             for channel in channels:
-                this_name, _ = split_name_subname(channel.name)
-                if name == this_name:
+                if self.name == channel.name:
                     return multiname
 
-        if any(self.name == c.name for c in context.default_channels):
-            return 'defaults'
+        for that_name in context.custom_channels:
+            if tokenized_startswith(self.name.split('/'), that_name.split('/')):
+                return self.name
 
-        return self.name  # TODO: review implications with mcg
+        if any(split_scheme_auth_token(c)[0] == self.location
+               for c in concatv((context.channel_alias,), context.migrated_channel_aliases)):
+            return self.name
+
+        # fall back to the equivalent of self.base_url
+        # re-defining here because base_url for MultiChannel is None
+        return "%s://%s/%s" % (self.scheme, self.location, self.name)
 
     @property
     def urls(self):
@@ -232,7 +243,7 @@ class Channel(object):
 
     @property
     def base_url(self):
-        return "%s://%s/%s" % (self.scheme, self.location, self.name)
+        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
     def __eq__(self, other):
         return self.location == other.location and self.name == other.name
