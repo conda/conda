@@ -30,22 +30,22 @@ osx_setup() {
     fi
 
     # test for shells before trying to install them
-    if [[ $(which dash) ]]; then
+    if [[ $(brew list | grep dash) ]]; then
         brew outdated dash || brew upgrade dash
     else
         brew install dash
     fi
-    if [[ $(which zsh) ]]; then
+    if [[ $(brew list | grep zsh) ]]; then
         brew outdated zsh || brew upgrade zsh
     else
         brew install zsh
     fi
-    if [[ $(which ksh) ]]; then
+    if [[ $(brew list | grep ksh) ]]; then
         brew outdated ksh || brew upgrade ksh
     else
         brew install ksh
     fi
-    if [[ $(which tcsh) ]]; then
+    if [[ $(brew list | grep tcsh) ]]; then
         brew outdated tcsh || brew upgrade tcsh
     else
         brew install tcsh
