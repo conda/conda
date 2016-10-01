@@ -33,7 +33,7 @@ class ExportIntegrationTests(TestCase):
             output2, error= run_command(Commands.LIST, prefix2, "-e")
             self.assertEqual(output, output2)
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 10, 1), reason="Bring back `conda list --export` #3445")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 11, 1), reason="Bring back `conda list --export` #3445")
     def test_multi_channel_export(self):
         """
             When try to import from txt
@@ -48,7 +48,7 @@ class ExportIntegrationTests(TestCase):
 
             output, error = run_command(Commands.LIST, prefix, "-e")
             self.assertIn("conda-forge", output)
-            
+
             try:
                 with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
                     env_txt.write(output)
