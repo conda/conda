@@ -509,7 +509,7 @@ class Resolve(object):
             raise UnsatisfiableError(save_unsat)
 
         dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
-        return dists, list(map(MatchSpec, snames - {ms.name for ms in specs}))
+        return dists
 
     def match_any(self, mss, fkey):
         rec = self.index[fkey]
@@ -881,7 +881,7 @@ class Resolve(object):
             # Find the compliant packages
             len0 = len(specs)
             specs = list(map(MatchSpec, specs))
-            dists, new_specs = self.get_dists(specs)
+            dists = self.get_dists(specs)
             if not dists:
                 return False if dists is None else ([[]] if returnall else [])
 
@@ -905,7 +905,7 @@ class Resolve(object):
             specr = []  # requested packages
             speca = []  # all other packages
             specm = set(r2.groups)  # missing from specs
-            for k, s in enumerate(chain(specs, new_specs)):
+            for k, s in enumerate(specs):
                 if s.name in specm:
                     specm.remove(s.name)
                 if not s.optional:
