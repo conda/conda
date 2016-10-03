@@ -5,6 +5,7 @@
 Table of contents:
 
 #. :ref:`permission-denied`
+#. :ref:`fix-broken-conda`
 #. :ref:`conda-claims-installed`
 #. :ref:`DistributionNotFound`
 #. :ref:`unknown-locale`
@@ -21,7 +22,7 @@ Issue:  permission denied errors during install
 
 umask is a command that determines the mask settings that control how file permissions are set for newly created files. If you have a very restrictive umask (such as 077), you will see "permission denied" errors.
 
-Resolution:  set less restrictive umask before calling conda commands.
+Resolution:  set less restrictive umask before calling conda commands
 ----------------------------------------------------------------------
 
 Conda was intended as a user space tool, but often users need to use it in a global environment. One place this can go awry is with restrictive file permissions.  Conda creates links when you install files that have to be read by others on the system.
@@ -37,19 +38,37 @@ To give yourself full permissions for files and directories, but prevent the gro
 
 For more information on umask, please visit `http://en.wikipedia.org/wiki/Umask <http://en.wikipedia.org/wiki/Umask>`_.
 
+.. _fix-broken-conda:
+
+Issue: My conda is broken and I want to fix it without blowing away the current installation
+============================================================================================
+
+I am getting a conda error and want to reinstall Miniconda to fix it but when I try, it gives me the error that Miniconda (or Anaconda) is already installed and will not let me continue. I want to force the installation. 
+
+Resolution: Install Miniconda using the -f (force) option
+---------------------------------------------------------
+
+Download and install the appropriate Miniconda for your computer operating system from the `Miniconda download page <http://conda.pydata.org/miniconda.html>`_ using the force or ``-f`` option as shown: 
+
+   .. code-block:: bash
+
+bash Miniconda3-latest-MacOSX-x86_64.sh -f
+
+NOTE: Substitute the appropriate filename and version for your operating system.
+
 
 .. _conda-claims-installed:
 
-Issue: Conda claims that a package is installed, but it appears not to be.
-==========================================================================
+Issue: Conda claims that a package is installed, but it appears not to be
+=========================================================================
 
 Sometimes conda will claim that a package is already installed, but it will
 not appear to be, e.g., a Python package that gives ImportError.
 
 There are a few possible causes of this issue:
 
-Resolution: Make sure you are in the right conda environment.
--------------------------------------------------------------
+Resolution: Make sure you are in the same conda environment as your package
+---------------------------------------------------------------------------
 
 ``conda info`` will tell you what environment is currently active (under
 "default environment"). You can verify that you are using the Python from the
@@ -60,11 +79,10 @@ correct environment by running
    import sys
    print(sys.prefix)
 
-Resolution: For Python packages, make sure you do not have ``PYTHONPATH`` or ``PYTHONHOME`` set.
-------------------------------------------------------------------------------------------------
+Resolution: For Python packages, make sure you have not set the ``PYTHONPATH`` or ``PYTHONHOME`` variable
+---------------------------------------------------------------------------------------------------------
 
-The command ``conda info -a`` will show you the values of these environment
-variables.
+The command ``conda info -a`` will show you the values of these environment variables.
 
 These environment variables cause Python to load files from locations other
 than the standard ones. Conda works best when these environment variables are
@@ -78,8 +96,8 @@ PYTHONPATH``. To unset them permanently, check for lines in the files
 ``~/.zshrc`` if you use zsh, or the file output by ``$PROFILE`` if you use
 PowerShell on Windows.
 
-Resolution: For Python packages, remove any site-specific directories.
-----------------------------------------------------------------------
+Resolution: For Python packages, remove any site-specific directories
+---------------------------------------------------------------------
 
 Another possibility for Python are so-called site-specific files. These
 typically live in ``~/.local`` on Unix. The full description of where
@@ -88,8 +106,8 @@ site-specific packages can be found is in `PEP 370
 Python may try importing packages from this directory, which can cause
 issues. The recommended fix is to remove the site-specific directory.
 
-Resolution: For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on OS X.
-----------------------------------------------------------------------------------------------------------------------------
+Resolution: For C libraries, unset the environment variables ``LD_LIBRARY_PATH`` on Linux and ``DYLD_LIBRARY_PATH`` on OS X
+---------------------------------------------------------------------------------------------------------------------------
 
 These act similarly to ``PYTHONPATH`` for Python. If they are set, they can
 cause libraries to be loaded from locations other than the Conda
@@ -98,8 +116,8 @@ variables, so it is recommended to unset them if they are set, unless you know
 what you are doing. ``conda info -a`` will show what these are set to (on the
 relevant operating system).
 
-Resolution: Occasionally, an installed package will become corrupted.
----------------------------------------------------------------------
+Resolution: Occasionally, an installed package will become corrupted
+--------------------------------------------------------------------
 
 Conda works by unpacking the packages in the pkgs directory and then hard
 linking them to the environment. Sometimes these get corrupted somehow,
@@ -181,8 +199,8 @@ Issue: ``AttributeError`` or missing ``getproxies``
 When running a command such as ``conda update ipython``, you may get an
 ``AttributeError: 'module' object has no attribute 'getproxies'``.
 
-Resolution: Update ``requests`` and be sure ``PYTHONPATH`` is not set.
-----------------------------------------------------------------------
+Resolution: Update ``requests`` and be sure ``PYTHONPATH`` is not set
+---------------------------------------------------------------------
 
 This can be caused by an old version of ``requests``, or by having the ``PYTHONPATH``
 environment variable set.
