@@ -346,7 +346,7 @@ class Resolve(object):
                         yield (spec,) + x
         return list(chains_(spec, set()))
 
-    def verify_specs(self, specs):
+    def verify_specs(self, specs, is_conflict=False):
         """Perform a quick verification that specs and dependencies are reasonable.
 
         Args:
@@ -365,19 +365,21 @@ class Resolve(object):
             if ms.name[-1] == '@':
                 self.add_feature(ms.name[:-1])
                 feats.add(ms.name[:-1])
-                continue
             else:
                 spec2.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
             if not self.valid(ms, filter):
                 bad_deps.extend(self.invalid_chains(ms, filter))
+            elif is_conflict:
+                bad_deps.append((ms,))
         if bad_deps:
-            raise NoPackagesFoundError(bad_deps)
+            err = UnsatisfiableError if is_conflict else NoPackagesFoundError
+            raise err(bad_deps)
         return spec2, feats
 
-    def get_dists(self, specs):
-        log.debug('Retrieving packages for: %s' % specs)
+    def get_dists(self, specs, include_unsat=True):
+        log.debug('Retrieving packages for: %s' % (specs,))
 
         specs, features = self.verify_specs(specs)
         filter = {}
@@ -385,129 +387,117 @@ class Resolve(object):
         snames = set()
         unsat = set()
 
-        def filter_group(matches, chains=None):
+        def filter_group(matches):
             # If we are here, then this dependency is mandatory,
             # so add it to the master list. That way it is still
             # participates in the pruning even if one of its
             # parents is pruned away
-            if unsat:
-                return False
             match1 = next(ms for ms in matches)
             isopt = any(ms.optional for ms in matches)
             name = match1.name
+            # If this package is in the unsat list, skip filtering.
+            # We want to keep all packages that could be installed
+            # if this dependency were not an issue.
+            if name in unsat:
+                return False
             first = name not in snames
             group = self.groups.get(name, [])
 
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
-            nold = 0
-            bad_deps = []
+            nold = nnew = 0
             for fkey in group:
                 if filter.setdefault(fkey, True):
                     nold += 1
-                    sat = self.match_any(matches, fkey)
+                    sat = match1.is_simple() or self.match_any(matches, fkey)
                     sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
                                       for ms in self.ms_depends(fkey))
                     filter[fkey] = sat
-                    if not sat:
-                        bad_deps.append(fkey)
+                    nnew += sat
 
             # Build dependency chains if we detect unsatisfiability
-            nnew = nold - len(bad_deps)
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
-                if isopt:
-                    return nnew != 0
-                bad_deps = [fkey for fkey in bad_deps if self.match_any(matches, fkey)]
-                matches = [(ms,) for ms in matches]
-                chains = [a + b for a in chains for b in matches] if chains else matches
-                if bad_deps:
-                    dep2 = set()
-                    for fkey in bad_deps:
-                        for ms in self.ms_depends(fkey):
-                            if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
-                                dep2.add(ms)
-                    chains = [a + (b,) for a in chains for b in dep2]
-                unsat.update(chains)
+                if not isopt:
+                    unsat.add(name)
                 return nnew != 0
-            if not reduced and not first:
-                return False
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            if first:
+            if first or reduced:
                 snames.add(name)
-            cdeps = defaultdict(list)
-            for fkey in group:
-                if filter[fkey]:
-                    for m2 in self.ms_depends(fkey):
-                        if m2.name[0] != '@' and not m2.optional:
-                            cdeps[m2.name].append(m2)
-            cdeps = {mname: set(deps) for mname, deps in iteritems(cdeps) if len(deps) >= nnew}
-            if cdeps:
-                matches = [(ms,) for ms in matches]
-                if chains:
-                    matches = [a + b for a in chains for b in matches]
-                if sum(filter_group(deps, chains) for deps in itervalues(cdeps)):
-                    reduced = True
+                cdeps = {}
+                for fkey in group:
+                    if filter[fkey]:
+                        for m2 in self.ms_depends(fkey):
+                            if m2.name[0] != '@' and m2.name not in unsat and not m2.optional:
+                                cdeps.setdefault(m2.name, []).append(m2)
+                for deps in itervalues(cdeps):
+                    if len(deps) >= nnew:
+                        if filter_group(set(deps)):
+                            reduced = True
 
             return reduced
 
         # Iterate in the filtering process until no more progress is made
         def full_prune(specs, features):
-            self.default_filter(features, filter)
-            feats = set(self.trackers.keys())
-            snames.clear()
-            specs = slist = list(specs)
-            onames = set(s.name for s in specs)
-            for iter in range(10):
-                first = True
-                while sum(filter_group([s]) for s in slist) and not unsat:
-                    slist = specs + [MatchSpec(n) for n in snames - onames]
-                    first = False
-                if unsat:
-                    return False
-                if first and iter:
-                    return True
-                touched.clear()
-                for fstr in features:
-                    touched[fstr+'@'] = True
-                for spec in specs:
-                    self.touch(spec, touched, filter)
-                nfeats = set()
-                for fkey, val in iteritems(touched):
-                    if val:
-                        nfeats.update(self.track_features(fkey))
-                if len(nfeats) >= len(feats):
-                    return True
-                pruned = False
-                for feat in feats - nfeats:
-                    feats.remove(feat)
-                    for fkey in self.trackers[feat]:
-                        if filter.get(fkey, True):
-                            filter[fkey] = False
-                            pruned = True
-                if not pruned:
-                    return True
+            for iter_o in range(10):
+                len_u = len(unsat)
+                self.default_filter(features, filter)
+                feats = set(self.trackers.keys())
+                snames.clear()
+                specs = slist = list(specs)
+                onames = set(s.name for s in specs)
+                for iter in range(10):
+                    first = True
+                    nfound = 1
+                    while sum(filter_group([s]) for s in slist) and len(unsat) == len_u:
+                        slist = [MatchSpec(s) for s in snames]
+                        first = False
+                    if len(unsat) > len_u:
+                        break
+                    if first and iter:
+                        return
+                    touched.clear()
+                    if unsat:
+                        self.default_filter(features, filter)
+                    else:
+                        for fstr in features:
+                            touched[fstr+'@'] = True
+                    for spec in specs:
+                        self.touch(spec, touched, filter)
+                    if unsat:
+                        return
+                    nfeats = set()
+                    for fkey, val in iteritems(touched):
+                        if val:
+                            nfeats.update(self.track_features(fkey))
+                    if len(nfeats) >= len(feats):
+                        return
+                    pruned = False
+                    for feat in feats - nfeats:
+                        feats.remove(feat)
+                        for fkey in self.trackers[feat]:
+                            if filter.get(fkey, True):
+                                filter[fkey] = False
+                                pruned = True
+                    if not pruned or iter == 9:
+                        return
 
         #
         # In the case of a conflict, look for the minimum satisfiable subset
         #
 
-        if not full_prune(specs, features):
-            def minsat_prune(specs):
-                return full_prune(specs, features)
-            save_unsat = set(s for s in unsat if s[0] in specs)
-            stderrlog.info('...')
-            hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
-            save_unsat.update((ms,) for ms in hint)
-            raise UnsatisfiableError(save_unsat)
-
+        full_prune(specs, features)
+        if not include_unsat:
+            for name in unsat:
+                for fkey in self.groups[name]:
+                    touched[fkey] = False
         dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
         return dists
 
@@ -667,7 +657,7 @@ class Resolve(object):
     def generate_package_count(self, C, missing):
         return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
-    def generate_version_metrics(self, C, specs):
+    def generate_version_metrics(self, C, specs, include0=False):
         eqv = {}
         eqb = {}
         sdict = {}
@@ -689,9 +679,9 @@ class Resolve(object):
                     ib = 0
                 elif pkey[2] != nkey[2]:
                     ib += 1
-                if iv:
+                if iv or include0:
                     eqv[npkg] = iv
-                if ib:
+                if ib or include0:
                     eqb[npkg] = ib
                 pkey = nkey
         return eqv, eqb
@@ -886,20 +876,17 @@ class Resolve(object):
                 return False if dists is None else ([[]] if returnall else [])
 
             # Check if satisfiable
+            def mysat(specs, add_if=False):
+                constraints = r2.generate_spec_constraints(C, specs)
+                return C.sat(constraints, add_if)
             dotlog.debug('Checking satisfiability')
             r2 = Resolve(dists, True, True)
             C = r2.gen_clauses()
-            constraints = r2.generate_spec_constraints(C, specs)
-            solution = C.sat(constraints, True)
+            solution = mysat(specs, True)
             if not solution:
-                # Find the largest set of specs that are satisfiable, and return
-                # the list of specs that are not in that set.
-                solution = [C.Not(q) for q in range(1, C.m+1)]
-                spec2 = [s for s in specs if not s.optional]
-                eq_removal_count = r2.generate_removal_count(C, spec2)
-                solution, obj1 = C.minimize(eq_removal_count, solution)
-                specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
-                raise UnsatisfiableError(specsol, False)
+                specs = minimal_unsatisfiable_subset(specs, sat=mysat)
+                dists = self.get_dists(specs, include_unsat=False)
+                Resolve(dists, True, True).verify_specs(specs, True)
 
             speco = []  # optional packages
             specr = []  # requested packages
