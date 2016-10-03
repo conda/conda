@@ -56,6 +56,8 @@ bash Miniconda3-latest-MacOSX-x86_64.sh -f
 
 NOTE: Substitute the appropriate filename and version for your operating system.
 
+NOTE: Be sure that you install to same install location as your existing install so it overwrites the core conda files and does not install a duplicate in a new folder.
+
 
 .. _conda-claims-installed:
 
