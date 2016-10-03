@@ -197,6 +197,38 @@ Verify that the new environment was installed correctly:
 
    conda list
 
+Create environment file by hand
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Environment files can also be created by hand and used to build an environment with the same command: ``conda env create -f environment.yml``
+
+Here is an example of a simple environment file:
+
+.. code::
+
+    name: stats
+    dependencies:
+      - numpy
+      - pandas
+
+And here is an example of a somewhat more complex environment file:
+
+.. code::
+
+    name: stats2
+    channels:
+      - javascript
+    dependencies:
+      - python=3.4   # or 2.7
+      - bokeh=0.9.2
+      - numpy=1.9.*
+      - nodejs=0.10.*
+      - flask
+      - pip:
+        - Flask-Testing
+
+The default channels can be excluded by adding ``nodefaults`` to the list of channels. This is equivalent to passing the ``--override-channels`` option to most ``conda`` commands. Adding ``nodefaults`` to the list of channels in ``environment.yml`` is similar to removing ``defaults`` from the :ref:`channels list <config-channels>` in the ``.condarc`` file, although changing ``environment.yml`` only affects one of your conda environments and changing ``.condarc`` affects them all.
+
 Build identical conda environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

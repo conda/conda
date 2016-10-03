@@ -67,6 +67,8 @@ General configuration
 =====================
 
 
+.. _config-channels:
+
 Channel locations (channels)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
