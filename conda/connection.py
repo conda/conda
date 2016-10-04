@@ -28,7 +28,7 @@ from .base.constants import DEFAULT_CHANNEL_ALIAS
 from .base.context import context
 from .common.disk import rm_rf
 from .common.url import url_to_path, url_to_s3_info, urlparse, split_anaconda_token
-from .compat import StringIO
+from .compat import StringIO, iteritems
 from .exceptions import AuthenticationError
 from .utils import gnu_get_libc_version
 
@@ -85,11 +85,11 @@ class BinstarAuth(AuthBase):
 
     # """Attaches HTTP Digest Authentication to the given Request object."""
     # def __init__(self, username, password):
-    #     self.username = username
-    #     self.password = password
-    #     # Keep state in per-thread local storage
+    # #     self.username = username
+    # #     self.password = password
+    # #     # Keep state in per-thread local storage
     #     self._thread_local = threading_local()
-
+    #
     @staticmethod
     def _apply_basic_auth(request):
         # this logic duplicated from Session.prepare_request and PreparedRequest.prepare_auth
@@ -104,31 +104,32 @@ class BinstarAuth(AuthBase):
             request.headers['Authorization'] = _basic_auth_str(*auth)
 
         return request
+    #
+    #
+    # def handle_redirect(self, r, **kwargs):
+    #     """Reset num_401_calls counter on redirects."""
+    #     if r.is_redirect:
+    #         self._thread_local.num_401_calls = 1
+
 
     def __call__(self, request):
         self._apply_basic_auth(request)
         request.url = BinstarAuth.add_binstar_token(request.url)
         return request
     # def __call__(self, request):
-    #     self._apply_basic_auth(request)
-    #
-    #
-    #     url_parts = urlparse(request.url)
-    #
-    #
     #     # Initialize per-thread state, if needed
     #     self.init_per_thread_state()
-    #     # If we have a saved nonce, skip the 401
-    #     if self._thread_local.last_nonce:
-    #         request.headers['Authorization'] = self.build_digest_header(request.method, request.url)
-    #     try:
-    #         self._thread_local.pos = request.body.tell()
-    #     except AttributeError:
-    #         # In the case of HTTPDigestAuth being reused and the body of
-    #         # the previous request was a file-like object, pos has the
-    #         # file position of the previous body. Ensure it's set to
-    #         # None.
-    #         self._thread_local.pos = None
+    # #     # If we have a saved nonce, skip the 401
+    # #     if self._thread_local.last_nonce:
+    # #         request.headers['Authorization'] = self.build_digest_header(request.method, request.url)
+    # #     try:
+    # #         self._thread_local.pos = request.body.tell()
+    # #     except AttributeError:
+    # #         # In the case of HTTPDigestAuth being reused and the body of
+    # #         # the previous request was a file-like object, pos has the
+    # #         # file position of the previous body. Ensure it's set to
+    # #         # None.
+    # #         self._thread_local.pos = None
     #     request.register_hook('response', self.handle_401)
     #     request.register_hook('response', self.handle_redirect)
     #     self._thread_local.num_401_calls = 1
@@ -136,52 +137,73 @@ class BinstarAuth(AuthBase):
     #     return request
 
 
+    # @staticmethod
+    # def add_binstar_token(url):
+    #     if not context.add_anaconda_token or not BinstarAuth.is_binstar_url_needing_token(url):
+    #         return url
+    #     token = BinstarAuth.get_binstar_token(url)
+    #     if not token:
+    #         return url
+    #     log.debug("Adding binstar token to url %s", url)
+    #     u = urlparse(url)
+    #     path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
+    #     return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
+    #
+    # @staticmethod
+    # def get_binstar_token(url):
+    #     try:
+    #         log.debug("Attempting to binstar collect token for url %s", url)
+    #         try:
+    #             from binstar_client.utils import get_config, load_token
+    #         except ImportError:
+    #             log.debug("Could not import binstar_client.")
+    #             return None
+    #
+    #         binstar_default_url = 'https://api.anaconda.org'
+    #         url_parts = urlparse(url)
+    #         base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
+    #         if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
+    #             base_url = binstar_default_url
+    #
+    #         config = get_config()  # remote_site is site name, not url
+    #         url_from_bs_config = config.get('url', base_url)
+    #         token = load_token(url_from_bs_config)
+    #
+    #         return token
+    #     except Exception as e:
+    #         log.warn("Warning: could not capture token from anaconda-client (%r)", e)
+    #         return None
+
+    # @staticmethod
+    # def is_binstar_url_needing_token(url):
+    #     clean_url, token = split_anaconda_token(url)
+    #     if not token:
+    #         for binstar_url, token in context.binstar_client_tokens:
+    #             if clean_url.startswith(binstar_url):
+    #                 from conda.models.channel import Channel
+    #                 channel = Channel(clean_url)
+    #                 channel.token = token
+    #                 # TODO: add token
+    #
+    #     urlparts = urlparse(url)
+    #     cleaned_url, token = split_anaconda_token(url)
+    #     if token:  # url already has token
+    #         return False
+    #     return False
+    #     # return (urlparts.scheme in ('http', 'https') and
+    #     #         any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
+
     @staticmethod
     def add_binstar_token(url):
-        if not context.add_anaconda_token or not BinstarAuth.is_binstar_url_needing_token(url):
-            return url
-        token = BinstarAuth.get_binstar_token(url)
+        clean_url, token = split_anaconda_token(url)
         if not token:
-            return url
-        log.debug("Adding binstar token to url %s", url)
-        u = urlparse(url)
-        path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
-        return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
-
-    @staticmethod
-    def get_binstar_token(url):
-        try:
-            log.debug("Attempting to binstar collect token for url %s", url)
-            try:
-                from binstar_client.utils import get_config, load_token
-            except ImportError:
-                log.debug("Could not import binstar_client.")
-                return None
-
-            binstar_default_url = 'https://api.anaconda.org'
-            url_parts = urlparse(url)
-            base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
-            if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
-                base_url = binstar_default_url
-
-            config = get_config()  # remote_site is site name, not url
-            url_from_bs_config = config.get('url', base_url)
-            token = load_token(url_from_bs_config)
-
-            return token
-        except Exception as e:
-            log.warn("Warning: could not capture token from anaconda-client (%r)", e)
-            return None
-
-    @staticmethod
-    def is_binstar_url_needing_token(url):
-        urlparts = urlparse(url)
-        cleaned_url, token = split_anaconda_token(url)
-        if token:  # url already has token
-            return False
-        return False
-        # return (urlparts.scheme in ('http', 'https') and
-        #         any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
+            for binstar_url, token in iteritems(context.binstar_client_tokens):
+                if clean_url.startswith(binstar_url):
+                    from conda.models.channel import Channel
+                    channel = Channel(clean_url)
+                    channel.token = token
+                    return channel.full_url
+        return url
 
 
 

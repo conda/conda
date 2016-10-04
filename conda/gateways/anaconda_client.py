@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 import re
 import warnings
+from glob import glob
 from logging import getLogger
+from os.path import basename, join
 from requests import get
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from ..common.io import captured
-from ..common.url import is_ip_address, replace_host, replace_path, split_anaconda_token, urlparse
+from ..common.url import (is_ip_address, replace_host, replace_path, split_anaconda_token, unquote,
+                          urlparse)
 
 log = getLogger(__name__)
 
@@ -111,3 +115,27 @@ def get_anaconda_site_components(anaconda_site):
     binstar_api_url, conda_repo_url = get_binstar_server_url_pair(binstar_domain)
     return binstar_api_url, conda_repo_url, token
 
+
+def read_binstar_tokens():
+    tokens = dict()
+    try:
+        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
+    except ImportError:
+        return tokens
+
+    if 'BINSTAR_CONFIG_DIR' in os.environ:
+        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
+    else:
+        dirs = AppDirs('binstar', 'ContinuumIO')
+    token_files = glob(join(dirs.user_data_dir, '*.token'))
+    for tkn_file in token_files:
+        url = re.sub(r'\.token$', '', unquote(basename(tkn_file)))
+        with open(tkn_file) as f:
+            token = f.read()
+        tokens[url] = token
+
+    return tokens
+
+
+if __name__ == "__main__":
+    read_binstar_tokens()

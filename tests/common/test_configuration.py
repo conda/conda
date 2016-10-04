@@ -155,13 +155,13 @@ class ConfigurationTests(TestCase):
         assert config.proxy_servers == {'http': 'marv', 'https': 'sam', 's3': 'pepé'}
 
         config = SampleConfiguration()._add_raw_data(load_from_string_data('file2', 'file1'))
-        assert len(config._cache) == 0
+        assert len(config._cache_) == 0
         assert config.changeps1 is False
-        assert len(config._cache) == 1
+        assert len(config._cache_) == 1
         assert config.always_yes is False
-        assert len(config._cache) == 2
+        assert len(config._cache_) == 2
         assert config.always_yes is False
-        assert config._cache['always_yes'] is False
+        assert config._cache_['always_yes'] is False
         assert config.channels == ('bugs', 'daffy', 'tweety', 'porky', 'elmer')
         assert config.proxy_servers == {'http': 'taz', 'https': 'sly', 's3': 'pepé'}
 

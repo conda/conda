@@ -4,21 +4,21 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 from collections import Sequence
-from conda._vendor.auxlib.decorators import memoizedproperty
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 from requests.packages.urllib3.util import Url
 
-from .constants import (DEFAULT_ANACONDA_API, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        ROOT_ENV_NAME, SEARCH_PATH, conda)
+from .constants import (DEFAULT_CHANNELS, ROOT_ENV_NAME, SEARCH_PATH, conda, DEFAULT_CHANNEL_ALIAS)
 from .._vendor.auxlib.compat import NoneType, string_types
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from ..common.compat import iteritems, odict
 from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
                                     SequenceParameter)
+from ..common.disk import try_write
 from ..common.url import (has_scheme, path_to_url, split_scheme_auth_token, urlparse)
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
@@ -73,13 +73,13 @@ class Context(Configuration):
     proxy_servers = MapParameter(string_types)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
-    anaconda_site = PrimitiveParameter('')
-    _channel_alias = PrimitiveParameter('', aliases=('channel_alias',),
+    _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
+                                        aliases=('channel_alias',),
                                         validation=channel_alias_validation)
 
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))
-    migrated_channel_aliases = SequenceParameter(string_types)  # TODO: also take a list of strings
+    _migrated_channel_aliases = SequenceParameter(string_types, aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))
     _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
@@ -103,6 +103,11 @@ class Context(Configuration):
     bld_path = PrimitiveParameter('')
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
                                         parameter_type=(bool, NoneType))
+
+    @memoizedproperty
+    def binstar_client_tokens(self):
+        from conda.gateways.anaconda_client import read_binstar_tokens
+        return read_binstar_tokens()
 
     @property
     def default_python(self):
@@ -154,7 +159,6 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from conda.common.disk import try_write
         return try_write(self.root_dir)
 
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
@@ -217,36 +221,43 @@ class Context(Configuration):
     @memoizedproperty
     def channel_alias(self):
         from ..models.channel import Channel
-        location, scheme, auth, token = split_scheme_auth_token(self.conda_repo_url)
+        location, scheme, auth, token = split_scheme_auth_token(self._channel_alias)
         return Channel(scheme=scheme, auth=auth, location=location,
-                       token=token or self.conda_repo_token)
+                       token=token)
 
     @property
-    def binstar_api_url(self):
-        if 'binstar_api_url' not in self._cache_:
-            self._set_channel_alias_and_token()
-        return self._cache_['binstar_api_url']
+    def migrated_channel_aliases(self):
+        from ..models.channel import Channel
+        return tuple(Channel(scheme=scheme, auth=auth, location=location, token=token)
+                     for location, scheme, auth, token in
+                     (split_scheme_auth_token(c) for c in self._migrated_channel_aliases))
 
-    @property
-    def conda_repo_url(self):
-        if 'conda_repo_url' not in self._cache_:
-            self._set_channel_alias_and_token()
-        return self._cache_['conda_repo_url']
+    # @property
+    # def binstar_api_url(self):
+    #     if 'binstar_api_url' not in self._cache_:
+    #         self._set_channel_alias_and_token()
+    #     return self._cache_['binstar_api_url']
 
-    @property
-    def conda_repo_token(self):
-        if 'conda_repo_token' not in self._cache_:
-            self._set_channel_alias_and_token()
-        return self._cache_['conda_repo_token']
+    # @property
+    # def conda_repo_url(self):
+    #     if 'conda_repo_url' not in self._cache_:
+    #         self._set_channel_alias_and_token()
+    #     return self._cache_['conda_repo_url']
 
-    @property
+    # @property
+    # def conda_repo_token(self):
+    #     if 'conda_repo_token' not in self._cache_:
+    #         self._set_channel_alias_and_token()
+    #     return self._cache_['conda_repo_token']
+
+    @memoizedproperty
     def default_channels(self):
         # the format for 'default_channels' is a list of strings that either
         #   - start with a scheme
         #   - are meant to be prepended with channel_alias
-        return tuple(self.make_simple_channel(v) for v in self._default_channels)
+        return tuple(self._make_simple_channel(v) for v in self._default_channels)
 
-    @property
+    @memoizedproperty
     def local_build_root_channel(self):
         from ..models.channel import Channel
         url_parts = urlparse(path_to_url(self.local_build_root))
@@ -256,7 +267,7 @@ class Context(Configuration):
         assert name == 'conda-bld'
         return Channel(scheme=url_parts.scheme, location=location, name=name)
 
-    @property
+    @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
         default_custom_multichannels = {
@@ -267,7 +278,7 @@ class Context(Configuration):
                      for name, c in concatv(iteritems(default_custom_multichannels),
                                             iteritems(self._custom_multichannels)))
 
-    def make_simple_channel(self, channel_url, name=None):
+    def _make_simple_channel(self, channel_url, name=None):
         from conda.models.channel import Channel
         ca = self.channel_alias
         test_url, scheme, auth, token = split_scheme_auth_token(channel_url)
@@ -275,7 +286,7 @@ class Context(Configuration):
             return Channel(scheme=scheme, auth=auth, location=test_url, token=token,
                            name=name.strip('/'))
         if scheme:
-            if test_url.startswith(ca.location):
+            if ca.location and test_url.startswith(ca.location):
                 location, name = ca.location, test_url.replace(ca.location, '', 1)
             else:
                 url_parts = urlparse(test_url)
@@ -286,36 +297,36 @@ class Context(Configuration):
             return Channel(scheme=ca.scheme, auth=ca.auth, location=ca.location, token=ca.token,
                            name=name and name.strip('/') or channel_url.strip('/'))
 
-    @property
+    @memoizedproperty
     def custom_channels(self):
         return odict((x.name, x) for x in
                      (ch for ch in concatv(self.default_channels,
                                            (self.local_build_root_channel,),
-                                           (self.make_simple_channel(url, name)
+                                           (self._make_simple_channel(url, name)
                                             for name, url in iteritems(self._custom_channels)),
                                            )))
 
-    def _set_channel_alias_and_token(self):
-        from ..gateways.anaconda_client import (get_anaconda_site_components,
-                                                get_channel_url_components,
-                                                binstar_load_token)
-
-        # Step 1. Use 'channel_alias' config parameter if set.
-        if self._channel_alias:
-            binstar_url, conda_url, token = get_channel_url_components(self._channel_alias)
-
-        # Step 2. If the 'anaconda_site' configuration parameter is set, use that.
-        elif self.anaconda_site:
-            binstar_url, conda_url, token = get_anaconda_site_components(self.anaconda_site)
-
-        # Step 3. Use DEFAULT_CHANNEL_ALIAS
-        else:
-            binstar_url, conda_url = DEFAULT_ANACONDA_API, DEFAULT_CHANNEL_ALIAS
-            token = binstar_load_token(binstar_url)
-
-        self._cache_['binstar_api_url'] = binstar_url
-        self._cache_['conda_repo_url'] = conda_url
-        self._cache_['conda_repo_token'] = token
+    # def _set_channel_alias_and_token(self):
+    #     from ..gateways.anaconda_client import (get_anaconda_site_components,
+    #                                             get_channel_url_components,
+    #                                             binstar_load_token)
+    #
+    #     # Step 1. Use 'channel_alias' config parameter if set.
+    #     if self._channel_alias:
+    #         binstar_url, conda_url, token = get_channel_url_components(self._channel_alias)
+    #
+    #     # Step 2. If the 'anaconda_site' configuration parameter is set, use that.
+    #     elif self.anaconda_site:
+    #         binstar_url, conda_url, token = get_anaconda_site_components(self.anaconda_site)
+    #
+    #     # Step 3. Use DEFAULT_CHANNEL_ALIAS
+    #     else:
+    #         binstar_url, conda_url = DEFAULT_ANACONDA_API, DEFAULT_CHANNEL_ALIAS
+    #         token = binstar_load_token(binstar_url)
+    #
+    #     self._cache_['binstar_api_url'] = binstar_url
+    #     self._cache_['conda_repo_url'] = conda_url
+    #     self._cache_['conda_repo_token'] = token
 
 
 def conda_in_private_env():

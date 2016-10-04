@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import pytest
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import odict

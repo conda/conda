@@ -26,6 +26,8 @@ log = getLogger(__name__)
 
 on_win = bool(sys.platform == "win32")
 
+
+@memoize
 def path_to_url(path):
     path = abspath(expanduser(path))
     url = urljoin('file:', pathname2url(path))
@@ -165,7 +167,7 @@ def split_platform(url):
 
 
 def split_package_filename(url):
-    cleaned_url, package_filename = url.rsplit('/', 1) if url.endswith('.tar.bz2') else (url, None)
+    cleaned_url, package_filename = url.rsplit('/', 1) if url.endswith(('.tar.bz2', '.json')) else (url, None)
     return cleaned_url, package_filename
 
 

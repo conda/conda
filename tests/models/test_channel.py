@@ -11,7 +11,6 @@ from conda.utils import on_win
 from logging import getLogger
 from unittest import TestCase
 
-
 log = getLogger(__name__)
 
 
@@ -132,6 +131,32 @@ class AnacondaServerChannelTests(TestCase):
         assert channel.urls == [
             "https://10.2.3.4:8080/conda/bioconda/%s/" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/noarch/",
+        ]
+
+    def test_canonicalized_url_gets_correct_token(self):
+        channel = Channel("bioconda")
+        assert channel.urls == [
+            "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/noarch/",
+        ]
+
+        channel = Channel("https://10.2.3.4:8080/conda/bioconda")
+        assert channel.urls == [
+            "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/noarch/",
+        ]
+
+        channel = Channel("https://10.2.3.4:8080/conda/t/x1029384756/bioconda")
+        assert channel.urls == [
+            "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/noarch/",
+        ]
+
+        # what happens with the token is in the wrong places?
+        channel = Channel("https://10.2.3.4:8080/t/x1029384756/conda/bioconda")
+        assert channel.urls == [
+            "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/noarch/",
         ]
 
 
