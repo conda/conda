@@ -123,8 +123,14 @@ def check_prefix(prefix):
     check_write_permission(prefix)
 
 
-def check_dir_exists(dst):
-    return os.path.isdir(os.path.dirname(dst))
+def check_link_file(link_file, unlink_list, prefix):
+    dst = join(prefix, link_file)
+    is_being_unlinked = dst in unlink_list
+    does_not_exist_in_prefix = not isfile(dst)
+    if is_being_unlinked or does_not_exist_in_prefix:
+        check_write_permission(dirname(dst))
+    else:
+        raise CondaFileIOError(dst, "Cannot link file %s" % link_file)
 
 
 def CHECK_LINK_CMD(state, plan):
@@ -135,6 +141,8 @@ def CHECK_LINK_CMD(state, plan):
     :return: the result of permission checking
     """
     link_list = get_package(plan, LINK)
+    unlink_list = get_package(plan, UNLINK)
+
     prefix = state['prefix']
     check_prefix(prefix)
 
@@ -144,10 +152,9 @@ def CHECK_LINK_CMD(state, plan):
         assert source_dir is not None
         info_dir = join(source_dir, 'info')
         files = list(yield_lines(join(info_dir, 'files')))
-        # check write permission for every file
         for f in files:
             dst = join(prefix, f)
-            check_dir_exists(dst)
+            src = join(source_dir, f)
             check_write_permission(dst)
 
 
