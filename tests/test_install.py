@@ -36,35 +36,42 @@ def generate_random_path():
 
 class TestBinaryReplace(unittest.TestCase):
 
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
     def test_simple(self):
         self.assertEqual(
             binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbb'),
             b'xxxbbbbbxyz\x00zz')
 
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
     def test_shorter(self):
         self.assertEqual(
             binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbb'),
             b'xxxbbbbxyz\x00\x00zz')
 
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
     def test_too_long(self):
         self.assertRaises(_PaddingError, binary_replace,
                           b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb')
 
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
     def test_no_extra(self):
         self.assertEqual(binary_replace(b'aaaaa\x00', b'aaaaa', b'bbbbb'),
                          b'bbbbb\x00')
 
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
     def test_two(self):
         self.assertEqual(
             binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa',
                            b'bbbbb'),
             b'bbbbb\x001234bbbbbcc\x00\x00')
 
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
     def test_spaces(self):
         self.assertEqual(
             binary_replace(b' aaaa \x00', b'aaaa', b'bbbb'),
             b' bbbb \x00')
 
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
     def test_multiple(self):
         self.assertEqual(
             binary_replace(b'aaaacaaaa\x00', b'aaaa', b'bbbb'),
