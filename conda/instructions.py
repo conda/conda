@@ -28,6 +28,10 @@ PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 
+# file types
+DIR = "d"
+FILE = "f"
+
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
     CHECK_FETCH,
@@ -118,11 +122,6 @@ def get_package(plan, instruction):
     return link_list
 
 
-def check_dir(dir):
-    assert isdir(dir), "dir is not exist {0}".format(dir)
-    check_write_permission(dir)
-
-
 def get_unlink_files(plan, prefix):
     unlink_list = get_package(plan, UNLINK)
     unlink_files = []
@@ -131,8 +130,54 @@ def get_unlink_files(plan, prefix):
     return unlink_files
 
 
-def check_files_permissions(prefix, link_files, unlink_files):
-    pass
+def compose_file_structure(files):
+    file_structure = {"root":[]}
+    for f in files:
+        file_elements = f.split("/")
+        abs_depth = len(file_elements)
+        for el in file_elements:
+            depth = file_elements.index(el)
+            el_type = FILE if depth+1 == abs_depth else DIR
+            path = "/".join(file_elements[0:depth])
+            child_path = "/".join(file_elements[0:depth + 1])
+            child_node = (child_path, el_type)
+            if depth == 0:
+                root_el = (el, el_type)
+                if root_el not in file_structure.get("root"):
+                    file_structure["root"].append((el, el_type))
+            elif depth < abs_depth:
+                if path in file_structure.keys() and child_node not in file_structure.get(path):
+                    file_structure[path].append(child_node)
+                elif path not in file_structure.keys():
+                    file_structure[path] = [child_node]
+    return file_structure
+
+
+def check_file(path, unlink_files):
+    is_being_unlinked = path in unlink_files
+    if not os.path.exists(path) or is_being_unlinked:
+        check_write_permission(dirname(path))
+    else:
+        raise CondaFileIOError(path, "File already exists, cannot link")
+    return True
+
+
+def check_dir(dst, prefix, structured_link_files, unlink_files):
+    path = join(prefix, dst)
+    if os.path.exists(path):
+        check_files_permissions(prefix, structured_link_files, dst, unlink_files)
+    else:
+        check_write_permission(dirname(path))
+    return True
+
+
+def check_files_permissions(prefix, structured_link_files, structured_files_root, unlink_files):
+    paths = structured_link_files.get(structured_files_root)
+    for path in paths:
+        if path[1] == DIR:
+            return check_dir(path[0], prefix, structured_link_files, unlink_files)
+        elif path[1] == FILE:
+            return check_file(join(prefix, path[0]), unlink_files)
 
 
 def CHECK_LINK_CMD(state, plan):
@@ -152,7 +197,8 @@ def CHECK_LINK_CMD(state, plan):
         assert source_dir is not None
         info_dir = join(source_dir, 'info')
         files = list(yield_lines(join(info_dir, 'files')))
-        check_files_permissions(prefix, files, unlink_files)
+        structured_files = compose_file_structure(files)
+        check_files_permissions(prefix, structured_files, "root", unlink_files)
 
 
 def CHECK_UNLINK_CMD(state, plan):
