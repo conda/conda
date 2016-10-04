@@ -118,19 +118,21 @@ def get_package(plan, instruction):
     return link_list
 
 
-def check_prefix(prefix):
-    assert isdir(prefix), "prefix is not exist {0}".format(prefix)
-    check_write_permission(prefix)
+def check_dir(dir):
+    assert isdir(dir), "dir is not exist {0}".format(dir)
+    check_write_permission(dir)
 
 
-def check_link_file(link_file, unlink_list, prefix):
-    dst = join(prefix, link_file)
-    is_being_unlinked = dst in unlink_list
-    does_not_exist_in_prefix = not isfile(dst)
-    if is_being_unlinked or does_not_exist_in_prefix:
-        check_write_permission(dirname(dst))
-    else:
-        raise CondaFileIOError(dst, "Cannot link file %s" % link_file)
+def get_unlink_files(plan, prefix):
+    unlink_list = get_package(plan, UNLINK)
+    unlink_files = []
+    for dist in unlink_list:
+        unlink_files.extend(load_meta(prefix, dist))
+    return unlink_files
+
+
+def check_files_permissions(prefix, link_files, unlink_files):
+    pass
 
 
 def CHECK_LINK_CMD(state, plan):
@@ -141,10 +143,8 @@ def CHECK_LINK_CMD(state, plan):
     :return: the result of permission checking
     """
     link_list = get_package(plan, LINK)
-    unlink_list = get_package(plan, UNLINK)
-
     prefix = state['prefix']
-    check_prefix(prefix)
+    unlink_files = get_unlink_files(plan, prefix)
 
     for arg in link_list:
         dist, lt = split_linkarg(arg)
@@ -152,10 +152,7 @@ def CHECK_LINK_CMD(state, plan):
         assert source_dir is not None
         info_dir = join(source_dir, 'info')
         files = list(yield_lines(join(info_dir, 'files')))
-        for f in files:
-            dst = join(prefix, f)
-            src = join(source_dir, f)
-            check_write_permission(dst)
+        check_files_permissions(prefix, files, unlink_files)
 
 
 def CHECK_UNLINK_CMD(state, plan):
@@ -167,7 +164,6 @@ def CHECK_UNLINK_CMD(state, plan):
     """
     unlink_list = get_package(plan, UNLINK)
     prefix = state['prefix']
-    check_prefix(prefix)
 
     for dist in unlink_list:
         meta = load_meta(prefix, dist)
