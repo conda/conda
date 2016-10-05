@@ -9,7 +9,6 @@ from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, 
 from .models.dist import Dist
 
 
-
 log = getLogger(__name__)
 
 # op codes
@@ -27,10 +26,6 @@ PREFIX = 'PREFIX'
 PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
-
-# file types
-DIR = "d"
-FILE = "f"
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
@@ -130,56 +125,6 @@ def get_unlink_files(plan, prefix):
     return unlink_files
 
 
-def compose_file_structure(files):
-    file_structure = {"root":[]}
-    for f in files:
-        file_elements = f.split("/")
-        abs_depth = len(file_elements)
-        for el in file_elements:
-            depth = file_elements.index(el)
-            el_type = FILE if depth+1 == abs_depth else DIR
-            path = "/".join(file_elements[0:depth])
-            child_path = "/".join(file_elements[0:depth + 1])
-            child_node = (child_path, el_type)
-            if depth == 0:
-                root_el = (el, el_type)
-                if root_el not in file_structure.get("root"):
-                    file_structure["root"].append((el, el_type))
-            elif depth < abs_depth:
-                if path in file_structure.keys() and child_node not in file_structure.get(path):
-                    file_structure[path].append(child_node)
-                elif path not in file_structure.keys():
-                    file_structure[path] = [child_node]
-    return file_structure
-
-
-def check_file(path, unlink_files):
-    is_being_unlinked = path in unlink_files
-    if not os.path.exists(path) or is_being_unlinked:
-        check_write_permission(dirname(path))
-    else:
-        raise CondaFileIOError(path, "File already exists, cannot link")
-    return True
-
-
-def check_dir(dst, prefix, structured_link_files, unlink_files):
-    path = join(prefix, dst)
-    if os.path.exists(path):
-        check_files_permissions(prefix, structured_link_files, dst, unlink_files)
-    else:
-        check_write_permission(dirname(path))
-    return True
-
-
-def check_files_permissions(prefix, structured_link_files, structured_files_root, unlink_files):
-    paths = structured_link_files.get(structured_files_root)
-    for path in paths:
-        if path[1] == DIR:
-            return check_dir(path[0], prefix, structured_link_files, unlink_files)
-        elif path[1] == FILE:
-            return check_file(join(prefix, path[0]), unlink_files)
-
-
 def CHECK_LINK_CMD(state, plan):
     """
         check permission issue before link and unlink
@@ -190,6 +135,7 @@ def CHECK_LINK_CMD(state, plan):
     link_list = get_package(plan, LINK)
     prefix = state['prefix']
     unlink_files = get_unlink_files(plan, prefix)
+    file_permissions = FilePermissions(prefix)
 
     for arg in link_list:
         dist, lt = split_linkarg(arg)
@@ -197,8 +143,7 @@ def CHECK_LINK_CMD(state, plan):
         assert source_dir is not None
         info_dir = join(source_dir, 'info')
         files = list(yield_lines(join(info_dir, 'files')))
-        structured_files = compose_file_structure(files)
-        check_files_permissions(prefix, structured_files, "root", unlink_files)
+        file_permissions.check(files, unlink_files)
 
 
 def CHECK_UNLINK_CMD(state, plan):
@@ -210,6 +155,7 @@ def CHECK_UNLINK_CMD(state, plan):
     """
     unlink_list = get_package(plan, UNLINK)
     prefix = state['prefix']
+    file_permissions = FilePermissions(prefix)
 
     for dist in unlink_list:
         meta = load_meta(prefix, dist)
@@ -218,27 +164,8 @@ def CHECK_UNLINK_CMD(state, plan):
             # make sure the dst is something
             if islink(dst) or isfile(dst) or isdir(dst):
                 if islink(dst):
-                    check_write_permission(os.readlink(dst))
-                check_write_permission(dst)
-
-
-def check_write_permission(path):
-    """
-        Check write permission for path
-        If path not exist, go up and check for that path
-    Args:
-        path: the path to check permission
-
-    Returns: True : able to write
-             False : unable to write
-    """
-    while not exists(path):
-        path = dirname(path)
-
-    w_permission = os.access(path, W_OK)
-    if not w_permission:
-        raise CondaFileIOError(path, "Cannot write to path %s" % path)
-    return True
+                    file_permissions.check_write_permission(os.readlink(dst))
+                file_permissions.check_write_permission(dst)
 
 
 def get_free_space(dir_name):
