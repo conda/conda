@@ -18,10 +18,12 @@ The strategy for checking file permissions is as follows:
             - if it does not exist; ensure that you can write to it's parent directory
 """
 
-from .exceptions import CondaIOError, CondaFileIOError
-from os.path import join, dirname, exists
+from .exceptions import CondaFileIOError
+from os.path import join, dirname
 from os import W_OK
 import os
+from .utils import on_win
+
 
 # file types
 DIR = "d"
@@ -34,7 +36,7 @@ class FilePermissions(object):
         self.prefix = prefix
 
     def _compose_file_structure(self, files):
-        file_structure = {"root":[]}
+        file_structure = {"root": []}
         for f in files:
             file_elements = f.split("/")
             abs_depth = len(file_elements)
@@ -84,9 +86,18 @@ class FilePermissions(object):
         :param path: the path of interest
         :return: True if the path is writeable
         """
-        w_permission = os.access(path, W_OK)
-        if not w_permission:
-            raise CondaFileIOError(path, "Cannot write to path %s" % path)
+        if on_win:
+            test_file = join(path, "tmp-check-write-perms")
+            try:
+                open(test_file, 'a').close()
+            except:
+                raise CondaFileIOError(path, "Cannot write to path %s" % path)
+            os.remove(test_file)
+        else:
+            w_permission = os.access(path, W_OK)
+            if not w_permission:
+                raise CondaFileIOError(path, "Cannot write to path %s" % path)
+
         return True
 
     def check(self, link_files, unlink_files):
