@@ -265,3 +265,4 @@ The following are all valid match specifications for numpy-1.8.1-py27_0:
 - ``numpy >=1.8,<2``
 - ``numpy >=1.8,<2|1.9``
 - ``numpy 1.8.1 py27_0``
+- ``numpy=1.8.1=py27_0``
