@@ -123,24 +123,6 @@ class TestExecutePlan(unittest.TestCase):
 
         self.assertEqual(h.records, expected)
 
-    def test_check_write_permissions_real_path(self):
-        permission = instructions.check_write_permission(dirname(__file__))
-        self.assertTrue(permission)
-
-    def test_check_write_permissions_non_existent_path(self):
-        path = join(dirname(__file__), "test-permission")
-        permission = instructions.check_write_permission(path)
-        self.assertTrue(permission)
-
-    @patch("os.access", return_value=False)
-    def test_check_write_permissions_no_permissions(self, os_access):
-        path = join(dirname(__file__), "test-permission")
-        try:
-            instructions.check_write_permission(path)
-        except CondaFileIOError as e:
-            self.assertEquals(type(e), CondaFileIOError)
-        else:
-            self.fail('CondaFileIOError not raised')
 
 if __name__ == '__main__':
     unittest.main()
