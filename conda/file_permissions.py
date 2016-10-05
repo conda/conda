@@ -79,12 +79,23 @@ class FilePermissions(object):
                 self._check_file(join(self.prefix, path[0]), unlink_files)
 
     def check_write_permission(self, path):
+        """
+            Check if the path is writable
+        :param path: the path of interest
+        :return: True if the path is writeable
+        """
         w_permission = os.access(path, W_OK)
         if not w_permission:
             raise CondaFileIOError(path, "Cannot write to path %s" % path)
         return True
 
     def check(self, link_files, unlink_files):
+        """
+            Walks down the file path to ensure that conda has the correct permissions to link files
+        :param link_files: A list of files that are going to be linked by the plan
+        :param unlink_files: A list of files that are going to be unlinked by the plan
+        :return:
+        """
         self._check_files_permissions(
             self._compose_file_structure(link_files), "root", unlink_files)
         return True
