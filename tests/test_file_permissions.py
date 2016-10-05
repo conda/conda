@@ -1,12 +1,13 @@
 import unittest
 from os.path import dirname, join
+from conda import file_permissions
 from conda.file_permissions import FilePermissions
 from conda.exceptions import CondaFileIOError
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, call
 except ImportError:
-    from mock import patch
+    from mock import patch, call
 
 
 class TestFilePermissions(unittest.TestCase):
@@ -17,8 +18,12 @@ class TestFilePermissions(unittest.TestCase):
 
     def test_check_write_permissions_non_existent_path(self):
         path = join(dirname(__file__), "test-permission")
-        permission = FilePermissions("").check_write_permission(path)
-        self.assertTrue(permission)
+        try:
+            FilePermissions("").check_write_permission(path)
+        except CondaFileIOError as e:
+            self.assertEquals(type(e), CondaFileIOError)
+        else:
+            self.fail('CondaFileIOError not raised')
 
     @patch("os.access", return_value=False)
     def test_check_write_permissions_no_permissions(self, os_access):
@@ -48,47 +53,73 @@ class TestFilePermissions(unittest.TestCase):
         for key in expected_file_structure.keys():
             self.assertListEqual(expected_file_structure.get(key), structured_files.get(key))
 
-    # @patch("os.path.exists", return_value=True)
-    # @patch("conda.instructions.check_write_permission", return_value=True)
-    # def test_check_file_exists_and_unlink(self, check_write_permissions, exists):
-    #     self.assertTrue(instructions.check_file("foo/bar", ["foo/bar"]))
-    #     check_write_permissions.assert_called_once_with("foo")
-    #
-    # @patch("os.path.exists", return_value=True)
-    # @patch("conda.instructions.check_write_permission", return_value=True)
-    # def test_check_file_exists_and_not_unlink(self, check_write_permissions, exists):
-    #     with self.assertRaises(CondaFileIOError):
-    #         instructions.check_file("foo/bar", ["foo/baz"])
-    #
-    # @patch("os.path.exists", return_value=False)
-    # @patch("conda.instructions.check_write_permission", return_value=True)
-    # def test_check_file_not_exists_and_not_unlink(self, check_write_permissions, exists):
-    #     self.assertTrue(instructions.check_file("foo/bar", ["foo/baz"]))
-    #     check_write_permissions.assert_called_once_with("foo")
-    #
-    # @patch("os.path.exists", return_value=False)
-    # @patch("conda.instructions.check_write_permission", return_value=True)
-    # def test_check_file_not_exists_and_unlink(self, check_write_permissions, exists):
-    #     self.assertTrue(instructions.check_file("foo/bar", ["foo/bar"]))
-    #     check_write_permissions.assert_called_once_with("foo")
-    #
-    # @patch("os.path.exists", return_value=True)
-    # @patch("conda.instructions.check_files_permissions")
-    # def test_check_dir_path_exists(self, check_file_permissions, exists):
-    #     self.assertTrue(instructions.check_dir("", "", {}, []))
-    #     check_file_permissions.assert_called_once_with("", {}, "", [])
-    #
-    # @patch("os.path.exists", return_value=False)
-    # @patch("conda.instructions.check_write_permission", return_value=True)
-    # def test_check_dir_path_not_exists(self, check_write_permissions, exists):
-    #     self.assertTrue(instructions.check_dir("foo", "bar", {}, []))
-    #     check_write_permissions.assert_called_once_with("bar")
-    #
-    # @patch("os.path.exists", return_value=False)
-    # @patch("conda.instructions.check_write_permission", return_value=True)
-    # def test_check_files_permission(self, check_write_permission, exists):
-    #     link_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
-    #                  "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
-    #     unlink_list = ["etc/nginx/nginx.conf"]
-    #     instructions.check_files_permissions(
-    #         "", instructions.compose_file_structure(link_list), "root", unlink_list)
+    @patch("os.path.exists", return_value=False)
+    @patch("conda.file_permissions.FilePermissions.check_write_permission", return_value=True)
+    def test_check_path_clear(self, check_write_permission, exists):
+        link_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
+                     "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
+        unlink_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
+                     "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
+        self.assertTrue(FilePermissions("").check(link_list, unlink_list))
+        exist_calls = [call("rando.txt"), call("etc")]
+        exists.assert_has_calls(exist_calls, any_order=True)
+        check_write_permission.assert_called_with("")
+
+    @patch("os.path.exists", return_value=True)
+    @patch("conda.file_permissions.FilePermissions.check_write_permission", return_value=True)
+    def test_check_follows_tree(self, check_write_permission, exists):
+        link_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
+                     "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
+        unlink_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
+                     "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
+        self.assertTrue(FilePermissions("").check(link_list, unlink_list))
+        exist_calls = []
+        for link in link_list:
+            exist_calls.append(call(link))
+        exists.assert_has_calls(exist_calls, any_order=True)
+        check_write_permission_calls = [
+            call("etc"), call("etc/nginx"), call("etc/redis"), call("etc/nginx/conf.d"),
+            call("etc/redis/conf.d")]
+        check_write_permission.assert_has_calls(check_write_permission_calls, any_order=True)
+
+    @patch("os.path.exists", return_value=False)
+    @patch("conda.file_permissions.FilePermissions.check_write_permission", return_value=True)
+    def test_check_no_unlinking_and_path_clear(self, check_write_permission, exists):
+        link_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
+                     "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
+        unlink_list = []
+        self.assertTrue(FilePermissions("").check(link_list, unlink_list))
+        exist_calls = [call("rando.txt"), call("etc")]
+        exists.assert_has_calls(exist_calls, any_order=True)
+        check_write_permission.assert_called_with("")
+
+    @patch("os.path.exists", return_value=True)
+    @patch("conda.file_permissions.FilePermissions.check_write_permission", return_value=True)
+    def test_check_no_unlinking_and_follows_tree(self, check_write_permission, exists):
+        link_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
+                     "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf"]
+        unlink_list = []
+        try:
+            FilePermissions("").check(link_list, unlink_list)
+        except CondaFileIOError as e:
+            self.assertEquals(type(e), CondaFileIOError)
+        else:
+            self.fail('CondaFileIOError not raised')
+        exists.assert_called_with("etc/es.yml")
+
+    @patch("os.path.exists", return_value=False)
+    @patch("os.access", return_value=False)
+    def test_check_no_access(self, access, exists):
+        link_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
+                     "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
+        unlink_list = []
+        try:
+            FilePermissions("").check(link_list, unlink_list)
+        except CondaFileIOError as e:
+            self.assertEquals(type(e), CondaFileIOError)
+            self.assertEquals(e.filepath, "")
+        else:
+            self.fail('CondaFileIOError not raised')
+
+    def test_check_no_link_files(self):
+        self.assertTrue(FilePermissions("").check([], []))
