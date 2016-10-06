@@ -80,6 +80,17 @@ class FilePermissions(object):
             elif path[1] == FILE:
                 self._check_file(join(self.prefix, path[0]), unlink_files)
 
+    def _can_write(self, path):
+        if not os.path.exists(path):
+            return False
+        test_file = join(path, "tmp-check-write-perms")
+        try:
+            open(test_file, 'a').close()
+        except IOError:
+            return False
+        os.remove(test_file)
+        return True
+
     def check_write_permission(self, path):
         """
             Check if the path is writable
@@ -87,17 +98,12 @@ class FilePermissions(object):
         :return: True if the path is writeable
         """
         if on_win:
-            test_file = join(path, "tmp-check-write-perms")
-            try:
-                open(test_file, 'a').close()
-            except:
-                raise CondaFileIOError(path, "Cannot write to path %s" % path)
-            os.remove(test_file)
+            w_permission = self._can_write(path)
         else:
             w_permission = os.access(path, W_OK)
-            if not w_permission:
-                raise CondaFileIOError(path, "Cannot write to path %s" % path)
 
+        if not w_permission:
+            raise CondaFileIOError(path, "Cannot write to path %s" % path)
         return True
 
     def check(self, link_files, unlink_files):
