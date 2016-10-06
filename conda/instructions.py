@@ -121,7 +121,9 @@ def get_unlink_files(plan, prefix):
     unlink_list = get_package(plan, UNLINK)
     unlink_files = []
     for dist in unlink_list:
-        unlink_files.extend(load_meta(prefix, dist))
+        meta = load_meta(prefix, dist)
+        if meta is not None:
+            unlink_files.extend(meta)
     return unlink_files
 
 

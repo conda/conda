@@ -563,7 +563,8 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         if replace_existing or prune_it:
             add_unlink(actions, dist)
 
-    add_checks(actions)
+    if not force:
+        add_checks(actions)
 
     return actions
 
