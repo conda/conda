@@ -26,7 +26,8 @@ class TestFilePermissions(unittest.TestCase):
             self.fail('CondaFileIOError not raised')
 
     @patch("os.access", return_value=False)
-    def test_check_write_permissions_no_permissions(self, os_access):
+    @patch("conda.file_permissions.FilePermissions._can_write", return_value=False)
+    def test_check_write_permissions_no_permissions(self, _can_write, os_access):
         path = join(dirname(__file__), "test-permission")
         try:
             FilePermissions("").check_write_permission(path)
@@ -109,7 +110,8 @@ class TestFilePermissions(unittest.TestCase):
 
     @patch("os.path.exists", return_value=False)
     @patch("os.access", return_value=False)
-    def test_check_no_access(self, access, exists):
+    @patch("conda.file_permissions.FilePermissions._can_write", return_value=False)
+    def test_check_no_access(self, _can_write, access, exists):
         link_list = ["etc/es.yml", "etc/nginx/nginx.conf", "etc/nginx/conf.d/mysite.conf",
                      "etc/redis/redis.conf", "etc/redis/conf.d/myredis.conf", "rando.txt"]
         unlink_list = []
