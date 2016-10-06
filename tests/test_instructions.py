@@ -1,6 +1,6 @@
 import unittest
 from logging import getLogger, Handler, DEBUG
-from os.path import dirname, join
+import os
 
 from conda import instructions
 from conda.instructions import execute_instructions, commands, PROGRESS_CMD
@@ -122,6 +122,21 @@ class TestExecutePlan(unittest.TestCase):
                     ]
 
         self.assertEqual(h.records, expected)
+
+    def test_check_files_in_tarball_files_exist(self):
+        source_dir = os.getcwd()
+        files = [__file__]
+        self.assertTrue(instructions.check_files_in_package(source_dir, files))
+
+    def test_check_files_in_tarball_files_not_exist(self):
+        source_dir = os.getcwd()
+        files = ["test-thing-that-does-not-exist"]
+        try:
+            instructions.check_files_in_package(source_dir, files)
+        except CondaFileIOError as e:
+            self.assertEquals(type(e), CondaFileIOError)
+        else:
+            self.fail('CondaFileIOError not raised')
 
 
 if __name__ == '__main__':

@@ -1,11 +1,20 @@
 from __future__ import absolute_import, division, print_function
 
+from conda.exceptions import CondaFileIOError
 from conda.models.dist import Dist
 from logging import getLogger
 
 from .base.context import context
 from conda.core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
-from .install import (LINK_HARD, link, messages, symlink_conda, unlink)
+from .install import (LINK_HARD, link, messages, symlink_conda, unlink, yield_lines, load_meta)
+
+from .file_permissions import FilePermissions
+from .exceptions import CondaIOError
+from .utils import on_win
+from os.path import join, isdir, isfile, islink
+import os
+import tarfile
+import ctypes
 
 log = getLogger(__name__)
 
@@ -123,6 +132,15 @@ def get_unlink_files(plan, prefix):
     return unlink_files
 
 
+def check_files_in_package(source_dir, files):
+    for f in files:
+        source_file = join(source_dir, f)
+        if isfile(source_file) or islink(source_file):
+            return True
+        else:
+            raise CondaFileIOError(source_file, "File %s does not exist in tarball" % f)
+
+
 def CHECK_LINK_CMD(state, plan):
     """
         check permission issue before link and unlink
@@ -137,10 +155,11 @@ def CHECK_LINK_CMD(state, plan):
 
     for arg in link_list:
         dist, lt = split_linkarg(arg)
-        source_dir = is_extracted(dist)
+        source_dir = is_extracted(Dist(dist))
         assert source_dir is not None
         info_dir = join(source_dir, 'info')
         files = list(yield_lines(join(info_dir, 'files')))
+        check_files_in_package(source_dir, files)
         file_permissions.check(files, unlink_files)
 
 
@@ -205,11 +224,11 @@ def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     arg_list = get_package(plan, FETCH)
     size = 0
     for arg in arg_list:
-        if 'size' in state['index'][arg + '.tar.bz2']:
-            size += state['index'][arg + '.tar.bz2']['size']
+        if 'size' in state['index'][arg]:
+            size += state['index'][arg]['size']
 
     prefix = state['prefix']
-    assert isdir(prefix)
+    assert os.path.isdir(prefix)
     check_size(prefix, size)
 
 
