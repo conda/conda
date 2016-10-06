@@ -162,7 +162,8 @@ def CHECK_UNLINK_CMD(state, plan):
             # make sure the dst is something
             if islink(dst) or isfile(dst) or isdir(dst):
                 if islink(dst):
-                    file_permissions.check_write_permission(os.readlink(dst))
+                    sym_path = os.path.normpath(join(os.path.dirname(dst), os.readlink(dst)))
+                    file_permissions.check_write_permission(sym_path)
                 file_permissions.check_write_permission(dst)
 
 
