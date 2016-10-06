@@ -81,14 +81,24 @@ class FilePermissions(object):
                 self._check_file(join(self.prefix, path[0]), unlink_files)
 
     def _can_write(self, path):
+        # On windows, "modify" permission is required on directories and files. This means that the
+        # user is able to create, rename, write to and delete files or directories
         if not os.path.exists(path):
             return False
-        test_file = join(path, "tmp-check-write-perms")
-        try:
-            open(test_file, 'a').close()
-        except IOError:
-            return False
-        os.remove(test_file)
+        if os.path.isdir(path):
+            test_file = join(path, "tmp-check-write-perms")
+            try:
+                open(test_file, 'a').close()
+                os.remove(test_file)
+            except IOError:
+                return False
+        elif os.path.isfile(path):
+            try:
+                renamed_path = "%s-test-rename" % path
+                os.rename(path, renamed_path)
+                os.rename(renamed_path, path)
+            except IOError:
+                return False
         return True
 
     def check_write_permission(self, path):
