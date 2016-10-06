@@ -127,6 +127,15 @@ def get_unlink_files(plan, prefix):
     return unlink_files
 
 
+def check_files_in_package(source_dir, files):
+    for f in files:
+        source_file = join(source_dir, f)
+        if isfile(source_file) or islink(source_file):
+            return True
+        else:
+            raise CondaFileIOError(source_file, "File %s does not exist in tarball" % f)
+
+
 def CHECK_LINK_CMD(state, plan):
     """
         check permission issue before link and unlink
@@ -141,10 +150,11 @@ def CHECK_LINK_CMD(state, plan):
 
     for arg in link_list:
         dist, lt = split_linkarg(arg)
-        source_dir = is_extracted(dist)
+        source_dir = is_extracted(Dist(dist))
         assert source_dir is not None
         info_dir = join(source_dir, 'info')
         files = list(yield_lines(join(info_dir, 'files')))
+        check_files_in_package(source_dir, files)
         file_permissions.check(files, unlink_files)
 
 
@@ -209,11 +219,11 @@ def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     arg_list = get_package(plan, FETCH)
     size = 0
     for arg in arg_list:
-        if 'size' in state['index'][arg + '.tar.bz2']:
-            size += state['index'][arg + '.tar.bz2']['size']
+        if 'size' in state['index'][arg]:
+            size += state['index'][arg]['size']
 
     prefix = state['prefix']
-    assert isdir(prefix)
+    assert os.path.isdir(prefix)
     check_size(prefix, size)
 
 
