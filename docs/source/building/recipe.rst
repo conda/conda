@@ -67,6 +67,7 @@ Conda-build invokes the following steps in this order:
   #. Downloads the source into a cache.
   #. Extracts the source into the *source directory*.
   #. Applies any patches.
+  #. If source was necessary to fill any metadata values, the metadata is re-evaluated.
   #. Creates a *build environment* and installs the build dependencies there.
   #. Runs the actual build script. The current working directory is the source 
      directory with environment variables set. The build script installs into 

@@ -3,6 +3,23 @@
 Environment variables
 =====================
 
+.. _build-state:
+
+Dynamic behavior based on state of build process
+------------------------------------------------
+
+There are times when you may want to process a single file in different ways at
+more than one step in the render -> build -> test flow of conda-build. Conda
+build sets the ``CONDA_BUILD_STATE`` environment variable during each of these
+phases. The possible values currently are ``RENDER``, ``BUILD``, and ``TEST``.
+The ``RENDER`` state is set during evaluation of the meta.yaml file. The
+``BUILD`` state is set during processing of the bld.bat or build.sh script
+files. Finally, the ``TEST`` state is set during the running of any ``run_test``
+scripts, which also includes any commands defined in ``meta.yaml``'s
+``test/commands`` section. The CONDA_BUILD_STATE variable is undefined outside
+of these locations.
+
+
 Environment variables set during the build process
 --------------------------------------------------
 
