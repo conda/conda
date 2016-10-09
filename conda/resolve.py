@@ -2,7 +2,6 @@ from __future__ import print_function, division, absolute_import
 
 import logging
 import re
-from collections import defaultdict
 from itertools import chain
 
 from conda.models.channel import Channel
@@ -284,38 +283,6 @@ class Resolve(object):
 
         return v_(spec)
 
-    def touch(self, spec, touched, filter):
-        """Determines a conservative set of packages to be considered given a
-           package, or a spec, or a list thereof. Cyclic dependencies are not
-           solved, so there is no guarantee a solution exists.
-
-        Args:
-            fkey: a package key or MatchSpec
-            touched: a dict into which to accumulate the result. This is
-                useful when processing multiple specs.
-            filter: a dictionary of (fkey, valid) pairs to be used when
-                testing for package validity.
-
-        This function works in two passes. First, it verifies that the package has
-        satisfiable dependencies from among the filtered packages. If not, then it
-        is _not_ touched, nor are its dependencies. If so, then it is marked as
-        touched, and any of its valid dependencies are as well.
-        """
-        def t_fkey_(fkey):
-            val = touched.get(fkey)
-            if val is None:
-                val = touched[fkey] = self.valid(fkey, filter)
-                if val:
-                    for ms in self.ms_depends(fkey):
-                        if ms.name[0] != '@':
-                            t_ms_(ms)
-
-        def t_ms_(ms):
-            for fkey in self.find_matches(ms):
-                t_fkey_(fkey)
-
-        return t_ms_(spec) if isinstance(spec, MatchSpec) else t_fkey_(spec)
-
     def invalid_chains(self, spec, filter):
         """Constructs a set of 'dependency chains' for invalid specs.
 
@@ -387,9 +354,7 @@ class Resolve(object):
 
         def filter_group(matches):
             match1 = next(ms for ms in matches)
-            isopt = any(ms.optional for ms in matches)
             name = match1.name
-            first = name not in snames
             group = self.groups.get(name, [])
 
             # Prune packages that don't match any of the patterns
@@ -407,14 +372,16 @@ class Resolve(object):
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
-            if nnew == 0 and not isopt:
+            if any(ms.optional for ms in matches):
+                return reduced
+            elif nnew == 0:
                 # Indicates that a conflict was found; we can exit early
                 return None
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            if (first or reduced) and nnew and not isopt:
+            if reduced or name not in snames:
                 snames.add(name)
                 cdeps = {}
                 for fkey in group:
@@ -424,29 +391,50 @@ class Resolve(object):
                                 cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
                     if len(deps) >= nnew:
-                        if filter_group(set(deps)):
+                        res = filter_group(set(deps))
+                        if res:
                             reduced = True
+                        elif res is None:
+                            # Indicates that a conflict was found; we can exit early
+                            return None
+
             return reduced
 
-        # Iterate on pruning until no progress is made
-        slist = list(specs)
-        while slist:
-            s = slist.pop()
-            found = filter_group([s])
-            if found:
-                slist.append(s)
-            elif found is None:
+        # Iterate on pruning until no progress is made. We've implemented
+        # what amounts to "double-elimination" here; packages get one additional
+        # chance after their first "False" reduction. This catches more instances
+        # where one package's filter affects another. But we don't have to be
+        # perfect about this, so performance matters.
+        for iter in range(2):
+            snames.clear()
+            slist = list(specs)
+            found = False
+            while slist:
+                s = slist.pop()
+                found = filter_group([s])
+                if found:
+                    slist.append(s)
+                elif found is None:
+                    break
+            if found is None:
                 if include_unsat:
                     filter = self.default_filter(features)
                 break
 
-        touched = {}
+        # Determine all valid packages in the dependency graph
+        dists = {}
+        slist = list(specs)
         for fstr in features:
-            touched[fstr+'@'] = True
-        for spec in specs:
-            self.touch(spec, touched, filter)
+            fkey = fstr + '@'
+            dists[fkey] = self.index[fkey]
+        while slist:
+            for fkey in self.find_matches(slist.pop()):
+                if dists.get(fkey) is None and self.valid(fkey, filter):
+                    dists[fkey] = self.index[fkey]
+                    for ms in self.ms_depends(fkey):
+                        if ms.name[0] != '@':
+                            slist.append(ms)
 
-        dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
         return dists
 
     def match_any(self, mss, fkey):
