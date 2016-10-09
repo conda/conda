@@ -382,24 +382,13 @@ class Resolve(object):
         log.debug('Retrieving packages for: %s' % (specs,))
 
         specs, features = self.verify_specs(specs)
-        filter = {}
-        touched = {}
+        filter = self.default_filter(features)
         snames = set()
-        unsat = set()
 
         def filter_group(matches):
-            # If we are here, then this dependency is mandatory,
-            # so add it to the master list. That way it is still
-            # participates in the pruning even if one of its
-            # parents is pruned away
             match1 = next(ms for ms in matches)
             isopt = any(ms.optional for ms in matches)
             name = match1.name
-            # If this package is in the unsat list, skip filtering.
-            # We want to keep all packages that could be installed
-            # if this dependency were not an issue.
-            if name in unsat:
-                return False
             first = name not in snames
             group = self.groups.get(name, [])
 
@@ -409,95 +398,54 @@ class Resolve(object):
             for fkey in group:
                 if filter.setdefault(fkey, True):
                     nold += 1
-                    sat = match1.is_simple() or self.match_any(matches, fkey)
-                    sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                                      for ms in self.ms_depends(fkey))
+                    sat = (self.match_any(matches, fkey) and
+                           all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
+                               for ms in self.ms_depends(fkey)))
                     filter[fkey] = sat
                     nnew += sat
 
-            # Build dependency chains if we detect unsatisfiability
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
-            if nnew == 0:
-                if name in snames:
-                    snames.remove(name)
-                if not isopt:
-                    unsat.add(name)
-                return nnew != 0
+            if nnew == 0 and not isopt:
+                # Indicates that a conflict was found; we can exit early
+                return None
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            if first or reduced:
+            if (first or reduced) and nnew and not isopt:
                 snames.add(name)
                 cdeps = {}
                 for fkey in group:
-                    if filter[fkey]:
+                    if filter.get(fkey, True):
                         for m2 in self.ms_depends(fkey):
-                            if m2.name[0] != '@' and m2.name not in unsat and not m2.optional:
+                            if m2.name[0] != '@' and not m2.optional:
                                 cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
                     if len(deps) >= nnew:
                         if filter_group(set(deps)):
                             reduced = True
-
             return reduced
 
-        # Iterate in the filtering process until no more progress is made
-        def full_prune(specs, features):
-            for iter_o in range(10):
-                len_u = len(unsat)
-                self.default_filter(features, filter)
-                feats = set(self.trackers.keys())
-                snames.clear()
-                specs = slist = list(specs)
-                onames = set(s.name for s in specs)
-                for iter in range(10):
-                    first = True
-                    nfound = 1
-                    while sum(filter_group([s]) for s in slist) and len(unsat) == len_u:
-                        slist = [MatchSpec(s) for s in snames]
-                        first = False
-                    if len(unsat) > len_u:
-                        break
-                    if first and iter:
-                        return
-                    touched.clear()
-                    if unsat:
-                        self.default_filter(features, filter)
-                    else:
-                        for fstr in features:
-                            touched[fstr+'@'] = True
-                    for spec in specs:
-                        self.touch(spec, touched, filter)
-                    if unsat:
-                        return
-                    nfeats = set()
-                    for fkey, val in iteritems(touched):
-                        if val:
-                            nfeats.update(self.track_features(fkey))
-                    if len(nfeats) >= len(feats):
-                        return
-                    pruned = False
-                    for feat in feats - nfeats:
-                        feats.remove(feat)
-                        for fkey in self.trackers[feat]:
-                            if filter.get(fkey, True):
-                                filter[fkey] = False
-                                pruned = True
-                    if not pruned or iter == 9:
-                        return
+        # Iterate on pruning until no progress is made
+        slist = list(specs)
+        while slist:
+            s = slist.pop()
+            found = filter_group([s])
+            if found:
+                slist.append(s)
+            elif found is None:
+                if include_unsat:
+                    filter = self.default_filter(features)
+                break
 
-        #
-        # In the case of a conflict, look for the minimum satisfiable subset
-        #
+        touched = {}
+        for fstr in features:
+            touched[fstr+'@'] = True
+        for spec in specs:
+            self.touch(spec, touched, filter)
 
-        full_prune(specs, features)
-        if not include_unsat:
-            for name in unsat:
-                for fkey in self.groups[name]:
-                    touched[fkey] = False
         dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
         return dists
 
