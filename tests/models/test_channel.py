@@ -136,25 +136,41 @@ class AnacondaServerChannelTests(TestCase):
     def test_canonicalized_url_gets_correct_token(self):
         channel = Channel("bioconda")
         assert channel.urls == [
+            "https://10.2.3.4:8080/conda/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/bioconda/noarch/",
+        ]
+        assert channel.authenticated_urls() == [
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/%s/" % self.platform,
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/noarch/",
         ]
 
         channel = Channel("https://10.2.3.4:8080/conda/bioconda")
         assert channel.urls == [
+            "https://10.2.3.4:8080/conda/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/bioconda/noarch/",
+        ]
+        assert channel.authenticated_urls() == [
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/%s/" % self.platform,
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/noarch/",
         ]
 
         channel = Channel("https://10.2.3.4:8080/conda/t/x1029384756/bioconda")
         assert channel.urls == [
+            "https://10.2.3.4:8080/conda/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/bioconda/noarch/",
+        ]
+        assert channel.authenticated_urls() == [
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/%s/" % self.platform,
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/noarch/",
         ]
 
-        # what happens with the token is in the wrong places?
+        # what happens with the token if it's in the wrong places?
         channel = Channel("https://10.2.3.4:8080/t/x1029384756/conda/bioconda")
         assert channel.urls == [
+            "https://10.2.3.4:8080/conda/bioconda/%s/" % self.platform,
+            "https://10.2.3.4:8080/conda/bioconda/noarch/",
+        ]
+        assert channel.authenticated_urls() == [
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/%s/" % self.platform,
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/noarch/",
         ]
@@ -173,6 +189,7 @@ class CustomConfigChannelTests(TestCase):
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://user1:pass2@another.url:8080/t/tk-1234/with/path
+          pkgs/free: http://192.168.0.15:8080
         migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/

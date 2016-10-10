@@ -49,12 +49,12 @@ def tokenized_conda_url_startswith(test_url, startswith_url):
 
 def _get_channel_for_name(channel_name):
     def _get_channel_for_name_helper(name):
-        test_name = name.rsplit('/', 1)[0]  # progressively strip off path segments
-        if test_name in context.custom_channels:
-            return context.custom_channels[test_name]
-        elif test_name == name:
-            return None
+        if name in context.custom_channels:
+            return context.custom_channels[name]
         else:
+            test_name = name.rsplit('/', 1)[0]  # progressively strip off path segments
+            if test_name == name:
+                return None
             return _get_channel_for_name_helper(test_name)
 
     channel = _get_channel_for_name_helper(channel_name)
@@ -250,16 +250,45 @@ class Channel(object):
 
     @property
     def full_url(self):
+        base = [self.location]
         if self.token:
-            base = join_url(self.location, 't', self.token, self.name, self.platform,
-                            self.package_filename)
-        else:
-            base = join_url(self.location, self.name, self.platform, self.package_filename)
+            base.extend(['t', self.token])
+        base.append(self.name)
+        if self.platform:
+            base.append(self.platform)
+            if self.package_filename:
+                base.append(self.package_filename)
+
+        base = join_url(*base)
 
         if self.auth:
             return "%s://%s:%s" % (self.scheme, self.auth, base)
         else:
             return "%s://%s" % (self.scheme, base)
+
+    def authenticated_urls(self):
+        base = [self.location]
+        if self.token:
+            base.extend(['t', self.token])
+        base.append(self.name)
+
+        base = join_url(*base)
+
+        if self.platform:
+            base = [
+                join_url(base, self.platform),
+                # TODO: should we also put noarch here?
+            ]
+        else:
+            base = [
+                join_url(base, context.subdir),
+                join_url(base, 'noarch')
+            ]
+
+        if self.auth:
+            return ["%s://%s:%s/" % (self.scheme, self.auth, b) for b in base]
+        else:
+            return ["%s://%s/" % (self.scheme, b) for b in base]
 
     def __str__(self):
         return self.base_url
