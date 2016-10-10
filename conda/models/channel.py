@@ -94,16 +94,20 @@ class Channel(object):
         else:
             return self.base_url
 
-    def _urls_helper(self):
-        return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
+    def _urls_helper(self, platform=None):
+        subdir = platform if platform is not None else context.subdir
+        return [join_url(self.base_url, subdir), join_url(self.base_url, 'noarch')]
+
+    def get_urls(self, platform):
+        if self.canonical_name in context.channel_map:
+            url_channels = context.channel_map[self.canonical_name]
+            return list(chain.from_iterable(c._urls_helper(platform) for c in url_channels))
+        else:
+            return self._urls_helper(platform)
 
     @property
     def urls(self):
-        if self.canonical_name in context.channel_map:
-            url_channels = context.channel_map[self.canonical_name]
-            return list(chain.from_iterable(c._urls_helper() for c in url_channels))
-        else:
-            return self._urls_helper()
+        return self.get_urls(context.subdir)
 
     @property
     def url_channel_wtf(self):
@@ -191,12 +195,12 @@ class NoneChannel(NamedChannel):
         return tuple()
 
 
-def prioritize_channels(channels):
+def prioritize_channels(channels, platform=None):
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
     result = odict()
     for q, chn in enumerate(channels):
         channel = Channel(chn)
-        for url in channel.urls:
+        for url in channel.get_urls(platform):
             if url in result:
                 continue
             result[url] = channel.canonical_name, q
