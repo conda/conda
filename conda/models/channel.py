@@ -11,7 +11,8 @@ try:
 except ImportError:
     from .._vendor.toolz.functoolz import excepts
 
-from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
+from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES, DEFAULT_CHANNELS_UNIX, \
+    DEFAULT_CHANNELS_WIN
 from ..base.context import context
 from ..common.compat import odict, with_metaclass
 from ..common.url import is_url, path_to_url, urlparse, urlunparse
@@ -30,6 +31,17 @@ def has_scheme(value):
 
 def join_url(*args):
     return '/'.join(args) + '/'
+
+
+def get_default_channels_canonical_name(platform):
+    channels = []
+    if "win" not in platform:
+        for channel in DEFAULT_CHANNELS_UNIX:
+            channels.append(UrlChannel(channel))
+    else:
+        for channel in DEFAULT_CHANNELS_WIN:
+            channels.append(UrlChannel(channel))
+    return channels
 
 
 class ChannelType(type):
