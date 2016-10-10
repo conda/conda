@@ -35,6 +35,7 @@ def join_url(*args):
 
 def get_default_channels_canonical_name(platform):
     channels = []
+    platform = context.subdir if platform is None else platform
     if "win" not in platform:
         for channel in DEFAULT_CHANNELS_UNIX:
             channels.append(UrlChannel(channel))
@@ -112,7 +113,10 @@ class Channel(object):
 
     def get_urls(self, platform):
         if self.canonical_name in context.channel_map:
-            url_channels = context.channel_map[self.canonical_name]
+            if platform != context.subdir:
+                url_channels = get_default_channels_canonical_name(platform)
+            else:
+                url_channels = context.channel_map[self.canonical_name]
             return list(chain.from_iterable(c._urls_helper(platform) for c in url_channels))
         else:
             return self._urls_helper(platform)
