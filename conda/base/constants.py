@@ -72,9 +72,14 @@ SEARCH_PATH = (
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
-PLATFORM_DIRECTORIES = ("linux-64",  "linux-32",
-                        "win-64",  "win-32",
-                        "osx-64", "noarch")
+PLATFORM_DIRECTORIES = ("linux-64",
+                        "linux-32",
+                        "win-64",
+                        "win-32",
+                        "osx-64",
+                        "linux-ppc64le",
+                        "noarch",
+                        )
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
