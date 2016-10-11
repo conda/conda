@@ -218,9 +218,10 @@ This is needed for some packages that use setuptools specific features. Default 
 Skip compiling some .py files into .pyc files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some packages ship .py files that should not be compiled because either they cannot be
-compiled because for example they contain templates or should not be compiled yet because
-the Python interpreter that will be used cannot be known at build-time.
+Some packages ship .py files that cannot be compiled, such as those that contain
+templates. Some packages also ship .py files that should not be compiled yet,
+because the Python interpreter that will be used is not known at build-time. In
+these cases conda-build can skip attempting to compile these files.
 
 .. code-block:: yaml
 
