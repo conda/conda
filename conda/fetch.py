@@ -22,7 +22,7 @@ from requests.packages.urllib3.connectionpool import InsecureRequestWarning
 from ._vendor.auxlib.logz import stringify
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
-from .common.url import add_username_and_pass_to_url, url_to_path
+from .common.url import add_username_and_pass_to_url, url_to_path, join_url
 from .compat import input, iteritems, itervalues, text_type
 from .connection import CondaSession, RETRIES
 from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError, \
@@ -108,7 +108,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         filename = 'repodata.json'
 
     try:
-        resp = session.get(url + filename, headers=headers, proxies=session.proxies,
+        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
                            timeout=(3.05, 60))
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp))
@@ -143,10 +143,10 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
 
         if e.response.status_code == 404:
-            if url.endswith('/noarch/'):  # noarch directory might not exist
+            if url.endswith('/noarch'):  # noarch directory might not exist
                 return None
-            msg = 'Could not find URL: %s' % url
-        elif e.response.status_code == 403 and url.endswith('/noarch/'):
+            msg = 'Could not find URL: %s' % join_url(url, filename)
+        elif e.response.status_code == 403 and url.endswith('/noarch'):
             return None
 
         elif e.response.status_code == 401 and text_type(context.channel_alias) in url:

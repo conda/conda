@@ -36,20 +36,25 @@ class ContextTests(TestCase):
     def test_migrated_custom_channels(self):
         assert Channel('https://some.url.somewhere/stuff/darwin/noarch/a-mighty-fine.tar.bz2').canonical_name == 'darwin'
         assert Channel('s3://just/cant/darwin/noarch/a-mighty-fine.tar.bz2').canonical_name == 'darwin'
-        assert Channel('s3://just/cant/darwin/noarch/a-mighty-fine.tar.bz2').urls == [
-            'https://some.url.somewhere/stuff/darwin/noarch/']
+        assert Channel('s3://just/cant/darwin/noarch/a-mighty-fine.tar.bz2').urls() == [
+            'https://some.url.somewhere/stuff/darwin/noarch']
 
     def test_old_channel_alias(self):
         platform = context.subdir
 
-        cf_urls = ["ftp://new.url:8082/conda-forge/%s/" % platform,
-                   "ftp://new.url:8082/conda-forge/noarch/"]
-        assert Channel('conda-forge').urls == cf_urls
+        cf_urls = ["ftp://new.url:8082/conda-forge/%s" % platform,
+                   "ftp://new.url:8082/conda-forge/noarch"]
+        assert Channel('conda-forge').urls() == cf_urls
 
         url = "https://conda.anaconda.org/conda-forge/osx-64/some-great-package.tar.bz2"
         assert Channel(url).canonical_name == 'conda-forge'
         assert Channel(url).base_url == 'ftp://new.url:8082/conda-forge'
-        assert Channel(url).urls == ['ftp://new.url:8082/conda-forge/osx-64/']
+        assert Channel(url).urls() == [
+            'ftp://new.url:8082/conda-forge/osx-64',
+            'ftp://new.url:8082/conda-forge/noarch'
+        ]
         assert Channel("https://conda.anaconda.org/conda-forge/label/dev/linux-64/"
-                       "some-great-package.tar.bz2"
-                       ).urls == ["ftp://new.url:8082/conda-forge/label/dev/linux-64/"]
+                       "some-great-package.tar.bz2").urls() == [
+            "ftp://new.url:8082/conda-forge/label/dev/linux-64",
+            "ftp://new.url:8082/conda-forge/label/dev/noarch",
+        ]

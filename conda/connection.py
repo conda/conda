@@ -113,8 +113,8 @@ class BinstarAuth(AuthBase):
 
 
     def __call__(self, request):
-        self._apply_basic_auth(request)
         request.url = BinstarAuth.add_binstar_token(request.url)
+        self._apply_basic_auth(request)
         return request
     # def __call__(self, request):
     #     # Initialize per-thread state, if needed

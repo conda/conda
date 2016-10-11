@@ -31,6 +31,11 @@ scheme <> auth <> location <> token <> channel <> subchannel <> platform <> pack
 
 channel <> subchannel <> namespace <> package_name
 
+To use Channel, call:
+  canonical_name
+  authentication_url()
+  authentication_urls()
+
 """
 
 
@@ -58,7 +63,11 @@ def _get_channel_for_name(channel_name):
             return _get_channel_for_name_helper(test_name)
 
     channel = _get_channel_for_name_helper(channel_name)
+
     if channel is not None:
+        # stripping off path threw information away from channel_name (i.e. any potential subname)
+        # channel.name *should still be* channel_name
+        channel.name = channel_name
         return channel
     else:
         ca = context.channel_alias
@@ -66,14 +75,15 @@ def _get_channel_for_name(channel_name):
                        name=channel_name)
 
 
-def _read_channel_configuration(host, port, path):
+def _read_channel_configuration(scheme, host, port, path):
     # return location, name, scheme, auth, token
 
     test_url = Url(host=host, port=port, path=path).url.rstrip('/')
 
     # Step 1. migrated_custom_channels matches
-    for name, location in iteritems(context.migrated_custom_channels):
-        location, scheme, auth, token = split_scheme_auth_token(location)
+    for name, location in sorted(context.migrated_custom_channels.items(), reverse=True,
+                                key=lambda x: len(x[0])):
+        location, _scheme, _auth, _token = split_scheme_auth_token(location)
         if tokenized_conda_url_startswith(test_url, join_url(location, name)):
             # translate location to new location, with new credentials
             subname = test_url.replace(join_url(location, name), '', 1).strip('/')
@@ -89,18 +99,19 @@ def _read_channel_configuration(host, port, path):
             return ca.location, name, ca.scheme, ca.auth, ca.token
 
     # Step 3. custom_channels matches
-    for name, channel in iteritems(context.custom_channels):
+    for name, channel in sorted(context.custom_channels.items(), reverse=True,
+                                key=lambda x: len(x[0])):
         that_test_url = join_url(channel.location, channel.name)
         if test_url.startswith(that_test_url):
             subname = test_url.replace(that_test_url, '', 1).strip('/')
-            return (channel.location, join_url(channel.name, subname), channel.scheme,
+            return (channel.location, join_url(channel.name, subname), scheme,
                     channel.auth, channel.token)
 
     # Step 4. channel_alias match
     ca = context.channel_alias
     if ca.location and test_url.startswith(ca.location):
         name = test_url.replace(ca.location, '', 1).strip('/') or None
-        return ca.location, name, ca.scheme, ca.auth, ca.token
+        return ca.location, name, scheme, ca.auth, ca.token
 
     # Step 5. not-otherwise-specified file://-type urls
     if host is None:
@@ -109,11 +120,11 @@ def _read_channel_configuration(host, port, path):
         location, name = test_url.rsplit('/', 1)
         if not location:
             location = '/'
-        scheme, auth, token = 'file', None, None
-        return location, name, scheme, auth, token
+        _scheme, _auth, _token = 'file', None, None
+        return location, name, _scheme, _auth, _token
 
     # Step 6. fall through to host:port as channel_location and path as channel_name
-    return Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None, None, None, None
+    return Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None, scheme or None, None, None
 
 
 def parse_conda_channel_url(url):
@@ -122,13 +133,13 @@ def parse_conda_channel_url(url):
 
     # recombine host, port, path to get a channel_name and channel_location
     (channel_location, channel_name, configured_scheme, configured_auth,
-     configured_token) = _read_channel_configuration(host, port, path)
+     configured_token) = _read_channel_configuration(scheme, host, port, path)
 
     # if we came out with no channel_location or channel_name, we need to figure it out
     # from host, port, path
     assert channel_location is not None or channel_name is not None
 
-    return Channel(configured_scheme or scheme or 'https',
+    return Channel(configured_scheme or 'https',
                    auth or configured_auth,
                    channel_location,
                    token or configured_token,
@@ -233,62 +244,45 @@ class Channel(object):
         # re-defining here because base_url for MultiChannel is None
         return "%s://%s/%s" % (self.scheme, self.location, self.name)
 
-    @property
-    def urls(self):
-        # if is multichannel, get all urls
-        if self.platform:
-            return [join_url(self.base_url, self.platform) + '/']
-        else:
-            return [
-                join_url(self.base_url, context.subdir) + '/',
-                join_url(self.base_url, 'noarch') + '/',
-            ]
-
-    @property
-    def base_url(self):
-        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
-
-    @property
-    def full_url(self):
+    def urls(self, with_authentication=False):
         base = [self.location]
-        if self.token:
+        if with_authentication and self.token:
+            base.extend(['t', self.token])
+        base.append(self.name)
+
+        base = join_url(*base)
+        def _platforms():
+            p = self.platform or context.subdir
+            return (p, 'noarch') if p != 'noarch' else ('noarch',)
+        bases = (join_url(base, p) for p in _platforms())
+
+        if with_authentication and self.auth:
+            return ["%s://%s@%s" % (self.scheme, self.auth, b) for b in bases]
+        else:
+            return ["%s://%s" % (self.scheme, b) for b in bases]
+
+    def url(self, with_authentication=False):
+        base = [self.location]
+        if with_authentication and self.token:
             base.extend(['t', self.token])
         base.append(self.name)
         if self.platform:
             base.append(self.platform)
             if self.package_filename:
                 base.append(self.package_filename)
+        else:
+            base.append(context.subdir)
 
         base = join_url(*base)
 
-        if self.auth:
-            return "%s://%s:%s" % (self.scheme, self.auth, base)
+        if with_authentication and self.auth:
+            return "%s://%s@%s" % (self.scheme, self.auth, base)
         else:
             return "%s://%s" % (self.scheme, base)
 
-    def authenticated_urls(self):
-        base = [self.location]
-        if self.token:
-            base.extend(['t', self.token])
-        base.append(self.name)
-
-        base = join_url(*base)
-
-        if self.platform:
-            base = [
-                join_url(base, self.platform),
-                # TODO: should we also put noarch here?
-            ]
-        else:
-            base = [
-                join_url(base, context.subdir),
-                join_url(base, 'noarch')
-            ]
-
-        if self.auth:
-            return ["%s://%s:%s/" % (self.scheme, self.auth, b) for b in base]
-        else:
-            return ["%s://%s/" % (self.scheme, b) for b in base]
+    @property
+    def base_url(self):
+        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
     def __str__(self):
         return self.base_url
@@ -345,16 +339,14 @@ class MultiChannel(Channel):
     def canonical_name(self):
         return self.name
 
-    @property
-    def urls(self):
-        return list(chain.from_iterable(c.urls for c in self._channels))
+    def urls(self, with_authentication=False):
+        return list(chain.from_iterable(c.urls(with_authentication) for c in self._channels))
 
     @property
     def base_url(self):
         return None
 
-    @property
-    def full_url(self):
+    def url(self, with_authentication=False):
         return None
 
 
@@ -363,7 +355,7 @@ def prioritize_channels(channels):
     result = odict()
     for q, chn in enumerate(channels):
         channel = Channel(chn)
-        for url in channel.urls:
+        for url in channel.urls():
             if url in result:
                 continue
             result[url] = channel.canonical_name, q
