@@ -3,18 +3,18 @@ Quick install
 
 .. contents::
 
-Conda is a cross-platform package manager and environment manager program that installs, 
-runs, and updates packages and their dependencies, so you can easily set up and switch 
+Conda is a cross-platform package and environment manager that installs, 
+runs, and updates packages and their dependencies. It allows you to easily set up and switch 
 between environments on your local computer.  Conda is included in all versions 
-of **Anaconda, Anaconda Server**, and **Miniconda**.
+of **Anaconda** and **Miniconda**.
 
 The fastest way to get and install conda is to `download Miniconda <http://conda.pydata.org/miniconda.html>`_, 
-a mini version of Anaconda that includes just conda, its dependencies, and Python. 
+a mini version of Anaconda that includes just conda and its dependencies. 
 Anaconda has all that plus over 720 open source packages that install with Anaconda or 
 can be installed with the simple ``conda install`` command. 
 
-You can be using Python in two minutes or less with this quick install guide - including 
-install, update and uninstall. If you have any problems, please see the full installation instructions.
+In its default configuration conda uses the hundreds of packages at
+repo.continuum.io that are built, reviewed, and maintained by Continuum Analytics.
 
 TIP: If you prefer to have the over 720 open source packages included with Anaconda, 
 and have a few minutes and the disk space required, you can download Anaconda simply by 

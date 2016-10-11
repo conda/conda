@@ -10,7 +10,7 @@
 .. figure::  images/conda_logo.svg
    :align:   center
 
-**Package, dependency and environment management for any language: Python, R, Scala, Java, Javascript, C/ C++, FORTRAN**
+**Package, dependency and environment management for any language: Python, R, Ruby, Lua, Scala, Java, Javascript, C/ C++, FORTRAN**
 
 Conda is an open source package management system and environment management system for installing multiple
 versions of software packages and their dependencies and switching easily between them. It works on
