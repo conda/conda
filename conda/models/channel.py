@@ -244,9 +244,9 @@ class Channel(object):
         # re-defining here because base_url for MultiChannel is None
         return "%s://%s/%s" % (self.scheme, self.location, self.name)
 
-    def urls(self, with_authentication=False):
+    def urls(self, with_credentials=False):
         base = [self.location]
-        if with_authentication and self.token:
+        if with_credentials and self.token:
             base.extend(['t', self.token])
         base.append(self.name)
 
@@ -256,14 +256,14 @@ class Channel(object):
             return (p, 'noarch') if p != 'noarch' else ('noarch',)
         bases = (join_url(base, p) for p in _platforms())
 
-        if with_authentication and self.auth:
+        if with_credentials and self.auth:
             return ["%s://%s@%s" % (self.scheme, self.auth, b) for b in bases]
         else:
             return ["%s://%s" % (self.scheme, b) for b in bases]
 
-    def url(self, with_authentication=False):
+    def url(self, with_credentials=False):
         base = [self.location]
-        if with_authentication and self.token:
+        if with_credentials and self.token:
             base.extend(['t', self.token])
         base.append(self.name)
         if self.platform:
@@ -275,7 +275,7 @@ class Channel(object):
 
         base = join_url(*base)
 
-        if with_authentication and self.auth:
+        if with_credentials and self.auth:
             return "%s://%s@%s" % (self.scheme, self.auth, base)
         else:
             return "%s://%s" % (self.scheme, base)
@@ -339,23 +339,23 @@ class MultiChannel(Channel):
     def canonical_name(self):
         return self.name
 
-    def urls(self, with_authentication=False):
-        return list(chain.from_iterable(c.urls(with_authentication) for c in self._channels))
+    def urls(self, with_credentials=False):
+        return list(chain.from_iterable(c.urls(with_credentials) for c in self._channels))
 
     @property
     def base_url(self):
         return None
 
-    def url(self, with_authentication=False):
+    def url(self, with_credentials=False):
         return None
 
 
-def prioritize_channels(channels):
+def prioritize_channels(channels, with_credentials=True):
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
     result = odict()
     for q, chn in enumerate(channels):
         channel = Channel(chn)
-        for url in channel.urls():
+        for url in channel.urls(with_credentials):
             if url in result:
                 continue
             result[url] = channel.canonical_name, q

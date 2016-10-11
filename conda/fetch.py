@@ -22,7 +22,7 @@ from requests.packages.urllib3.connectionpool import InsecureRequestWarning
 from ._vendor.auxlib.logz import stringify
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
-from .common.url import add_username_and_pass_to_url, url_to_path, join_url
+from .common.url import add_username_and_pass_to_url, url_to_path, join_url, split_anaconda_token
 from .compat import input, iteritems, itervalues, text_type
 from .connection import CondaSession, RETRIES
 from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError, \
@@ -149,14 +149,18 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         elif e.response.status_code == 403 and url.endswith('/noarch'):
             return None
 
-        elif e.response.status_code == 401 and text_type(context.channel_alias) in url:
-            # Note, this will not trigger if the binstar configured url does
-            # not match the conda configured one.
-            msg = ("Warning: you may need to login to anaconda.org again with "
-                   "'anaconda login' to access private packages(%s, %s)" %
-                   (url, e))
-            stderrlog.info(msg)
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
+        elif e.response.status_code == 401:
+            channel = Channel(url)
+            if channel.token:
+                msg = "Invalid token %s for channel url %s." % (channel.token, url)
+            elif context.channel_alias.location in url:
+                # Note, this will not trigger if the binstar configured url does
+                # not match the conda configured one.
+                msg = ("Warning: you may need to login to anaconda.org again with "
+                       "'anaconda login' to access private packages(%s, %s)" %
+                       (url, e))
+            else:
+                msg = "HTTP 401 UNAUTHORIZED: %s\n%r" % (join_url(url, filename), e)
 
         else:
             msg = "HTTPError: %s: %s\n" % (e, url)

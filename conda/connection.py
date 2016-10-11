@@ -205,6 +205,19 @@ class BinstarAuth(AuthBase):
                     return channel.full_url
         return url
 
+    # @staticmethod
+    # def add_binstar_token(url):
+    #     clean_url, token = split_anaconda_token(url)
+    #     if not token:
+    #         for binstar_url, token in sorted(context.binstar_client_tokens.items(),
+    #                                          reverse=True,
+    #                                          key=lambda x: len(x[0])):
+    #             if clean_url.startswith(binstar_url):
+    #                 from conda.models.channel import Channel
+    #                 channel = Channel(clean_url)
+    #                 channel.token = token
+    #                 return channel.url(with_authentication=True)
+    #     return url
 
 
     # def handle_proxy_407(url, session):
