@@ -381,7 +381,7 @@ Use Environment Variables
 
 Normally the build script in ``build.sh`` or ``bld.bat`` does not
 pass through environment variables from the command line. Only
-environment variables documented :doc:`here <environment-vars>` are seen by
+environment variables documented in :ref:`env-vars` are seen by
 the build script.  To "white-list" environment variables that should be passed
 through to the build script, use ``script_env``.
 

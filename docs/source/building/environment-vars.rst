@@ -15,7 +15,7 @@ phases. The possible values currently are ``RENDER``, ``BUILD``, and ``TEST``.
 The ``RENDER`` state is set during evaluation of the meta.yaml file. The
 ``BUILD`` state is set during processing of the bld.bat or build.sh script
 files. Finally, the ``TEST`` state is set during the running of any ``run_test``
-scripts, which also includes any commands defined in ``meta.yaml``'s
+scripts, which also includes any commands defined in ``meta.yaml`` in the
 ``test/commands`` section. The CONDA_BUILD_STATE variable is undefined outside
 of these locations.
 
