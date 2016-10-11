@@ -298,22 +298,23 @@ class Resolve(object):
                 testing for package validity.
 
         Returns:
-            A list of tuples, or an empty list if the MatchSpec is valid.
+            A generator of tuples, empty if the MatchSpec is valid.
         """
         def chains_(spec, names):
-            if spec.name in names or self.valid(spec, filter):
+            if self.valid(spec, filter) or spec.name in names:
                 return
-            names.add(spec.name)
             specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
-            if not specs:
-                yield (spec,)
+            found = False
             for fkey in specs:
                 for m2 in self.ms_depends(fkey):
                     for x in chains_(m2, names):
+                        found = True
                         yield (spec,) + x
-        return list(chains_(spec, set()))
+            if not found:
+                yield (spec,)
+        return chains_(spec, set())
 
-    def verify_specs(self, specs, is_conflict=False):
+    def verify_specs(self, specs):
         """Perform a quick verification that specs and dependencies are reasonable.
 
         Args:
@@ -324,8 +325,8 @@ class Resolve(object):
 
         Note that this does not attempt to resolve circular dependencies.
         """
-        bad_deps = []
         spec2 = []
+        bad_deps = []
         feats = set()
         for s in specs:
             ms = MatchSpec(s)
@@ -336,16 +337,80 @@ class Resolve(object):
                 spec2.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
-            if not self.valid(ms, filter):
-                bad_deps.extend(self.invalid_chains(ms, filter))
-            elif is_conflict:
-                bad_deps.append((ms,))
+            bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
-            err = UnsatisfiableError if is_conflict else NoPackagesFoundError
-            raise err(bad_deps)
+            raise NoPackagesFoundError(bad_deps)
         return spec2, feats
 
-    def get_dists(self, specs, include_unsat=True):
+    def find_conflicts(self, specs):
+        """Perform a deeper analysis on conflicting specifications, by attempting
+        to find the common dependencies that might be the cause of conflicts.
+
+        Args:
+            specs: An iterable of strings or MatchSpec objects to be tested.
+            It is assumed that the specs conflict.
+
+        Returns:
+            Nothing, because it always raises an UnsatisfiableError.
+
+        Strategy:
+            If we're here, we know that the specs conflict. This could be because:
+            - One spec conflicts with another; e.g.
+                  ['numpy 1.5*', 'numpy >=1.6']
+            - One spec conflicts with a dependency of another; e.g.
+                  ['numpy 1.5*', 'scipy 0.12.0b1']
+            - Each spec depends on *the same package* but in a different way; e.g.,
+                  ['A', 'B'] where A depends on numpy 1.5, and B on numpy 1.6.
+            Technically, all three of these cases can be boiled down to the last
+            one if we treat the spec itself as one of the "dependencies". There
+            might be more complex reasons for a conflict, but this code only
+            considers the ones above.
+
+            The purpose of this code, then, is to identify packages (like numpy
+            above) that all of the specs depend on *but in different ways*. We
+            then identify the dependency chains that lead to those packages.
+        """
+        sdeps = {}
+        # For each spec, assemble a dictionary of dependencies, with package
+        # name as key, and all of the matching packages as values.
+        for ms in specs:
+            rec = sdeps.setdefault(ms, {})
+            slist = [ms]
+            while slist:
+                ms2 = slist.pop()
+                deps = rec.setdefault(ms2.name, set())
+                for fkey in self.find_matches(ms2):
+                    if fkey not in deps:
+                        deps.add(fkey)
+                        slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != ms.name)
+        # Find the list of dependencies they have in common. And for each of
+        # *those*, find the individual packages that they all share. Those need
+        # to be removed as conflict candidates.
+        commkeys = set.intersection(*(set(s.keys()) for s in sdeps.values()))
+        commkeys = {k: set.intersection(*(v[k] for v in sdeps.values())) for k in commkeys}
+        # and find the dependency chains that lead to them.
+        bad_deps = []
+        for ms, sdep in iteritems(sdeps):
+            filter = {}
+            for mn, v in sdep.items():
+                if mn != ms.name and mn in commkeys:
+                    # Mark this package's "unique" dependencies as invali
+                    for fkey in v - commkeys[mn]:
+                        filter[fkey] = False
+            # Find the dependencies that lead to those invalid choices
+            ndeps = set(self.invalid_chains(ms, filter))
+            # This may produce some additional invalid chains that we
+            # don't care about. Select only those that terminate in our
+            # predetermined set of "common" keys.
+            ndeps = [nd for nd in ndeps if nd[-1].name in commkeys]
+            if ndeps:
+                bad_deps.extend(ndeps)
+            else:
+                # This means the package *itself* was the common conflict.
+                bad_deps.append((ms,))
+        raise UnsatisfiableError(bad_deps)
+
+    def get_dists(self, specs):
         log.debug('Retrieving packages for: %s' % (specs,))
 
         specs, features = self.verify_specs(specs)
@@ -417,8 +482,7 @@ class Resolve(object):
                 elif found is None:
                     break
             if found is None:
-                if include_unsat:
-                    filter = self.default_filter(features)
+                filter = self.default_filter(features)
                 break
 
         # Determine all valid packages in the dependency graph
@@ -821,8 +885,7 @@ class Resolve(object):
             solution = mysat(specs, True)
             if not solution:
                 specs = minimal_unsatisfiable_subset(specs, sat=mysat)
-                dists = self.get_dists(specs, include_unsat=False)
-                Resolve(dists, True, True).verify_specs(specs, True)
+                self.find_conflicts(specs)
 
             speco = []  # optional packages
             specr = []  # requested packages
