@@ -170,7 +170,7 @@ def execute_search(args, parser):
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not args.override_channels,
                       platform=args.platform, use_local=args.use_local,
-                      use_cache=args.use_index_cache, prefix=prefix,
+                      use_cache=args.use_index_cache, prefix=None,
                       unknown=args.unknown)
 
     r = Resolve(index)
