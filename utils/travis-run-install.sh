@@ -29,6 +29,7 @@ osx_setup() {
     esac
     pyenv rehash
     export PYTHON_EXE="$(pyenv which python)"
+    rvm get head
 }
 
 
