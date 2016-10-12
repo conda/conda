@@ -48,14 +48,14 @@ def get_python_version_for_prefix(prefix):
 
 
 def get_site_packages_dir(prefix):
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' or sys.platform == 'win64':
         return join(prefix, 'Lib')
     else:
         return join(prefix, 'lib/python%s' % get_python_version_for_prefix(prefix))
 
 
 def get_bin_dir(prefix):
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' or sys.platform == 'win64':
         return join(prefix, 'Scripts')
     else:
         return join(prefix, 'bin')

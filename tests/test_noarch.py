@@ -4,6 +4,7 @@ import sys
 from os.path import join
 import os
 from shutil import rmtree
+from conda.compat import text_type
 
 from conda import noarch
 
@@ -25,17 +26,16 @@ def stub_sys_platform(platform):
 
 
 def setup_info_dir(info_dir):
+    os.mkdir(info_dir)
     entry_point_info = '{"type": "python", "entry_points": ["cmd = module.foo:func"]}'
     with open(join(info_dir, "noarch.json"), "w") as noarch_json:
         noarch_json.write(entry_point_info)
 
 
 def setup_env_for_linkning(prefix):
-    src_dir = join(os.path.dirname(__file__), "src_test")
-    info_dir = join(src_dir, "info")
+    src_dir = join(prefix, "src_test")
     os.mkdir(src_dir)
-    os.mkdir(info_dir)
-
+    info_dir = join(src_dir, "info")
     setup_info_dir(info_dir)
 
     os.mkdir(join(src_dir, "python-scripts"))
@@ -49,14 +49,6 @@ def setup_env_for_linkning(prefix):
     with open(join(info_dir, "files"), "w") as f:
         for content in file_content:
             f.write("%s\n" % content)
-
-
-def tear_down_env_for_linking(prefix):
-    src_dir = join(os.path.dirname(__file__), "src_test")
-    info_dir = join(src_dir, "info")
-    rmtree(info_dir)
-    rmtree(src_dir)
-    rmtree(join(prefix, "conda-meta"))
 
 
 class TestHelpers(unittest.TestCase):
@@ -97,19 +89,16 @@ class TestHelpers(unittest.TestCase):
 
 class TestEntryPointCreation(unittest.TestCase):
 
-    def setUp(self):
-        config = Mock()
-        config.info_dir = join(os.path.dirname(__file__), "info")
-        os.mkdir(config.info_dir)
-        setup_info_dir(config.info_dir)
-
-    def tearDown(self):
-        rmtree(join(os.path.dirname(__file__), "info"))
+    @pytest.fixture(autouse=True)
+    def setup(self, tmpdir):
+        self.tmpdir = tmpdir
+        setup_info_dir(join(text_type(tmpdir), "info"))
 
     @stub_sys_platform("darwin")
     def test_create_entry_points_unix(self):
-        src_dir = os.path.dirname(__file__)
-        bin_dir = join(os.path.dirname(__file__), "tmp_bin")
+        tmpdir = text_type(self.tmpdir)
+        src_dir = tmpdir
+        bin_dir = join(tmpdir, "tmp_bin")
         entry_point = join(bin_dir, "cmd")
         os.mkdir(bin_dir)
         prefix = ""
@@ -121,18 +110,17 @@ if __name__ == '__main__':
 
     sys.exit(module.foo.func())
 """
-
         noarch.create_entry_points(src_dir, bin_dir, prefix)
         self.assertTrue(os.path.isfile(entry_point))
         with open(entry_point, 'r') as script:
             data = script.read()
             self.assertEqual(data, entry_point_content)
-        rmtree(bin_dir)
 
     @stub_sys_platform("win32")
     def test_create_entry_points_win(self):
-        src_dir = os.path.dirname(__file__)
-        bin_dir = join(os.path.dirname(__file__), "tmp_bin")
+        tmpdir = text_type(self.tmpdir)
+        src_dir = tmpdir
+        bin_dir = join(tmpdir, "tmp_bin")
         entry_point = join(bin_dir, "cmd-script.py")
         os.mkdir(bin_dir)
         cli_script_src = join(src_dir, 'cli-64.exe')
@@ -153,25 +141,19 @@ if __name__ == '__main__':
         with open(entry_point, 'r') as script:
             data = script.read()
             self.assertEqual(data, entry_point_content)
-        rmtree(bin_dir)
-        os.remove(cli_script_src)
 
 
 class TestEntryLinkFiles(unittest.TestCase):
 
-    def setUp(self):
-        src_root = join(os.path.dirname(__file__), "src_test")
-        dst_root = join(os.path.dirname(__file__), "dst_test")
+    @pytest.fixture(autouse=True)
+    def setup(self, tmpdir):
+        self.tmpdir = text_type(tmpdir)
+        src_root = join(self.tmpdir, "src_test")
+        dst_root = join(self.tmpdir, "dst_test")
         os.mkdir(src_root)
         os.mkdir(dst_root)
         open(join(src_root, "testfile1"), 'a').close()
         open(join(src_root, "testfile2"), 'a').close()
-
-    def tearDown(self):
-        src_root = join(os.path.dirname(__file__), "src_test")
-        dst_root = join(os.path.dirname(__file__), "dst_test")
-        rmtree(src_root)
-        rmtree(dst_root)
 
     def check_files(self, files, dst_root, dst_files):
         for f in files:
@@ -181,27 +163,27 @@ class TestEntryLinkFiles(unittest.TestCase):
             os.remove(dst_file)
 
     def test_link(self):
-        prefix = os.path.dirname(__file__)
-        src_root = join(os.path.dirname(__file__), "src_test")
-        dst_root = join(os.path.dirname(__file__), "dst_test")
+        prefix = self.tmpdir
+        src_root = join(prefix, "src_test")
+        dst_root = join(prefix, "dst_test")
         files = ["testfile1", "testfile2"]
 
         dst_files = noarch.link_files(prefix, src_root, dst_root, files, src_root)
         self.check_files(files, dst_root, dst_files)
 
     def test_requires_mkdir(self):
-        prefix = os.path.dirname(__file__)
-        src_root = join(os.path.dirname(__file__), "src_test")
-        dst_root = join(os.path.dirname(__file__), "dst_test/not_exist")
+        prefix = self.tmpdir
+        src_root = join(prefix, "src_test")
+        dst_root = join(prefix, "dst_test/not_exist")
         files = ["testfile1", "testfile2"]
 
         dst_files = noarch.link_files(prefix, src_root, dst_root, files, src_root)
         self.check_files(files, dst_root, dst_files)
 
     def test_file_already_exists(self):
-        prefix = os.path.dirname(__file__)
-        src_root = join(os.path.dirname(__file__), "src_test")
-        dst_root = join(os.path.dirname(__file__), "dst_test")
+        prefix = self.tmpdir
+        src_root = join(prefix, "src_test")
+        dst_root = join(prefix, "dst_test")
         files = ["testfile1", "testfile2"]
         open(join(dst_root, "testfile1"), 'a').close()
 
@@ -217,28 +199,22 @@ class TestNoArch(unittest.TestCase):
 
 class TestNoArchPythonWindowsLink(unittest.TestCase):
 
-    def setUp(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        os.mkdir(prefix)
+    @pytest.fixture(autouse=True)
+    def setup(self, tmpdir):
+        self.tmpdir = text_type(tmpdir)
+        prefix = self.tmpdir
         setup_env_for_linkning(prefix)
         os.mkdir(join(prefix, "Lib"))
         os.mkdir(join(prefix, "Lib/site-packages"))
         os.mkdir(join(prefix, "Scripts"))
 
-    def tearDown(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        tear_down_env_for_linking(prefix)
-        rmtree(join(prefix, "Lib"))
-        rmtree(join(prefix, "Scripts"))
-        rmtree(prefix)
-
-    @stub_sys_platform("win32")
+    @stub_sys_platform("win64")
     @patch("conda.install.dist2filename", return_value="test.files")
     def test_link(self, dist2filename):
-        prefix = join(os.path.dirname(__file__), "test-dir")
+        prefix = self.tmpdir
 
         with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
-            src_dir = join(os.path.dirname(__file__), "src_test")
+            src_dir = join(prefix, "src_test")
             noarch.NoArchPython().link(prefix, src_dir, "dist-test")
 
         alt_files_path = join(prefix, "conda-meta/test.files")
@@ -256,28 +232,22 @@ class TestNoArchPythonWindowsLink(unittest.TestCase):
 
 class TestNoArchPythonUnixLink(unittest.TestCase):
 
-    def setUp(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        os.mkdir(prefix)
+    @pytest.fixture(autouse=True)
+    def setup(self, tmpdir):
+        self.tmpdir = text_type(tmpdir)
+        prefix = self.tmpdir
         setup_env_for_linkning(prefix)
         os.mkdir(join(prefix, "lib"))
         os.mkdir(join(prefix, "lib/python3.5"))
         os.mkdir(join(prefix, "lib/python3.5/site-packages"))
         os.mkdir(join(prefix, "bin"))
 
-    def tearDown(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        tear_down_env_for_linking(prefix)
-        rmtree(join(prefix, "lib"))
-        rmtree(join(prefix, "bin"))
-        rmtree(prefix)
-
     @stub_sys_platform("darwin")
     @patch("conda.install.dist2filename", return_value="test.files")
     def test_link(self, dist2filename):
-        prefix = join(os.path.dirname(__file__), "test-dir")
+        prefix = self.tmpdir
         with patch.object(noarch, "get_python_version_for_prefix", return_value="3.5") as m:
-            src_dir = join(os.path.dirname(__file__), "src_test")
+            src_dir = join(prefix, "src_test")
             noarch.NoArchPython().link(prefix, src_dir, "dist-test")
 
         alt_files_path = join(prefix, "conda-meta/test.files")
@@ -295,9 +265,10 @@ class TestNoArchPythonUnixLink(unittest.TestCase):
 
 class TestNoArchPython2Unlink(unittest.TestCase):
 
-    def setUp(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        os.mkdir(prefix)
+    @pytest.fixture(autouse=True)
+    def setup(self, tmpdir):
+        self.tmpdir = text_type(tmpdir)
+        prefix = self.tmpdir
         site_packages = join(prefix, "site-packages")
         os.mkdir(site_packages)
         open(join(site_packages, "testfile1.pyc"), 'a').close()
@@ -305,28 +276,24 @@ class TestNoArchPython2Unlink(unittest.TestCase):
         os.mkdir(join(site_packages, "foo"))
         open(join(site_packages, "foo/testfile3.pyc"), 'a').close()
 
-    def tearDown(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        rmtree(prefix)
-
     @patch("conda.noarch.get_python_version_for_prefix", return_value="2.7")
-    @patch("conda.noarch.get_site_packages_dir",
-           return_value=join(os.path.dirname(__file__), "test-dir"))
-    def test_unlink(self, get_python_version_for_prefix, get_site_packages_dir):
-        prefix = join(os.path.dirname(__file__), "test-dir")
+    def test_unlink(self, get_python_version_for_prefix):
+        prefix = self.tmpdir
         dist = ""
         site_packages_dir = join(prefix, "site-packages")
-        noarch.NoArchPython().unlink(prefix, dist)
-        self.assertFalse(os.path.exists(join(site_packages_dir, "testfile1.pyc")))
-        self.assertFalse(os.path.exists(join(site_packages_dir, "foo/testfile3.pyc")))
-        self.assertTrue(os.path.isfile(join(site_packages_dir, "testfile2.py")))
+        with patch.object(noarch, "get_site_packages_dir", return_value=self.tmpdir) as g:
+            noarch.NoArchPython().unlink(prefix, dist)
+            self.assertFalse(os.path.exists(join(site_packages_dir, "testfile1.pyc")))
+            self.assertFalse(os.path.exists(join(site_packages_dir, "foo/testfile3.pyc")))
+            self.assertTrue(os.path.isfile(join(site_packages_dir, "testfile2.py")))
 
 
 class TestNoArchPython3Unlink(unittest.TestCase):
 
-    def setUp(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        os.mkdir(prefix)
+    @pytest.fixture(autouse=True)
+    def setup(self, tmpdir):
+        self.tmpdir = text_type(tmpdir)
+        prefix = self.tmpdir
         site_packages = join(prefix, "site-packages")
         os.mkdir(site_packages)
         open(join(site_packages, "testfile1.py"), 'a').close()
@@ -334,19 +301,14 @@ class TestNoArchPython3Unlink(unittest.TestCase):
         os.mkdir(join(site_packages, "foo"))
         os.mkdir(join(site_packages, "foo/_pycache_"))
 
-    def tearDown(self):
-        prefix = join(os.path.dirname(__file__), "test-dir")
-        rmtree(prefix)
-
     @patch("conda.noarch.get_python_version_for_prefix", return_value="3.2")
-    @patch("conda.noarch.get_site_packages_dir",
-           return_value=join(os.path.dirname(__file__), "test-dir"))
-    def test_unlink(self, get_python_version_for_prefix, get_site_packages_dir):
-        prefix = join(os.path.dirname(__file__), "test-dir")
+    def test_unlink(self, get_python_version_for_prefix):
+        prefix = self.tmpdir
         dist = ""
         site_packages_dir = join(prefix, "site-packages")
-        noarch.NoArchPython().unlink(prefix, dist)
-        self.assertFalse(os.path.isdir(join(site_packages_dir, "__pycache__")))
-        self.assertFalse(os.path.isdir(join(site_packages_dir, "foo/__pycache__")))
-        self.assertTrue(os.path.isdir(join(site_packages_dir, "foo")))
-        self.assertTrue(os.path.isfile(join(site_packages_dir, "testfile1.py")))
+        with patch.object(noarch, "get_site_packages_dir", return_value=self.tmpdir) as g:
+            noarch.NoArchPython().unlink(prefix, dist)
+            self.assertFalse(os.path.isdir(join(site_packages_dir, "__pycache__")))
+            self.assertFalse(os.path.isdir(join(site_packages_dir, "foo/__pycache__")))
+            self.assertTrue(os.path.isdir(join(site_packages_dir, "foo")))
+            self.assertTrue(os.path.isfile(join(site_packages_dir, "testfile1.py")))
