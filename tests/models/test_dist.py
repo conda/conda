@@ -27,3 +27,27 @@ class DistTests(TestCase):
 
         d3 = Dist(d2)
         assert d3 is d2
+
+    def test_with_feature_depends(self):
+        d = Dist.from_string("spyder-app-2.3.8-py27_0[mkl]")
+        assert d.with_feature_depends == "mkl"
+
+        d = Dist("mkl@")
+        assert d.channel == "@"
+        assert d.package_name == "mkl@"
+        assert d.version == "0"
+        assert d.build_string == "0"
+        assert d.with_feature_depends is None
+        assert d.is_feature_package
+
+    def test_channel(self):
+        d = Dist.from_string("conda-forge::spyder-app-2.3.8-py27_0.tar.bz2")
+        assert d.channel == 'conda-forge'
+        assert d.package_name == "spyder-app"
+        assert d.dist_name == "spyder-app-2.3.8-py27_0"
+
+        d = Dist.from_string("s3://some/bucket/name::spyder-app-2.3.8-py27_0.tar.bz2")
+        assert d.channel == 's3://some/bucket/name'
+        assert d.package_name == "spyder-app"
+        assert d.dist_name == "spyder-app-2.3.8-py27_0"
+

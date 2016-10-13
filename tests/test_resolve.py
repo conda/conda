@@ -1,18 +1,18 @@
-from __future__ import print_function, absolute_import
-
-import os
+from __future__ import absolute_import, print_function
 
 import json
+import os
 import unittest
-from os.path import dirname, join
-
 from conda.base.context import reset_context
+from conda.common.compat import iteritems, text_type
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
+from conda.models.dist import Dist
 from conda.resolve import MatchSpec, Package, Resolve
+from os.path import dirname, join
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = json.load(fi)
+    index = {Dist(key): value for key, value in iteritems(json.load(fi))}
 
 r = Resolve(index)
 
@@ -106,15 +106,15 @@ class TestPackage(unittest.TestCase):
 
     def test_llvm(self):
         ms = MatchSpec('llvm')
-        pkgs = [Package(fn, r.index[fn]) for fn in r.find_matches(ms)]
+        pkgs = [Package(fn, r.index[Dist(fn)]) for fn in r.find_matches(ms)]
         pkgs.sort()
-        self.assertEqual([p.fn for p in pkgs],
+        self.assertEqual([p.fn.to_filename() for p in pkgs],
                          ['llvm-3.1-0.tar.bz2',
                           'llvm-3.1-1.tar.bz2',
                           'llvm-3.2-0.tar.bz2'])
 
     def test_different_names(self):
-        pkgs = [Package(fn, r.index[fn]) for fn in [
+        pkgs = [Package(fn, r.index[Dist(fn)]) for fn in [
                 'llvm-3.1-1.tar.bz2', 'python-2.7.5-0.tar.bz2']]
         self.assertRaises(TypeError, pkgs.sort)
 
@@ -122,9 +122,9 @@ class TestPackage(unittest.TestCase):
 class TestSolve(unittest.TestCase):
 
     def assert_have_mkl(self, dists, names):
-        for fn in dists:
-            if fn.rsplit('-', 2)[0] in names:
-                self.assertEqual(r.features(fn), f_mkl)
+        for dist in dists:
+            if dist.package_name in names:
+                self.assertEqual(r.features(dist), f_mkl)
 
     def test_explicit0(self):
         self.assertEqual(r.explicit([]), [])
@@ -161,8 +161,10 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.install(specs), res)
 
     def test_iopro_nomkl(self):
-        self.assertEqual(
-            r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True),
+        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True)
+        installed = [[dist.to_filename() for dist in psol] for psol in installed]
+
+        self.assertEqual(installed,
             [['iopro-1.4.3-np17py27_p0.tar.bz2',
               'numpy-1.7.1-py27_0.tar.bz2',
               'openssl-1.0.1c-0.tar.bz2',
@@ -175,8 +177,10 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_iopro_mkl(self):
-        self.assertEqual(
-            r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', 'mkl@'], returnall=True),
+        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', 'mkl@'], returnall=True)
+        installed = [[dist.to_filename() for dist in psol] for psol in installed]
+
+        self.assertEqual(installed,
             [['iopro-1.4.3-np17py27_p0.tar.bz2',
               'mkl-rt-11.0-p0.tar.bz2',
               'numpy-1.7.1-py27_p0.tar.bz2',
@@ -201,19 +205,19 @@ class TestSolve(unittest.TestCase):
     def test_scipy_mkl(self):
         dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
+        self.assertTrue(Dist('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
 
     def test_anaconda_nomkl(self):
         dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         self.assertEqual(len(dists), 107)
-        self.assertTrue('scipy-0.12.0-np17py27_0.tar.bz2' in dists)
+        self.assertTrue(Dist('scipy-0.12.0-np17py27_0.tar.bz2') in dists)
 
     def test_anaconda_mkl_2(self):
         # to test "with_features_depends"
         dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy', 'numexpr', 'scikit-learn'))
-        self.assertTrue('scipy-0.12.0-np17py27_p0.tar.bz2' in dists)
-        self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
+        self.assertTrue(Dist('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
+        self.assertTrue(Dist('mkl-rt-11.0-p0.tar.bz2') in dists)
         self.assertEqual(len(dists), 108)
 
         dists2 = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl'])
@@ -224,8 +228,8 @@ class TestSolve(unittest.TestCase):
         # to test "with_features_depends"
         dists = r.install(['anaconda 1.5.0', 'python 3*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue('scipy-0.12.0-np17py33_p0.tar.bz2' in dists)
-        self.assertTrue('mkl-rt-11.0-p0.tar.bz2' in dists)
+        self.assertTrue(Dist('scipy-0.12.0-np17py33_p0.tar.bz2') in dists)
+        self.assertTrue(Dist('mkl-rt-11.0-p0.tar.bz2') in dists)
         self.assertEqual(len(dists), 61)
 
 
@@ -233,18 +237,17 @@ class TestFindSubstitute(unittest.TestCase):
 
     def test1(self):
         installed = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
-        for old, new in [('numpy-1.7.1-py27_p0.tar.bz2',
-                          'numpy-1.7.1-py27_0.tar.bz2'),
-                         ('scipy-0.12.0-np17py27_p0.tar.bz2',
-                          'scipy-0.12.0-np17py27_0.tar.bz2'),
-                         ('mkl-rt-11.0-p0.tar.bz2', None)]:
-            self.assertTrue(old in installed)
-            self.assertEqual(r.find_substitute(installed, f_mkl, old), new)
+        for old, new in [('numpy-1.7.1-py27_p0.tar.bz2', 'numpy-1.7.1-py27_0.tar.bz2'),
+                         ('scipy-0.12.0-np17py27_p0.tar.bz2', 'scipy-0.12.0-np17py27_0.tar.bz2'),
+                         ('mkl-rt-11.0-p0.tar.bz2', None)
+                         ]:
+            assert Dist(old) in installed
+            assert r.find_substitute(installed, f_mkl, old) == Dist(new) if new else None
 
 
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[Dist(fn) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'numpy-1.5.1-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -255,9 +258,9 @@ def test_pseudo_boolean():
         'tk-8.5.13-0.tar.bz2',
         'unixodbc-2.3.1-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]]
+    ]]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[Dist(fn) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
         'numpy-1.5.1-py27_p4.tar.bz2',
@@ -269,13 +272,13 @@ def test_pseudo_boolean():
         'tk-8.5.13-0.tar.bz2',
         'unixodbc-2.3.1-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]]
+    ]]]
 
 
 def test_get_dists():
     dists = r.get_dists(["anaconda 1.5.0"])[0]
-    assert 'anaconda-1.5.0-np17py27_0.tar.bz2' in dists
-    assert 'dynd-python-0.3.0-np17py33_0.tar.bz2' in dists
+    assert Dist('anaconda-1.5.0-np17py27_0.tar.bz2') in dists
+    assert Dist('dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
 
 
 def test_generate_eq():
@@ -292,6 +295,8 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
+    eqv = {Dist(key).to_filename(): value for key, value in iteritems(eqv)}
+    eqb = {Dist(key).to_filename(): value for key, value in iteritems(eqb)}
     assert eqv == {
         'astropy-0.2-np15py26_0.tar.bz2': 1,
         'astropy-0.2-np16py26_0.tar.bz2': 1,
@@ -407,13 +412,14 @@ def test_nonexistent_deps():
         'requires': ['nose', 'mypackage'],
         'version': '2.0',
     }
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
     assert set(r.find_matches(MatchSpec('mypackage'))) == {
-        'mypackage-1.0-py33_0.tar.bz2',
-        'mypackage-1.1-py33_0.tar.bz2',
+        Dist('mypackage-1.0-py33_0.tar.bz2'),
+        Dist('mypackage-1.1-py33_0.tar.bz2'),
     }
-    assert set(r.get_dists(['mypackage'])[0].keys()) == {
+    assert set(d.to_filename() for d in r.get_dists(['mypackage'])[0].keys()) == {
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.1.2-py33_0.tar.bz2',
         'nose-1.2.1-py33_0.tar.bz2',
@@ -433,7 +439,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'}
 
-    assert r.install(['mypackage']) == r.install(['mypackage 1.1']) == [
+    assert r.install(['mypackage']) == r.install(['mypackage 1.1']) == [Dist(dname) for dname in [
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -443,11 +449,11 @@ def test_nonexistent_deps():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]
+    ]]
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0']))
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
-    assert r.install(['anotherpackage 1.0']) == [
+    assert r.install(['anotherpackage 1.0']) == [Dist(dname) for dname in [
         'anotherpackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -458,9 +464,9 @@ def test_nonexistent_deps():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]
+    ]]
 
-    assert r.install(['anotherpackage']) == [
+    assert r.install(['anotherpackage']) == [Dist(dname) for dname in [
         'anotherpackage-2.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -471,7 +477,7 @@ def test_nonexistent_deps():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]
+    ]]
 
     # This time, the latest version is messed up
     index3 = index.copy()
@@ -507,13 +513,14 @@ def test_nonexistent_deps():
         'requires': ['nose', 'mypackage'],
         'version': '2.0',
     }
+    index3 = {Dist(key): value for key, value in iteritems(index3)}
     r = Resolve(index3)
 
-    assert set(r.find_matches(MatchSpec('mypackage'))) == {
+    assert set(d.to_filename() for d in r.find_matches(MatchSpec('mypackage'))) == {
         'mypackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         }
-    assert set(r.get_dists(['mypackage'])[0].keys()) == {
+    assert set(d.to_filename() for d in r.get_dists(['mypackage'])[0].keys()) == {
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.1.2-py33_0.tar.bz2',
         'nose-1.2.1-py33_0.tar.bz2',
@@ -533,7 +540,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'}
 
-    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [
+    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [Dist(dname) for dname in [
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -543,10 +550,10 @@ def test_nonexistent_deps():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]
+    ]]
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.1']))
 
-    assert r.install(['anotherpackage 1.0']) == [
+    assert r.install(['anotherpackage 1.0']) == [Dist(dname) for dname in [
         'anotherpackage-1.0-py33_0.tar.bz2',
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -557,11 +564,11 @@ def test_nonexistent_deps():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]
+    ]]
 
     # If recursive checking is working correctly, this will give
     # anotherpackage 2.0, not anotherpackage 1.0
-    assert r.install(['anotherpackage']) == [
+    assert r.install(['anotherpackage']) == [Dist(dname) for dname in [
         'anotherpackage-2.0-py33_0.tar.bz2',
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -572,7 +579,7 @@ def test_nonexistent_deps():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
-    ]
+    ]]
 
 
 def test_install_package_with_feature():
@@ -594,6 +601,7 @@ def test_install_package_with_feature():
         'track_features': 'feature',
     }
 
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
     # It should not raise
@@ -618,28 +626,29 @@ def test_circular_dependencies():
         'requires': ['package1'],
         'version': '1.0',
     }
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
     assert set(r.find_matches(MatchSpec('package1'))) == {
-        'package1-1.0-0.tar.bz2',
+        Dist('package1-1.0-0.tar.bz2'),
     }
     assert set(r.get_dists(['package1'])[0].keys()) == {
-        'package1-1.0-0.tar.bz2',
-        'package2-1.0-0.tar.bz2',
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
     }
     assert r.install(['package1']) == r.install(['package2']) == \
         r.install(['package1', 'package2']) == [
-        'package1-1.0-0.tar.bz2',
-        'package2-1.0-0.tar.bz2',
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
     ]
 
 
 def test_package_ordering():
-    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index['sympy-0.7.1-py27_0.tar.bz2'])
-    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index['sympy-0.7.2-py27_0.tar.bz2'])
-    python_275 = Package('python-2.7.5-0.tar.bz2', r.index['python-2.7.5-0.tar.bz2'])
-    numpy = Package('numpy-1.7.1-py27_0.tar.bz2', r.index['numpy-1.7.1-py27_0.tar.bz2'])
-    numpy_mkl = Package('numpy-1.7.1-py27_p0.tar.bz2', r.index['numpy-1.7.1-py27_p0.tar.bz2'])
+    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index[Dist('sympy-0.7.1-py27_0.tar.bz2')])
+    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index[Dist('sympy-0.7.2-py27_0.tar.bz2')])
+    python_275 = Package('python-2.7.5-0.tar.bz2', r.index[Dist('python-2.7.5-0.tar.bz2')])
+    numpy = Package('numpy-1.7.1-py27_0.tar.bz2', r.index[Dist('numpy-1.7.1-py27_0.tar.bz2')])
+    numpy_mkl = Package('numpy-1.7.1-py27_p0.tar.bz2', r.index[Dist('numpy-1.7.1-py27_p0.tar.bz2')])
 
     assert sympy_071 < sympy_072
     assert not sympy_071 < sympy_071
@@ -681,7 +690,7 @@ def test_package_ordering():
 
 
 def test_irrational_version():
-    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[
+    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[Dist(fname) for fname in [
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
         'pytz-2012d-py33_0.tar.bz2',
@@ -690,13 +699,13 @@ def test_irrational_version():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'
-    ]]
+    ]]]
 
 
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
     assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
-        returnall=True) == [[
+        returnall=True) == [[Dist(fname) for fname in [
             'numpy-1.6.2-py26_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
             'python-2.6.8-6.tar.bz2',
@@ -706,10 +715,10 @@ def test_no_features():
             'system-5.8-1.tar.bz2',
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
-            ]]
+            ]]]
 
     assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
-        returnall=True) == [[
+        returnall=True) == [[Dist(fname) for fname in [
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
             'openssl-1.0.1c-0.tar.bz2',
@@ -720,7 +729,7 @@ def test_no_features():
             'system-5.8-1.tar.bz2',
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
-            ]]
+            ]]]
 
     index2 = index.copy()
     index2["pandas-0.12.0-np16py27_0.tar.bz2"] = \
@@ -761,12 +770,13 @@ def test_no_features():
             "version": "1.6.2"
         }
 
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
     r2 = Resolve(index2)
 
     # This should not pick any mkl packages (the difference here is that none
     # of the specs directly have mkl versions)
     assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*'],
-        returnall=True) == [[
+        returnall=True) == [[Dist(fname) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'numpy-1.6.2-py27_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
@@ -779,10 +789,10 @@ def test_no_features():
             'system-5.8-1.tar.bz2',
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
-            ]]
+            ]]]
 
     assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', 'mkl@'],
-        returnall=True)[0] == [[
+        returnall=True)[0] == [[Dist(fname) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',           # This
             'numpy-1.6.2-py27_p5.tar.bz2',      # and this are different.
@@ -796,7 +806,7 @@ def test_no_features():
             'system-5.8-1.tar.bz2',
             'tk-8.5.13-0.tar.bz2',
             'zlib-1.2.7-0.tar.bz2',
-            ]][0]
+            ]]][0]
 
 
 def test_multiple_solution():
@@ -804,18 +814,19 @@ def test_multiple_solution():
     fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
     res1 = set([fn])
     for k in range(1,15):
-        fn2 = '%s_%d.tar.bz2'%(fn[:-8],k)
-        index2[fn2] = index[fn]
+        fn2 = Dist('%s_%d.tar.bz2'%(fn[:-8],k))
+        index2[fn2] = index[Dist(fn)]
         res1.add(fn2)
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
     res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
-    res = set([y for x in res for y in x if y.startswith('pandas')])
-    assert res <= res1
+    res = set([y for x in res for y in x if y.package_name.startswith('pandas')])
+    assert len(res) <= len(res1)
 
 
 def test_broken_install():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
-    assert installed == [
+    assert installed == [Dist(fname) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -828,10 +839,10 @@ def test_broken_install():
         'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']
-    installed[1] = 'numpy-1.7.1-py33_p0.tar.bz2'
-    installed.append('notarealpackage-2.0-0.tar.bz2')
-    assert r.install([], installed) == installed
+        'zlib-1.2.7-0.tar.bz2']]
+    installed[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
+    installed.append(Dist('notarealpackage-2.0-0.tar.bz2'))
+    assert r.install([], installed) == [Dist(fn) for fn in installed]
     installed2 = r.install(['numpy'], installed)
     installed3 = r.remove(['pandas'], installed)
     assert set(installed3) == set(installed[:3] + installed[4:])
@@ -839,7 +850,7 @@ def test_broken_install():
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
-    assert installed == [
+    assert installed == [Dist(fname) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.7.1-py27_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -852,9 +863,9 @@ def test_remove():
         'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']
+        'zlib-1.2.7-0.tar.bz2']]
 
-    assert r.remove(['pandas'], installed=installed) == [
+    assert r.remove(['pandas'], installed=installed) == [Dist(fname) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.7.1-py27_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -866,10 +877,10 @@ def test_remove():
         'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']
+        'zlib-1.2.7-0.tar.bz2']]
 
     # Pandas requires numpy
-    assert r.remove(['numpy'], installed=installed) == [
+    assert r.remove(['numpy'], installed=installed) == [Dist(fname) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-2.7.5-0.tar.bz2',
@@ -879,7 +890,7 @@ def test_remove():
         'sqlite-3.7.13-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']
+        'zlib-1.2.7-0.tar.bz2']]
 
 
 def test_channel_priority():
@@ -887,9 +898,10 @@ def test_channel_priority():
     fn2 = 'other::' + fn1
     spec = ['pandas', 'python 2.7*']
     index2 = index.copy()
-    index2[fn2] = index2[fn1].copy()
+    index2[Dist(fn2)] = index2[Dist(fn1)].copy()
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
     r2 = Resolve(index2)
-    rec = r2.index[fn2]
+    rec = r2.index[Dist(fn2)]
 
     os.environ['CONDA_CHANNEL_PRIORITY'] = 'True'
     reset_context(())
@@ -918,9 +930,10 @@ def test_channel_priority():
 def test_dependency_sort():
     specs = ['pandas','python 2.7*','numpy 1.6*']
     installed = r.install(specs)
-    must_have = {r.package_name(pkg):pkg[:-8] for pkg in installed}
+    must_have = {r.package_name(dist): dist for dist in installed}
     installed = r.dependency_sort(must_have)
-    assert installed == [
+
+    results_should_be = [
         'openssl-1.0.1c-0',
         'readline-6.2-0',
         'sqlite-3.7.13-0',
@@ -933,49 +946,15 @@ def test_dependency_sort():
         'six-1.3.0-py27_0',
         'dateutil-2.1-py27_1',
         'scipy-0.12.0-np16py27_0',
-        'pandas-0.11.0-np16py27_1']
+        'pandas-0.11.0-np16py27_1'
+    ]
+    assert len(installed) == len(results_should_be)
+    assert [d.dist_name for d in installed] == results_should_be
 
 
 def test_update_deps():
     installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
-    assert installed == [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.6.2-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.10.1-np16py27_0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.11.0-np16py27_3.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]
-
-    # scipy, and pandas should all be updated here. pytz is a new
-    # dependency of pandas. But numpy does not _need_ to be updated
-    # to get the latest version of pandas, so it stays put.
-    assert r.install(['pandas', 'python 2.7*'], installed=installed,
-        update_deps=True, returnall=True) == [[
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.6.2-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.11.0-np16py27_1.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np16py27_0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']]
-
-    # pandas should be updated here. However, it's going to try to not update
-    # scipy, so it won't be updated to the latest version (0.11.0).
-    assert r.install(['pandas', 'python 2.7*'], installed=installed,
-        update_deps=False, returnall=True) == [[
+    assert installed == [Dist(fn) for fn in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -989,3 +968,40 @@ def test_update_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]]
+
+    # scipy, and pandas should all be updated here. pytz is a new
+    # dependency of pandas. But numpy does not _need_ to be updated
+    # to get the latest version of pandas, so it stays put.
+    assert r.install(['pandas', 'python 2.7*'], installed=installed,
+        update_deps=True, returnall=True) == [[Dist(fn) for fn in [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.11.0-np16py27_1.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.12.0-np16py27_0.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2']]]
+
+    # pandas should be updated here. However, it's going to try to not update
+    # scipy, so it won't be updated to the latest version (0.11.0).
+    assert r.install(['pandas', 'python 2.7*'], installed=installed,
+        update_deps=False, returnall=True) == [[Dist(fn) for fn in [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.10.1-np16py27_0.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.11.0-np16py27_3.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2',
+    ]]]

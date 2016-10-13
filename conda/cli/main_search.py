@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 from conda import text_type
 from conda.api import get_index
+from conda.models.dist import Dist
 
 from .common import Completer, Packages, add_parser_channels, add_parser_json, add_parser_known, \
     add_parser_offline, add_parser_prefix, add_parser_use_index_cache, add_parser_use_local, \
@@ -155,10 +156,11 @@ def execute_search(args, parser):
 
     prefix = context.prefix_w_legacy_search
 
-    import conda.install
+    import conda.core.linked_data
+    import conda.core.package_cache
 
-    linked = conda.install.linked(prefix)
-    extracted = conda.install.extracted()
+    linked = conda.core.linked_data.linked(prefix)
+    extracted = conda.core.package_cache.extracted()
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
@@ -242,12 +244,12 @@ def execute_search(args, parser):
                 continue
 
         for pkg in pkgs:
-            dist = pkg.fn[:-8]
+            dist = Dist(pkg)
             if args.canonical:
                 if not context.json:
-                    print(dist)
+                    print(dist.dist_name)
                 else:
-                    json.append(dist)
+                    json.append(dist.dist_name)
                 continue
             if platform and platform != context.subdir:
                 inst = ' '
@@ -258,15 +260,20 @@ def execute_search(args, parser):
             else:
                 inst = ' '
 
+            features = r.features(dist)
+
             if not context.json:
-                print('%-25s %s  %-15s %15s  %-15s %s' % (
-                    disp_name, inst,
-                    pkg.version,
-                    pkg.build,
-                    Channel(pkg.channel).canonical_name,
-                    disp_features(r.features(pkg.fn)),
-                    ))
-                disp_name = ''
+                try:
+                    print('%-25s %s  %-15s %15s  %-15s %s' % (
+                        disp_name, inst,
+                        pkg.version,
+                        pkg.build,
+                        pkg.schannel,
+                        disp_features(features),
+                        ))
+                    disp_name = ''
+                except KeyError:
+                    import pdb; pdb.set_trace()
             else:
                 data = {}
                 data.update(pkg.info)
@@ -277,9 +284,9 @@ def execute_search(args, parser):
                     'version': pkg.version,
                     'build': pkg.build,
                     'build_number': pkg.build_number,
-                    'channel': Channel(pkg.channel).canonical_name,
+                    'channel': pkg.schannel,
                     'full_channel': pkg.channel,
-                    'features': list(r.features(pkg.fn)),
+                    'features': list(features),
                     'license': pkg.info.get('license'),
                     'size': pkg.info.get('size'),
                     'depends': pkg.info.get('depends'),
