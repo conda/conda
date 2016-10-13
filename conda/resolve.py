@@ -394,7 +394,7 @@ class Resolve(object):
         return spec2, opts, feats
 
     def get_dists(self, specs):
-        log.debug('Retrieving packages for: %s' % specs)
+        log.debug('Retrieving packages for: %s', specs)
 
         specs, optional, features = self.verify_specs(specs)
         filter = {}
@@ -433,7 +433,7 @@ class Resolve(object):
             nnew = nold - len(bad_deps)
             reduced = nnew < nold
             if reduced:
-                log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
+                log.debug('%s: pruned from %d -> %d', name, nold, nnew)
             if nnew == 0:
                 if name in snames:
                     snames.remove(name)
@@ -831,7 +831,7 @@ class Resolve(object):
                 dists[dist] = rec
                 specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
         if xtra:
-            log.debug('Packages missing from index: %s', ', '.join(d.full_name for d in xtra))
+            log.debug('Packages missing from index: %s', xtra)
         r2 = Resolve(dists, True, True)
         C = r2.gen_clauses(specs)
         constraints = r2.generate_spec_constraints(C, specs)
@@ -858,7 +858,7 @@ class Resolve(object):
                         if self.package_name(dist) not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
-            log.debug('Packages to be preserved: %s' % ', '.join(d.full_name for d in xtra))
+            log.debug('Packages to be preserved: %s', xtra)
         return limit, xtra
 
     def restore_bad(self, pkgs, preserve):

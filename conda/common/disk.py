@@ -194,8 +194,8 @@ def rm_rf(path, max_retries=5, trash=True):
             finally:
                 # If path was removed, ensure it's not in linked_data_
                 if not isdir(path):
-                    from ..core.linked_data import delete_linked_data_any
-                    delete_linked_data_any(path)
+                    from ..core.linked_data import delete_prefix_from_linked_data
+                    delete_prefix_from_linked_data(path)
         elif lexists(path):
             try:
                 backoff_unlink(path)
@@ -271,8 +271,8 @@ def move_path_to_trash(path, preclean=True):
             log.debug("Could not move %s to %s.\n%r", path, trash_file, e)
         else:
             log.debug("Moved to trash: %s", path)
-            from ..core.linked_data import delete_linked_data_any
-            delete_linked_data_any(path)
+            from ..core.linked_data import delete_prefix_from_linked_data
+            delete_prefix_from_linked_data(path)
             return True
 
     return False

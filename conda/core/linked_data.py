@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 from logging import getLogger
 from os import listdir, makedirs
-from os.path import isdir, isfile, join, split
+from os.path import isdir, isfile, join
 
 from .package_cache import read_url
 from .._vendor.auxlib.entity import EntityEncoder
@@ -76,20 +76,15 @@ def delete_linked_data(prefix, dist, delete=True):
             rm_rf(meta_path)
 
 
-def delete_linked_data_any(path):
+def delete_prefix_from_linked_data(path):
     '''Here, path may be a complete prefix or a dist inside a prefix'''
-    dist = ''
-    while True:
-        if path in linked_data_:
-            if dist:
-                delete_linked_data(path, Dist(dist))
-                return True
-            else:
-                del linked_data_[path]
-                return True
-        path, dist = split(path)
-        if not dist:
-            return False
+    linked_data_path = next((key for key in sorted(linked_data_.keys(), reverse=True)
+                             if path.startswith(key)),
+                            None)
+    if linked_data_path:
+        del linked_data_[linked_data_path]
+        return True
+    return False
 
 
 def load_meta(prefix, dist):

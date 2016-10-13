@@ -81,7 +81,8 @@ def LINK_CMD(state, arg):
 
 def UNLINK_CMD(state, arg):
     log.debug("=======> UNLINKING %s <=======", arg)
-    unlink(state['prefix'], arg)
+    dist = Dist(arg)
+    unlink(state['prefix'], dist)
 
 
 def SYMLINK_CONDA_CMD(state, arg):

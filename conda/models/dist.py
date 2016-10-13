@@ -32,8 +32,8 @@ class Dist(Entity):
 
     channel = StringField(required=False, nullable=True, immutable=True)
     package_name = StringField(immutable=True)
-    version = StringField(required=False, immutable=True)
-    build_string = StringField(required=False, immutable=True)
+    version = StringField(nullable=True, immutable=True)
+    build_string = StringField(nullable=True, immutable=True)
 
     def __init__(self, channel, package_name=None, version=None,
                  build_string=None, with_feature_depends=None):
@@ -47,11 +47,21 @@ class Dist(Entity):
 
     @property
     def dist_name(self):
-        return '-'.join((self.package_name, self.version, self.build_string))
+        if self.version:
+            return '-'.join((self.package_name, self.version, self.build_string))
+        else:
+            return self.package_name
 
     @property
     def full_name(self):
         return self.__str__()
+
+    def __str__(self):
+        base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
+        if self.with_feature_depends:
+            return "%s[%s]" % (base, self.with_feature_depends)
+        else:
+            return base
 
     @property
     def is_feature_package(self):
@@ -94,23 +104,16 @@ class Dist(Entity):
         return (self.channel, self.package_name, self.version, self.build_string)
 
     def __lt__(self, other):
-        return self.__key__()[1:] < other.__key__()[1:]
+        return self.__key__() < other.__key__()
 
     def __gt__(self, other):
-        return self.__key__()[1:] > other.__key__()[1:]
+        return self.__key__() > other.__key__()
 
     def __hash__(self):
         return hash(self.__key__())
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__key__() == other.__key__()
-
-    def __str__(self):
-        base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
-        if self.with_feature_depends:
-            return "%s[%s]" % (base, self.with_feature_depends)
-        else:
-            return base
 
 #
 #

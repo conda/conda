@@ -70,6 +70,7 @@ def display_actions(actions, index, show_channel_urls=None):
 
         disp_lst = []
         for dist in actions[inst.FETCH]:
+            dist = Dist(dist)
             info = index[dist]
             extra = '%15s' % human_bytes(info['size'])
             schannel = channel_filt(channel_str(info))
@@ -79,7 +80,7 @@ def display_actions(actions, index, show_channel_urls=None):
         print_dists(disp_lst)
 
         if index and len(actions[inst.FETCH]) > 1:
-            num_bytes = sum(index[dist]['size'] for dist in actions[inst.FETCH])
+            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[inst.FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -101,7 +102,7 @@ def display_actions(actions, index, show_channel_urls=None):
         linktypes[pkg] = lt
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
-        dist = arg
+        dist = Dist(arg)
         rec = index.get(dist)
         if rec is None:
             rec = dict(name=dist.package_name, version=dist.version,
