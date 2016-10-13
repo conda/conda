@@ -7,14 +7,15 @@ from __future__ import absolute_import, division, print_function
 import os
 import re
 import sys
-from conda.models.dist import Dist
 from io import open
 from os.path import isdir, isfile, join
 
 from .compat import itervalues
 from .core.linked_data import linked_data
 from .misc import rel_path
+from .models.dist import Dist
 from .utils import on_win
+
 
 def get_site_packages_dir(installed_pkgs):
     for info in itervalues(installed_pkgs):
@@ -87,7 +88,7 @@ def get_egg_info(prefix, all_pkgs=False):
             except UnicodeDecodeError:
                 dist = None
             if dist:
-                res.add(Dist.from_string(dist))
+                res.add(Dist(dist))
     return res
 
 

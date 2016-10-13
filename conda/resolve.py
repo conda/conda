@@ -1,4 +1,4 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import logging
 import re
@@ -7,12 +7,12 @@ from conda.base.constants import DEFAULTS
 from conda.models.dist import Dist
 from itertools import chain
 
-from conda.models.channel import Channel
 from .base.context import context
-from .compat import iterkeys, itervalues, iteritems, string_types, text_type
+from .compat import iteritems, iterkeys, itervalues, string_types, text_type
 from .console import setup_handlers
-from .exceptions import CondaValueError, UnsatisfiableError, NoPackagesFoundError
-from .logic import minimal_unsatisfiable_subset, Clauses
+from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
+from .logic import Clauses, minimal_unsatisfiable_subset
+from .models.channel import Channel
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
 
@@ -107,7 +107,7 @@ class MatchSpec(object):
             version = info.get('version')
             build = info.get('build')
         else:
-            d = Dist.from_string(info[:-8])
+            d = Dist(info[:-8])
             name, version, build, schannel = d.package_name, d.version, d.build_string, d.channel
         if name != self.name:
             return False
@@ -783,7 +783,7 @@ class Resolve(object):
         match the installed packages as closely as possible.
         If no substitute is found, None is returned.
         """
-        d = Dist.from_string(fn)
+        d = Dist(fn)
         name, version, unused_build, schannel = d.package_name, d.version, d.build_string, d.channel
         candidates = {}
         for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):

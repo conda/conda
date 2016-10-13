@@ -54,7 +54,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     rec['schannel'] = schannel
     rec['link'] = rec.get('link') or EMPTY_LINK
 
-    d = Dist.from_string(dist_name)
+    d = Dist(dist_name)
     if ignore_channels:
         dist = Dist(channel=None, package_name=d.package_name, version=d.version,
                     build_string=d.build_string)
@@ -82,7 +82,7 @@ def delete_linked_data_any(path):
     while True:
         if path in linked_data_:
             if dist:
-                delete_linked_data(path, Dist.from_string(dist))
+                delete_linked_data(path, Dist(dist))
                 return True
             else:
                 del linked_data_[path]

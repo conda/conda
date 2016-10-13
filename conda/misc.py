@@ -89,7 +89,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             prefix = '' if schannel == DEFAULTS else schannel + '::'
 
         fn = prefix + fn
-        dist = Dist.from_string(fn[:-8])
+        dist = Dist(fn[:-8])
         # Add explicit file to index so we'll be sure to see it later
         if is_local:
             index[dist] = {'fn': dist.to_filename(), 'url': url, 'md5': md5}
@@ -179,7 +179,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
     # Finish the MD5 verification
     for fn, md5 in verifies:
-        info = index.get(Dist.from_string(fn))
+        info = index.get(Dist(fn))
         if info is None:
             raise PackageNotFoundError(fn, "no package '%s' in index" % fn)
         if md5 and 'md5' not in info:
@@ -330,7 +330,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             if fkeys:
                 del drecs[dist]
                 dist_str = sorted(fkeys, key=r.version_key, reverse=True)[0]
-                drecs[Dist.from_string(dist_str)] = r.index[dist_str]
+                drecs[Dist(dist_str)] = r.index[dist_str]
             else:
                 notfound.append(fn)
     if notfound:

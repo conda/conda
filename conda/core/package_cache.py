@@ -7,11 +7,10 @@ import requests
 import sys
 import tarfile
 import warnings
-from conda.base.constants import DEFAULTS
-from conda.models.dist import Dist
 from logging import getLogger
 from os.path import basename, dirname, exists, isdir, isfile, join
 
+from ..base.constants import DEFAULTS
 from ..base.context import context
 from ..common.disk import exp_backoff_fn, rm_rf
 from ..common.url import path_to_url
@@ -19,6 +18,7 @@ from ..connection import CondaSession, RETRIES, handle_proxy_407
 from ..exceptions import CondaRuntimeError, CondaSignatureError, MD5MismatchError
 from ..lock import FileLock
 from ..models.channel import Channel, offline_keep
+from ..models.dist import Dist
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -79,7 +79,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     fname_table_[xkey] = fname_table_[path_to_url(xkey)] = prefix
     fkey = prefix + dist
 
-    dist = Dist.from_string(fkey)
+    dist = Dist(fkey)
 
     rec = package_cache_.get(dist)
     if rec is None:
@@ -273,7 +273,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
     session = session or CondaSession()
 
     fn = info['fn']
-    dist = Dist.from_string(fn)
+    dist = Dist(fn)
     url = info.get('url')
     if url is None:
         url = info['channel'] + '/' + fn

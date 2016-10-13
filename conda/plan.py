@@ -7,34 +7,32 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-
 from __future__ import absolute_import, division, print_function
 
 import os
 import sys
 from collections import defaultdict
-from conda.base.constants import DEFAULTS
-from conda.common.disk import rm_rf
-from conda.compat import string_types
-from conda.core.linked_data import is_linked
-from conda.core.package_cache import is_fetched, find_new_location
-from conda.models.dist import Dist
+from .base.constants import DEFAULTS
+from .common.disk import rm_rf
+from .compat import string_types
+from .core.linked_data import is_linked
+from .core.package_cache import is_fetched, find_new_location
+from .models.dist import Dist
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
 from . import instructions as inst
 from .base.context import context
-from .exceptions import ArgumentError, CondaIndexError, CondaRuntimeError, InstallError, \
-    RemoveError
+from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
+                         RemoveError)
 from .history import History
 from .install import LINK_COPY, LINK_HARD, LINK_SOFT, is_extracted, link_name_map, try_hard_link
 from .models.channel import Channel
 from .resolve import MatchSpec, Package, Resolve
 from .utils import human_bytes, md5_file, on_win
 
-# For backwards compatibility
-
 log = getLogger(__name__)
+
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
@@ -94,7 +92,7 @@ def display_actions(actions, index, show_channel_urls=None):
 
     for arg in actions.get(inst.LINK, []):
         d, lt = inst.split_linkarg(arg)
-        dist = Dist.from_string(d)
+        dist = Dist(d)
         rec = index[dist]
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
@@ -485,7 +483,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     pkgs = r.install(specs, installed, update_deps=update_deps)
 
     for fn in pkgs:
-        dist = Dist.from_string(fn)
+        dist = Dist(fn)
         name = dist.package_name
         if not name or only_names and name not in only_names:
             continue
@@ -530,7 +528,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         actions[inst.SYMLINK_CONDA] = [context.root_dir]
 
     for dist in sorted(linked):
-        dist = Dist.from_string(dist)
+        dist = Dist(dist)
         name = dist.package_name
         replace_existing = name in must_have and dist != must_have[name]
         prune_it = prune and dist not in smh
@@ -543,7 +541,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
     # linked = r.installed
-    linked_dists = [Dist.from_string(d) for d in r.installed]
+    linked_dists = [Dist(d) for d in r.installed]
 
     if force:
         mss = list(map(MatchSpec, specs))
@@ -553,7 +551,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
         nlinked = {dist.package_name: dist
-                   for dist in (Dist.from_string(fn) for fn in r.remove(specs, r.installed))}
+                   for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)

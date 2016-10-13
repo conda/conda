@@ -470,7 +470,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
 def try_hard_link(pkgs_dir, prefix, dist):
     # TODO: Usage of this function is bad all around it looks like
 
-    dist = Dist.from_string(dist)
+    dist = Dist(dist)
     src = join(pkgs_dir, dist.dist_name, 'info', 'index.json')
     dst = join(prefix, '.tmp-%s' % dist.dist_name)
     assert isfile(src), src

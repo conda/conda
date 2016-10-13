@@ -61,7 +61,7 @@ def get_index(channel_urls=(), prepend=True, platform=None, use_local=False, use
             schannel = info['schannel']
             prefix = '' if schannel == DEFAULTS else schannel + '::'
             priority = priorities.get(schannel, maxp)
-            key = Dist.from_string(prefix + fn)
+            key = Dist(prefix + fn)
             if key in index:
                 # Copy the link information so the resolver knows this is installed
                 index[key] = index[key].copy()
@@ -255,7 +255,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             channel = channel.rstrip('/')
             for fn, info in iteritems(repodata['packages']):
                 key = url_s + '::' + fn if url_s != DEFAULTS else fn
-                key = Dist.from_string(key)
+                key = Dist(key)
                 url = channel + '/' + fn
                 info.update(dict(fn=fn, schannel=url_s, channel=channel, priority=priority,
                                  url=url))

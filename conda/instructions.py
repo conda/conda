@@ -74,7 +74,7 @@ def split_linkarg(arg):
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
-    dist = Dist.from_string(dist)
+    dist = Dist(dist)
     log.debug("=======> LINKING %s <=======", dist)
     link(state['prefix'], dist, lt, index=state['index'])
 
@@ -128,7 +128,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((Dist.from_string(arg).package_name,
+            getLogger('progress.update').info((Dist(arg).package_name,
                                                state['i'] - 1))
         cmd = _commands[instruction]
 
