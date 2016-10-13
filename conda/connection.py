@@ -15,6 +15,10 @@ import platform
 import requests
 import tempfile
 from base64 import b64decode
+from conda.common.url import add_username_and_pass_to_url
+from conda.compat import input
+from conda.exceptions import ProxyError
+from conda.utils import memoized
 from io import BytesIO
 from logging import getLogger
 from requests.adapters import HTTPAdapter
@@ -523,3 +527,27 @@ def parse_multipart_files(request):
     buf.seek(0)
 
     return buf
+
+
+def handle_proxy_407(url, session):
+    """
+    Prompts the user for the proxy username and password and modifies the
+    proxy in the session object to include it.
+    """
+    # We could also use HTTPProxyAuth, but this does not work with https
+    # proxies (see https://github.com/kennethreitz/requests/issues/2061).
+    scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
+    if scheme not in session.proxies:
+        raise ProxyError("""Could not find a proxy for %r. See
+http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
+for more information on how to configure proxies.""" % scheme)
+    username, passwd = get_proxy_username_and_pass(scheme)
+    session.proxies[scheme] = add_username_and_pass_to_url(
+                            session.proxies[scheme], username, passwd)
+
+
+@memoized
+def get_proxy_username_and_pass(scheme):
+    username = input("\n%s proxy username: " % scheme)
+    passwd = getpass.getpass("Password:")
+    return username, passwd

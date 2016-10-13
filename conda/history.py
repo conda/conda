@@ -9,9 +9,11 @@ import re
 import sys
 import time
 import warnings
+from conda.base.constants import DEFAULTS
+from conda.core.linked_data import linked
+from conda.models.dist import Dist
 from os.path import isdir, isfile, join
 
-from .install import linked, dist2quad
 from .exceptions import CondaHistoryError, CondaFileIOError
 
 log = logging.getLogger(__name__)
@@ -35,13 +37,13 @@ def pretty_diff(diff):
     removed = {}
     for s in diff:
         fn = s[1:]
-        name, version, _, channel = dist2quad(fn)
-        if channel != 'defaults':
-            version += ' (%s)' % channel
+        dist = Dist.from_string(fn)
+        if dist.channel != DEFAULTS:
+            dist.version += ' (%s)' % dist.channel
         if s.startswith('-'):
-            removed[name.lower()] = version
+            removed[dist.package_name.lower()] = dist.version
         elif s.startswith('+'):
-            added[name.lower()] = version
+            added[dist.package_name.lower()] = dist.version
     changed = set(added) & set(removed)
     for name in sorted(changed):
         yield ' %s  {%s -> %s}' % (name, removed[name], added[name])
@@ -216,11 +218,12 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    name, version, build, channel = dist2quad(pkg[1:])
+                    dist = Dist.from_string(pkg[1:])
+                    # name, version, build, channel = Dist.from_string(pkg[1:])
                     if pkg.startswith('+'):
-                        added[name.lower()] = (version, build, channel)
+                        added[name.lower()] = (dist.version, dist.build, dist.channel)
                     elif pkg.startswith('-'):
-                        removed[name.lower()] = (version, build, channel)
+                        removed[name.lower()] = (dist.version, dist.build, dist.channel)
 
                 changed = set(added) & set(removed)
                 for name in sorted(changed):

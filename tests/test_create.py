@@ -20,9 +20,10 @@ from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.io import captured, disable_logger, stderr_log_level
 from conda.common.url import path_to_url
-from conda.compat import itervalues
+from conda.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
-from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
+from conda.utils import on_win
+from conda.core.linked_data import linked as install_linked, linked_data, linked_data_
 from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
@@ -163,8 +164,10 @@ def enforce_offline():
 
 def package_is_installed(prefix, package, exact=False):
     packages = list(install_linked(prefix))
-    if '::' not in package:
-        packages = list(map(dist2dirname, packages))
+    if '::' in package:
+        packages = list(map(text_type, packages))
+    else:
+        packages = list(map(lambda x: x.dist_name, packages))
     if exact:
         return package in packages
     return any(p.startswith(package) for p in packages)

@@ -3,17 +3,19 @@ from __future__ import print_function, division, absolute_import
 import logging
 import re
 from collections import defaultdict
+from conda.base.constants import DEFAULTS
+from conda.models.dist import Dist
 from itertools import chain
 
 from conda.models.channel import Channel
 from .base.context import context
-from .compat import iterkeys, itervalues, iteritems, string_types
+from .compat import iterkeys, itervalues, iteritems, string_types, text_type
 from .console import setup_handlers
 from .exceptions import CondaValueError, UnsatisfiableError, NoPackagesFoundError
-from .install import dist2quad
 from .logic import minimal_unsatisfiable_subset, Clauses
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
+
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
 stdoutlog = logging.getLogger('stdoutlog')
@@ -105,7 +107,8 @@ class MatchSpec(object):
             version = info.get('version')
             build = info.get('build')
         else:
-            name, version, build, schannel = dist2quad(info[:-8])
+            d = Dist.from_string(info[:-8])
+            name, version, build, schannel = d.package_name, d.version, d.build_string, d.channel
         if name != self.name:
             return False
         return self.match_fast(version, build)
@@ -200,7 +203,7 @@ class Package(object):
 class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False):
-        self.index = index
+        self.index = index = {text_type(dist): record for dist, record in iteritems(index)}
         if not processed:
             for fkey, info in iteritems(index.copy()):
                 if fkey.endswith(']'):
@@ -583,20 +586,21 @@ class Resolve(object):
         bld = rec.get('build_number', 0)
         return (cpri, ver, bld) if context.channel_priority else (ver, cpri, bld)
 
-    def features(self, fkey):
-        return set(self.index[fkey].get('features', '').split())
+    def features(self, dist):
+        return set(self.index[dist].get('features', '').split())
 
-    def track_features(self, fkey):
-        return set(self.index[fkey].get('track_features', '').split())
+    def track_features(self, dist):
+        return set(self.index[dist].get('track_features', '').split())
 
-    def package_quad(self, fkey):
-        rec = self.index.get(fkey, None)
+    def package_quad(self, dist):
+        rec = self.index.get(dist, None)
         if rec is None:
-            return dist2quad(fkey.rsplit('[', 1)[0].rsplit('/', 1)[-1])
-        return (rec['name'], rec['version'], rec['build'], rec.get('schannel', 'defaults'))
+            return dist.package_name, dist.version, dist.build_string, dist.channel
+        else:
+            return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
 
-    def package_name(self, fkey):
-        return self.package_quad(fkey)[0]
+    def package_name(self, dist):
+        return dist.package_name
 
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
@@ -724,8 +728,8 @@ class Resolve(object):
         if not isinstance(must_have, dict):
             must_have = {self.package_name(dist): dist for dist in must_have}
         digraph = {}
-        for key, value in iteritems(must_have):
-            fn = value + '.tar.bz2'
+        for key, dist in iteritems(must_have):
+            fn = dist.to_filename()
             if fn in self.index:
                 depends = set(ms.name for ms in self.ms_depends(fn))
                 digraph[key] = depends
@@ -779,7 +783,8 @@ class Resolve(object):
         match the installed packages as closely as possible.
         If no substitute is found, None is returned.
         """
-        name, version, unused_build, schannel = dist2quad(fn)
+        d = Dist.from_string(fn)
+        name, version, unused_build, schannel = d.package_name, d.version, d.build_string, d.channel
         candidates = {}
         for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
             fn1 = pkg.fn

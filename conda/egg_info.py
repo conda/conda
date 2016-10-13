@@ -4,14 +4,15 @@ installed Python packages, e.g. using "python setup.py install", or "pip".
 """
 from __future__ import absolute_import, division, print_function
 
-from io import open
 import os
 import re
 import sys
+from conda.models.dist import Dist
+from io import open
 from os.path import isdir, isfile, join
 
 from .compat import itervalues
-from .install import linked_data
+from .core.linked_data import linked_data
 from .misc import rel_path
 from .utils import on_win
 
@@ -86,7 +87,7 @@ def get_egg_info(prefix, all_pkgs=False):
             except UnicodeDecodeError:
                 dist = None
             if dist:
-                res.add(dist)
+                res.add(Dist.from_string(dist))
     return res
 
 

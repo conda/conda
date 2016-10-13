@@ -14,7 +14,6 @@ from .common import Completer, Packages, add_parser_channels, add_parser_json, a
     disp_features, ensure_override_channels_requires_channel, ensure_use_local, stdout_json
 from ..base.context import context
 from ..exceptions import CommandArgumentError, PackageNotFoundError
-from ..install import dist2quad
 from ..misc import make_icon_url
 from ..models.channel import Channel
 from ..resolve import NoPackagesFoundError, Package
@@ -229,8 +228,7 @@ def execute_search(args, parser):
             json[name] = []
 
         if args.outdated:
-            vers_inst = [dist[1] for dist in map(dist2quad, linked)
-                         if dist[0] == name]
+            vers_inst = [dist.version for dist in linked if dist.package_name == name]
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name

@@ -453,7 +453,7 @@ def delete_lock(extra_path=None):
     """
     from .cli.main_clean import find_lock
     from .lock import LOCK_EXTENSION
-    from .install import rm_rf
+    from .common.disk import rm_rf
     file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
     locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
     failed_delete = []

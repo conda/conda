@@ -15,19 +15,19 @@ import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from .. import text_type
 from .._vendor.auxlib.ish import dals
-from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
+from ..common.compat import text_type
+from ..core.index import get_index
+from ..core.linked_data import is_linked, linked as install_linked
 from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
                           CondaFileNotFoundError, CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
-from ..install import is_linked, linked as install_linked, name_dist
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
                     install_actions, is_root_prefix, nothing_to_do, revert_actions)
@@ -155,7 +155,7 @@ def install(args, parser, command='install'):
 """ % prefix)
 
     linked = install_linked(prefix)
-    lnames = {name_dist(d) for d in linked}
+    lnames = linked
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)

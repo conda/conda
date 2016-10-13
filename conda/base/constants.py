@@ -78,6 +78,7 @@ SEARCH_PATH = (
 )
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
+DEFAULTS = 'defaults'
 
 PLATFORM_DIRECTORIES = ("linux-64",  "linux-32",
                         "win-64",  "win-32",

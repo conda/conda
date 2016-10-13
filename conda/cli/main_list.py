@@ -9,6 +9,8 @@ from __future__ import absolute_import, division, print_function
 import logging
 import re
 from argparse import RawDescriptionHelpFormatter
+from conda.base.constants import DEFAULTS
+from conda.core.linked_data import is_linked, linked, linked_data
 from os.path import isdir, isfile
 
 from .common import (add_parser_help, add_parser_json, add_parser_prefix,
@@ -16,7 +18,6 @@ from .common import (add_parser_help, add_parser_json, add_parser_prefix,
 from ..base.context import context
 from ..egg_info import get_egg_info
 from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
-from ..install import dist2quad, is_linked, linked, linked_data, name_dist
 
 descr = "List linked packages in a conda environment."
 
@@ -111,8 +112,8 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: name_dist(x).lower()):
-        name = name_dist(dist)
+    for dist in sorted(installed, key=lambda x: x.package_name.lower()):
+        name = dist.package_name
         if pat and pat.search(name) is None:
             continue
 
@@ -128,7 +129,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist2quad(dist)[:3]))
+            result.append('='.join((dist.package_name, dist.version, dist.build_string)))
             continue
 
         try:
@@ -138,12 +139,12 @@ def list_packages(prefix, installed, regex=None, format='human',
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')
-            if show_channel_urls or show_channel_urls is None and schannel != 'defaults':
+            if show_channel_urls or show_channel_urls is None and schannel != DEFAULTS:
                 disp += '  %s' % schannel
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug("exception for dist %s:\n%r", dist, e)
-            result.append('%-25s %-15s %15s' % dist2quad(dist)[:3])
+            result.append('%-25s %-15s %15s' % (dist.package_name, dist.version, dist.build_string))
 
     return res, result
 
