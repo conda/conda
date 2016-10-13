@@ -273,17 +273,16 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
-    dists = r.get_dists(["anaconda 1.5.0"])[0]
+    dists = r.get_dists(["anaconda 1.5.0"])
     assert 'anaconda-1.5.0-np17py27_0.tar.bz2' in dists
     assert 'dynd-python-0.3.0-np17py33_0.tar.bz2' in dists
 
 
 def test_generate_eq():
-    specs = ['anaconda']
-    dists, specs = r.get_dists(specs)
+    dists = r.get_dists(['anaconda'])
     r2 = Resolve(dists, True, True)
-    C = r2.gen_clauses(specs)
-    eqv, eqb = r2.generate_version_metrics(C, specs)
+    C = r2.gen_clauses()
+    eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
@@ -293,16 +292,26 @@ def test_generate_eq():
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
     assert eqv == {
+        'anaconda-1.4.0-np15py26_0.tar.bz2': 1,
+        'anaconda-1.4.0-np16py26_0.tar.bz2': 1,
+        'anaconda-1.4.0-np17py26_0.tar.bz2': 1,
+        'anaconda-1.4.0-np17py33_0.tar.bz2': 1,
         'astropy-0.2-np15py26_0.tar.bz2': 1,
         'astropy-0.2-np16py26_0.tar.bz2': 1,
         'astropy-0.2-np17py26_0.tar.bz2': 1,
         'astropy-0.2-np17py33_0.tar.bz2': 1,
+        'biopython-1.60-np15py26_0.tar.bz2': 1,
+        'biopython-1.60-np16py26_0.tar.bz2': 1,
+        'biopython-1.60-np17py26_0.tar.bz2': 1,
         'bitarray-0.8.0-py26_0.tar.bz2': 1,
         'bitarray-0.8.0-py33_0.tar.bz2': 1,
+        'boto-2.8.0-py26_0.tar.bz2': 1,
         'cython-0.18-py26_0.tar.bz2': 1,
         'cython-0.18-py33_0.tar.bz2': 1,
         'distribute-0.6.34-py26_1.tar.bz2': 1,
         'distribute-0.6.34-py33_1.tar.bz2': 1,
+        'gevent-0.13.7-py26_0.tar.bz2': 1,
+        'gevent-0.13.7-py27_0.tar.bz2': 1,
         'ipython-0.13.1-py26_1.tar.bz2': 1,
         'ipython-0.13.1-py33_1.tar.bz2': 1,
         'llvmpy-0.11.1-py26_0.tar.bz2': 1,
@@ -315,12 +324,35 @@ def test_generate_eq():
         'matplotlib-1.2.0-np17py33_1.tar.bz2': 1,
         'nose-1.2.1-py26_0.tar.bz2': 1,
         'nose-1.2.1-py33_0.tar.bz2': 1,
+        'numba-0.7.0-np16py26_1.tar.bz2': 1,
+        'numba-0.7.0-np17py26_1.tar.bz2': 1,
         'numpy-1.5.1-py26_3.tar.bz2': 3,
         'numpy-1.6.2-py26_3.tar.bz2': 2,
         'numpy-1.6.2-py26_4.tar.bz2': 2,
         'numpy-1.6.2-py27_4.tar.bz2': 2,
         'numpy-1.7.0-py26_0.tar.bz2': 1,
         'numpy-1.7.0-py33_0.tar.bz2': 1,
+        'pandas-0.10.0-np16py26_0.tar.bz2': 2,
+        'pandas-0.10.0-np16py27_0.tar.bz2': 2,
+        'pandas-0.10.0-np17py26_0.tar.bz2': 2,
+        'pandas-0.10.0-np17py27_0.tar.bz2': 2,
+        'pandas-0.10.1-np16py26_0.tar.bz2': 1,
+        'pandas-0.10.1-np16py27_0.tar.bz2': 1,
+        'pandas-0.10.1-np17py26_0.tar.bz2': 1,
+        'pandas-0.10.1-np17py27_0.tar.bz2': 1,
+        'pandas-0.10.1-np17py33_0.tar.bz2': 1,
+        'pandas-0.8.1-np16py26_0.tar.bz2': 5,
+        'pandas-0.8.1-np16py27_0.tar.bz2': 5,
+        'pandas-0.8.1-np17py26_0.tar.bz2': 5,
+        'pandas-0.8.1-np17py27_0.tar.bz2': 5,
+        'pandas-0.9.0-np16py26_0.tar.bz2': 4,
+        'pandas-0.9.0-np16py27_0.tar.bz2': 4,
+        'pandas-0.9.0-np17py26_0.tar.bz2': 4,
+        'pandas-0.9.0-np17py27_0.tar.bz2': 4,
+        'pandas-0.9.1-np16py26_0.tar.bz2': 3,
+        'pandas-0.9.1-np16py27_0.tar.bz2': 3,
+        'pandas-0.9.1-np17py26_0.tar.bz2': 3,
+        'pandas-0.9.1-np17py27_0.tar.bz2': 3,
         'pip-1.2.1-py26_1.tar.bz2': 1,
         'pip-1.2.1-py33_1.tar.bz2': 1,
         'psutil-0.6.1-py26_0.tar.bz2': 1,
@@ -334,6 +366,9 @@ def test_generate_eq():
         'pytz-2012j-py33_0.tar.bz2': 1,
         'requests-0.13.9-py26_0.tar.bz2': 1,
         'requests-0.13.9-py33_0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py26_1.tar.bz2': 1,
+        'scikit-learn-0.13-np16py26_1.tar.bz2': 1,
+        'scikit-learn-0.13-np17py26_1.tar.bz2': 1,
         'scipy-0.11.0-np15py26_3.tar.bz2': 1,
         'scipy-0.11.0-np16py26_3.tar.bz2': 1,
         'scipy-0.11.0-np17py26_3.tar.bz2': 1,
@@ -342,21 +377,62 @@ def test_generate_eq():
         'six-1.2.0-py33_0.tar.bz2': 1,
         'sqlalchemy-0.7.8-py26_0.tar.bz2': 1,
         'sqlalchemy-0.7.8-py33_0.tar.bz2': 1,
+        'sympy-0.7.1-py26_0.tar.bz2': 1,
         'tornado-2.4.1-py26_0.tar.bz2': 1,
         'tornado-2.4.1-py33_0.tar.bz2': 1,
         'xlrd-0.9.0-py26_0.tar.bz2': 1,
-        'xlrd-0.9.0-py33_0.tar.bz2': 1}
+        'xlrd-0.9.0-py33_0.tar.bz2': 1,
+        'xlwt-0.7.4-py26_0.tar.bz2': 1}
     assert eqb == {
+        'cairo-1.12.2-0.tar.bz2': 1,
         'dateutil-2.1-py26_0.tar.bz2': 1,
         'dateutil-2.1-py33_0.tar.bz2': 1,
+        'gevent-websocket-0.3.6-py26_1.tar.bz2': 1,
+        'gevent_zeromq-0.2.5-py26_1.tar.bz2': 1,
+        'libnetcdf-4.2.1.1-0.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_1.tar.bz2': 2,
+        'numexpr-2.0.1-np16py26_2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_ce0.tar.bz2': 3,
+        'numexpr-2.0.1-np16py26_p1.tar.bz2': 2,
+        'numexpr-2.0.1-np16py26_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_pro0.tar.bz2': 3,
+        'numexpr-2.0.1-np16py27_1.tar.bz2': 2,
+        'numexpr-2.0.1-np16py27_2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_ce0.tar.bz2': 3,
+        'numexpr-2.0.1-np16py27_p1.tar.bz2': 2,
+        'numexpr-2.0.1-np16py27_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_pro0.tar.bz2': 3,
+        'numexpr-2.0.1-np17py26_1.tar.bz2': 2,
+        'numexpr-2.0.1-np17py26_2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_ce0.tar.bz2': 3,
+        'numexpr-2.0.1-np17py26_p1.tar.bz2': 2,
+        'numexpr-2.0.1-np17py26_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_pro0.tar.bz2': 3,
+        'numexpr-2.0.1-np17py27_1.tar.bz2': 2,
+        'numexpr-2.0.1-np17py27_2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_ce0.tar.bz2': 3,
+        'numexpr-2.0.1-np17py27_p1.tar.bz2': 2,
+        'numexpr-2.0.1-np17py27_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_pro0.tar.bz2': 3,
         'numpy-1.6.2-py26_3.tar.bz2': 1,
+        'py2cairo-1.10.0-py26_0.tar.bz2': 1,
+        'py2cairo-1.10.0-py27_0.tar.bz2': 1,
+        'pycurl-7.19.0-py26_0.tar.bz2': 1,
+        'pytest-2.3.4-py26_0.tar.bz2': 1,
         'pyzmq-2.2.0.1-py26_0.tar.bz2': 1,
         'pyzmq-2.2.0.1-py33_0.tar.bz2': 1,
+        'scikit-image-0.8.2-np16py26_0.tar.bz2': 1,
+        'scikit-image-0.8.2-np17py26_0.tar.bz2': 1,
+        'scikit-image-0.8.2-np17py33_0.tar.bz2': 1,
         'sphinx-1.1.3-py26_2.tar.bz2': 1,
         'sphinx-1.1.3-py33_2.tar.bz2': 1,
+        'statsmodels-0.4.3-np16py26_0.tar.bz2': 1,
+        'statsmodels-0.4.3-np17py26_0.tar.bz2': 1,
         'system-5.8-0.tar.bz2': 1,
+        'theano-0.5.0-np15py26_0.tar.bz2': 1,
+        'theano-0.5.0-np16py26_0.tar.bz2': 1,
+        'theano-0.5.0-np17py26_0.tar.bz2': 1,
         'zeromq-2.2.0-0.tar.bz2': 1}
-
 
 def test_unsat():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
@@ -413,7 +489,7 @@ def test_nonexistent_deps():
         'mypackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
     }
-    assert set(r.get_dists(['mypackage'])[0].keys()) == {
+    assert set(r.get_dists(['mypackage']).keys()) == {
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.1.2-py33_0.tar.bz2',
         'nose-1.2.1-py33_0.tar.bz2',
@@ -513,7 +589,7 @@ def test_nonexistent_deps():
         'mypackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         }
-    assert set(r.get_dists(['mypackage'])[0].keys()) == {
+    assert set(r.get_dists(['mypackage']).keys()) == {
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.1.2-py33_0.tar.bz2',
         'nose-1.2.1-py33_0.tar.bz2',
@@ -623,7 +699,7 @@ def test_circular_dependencies():
     assert set(r.find_matches(MatchSpec('package1'))) == {
         'package1-1.0-0.tar.bz2',
     }
-    assert set(r.get_dists(['package1'])[0].keys()) == {
+    assert set(r.get_dists(['package1']).keys()) == {
         'package1-1.0-0.tar.bz2',
         'package2-1.0-0.tar.bz2',
     }

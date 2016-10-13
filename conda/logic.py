@@ -31,7 +31,7 @@ import logging
 import pycosat
 from itertools import chain, combinations
 
-from .compat import iteritems, string_types
+from .compat import iteritems
 from .exceptions import CondaValueError
 
 dotlog = logging.getLogger('dotupdate')
@@ -72,9 +72,6 @@ class Clauses(object):
     def from_index(self, m):
         return self.indices.get(m)
 
-    def varnum(self, x):
-        return self.names[x] if isinstance(x, string_types) else x
-
     def Assign_(self, vals, name=None):
         tvals = type(vals)
         if tvals is tuple:
@@ -89,12 +86,10 @@ class Clauses(object):
         return self.name_var(x, name) if name else x
 
     def Convert_(self, x):
-        if isinstance(x, string_types):
-            return self.names[x]
         tx = type(x)
         if tx in (tuple, list):
             return tx(map(self.Convert_, x))
-        return x
+        return self.names.get(x, x)
 
     def Eval_(self, func, args, polarity, name, conv=True):
         if conv:
@@ -324,7 +319,7 @@ class Clauses(object):
 
     def LB_Preprocess_(self, equation):
         if type(equation) is dict:
-            equation = [(c, self.varnum(a)) for a, c in iteritems(equation)]
+            equation = [(c, self.names.get(a, a)) for a, c in iteritems(equation)]
         if any(c <= 0 or type(a) is bool for c, a in equation):
             offset = sum(c for c, a in equation if a is True or a is not False and c <= 0)
             equation = [(c, a) if c > 0 else (-c, -a) for c, a in equation
@@ -416,11 +411,29 @@ class Clauses(object):
             return None
         if not self.m:
             return set() if names else []
+        clauses = self.clauses
         if additional:
-            additional = list(map(lambda x: tuple(map(self.varnum, x)), additional))
-            clauses = chain(self.clauses, additional)
-        else:
-            clauses = self.clauses
+            def preproc(eqs):
+                def preproc_(cc):
+                    for c in cc:
+                        c = self.names.get(c, c)
+                        if c is False:
+                            continue
+                        yield c
+                        if c is True:
+                            break
+                for cc in eqs:
+                    cc = tuple(preproc_(cc))
+                    if not cc:
+                        yield cc
+                        break
+                    if cc[-1] is not True:
+                        yield cc
+            additional = list(preproc(additional))
+            if additional:
+                if not additional[-1]:
+                    return None
+                clauses = chain(clauses, additional)
         try:
             solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
         except TypeError:
@@ -455,22 +468,25 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    def minimize(self, objective, bestsol, trymax=False):
+    def minimize(self, objective, bestsol=None, trymax=False):
         """
         Minimize the objective function given either by (coeff, integer)
         tuple pairs, or a dictionary of varname: coeff values. The actual
         minimization is multiobjective: first, we minimize the largest
         active coefficient value, then we minimize the sum.
         """
+        if bestsol is None or len(bestsol) < self.m:
+            log.debug('Clauses added, recomputing solution')
+            bestsol = self.sat()
+        if bestsol is None or self.unsat:
+            log.debug('Constraints are unsatisfiable')
+            return bestsol, sum(abs(c) for c, a in objective) + 1 if objective else 1
         if not objective:
             log.debug('Empty objective, trivial solution')
             return bestsol, 0
-        elif self.unsat:
-            log.debug('Constraints are unsatisfiable')
-            return bestsol, sum(abs(c) for c, a in objective) + 1
 
         if type(objective) is dict:
-            objective = [(v, self.varnum(k)) for k, v in iteritems(objective)]
+            objective = [(v, self.names.get(k, k)) for k, v in iteritems(objective)]
 
         objective, offset = self.LB_Preprocess_(objective)
         maxval = max(c for c, a in objective)
