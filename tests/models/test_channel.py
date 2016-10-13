@@ -158,7 +158,7 @@ class AnacondaServerChannelTests(TestCase):
             "https://10.2.3.4:8080/conda/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/noarch",
         ]
-        assert channel.urls(with_authentication=True) == [
+        assert channel.urls(with_credentials=True) == [
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/noarch",
         ]
@@ -168,7 +168,7 @@ class AnacondaServerChannelTests(TestCase):
             "https://10.2.3.4:8080/conda/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/noarch",
         ]
-        assert channel.urls(with_authentication=True) == [
+        assert channel.urls(with_credentials=True) == [
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/t/tk-123-45/bioconda/noarch",
         ]
@@ -178,7 +178,7 @@ class AnacondaServerChannelTests(TestCase):
             "https://10.2.3.4:8080/conda/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/noarch",
         ]
-        assert channel.urls(with_authentication=True) == [
+        assert channel.urls(with_credentials=True) == [
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/noarch",
         ]
@@ -189,7 +189,7 @@ class AnacondaServerChannelTests(TestCase):
             "https://10.2.3.4:8080/conda/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/bioconda/noarch",
         ]
-        assert channel.urls(with_authentication=True) == [
+        assert channel.urls(with_credentials=True) == [
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/noarch",
         ]
