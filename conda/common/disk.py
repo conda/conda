@@ -6,7 +6,7 @@ from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
 from os import W_OK, access, chmod, getpid, listdir, lstat, makedirs, rename, unlink, walk
-from os.path import abspath, basename, dirname, isdir, join, lexists
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 from time import sleep
@@ -192,10 +192,10 @@ def rm_rf(path, max_retries=5, trash=True):
                 backoff_rmdir(path)
             finally:
                 # If path was removed, ensure it's not in linked_data_
-                if not isdir(path):
+                if islink(path) or isfile(path):
                     from conda.install import delete_linked_data_any
                     delete_linked_data_any(path)
-        elif lexists(path):
+        if lexists(path):
             try:
                 backoff_unlink(path)
                 return True
