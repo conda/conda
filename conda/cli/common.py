@@ -268,6 +268,12 @@ def add_parser_install(p):
         help="Do not install dependencies.",
     )
     p.add_argument(
+        "--deps-only",
+        action="store_true",
+        help="Install all dependencies excepted the specified packages "
+             "(useful for development purposes).",
+    )
+    p.add_argument(
         '-m', "--mkdir",
         action="store_true",
         help="Create the environment directory if necessary.",

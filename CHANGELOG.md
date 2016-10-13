@@ -1,5 +1,8 @@
 ## 4.3.0 (unreleased)
 
+### Improvements
+* add `--deps-only` command line flag for `conda install`
+
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
 * fix link field in record object (#3424)
