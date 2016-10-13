@@ -4,12 +4,26 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from conda.base.constants import DEFAULTS
 from logging import getLogger
 
-from .._vendor.auxlib.entity import Entity, StringField
-from ..common.compat import text_type
+from .._vendor.auxlib.entity import Entity, EntityType, StringField
+from ..common.compat import text_type, with_metaclass
 
 log = getLogger(__name__)
 
 
+class DistType(EntityType):
+
+    def __call__(cls, *args, **kwargs):
+        if len(args) == 1 and not kwargs:
+            value = args[0]
+            if isinstance(value, Dist):
+                return value
+            else:
+                return Dist.from_string(value)
+        else:
+            return super(DistType, cls).__call__(*args, **kwargs)
+
+
+@with_metaclass(DistType)
 class Dist(Entity):
 
     channel = StringField(required=False, nullable=True, immutable=True)

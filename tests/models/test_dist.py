@@ -10,9 +10,9 @@ log = getLogger(__name__)
 
 class DistTests(TestCase):
 
-    def test_dists(self):
+    def test_dist(self):
         d = Dist.from_string("spyder-app-2.3.8-py27_0.tar.bz2")
-        assert d.channel is None
+        assert d.channel == 'defaults'
         assert d.package_name == "spyder-app"
         assert d.version == "2.3.8"
         assert d.build_string == "py27_0"
@@ -21,3 +21,9 @@ class DistTests(TestCase):
 
         assert d == Dist.from_string("spyder-app-2.3.8-py27_0")
         assert d != Dist.from_string("spyder-app-2.3.8-py27_1.tar.bz2")
+
+        d2 = Dist("spyder-app-2.3.8-py27_0.tar.bz2")
+        assert d == d2
+
+        d3 = Dist(d2)
+        assert d3 is d2

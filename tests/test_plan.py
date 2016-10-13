@@ -1,4 +1,5 @@
 import os
+from conda.models.dist import Dist
 
 from contextlib import contextmanager
 import sys
@@ -17,6 +18,7 @@ import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
 from conda.utils import on_win
+from conda.common.compat import iteritems
 
 # FIXME This should be a relative import
 from tests.helpers import captured
@@ -26,12 +28,12 @@ from .decorators import skip_if_no_mock
 from .helpers import mock
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = json.load(fi)
+    index = {Dist.from_string(k): v for k, v in iteritems(json.load(fi))}
     r = Resolve(index)
 
 
 def solve(specs):
-    return [fn[:-8] for fn in r.solve(specs)]
+    return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
 class TestMisc(unittest.TestCase):
@@ -67,7 +69,7 @@ class add_unlink_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_simply_adds_unlink_on_non_windows(self):
         actions = {}
-        dist = self.generate_random_dist()
+        dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertIn(inst.UNLINK, actions)
@@ -76,7 +78,7 @@ class add_unlink_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_adds_to_existing_actions(self):
         actions = {inst.UNLINK: [{"foo": "bar"}]}
-        dist = self.generate_random_dist()
+        dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertEqual(2, len(actions[inst.UNLINK]))
@@ -141,8 +143,8 @@ def test_display_actions():
     reset_context(())
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0', "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
-    index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
-    index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
+    index[Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')]['size'] = 4374752
+    index[Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")]['size'] = 5994338
 
     with captured() as c:
         display_actions(actions, index)
