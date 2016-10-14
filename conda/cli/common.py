@@ -289,7 +289,7 @@ def add_parser_install(p):
         action="store_true",
         dest="update_deps",
         default=NULL,
-        help="Don't update dependencies (default: %s)." % context.update_dependencies,
+        help="Update dependencies (default: %s)." % context.update_dependencies,
     )
     p.add_argument(
         "--no-update-dependencies", "--no-update-deps",

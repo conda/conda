@@ -17,6 +17,8 @@ def ver_eval(vtest, spec):
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
+version_cache = {}
+
 class VersionOrder(object):
     '''
     This class implements an order relation between version strings.
@@ -126,7 +128,15 @@ class VersionOrder(object):
 
       1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
     '''
-    def __init__(self, version):
+
+    def __new__(cls, version):
+        if isinstance(version, cls):
+            return version
+        self = version_cache.get(version)
+        if self is not None:
+            return self
+        self = version_cache[version] = object.__new__(cls)
+
         # when fillvalue ==  0  =>  1.1 == 1.1.0
         # when fillvalue == -1  =>  1.1  < 1.1.0
         self.fillvalue = 0
@@ -197,6 +207,7 @@ class VersionOrder(object):
                     # components shall start with a number to keep numbers and
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
+        return self
 
     def __str__(self):
         return self.norm_version
