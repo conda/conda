@@ -252,9 +252,9 @@ class Context(Configuration):
             'defaults': self.default_channels,
             'local': (self.local_build_root_channel,),
         }
+        all_channels = default_custom_multichannels, self._custom_multichannels
         return odict((name, tuple(Channel(v) for v in c))
-                     for name, c in concatv(iteritems(default_custom_multichannels),
-                                            iteritems(self._custom_multichannels)))
+                     for name, c in iteritems(concat(all_channels)))
 
     @memoizedproperty
     def custom_channels(self):
