@@ -76,14 +76,28 @@ def is_url(url):
 
 
 def is_ipv4_address(string_ip):
+    """
+    Examples:
+        >>> [is_ipv4_address(ip) for ip in ('8.8.8.8', '192.168.10.10', '255.255.255.255')]
+        [True, True, True]
+        >>> [is_ipv4_address(ip) for ip in ('8.8.8', '192.168.10.10.20', '256.255.255.255', '::1')]
+        [False, False, False, False]
+    """
     try:
         socket.inet_aton(string_ip)
     except socket.error:
         return False
-    return True
+    return string_ip.count('.') == 3
 
 
 def is_ipv6_address(string_ip):
+    """
+    Examples:
+        >>> [is_ipv6_address(ip) for ip in ('::1', '2001:db8:85a3::370:7334', '1234:'*7+'1234')]
+        [True, True, True]
+        >>> [is_ipv6_address(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
+        [False, False]
+    """
     try:
         socket.inet_pton(socket.AF_INET6, string_ip)
     except socket.error:
@@ -92,19 +106,16 @@ def is_ipv6_address(string_ip):
 
 
 def is_ip_address(string_ip):
+    """
+    Examples:
+        >>> is_ip_address('192.168.10.10')
+        True
+        >>> is_ip_address('::1')
+        True
+        >>> is_ip_address('www.google.com')
+        False
+    """
     return is_ipv4_address(string_ip) or is_ipv6_address(string_ip)
-
-
-def replace_path(url_parts, new_path):
-    # Url ['scheme', 'auth', 'host', 'port', 'path', 'query', 'fragment']
-    return Url(url_parts.scheme, url_parts.auth, url_parts.host, url_parts.port, new_path,
-               url_parts.query, url_parts.fragment)
-
-
-def replace_host(url_parts, new_host):
-    # Url ['scheme', 'auth', 'host', 'port', 'path', 'query', 'fragment']
-    return Url(url_parts.scheme, url_parts.auth, new_host, url_parts.port, url_parts.path,
-               url_parts.query, url_parts.fragment)
 
 
 def join(*args):
@@ -189,11 +200,6 @@ def split_conda_url_easy_parts(url):
 
     return (url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host,
             url_parts.port, url_parts.path, url_parts.query)
-
-
-def norm_url_path(path):
-    p = path.strip('/')
-    return p or '/'
 
 
 def is_windows_path(value):
