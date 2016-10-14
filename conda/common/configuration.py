@@ -23,7 +23,7 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import join
+from os.path import join, basename
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
 try:
@@ -343,7 +343,7 @@ def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_yaml_loader(fullpath):
-        assert fullpath.endswith(".yml") or fullpath.endswith("condarc"), fullpath
+        assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(fullpath), fullpath
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_yaml_loader(fullpath):
