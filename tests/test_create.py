@@ -703,3 +703,10 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 10, 21), reason="#3602 is not yet merged")
+    def test_anaconda_token_with_private_package(self):
+        "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
+        # TODO: write test for anyjson once #3602 is merged and available
+        # TODO: should also write a test to use binstar_client to set the token, then let conda load the token
+        assert False
