@@ -17,6 +17,7 @@
 
 ### Non-User-Facing Changes
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
+* fix the api->conda substitution (#3456)
 
 
 ## 4.2.9 (2016-09-27)
