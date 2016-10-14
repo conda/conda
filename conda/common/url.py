@@ -191,8 +191,19 @@ def split_conda_url_easy_parts(url):
 
     url_parts = urlparse(cleaned_url)
 
-    return url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host, url_parts.port, url_parts.path, url_parts.query
+    return (url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host,
+            url_parts.port, url_parts.path, url_parts.query)
 
+
+def maybe_add_auth(url, auth, force=False):
+    """add auth if the url doesn't currently have it"""
+    if not auth:
+        return url
+    url_parts = urlparse(url)
+    if url_parts.auth and not force:
+        return url
+    return Url(url_parts.scheme, auth, url_parts.host, url_parts.port,
+               url_parts.path, url_parts.query).url
 
 
 def norm_url_path(path):

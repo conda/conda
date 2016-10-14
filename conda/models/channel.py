@@ -331,7 +331,6 @@ class Channel(object):
     def __bool__(self):
         return self.__nonzero__()
 
-
     @property
     def url_channel_wtf(self):
         return self.base_url, self.canonical_name

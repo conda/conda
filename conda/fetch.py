@@ -14,21 +14,21 @@ import requests
 import shutil
 import tempfile
 import warnings
-from conda._vendor.auxlib.ish import dals
-from conda.base.constants import CONDA_HOMEPAGE_URL
 from functools import wraps
 from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
 from requests.packages.urllib3.connectionpool import InsecureRequestWarning
 
+from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.logz import stringify
+from .base.constants import CONDA_HOMEPAGE_URL
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
-from .common.url import add_username_and_pass_to_url, url_to_path, join_url, split_anaconda_token
-from .compat import input, iteritems, itervalues, text_type
+from .common.url import add_username_and_pass_to_url, join_url, maybe_add_auth, url_to_path
+from .compat import input, iteritems, itervalues
 from .connection import CondaSession, RETRIES
-from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError, \
-    ProxyError
+from .exceptions import (CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError,
+                         ProxyError)
 from .install import add_cached_package, dist2pair, find_new_location, package_cache
 from .lock import FileLock
 from .models.channel import Channel, offline_keep
@@ -326,8 +326,6 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         index = {}
     if not context.json:
         stdoutlog.info("Fetching package metadata ...")
-    # if not isinstance(channel_urls, dict):
-    #     channel_urls = prioritize_channels(channel_urls)
 
     urls = tuple(filter(offline_keep, channel_urls))
     try:
@@ -354,19 +352,22 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         finally:
             executor.shutdown(wait=True)
 
-    for channel, repodata in repodatas:
+    for url, repodata in repodatas:
         if repodata is None:
             continue
         new_index = repodata['packages']
-        url_s, priority = channel_urls[channel]
-        channel = channel.rstrip('/')
+        canonical_name, priority = channel_urls[url]
+        url = url.rstrip('/')
+        channel = Channel(url)
         for fn, info in iteritems(new_index):
             info['fn'] = fn
-            info['schannel'] = url_s
-            info['channel'] = channel
+            info['schannel'] = canonical_name
+            info['channel'] = url
             info['priority'] = priority
-            info['url'] = channel + '/' + fn
-            key = url_s + '::' + fn if url_s != 'defaults' else fn
+            info['url'] = url + '/' + fn
+            if channel.auth:
+                info['auth'] = channel.auth
+            key = canonical_name + '::' + fn if canonical_name != 'defaults' else fn
             index[key] = info
 
     if not context.json:
@@ -386,10 +387,10 @@ def fetch_pkg(info, dst_dir=None, session=None):
     session = session or CondaSession()
 
     fn = info['fn']
-    url = info.get('url')
-    if url is None:
-        url = info['channel'] + '/' + fn
+    url = info.get('url') or info['channel'] + '/' + fn
+    url = maybe_add_auth(url, info.get('auth'))
     log.debug("url=%r" % url)
+
     if dst_dir is None:
         dst_dir = find_new_location(fn[:-8])[0]
     path = join(dst_dir, fn)
