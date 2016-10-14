@@ -31,11 +31,6 @@ scheme <> auth <> location <> token <> channel <> subchannel <> platform <> pack
 
 channel <> subchannel <> namespace <> package_name
 
-To use Channel, call:
-  canonical_name
-  authentication_url()
-  authentication_urls()
-
 """
 
 
@@ -124,7 +119,8 @@ def _read_channel_configuration(scheme, host, port, path):
         return location, name, _scheme, _auth, _token
 
     # Step 6. fall through to host:port as channel_location and path as channel_name
-    return Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None, scheme or None, None, None
+    return (Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None,
+            scheme or None, None, None)
 
 
 def parse_conda_channel_url(url):
