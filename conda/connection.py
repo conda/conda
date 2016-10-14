@@ -159,6 +159,9 @@ class CondaHttpAuth(AuthBase):
         # kwargs = {'verify': True, 'cert': None, 'proxies': OrderedDict(), 'stream': False,
         #           'timeout': (3.05, 60)}
 
+        if response.status_code != 407:
+            return response
+
         # Consume content and release the original connection
         # to allow our new request to reuse the same one.
         response.content
