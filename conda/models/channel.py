@@ -11,7 +11,8 @@ try:
 except ImportError:
     from .._vendor.toolz.functoolz import excepts
 
-from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES
+from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES, DEFAULT_CHANNELS_UNIX, \
+    DEFAULT_CHANNELS_WIN
 from ..base.context import context
 from ..common.compat import odict, with_metaclass
 from ..common.url import is_url, path_to_url, urlparse, urlunparse
@@ -30,6 +31,18 @@ def has_scheme(value):
 
 def join_url(*args):
     return '/'.join(args) + '/'
+
+
+def get_default_channels_canonical_name(platform):
+    channels = []
+    platform = context.subdir if platform is None else platform
+    if "win" not in platform:
+        for channel in DEFAULT_CHANNELS_UNIX:
+            channels.append(UrlChannel(channel))
+    else:
+        for channel in DEFAULT_CHANNELS_WIN:
+            channels.append(UrlChannel(channel))
+    return channels
 
 
 class ChannelType(type):
@@ -94,16 +107,23 @@ class Channel(object):
         else:
             return self.base_url
 
-    def _urls_helper(self):
-        return [join_url(self.base_url, context.subdir), join_url(self.base_url, 'noarch')]
+    def _urls_helper(self, platform=None):
+        subdir = platform if platform is not None else context.subdir
+        return [join_url(self.base_url, subdir), join_url(self.base_url, 'noarch')]
+
+    def get_urls(self, platform):
+        if self.canonical_name in context.channel_map:
+            if platform != context.subdir:
+                url_channels = get_default_channels_canonical_name(platform)
+            else:
+                url_channels = context.channel_map[self.canonical_name]
+            return list(chain.from_iterable(c._urls_helper(platform) for c in url_channels))
+        else:
+            return self._urls_helper(platform)
 
     @property
     def urls(self):
-        if self.canonical_name in context.channel_map:
-            url_channels = context.channel_map[self.canonical_name]
-            return list(chain.from_iterable(c._urls_helper() for c in url_channels))
-        else:
-            return self._urls_helper()
+        return self.get_urls(context.subdir)
 
     @property
     def url_channel_wtf(self):
@@ -191,12 +211,12 @@ class NoneChannel(NamedChannel):
         return tuple()
 
 
-def prioritize_channels(channels):
+def prioritize_channels(channels, platform=None):
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
     result = odict()
     for q, chn in enumerate(channels):
         channel = Channel(chn)
-        for url in channel.urls:
+        for url in channel.get_urls(platform):
             if url in result:
                 continue
             result[url] = channel.canonical_name, q
