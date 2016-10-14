@@ -6,6 +6,21 @@ import json
 import os
 import pytest
 import sys
+from textwrap import dedent
+from datetime import datetime
+from glob import glob
+from json import loads as json_loads
+from logging import DEBUG, getLogger
+from os.path import basename, exists, isdir, isfile, islink, join, relpath
+from requests import Session
+from requests.adapters import BaseAdapter
+from shlex import split
+from shutil import copyfile, rmtree
+from subprocess import check_call
+from tempfile import gettempdir
+from unittest import TestCase
+from uuid import uuid4
+
 from conda import CondaError, plan
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context, reset_context
@@ -24,19 +39,6 @@ from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
 from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
 from contextlib import contextmanager
-from datetime import datetime
-from glob import glob
-from json import loads as json_loads
-from logging import DEBUG, getLogger
-from os.path import basename, exists, isdir, isfile, islink, join, relpath
-from requests import Session
-from requests.adapters import BaseAdapter
-from shlex import split
-from shutil import copyfile, rmtree
-from subprocess import check_call
-from tempfile import gettempdir
-from unittest import TestCase
-from uuid import uuid4
 
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -226,10 +228,11 @@ class IntegrationTests(TestCase):
             list_output = run_command(Commands.LIST, prefix)
             stdout = list_output[0]
             stderr = list_output[1]
-            expected_output = """# packages in environment at %s:
-#
+            expected_output = dedent("""\
+                # packages in environment at {}:
+                #
 
-""" % prefix
+                """).format(prefix)
             self.assertEqual(stdout, expected_output)
             self.assertEqual(stderr, '')
 

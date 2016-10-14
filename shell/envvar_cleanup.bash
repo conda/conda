@@ -1,32 +1,37 @@
 #!/usr/bin/env bash
 
-#
-# function to cleanup a :-delimited string
-#
-# usage: envvar_cleanup.bash "$ENV_VAR" [-d | [-u | -r | -g] "STR_TO_REMOVE" ...] [--delim=DELIM] [-f]
-#
-# where:
-#   "$ENV_VAR"                      is the variable name to cleanup
-#   -d                              remove duplicates
-#   -u "STR_TO_REMOVE" ...          remove first UNIQUE match of provided strings
-#                                   (with fuzzy match, -f, this may remove multiple elements)
-#   -r "STR_TO_REMOVE" ...          remove first match of provided strings
-#                                   (even with fuzzy match, -f, this will only remove the first match)
-#   -g "STR_TO_REMOVE" ...          remove all instances of provided strings
-#   --delim=DELIM                   specify what the delimit
-#   -f                              fuzzy matching in conjunction with -u, -r, and -g
-#                                   (not compatible with -d)
-#
-# reference:
-# http://unix.stackexchange.com/questions/40749/remove-duplicate-path-entries-with-awk-command
-#
-# TODO:
-# consider adding more path cleanup like symlinking paths that are longer than __
-#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# #                                                                     # #
+# # CLEANUP DELIMITED STRING (TYPICALLY THE $PATH)                      # #
+# #                                                                     # #
+# # usage: envvar_cleanup.bash "$ENV_VAR"                               # #
+# #        [-d | [-u | -r | -g] "STR_TO_REMOVE" ...] [--delim=DELIM]    # #
+# #        [-f]                                                         # #
+# #                                                                     # #
+# # where:                                                              # #
+# #     "$ENV_VAR"              is the variable name to cleanup         # #
+# #     -d                      remove duplicates                       # #
+# #     -u "STR_TO_REMOVE" ...  remove first UNIQUE match of provided   # #
+# #                             strings (with fuzzy match, -f, this may # #
+# #                             remove multiple elements)               # #
+# #     -r "STR_TO_REMOVE" ...  remove first match of provided strings  # #
+# #                             (even with fuzzy match, -f, this will   # #
+# #                             only remove the first match)            # #
+# #     -g "STR_TO_REMOVE" ...  remove all instances of provided        # #
+# #                             strings                                 # #
+# #     --delim=DELIM           specify what the delimit                # #
+# #     -f                      fuzzy matching in conjunction with -u,  # #
+# #                             -r, and -g (not compatible with -d)     # #
+# #                                                                     # #
+# # reference:                                                          # #
+# # http://unix.stackexchange.com/questions/40749/                      # #
+# #                                                                     # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-###############################################################################
-# local vars
-###############################################################################
+###########################################################################
+# DEFINE BASIC VARS                                                       #
 TRUE=1
 FALSE=0
 SETTING=2
@@ -39,12 +44,13 @@ STR_TO_REMOVE_I=-1
 UNIQUE_MATCHES=""
 UNIQUE_MATCHES_I=-1
 
-# at this point VARIABLE, MODE, DELIM, and STR_TO_REMOVE are
-# defined and do not need to be checked for unbounded again
+# at this point VARIABLE, MODE, DELIM, and STR_TO_REMOVE are              #
+# defined and do not need to be checked for unbounded again               #
+# END DEFINE BASIC VARS                                                   #
+###########################################################################
 
-###############################################################################
-# parse command line, perform command line error checking
-###############################################################################
+###########################################################################
+# PARSE COMMAND LINE                                                      #
 num=0
 is_mode_set="${FALSE}"
 is_delim_set="${FALSE}"
@@ -53,6 +59,7 @@ while [ $num != -1 ]; do
     num=$((num + 1))
     arg=$(eval eval echo '\${$num}') >/dev/null 2>&1
 
+    # check if variable is blank, if so stop parsing
     if [ $? != 0 ] || [ -z "${arg/ /}" ]; then
         num=-1
     else
@@ -139,22 +146,16 @@ while [ $num != -1 ]; do
         fi
     fi
 done
-
 if [ "${is_delim_set}" = "${SETTING}" ]; then
     echo "[ENVVAR_CLEANUP]: Delim flag has been provided without any delimiter" 1>&2
     exit 1
 fi
-unset num
-unset arg
-unset is_mode_set
-unset is_delim_set
-unset is_fuzzy_set
 
-# if any of these variables are undefined set them to a default
+# if any of these variables are undefined set them to a default           #
 [ -z "${MODE}" ]  && MODE="duplicate"
 [ -z "${DELIM}" ] && DELIM=":"
 
-# check that $STR_TO_REMOVE is allocated correctly for the various $MODE
+# check that $STR_TO_REMOVE is allocated correctly for the various $MODE  #
 if [ "${MODE}" = "duplicate" ]; then
     if [ "${STR_TO_REMOVE_I}" != -1 ]; then
         echo "[ENVVAR_CLEANUP]: ERROR: Unknown/Invalid parameters for mode=${MODE}" 1>&2
@@ -166,29 +167,31 @@ else
         exit 1
     fi
 fi
+# END PARSE COMMAND LINE                                                  #
+###########################################################################
 
-######################################################################
-# help dialog
-######################################################################
+###########################################################################
+# HELP DIALOG                                                             #
 # TODO
+# END HELP DIALOG                                                         #
+###########################################################################
 
-######################################################################
-# process for removal(s)
-######################################################################
+###########################################################################
+# PROCESS FOR REMOVAL(S)                                                  #
 if [ -n "${VARIABLE}" ]; then
     # remove DELIM from the beginning and append DELIM to the end
-    # *only if the delim hasn't already been added/removed
-    if [ "${VARIABLE:0:1}" = "${DELIM}" ]; then
-        RM_PRE_DELIM="${FALSE}"
-        VARIABLE="${VARIABLE#*${DELIM}}"
+    # remember if there was a delim at the beginning/end and mimic the
+    # same pattern upon finish
+    if [ "${VARIABLE::1}" = "${DELIM}" ]; then
+        HAS_PRE_DELIM="${TRUE}"
+        VARIABLE="${VARIABLE:1}"
     else
-        RM_PRE_DELIM="${TRUE}"
+        HAS_PRE_DELIM="${FALSE}"
     fi
-
     if [ "${VARIABLE:(-1)}" = "${DELIM}" ]; then
-        RM_POST_DELIM="${FALSE}"
+        HAS_POST_DELIM="${TRUE}"
     else
-        RM_POST_DELIM="${TRUE}"
+        HAS_POST_DELIM="${FALSE}"
         VARIABLE="${VARIABLE}${DELIM}"
     fi
 
@@ -246,7 +249,17 @@ if [ -n "${VARIABLE}" ]; then
             for (( j = 0; j <= UNIQUE_MATCHES_I; j++ )); do
                 if [ "${UNIQUE_MATCHES[${j}]}" != "" ]; then
                     # check if we have matched this before
-                    if [ "${UNIQUE_MATCHES[${j}]}" = "${x}" ]; then
+                    #
+                    # ensure we are checking against paths that have been "standardized"
+                    # on some oddball systems paths with the wrong slash are still valid
+                    # but may match incorrect as a unique match
+                    # example:
+                    #   envvar_cleanup.bash "/prefix/path:/prefix\path" --delim=":" -u -f "/prefix"
+                    unique_match_std="${UNIQUE_MATCHES[${j}]////|}"
+                    unique_match_std="${unique_match_std/\\/|}"
+                    x_std="${x////|}"
+                    x_std="${x_std/\\/|}"
+                    if [ "${unique_match_std}" = "${x_std}" ]; then
                         PRIOR_MATCH="${j}"
                     fi
                 fi
@@ -277,8 +290,38 @@ if [ -n "${VARIABLE}" ]; then
     fi
 
     # trim off the first and last DELIM that was added at the start
-    [ "${RM_PRE_DELIM}" = "${TRUE}" ] && VARIABLE="${VARIABLE:1}"
-    [ "${RM_POST_DELIM}" = "${TRUE}" ] && VARIABLE="${VARIABLE:0:${#VARIABLE}-1}"
+    if ! [ "${#VARIABLE}" = 0 ]; then
+        if [ "${HAS_PRE_DELIM}" = "${TRUE}" ]; then
+            if ! [ "${VARIABLE::1}" = "${DELIM}" ]; then
+                VARIABLE="${DELIM}${VARIABLE}"
+            fi
+        else
+            if [ "${VARIABLE::1}" = "${DELIM}" ]; then
+                VARIABLE="${VARIABLE:1}"
+            fi
+        fi
+    fi
+    if ! [ "${#VARIABLE}" = 0 ]; then
+        if [ "${HAS_POST_DELIM}" = "${TRUE}" ]; then
+            if ! [ "${VARIABLE:(-1)}" = "${DELIM}" ]; then
+                VARIABLE="${VARIABLE}${DELIM}"
+            fi
+        else
+            if [ "${VARIABLE:(-1)}" = "${DELIM}" ]; then
+                # bash < 4.2 doesn't support negative slicing:
+                #   ${VARIABLE::(-1)}
+                LEN=${#VARIABLE}
+                LEN=$((${LEN} - 1))
+                VARIABLE="${VARIABLE::${LEN}}"
+            fi
+        fi
+    fi
 fi
+# END PROCESS FOR REMOVAL(S)                                              #
+###########################################################################
 
+###########################################################################
+# CLEANUP VARS FOR THIS SCOPE                                             #
 echo "${VARIABLE}"
+# END CLEANUP VARS FOR THIS SCOPE                                         #
+###########################################################################

@@ -93,33 +93,43 @@ BEGIN {}
         ((shell == ".bash")                                     ||
          (shell == ".-bash")                                    ||
          (shell == "./bin/bash")                                ||
-         (shell == ".-bin/bash"))) {
+         (shell == ".-bin/bash")                                ||
+         (shell == "./usr/bin/bash")                            ||
+         (shell == ".-usr/bin/bash"))) {
         exit(clause != 2)
     }
     if ((shell == ".zsh")                                       ||
         (shell == ".-zsh")                                      ||
         (shell == "./bin/zsh")                                  ||
-        (shell == ".-bin/zsh")) {
+        (shell == ".-bin/zsh")                                  ||
+        (shell == "./usr/bin/zsh")                              ||
+        (shell == ".-usr/bin/zsh")) {
         exit(clause != 2)
     }
     if (smatch                                                  &&
         ((shell == ".dash")                                     ||
          (shell == ".-dash")                                    ||
          (shell == "./bin/dash")                                ||
-         (shell == ".-/bin/dash")                               ||
+         (shell == ".-bin/dash")                                ||
+         (shell == "./usr/bin/dash")                            ||
+         (shell == ".-usr/bin/dash")                            ||
          (shell == ".sh" && sys == "Ubuntu"))) {
         exit(clause != 2)
     }
     if ((shell == ".posh")                                      ||
         (shell == ".-posh")                                     ||
         (shell == "./bin/posh")                                 ||
-        (shell == ".-/bin/posh")) {
+        (shell == ".-bin/posh")                                 ||
+        (shell == "./usr/bin/posh")                             ||
+        (shell == ".-usr/bin/posh")) {
         exit(clause != 2)
     }
     if ((shell == ".ksh")                                       ||
         (shell == ".-ksh")                                      ||
         (shell == "./bin/ksh")                                  ||
-        (shell == ".-/bin/ksh")) {
+        (shell == ".-bin/ksh")                                  ||
+        (shell == "./usr/bin/ksh")                              ||
+        (shell == ".-usr/bin/ksh")) {
         exit(clause != 2)
     }
     # the default shell is generally difficult/impossible to accurately
@@ -130,7 +140,9 @@ BEGIN {}
          (shell == ".-sh" && sys == "Darwin" && shlvl == "1")   ||
          (shell == ".-sh" && sys == "Linux")                    ||
          (shell == "./bin/sh")                                  ||
-         (shell == ".-bin/sh"))) {
+         (shell == ".-bin/sh")                                  ||
+         (shell == "./usr/bin/sh")                              ||
+         (shell == ".-usr/bin/sh"))) {
         exit(clause != 2)
     }
     if (smatch                                                  &&
@@ -140,7 +152,9 @@ BEGIN {}
          (shell == ".-sh"  && sys == "Ubuntu" && shlvl == "1")  ||
          (shell == ".-csh" && sys == "Linux")                   ||
          (shell == "./bin/csh")                                 ||
-         (shell == ".-bin/csh"))) {
+         (shell == ".-bin/csh")                                 ||
+         (shell == "./usr/bin/csh")                             ||
+         (shell == ".-usr/bin/csh"))) {
         exit(clause != 3)
     }
     if (smatch                                                  &&
@@ -150,7 +164,9 @@ BEGIN {}
          (shell == ".-csh"  && sys == "Ubuntu" && shlvl != "1") ||
          (shell == ".-tcsh" && sys == "Linux")                  ||
          (shell == "./bin/tcsh")                                ||
-         (shell == ".-bin/tcsh"))) {
+         (shell == ".-bin/tcsh")                                ||
+         (shell == "./usr/bin/tcsh")                            ||
+         (shell == ".-usr/bin/tcsh"))) {
         exit(clause != 3)
     }
     if (clause == 1)

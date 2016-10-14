@@ -24,9 +24,21 @@ else
     WHAT_SHELL_AM_I="dash"
 fi
 case "$(uname -s)" in
-    CYGWIN*|MINGW*|MSYS*)
-        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.exe"
-        MSYS2_ENV_CONV_EXCL="CONDA_PATH"
+    CYGWIN*)
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.cygwin"
+        ;;
+    MINGW*)
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.mingw"
+        ;;
+    MSYS*)
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.msys"
+        # exclude CONDA_PATH from the Windows -> MSYS2 path
+        # conversion and vice versa
+        if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "CONDA_PATH" ]; then
+            MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d)
+        else
+            MSYS2_ENV_CONV_EXCL="CONDA_PATH"
+        fi
         export MSYS2_ENV_CONV_EXCL
         ;;
 esac
@@ -163,6 +175,9 @@ fi
 _CONDA_WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}"
 _CONDA_VERBOSE="${CONDA_VERBOSE}"
 _IS_ENV_CONDA_VERBOSE="${IS_ENV_CONDA_VERBOSE}"
+if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ]; then
+    _MSYS2_ENV_CONV_EXCL="${MSYS2_ENV_CONV_EXCL}"
+fi
 
 # ensure we deactivate any scripts from the old env                       #
 . deactivate.sh ""
@@ -172,6 +187,9 @@ if [ $? != 0 ]; then
     unset _CONDA_VERBOSE
     unset IS_ENV_CONDA_ENVNAME
     unset _IS_ENV_CONDA_VERBOSE
+    if [ -n "${_MSYS2_ENV_CONV_EXCL+x}" ]; then
+        unset _MSYS2_ENV_CONV_EXCL
+    fi
     return 1
 fi
 
@@ -183,6 +201,10 @@ FALSE=0
 IS_ENV_CONDA_VERBOSE="${_IS_ENV_CONDA_VERBOSE}"
 CONDA_VERBOSE="${_CONDA_VERBOSE}"
 WHAT_SHELL_AM_I="${_CONDA_WHAT_SHELL_AM_I}"
+if [ -n "${_MSYS2_ENV_CONV_EXCL+x}" ]; then
+    MSYS2_ENV_CONV_EXCL="${_MSYS2_ENV_CONV_EXCL}"
+    unset _MSYS2_ENV_CONV_EXCL
+fi
 unset _IS_ENV_CONDA_VERBOSE
 unset _CONDA_VERBOSE
 unset _CONDA_WHAT_SHELL_AM_I
@@ -215,7 +237,7 @@ export PATH="${PATH}"
 # CONDA_PREFIX                                                            #
 # always the full path to the activated environment                       #
 # is not set when no environment is active                                #
-CONDA_PREFIX="$(echo ${_CONDA_BIN} | sed 's|/bin$||')"
+CONDA_PREFIX="$(echo ${_CONDA_BIN%%:*} | sed 's|/bin$||')"
 export CONDA_PREFIX
 unset _CONDA_BIN
 # END CONDA_PREFIX                                                        #

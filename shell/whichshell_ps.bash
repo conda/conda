@@ -10,24 +10,65 @@
 # #                                                                     # #
 # # this works in conjunction with the other whichshell*                # #
 # #                                                                     # #
+# # in some versions of zsh/ps/procps the `ps -p $$` command will       # #
+# # return an error but it is not a critical terminating error:         # #
+# #     > ps -p $$                                                      # #
+# #     > Signal 18 (CONT) caught by ps (procps-ng version 3.3.9).      # #
+# #     > ps:display.c:66: please report this bug                       # #
+# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ###########################################################################
+# DETECT CYGWIN VS MINGW VS MSYS VS UNIX                                  #
+# since they have incompatible ps commands                                #
+IS_WIN="false"
+case "$(uname -s)" in
+    CYGWIN*)
+        IS_WIN="cygwin"
+        ;;
+    MINGW*)
+        IS_WIN="mingw"
+        ;;
+    MSYS*)
+        IS_WIN="msys"
+        ;;
+esac
+# END DETECT CYGWIN VS UNIX                                               #
+###########################################################################
+
+###########################################################################
 # GET PROCESS ID of this executable's parent                              #
-if [ "${1}" != "" ]; then
-    PARENT_PID=$(ps -o ppid= -p $1)
+[ "${1}" != "" ] && ID="${1}" || ID=$$
+if [ "${IS_WIN}" == "cygwin" ]; then
+    PARENT_PID=($(ps -f -p ${ID}))
+    PARENT_PID=${PARENT_PID[8]}
+elif [ "${IS_WIN}" == "mingw" ] || [ "${IS_WIN}" == "msys" ]; then
+    PARENT_PID=($(ps | grep ${ID} | grep -v "ps" | grep -v "grep"))
+    PARENT_PID=${PARENT_PID[1]}
 else
-    PARENT_PID=$(ps -o ppid= -p $$)
+    PARENT_PID=$(ps -o ppid= -p ${ID})
 fi
 # END GET PROCESS ID                                                      #
 ###########################################################################
 
 ###########################################################################
 # DETECT PARENT PROGRAM, look at all 3 types of command representations   #
-PARENT_PROCESS_1=$(ps -o command= -p ${PARENT_PID})
-PARENT_PROCESS_2=$(ps -o comm=    -p ${PARENT_PID})
-PARENT_PROCESS_3=$(ps -o args=    -p ${PARENT_PID})
+if [ "${IS_WIN}" == "cygwin" ]; then
+    PARENT_PROCESS_1=($(ps -s -p ${PARENT_PID}))
+    PARENT_PROCESS_1="${PARENT_PROCESS_1[@]:7}"
+    PARENT_PROCESS_2=""
+    PARENT_PROCESS_3=""
+elif [ "${IS_WIN}" == "mingw" ] || [ "${IS_WIN}" == "msys" ]; then
+    PARENT_PROCESS_1=($(ps -s | grep ${PARENT_PID}))
+    PARENT_PROCESS_1="${PARENT_PROCESS_1[@]:3}"
+    PARENT_PROCESS_2=""
+    PARENT_PROCESS_3=""
+else
+    PARENT_PROCESS_1=$(ps -o command= -p ${PARENT_PID})
+    PARENT_PROCESS_2=$(ps -o comm=    -p ${PARENT_PID})
+    PARENT_PROCESS_3=$(ps -o args=    -p ${PARENT_PID})
+fi
 # END DETECT PARENT PROGRAM                                               #
 ###########################################################################
 

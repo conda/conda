@@ -24,6 +24,8 @@ build:
     - bin/whichshell.awk          [unix]
     - bin/envvar_cleanup.bash     [unix]
     - Scripts/activate.bat        [win]
+    - Scripts/activate.ps1        [win]
+    - Scripts/deactivate.ps1      [win]
     - Scripts/deactivate.bat      [win]
     - Scripts/envvar_cleanup.bat  [win]
     - Scripts/activate            [win]

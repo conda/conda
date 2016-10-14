@@ -23,19 +23,19 @@ UNIX_ACTIVATE = dedent("""\
     path.""")
 WIN_DEACTIVATE = dedent("""\
     Removes the 'Scripts' and 'Library\\bin' directories of the currently
-    active environment from the front of PATH."""),
+    active environment from the front of PATH.""")
 UNIX_DEACTIVATE = dedent("""\
     Removes the 'bin' directory of the currently active environment from the
     front of PATH.""")
 HELP_ACTIVATE = dedent("""\
-    {unknown}Usage: {command} [ENV] [{singleflag}h] [{singleflag}v]
+    {unknown}Usage: {command} [ENV] [{flag_single}h] [{flag_single}v]
 
     {blurb}
 
     Where:
         ENV             the virtual environment to activate (dflt: root)
-        {singleflag}h,{doubleflag:>2}help       shows this dialog
-        {singleflag}v,{doubleflag:>2}verbose    shows more detailed info for the activate process
+        {flag_single}h,{flag_double:>2}help       shows this dialog
+        {flag_single}v,{flag_double:>2}verbose    shows more detailed info for the activate process
                         (useful when there are post-activate scripts)
 
     Alternatively use the following variables when the above parameter passing
@@ -48,13 +48,13 @@ HELP_ACTIVATE = dedent("""\
         {command} root
         {CONDA_ENVNAME_root} ; {command}""")
 HELP_DEACTIVATE = dedent("""\
-    {unknown}Usage: {command} [{singleflag}h] [{singleflag}v]
+    {unknown}Usage: {command} [{flag_single}h] [{flag_single}v]
 
     {blurb}
 
     Where:
-        {singleflag}h,{doubleflag:>2}help       shows this dialog
-        {singleflag}v,{doubleflag:>2}verbose    shows more detailed info for the activate process
+        {flag_single}h,{flag_double:>2}help       shows this dialog
+        {flag_single}v,{flag_double:>2}verbose    shows more detailed info for the activate process
                         (useful when there are pre-deactivate scripts)
 
     Alternatively use the following variables when the above parameter passing
@@ -67,20 +67,20 @@ HELP_DEACTIVATE = dedent("""\
 
 def help(mode, shell, unknown):
     kwargs = {
-        "CONDA_ENVNAME":        shells[shell]["setvar"].format(
+        "CONDA_ENVNAME":        shells[shell]["var_set"].format(
                                 variable="CONDA_ENVNAME",
                                 value="ENV"),
-        "CONDA_ENVNAME_root":   shells[shell]["setvar"].format(
+        "CONDA_ENVNAME_root":   shells[shell]["var_set"].format(
                                 variable="CONDA_ENVNAME",
                                 value="root"),
-        "CONDA_HELP":           shells[shell]["setvar"].format(
+        "CONDA_HELP":           shells[shell]["var_set"].format(
                                 variable="CONDA_HELP",
                                 value="true"),
-        "CONDA_VERBOSE":        shells[shell]["setvar"].format(
+        "CONDA_VERBOSE":        shells[shell]["var_set"].format(
                                 variable="CONDA_VERBOSE",
                                 value="true"),
-        "singleflag":          shells[shell]["singleflag"],
-        "doubleflag":          shells[shell]["doubleflag"],
+        "flag_single":          shells[shell]["flag_single"],
+        "flag_double":          shells[shell]["flag_double"],
     }
 
     unknown = [u for u in unknown if not re.match(r'^\s*$', u)]
@@ -222,7 +222,7 @@ def main():
     if mode == '..activate':
         # conda ..activate <SHELL> <ENV>
 
-        # dont't count conda and ..activate
+        # don't count conda and ..activate
         received -= 2
         if received != 2:
             expected = 2
@@ -237,7 +237,7 @@ def main():
 
         # prepend our new entries onto the existing path and make sure that
         # the separator is native
-        path = shells[shell]['pathsep'].join(binpath)
+        path = shells[shell]['path_delim'].join(binpath)
 
     # deactivation is handled completely in shell scripts - it restores backups
     # of env variables it is done in shell scripts because they handle state
@@ -291,7 +291,10 @@ def main():
 
     # This print is actually what sets the PATH or PROMPT variable. The shell
     # script gets this value, and finishes the job.
-    print(path)
+    #
+    # Must use sys.stdout.write(str(path)) to properly write to the console
+    # cross platform, print(path) incorrectly prints integers on Windows
+    sys.stdout.write(str(path))
 
 
 if __name__ == '__main__':

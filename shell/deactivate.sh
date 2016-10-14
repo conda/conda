@@ -24,9 +24,21 @@ else
     WHAT_SHELL_AM_I="dash"
 fi
 case "$(uname -s)" in
-    CYGWIN*|MINGW*|MSYS*)
-        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.exe"
-        MSYS2_ENV_CONV_EXCL="CONDA_PATH"
+    CYGWIN*)
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.cygwin"
+        ;;
+    MINGW*)
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.mingw"
+        ;;
+    MSYS*)
+        WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}.msys"
+        # exclude CONDA_PATH from the Windows -> Cygwin Et Al. path
+        # conversion and vice versa
+        if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "CONDA_PATH" ]; then
+            MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d)
+        else
+            MSYS2_ENV_CONV_EXCL="CONDA_PATH"
+        fi
         export MSYS2_ENV_CONV_EXCL
         ;;
 esac
@@ -134,6 +146,10 @@ unset UNKNOWN
 if [ -z "${CONDA_PREFIX+x}" ] || [ -z "${CONDA_PREFIX}" ]; then
     [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
     unset IS_ENV_CONDA_VERBOSE
+    if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ]; then
+        MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH")
+        [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && unset MSYS2_ENV_CONV_EXCL
+    fi
     unset TRUE
     unset FALSE
     return 0
@@ -223,6 +239,10 @@ fi
 
 ###########################################################################
 # CLEANUP VARS FOR THIS SCOPE                                             #
+if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ]; then
+    MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH")
+    [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && unset MSYS2_ENV_CONV_EXCL
+fi
 unset TRUE
 unset FALSE
 return 0

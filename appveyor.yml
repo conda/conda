@@ -68,12 +68,21 @@ install:
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python setup.py install
+  - echo "CMD.EXE VERSION"
+  - cmd.exe /c "ver"
+  - echo "BASH.EXE VERSION"
+  - bash.exe --version
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
 
 test_script:
-  - py.test --cov-report xml tests --shell=cmd.exe --shell=bash.exe
+  # remember the shells used here are the keys that access the various
+  # setup utilities for the different types of systems
+  #
+  # see conda.utils.shells for all of the options on a given system
+  - py.test --cov-report xml tests --shell=cmd.exe --shell=bash.msys
+  # TODO: add automated testing for bash.cygwin, bash.mingw
 
 on_success:
   - pip install codecov coveralls scrutinizer-ocular

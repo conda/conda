@@ -14,12 +14,6 @@
 # # assumes that activate*/deactivate*/whichshell*/envvar_cleanup*      # #
 # # exists on the user's $PATH                                          # #
 # #                                                                     # #
-# # in some versions of zsh/ps/procps the `ps -p $$` command will       # #
-# # return an error but it is not a critical terminating error:         # #
-# #     > ps -p $$                                                      # #
-# #     > Signal 18 (CONT) caught by ps (procps-ng version 3.3.9).      # #
-# #     > ps:display.c:66: please report this bug                       # #
-# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

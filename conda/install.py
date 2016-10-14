@@ -40,6 +40,7 @@ from enum import Enum
 from itertools import chain
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
                      normpath)
+from textwrap import dedent
 
 from . import CondaError
 from ._vendor.auxlib.entity import EntityEncoder
@@ -107,23 +108,41 @@ if on_win:
         # bat file redirect
         if not os.path.isfile(dst + '.bat'):
             with open(dst + '.bat', 'w') as f:
-                f.write('@echo off\ncall "%s" %%*\n' % src)
+                f.write(dedent("""\
+                    @echo off
+                    call "{}" %%*
+                    """).format(src))
 
         # TODO: probably need one here for powershell at some point
 
         # This one is for bash/cygwin/msys
         # set default shell to bash.exe when not provided, as that's most common
+        #
+        # in general the shell will not be defined when doing things like conda
+        # build, the shell used in that case isn't too critical since the build
+        # process will activate in a bash sub-shell
+        #
+        # so for sanity purposes we standardize to using MSYS which is the
+        # AppVeyor default
         if not shell:
-            shell = "bash.exe"
+            shell = "bash.msys"
 
         # technically these are "links" - but islink doesn't work on win
         if not os.path.isfile(dst):
             with open(dst, "w") as f:
-                f.write("#!/usr/bin/env bash \n")
+                # ensure the file ends with a blank line
+                # this is critical for Windows support
                 if src.endswith("conda"):
-                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+                    f.write(dedent("""\
+                        #!/usr/bin/env bash
+                        {} "$@"
+                        """).format(shells[shell]['path_to'](src+".exe")))
                 else:
-                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
+                    f.write(dedent("""\
+                        #!/usr/bin/env bash
+                        source {} "$@"
+                        """).format(shells[shell]['path_to'](src)))
+
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
             mode = os.stat(dst).st_mode

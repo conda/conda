@@ -7,6 +7,7 @@ import re
 import sys
 import threading
 from functools import partial
+from textwrap import dedent
 
 from .common.url import path_to_url
 
@@ -118,7 +119,9 @@ def win_path_to_unix(path, root_prefix=""):
     def _translation(found_path):
         found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
         return root_prefix + "/" + found
+
     path = re.sub(path_re, _translation, path).replace(";/", ":/")
+
     return path
 
 
@@ -130,17 +133,18 @@ def unix_path_to_win(path, root_prefix=""):
     if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
         # already a windows path
         return path.replace("/", "\\")
-    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
 
-    def _translation(found_path):
-        group = found_path.group(0)
-        return "{0}:{1}".format(group[len(root_prefix)+1],
-                                group[len(root_prefix)+2:].replace("/", "\\"))
-    translation = re.sub(path_re, _translation, path)
-    translation = re.sub(":([a-zA-Z]):\\\\",
-                         lambda match: ";" + match.group(0)[1] + ":\\",
-                         translation)
-    return translation
+    path_re = root_prefix + r'/([a-zA-Z])(/(?:(?![:\s]/)[^:*?"<>])*)'
+
+    # def _translation(found_path):
+    #     print("replacing {} with {}:{}".format(found_path.group(0)))
+    #     return "{0}:{1}".format(found_path.group(1),
+    #                             found_path.group(2).replace("/", "\\"))
+
+    path = re.sub(path_re, r'\1:\2', path).replace("/", "\\")
+    path = re.sub(r':([a-zA-Z]):\\\\', r';\1:\\', path)
+
+    return path
 
 
 # curry cygwin functions
@@ -174,175 +178,208 @@ def human_bytes(n):
 
 # TODO: this should be done in a more extensible way
 #     (like files for each shell, with some registration mechanism.)
+posix_base = dict(
+    # exe=
 
-# defaults for unix shells.  Note: missing "exe" entry, which should be set to
-#    either an executable on PATH, or a full path to an executable for a shell
-unix_shell_base = dict(
-                       binpath="/bin/",  # mind the trailing slash.
-                       echo="echo",
-                       nul='2>/dev/null',
-                       path_from=path_identity,
-                       path_to=path_identity,
-                       pathsep=":",
-                       printdefaultenv='echo "${CONDA_DEFAULT_ENV}"',
-                       printpath='echo "${PATH}"',
-                       printprompt='echo "${PS1}"',
-                       setprompt='export PS1="{value}"',
-                       unsetprompt='unset PS1',
-                       promptvar='PS1',
-                       sep="/",
-                       setenvvar='export {variable}="{value}"',
-                       unsetenvvar='unset {variable}',
-                       setvar='{variable}="{value}"',
-                       unsetvar='unset {variable}',
-                       shell_args="-l",
-                       executable_suffix="",
-                       script_suffix=".sh",
-                       slash_convert=("\\", "/"),
-                       source=".",
-                       test_echo_extra="",
-                       var_format="${}",
-                       singleflag="-",
-                       doubleflag="--",
-                       get_envvars="env",
-                       grep_find="grep",
+    binpath='/bin/', # mind the trailing slash.
+    defaultenv_print='echo "${CONDA_DEFAULT_ENV}"',
+    echo='echo',
+    envvar_getall='env',
+    envvar_set='export {variable}="{value}"',
+    envvar_unset='unset {variable}',
+    flag_double='--',
+    flag_single='-',
+    nul='2>/dev/null',
+    path_delim=':',
+    path_from=path_identity,
+    path_print='echo "${PATH}"',
+    path_to=path_identity,
+    prompt_print='echo "${PS1}"',
+    prompt_set='export PS1="{value}"',
+    prompt_unset='unset PS1',
+    sep='/',
+    shell_args='-l',
+    source='. "{}"',
+    suffix_executable='',
+    suffix_script='.sh',
+    var_format='${}',
+    var_set='{variable}="{value}"',
+    var_unset='unset {variable}',
 )
 
-msys2_shell_base = dict(
-                        unix_shell_base,
-                        path_from=unix_path_to_win,
-                        path_to=win_path_to_unix,
-                        binpath="/Scripts/",  # mind the trailing slash.
+cygwin_base = dict(
+    posix_base,
+    binpath='/Scripts/', # mind the trailing slash.
+    envvar_unset='[ -n "${{{variable}+x}}" ] && unset {variable}',
+    path_from=cygwin_path_to_win,
+    path_to=win_path_to_cygwin,
+    var_unset='[ -n "${{{variable}+x}}" ] && unset {variable}',
+)
+
+mingw_base = dict(
+    posix_base,
+    binpath='/Scripts/',  # mind the trailing slash.
+    path_from=unix_path_to_win,
+    path_to=win_path_to_unix,
+)
+
+msys_base = dict(
+    posix_base,
+    binpath='/Scripts/',  # mind the trailing slash.
+    path_from=unix_path_to_win,
+    path_to=win_path_to_unix,
+    shell_args='',
+)
+
+batch_base = dict(
+    binpath='\\Scripts\\',  # mind the trailing slash.
+    # parenthesis mismatched intentionally
+    # see http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
+    # NOQA
+    defaultenv_print=dedent('''\
+        @IF /I NOT "%CONDA_DEFAULT_ENV%"=="" (
+            @ECHO %CONDA_DEFAULT_ENV%
+        ) ELSE (
+            @ECHO(
+        )'''),
+    echo='@ECHO',
+    envvar_getall='@SET',
+    envvar_set='@SET "{variable}={value}"',
+    envvar_unset='@SET {variable}=',
+    flag_double='/',
+    flag_single='/',
+    nul='1>NUL 2>&1',
+    path_delim=';',
+    path_from=path_identity,
+    path_print='@ECHO %PATH%',
+    path_to=path_identity,
+    prompt_print='@ECHO %PROMPT%',
+    prompt_set='@SET "PROMPT={value}"',
+    prompt_unset='@SET PROMPT=',
+    sep='\\',
+    shell_args='/d /c',
+    source='@CALL "{}"',
+    suffix_executable='.bat',
+    suffix_script='.bat',
+    var_format='%{}%',
+    var_set='@SET "{variable}={value}"',
+    var_unset='@SET {variable}=',
 )
 
 if on_win:
     shells = {
-        # "powershell.exe": dict(
-        #    echo="echo",
-        #    test_echo_extra=" .",
-        #    var_format="${var}",
-        #    binpath="/bin/",  # mind the trailing slash.
-        #    source="source",
-        #    nul='2>/dev/null',
-        #    setenvvar='export {variable}="{value}"',
-        #    executable_suffix=".ps",
-        #    script_suffix=".ps",
-        #    printprompt='echo "${PS1}"',
-        #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
-        #    printpath="echo %PATH%",
-        #    exe="powershell.exe",
-        #    path_from=path_identity,
-        #    path_to=path_identity,
-        #    slash_convert = ("/", "\\"),
-        # ),
+        "powershell.exe": dict(
+            posix_base,
+            exe='powershell.exe',
+
+            binpath='\Scripts\\', # mind the trailing slash.
+            defaultenv_print='echo "${env:CONDA_DEFAULT_ENV}"',
+            envvar_getall=dedent('''\
+                Get-ChildItem env: | % {
+                $name=$_.Name
+                $value=$_.Value
+                echo "$name=$value"
+                }'''),
+            envvar_set='$env:{variable}="{value}"',
+            envvar_unset='$env:{variable}=""',
+            path_delim=';',
+            path_print='echo ${env:Path}',
+            prompt_print='(Get-Command Prompt).definition',
+            prompt_set=dedent('''\
+                function Prompt {{
+                    return "{value}";
+                }}'''),
+            prompt_unset=dedent('''\
+                function Prompt {
+                    return "";
+                }'''),
+            sep='\\',
+            shell_args='-File',
+            source='{}',
+            suffix_executable='.ps1',
+            suffix_script='.ps1',
+            var_set='${variable}="{value}"',
+            var_unset='Remove-Variable {variable}',
+        ),
         "cmd.exe": dict(
-            echo="@ECHO",
-            var_format="%{}%",
-            binpath="\\Scripts\\",  # mind the trailing slash.
-            source="@CALL",
-            test_echo_extra="",
-            nul='1>NUL 2>&1',
-            setvar='@SET "{variable}={value}"',
-            unsetvar='@SET {variable}=',
-            setenvvar='@SET "{variable}={value}"',
-            unsetenvvar='@SET {variable}=',
-            executable_suffix=".bat",
-            script_suffix=".bat",
-            printprompt="@ECHO %PROMPT%",
-            setprompt='@SET "PROMPT={value}"',
-            unsetprompt='@SET PROMPT=',
-            promptvar="PROMPT",
-            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
-            printdefaultenv=('@IF /I NOT "%CONDA_DEFAULT_ENV%"=="" (\n'
-                             '@ECHO %CONDA_DEFAULT_ENV% ) ELSE (\n'
-                             'ECHO()'),
-            printpath="@ECHO %PATH%",
-            exe="cmd.exe",
-            shell_args="/d /c",
-            path_from=path_identity,
-            path_to=path_identity,
-            slash_convert=("/", "\\"),
-            sep="\\",
-            pathsep=";",
-            singleflag="/",
-            doubleflag="/",
-            get_envvars="@SET",
-            grep_find="find",
+            batch_base,
+            exe='cmd.exe',
         ),
-        "cygwin": dict(
-            unix_shell_base,
-            exe="bash.exe",
-            binpath="/Scripts/",  # mind the trailing slash.
-            path_from=cygwin_path_to_win,
-            path_to=win_path_to_cygwin
+        "bash.cygwin": dict(
+            cygwin_base,
+            exe='bash.exe',
         ),
-        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
-        #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
-        #    filesystem root.
-        "bash.exe": dict(
-            msys2_shell_base, exe="bash.exe",
+        "bash.mingw": dict(
+            mingw_base,
+            exe='bash.exe',
         ),
-        "bash": dict(
-            msys2_shell_base, exe="bash",
+        "bash.msys": dict(
+            msys_base,
+            exe='bash.exe',
         ),
-        "sh.exe": dict(
-            msys2_shell_base, exe="sh.exe",
-        ),
-        "zsh.exe": dict(
-            msys2_shell_base, exe="zsh.exe",
-        ),
-        "zsh": dict(
-            msys2_shell_base, exe="zsh",
-        ),
+        # "zsh.msys": dict(
+        #     msys_base,
+        #     exe='zsh.exe',
+        # ),
     }
 
 else:
     c_shell_base = dict(
-                        unix_shell_base,
-                        executable_suffix="",
-                        script_suffix=".csh",
-                        nul='>&/dev/null',
-                        printprompt='echo "${prompt}"',
-                        promptvar='prompt',
-                        setprompt='set prompt="{value}"',
-                        unsetprompt='unset prompt',
-                        setenvvar='setenv {variable} "{value}"',
-                        unsetenvvar='unsetenv {variable}',
-                        setvar='set {variable}="{value}"',
-                        unsetvar='unset {variable}',
-                        shell_args="",
-                        source="source",
+        posix_base,
+        # exe=,
 
+        envvar_set='setenv {variable} "{value}"',
+        envvar_unset='unsetenv {variable}',
+        nul='>&/dev/null',
+        prompt_print='echo "${prompt}"',
+        prompt_set='set prompt="{value}"',
+        prompt_unset='unset prompt',
+        shell_args='',
+        source='source "{}"',
+        suffix_executable='',
+        suffix_script='.csh',
+        var_set='set {variable}="{value}"',
     )
     shells = {
         "bash": dict(
-            unix_shell_base, exe="bash",
-                    ),
+            posix_base,
+            exe='bash',
+        ),
         "zsh": dict(
-            unix_shell_base, exe="zsh",
-                   ),
+            posix_base,
+            exe='zsh',
+       ),
         "dash": dict(
-            unix_shell_base, exe="dash",
-                   ),
+            posix_base,
+            exe='dash',
+            shell_args='',
+        ),
         "posh": dict(
-            unix_shell_base, exe="posh",
-                   ),
+            posix_base,
+            exe='posh',
+        ),
         "ksh": dict(
-            unix_shell_base, exe="ksh",
-                   ),
+            posix_base,
+            exe='ksh',
+            shell_args='',
+        ),
         "fish": dict(
-            unix_shell_base, exe="fish",
-            pathsep=" ",
-                    ),
+            posix_base,
+            exe='fish',
+            path_delim=' ',
+        ),
         "sh": dict(
-            unix_shell_base, exe="sh",
-                    ),
+            posix_base,
+            exe='sh',
+        ),
         "csh": dict(
-            c_shell_base, exe="csh",
-                    ),
+            c_shell_base,
+            exe='csh',
+        ),
         "tcsh": dict(
-            c_shell_base, exe="tcsh",
-                    ),
+            c_shell_base,
+            exe='tcsh',
+        ),
     }
 
 # put back because of conda build
