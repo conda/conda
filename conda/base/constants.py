@@ -66,8 +66,8 @@ SEARCH_PATH = (
     '$CONDARC',
 )
 
-DEFAULT_ANACONDA_API = 'https://api.anaconda.org'
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
+CONDA_HOMEPAGE_URL = 'http://conda.pydata.org'
 
 PLATFORM_DIRECTORIES = ("linux-64",
                         "linux-32",

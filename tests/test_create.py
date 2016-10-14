@@ -5,6 +5,7 @@ import bz2
 import json
 import os
 import pytest
+import requests
 import sys
 from conda import CondaError, plan
 from conda.base.context import context, reset_context
@@ -17,12 +18,12 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.io import captured, disable_logger, stderr_log_level
+from conda.common.io import captured, disable_logger, stderr_log_level, replace_log_streams
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
-from conda.exceptions import DryRunExit, conda_exception_handler
+from conda.exceptions import DryRunExit, conda_exception_handler, CondaHTTPError
 from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
 from contextlib import contextmanager
 from datetime import datetime
@@ -101,7 +102,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
     print("executing command >>>", command_line)
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         if use_exception_handler:
             conda_exception_handler(args.func, args, p)
         else:
@@ -678,3 +679,27 @@ class IntegrationTests(TestCase):
         assert "flask:" in stdout
         assert "python:" in stdout
         assert join('another', 'place') in stdout
+
+    @pytest.mark.timeout(30)
+    def test_bad_anaconda_token_infinite_loop(self):
+        # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
+        response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/%s/repodata.json" % context.subdir)
+        assert response.status_code == 401
+
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+            channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
+            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['channels'] == [channel_url, 'defaults']
+
+            with pytest.raises(CondaHTTPError):
+                run_command(Commands.SEARCH, prefix, "boltons", "--json")
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "boltons", "--json", use_exception_handler=True)
+            json_obj = json.loads(stdout)
+            assert json_obj['status_code'] == 401
+
+        finally:
+            rmtree(prefix, ignore_errors=True)

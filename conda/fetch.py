@@ -14,6 +14,8 @@ import requests
 import shutil
 import tempfile
 import warnings
+from conda._vendor.auxlib.ish import dals
+from conda.base.constants import CONDA_HOMEPAGE_URL
 from functools import wraps
 from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
@@ -133,8 +135,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
-        raise CondaRuntimeError("Invalid index file: {0}{1}: {2}"
-                                .format(url, filename, e))
+        raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 407:  # Proxy Authentication Required
@@ -145,28 +146,82 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if e.response.status_code == 404:
             if url.endswith('/noarch'):  # noarch directory might not exist
                 return None
-            msg = 'Could not find URL: %s' % join_url(url, filename)
-        elif e.response.status_code == 403 and url.endswith('/noarch'):
-            return None
+
+            help_message = dals("""
+            The remote server could not find the channel you requested.
+
+            You will need to adjust your conda configuration to proceed.
+            Use `conda config --show` to view your configuration's current state.
+            Further configuration help can be found at <%s>.
+            """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+        elif e.response.status_code == 403:
+            if url.endswith('/noarch'):
+                return None
+            else:
+                help_message = dals("""
+                The channel you requested is not available on the remote server.
+
+                You will need to adjust your conda configuration to proceed.
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif e.response.status_code == 401:
             channel = Channel(url)
             if channel.token:
-                msg = "Invalid token %s for channel url %s." % (channel.token, url)
+                help_message = dals("""
+                The token '%s' given for the URL is invalid.
+
+                If this token was pulled from anaconda-client, you will need to use
+                anaconda-client to reauthenticate.
+
+                If you supplied this token to conda directly, you will need to adjust your
+                conda configuration to proceed.
+
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+               """ % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')))
+
             elif context.channel_alias.location in url:
                 # Note, this will not trigger if the binstar configured url does
                 # not match the conda configured one.
-                msg = ("Warning: you may need to login to anaconda.org again with "
-                       "'anaconda login' to access private packages(%s, %s)" %
-                       (url, e))
+                help_message = dals("""
+                The remote server has indicated you are using invalid credentials for this channel.
+
+                If the remote site is anaconda.org or follows the Anaconda Server API, you
+                will need to
+                  (a) login to the site with `anaconda login`, or
+                  (b) provide conda with a valid token directly.
+
+                Further configuration help can be found at <%s>.
+               """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
             else:
-                msg = "HTTP 401 UNAUTHORIZED: %s\n%r" % (join_url(url, filename), e)
+                help_message = dals("""
+                The credentials you have provided for this URL are invalid.
+
+                You will need to modify your conda configuration to proceed.
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+        elif 500 <= e.response.status_code < 600:
+            help_message = dals("""
+            An remote server error occurred when trying to retrieve this URL.
+
+            A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
+            fulfill a valid request.  The problem may be spurious, and will resolve itself if you
+            try your request again.  If the problem persists, consider notifying the maintainer
+            of the remote server.
+            """)
 
         else:
-            msg = "HTTPError: %s: %s\n" % (e, url)
+            help_message = "An HTTP error occurred when trying to retrieve this URL."
 
-        log.debug(msg)
-        raise CondaHTTPError(msg)
+        raise CondaHTTPError(help_message, e.response.url, e.response.status_code,
+                             e.response.reason)
+
 
     except requests.exceptions.SSLError as e:
         msg = "SSL Error: %s\n" % e
@@ -269,7 +324,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     # pool = ThreadPool(5)
     if index is None:
         index = {}
-    stdoutlog.info("Fetching package metadata ...")
+    if not context.json:
+        stdoutlog.info("Fetching package metadata ...")
     # if not isinstance(channel_urls, dict):
     #     channel_urls = prioritize_channels(channel_urls)
 
@@ -313,7 +369,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             key = url_s + '::' + fn if url_s != 'defaults' else fn
             index[key] = info
 
-    stdoutlog.info('\n')
+    if not context.json:
+        stdoutlog.info('\n')
     if unknown:
         add_unknown(index, channel_urls)
     if context.add_pip_as_python_dependency:
