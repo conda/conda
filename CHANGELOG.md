@@ -1,11 +1,17 @@
 ## 4.3.0 (unreleased)
 
+### Improvements
+* cache VersionOrder objects to improve performance (#3596)
+* fix documentation and typos (#3526, #3572, #3627)
+* imporoved solver hint detection, simplified filtering (#3597)
+
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
 * fix link field in record object (#3424)
 
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
+* add conda.exports module (#3429)
 
 
 ## 4.1.13 (unreleased)
