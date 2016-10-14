@@ -4,7 +4,7 @@ Download conda
 
 Conda can be downloaded with an array of options. This page will help you decide among the various options.
 To download conda, you will download Anaconda or Miniconda (both are free), or
-purchase an `Anaconda subscription <https://www.continuum.io/anaconda-subscriptions>`_. All 
+purchase an `Anaconda subscription <https://www.continuum.io/anaconda-subscriptions>`_. All
 can be downloaded with legacy Python 2.7 or current Python 3. You 
 can choose a version with a GUI or a command line installer. 
 
