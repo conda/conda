@@ -6,14 +6,14 @@ main_test() {
     echo $PYTHONHASHSEED
 
     # basic unit tests
-    python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" tests
+    python -m pytest --cov-report term-missing --shell=bash --shell=zsh -m "not installed" tests
     python setup.py --version
 
     # activate tests
     python setup.py install
     hash -r
     python -m conda info
-    python -m pytest --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
+    python -m pytest --cov-report term-missing --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
 
 flake8_test() {
