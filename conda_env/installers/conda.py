@@ -24,7 +24,8 @@ def install(prefix, specs, args, env, prune=False):
     # Including 'nodefaults' in the channels list disables the defaults
     index = get_index(channel_urls=channel_urls + [chan for chan in env.channels
                                                    if chan != 'nodefaults'],
-                      prepend='nodefaults' not in env.channels)
+                      prepend='nodefaults' not in env.channels,
+                      prefix=prefix)
     actions = plan.install_actions(prefix, index, specs, prune=prune)
 
     with common.json_progress_bars(json=args.json and not args.quiet):

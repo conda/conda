@@ -23,7 +23,7 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import join
+from os.path import join, basename
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
 try:
@@ -36,8 +36,10 @@ except ImportError:
     from .._vendor.toolz.itertoolz import concat, concatv, unique
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
+    from ruamel_yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
+    from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first, frozendict, last, AttrDict
@@ -63,6 +65,15 @@ def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
 
 def pretty_map(dictionary, padding='  '):
     return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
+
+
+class LoadError(CondaError):
+    def __init__(self, message, filepath, line, column):
+        self.line = line
+        self.filepath = filepath
+        self.column = column
+        msg = "Load Error: in %s on line %s, column %s. %s" % (filepath, line, column, message)
+        super(LoadError, self).__init__(msg)
 
 
 class ConfigurationError(CondaError):
@@ -335,7 +346,11 @@ class YamlRawParameter(RawParameter):
     @classmethod
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath, 'r') as fh:
-            ruamel_yaml = yaml_load(fh)
+            try:
+                ruamel_yaml = yaml_load(fh)
+            except ScannerError as err:
+                mark = err.problem_mark
+                raise LoadError("Invalid YAML", filepath, mark.line, mark.column)
         return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 
 
@@ -343,7 +358,7 @@ def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_yaml_loader(fullpath):
-        assert fullpath.endswith(".yml") or fullpath.endswith("condarc"), fullpath
+        assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(fullpath), fullpath
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_yaml_loader(fullpath):

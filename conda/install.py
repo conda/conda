@@ -258,8 +258,12 @@ def binary_replace(data, a, b):
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
-    if on_win and has_pyzzer_entry_point(data):
-        return replace_pyzzer_entry_point_shebang(data, a, b)
+    if on_win:
+        if has_pyzzer_entry_point(data):
+            return replace_pyzzer_entry_point_shebang(data, a, b)
+        # currently we should skip replacement on Windows for things we don't understand.
+        else:
+            return data
 
     def replace(match):
         occurances = match.group().count(a)

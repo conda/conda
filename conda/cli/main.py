@@ -43,10 +43,6 @@ from argparse import SUPPRESS
 from logging import CRITICAL, DEBUG, getLogger
 
 from .. import __version__
-from ..base.context import context
-from ..exceptions import CommandNotFoundError, conda_exception_handler
-from ..gateways.logging import set_all_logger_level, set_verbosity
-from ..utils import on_win
 
 log = getLogger(__name__)
 
@@ -85,6 +81,11 @@ def generate_parser():
 
 
 def _main():
+    from ..base.context import context
+    from ..gateways.logging import set_all_logger_level, set_verbosity
+    from ..exceptions import CommandNotFoundError
+    from ..utils import on_win
+
     log.debug("conda.cli.main called with %s", sys.argv)
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
@@ -147,6 +148,7 @@ def _main():
 
 
 def main():
+    from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main)
 
 

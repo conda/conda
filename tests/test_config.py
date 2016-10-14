@@ -15,6 +15,7 @@ from tempfile import mkstemp, NamedTemporaryFile
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import (reset_context, pkgs_dir_from_envs_dir, context)
+from conda.common.configuration import LoadError
 from conda.common.yaml import yaml_load
 from conda.common.disk import rm_rf
 from tests.helpers import run_conda_command
@@ -294,6 +295,24 @@ def make_temp_condarc(value=None):
 def _read_test_condarc(rc):
     with open(rc) as f:
         return f.read()
+
+
+def test_invalid_config():
+    condarc="""\
+fgddgh
+channels:
+  - test
+"""
+    try:
+        with make_temp_condarc(condarc) as rc:
+            rc_path = rc
+            run_conda_command('config', '--file', rc, '--add',
+                                           'channels', 'test')
+    except LoadError as err:
+        error1 = "Load Error: in "
+        error2 = "on line 1, column 8. Invalid YAML"
+        assert error1 in err.message
+        assert error2 in err.message
 
 # Tests for the conda config command
 # FIXME This shoiuld be multiple individual tests
