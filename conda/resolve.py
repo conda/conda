@@ -2,7 +2,6 @@ from __future__ import print_function, division, absolute_import
 
 import logging
 import re
-from collections import defaultdict
 from itertools import chain
 
 from conda.models.channel import Channel
@@ -284,38 +283,6 @@ class Resolve(object):
 
         return v_(spec)
 
-    def touch(self, spec, touched, filter):
-        """Determines a conservative set of packages to be considered given a
-           package, or a spec, or a list thereof. Cyclic dependencies are not
-           solved, so there is no guarantee a solution exists.
-
-        Args:
-            fkey: a package key or MatchSpec
-            touched: a dict into which to accumulate the result. This is
-                useful when processing multiple specs.
-            filter: a dictionary of (fkey, valid) pairs to be used when
-                testing for package validity.
-
-        This function works in two passes. First, it verifies that the package has
-        satisfiable dependencies from among the filtered packages. If not, then it
-        is _not_ touched, nor are its dependencies. If so, then it is marked as
-        touched, and any of its valid dependencies are as well.
-        """
-        def t_fkey_(fkey):
-            val = touched.get(fkey)
-            if val is None:
-                val = touched[fkey] = self.valid(fkey, filter)
-                if val:
-                    for ms in self.ms_depends(fkey):
-                        if ms.name[0] != '@':
-                            t_ms_(ms)
-
-        def t_ms_(ms):
-            for fkey in self.find_matches(ms):
-                t_fkey_(fkey)
-
-        return t_ms_(spec) if isinstance(spec, MatchSpec) else t_fkey_(spec)
-
     def invalid_chains(self, spec, filter):
         """Constructs a set of 'dependency chains' for invalid specs.
 
@@ -331,20 +298,21 @@ class Resolve(object):
                 testing for package validity.
 
         Returns:
-            A list of tuples, or an empty list if the MatchSpec is valid.
+            A generator of tuples, empty if the MatchSpec is valid.
         """
         def chains_(spec, names):
-            if spec.name in names or self.valid(spec, filter):
+            if self.valid(spec, filter) or spec.name in names:
                 return
-            names.add(spec.name)
             specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
-            if not specs:
-                yield (spec,)
+            found = False
             for fkey in specs:
                 for m2 in self.ms_depends(fkey):
                     for x in chains_(m2, names):
+                        found = True
                         yield (spec,) + x
-        return list(chains_(spec, set()))
+            if not found:
+                yield (spec,)
+        return chains_(spec, set())
 
     def verify_specs(self, specs):
         """Perform a quick verification that specs and dependencies are reasonable.
@@ -357,167 +325,181 @@ class Resolve(object):
 
         Note that this does not attempt to resolve circular dependencies.
         """
-        bad_deps = []
-        opts = []
         spec2 = []
+        bad_deps = []
         feats = set()
         for s in specs:
             ms = MatchSpec(s)
             if ms.name[-1] == '@':
                 self.add_feature(ms.name[:-1])
                 feats.add(ms.name[:-1])
-                continue
-            if not ms.optional:
-                spec2.append(ms)
             else:
-                opts.append(ms)
+                spec2.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
-            if not self.valid(ms, filter):
-                bad_deps.extend(self.invalid_chains(ms, filter))
+            bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFoundError(bad_deps)
-        return spec2, opts, feats
+        return spec2, feats
+
+    def find_conflicts(self, specs):
+        """Perform a deeper analysis on conflicting specifications, by attempting
+        to find the common dependencies that might be the cause of conflicts.
+
+        Args:
+            specs: An iterable of strings or MatchSpec objects to be tested.
+            It is assumed that the specs conflict.
+
+        Returns:
+            Nothing, because it always raises an UnsatisfiableError.
+
+        Strategy:
+            If we're here, we know that the specs conflict. This could be because:
+            - One spec conflicts with another; e.g.
+                  ['numpy 1.5*', 'numpy >=1.6']
+            - One spec conflicts with a dependency of another; e.g.
+                  ['numpy 1.5*', 'scipy 0.12.0b1']
+            - Each spec depends on *the same package* but in a different way; e.g.,
+                  ['A', 'B'] where A depends on numpy 1.5, and B on numpy 1.6.
+            Technically, all three of these cases can be boiled down to the last
+            one if we treat the spec itself as one of the "dependencies". There
+            might be more complex reasons for a conflict, but this code only
+            considers the ones above.
+
+            The purpose of this code, then, is to identify packages (like numpy
+            above) that all of the specs depend on *but in different ways*. We
+            then identify the dependency chains that lead to those packages.
+        """
+        sdeps = {}
+        # For each spec, assemble a dictionary of dependencies, with package
+        # name as key, and all of the matching packages as values.
+        for ms in specs:
+            rec = sdeps.setdefault(ms, {})
+            slist = [ms]
+            while slist:
+                ms2 = slist.pop()
+                deps = rec.setdefault(ms2.name, set())
+                for fkey in self.find_matches(ms2):
+                    if fkey not in deps:
+                        deps.add(fkey)
+                        slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != ms.name)
+        # Find the list of dependencies they have in common. And for each of
+        # *those*, find the individual packages that they all share. Those need
+        # to be removed as conflict candidates.
+        commkeys = set.intersection(*(set(s.keys()) for s in sdeps.values()))
+        commkeys = {k: set.intersection(*(v[k] for v in sdeps.values())) for k in commkeys}
+        # and find the dependency chains that lead to them.
+        bad_deps = []
+        for ms, sdep in iteritems(sdeps):
+            filter = {}
+            for mn, v in sdep.items():
+                if mn != ms.name and mn in commkeys:
+                    # Mark this package's "unique" dependencies as invali
+                    for fkey in v - commkeys[mn]:
+                        filter[fkey] = False
+            # Find the dependencies that lead to those invalid choices
+            ndeps = set(self.invalid_chains(ms, filter))
+            # This may produce some additional invalid chains that we
+            # don't care about. Select only those that terminate in our
+            # predetermined set of "common" keys.
+            ndeps = [nd for nd in ndeps if nd[-1].name in commkeys]
+            if ndeps:
+                bad_deps.extend(ndeps)
+            else:
+                # This means the package *itself* was the common conflict.
+                bad_deps.append((ms,))
+        raise UnsatisfiableError(bad_deps)
 
     def get_dists(self, specs):
-        log.debug('Retrieving packages for: %s' % specs)
+        log.debug('Retrieving packages for: %s' % (specs,))
 
-        specs, optional, features = self.verify_specs(specs)
-        filter = {}
-        touched = {}
+        specs, features = self.verify_specs(specs)
+        filter = self.default_filter(features)
         snames = set()
-        nspecs = set()
-        unsat = set()
 
-        def filter_group(matches, chains=None):
-            # If we are here, then this dependency is mandatory,
-            # so add it to the master list. That way it is still
-            # participates in the pruning even if one of its
-            # parents is pruned away
-            if unsat:
-                return False
+        def filter_group(matches):
             match1 = next(ms for ms in matches)
             name = match1.name
-            first = name not in snames
             group = self.groups.get(name, [])
 
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
-            nold = 0
-            bad_deps = []
+            nold = nnew = 0
             for fkey in group:
                 if filter.setdefault(fkey, True):
                     nold += 1
-                    sat = self.match_any(matches, fkey)
-                    sat = sat and all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                                      for ms in self.ms_depends(fkey))
+                    sat = (self.match_any(matches, fkey) and
+                           all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
+                               for ms in self.ms_depends(fkey)))
                     filter[fkey] = sat
-                    if not sat:
-                        bad_deps.append(fkey)
+                    nnew += sat
 
-            # Build dependency chains if we detect unsatisfiability
-            nnew = nold - len(bad_deps)
             reduced = nnew < nold
             if reduced:
                 log.debug('%s: pruned from %d -> %d' % (name, nold, nnew))
-            if nnew == 0:
-                if name in snames:
-                    snames.remove(name)
-                bad_deps = [fkey for fkey in bad_deps if self.match_any(matches, fkey)]
-                matches = [(ms,) for ms in matches]
-                chains = [a + b for a in chains for b in matches] if chains else matches
-                if bad_deps:
-                    dep2 = set()
-                    for fkey in bad_deps:
-                        for ms in self.ms_depends(fkey):
-                            if not any(filter.get(f2, True) for f2 in self.find_matches(ms)):
-                                dep2.add(ms)
-                    chains = [a + (b,) for a in chains for b in dep2]
-                unsat.update(chains)
-                return nnew != 0
-            if not reduced and not first:
-                return False
+            if any(ms.optional for ms in matches):
+                return reduced
+            elif nnew == 0:
+                # Indicates that a conflict was found; we can exit early
+                return None
 
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
-            if first:
+            if reduced or name not in snames:
                 snames.add(name)
-                if match1 not in specs:
-                    nspecs.add(MatchSpec(name))
-            cdeps = defaultdict(list)
-            for fkey in group:
-                if filter[fkey]:
-                    for m2 in self.ms_depends(fkey):
-                        if m2.name[0] != '@' and not m2.optional:
-                            cdeps[m2.name].append(m2)
-            cdeps = {mname: set(deps) for mname, deps in iteritems(cdeps) if len(deps) >= nnew}
-            if cdeps:
-                matches = [(ms,) for ms in matches]
-                if chains:
-                    matches = [a + b for a in chains for b in matches]
-                if sum(filter_group(deps, chains) for deps in itervalues(cdeps)):
-                    reduced = True
+                cdeps = {}
+                for fkey in group:
+                    if filter.get(fkey, True):
+                        for m2 in self.ms_depends(fkey):
+                            if m2.name[0] != '@' and not m2.optional:
+                                cdeps.setdefault(m2.name, []).append(m2)
+                for deps in itervalues(cdeps):
+                    if len(deps) >= nnew:
+                        res = filter_group(set(deps))
+                        if res:
+                            reduced = True
+                        elif res is None:
+                            # Indicates that a conflict was found; we can exit early
+                            return None
 
             return reduced
 
-        # Iterate in the filtering process until no more progress is made
-        def full_prune(specs, optional, features):
-            self.default_filter(features, filter)
-            for ms in optional:
-                for fkey in self.groups.get(ms.name, []):
-                    if not self.match_fast(ms, fkey):
-                        filter[fkey] = False
-            feats = set(self.trackers.keys())
+        # Iterate on pruning until no progress is made. We've implemented
+        # what amounts to "double-elimination" here; packages get one additional
+        # chance after their first "False" reduction. This catches more instances
+        # where one package's filter affects another. But we don't have to be
+        # perfect about this, so performance matters.
+        for iter in range(2):
             snames.clear()
-            specs = slist = list(specs)
-            onames = set(s.name for s in specs)
-            for iter in range(10):
-                first = True
-                while sum(filter_group([s]) for s in slist) and not unsat:
-                    slist = specs + [MatchSpec(n) for n in snames - onames]
-                    first = False
-                if unsat:
-                    return False
-                if first and iter:
-                    return True
-                touched.clear()
-                for fstr in features:
-                    touched[fstr+'@'] = True
-                for spec in chain(specs, optional):
-                    self.touch(spec, touched, filter)
-                nfeats = set()
-                for fkey, val in iteritems(touched):
-                    if val:
-                        nfeats.update(self.track_features(fkey))
-                if len(nfeats) >= len(feats):
-                    return True
-                pruned = False
-                for feat in feats - nfeats:
-                    feats.remove(feat)
-                    for fkey in self.trackers[feat]:
-                        if filter.get(fkey, True):
-                            filter[fkey] = False
-                            pruned = True
-                if not pruned:
-                    return True
+            slist = list(specs)
+            found = False
+            while slist:
+                s = slist.pop()
+                found = filter_group([s])
+                if found:
+                    slist.append(s)
+                elif found is None:
+                    break
+            if found is None:
+                filter = self.default_filter(features)
+                break
 
-        #
-        # In the case of a conflict, look for the minimum satisfiable subset
-        #
+        # Determine all valid packages in the dependency graph
+        dists = {}
+        slist = list(specs)
+        for fstr in features:
+            fkey = fstr + '@'
+            dists[fkey] = self.index[fkey]
+        while slist:
+            for fkey in self.find_matches(slist.pop()):
+                if dists.get(fkey) is None and self.valid(fkey, filter):
+                    dists[fkey] = self.index[fkey]
+                    for ms in self.ms_depends(fkey):
+                        if ms.name[0] != '@':
+                            slist.append(ms)
 
-        if not full_prune(specs, optional, features):
-            def minsat_prune(specs):
-                return full_prune(specs, optional, features)
-
-            save_unsat = set(s for s in unsat if s[0] in specs)
-            stderrlog.info('...')
-            hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
-            save_unsat.update((ms,) for ms in hint)
-            raise UnsatisfiableError(save_unsat)
-
-        dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
-        return dists, list(map(MatchSpec, snames - {ms.name for ms in specs}))
+        return dists
 
     def match_any(self, mss, fkey):
         rec = self.index[fkey]
@@ -614,66 +596,50 @@ class Resolve(object):
         ms = MatchSpec(ms)
         name = self.ms_to_v(ms)
         m = C.from_name(name)
-        if m is None and not ms.optional:
-            ms2 = MatchSpec(ms.spec, optional=True)
-            m = C.from_name(self.ms_to_v(ms2))
+        if m is not None:
+            return name
+        tgroup = libs = (self.trackers.get(ms.name[1:], []) if ms.name[0] == '@'
+                         else self.groups.get(ms.name, []))
+        if not ms.is_simple():
+            libs = [fkey for fkey in tgroup if self.match_fast(ms, fkey)]
+        if len(libs) == len(tgroup):
+            if ms.optional:
+                m = True
+            elif not ms.is_simple():
+                m = C.from_name(self.push_MatchSpec(C, ms.name))
         if m is None:
-            libs = [fkey for fkey in self.find_matches(ms)]
-            tgroup = (self.trackers.get(ms.name[1:], []) if ms.name[0] == '@'
-                      else self.groups.get(ms.name, []))
-            if len(libs) == len(tgroup):
-                m = C.from_name(self.ms_to_v(ms.name))
-        if m is None:
-            # If the MatchSpec is optional, then there may be cases where we want
-            # to assert that it is *not* True. This requires polarity=None. We do
-            # the same for features as well for the same reason.
-            polarity = None if ms.optional else True
-            m = C.Any(libs, polarity=None if ms.optional else True)
-            if polarity is None and ms.optional:
-                # If we've created an optional variable, it works for non-optional too
-                ms.optional = False
-                C.name_var(m, self.ms_to_v(ms))
+            if ms.optional:
+                libs.append('!@s@'+ms.name)
+            m = C.Any(libs)
         C.name_var(m, name)
         return name
 
-    def gen_clauses(self, specs):
+    def gen_clauses(self):
         C = Clauses()
-
-        # Creates a variable that represents the proposition:
-        #     Does the package set include package "fn"?
         for name, group in iteritems(self.groups):
+            # Create one variable for each package
             for fkey in group:
                 C.new_var(fkey)
-            # Install no more than one version of each package
-            C.Require(C.AtMostOne, group)
-            # Create an on/off variable for the entire group
-            name = self.ms_to_v(name)
-            C.name_var(C.Any(group, polarity=None, name=name), name+'?')
-
-        # Creates a variable that represents the proposition:
-        #    Does the package set include track_feature "feat"?
-        for name, group in iteritems(self.trackers):
-            name = self.ms_to_v('@' + name)
-            C.name_var(C.Any(group, polarity=None, name=name), name+'?')
-
-        # Create propositions that assert:
-        #     If package "fn" is installed, its dependencie must be satisfied
-        for group in itervalues(self.groups):
-            for fkey in group:
-                nkey = C.Not(fkey)
-                for ms in self.ms_depends(fkey):
-                    if not ms.optional:
-                        C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
+            # Create one variable for the group
+            m = C.new_var(self.ms_to_v(name))
+            # Exactly one of the package variables, OR
+            # the negation of the group variable, is true
+            C.Require(C.ExactlyOne, group + [C.Not(m)])
+        # If a package is installed, its dependencies must be as well
+        for fkey in iterkeys(self.index):
+            nkey = C.Not(fkey)
+            for ms in self.ms_depends(fkey):
+                C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
         return C
 
     def generate_spec_constraints(self, C, specs):
-        return [(self.push_MatchSpec(C, ms),) for ms in specs if not ms.optional]
+        return [(self.push_MatchSpec(C, ms),) for ms in specs]
 
     def generate_feature_count(self, C):
-        return {self.ms_to_v('@' + name): 1 for name in iterkeys(self.trackers)}
+        return {self.push_MatchSpec(C, '@'+name): 1 for name in iterkeys(self.trackers)}
 
     def generate_update_count(self, C, specs):
-        return {'!' + spec.target: 1 for spec in specs if C.from_name(spec.target)}
+        return {'!'+ms.target: 1 for ms in specs if ms.target and C.from_name(ms.target)}
 
     def generate_feature_metric(self, C):
         eq = {}
@@ -686,12 +652,12 @@ class Resolve(object):
         return eq, total
 
     def generate_removal_count(self, C, specs):
-        return {'!'+self.ms_to_v(ms): 1 for ms in specs}
+        return {'!'+self.push_MatchSpec(C, ms.name): 1 for ms in specs}
 
     def generate_package_count(self, C, missing):
-        return {self.ms_to_v(nm): 1 for nm in missing}
+        return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
-    def generate_version_metrics(self, C, specs):
+    def generate_version_metrics(self, C, specs, include0=False):
         eqv = {}
         eqb = {}
         sdict = {}
@@ -713,9 +679,9 @@ class Resolve(object):
                     ib = 0
                 elif pkey[2] != nkey[2]:
                     ib += 1
-                if iv:
+                if iv or include0:
                     eqv[npkg] = iv
-                if ib:
+                if ib or include0:
                     eqb[npkg] = ib
                 pkey = nkey
         return eqv, eqb
@@ -811,7 +777,7 @@ class Resolve(object):
         if xtra:
             log.debug('Packages missing from index: %s' % ', '.join(xtra))
         r2 = Resolve(dists, True, True)
-        C = r2.gen_clauses(specs)
+        C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         try:
             solution = C.sat(constraints)
@@ -905,31 +871,27 @@ class Resolve(object):
             # Find the compliant packages
             len0 = len(specs)
             specs = list(map(MatchSpec, specs))
-            dists, new_specs = self.get_dists(specs)
+            dists = self.get_dists(specs)
             if not dists:
                 return False if dists is None else ([[]] if returnall else [])
 
             # Check if satisfiable
+            def mysat(specs, add_if=False):
+                constraints = r2.generate_spec_constraints(C, specs)
+                return C.sat(constraints, add_if)
             dotlog.debug('Checking satisfiability')
             r2 = Resolve(dists, True, True)
-            C = r2.gen_clauses(specs)
-            constraints = r2.generate_spec_constraints(C, specs)
-            solution = C.sat(constraints, True)
+            C = r2.gen_clauses()
+            solution = mysat(specs, True)
             if not solution:
-                # Find the largest set of specs that are satisfiable, and return
-                # the list of specs that are not in that set.
-                solution = [C.Not(q) for q in range(1, C.m+1)]
-                spec2 = [s for s in specs if not s.optional]
-                eq_removal_count = r2.generate_removal_count(C, spec2)
-                solution, obj1 = C.minimize(eq_removal_count, solution)
-                specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
-                raise UnsatisfiableError(specsol, False)
+                specs = minimal_unsatisfiable_subset(specs, sat=mysat)
+                self.find_conflicts(specs)
 
             speco = []  # optional packages
             specr = []  # requested packages
             speca = []  # all other packages
             specm = set(r2.groups)  # missing from specs
-            for k, s in enumerate(chain(specs, new_specs)):
+            for k, s in enumerate(specs):
                 if s.name in specm:
                     specm.remove(s.name)
                 if not s.optional:
