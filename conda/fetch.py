@@ -6,7 +6,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
-import getpass
 import hashlib
 import json
 import os
@@ -24,15 +23,13 @@ from ._vendor.auxlib.logz import stringify
 from .base.constants import CONDA_HOMEPAGE_URL
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
-from .common.url import add_username_and_password, join_url, maybe_add_auth, url_to_path
-from .compat import input, iteritems, itervalues
+from .common.url import join_url, maybe_add_auth, url_to_path
+from .compat import iteritems, itervalues
 from .connection import CondaSession, RETRIES
-from .exceptions import (CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError,
-                         ProxyError)
+from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError
 from .install import add_cached_package, dist2pair, find_new_location, package_cache
 from .lock import FileLock
 from .models.channel import Channel, offline_keep
-from .utils import memoized
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -138,11 +135,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 407:  # Proxy Authentication Required
-            handle_proxy_407(url, session)
-            # Try again
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
-
         if e.response.status_code == 404:
             if url.endswith('/noarch'):  # noarch directory might not exist
                 return None
@@ -228,14 +220,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         log.debug(msg)
 
     except requests.exceptions.ConnectionError as e:
-        # requests isn't so nice here. For whatever reason, https gives this
-        # error and http gives the above error. Also, there is no status_code
-        # attribute here. We have to just check if it looks like 407.  See
-        # https://github.com/kennethreitz/requests/issues/2061.
-        if "407" in str(e):  # Proxy Authentication Required
-            handle_proxy_407(url, session)
-            # Try again
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
         msg = "Connection error: %s: %s\n" % (e, url)
         stderrlog.info('Could not connect to %s\n' % url)
         log.debug(msg)
@@ -252,29 +236,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     return cache or None
 
-
-def handle_proxy_407(url, session):
-    """
-    Prompts the user for the proxy username and password and modifies the
-    proxy in the session object to include it.
-    """
-    # We could also use HTTPProxyAuth, but this does not work with https
-    # proxies (see https://github.com/kennethreitz/requests/issues/2061).
-    scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
-    if scheme not in session.proxies:
-        raise ProxyError("""Could not find a proxy for %r. See
-http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
-for more information on how to configure proxies.""" % scheme)
-    username, passwd = get_proxy_username_and_pass(scheme)
-    session.proxies[scheme] = add_username_and_password(
-                            session.proxies[scheme], username, passwd)
-
-
-@memoized
-def get_proxy_username_and_pass(scheme):
-    username = input("\n%s proxy username: " % scheme)
-    passwd = getpass.getpass("Password:")
-    return username, passwd
 
 def add_unknown(index, priorities):
     priorities = {p[0]: p[1] for p in itervalues(priorities)}
@@ -438,26 +399,11 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 407:  # Proxy Authentication Required
-                handle_proxy_407(url, session)
-                # Try again
-                return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise CondaRuntimeError(msg)
 
         except requests.exceptions.ConnectionError as e:
-            # requests isn't so nice here. For whatever reason, https gives
-            # this error and http gives the above error. Also, there is no
-            # status_code attribute here.  We have to just check if it looks
-            # like 407.
-            # See: https://github.com/kennethreitz/requests/issues/2061.
-            if "407" in str(e):  # Proxy Authentication Required
-                handle_proxy_407(url, session)
-                # try again
-                return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)
