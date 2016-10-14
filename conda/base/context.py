@@ -78,7 +78,8 @@ class Context(Configuration):
 
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))
-    _migrated_channel_aliases = SequenceParameter(string_types, aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings
+    _migrated_channel_aliases = SequenceParameter(string_types,
+                                                  aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))
     _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
@@ -263,12 +264,11 @@ class Context(Configuration):
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
-        return odict((x.name, x) for x in
-                     (ch for ch in concatv(self.default_channels,
-                                           (self.local_build_root_channel,),
-                                           (Channel.make_simple_channel(self.channel_alias, url, name)
-                                            for name, url in iteritems(self._custom_channels)),
-                                           )))
+        custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
+                           for name, url in iteritems(self._custom_channels))
+        all_sources = self.default_channels, (self.local_build_root_channel,), custom_channels
+        all_channels = (ch for ch in concatv(all_sources))
+        return odict((x.name, x) for x in all_channels)
 
 
 def conda_in_private_env():

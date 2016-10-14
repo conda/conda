@@ -15,8 +15,8 @@ try:
     from cytoolz.functoolz import excepts
     from cytoolz.itertoolz import concatv, topk
 except ImportError:
-    from .._vendor.toolz.functoolz import excepts
-    from .._vendor.toolz.itertoolz import concatv, topk
+    from .._vendor.toolz.functoolz import excepts  # NOQA
+    from .._vendor.toolz.itertoolz import concatv, topk  # NOQA
 
 log = getLogger(__name__)
 
@@ -77,7 +77,7 @@ def _read_channel_configuration(scheme, host, port, path):
 
     # Step 1. migrated_custom_channels matches
     for name, location in sorted(context.migrated_custom_channels.items(), reverse=True,
-                                key=lambda x: len(x[0])):
+                                 key=lambda x: len(x[0])):
         location, _scheme, _auth, _token = split_scheme_auth_token(location)
         if tokenized_conda_url_startswith(test_url, join_url(location, name)):
             # translate location to new location, with new credentials
@@ -264,8 +264,8 @@ class Channel(object):
         if with_credentials and self.token:
             base.extend(['t', self.token])
         base.append(self.name)
-
         base = join_url(*base)
+
         def _platforms():
             p = platform or self.platform or context.subdir
             return (p, 'noarch') if p != 'noarch' else ('noarch',)

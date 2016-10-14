@@ -167,7 +167,8 @@ def split_platform(url):
 
 
 def split_package_filename(url):
-    cleaned_url, package_filename = url.rsplit('/', 1) if url.endswith(('.tar.bz2', '.json')) else (url, None)
+    cleaned_url, package_filename = (url.rsplit('/', 1) if url.endswith(('.tar.bz2', '.json'))
+                                     else (url, None))
     return cleaned_url, package_filename
 
 
