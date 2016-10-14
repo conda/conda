@@ -709,16 +709,16 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win_filter(self):
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(
-                Commands.SEARCH, prefix, "gawk", "--platform", "linux-64", "--json")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--platform",
+                                         "linux-64", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj.keys()) == 0
 
     @pytest.mark.timeout(30)
     def test_bad_anaconda_token_infinite_loop(self):
         # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
-        response = requests.get(
-            "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/%s/repodata.json" % context.subdir)
+        response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
+                                "%s/repodata.json" % context.subdir)
         assert response.status_code == 401
 
         try:
@@ -740,9 +740,43 @@ class IntegrationTests(TestCase):
         finally:
             rmtree(prefix, ignore_errors=True)
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 10, 21), reason="#3602 is not yet merged")
     def test_anaconda_token_with_private_package(self):
         "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
         # TODO: write test for anyjson once #3602 is merged and available
         # TODO: should also write a test to use binstar_client to set the token, then let conda load the token
-        assert False
+
+        # Step 1. Make sure without the token we don't see the anyjson package
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+            channel_url = "https://conda.anaconda.org/kalefranz"
+            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['channels'] == [channel_url]
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
+                                         "linux-64", "--json")
+            json_obj = json_loads(stdout)
+            assert len(json_obj) == 0
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
+
+        # Step 2. Now with the token make sure we can see the anyjson package
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+            channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
+            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['channels'] == [channel_url]
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
+                                         "linux-64", "--json")
+            json_obj = json_loads(stdout)
+            assert 'anyjson' in json_obj
+
+        finally:
+            rmtree(prefix, ignore_errors=True)

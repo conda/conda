@@ -22,9 +22,9 @@ from ..common.url import (has_scheme, path_to_url, split_scheme_auth_token, urlp
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 try:
-    from cytoolz.itertoolz import concatv
+    from cytoolz.itertoolz import concat, concatv
 except ImportError:
-    from .._vendor.toolz.itertoolz import concatv
+    from .._vendor.toolz.itertoolz import concat, concatv
 
 log = getLogger(__name__)
 
@@ -267,7 +267,7 @@ class Context(Configuration):
         custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
                            for name, url in iteritems(self._custom_channels))
         all_sources = self.default_channels, (self.local_build_root_channel,), custom_channels
-        all_channels = (ch for ch in concatv(all_sources))
+        all_channels = (ch for ch in concat(all_sources))
         return odict((x.name, x) for x in all_channels)
 
 
