@@ -146,3 +146,10 @@ class ChannelTests(TestCase):
         assert c.canonical_name == "https://some.other.com/pkgs/free"
         assert c.urls == ["https://some.other.com/pkgs/free/%s/" % platform,
                           "https://some.other.com/pkgs/free/noarch/"]
+
+    def test_auth(self):
+        assert Channel('http://user:pass@conda.anaconda.org/t/tk-abc-123-456/bioconda/win-64').canonical_name == "bioconda"
+        assert Channel('http://conda.anaconda.org/bioconda/label/main/osx-64')._auth == None
+        assert Channel('http://user:pass@conda.anaconda.org/bioconda/label/main/osx-64')._auth == 'user:pass'
+        assert Channel('http://user:pass@path/to/repo')._auth == 'user:pass'
+        assert Channel('http://user:pass@path/to/repo').canonical_name == 'http://path/to/repo'
