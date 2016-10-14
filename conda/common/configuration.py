@@ -23,7 +23,7 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import join
+from os.path import join, basename
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
 try:
@@ -358,7 +358,7 @@ def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_yaml_loader(fullpath):
-        assert fullpath.endswith(".yml") or fullpath.endswith("condarc"), fullpath
+        assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(fullpath), fullpath
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_yaml_loader(fullpath):
@@ -652,9 +652,11 @@ class MapParameter(Parameter):
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(MapParameter, self).collect_errors(instance, value)
-        element_type = self._element_type
-        errors.extend(InvalidElementTypeError(self.name, val, source, type(val), element_type, key)
-                      for key, val in iteritems(value) if not isinstance(val, element_type))
+        if isinstance(value, Mapping):
+            element_type = self._element_type
+            errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
+                                                  element_type, key)
+                          for key, val in iteritems(value) if not isinstance(val, element_type))
         return errors
 
     def _merge(self, matches):

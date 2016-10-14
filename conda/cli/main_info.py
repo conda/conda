@@ -280,34 +280,43 @@ Current conda install:
     if args.envs:
         handle_envs_list(info_dict['envs'], not context.json)
 
-    if args.system and not context.json:
+    if args.system:
         from conda.cli.find_commands import find_commands, find_executable
 
-        print("sys.version: %s..." % (sys.version[:40]))
-        print("sys.prefix: %s" % sys.prefix)
-        print("sys.executable: %s" % sys.executable)
-        print("conda location: %s" % dirname(conda.__file__))
-        for cmd in sorted(set(find_commands() + ['build'])):
-            print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
-        print("user site dirs: ", end='')
         site_dirs = get_user_site()
-        if site_dirs:
-            print(site_dirs[0])
-        else:
-            print()
-        for site_dir in site_dirs[1:]:
-            print('                %s' % site_dir)
-        print()
-
         evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
                  'CIO_TEST', 'CONDA_ENVS_PATH']
+
         if context.platform == 'linux':
             evars.append('LD_LIBRARY_PATH')
         elif context.platform == 'osx':
             evars.append('DYLD_LIBRARY_PATH')
-        for ev in sorted(evars):
-            print("%s: %s" % (ev, os.getenv(ev, '<not set>')))
-        print()
+
+        if context.json:
+            info_dict['sys.version'] = sys.version
+            info_dict['sys.prefix'] = sys.prefix
+            info_dict['sys.executable'] = sys.executable
+            info_dict['site_dirs'] = get_user_site()
+            info_dict['env_vars'] = {ev: os.getenv(ev, '<not set>') for ev in evars}
+        else:
+            print("sys.version: %s..." % (sys.version[:40]))
+            print("sys.prefix: %s" % sys.prefix)
+            print("sys.executable: %s" % sys.executable)
+            print("conda location: %s" % dirname(conda.__file__))
+            for cmd in sorted(set(find_commands() + ['build'])):
+                print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
+            print("user site dirs: ", end='')
+            if site_dirs:
+                print(site_dirs[0])
+            else:
+                print()
+            for site_dir in site_dirs[1:]:
+                print('                %s' % site_dir)
+            print()
+
+            for ev in sorted(evars):
+                print("%s: %s" % (ev, os.getenv(ev, '<not set>')))
+            print()
 
     if args.license and not context.json:
         try:

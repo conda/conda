@@ -79,22 +79,30 @@ SEARCH_PATH = (
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
 
-PLATFORM_DIRECTORIES = ("linux-64",  "linux-32",
-                        "win-64",  "win-32",
-                        "osx-64", "noarch")
+PLATFORM_DIRECTORIES = ("linux-64",
+                        "linux-32",
+                        "win-64",
+                        "win-32",
+                        "osx-64",
+                        "linux-ppc64le",
+                        "noarch",
+                        )
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
+DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
+                         'https://repo.continuum.io/pkgs/pro',
+                         )
 
-if Platform.from_sys() is Platform.win:
-    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
+DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
                         'https://repo.continuum.io/pkgs/pro',
                         'https://repo.continuum.io/pkgs/msys2',
                         )
+
+if Platform.from_sys() is Platform.win:
+    DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN
 else:
-    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
-                        'https://repo.continuum.io/pkgs/pro',
-                        )
+    DEFAULT_CHANNELS = DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'root'
 
@@ -104,6 +112,9 @@ EMPTY_MAP = frozendict()
 
 class _Null(object):
     def __nonzero__(self):
+        return False
+
+    def __bool__(self):
         return False
 
 NULL = _Null()

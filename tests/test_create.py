@@ -20,8 +20,10 @@ from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.io import captured, disable_logger, stderr_log_level
 from conda.common.url import path_to_url
+from conda.common.yaml import yaml_load
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
+from conda.exceptions import DryRunExit, conda_exception_handler
 from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
 from contextlib import contextmanager
 from datetime import datetime
@@ -47,12 +49,15 @@ def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
-def make_temp_prefix(name=None):
+def make_temp_prefix(name=None, create_directory=True):
     tempdir = gettempdir()
     dirname = str(uuid4())[:8] if name is None else name
     prefix = join(tempdir, dirname)
     os.makedirs(prefix)
-    assert isdir(prefix)
+    if create_directory:
+        assert isdir(prefix)
+    else:
+        os.removedirs(prefix)
     return prefix
 
 
@@ -77,7 +82,8 @@ parser_config = {
 }
 
 
-def run_command(command, prefix, *arguments):
+def run_command(command, prefix, *arguments, **kwargs):
+    use_exception_handler = kwargs.get('use_exception_handler', False)
     arguments = list(arguments)
     p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
@@ -97,7 +103,10 @@ def run_command(command, prefix, *arguments):
     context._add_argparse_args(args)
     print("executing command >>>", command_line)
     with captured() as c:
-        args.func(args, p)
+        if use_exception_handler:
+            conda_exception_handler(args.func, args, p)
+        else:
+            args.func(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout)
     if command is Commands.CONFIG:
@@ -592,3 +601,104 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
+
+    def test_create_default_packages(self):
+        # Regression test for #3453
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+
+            # set packages
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+
+            assert not package_is_installed(prefix, 'python-2')
+            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'flask')
+
+            with make_temp_env("python=2", "numpy", prefix=prefix):
+                assert_package_is_installed(prefix, 'python-2')
+                assert_package_is_installed(prefix, 'numpy')
+                assert_package_is_installed(prefix, 'flask')
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
+
+    def test_create_default_packages_no_default_packages(self):
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+
+            # set packages
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
+            run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+
+            assert not package_is_installed(prefix, 'python-2')
+            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'flask')
+
+            with make_temp_env("python=2", "numpy", "--no-default-packages", prefix=prefix):
+                assert_package_is_installed(prefix, 'python-2')
+                assert_package_is_installed(prefix, 'numpy')
+                assert not package_is_installed(prefix, 'flask')
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
+
+    def test_create_dry_run(self):
+        # Regression test for #3453
+        prefix = '/some/place'
+        with pytest.raises(DryRunExit):
+            run_command(Commands.CREATE, prefix, "--dry-run")
+        stdout, stderr = run_command(Commands.CREATE, prefix, "--dry-run", use_exception_handler=True)
+        assert join('some', 'place') in stdout
+        # TODO: This assert passes locally but fails on CI boxes; figure out why and re-enable
+        # assert "The following empty environments will be CREATED" in stdout
+
+        prefix = '/another/place'
+        with pytest.raises(DryRunExit):
+            run_command(Commands.CREATE, prefix, "flask", "--dry-run")
+        stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", use_exception_handler=True)
+        assert "flask:" in stdout
+        assert "python:" in stdout
+        assert join('another', 'place') in stdout
+
+    @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
+    def test_search_gawk_not_win(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert len(json_obj.keys()) == 0
+
+    @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
+    def test_search_gawk_not_win_filter(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(
+                Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert "gawk" in json_obj.keys()
+            assert "m2-gawk" in json_obj.keys()
+            assert len(json_obj.keys()) == 2
+
+    @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
+    def test_search_gawk_on_win(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert "gawk" in json_obj.keys()
+            assert "m2-gawk" in json_obj.keys()
+            assert len(json_obj.keys()) == 2
+
+    @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
+    def test_search_gawk_on_win_filter(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(
+                Commands.SEARCH, prefix, "gawk", "--platform", "linux-64", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert len(json_obj.keys()) == 0

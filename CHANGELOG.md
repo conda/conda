@@ -14,10 +14,46 @@
 * add conda.exports module (#3429)
 
 
+## 4.2.10 (unreleased)
+
+### Improvements
+* add json output for `conda info -s` (#3588)
+* ignore certain binary prefixes on windows (#3539)
+* allow conda config files to have .yaml extensions or 'condarc' anywhere in filename (#3633)
+
+### Bug Fixes
+* add back linux-ppc64le subdir support (#3584)
+* fix #3600 ensure links are removed when unlinking (#3625)
+* fix #3602 search channels by platform (#3629)
+* fix duplicated packages when updating environment (#3563)
+* fix #3590 exception when parsing invalid yaml (#3593 via #3634)
+
+
 ## 4.1.13 (unreleased)
 
 ### Non-User-Facing Changes
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
+* fix the api->conda substitution (#3456)
+
+
+## 4.2.9 (2016-09-27)
+
+### Bug Fixes
+* fix #3536 conda-env messaging to stdout with --json flag (#3537)
+* fix #3525 writing to sys.stdout with --json flag for post-link scripts (#3538)
+* fix #3492 make NULL falsey with python 3 (#3524)
+
+
+## 4.2.8 (2016-09-26)
+
+### Improvements
+* add "error" key back to json error output (#3523)
+
+### Bug Fixes
+* fix #3453 conda fails with create_default_packages (#3454)
+* fix #3455 --dry-run fails (#3457)
+* dial down error messages for rm_rf (#3522)
+* fix #3467 AttributeError encountered for map config parameter validation (#3521)
 
 
 ## 4.2.7 (2016-09-16)

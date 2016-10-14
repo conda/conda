@@ -63,7 +63,7 @@ def check_prefix(prefix, json=False):
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
-        if isdir(prefix) and not os.listdir(prefix):
+        if isdir(prefix) and 'conda-meta' not in os.listdir(prefix):
             return None
         error = "prefix already exists: %s" % prefix
 
@@ -164,7 +164,7 @@ def install(args, parser, command='install'):
                                            (name, prefix))
 
     if newenv and not args.no_default_packages:
-        default_packages = context.create_default_packages[:]
+        default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
         for default_pkg in context.create_default_packages:
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
@@ -398,7 +398,7 @@ def install(args, parser, command='install'):
         common.confirm_yn(args)
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
-        raise DryRunExit
+        raise DryRunExit()
 
     with common.json_progress_bars(json=context.json and not context.quiet):
         try:

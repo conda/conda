@@ -5,7 +5,7 @@ from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
 from conda.common.configuration import (Configuration, MapParameter, ParameterFlag,
                                         PrimitiveParameter, SequenceParameter, YamlRawParameter,
-                                        load_file_configs, MultiValidationError)
+                                        load_file_configs, MultiValidationError, InvalidTypeError)
 from conda.common.yaml import yaml_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
@@ -388,3 +388,12 @@ class ConfigurationTests(TestCase):
     def test_cross_parameter_validation(self):
         pass
         # test primitive can't be list; list can't be map, etc
+
+    def test_map_parameter_must_be_map(self):
+        # regression test for conda/conda#3467
+        string = dals("""
+        proxy_servers: bad values
+        """)
+        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', yaml_load(string)))
+        config = SampleConfiguration()._add_raw_data(data)
+        raises(InvalidTypeError, config.validate_all)
