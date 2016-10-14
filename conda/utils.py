@@ -136,13 +136,12 @@ def unix_path_to_win(path, root_prefix=""):
 
     path_re = root_prefix + r'/([a-zA-Z])(/(?:(?![:\s]/)[^:*?"<>])*)'
 
-    # def _translation(found_path):
-    #     print("replacing {} with {}:{}".format(found_path.group(0)))
-    #     return "{0}:{1}".format(found_path.group(1),
-    #                             found_path.group(2).replace("/", "\\"))
+    def _translation(found_path):
+        return "{0}:{1}".format(found_path.group(1),
+                                found_path.group(2).replace("/", "\\"))
 
-    path = re.sub(path_re, r'\1:\2', path).replace("/", "\\")
-    path = re.sub(r':([a-zA-Z]):\\\\', r';\1:\\', path)
+    path = re.sub(path_re, _translation, path)
+    path = re.sub(r':([a-zA-Z]):\\', r';\1:\\', path)
 
     return path
 
@@ -179,9 +178,7 @@ def human_bytes(n):
 # TODO: this should be done in a more extensible way
 #     (like files for each shell, with some registration mechanism.)
 posix_base = dict(
-    # exe=
-
-    binpath='/bin/', # mind the trailing slash.
+    binpath='/bin/',  # mind the trailing slash.
     defaultenv_print='echo "${CONDA_DEFAULT_ENV}"',
     echo='echo',
     envvar_getall='env',
@@ -209,7 +206,7 @@ posix_base = dict(
 
 cygwin_base = dict(
     posix_base,
-    binpath='/Scripts/', # mind the trailing slash.
+    binpath='/Scripts/',  # mind the trailing slash.
     envvar_unset='[ -n "${{{variable}+x}}" ] && unset {variable}',
     path_from=cygwin_path_to_win,
     path_to=win_path_to_cygwin,
@@ -234,7 +231,8 @@ msys_base = dict(
 batch_base = dict(
     binpath='\\Scripts\\',  # mind the trailing slash.
     # parenthesis mismatched intentionally
-    # see http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
+    # see http://stackoverflow.com/questions/20691060/
+    #   how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file
     # NOQA
     defaultenv_print=dedent('''\
         @IF /I NOT "%CONDA_DEFAULT_ENV%"=="" (
@@ -271,8 +269,7 @@ if on_win:
         "powershell.exe": dict(
             posix_base,
             exe='powershell.exe',
-
-            binpath='\Scripts\\', # mind the trailing slash.
+            binpath='\Scripts\\',  # mind the trailing slash.
             defaultenv_print='echo "${env:CONDA_DEFAULT_ENV}"',
             envvar_getall=dedent('''\
                 Get-ChildItem env: | % {
@@ -348,7 +345,7 @@ else:
         "zsh": dict(
             posix_base,
             exe='zsh',
-       ),
+        ),
         "dash": dict(
             posix_base,
             exe='dash',
