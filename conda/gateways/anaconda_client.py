@@ -82,7 +82,7 @@ def get_binstar_server_url_pair(url):
 
     # Step 4. Replace first occurrence of "conda" with "api"
     #         Note: Dangerous since users could legitimately have /conda in this url
-    test_url = re.sub(r'([./])conda([./])', r'\1api\2', url, count=1)
+    test_url = replace_first_conda_with_api(url)
     result = get_conda_url_from_binstar_api(test_url)
     if result:
         return test_url, result
@@ -116,6 +116,16 @@ def get_anaconda_site_components(anaconda_site):
     return binstar_api_url, conda_repo_url, token
 
 
+def replace_first_conda_with_api(url):
+    # replace first occurrence of 'conda' with 'api' in url
+    return re.sub(r'([./])conda([./])', r'\1api\2', url, count=1)
+
+
+def replace_first_api_with_conda(url):
+    # replace first occurrence of 'api' with 'conda' in url
+    return re.sub(r'([./])api([./])', r'\1conda\2', url, count=1)
+
+
 def read_binstar_tokens():
     tokens = dict()
     try:
@@ -133,7 +143,7 @@ def read_binstar_tokens():
         with open(tkn_file) as f:
             token = f.read()
         tokens[url] = token
-
+        tokens[replace_first_api_with_conda(url)] = token
     return tokens
 
 

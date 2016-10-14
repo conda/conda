@@ -203,7 +203,7 @@ class BinstarAuth(AuthBase):
                     from conda.models.channel import Channel
                     channel = Channel(clean_url)
                     channel.token = token
-                    return channel.full_url
+                    return channel.url(with_credentials=True)
         return url
 
     # @staticmethod
