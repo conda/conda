@@ -128,7 +128,7 @@ def split_platform(value):
             return value, None
 
 
-TOKEN_RE = re.compile(r'(/t/[a-z0-9A-Z-]+)?(\S*)?')
+TOKEN_RE = re.compile(r'(/t/[a-z0-9A-Z-]+)?(\S*)')
 def split_token(value):  # NOQA
     token, path = TOKEN_RE.match(value).groups()
     return token, path or '/'
