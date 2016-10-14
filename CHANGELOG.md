@@ -1,3 +1,18 @@
+## 4.2.10 (unreleased)
+
+### Improvements
+* add json output for `conda info -s` (#3588)
+* ignore certain binary prefixes on windows (#3539)
+* allow conda config files to have .yaml extensions or 'condarc' anywhere in filename (#3633)
+
+### Bug Fixes
+* add back linux-ppc64le subdir support (#3584)
+* fix #3600 ensure links are removed when unlinking (#3625)
+* fix #3602 search channels by platform (#3629)
+* fix duplicated packages when updating environment (#3563)
+* fix #3590 exception when parsing invalid yaml (#3593 via #3634)
+
+
 ## 4.1.13 (unreleased)
 
 ### Non-User-Facing Changes
