@@ -670,14 +670,14 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win(self):
-        with make_temp_env("python") as prefix:
+        with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj.keys()) == 0
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
-        with make_temp_env("python") as prefix:
+        with make_temp_env() as prefix:
             stdout, stderr = run_command(
                 Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
@@ -687,7 +687,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win(self):
-        with make_temp_env("python") as prefix:
+        with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert "gawk" in json_obj.keys()
@@ -696,7 +696,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win_filter(self):
-        with make_temp_env("python") as prefix:
+        with make_temp_env() as prefix:
             stdout, stderr = run_command(
                 Commands.SEARCH, prefix, "gawk", "--platform", "linux-64", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())

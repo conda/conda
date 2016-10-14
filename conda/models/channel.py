@@ -6,16 +6,16 @@ from itertools import chain
 from logging import getLogger
 from os.path import join
 
+from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, PLATFORM_DIRECTORIES,
+                              RECOGNIZED_URL_SCHEMES)
+from ..base.context import context
+from ..common.compat import odict, with_metaclass
+from ..common.url import is_url, path_to_url, urlparse, urlunparse
+
 try:
     from cytoolz.functoolz import excepts
 except ImportError:
     from .._vendor.toolz.functoolz import excepts
-
-from ..base.constants import PLATFORM_DIRECTORIES, RECOGNIZED_URL_SCHEMES, DEFAULT_CHANNELS_UNIX, \
-    DEFAULT_CHANNELS_WIN
-from ..base.context import context
-from ..common.compat import odict, with_metaclass
-from ..common.url import is_url, path_to_url, urlparse, urlunparse
 
 log = getLogger(__name__)
 
