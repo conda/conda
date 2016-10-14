@@ -14,7 +14,7 @@ except ImportError:
     from urllib import quote, unquote, pathname2url
     from urlparse import urlunparse as stdlib_urlparse, urljoin  # NOQA
 
-from requests.packages.urllib3.util.url import parse_url
+from requests.packages.urllib3.util.url import parse_url, Url
 from requests.packages.urllib3.exceptions import LocationParseError
 
 log = getLogger(__name__)
@@ -46,9 +46,10 @@ def url_to_path(url):  # NOQA
 
 
 def add_username_and_pass_to_url(url, username, passwd):
-    url_obj = parse_url(url)
-    url_obj.auth = username + ':' + quote(passwd, '')
-    return url_obj.url
+    url_obj_dict = url_obj._asdict()
+    url_obj_dict.update({ 'auth': username + ':' + quote(passwd, '') })
+    url_obj_authed = Url(**url_obj_dict)
+    return url_obj_authed.url
 
 
 def urlparse(url):
