@@ -222,8 +222,7 @@ class Context(Configuration):
     def channel_alias(self):
         from ..models.channel import Channel
         location, scheme, auth, token = split_scheme_auth_token(self._channel_alias)
-        return Channel(scheme=scheme, auth=auth, location=location,
-                       token=token)
+        return Channel(scheme=scheme, auth=auth, location=location, token=token)
 
     @property
     def migrated_channel_aliases(self):
@@ -255,7 +254,9 @@ class Context(Configuration):
         # the format for 'default_channels' is a list of strings that either
         #   - start with a scheme
         #   - are meant to be prepended with channel_alias
-        return tuple(self._make_simple_channel(v) for v in self._default_channels)
+        from ..models.channel import Channel
+        return tuple(Channel.make_simple_channel(self.channel_alias, v)
+                     for v in self._default_channels)
 
     @memoizedproperty
     def local_build_root_channel(self):
@@ -278,31 +279,13 @@ class Context(Configuration):
                      for name, c in concatv(iteritems(default_custom_multichannels),
                                             iteritems(self._custom_multichannels)))
 
-    def _make_simple_channel(self, channel_url, name=None):
-        from conda.models.channel import Channel
-        ca = self.channel_alias
-        test_url, scheme, auth, token = split_scheme_auth_token(channel_url)
-        if name and scheme:
-            return Channel(scheme=scheme, auth=auth, location=test_url, token=token,
-                           name=name.strip('/'))
-        if scheme:
-            if ca.location and test_url.startswith(ca.location):
-                location, name = ca.location, test_url.replace(ca.location, '', 1)
-            else:
-                url_parts = urlparse(test_url)
-                location, name = Url(host=url_parts.host, port=url_parts.port).url, url_parts.path
-            return Channel(scheme=scheme, auth=auth, location=location, token=token,
-                           name=name.strip('/'))
-        else:
-            return Channel(scheme=ca.scheme, auth=ca.auth, location=ca.location, token=ca.token,
-                           name=name and name.strip('/') or channel_url.strip('/'))
-
     @memoizedproperty
     def custom_channels(self):
+        from ..models.channel import Channel
         return odict((x.name, x) for x in
                      (ch for ch in concatv(self.default_channels,
                                            (self.local_build_root_channel,),
-                                           (self._make_simple_channel(url, name)
+                                           (Channel.make_simple_channel(self.channel_alias, url, name)
                                             for name, url in iteritems(self._custom_channels)),
                                            )))
 

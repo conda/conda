@@ -78,16 +78,21 @@ PLATFORM_DIRECTORIES = ("linux-64",
                         "noarch",
                         )
 
+RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
-if Platform.from_sys() is Platform.win:
-    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
+DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
+                         'https://repo.continuum.io/pkgs/pro',
+                         )
+
+DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
                         'https://repo.continuum.io/pkgs/pro',
                         'https://repo.continuum.io/pkgs/msys2',
                         )
+
+if Platform.from_sys() is Platform.win:
+    DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN
 else:
-    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
-                        'https://repo.continuum.io/pkgs/pro',
-                        )
+    DEFAULT_CHANNELS = DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'root'
 

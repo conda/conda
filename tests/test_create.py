@@ -680,10 +680,45 @@ class IntegrationTests(TestCase):
         assert "python:" in stdout
         assert join('another', 'place') in stdout
 
+    @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
+    def test_search_gawk_not_win(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert len(json_obj.keys()) == 0
+
+    @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
+    def test_search_gawk_not_win_filter(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(
+                Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert "gawk" in json_obj.keys()
+            assert "m2-gawk" in json_obj.keys()
+            assert len(json_obj.keys()) == 2
+
+    @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
+    def test_search_gawk_on_win(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert "gawk" in json_obj.keys()
+            assert "m2-gawk" in json_obj.keys()
+            assert len(json_obj.keys()) == 2
+
+    @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
+    def test_search_gawk_on_win_filter(self):
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(
+                Commands.SEARCH, prefix, "gawk", "--platform", "linux-64", "--json")
+            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            assert len(json_obj.keys()) == 0
+
     @pytest.mark.timeout(30)
     def test_bad_anaconda_token_infinite_loop(self):
         # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
-        response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/%s/repodata.json" % context.subdir)
+        response = requests.get(
+            "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/%s/repodata.json" % context.subdir)
         assert response.status_code == 401
 
         try:
@@ -697,7 +732,8 @@ class IntegrationTests(TestCase):
             with pytest.raises(CondaHTTPError):
                 run_command(Commands.SEARCH, prefix, "boltons", "--json")
 
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "boltons", "--json", use_exception_handler=True)
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "boltons", "--json",
+                                         use_exception_handler=True)
             json_obj = json.loads(stdout)
             assert json_obj['status_code'] == 401
 
