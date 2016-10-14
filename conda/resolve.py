@@ -644,9 +644,9 @@ class Resolve(object):
             # the negation of the group variable, is true
             C.Require(C.ExactlyOne, group + [C.Not(m)])
         # If a package is installed, its dependencies must be as well
-        for fkey in iterkeys(self.index):
-            nkey = C.Not(fkey)
-            for ms in self.ms_depends(fkey):
+        for dist in iterkeys(self.index):
+            nkey = C.Not(dist.full_name)
+            for ms in self.ms_depends(dist):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         return C

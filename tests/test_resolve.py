@@ -108,7 +108,7 @@ class TestPackage(unittest.TestCase):
         ms = MatchSpec('llvm')
         pkgs = [Package(fn, r.index[Dist(fn)]) for fn in r.find_matches(ms)]
         pkgs.sort()
-        self.assertEqual([p.fn.to_filename() for p in pkgs],
+        self.assertEqual([p.fn for p in pkgs],
                          ['llvm-3.1-0.tar.bz2',
                           'llvm-3.1-1.tar.bz2',
                           'llvm-3.2-0.tar.bz2'])
