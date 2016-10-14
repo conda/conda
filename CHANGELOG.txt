@@ -1,6 +1,7 @@
 4.1.13 (unreleased):
 --------------------
   * use install.rm_rf for TemporaryDirectory cleanup, #3425
+  * fix the api->conda substitution, #3456
 
 
 2016-09-08  4.1.12:
