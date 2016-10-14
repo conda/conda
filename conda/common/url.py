@@ -220,6 +220,7 @@ def maybe_add_auth(url, auth, force=False):
     url_parts = urlparse(url)._asdict()
     if url_parts['auth'] and not force:
         return url
+    url_parts['auth'] = auth
     return Url(**url_parts).url
 
 
