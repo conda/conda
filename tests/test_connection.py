@@ -10,7 +10,7 @@ import os
 import responses
 from conda._vendor.auxlib.crypt import from_base64
 from conda.base.context import context, reset_context
-from conda.connection import BinstarAuth, CondaSession
+from conda.connection import CondaHttpAuth, CondaSession
 from logging import getLogger
 from unittest import TestCase
 

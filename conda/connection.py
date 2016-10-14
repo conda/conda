@@ -19,17 +19,18 @@ from io import BytesIO
 from logging import getLogger
 from requests.adapters import HTTPAdapter
 from requests.auth import AuthBase, _basic_auth_str
-from requests.packages.urllib3.util import Url
-from requests.utils import get_netrc_auth, get_auth_from_url
-from threading import local as threading_local
+from requests.cookies import extract_cookies_to_jar
+from requests.utils import get_auth_from_url, get_netrc_auth
 
 from . import __version__ as VERSION
-from .base.constants import DEFAULT_CHANNEL_ALIAS
+from ._vendor.auxlib.ish import dals
 from .base.context import context
 from .common.disk import rm_rf
-from .common.url import url_to_path, url_to_s3_info, urlparse, split_anaconda_token
+from .common.url import (add_username_and_password, get_proxy_username_and_pass,
+                         split_anaconda_token, url_to_path, url_to_s3_info, urlparse)
 from .compat import StringIO, iteritems
-from .exceptions import AuthenticationError
+from .exceptions import AuthenticationError, ProxyError
+from .gateways.anaconda_client import read_binstar_tokens
 from .utils import gnu_get_libc_version
 
 RETRIES = 3
@@ -64,223 +65,6 @@ if glibc_ver:
     user_agent += " glibc/{}".format(glibc_ver)
 
 
-class BinstarAuth(AuthBase):
-    """
-
-    - Treats auth information in url as server auth, not proxy auth
-    - respects .netrc files
-    - thread safe
-    -
-
-    relevant context parameters:
-      - add_anaconda_token
-      - anaconda_site
-      - anaconda_token
-      - ssl_verify
-      - client_tls_cert
-      - client_tls_cert_key
-      - proxy_servers
-
-    """
-
-    # """Attaches HTTP Digest Authentication to the given Request object."""
-    # def __init__(self, username, password):
-    # #     self.username = username
-    # #     self.password = password
-    # #     # Keep state in per-thread local storage
-    #     self._thread_local = threading_local()
-    #
-    @staticmethod
-    def _apply_basic_auth(request):
-        # this logic duplicated from Session.prepare_request and PreparedRequest.prepare_auth
-        url_auth = get_auth_from_url(request.url)
-        auth = url_auth if any(url_auth) else None
-
-        if auth is None:
-            # look for auth information in a .netrc file
-            auth = get_netrc_auth(request.url)
-
-        if isinstance(auth, tuple) and len(auth) == 2:
-            request.headers['Authorization'] = _basic_auth_str(*auth)
-
-        return request
-    #
-    #
-    # def handle_redirect(self, r, **kwargs):
-    #     """Reset num_401_calls counter on redirects."""
-    #     if r.is_redirect:
-    #         self._thread_local.num_401_calls = 1
-
-
-    def __call__(self, request):
-        request.url = BinstarAuth.add_binstar_token(request.url)
-        self._apply_basic_auth(request)
-        # request.register_hook('response', self.handle_407)
-        return request
-    # def __call__(self, request):
-    #     # Initialize per-thread state, if needed
-    #     self.init_per_thread_state()
-    # #     # If we have a saved nonce, skip the 401
-    # #     if self._thread_local.last_nonce:
-    # #         request.headers['Authorization'] = self.build_digest_header(request.method, request.url)
-    # #     try:
-    # #         self._thread_local.pos = request.body.tell()
-    # #     except AttributeError:
-    # #         # In the case of HTTPDigestAuth being reused and the body of
-    # #         # the previous request was a file-like object, pos has the
-    # #         # file position of the previous body. Ensure it's set to
-    # #         # None.
-    # #         self._thread_local.pos = None
-    #     request.register_hook('response', self.handle_401)
-    #     request.register_hook('response', self.handle_redirect)
-    #     self._thread_local.num_401_calls = 1
-    #
-    #     return request
-
-
-    # @staticmethod
-    # def add_binstar_token(url):
-    #     if not context.add_anaconda_token or not BinstarAuth.is_binstar_url_needing_token(url):
-    #         return url
-    #     token = BinstarAuth.get_binstar_token(url)
-    #     if not token:
-    #         return url
-    #     log.debug("Adding binstar token to url %s", url)
-    #     u = urlparse(url)
-    #     path = u.path if u.path.startswith('/t/') else "/t/%s/%s" % (token, u.path.lstrip('/'))
-    #     return Url(u.scheme, u.auth, u.host, u.port, path, u.query).url
-    #
-    # @staticmethod
-    # def get_binstar_token(url):
-    #     try:
-    #         log.debug("Attempting to binstar collect token for url %s", url)
-    #         try:
-    #             from binstar_client.utils import get_config, load_token
-    #         except ImportError:
-    #             log.debug("Could not import binstar_client.")
-    #             return None
-    #
-    #         binstar_default_url = 'https://api.anaconda.org'
-    #         url_parts = urlparse(url)
-    #         base_url = '%s://%s' % (url_parts.scheme, url_parts.netloc)
-    #         if DEFAULT_CHANNEL_ALIAS.startswith(base_url):
-    #             base_url = binstar_default_url
-    #
-    #         config = get_config()  # remote_site is site name, not url
-    #         url_from_bs_config = config.get('url', base_url)
-    #         token = load_token(url_from_bs_config)
-    #
-    #         return token
-    #     except Exception as e:
-    #         log.warn("Warning: could not capture token from anaconda-client (%r)", e)
-    #         return None
-
-    # @staticmethod
-    # def is_binstar_url_needing_token(url):
-    #     clean_url, token = split_anaconda_token(url)
-    #     if not token:
-    #         for binstar_url, token in context.binstar_client_tokens:
-    #             if clean_url.startswith(binstar_url):
-    #                 from conda.models.channel import Channel
-    #                 channel = Channel(clean_url)
-    #                 channel.token = token
-    #                 # TODO: add token
-    #
-    #     urlparts = urlparse(url)
-    #     cleaned_url, token = split_anaconda_token(url)
-    #     if token:  # url already has token
-    #         return False
-    #     return False
-    #     # return (urlparts.scheme in ('http', 'https') and
-    #     #         any(urlparts.hostname.endswith(bh) for bh in context.binstar_hosts))
-
-    @staticmethod
-    def add_binstar_token(url):
-        clean_url, token = split_anaconda_token(url)
-        if not token:
-            for binstar_url, token in iteritems(context.binstar_client_tokens):
-                if clean_url.startswith(binstar_url):
-                    from conda.models.channel import Channel
-                    channel = Channel(clean_url)
-                    channel.token = token
-                    return channel.url(with_credentials=True)
-        return url
-
-    # @staticmethod
-    # def add_binstar_token(url):
-    #     clean_url, token = split_anaconda_token(url)
-    #     if not token:
-    #         for binstar_url, token in sorted(context.binstar_client_tokens.items(),
-    #                                          reverse=True,
-    #                                          key=lambda x: len(x[0])):
-    #             if clean_url.startswith(binstar_url):
-    #                 from conda.models.channel import Channel
-    #                 channel = Channel(clean_url)
-    #                 channel.token = token
-    #                 return channel.url(with_authentication=True)
-    #     return url
-
-
-    # def handle_proxy_407(url, session):
-    #     """
-    #     Prompts the user for the proxy username and password and modifies the
-    #     proxy in the session object to include it.
-    #     """
-    #     # We could also use HTTPProxyAuth, but this does not work with https
-    #     # proxies (see https://github.com/kennethreitz/requests/issues/2061).
-    #     scheme = requests.packages.urllib3.util.url.parse_url(url).scheme
-    #     if scheme not in session.proxies:
-    #         raise ProxyError("""Could not find a proxy for %r. See
-    # http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
-    # for more information on how to configure proxies.""" % scheme)
-    #     username, passwd = get_proxy_username_and_pass(scheme)
-    #     session.proxies[scheme] = add_username_and_pass_to_url(
-    #                             session.proxies[scheme], username, passwd)
-
-    # def handle_401(self, r, **kwargs):
-    #     """
-    #     Takes the given response and tries digest-auth, if needed.
-    #
-    #     :rtype: requests.Response
-    #     """
-    #
-    #     if self._thread_local.pos is not None:
-    #         # Rewind the file position indicator of the body to where
-    #         # it was to resend the request.
-    #         r.request.body.seek(self._thread_local.pos)
-    #     s_auth = r.headers.get('www-authenticate', '')
-    #
-    #     if 'digest' in s_auth.lower() and self._thread_local.num_401_calls < 2:
-    #         self._thread_local.num_401_calls += 1
-    #         pat = re.compile(r'digest ', flags=re.IGNORECASE)
-    #         self._thread_local.chal = parse_dict_header(pat.sub('', s_auth, count=1))
-    #
-    #         # Consume content and release the original connection
-    #         # to allow our new request to reuse the same one.
-    #         r.content
-    #         r.close()
-    #         prep = r.request.copy()
-    #         extract_cookies_to_jar(prep._cookies, r.request, r.raw)
-    #         prep.prepare_cookies(prep._cookies)
-    #
-    #         prep.headers['Authorization'] = self.build_digest_header(
-    #             prep.method, prep.url)
-    #         _r = r.connection.send(prep, **kwargs)
-    #         _r.history.append(r)
-    #         _r.request = prep
-    #
-    #         return _r
-    #
-    #     self._thread_local.num_401_calls = 1
-    #     return r
-
-
-
-
-
-
-
-
 class CondaSession(requests.Session):
 
     timeout = None
@@ -290,7 +74,7 @@ class CondaSession(requests.Session):
 
         super(CondaSession, self).__init__(*args, **kwargs)
 
-        self.auth = BinstarAuth()
+        self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
         proxies = context.proxy_servers
         if proxies:
@@ -319,6 +103,93 @@ class CondaSession(requests.Session):
             self.cert = (context.client_tls_cert, context.client_tls_cert_key)
         elif context.client_tls_cert:
             self.cert = context.client_tls_cert
+
+
+class CondaHttpAuth(AuthBase):
+    # TODO: make this class thread-safe by adding some of the requests.auth.HTTPDigestAuth() code
+
+    def __call__(self, request):
+        request.url = CondaHttpAuth.add_binstar_token(request.url)
+        self._apply_basic_auth(request)
+        request.register_hook('response', self.handle_407)
+        return request
+
+    @staticmethod
+    def _apply_basic_auth(request):
+        # this logic duplicated from Session.prepare_request and PreparedRequest.prepare_auth
+        url_auth = get_auth_from_url(request.url)
+        auth = url_auth if any(url_auth) else None
+
+        if auth is None:
+            # look for auth information in a .netrc file
+            auth = get_netrc_auth(request.url)
+
+        if isinstance(auth, tuple) and len(auth) == 2:
+            request.headers['Authorization'] = _basic_auth_str(*auth)
+
+        return request
+
+    @staticmethod
+    def add_binstar_token(url):
+        clean_url, token = split_anaconda_token(url)
+        if not token:
+            for binstar_url, token in iteritems(read_binstar_tokens()):
+                if clean_url.startswith(binstar_url):
+                    log.debug("Adding anaconda token for url <%s>", clean_url)
+                    from conda.models.channel import Channel
+                    channel = Channel(clean_url)
+                    channel.token = token
+                    return channel.url(with_credentials=True)
+        return url
+
+    def handle_407(self, response, **kwargs):
+        """
+        Prompts the user for the proxy username and password and modifies the
+        proxy in the session object to include it.
+
+        This method is modeled after
+          * requests.auth.HTTPDigestAuth.handle_401()
+          * requests.auth.HTTPProxyAuth
+          * the previous conda.fetch.handle_proxy_407()
+
+        It both adds 'username:password' to the proxy URL, as well as adding a
+        'Proxy-Authorization' header.  If any of this is incorrect, please file an issue.
+
+        """
+        # kwargs = {'verify': True, 'cert': None, 'proxies': OrderedDict(), 'stream': False,
+        #           'timeout': (3.05, 60)}
+
+        # Consume content and release the original connection
+        # to allow our new request to reuse the same one.
+        response.content
+        response.close()
+
+        proxies = kwargs.pop('proxies')
+
+        proxy_scheme = urlparse(response.url).scheme
+        if proxy_scheme not in proxies:
+            raise ProxyError(dals("""Could not find a proxy for %r. See
+            http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
+            for more information on how to configure proxies.""" % proxy_scheme))
+
+        # fix-up proxy_url with username & password
+        proxy_url = proxies[proxy_scheme]
+        username, password = get_proxy_username_and_pass(proxy_scheme)
+        proxy_url = add_username_and_password(proxy_url, username, password)
+        proxy_authorization_header = _basic_auth_str(username, password)
+        proxies[proxy_scheme] = proxy_url
+        kwargs['proxies'] = proxies
+
+        prep = response.request.copy()
+        extract_cookies_to_jar(prep._cookies, response.request, response.raw)
+        prep.prepare_cookies(prep._cookies)
+        prep.headers['Proxy-Authorization'] = proxy_authorization_header
+
+        _response = response.connection.send(prep, **kwargs)
+        _response.history.append(response)
+        _response.request = prep
+
+        return _response
 
 
 class S3Adapter(requests.adapters.BaseAdapter):

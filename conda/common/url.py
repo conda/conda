@@ -3,9 +3,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import re
 import socket
+import sys
+from getpass import getpass
 from logging import getLogger
 from os.path import abspath, expanduser
-import sys
 
 try:
     # Python 3
@@ -16,8 +17,8 @@ except ImportError:
     from urllib import quote, unquote, pathname2url
     from urlparse import urlunparse, urljoin  # NOQA
 
-from requests.packages.urllib3.util.url import parse_url, Url
 from requests.packages.urllib3.exceptions import LocationParseError
+from requests.packages.urllib3.util.url import Url, parse_url
 
 from .._vendor.auxlib.decorators import memoize
 
@@ -46,12 +47,6 @@ def url_to_path(url):  # NOQA
         # if not a Windows UNC path
         path = '/' + path
     return path
-
-
-def add_username_and_pass_to_url(url, username, passwd):
-    url_parts = parse_url(url)._asdict()
-    url_parts['auth'] = username + ':' + quote(passwd, '')
-    return Url(**url_parts).url
 
 
 @memoize
@@ -196,17 +191,6 @@ def split_conda_url_easy_parts(url):
             url_parts.port, url_parts.path, url_parts.query)
 
 
-def maybe_add_auth(url, auth, force=False):
-    """add auth if the url doesn't currently have it"""
-    if not auth:
-        return url
-    url_parts = urlparse(url)
-    if url_parts.auth and not force:
-        return url
-    return Url(url_parts.scheme, auth, url_parts.host, url_parts.port,
-               url_parts.path, url_parts.query).url
-
-
 def norm_url_path(path):
     p = path.strip('/')
     return p or '/'
@@ -214,6 +198,29 @@ def norm_url_path(path):
 
 def is_windows_path(value):
     return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
+
+
+@memoize
+def get_proxy_username_and_pass(scheme):
+    username = input("\n%s proxy username: " % scheme)
+    passwd = getpass("Password:")
+    return username, passwd
+
+
+def add_username_and_password(url, username, password):
+    url_parts = parse_url(url)._asdict()
+    url_parts['auth'] = username + ':' + quote(password, '')
+    return Url(**url_parts).url
+
+
+def maybe_add_auth(url, auth, force=False):
+    """add auth if the url doesn't currently have it"""
+    if not auth:
+        return url
+    url_parts = urlparse(url)._asdict()
+    if url_parts['auth'] and not force:
+        return url
+    return Url(**url_parts).url
 
 
 if __name__ == "__main__":

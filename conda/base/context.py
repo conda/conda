@@ -104,11 +104,6 @@ class Context(Configuration):
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
                                         parameter_type=(bool, NoneType))
 
-    @memoizedproperty
-    def binstar_client_tokens(self):
-        from conda.gateways.anaconda_client import read_binstar_tokens
-        return read_binstar_tokens()
-
     @property
     def default_python(self):
         ver = sys.version_info
