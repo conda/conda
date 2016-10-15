@@ -27,17 +27,11 @@ from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import join_url, maybe_add_auth, url_to_path
 from .compat import iteritems, itervalues
 from .connection import CondaSession, RETRIES
-from .exceptions import (CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError,
-                         ProxyError)
-from .install import add_cached_package, dist2pair, find_new_location, package_cache
-from .lock import FileLock
-from .models.channel import Channel, offline_keep
-from .models.record import Record
-from .utils import memoized
 from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError
 from .install import add_cached_package, dist2pair, find_new_location, package_cache
 from .lock import FileLock
 from .models.channel import Channel, offline_keep
+from .models.record import Record
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
