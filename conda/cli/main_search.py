@@ -6,13 +6,13 @@
 
 from __future__ import absolute_import, division, print_function
 
-from conda import text_type
-from conda.api import get_index
-
-from .common import Completer, Packages, add_parser_channels, add_parser_json, add_parser_known, \
-    add_parser_offline, add_parser_prefix, add_parser_use_index_cache, add_parser_use_local, \
-    disp_features, ensure_override_channels_requires_channel, ensure_use_local, stdout_json
+from .common import (Completer, Packages, add_parser_channels, add_parser_json, add_parser_known,
+                     add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
+                     add_parser_use_local, disp_features,
+                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
+from ..api import get_index
 from ..base.context import context
+from ..common.compat import text_type
 from ..exceptions import CommandArgumentError, PackageNotFoundError
 from ..install import dist2quad
 from ..misc import make_icon_url
@@ -271,7 +271,7 @@ def execute_search(args, parser):
                 disp_name = ''
             else:
                 data = {}
-                data.update(pkg.info)
+                data.update(pkg.info.dump())
                 data.update({
                     'fn': pkg.fn,
                     'installed': inst == '*',

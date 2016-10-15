@@ -46,7 +46,7 @@ from .._vendor.auxlib.collection import first, frozendict, last, AttrDict
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
-from ..base.constants import EMPTY_MAP, NULL, EMPTY_LIST
+from ..base.constants import EMPTY_MAP, NULL
 from .compat import (isiterable, iteritems, odict, primitive_types, text_type,
                      with_metaclass, string_types, itervalues)
 from .yaml import yaml_load
@@ -773,7 +773,7 @@ class Configuration(object):
             func(*args, **kwargs)
         except ConfigurationError as e:
             return e.errors if hasattr(e, 'errors') else e,
-        return EMPTY_LIST
+        return ()
 
     def validate_configuration(self):
         errors = chain.from_iterable(Configuration._collect_validation_error(getattr, self, name)
@@ -782,7 +782,7 @@ class Configuration(object):
         raise_errors(tuple(chain.from_iterable((errors, post_errors))))
 
     def post_build_validation(self):
-        pass
+        return ()
 
     def collect_all(self):
         typed_values = odict()

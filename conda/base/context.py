@@ -70,7 +70,7 @@ class Context(Configuration):
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
 
     # connection details
-    ssl_verify = PrimitiveParameter(True, aliases=('',), parameter_type=string_types + (bool,))
+    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
     client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
     client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
     proxy_servers = MapParameter(string_types)
@@ -282,6 +282,7 @@ class Context(Configuration):
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda'
     return basename(sys.prefix) == '_conda' and basename(dirname(sys.prefix)) == 'envs'
+
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, conda, argparse_args)
