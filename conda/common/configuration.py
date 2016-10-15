@@ -765,6 +765,7 @@ class Configuration(object):
         validation_errors = list(chain.from_iterable(self.check_source(source)[1]
                                                      for source in self.raw_data))
         raise_errors(validation_errors)
+        self.validate_configuration()
 
     @staticmethod
     def _collect_validation_error(func, *args, **kwargs):
@@ -777,7 +778,7 @@ class Configuration(object):
     def validate_configuration(self):
         errors = chain.from_iterable(Configuration._collect_validation_error(getattr, self, name)
                                      for name in self.parameter_names)
-        post_errors = Configuration._collect_validation_error(self.post_build_validation)
+        post_errors = self.post_build_validation()
         raise_errors(tuple(chain.from_iterable((errors, post_errors))))
 
     def post_build_validation(self):

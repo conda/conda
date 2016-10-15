@@ -111,8 +111,10 @@ class Context(Configuration):
     def post_build_validation(self):
         errors = []
         if self.client_ssl_cert_key and not self.client_ssl_cert:
-            msg = "'client_ssl_cert' is required when 'client_ssl_cert_key' is defined"
-            errors.append(ValidationError('client_ssl_cert', self.client_ssl_cert, "<<merged>>", msg))
+            error = ValidationError('client_ssl_cert', self.client_ssl_cert, "<<merged>>",
+                                    "'client_ssl_cert' is required when 'client_ssl_cert_key' "
+                                    "is defined")
+            errors.append(error)
         return errors
 
     @property

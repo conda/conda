@@ -305,6 +305,7 @@ def execute_config(args, parser):
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': ')))
         else:
             print('\n'.join(format_dict(d)))
+        context.validate_configuration()
         return
 
     if args.validate:

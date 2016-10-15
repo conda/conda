@@ -5,7 +5,7 @@ import pytest
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
-from conda.common.configuration import YamlRawParameter
+from conda.common.configuration import YamlRawParameter, ValidationError
 from conda.common.yaml import yaml_load
 from conda.models.channel import Channel
 from unittest import TestCase
@@ -28,7 +28,6 @@ class ContextTests(TestCase):
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._add_raw_data(rd)
-        Channel._reset_state()
 
     def tearDown(self):
         reset_context()
@@ -58,3 +57,12 @@ class ContextTests(TestCase):
             "ftp://new.url:8082/conda-forge/label/dev/linux-64",
             "ftp://new.url:8082/conda-forge/label/dev/noarch",
         ]
+
+    def test_client_ssl_cert(self):
+        string = dals("""
+        client_ssl_cert_key: /some/key/path
+        """)
+        reset_context()
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        context._add_raw_data(rd)
+        pytest.raises(ValidationError, context.validate_configuration)
