@@ -6,6 +6,7 @@ import logging
 import sys
 
 from ._vendor.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
+from .base.context import context
 from .utils import memoized
 
 
@@ -138,12 +139,13 @@ class PrintHandler(logging.Handler):
 
 class DotHandler(logging.Handler):
     def emit(self, record):
-        try:
-            sys.stdout.write('.')
-            sys.stdout.flush()
-        except IOError:
-            # sys.stdout.flush doesn't work in pythonw
-            pass
+        if not context.json:
+            try:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+            except IOError:
+                # sys.stdout.flush doesn't work in pythonw
+                pass
 
 
 class SysStdoutWriteHandler(logging.Handler):

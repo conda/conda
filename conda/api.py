@@ -20,7 +20,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         channel_urls = ['local'] + list(channel_urls)
     if prepend:
         channel_urls += context.channels
-    channel_urls = prioritize_channels(channel_urls, platform)
+    channel_urls = prioritize_channels(channel_urls, platform=platform)
     index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
     if prefix:
         priorities = {c: p for c, p in itervalues(channel_urls)}
