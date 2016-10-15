@@ -107,8 +107,7 @@ class MatchSpec(object):
             version = info.get('version')
             build = info.get('build')
         else:
-            d = Dist(info[:-8])
-            name, version, build, schannel = d.package_name, d.version, d.build_string, d.channel
+            name, version, build, schannel = Dist(info).quad
         if name != self.name:
             return False
         return self.match_fast(version, build)
@@ -148,7 +147,12 @@ class Package(object):
     are sortable.
     """
     def __init__(self, fn, info):
-        self.fn = fn.to_filename() if isinstance(fn, Dist) else fn
+        if isinstance(fn, Dist):
+            self.fn = fn.to_filename()
+            self.dist = fn
+        else:
+            self.fn = fn
+            self.dist = Dist(fn)
         self.name = info.get('name')
         self.version = info.get('version')
         self.build = info.get('build')
@@ -206,7 +210,7 @@ class Resolve(object):
         self.index = index = {dist: record for dist, record in iteritems(index)}
         if not processed:
             for dist, info in iteritems(index.copy()):
-                if dist.with_feature_depends:
+                if dist.with_features_depends:
                     continue
                 for fstr in chain(info.get('features', '').split(),
                                   info.get('track_features', '').split(),
@@ -220,11 +224,10 @@ class Resolve(object):
         trackers = {}
         installed = set()
         for dist, info in iteritems(index):
-            assert info['name'] == dist.package_name
             groups.setdefault(info['name'], []).append(dist)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(dist)
-            if 'link' in info and not dist.with_feature_depends:
+            if 'link' in info and not dist.with_features_depends:
                 installed.add(dist)
 
         self.groups = groups  # Dict[package_name, List[Dist]]
@@ -242,7 +245,7 @@ class Resolve(object):
         if feature_dist in self.index:
             return
         info = {
-            'name': feature_dist.package_name,
+            'name': feature_dist.dist_name,
             'channel': '@',
             'priority': 0,
             'version': '0',
@@ -255,7 +258,7 @@ class Resolve(object):
 
         self.index[feature_dist] = Record(**info)
         if group:
-            self.groups[feature_dist.package_name] = [feature_dist]
+            self.groups[feature_dist.dist_name] = [feature_dist]
             self.trackers[feature_name] = [feature_dist]
 
     def default_filter(self, features=None, filter=None):
@@ -544,10 +547,10 @@ class Resolve(object):
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
-            if dist.with_feature_depends:
-                f2, fstr = Dist(dist.channel, dist.package_name, dist.version, dist.build_string), dist.with_feature_depends
+            if dist.with_features_depends:
+                f2, fstr = Dist(dist.channel, dist.dist_name), dist.with_features_depends
                 fdeps = {d.name: d for d in self.ms_depends(f2)}
-                for dep in rec['with_features_depends'][fstr[:-1]]:
+                for dep in rec['with_features_depends'][fstr]:
                     dep = MatchSpec(dep)
                     fdeps[dep.name] = dep
                 deps = list(fdeps.values())
@@ -589,12 +592,12 @@ class Resolve(object):
     def package_quad(self, dist):
         rec = self.index.get(dist, None)
         if rec is None:
-            return dist.package_name, dist.version, dist.build_string, dist.channel
+            return dist.quad
         else:
             return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
 
     def package_name(self, dist):
-        return dist.package_name
+        return self.package_quad(dist)[0]
 
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
@@ -716,9 +719,8 @@ class Resolve(object):
             must_have = {self.package_name(dist): dist for dist in must_have}
         digraph = {}
         for key, dist in iteritems(must_have):
-            fn = dist.to_filename()
-            if fn in self.index:
-                depends = set(ms.name for ms in self.ms_depends(fn))
+            if dist in self.index:
+                depends = set(ms.name for ms in self.ms_depends(dist))
                 digraph[key] = depends
         sorted_keys = toposort(digraph)
         must_have = must_have.copy()
@@ -746,16 +748,17 @@ class Resolve(object):
             fn = ms.to_filename()
             if fn is None:
                 return None
-            if fn not in self.index:
+            fkey = Dist(fn)
+            if fkey not in self.index:
                 return None
-            res = [ms2.to_filename() for ms2 in self.ms_depends(fn)]
+            res = [ms2.to_filename() for ms2 in self.ms_depends(fkey)]
             res.append(fn)
         else:
             res = [spec.to_filename() for spec in specs if str(spec) != 'conda']
 
         if None in res:
             return None
-        res.sort()
+        res = [Dist(fn) for fn in sorted(res)]
         log.debug('explicit(%r) finished', specs)
         return res
 
@@ -771,10 +774,10 @@ class Resolve(object):
         If no substitute is found, None is returned.
         """
         d = Dist(fn)
-        name, version, unused_build, schannel = d.package_name, d.version, d.build_string, d.channel
+        name, version, unused_bld, schannel = self.package_quad(d)
         candidates = {}
         for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
-            fn1 = pkg.fn
+            fn1 = pkg.dist
             if self.features(fn1).intersection(features):
                 continue
             key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)

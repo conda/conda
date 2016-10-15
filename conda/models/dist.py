@@ -31,45 +31,40 @@ class DistType(EntityType):
 class Dist(Entity):
 
     channel = StringField(required=False, nullable=True, immutable=True)
-    package_name = StringField(immutable=True)
-    version = StringField(nullable=True, immutable=True)
-    build_string = StringField(nullable=True, immutable=True)
+    dist_name = StringField(immutable=True)
+    with_features_depends = StringField(required=False, nullable=True, immutable=True)
 
-    def __init__(self, channel, package_name=None, version=None,
-                 build_string=None, with_feature_depends=None):
-        self.with_feature_depends = with_feature_depends
-        super(Dist, self).__init__(channel=channel, package_name=package_name,
-                                   version=version, build_string=build_string)
-
-    @property
-    def build_number(self):
-        return int(self.build_string.rsplit('_', 1)[-1])
-
-    @property
-    def dist_name(self):
-        if self.version:
-            return '-'.join((self.package_name, self.version, self.build_string))
-        else:
-            return self.package_name
+    def __init__(self, channel, dist_name=None, with_features_depends=None):
+        super(Dist, self).__init__(channel=channel, dist_name=dist_name,
+                                   with_features_depends=with_features_depends)
 
     @property
     def full_name(self):
         return self.__str__()
 
+    @property
+    def pair(self):
+        return self.channel or DEFAULTS, self.dist_name
+
+    @property
+    def quad(self):
+        parts = self.dist_name.rsplit('-', 2) + ['', '']
+        return parts[0], parts[1], parts[2], self.channel or DEFAULTS
+
     def __str__(self):
         base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
-        if self.with_feature_depends:
-            return "%s[%s]" % (base, self.with_feature_depends)
+        if self.with_features_depends:
+            return "%s[%s]" % (base, self.with_features_depends)
         else:
             return base
 
     @property
     def is_feature_package(self):
-        return self.package_name.endswith('@')
+        return self.dist_name.endswith('@')
 
     def to_filename(self, extension='.tar.bz2'):
         if self.is_feature_package:
-            return self.package_name
+            return self.dist_name
         else:
             return self.dist_name + extension
 
@@ -78,14 +73,13 @@ class Dist(Entity):
         string = text_type(string)
 
         if string.endswith('@'):
-            return cls(channel='@', package_name=string, version='0',
-                   build_string='0', with_feature_depends=None)
+            return cls(channel='@', dist_name=string, with_features_depends=None)
 
         REGEX_STR = (r'(?:([^\s\[\]]+)::)?'  # optional channel
                      r'([^\s\[\]]+)'  # 3.x dist
-                     r'(?:\[([a-zA-Z0-9_-]+)\])?'  # with_feature_depends
+                     r'(?:\[([a-zA-Z0-9_-]+)\])?'  # with_features_depends
                      )
-        channel, original_dist, with_feature_depends = re.search(REGEX_STR, string).groups()
+        channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
 
         if original_dist.endswith('.tar.bz2'):
             original_dist = original_dist[:-8]
@@ -94,14 +88,10 @@ class Dist(Entity):
         elif channel is None:
             channel = DEFAULTS
 
-        parts = tuple(text_type(s) for s in original_dist.rsplit('-', 2)) + ('', '')
-        package_name, version, build_string = parts[:3]
-
-        return cls(channel=channel, package_name=package_name, version=version or None,
-                   build_string=build_string or None, with_feature_depends=with_feature_depends)
+        return cls(channel=channel, dist_name=original_dist, with_features_depends=w_f_d)
 
     def __key__(self):
-        return (self.channel, self.package_name, self.version, self.build_string)
+        return (self.channel, self.dist_name, self.with_features_depends)
 
     def __lt__(self, other):
         return self.__key__() < other.__key__()
@@ -145,6 +135,3 @@ class Dist(Entity):
 #     return dist2pair(dist)[1] + suffix
 #
 #
-
-
-

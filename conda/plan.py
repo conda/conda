@@ -39,7 +39,8 @@ def print_dists(dists_extras):
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for dist, extra in dists_extras:
-        line = fmt % (dist.package_name+'-'+dist.version, dist.build_string)
+        name, version, build, _ = dist.quad
+        line = fmt % (name + '-' + version, build)
         if extra:
             line += extra
         print(line)
@@ -105,10 +106,10 @@ def display_actions(actions, index, show_channel_urls=None):
         dist = Dist(arg)
         rec = index.get(dist)
         if rec is None:
-            rec = dict(name=dist.package_name, version=dist.version,
-                       build=dist.build_string, channel=None,
-                       schannel='<unknown>',
-                       build_number=dist.build_number)
+            package_name, version, build, schannel = dist.quad
+            rec = dict(name=package_name, version=version,
+                       build=build, channel=None,
+                       schannel='<unknown>')
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
@@ -390,8 +391,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
-    _linked_names = (d.dist_name for d in linked)
-    names_linked = {r.index[fn]['name']: fn for fn in _linked_names if fn in r.index}
+    names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
 
     for name, def_ver in [('python', context.default_python),
@@ -485,7 +485,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     for fn in pkgs:
         dist = Dist(fn)
-        name = dist.package_name
+        name = r.package_name(dist)
         if not name or only_names and name not in only_names:
             continue
         must_have[name] = dist
@@ -530,7 +530,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
 
     for dist in sorted(linked):
         dist = Dist(dist)
-        name = dist.package_name
+        name = r.package_name(dist)
         replace_existing = name in must_have and dist != must_have[name]
         prune_it = prune and dist not in smh
         if replace_existing or prune_it:
@@ -546,24 +546,24 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
     if force:
         mss = list(map(MatchSpec, specs))
-        nlinked = {dist.package_name: dist
+        nlinked = {r.package_name(dist): dist
                    for dist in linked_dists
                    if not any(r.match(ms, dist.to_filename()) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
-        nlinked = {dist.package_name: dist
+        nlinked = {r.package_name(dist): dist
                    for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
 
-    linked = {dist.package_name: dist for dist in linked_dists}
+    linked = {r.package_name(dist): dist for dist in linked_dists}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
     for old_dist in reversed(r.dependency_sort(linked)):
         # dist = old_fn + '.tar.bz2'
-        name = old_dist.package_name
+        name = r.package_name(old_dist)
         if old_dist == nlinked.get(name):
             continue
         if pinned and any(r.match(ms, old_dist.to_filename()) for ms in pinned_specs):

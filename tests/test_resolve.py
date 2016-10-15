@@ -123,7 +123,7 @@ class TestSolve(unittest.TestCase):
 
     def assert_have_mkl(self, dists, names):
         for dist in dists:
-            if dist.package_name in names:
+            if dist.quad[0] in names:
                 self.assertEqual(r.features(dist), f_mkl)
 
     def test_explicit0(self):
@@ -135,13 +135,13 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.explicit(['zlib 1.2.7']), None)
         # because zlib has no dependencies it is also explicit
         self.assertEqual(r.explicit(['zlib 1.2.7 0']),
-                         ['zlib-1.2.7-0.tar.bz2'])
+                         [Dist('zlib-1.2.7-0.tar.bz2')])
 
     def test_explicit2(self):
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7 0']),
-                         ['pycosat-0.6.0-py27_0.tar.bz2',
-                          'zlib-1.2.7-0.tar.bz2'])
+                         [Dist('pycosat-0.6.0-py27_0.tar.bz2'),
+                          Dist('zlib-1.2.7-0.tar.bz2')])
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7']), None)
 
@@ -242,7 +242,7 @@ class TestFindSubstitute(unittest.TestCase):
                          ('mkl-rt-11.0-p0.tar.bz2', None)
                          ]:
             assert Dist(old) in installed
-            assert r.find_substitute(installed, f_mkl, old) == Dist(new) if new else None
+            assert r.find_substitute(installed, f_mkl, old) == (Dist(new) if new else None)
 
 
 def test_pseudo_boolean():
@@ -963,7 +963,7 @@ def test_multiple_solution():
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
     res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
-    res = set([y for x in res for y in x if y.package_name.startswith('pandas')])
+    res = set([y for x in res for y in x if r.package_name(y).startswith('pandas')])
     assert len(res) <= len(res1)
 
 
