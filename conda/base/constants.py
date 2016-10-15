@@ -103,7 +103,6 @@ else:
 
 ROOT_ENV_NAME = 'root'
 
-EMPTY_LIST = ()
 EMPTY_MAP = frozendict()
 
 

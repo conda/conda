@@ -88,10 +88,6 @@ class ValidationError(ConfigurationError):
         self.source = source
         super(ConfigurationError, self).__init__(msg, **kwargs)
 
-        def __str__(self):
-            return ("Parameter %s = %r declared in %s is invalid."
-                    % (self.parameter_name, self.parameter_value, self.source))
-
 
 class MultipleKeysError(ValidationError):
 
@@ -769,6 +765,24 @@ class Configuration(object):
         validation_errors = list(chain.from_iterable(self.check_source(source)[1]
                                                      for source in self.raw_data))
         raise_errors(validation_errors)
+        self.validate_configuration()
+
+    @staticmethod
+    def _collect_validation_error(func, *args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except ConfigurationError as e:
+            return e.errors if hasattr(e, 'errors') else e,
+        return ()
+
+    def validate_configuration(self):
+        errors = chain.from_iterable(Configuration._collect_validation_error(getattr, self, name)
+                                     for name in self.parameter_names)
+        post_errors = self.post_build_validation()
+        raise_errors(tuple(chain.from_iterable((errors, post_errors))))
+
+    def post_build_validation(self):
+        return ()
 
     def collect_all(self):
         typed_values = odict()

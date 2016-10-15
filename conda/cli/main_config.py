@@ -283,8 +283,8 @@ def execute_config(args, parser):
                                            'channel_alias',
                                            'channel_priority',
                                            'channels',
-                                           'client_tls_cert',
-                                           'client_tls_cert_key',
+                                           'client_ssl_cert',
+                                           'client_ssl_cert_key',
                                            'create_default_packages',
                                            'debug',
                                            'default_channels',
@@ -305,6 +305,7 @@ def execute_config(args, parser):
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': ')))
         else:
             print('\n'.join(format_dict(d)))
+        context.validate_configuration()
         return
 
     if args.validate:

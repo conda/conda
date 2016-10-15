@@ -16,7 +16,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from ..common.compat import iteritems, odict
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
-                                    SequenceParameter)
+                                    SequenceParameter, ValidationError)
 from ..common.disk import try_write
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token, urlparse
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
@@ -39,7 +39,11 @@ _platform_map = {
     'darwin': 'osx',
     'win32': 'win',
 }
-non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
+non_x86_linux_machines = {
+    'armv6l',
+    'armv7l',
+    'ppc64le',
+}
 _arch_names = {
     32: 'x86',
     64: 'x86_64',
@@ -67,8 +71,8 @@ class Context(Configuration):
 
     # connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
-    client_tls_cert = PrimitiveParameter('', aliases=('client_cert',))
-    client_tls_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
+    client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
+    client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
     proxy_servers = MapParameter(string_types)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
@@ -103,6 +107,15 @@ class Context(Configuration):
     bld_path = PrimitiveParameter('')
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
                                         parameter_type=(bool, NoneType))
+
+    def post_build_validation(self):
+        errors = []
+        if self.client_ssl_cert_key and not self.client_ssl_cert:
+            error = ValidationError('client_ssl_cert', self.client_ssl_cert, "<<merged>>",
+                                    "'client_ssl_cert' is required when 'client_ssl_cert_key' "
+                                    "is defined")
+            errors.append(error)
+        return errors
 
     @property
     def default_python(self):
@@ -270,6 +283,7 @@ def conda_in_private_env():
     # conda is located in its own private environment named '_conda'
     return basename(sys.prefix) == '_conda' and basename(dirname(sys.prefix)) == 'envs'
 
+
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, conda, argparse_args)
     from ..models.channel import Channel
@@ -316,14 +330,14 @@ def get_help_dict():
         'ssl_verify': dals("""
             # ssl_verify can be a boolean value or a filename string
             """),
-        'client_tls_cert': dals("""
-            # client_tls_cert can be a path pointing to a single file
+        'client_ssl_cert': dals("""
+            # client_ssl_cert can be a path pointing to a single file
             # containing the private key and the certificate (e.g. .pem),
-            # or use 'client_tls_cert_key' in conjuction with 'client_tls_cert' for
+            # or use 'client_ssl_cert_key' in conjuction with 'client_ssl_cert' for
             # individual files
             """),
-        'client_tls_cert_key': dals("""
-            # used in conjunction with 'client_tls_cert' for a matching key file
+        'client_ssl_cert_key': dals("""
+            # used in conjunction with 'client_ssl_cert' for a matching key file
             """),
         'track_features': dals("""
             """),
