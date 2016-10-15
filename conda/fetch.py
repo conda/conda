@@ -323,21 +323,21 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
 
     def make_index(repodatas):
         result = dict()
-        for channel, repodata in repodatas:
+        for channel_url, repodata in repodatas:
             if repodata is None:
                 continue
-            canonical_name, priority = channel_urls[channel]
-            channel = channel.rstrip('/')
+            canonical_name, priority = channel_urls[channel_url]
+            channel = Channel(channel_url)
             for fn, info in iteritems(repodata['packages']):
-                key = canonical_name + '::' + fn if canonical_name != 'defaults' else fn
-                url = channel + '/' + fn
+                full_url = join_url(channel_url, fn)
                 info.update(dict(fn=fn,
                                  schannel=canonical_name,
-                                 channel=channel,
+                                 channel=channel_url,
                                  priority=priority,
-                                 url=url,
+                                 url=full_url,
                                  auth=channel.auth,
                                  ))
+                key = canonical_name + '::' + fn if canonical_name != 'defaults' else fn
                 result[key] = Record(**info)
         return result
 
