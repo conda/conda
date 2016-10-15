@@ -53,7 +53,8 @@ log = getLogger(__name__)
 #
 #
 # def get_binstar_server_url_pair(url):
-#     # Technically this is core logic, but let's keep anaconda_client logic isolated to this module.
+#     # Technically this is core logic, but let's keep anaconda_client logic isolated
+#     # to this module.
 #
 #     # Step 1. Try url as given
 #     result = get_conda_url_from_binstar_api(url)
