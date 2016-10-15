@@ -408,10 +408,6 @@ def dist2filename(dist, suffix='.tar.bz2'):
     return dist2pair(dist)[1] + suffix
 
 
-def dist2dirname(dist):
-    return dist2filename(dist, '')
-
-
 def create_meta(prefix, dist, info_dir, extra_info):
     """
     Create the conda metadata, in a given prefix, for a given package.

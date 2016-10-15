@@ -275,3 +275,27 @@ def move_path_to_trash(path, preclean=True):
             return True
 
     return False
+
+
+def yield_lines(path):
+    """Generator function for lines in file.  Empty generator if path does not exist.
+
+    Args:
+        path (str): path to file
+
+    Returns:
+        iterator: each line in file, not starting with '#'
+
+    """
+    try:
+        with open(path) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                yield line
+    except (IOError, OSError) as e:
+        if e.errno == errno.ENOENT:
+            raise StopIteration
+        else:
+            raise

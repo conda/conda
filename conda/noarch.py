@@ -1,12 +1,18 @@
 import os
+from conda.utils import on_win
 from os.path import dirname, exists, isdir, join
 import sys
 import shutil
 import subprocess
 from json import load
 
-from conda.base.context import context
-from conda.compat import itervalues
+try:
+    from cytoolz.itertoolz import groupby
+except ImportError:
+    from ._vendor.toolz.itertoolz import groupby
+
+from .base.context import context
+from .compat import itervalues
 
 PY_TMPL = """\
 if __name__ == '__main__':
@@ -21,7 +27,7 @@ def get_noarch_cls(noarch_type):
     return NOARCH_CLASSES.get(str(noarch_type).lower(), NoArch) if noarch_type else None
 
 
-def link_package(src, dst):
+def link_package_file(src, dst):
     try:
         os.link(src, dst)
         # on Windows os.link raises AttributeError
@@ -48,14 +54,14 @@ def get_python_version_for_prefix(prefix):
 
 
 def get_site_packages_dir(prefix):
-    if sys.platform == 'win32' or sys.platform == 'win64':
+    if on_win:
         return join(prefix, 'Lib')
     else:
         return join(prefix, 'lib/python%s' % get_python_version_for_prefix(prefix))
 
 
 def get_bin_dir(prefix):
-    if sys.platform == 'win32' or sys.platform == 'win64':
+    if on_win:
         return join(prefix, 'Scripts')
     else:
         return join(prefix, 'bin')
@@ -73,7 +79,7 @@ def link_files(prefix, src_root, dst_root, files, src_dir):
         if exists(dst):
             unlink_package(dst)
 
-        link_package(src, dst)
+        link_package_file(src, dst)
     return dst_files
 
 
@@ -116,7 +122,7 @@ def create_entry_points(src_dir, bin_dir, prefix):
                 if 'debug' in packages_names:
                     fo.write('#!python_d\n')
                 fo.write(pyscript)
-            link_package(join(dirname(__file__), 'cli-%d.exe' % context.bits), path + '.exe')
+            link_package_file(join(dirname(__file__), 'cli-%d.exe' % context.bits), path + '.exe')
             entry_points_dst.append(path + '-script.py')
             entry_points_dst.append(path + '.exe')
         else:
@@ -160,21 +166,24 @@ class NoArch(object):
 class NoArchPython(NoArch):
 
     def link(self, prefix, src_dir, dist):
-        with open(join(src_dir, "info/files")) as f:
-            files = f.read()
-        files = files.split("\n")[:-1]
+        from .install import yield_lines
+        files = list(yield_lines(join(src_dir, 'info', 'files')))
 
-        site_package_files = []
-        bin_files = []
-        for f in files:
-            if f.startswith("site-packages"):
-                site_package_files.append(f)
+        def split_key(filepath):
+            if filepath.startswith("site-packages"):
+                return "site-packages"
+            elif filepath.startswith("python-scripts"):
+                return "python-scripts"
             else:
-                if f.startswith("python-scripts"):
-                    bin_files.append(f.replace("python-scripts/", ""))
+                return None
+
+        split_files = groupby(split_key, files)
+        split_files['python-scripts'] = [f.replace("python-scripts/", "", 1)
+                                         for f in split_files['python-scripts']]
 
         site_packages_dir = get_site_packages_dir(prefix)
         bin_dir = get_bin_dir(prefix)
+
         linked_files = link_files(prefix, '', site_packages_dir, site_package_files, src_dir)
         linked_files.extend(link_files(prefix, 'python-scripts', bin_dir, bin_files, src_dir))
         compile_missing_pyc(
