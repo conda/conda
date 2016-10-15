@@ -99,10 +99,10 @@ class CondaSession(requests.Session):
 
         self.verify = context.ssl_verify
 
-        if context.client_tls_cert_key:
-            self.cert = (context.client_tls_cert, context.client_tls_cert_key)
-        elif context.client_tls_cert:
-            self.cert = context.client_tls_cert
+        if context.client_ssl_cert_key:
+            self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
+        elif context.client_ssl_cert:
+            self.cert = context.client_ssl_cert
 
 
 class CondaHttpAuth(AuthBase):
