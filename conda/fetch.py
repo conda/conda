@@ -27,17 +27,11 @@ from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import join_url, maybe_add_auth, url_to_path
 from .compat import iteritems, itervalues
 from .connection import CondaSession, RETRIES
-from .exceptions import (CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError,
-                         ProxyError)
-from .install import add_cached_package, dist2pair, find_new_location, package_cache
-from .lock import FileLock
-from .models.channel import Channel, offline_keep
-from .models.record import Record
-from .utils import memoized
 from .exceptions import CondaHTTPError, CondaRuntimeError, CondaSignatureError, MD5MismatchError
 from .install import add_cached_package, dist2pair, find_new_location, package_cache
 from .lock import FileLock
 from .models.channel import Channel, offline_keep
+from .models.record import Record
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -323,21 +317,21 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
 
     def make_index(repodatas):
         result = dict()
-        for channel, repodata in repodatas:
+        for channel_url, repodata in repodatas:
             if repodata is None:
                 continue
-            canonical_name, priority = channel_urls[channel]
-            channel = channel.rstrip('/')
+            canonical_name, priority = channel_urls[channel_url]
+            channel = Channel(channel_url)
             for fn, info in iteritems(repodata['packages']):
-                key = canonical_name + '::' + fn if canonical_name != 'defaults' else fn
-                url = channel + '/' + fn
+                full_url = join_url(channel_url, fn)
                 info.update(dict(fn=fn,
                                  schannel=canonical_name,
-                                 channel=channel,
+                                 channel=channel_url,
                                  priority=priority,
-                                 url=url,
+                                 url=full_url,
                                  auth=channel.auth,
                                  ))
+                key = canonical_name + '::' + fn if canonical_name != 'defaults' else fn
                 result[key] = Record(**info)
         return result
 

@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import pytest
 import sys
-from conda.common.url import maybe_add_auth, add_username_and_password
+from conda.common.url import add_username_and_password, maybe_add_auth
 from logging import getLogger
 
 log = getLogger(__name__)
