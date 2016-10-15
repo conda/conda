@@ -5,6 +5,7 @@ import bz2
 import json
 import os
 import pytest
+import requests
 import sys
 from conda import CondaError, plan
 from conda._vendor.auxlib.entity import EntityEncoder
@@ -18,12 +19,12 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.io import captured, disable_logger, stderr_log_level
+from conda.common.io import captured, disable_logger, stderr_log_level, replace_log_streams
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
-from conda.exceptions import DryRunExit, conda_exception_handler
+from conda.exceptions import DryRunExit, conda_exception_handler, CondaHTTPError
 from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_, on_win
 from contextlib import contextmanager
 from datetime import datetime
@@ -102,7 +103,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
     print("executing command >>>", command_line)
-    with captured() as c:
+    with captured() as c, replace_log_streams():
         if use_exception_handler:
             conda_exception_handler(args.func, args, p)
         else:
@@ -273,7 +274,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-3.4.')
 
     @pytest.mark.timeout(300)
-    def test_tarball_install_and_bad_metadata(self):
+    def test_install_tarball_from_local_channel(self):
         with make_temp_env("python flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
@@ -284,28 +285,7 @@ class IntegrationTests(TestCase):
             flask_fname = flask_data['fn']
             tar_old_path = join(context.pkgs_dirs[0], flask_fname)
 
-            # regression test for #2886 (part 1 of 2)
-            # install tarball from package cache, default channel
-            run_command(Commands.INSTALL, prefix, tar_old_path)
-            assert_package_is_installed(prefix, 'flask-0.')
-
-            # regression test for #2626
-            # install tarball with full path, outside channel
-
-            tar_new_path = join(prefix, flask_fname)
-            copyfile(tar_old_path, tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert_package_is_installed(prefix, 'flask-0')
-
-            # regression test for #2626
-            # install tarball with relative path, outside channel
-            run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask-0.10.1')
-            tar_new_path = relpath(tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
-            assert_package_is_installed(prefix, 'flask-0.')
-
-            # Regression test for 2812
+            # Regression test for #2812
             # install from local channel
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
@@ -340,6 +320,38 @@ class IntegrationTests(TestCase):
                     os.rename(subchan, conda_bld_sub)
                 run_command(Commands.INSTALL, prefix, tar_bld_path)
                 assert_package_is_installed(prefix, 'flask-')
+
+    @pytest.mark.timeout(300)
+    def test_tarball_install_and_bad_metadata(self):
+        with make_temp_env("python flask=0.10.1") as prefix:
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python')
+
+            flask_fname = flask_data['fn']
+            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+
+            # regression test for #2886 (part 1 of 2)
+            # install tarball from package cache, default channel
+            run_command(Commands.INSTALL, prefix, tar_old_path)
+            assert_package_is_installed(prefix, 'flask-0.')
+
+            # regression test for #2626
+            # install tarball with full path, outside channel
+            tar_new_path = join(prefix, flask_fname)
+            copyfile(tar_old_path, tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert_package_is_installed(prefix, 'flask-0')
+
+            # regression test for #2626
+            # install tarball with relative path, outside channel
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            tar_new_path = relpath(tar_new_path)
+            run_command(Commands.INSTALL, prefix, tar_new_path)
+            assert_package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2886 (part 2 of 2)
             # install tarball from package cache, local channel
@@ -698,7 +710,73 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win_filter(self):
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(
-                Commands.SEARCH, prefix, "gawk", "--platform", "linux-64", "--json")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--platform",
+                                         "linux-64", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj.keys()) == 0
+
+    @pytest.mark.timeout(30)
+    def test_bad_anaconda_token_infinite_loop(self):
+        # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
+        response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
+                                "%s/repodata.json" % context.subdir)
+        assert response.status_code == 401
+
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+            channel_url = "https://conda.anaconda.org/t/cqgccfm1mfma/data-portal"
+            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['channels'] == [channel_url, 'defaults']
+
+            with pytest.raises(CondaHTTPError):
+                run_command(Commands.SEARCH, prefix, "boltons", "--json")
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "boltons", "--json",
+                                         use_exception_handler=True)
+            json_obj = json.loads(stdout)
+            assert json_obj['status_code'] == 401
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
+
+    def test_anaconda_token_with_private_package(self):
+        # TODO: should also write a test to use binstar_client to set the token,
+        # then let conda load the token
+
+        # Step 1. Make sure without the token we don't see the anyjson package
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+            channel_url = "https://conda.anaconda.org/kalefranz"
+            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['channels'] == [channel_url]
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
+                                         "linux-64", "--json")
+            json_obj = json_loads(stdout)
+            assert len(json_obj) == 0
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
+
+        # Step 2. Now with the token make sure we can see the anyjson package
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+            channel_url = "https://conda.anaconda.org/t/zlZvSlMGN7CB/kalefranz"
+            run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
+            yml_obj = yaml_load(stdout)
+            assert yml_obj['channels'] == [channel_url]
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
+                                         "linux-64", "--json")
+            json_obj = json_loads(stdout)
+            assert 'anyjson' in json_obj
+
+        finally:
+            rmtree(prefix, ignore_errors=True)

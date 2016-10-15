@@ -22,6 +22,7 @@
 * allow conda config files to have .yaml extensions or 'condarc' anywhere in filename (#3633)
 
 ### Bug Fixes
+* fix #3442, #3459, #3481, #3531, #3548 multiple networking and auth issues (#3550)
 * add back linux-ppc64le subdir support (#3584)
 * fix #3600 ensure links are removed when unlinking (#3625)
 * fix #3602 search channels by platform (#3629)

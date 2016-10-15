@@ -5,14 +5,12 @@ The exception is if a literal is specifically meant to be private to and isolate
 """
 from __future__ import absolute_import, division, print_function
 
-import os
 import sys
+from enum import Enum
 from logging import getLogger
 from platform import machine
 
-from enum import Enum
-
-from conda._vendor.auxlib.collection import frozendict
+from .._vendor.auxlib.collection import frozendict
 
 log = getLogger(__name__)
 
@@ -55,8 +53,6 @@ class Platform(Enum):
 
 machine_bits = 8 * tuple.__itemsize__
 
-# UID = os.getuid()
-PWD = os.getcwd()
 CONDA = 'CONDA'
 CONDA_ = 'CONDA_'
 conda = 'conda'
@@ -77,7 +73,8 @@ SEARCH_PATH = (
     '$CONDARC',
 )
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
+CONDA_HOMEPAGE_URL = 'http://conda.pydata.org'
 
 PLATFORM_DIRECTORIES = ("linux-64",
                         "linux-32",
@@ -116,6 +113,10 @@ class _Null(object):
 
     def __bool__(self):
         return False
+
+    def __len__(self):
+        return 0
+
 
 NULL = _Null()
 

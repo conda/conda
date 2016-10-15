@@ -4,12 +4,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import os
 import sys
-from conda._vendor.auxlib.entity import EntityEncoder
 from logging import getLogger
 from traceback import format_exc
 
 from . import CondaError, text_type, CondaExitZero
+from ._vendor.auxlib.entity import EntityEncoder
+from ._vendor.auxlib.ish import dals
 from .compat import iteritems, iterkeys
+
 log = logging.getLogger(__name__)
 
 
@@ -220,9 +222,14 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message):
-        msg = 'HTTP Error: %s' % message
-        super(CondaHTTPError, self).__init__(msg)
+    def __init__(self, message, url, status_code, reason):
+        message = dals("""
+        HTTP %(status_code)s %(reason)s
+        for url <%(url)s>
+
+        """) + message
+        super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
+                                             reason=reason)
 
 
 class CondaRevisionError(CondaError):
@@ -392,7 +399,7 @@ def print_conda_exception(exception):
         stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
                                      cls=EntityEncoder))
     else:
-        stderrlogger.info(repr(exception))
+        stderrlogger.info("\n\n%r", exception)
 
 def get_info():
     from conda.cli import conda_argparse
