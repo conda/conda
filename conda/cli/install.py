@@ -9,9 +9,6 @@ from __future__ import absolute_import, division, print_function
 import errno
 import logging
 import os
-import shutil
-import tarfile
-import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
@@ -23,7 +20,7 @@ from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
 from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
-                          CondaFileNotFoundError, CondaIOError, CondaImportError, CondaOSError,
+                          CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
