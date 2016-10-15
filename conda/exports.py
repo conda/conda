@@ -31,9 +31,10 @@ text_type, TemporaryDirectory = text_type, TemporaryDirectory
 from conda.connection import CondaSession  # NOQA
 CondaSession = CondaSession
 
-from conda.fetch import TmpDownload, download, fetch_index
+from conda.fetch import TmpDownload, download, fetch_index  # NOQA
 TmpDownload, download, fetch_index = TmpDownload, download, fetch_index
-handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. Now handled by CondaSession.")
+handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
+                                     "Now handled by CondaSession.")
 
 from conda.install import (delete_trash, is_linked, linked, linked_data, move_to_trash,  # NOQA
                            prefix_placeholder, rm_rf, symlink_conda, rm_fetched, package_cache)  # NOQA
