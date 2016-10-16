@@ -5,14 +5,12 @@ The exception is if a literal is specifically meant to be private to and isolate
 """
 from __future__ import absolute_import, division, print_function
 
-import os
 import sys
+from enum import Enum
 from logging import getLogger
 from platform import machine
 
-from enum import Enum
-
-from conda._vendor.auxlib.collection import frozendict
+from .._vendor.auxlib.collection import frozendict
 
 log = getLogger(__name__)
 
@@ -55,8 +53,6 @@ class Platform(Enum):
 
 machine_bits = 8 * tuple.__itemsize__
 
-# UID = os.getuid()
-PWD = os.getcwd()
 CONDA = 'CONDA'
 CONDA_ = 'CONDA_'
 conda = 'conda'
@@ -77,35 +73,50 @@ SEARCH_PATH = (
     '$CONDARC',
 )
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org/'
+DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
+CONDA_HOMEPAGE_URL = 'http://conda.pydata.org'
 DEFAULTS = 'defaults'
 
-PLATFORM_DIRECTORIES = ("linux-64",  "linux-32",
-                        "win-64",  "win-32",
-                        "osx-64", "noarch")
+PLATFORM_DIRECTORIES = ("linux-64",
+                        "linux-32",
+                        "win-64",
+                        "win-32",
+                        "osx-64",
+                        "linux-ppc64le",
+                        "noarch",
+                        )
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
+DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
+                         'https://repo.continuum.io/pkgs/pro',
+                         )
 
-if Platform.from_sys() is Platform.win:
-    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
+DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
                         'https://repo.continuum.io/pkgs/pro',
                         'https://repo.continuum.io/pkgs/msys2',
                         )
+
+if Platform.from_sys() is Platform.win:
+    DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN
 else:
-    DEFAULT_CHANNELS = ('https://repo.continuum.io/pkgs/free',
-                        'https://repo.continuum.io/pkgs/pro',
-                        )
+    DEFAULT_CHANNELS = DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'root'
 
-EMPTY_LIST = ()
 EMPTY_MAP = frozendict()
 
 
 class _Null(object):
     def __nonzero__(self):
         return False
+
+    def __bool__(self):
+        return False
+
+    def __len__(self):
+        return 0
+
 
 NULL = _Null()
 

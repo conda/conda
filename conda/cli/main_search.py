@@ -6,17 +6,16 @@
 
 from __future__ import absolute_import, division, print_function
 
-from conda import text_type
-from conda.api import get_index
-from conda.models.dist import Dist
-
-from .common import Completer, Packages, add_parser_channels, add_parser_json, add_parser_known, \
-    add_parser_offline, add_parser_prefix, add_parser_use_index_cache, add_parser_use_local, \
-    disp_features, ensure_override_channels_requires_channel, ensure_use_local, stdout_json
+from .common import (Completer, Packages, add_parser_channels, add_parser_json, add_parser_known,
+                     add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
+                     add_parser_use_local, disp_features,
+                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
+from ..api import get_index
 from ..base.context import context
+from ..common.compat import text_type
 from ..exceptions import CommandArgumentError, PackageNotFoundError
 from ..misc import make_icon_url
-from ..models.channel import Channel
+from ..models.dist import Dist
 from ..resolve import NoPackagesFoundError, Package
 
 descr = """Search for packages and display their information. The input is a
@@ -171,7 +170,7 @@ def execute_search(args, parser):
     channel_urls = args.channel or ()
     index = get_index(channel_urls=channel_urls, prepend=not args.override_channels,
                       platform=args.platform, use_local=args.use_local,
-                      use_cache=args.use_index_cache, prefix=prefix,
+                      use_cache=args.use_index_cache, prefix=None,
                       unknown=args.unknown)
 
     r = Resolve(index)
@@ -276,7 +275,7 @@ def execute_search(args, parser):
                     import pdb; pdb.set_trace()
             else:
                 data = {}
-                data.update(pkg.info)
+                data.update(pkg.info.dump())
                 data.update({
                     'fn': pkg.fn,
                     'installed': inst == '*',

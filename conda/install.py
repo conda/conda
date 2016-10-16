@@ -234,8 +234,12 @@ def binary_replace(data, a, b):
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
     """
-    if on_win and has_pyzzer_entry_point(data):
-        return replace_pyzzer_entry_point_shebang(data, a, b)
+    if on_win:
+        if has_pyzzer_entry_point(data):
+            return replace_pyzzer_entry_point_shebang(data, a, b)
+        # currently we should skip replacement on Windows for things we don't understand.
+        else:
+            return data
 
     def replace(match):
         occurances = match.group().count(a)
@@ -503,8 +507,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     source_dir = is_extracted(dist)
     assert source_dir is not None
     pkgs_dir = dirname(source_dir)
-    log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
-              (pkgs_dir, prefix, dist, linktype))
+    log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r', pkgs_dir, prefix, dist, linktype)
 
     if not run_script(source_dir, dist, 'pre-link', prefix):
         raise LinkError('Error: pre-link failed: %s' % dist)
@@ -604,7 +607,8 @@ def messages(prefix):
     path = join(prefix, '.messages.txt')
     try:
         with open(path) as fi:
-            sys.stdout.write(fi.read())
+            fh = sys.stderr if context.json else sys.stdout
+            fh.write(fi.read())
     except IOError:
         pass
     finally:

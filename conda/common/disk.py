@@ -7,7 +7,7 @@ from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
 from os import W_OK, access, chmod, getpid, listdir, lstat, makedirs, rename, unlink, walk
-from os.path import abspath, basename, dirname, isdir, join, lexists
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 from time import sleep
@@ -117,7 +117,7 @@ def make_writable(path):
         elif eno in (EACCES, EPERM):
             log.debug("tried make writable but failed: %s\n%r", path, e)
         else:
-            log.error("Error making path writable: %s\n%r", path, e)
+            log.warn("Error making path writable: %s\n%r", path, e)
             raise
 
 
@@ -167,7 +167,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
                 # errno.ENOENT File not found error / No such file or directory
                 raise
             else:
-                log.error("Uncaught backoff with errno %d", e.errno)
+                log.warn("Uncaught backoff with errno %d", e.errno)
                 raise
         else:
             return result
@@ -193,10 +193,10 @@ def rm_rf(path, max_retries=5, trash=True):
                 backoff_rmdir(path)
             finally:
                 # If path was removed, ensure it's not in linked_data_
-                if not isdir(path):
+                if islink(path) or isfile(path):
                     from ..core.linked_data import delete_prefix_from_linked_data
                     delete_prefix_from_linked_data(path)
-        elif lexists(path):
+        if lexists(path):
             try:
                 backoff_unlink(path)
                 return True
@@ -235,7 +235,7 @@ def delete_trash(prefix=None):
             except (IOError, OSError) as e:
                 log.info("Could not delete path in trash dir %s\n%r", path, e)
         if listdir(trash_dir):
-            log.warn("Unable to clean trash directory %s", trash_dir)
+            log.info("Unable to clean trash directory %s", trash_dir)
 
 
 def move_to_trash(prefix, f, tempdir=None):

@@ -4,13 +4,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import os
 import sys
-from conda._vendor.auxlib.entity import EntityEncoder
 from logging import getLogger
 from traceback import format_exc
 
-from . import CondaError, text_type
+from . import CondaError, text_type, CondaExitZero
+from ._vendor.auxlib.entity import EntityEncoder
+from ._vendor.auxlib.ish import dals
 from .compat import iteritems, iterkeys
+
 log = logging.getLogger(__name__)
+
 
 class LockError(CondaError, RuntimeError):
     def __init__(self, message):
@@ -111,19 +114,19 @@ class CondaEnvironmentError(CondaError, EnvironmentError):
         super(CondaEnvironmentError, self).__init__(msg, *args)
 
 
-class DryRunExit(CondaError):
-    def __init__(self, message):
-        msg = 'Dry run exiting: %s' % message
+class DryRunExit(CondaExitZero):
+    def __init__(self):
+        msg = 'Dry run exiting'
         super(DryRunExit, self).__init__(msg)
 
 
-class CondaSystemExit(CondaError, SystemExit):
+class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
         msg = ' '.join(text_type(arg) for arg in self.args)
         super(CondaSystemExit, self).__init__(msg)
 
 
-class SubprocessExit(CondaError):
+class SubprocessExit(CondaExitZero):
     def __init__(self, *args, **kwargs):
         super(SubprocessExit, self).__init__(*args, **kwargs)
 
@@ -219,9 +222,14 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message):
-        msg = 'HTTP Error: %s' % message
-        super(CondaHTTPError, self).__init__(msg)
+    def __init__(self, message, url, status_code, reason):
+        message = dals("""
+        HTTP %(status_code)s %(reason)s
+        for url <%(url)s>
+
+        """) + message
+        super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
+                                             reason=reason)
 
 
 class CondaRevisionError(CondaError):
@@ -391,7 +399,7 @@ def print_conda_exception(exception):
         stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
                                      cls=EntityEncoder))
     else:
-        stderrlogger.info(repr(exception))
+        stderrlogger.info("\n\n%r", exception)
 
 def get_info():
     from conda.cli import conda_argparse
@@ -474,6 +482,8 @@ def conda_exception_handler(func, *args, **kwargs):
         return_value = func(*args, **kwargs)
         if isinstance(return_value, int):
             return return_value
+    except CondaExitZero:
+        return 0
     except CondaRuntimeError as e:
         print_unexpected_error_message(e)
         delete_lock()

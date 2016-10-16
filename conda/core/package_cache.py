@@ -13,8 +13,8 @@ from os.path import basename, dirname, exists, isdir, isfile, join
 from ..base.constants import DEFAULTS
 from ..base.context import context
 from ..common.disk import exp_backoff_fn, rm_rf
-from ..common.url import path_to_url
-from ..connection import CondaSession, RETRIES, handle_proxy_407
+from ..common.url import path_to_url, maybe_add_auth
+from ..connection import CondaSession, RETRIES
 from ..exceptions import CondaRuntimeError, CondaSignatureError, MD5MismatchError
 from ..lock import FileLock
 from ..models.channel import Channel, offline_keep
@@ -273,13 +273,13 @@ def fetch_pkg(info, dst_dir=None, session=None):
     session = session or CondaSession()
 
     fn = info['fn']
-    dist = Dist(fn)
-    url = info.get('url')
-    if url is None:
-        url = info['channel'] + '/' + fn
+
+    url = info.get('url') or info['channel'] + '/' + fn
+    url = maybe_add_auth(url, info.get('auth'))
     log.debug("url=%r" % url)
+
     if dst_dir is None:
-        dst_dir = find_new_location(dist)[0]
+        dst_dir = find_new_location(Dist(fn))[0]
     path = join(dst_dir, fn)
 
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
@@ -326,26 +326,11 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 407:  # Proxy Authentication Required
-                handle_proxy_407(url, session)
-                # Try again
-                return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
             msg = "HTTPError: %s: %s\n" % (e, url)
             log.debug(msg)
             raise CondaRuntimeError(msg)
 
         except requests.exceptions.ConnectionError as e:
-            # requests isn't so nice here. For whatever reason, https gives
-            # this error and http gives the above error. Also, there is no
-            # status_code attribute here.  We have to just check if it looks
-            # like 407.
-            # See: https://github.com/kennethreitz/requests/issues/2061.
-            if "407" in str(e):  # Proxy Authentication Required
-                handle_proxy_407(url, session)
-                # try again
-                return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries)
             msg = "Connection error: %s: %s\n" % (e, url)
             stderrlog.info('Could not connect to %s\n' % url)
             log.debug(msg)

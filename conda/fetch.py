@@ -16,8 +16,6 @@ from .base.context import context
 log = getLogger(__name__)
 
 
-
-
 def create_cache_dir():
     cache_dir = join(context.pkgs_dirs[0], 'cache')
     try:

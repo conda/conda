@@ -1,9 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
-from conda.core.index import get_index
-
+from .core.index import get_index
 from .resolve import Resolve
-
 
 def get_package_versions(package):
     index = get_index()

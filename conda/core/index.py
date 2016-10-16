@@ -6,8 +6,6 @@ import hashlib
 import json
 import requests
 import warnings
-from conda.base.constants import DEFAULTS
-from conda.models.dist import Dist
 from functools import wraps
 from logging import DEBUG, getLogger
 from os.path import dirname, join
@@ -15,17 +13,19 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from .linked_data import linked_data
 from .package_cache import package_cache
-
 from .._vendor.auxlib.entity import EntityEncoder
+from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
+from ..base.constants import CONDA_HOMEPAGE_URL, DEFAULTS
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
-from ..common.url import url_to_path
-from ..connection import CondaSession, handle_proxy_407
+from ..common.url import join_url, url_to_path
+from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
 from ..fetch import create_cache_dir
 from ..lock import FileLock
 from ..models.channel import Channel, offline_keep, prioritize_channels
+from ..models.dist import Dist
 from ..models.record import EMPTY_LINK, Record
 
 log = getLogger(__name__)
@@ -36,8 +36,8 @@ stderrlog = getLogger('stderrlog')
 fail_unknown_host = False
 
 
-def get_index(channel_urls=(), prepend=True, platform=None, use_local=False, use_cache=False,
-              unknown=False, prefix=False):
+def get_index(channel_urls=(), prepend=True, platform=None,
+              use_local=False, use_cache=False, unknown=False, prefix=False):
     """
     Return the index of packages available on the channels
 
@@ -125,7 +125,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         filename = 'repodata.json'
 
     try:
-        resp = session.get(url + filename, headers=headers, proxies=session.proxies,
+        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
                            timeout=(3.05, 60))
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp))
@@ -150,36 +150,87 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
 
     except ValueError as e:
-        raise CondaRuntimeError("Invalid index file: {0}{1}: {2}"
-                                .format(url, filename, e))
+        raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 407:  # Proxy Authentication Required
-            handle_proxy_407(url, session)
-            # Try again
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
-
         if e.response.status_code == 404:
-            if url.endswith('/noarch/'):  # noarch directory might not exist
+            if url.endswith('/noarch'):  # noarch directory might not exist
                 return None
-            msg = 'Could not find URL: %s' % url
-        elif e.response.status_code == 403 and url.endswith('/noarch/'):
-            return None
 
-        elif e.response.status_code == 401 and context.channel_alias in url:
-            # Note, this will not trigger if the binstar configured url does
-            # not match the conda configured one.
-            msg = ("Warning: you may need to login to anaconda.org again with "
-                   "'anaconda login' to access private packages(%s, %s)" %
-                   (url, e))
-            stderrlog.info(msg)
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
+            help_message = dals("""
+            The remote server could not find the channel you requested.
+
+            You will need to adjust your conda configuration to proceed.
+            Use `conda config --show` to view your configuration's current state.
+            Further configuration help can be found at <%s>.
+            """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+        elif e.response.status_code == 403:
+            if url.endswith('/noarch'):
+                return None
+            else:
+                help_message = dals("""
+                The channel you requested is not available on the remote server.
+
+                You will need to adjust your conda configuration to proceed.
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+        elif e.response.status_code == 401:
+            channel = Channel(url)
+            if channel.token:
+                help_message = dals("""
+                The token '%s' given for the URL is invalid.
+
+                If this token was pulled from anaconda-client, you will need to use
+                anaconda-client to reauthenticate.
+
+                If you supplied this token to conda directly, you will need to adjust your
+                conda configuration to proceed.
+
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+               """ % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')))
+
+            elif context.channel_alias.location in url:
+                # Note, this will not trigger if the binstar configured url does
+                # not match the conda configured one.
+                help_message = dals("""
+                The remote server has indicated you are using invalid credentials for this channel.
+
+                If the remote site is anaconda.org or follows the Anaconda Server API, you
+                will need to
+                  (a) login to the site with `anaconda login`, or
+                  (b) provide conda with a valid token directly.
+
+                Further configuration help can be found at <%s>.
+               """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+            else:
+                help_message = dals("""
+                The credentials you have provided for this URL are invalid.
+
+                You will need to modify your conda configuration to proceed.
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+        elif 500 <= e.response.status_code < 600:
+            help_message = dals("""
+            An remote server error occurred when trying to retrieve this URL.
+
+            A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
+            fulfill a valid request.  The problem may be spurious, and will resolve itself if you
+            try your request again.  If the problem persists, consider notifying the maintainer
+            of the remote server.
+            """)
 
         else:
-            msg = "HTTPError: %s: %s\n" % (e, url)
+            help_message = "An HTTP error occurred when trying to retrieve this URL."
 
-        log.debug(msg)
-        raise CondaHTTPError(msg)
+        raise CondaHTTPError(help_message, e.response.url, e.response.status_code,
+                             e.response.reason)
 
     except requests.exceptions.SSLError as e:
         msg = "SSL Error: %s\n" % e
@@ -187,14 +238,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         log.debug(msg)
 
     except requests.exceptions.ConnectionError as e:
-        # requests isn't so nice here. For whatever reason, https gives this
-        # error and http gives the above error. Also, there is no status_code
-        # attribute here. We have to just check if it looks like 407.  See
-        # https://github.com/kennethreitz/requests/issues/2061.
-        if "407" in str(e):  # Proxy Authentication Required
-            handle_proxy_407(url, session)
-            # Try again
-            return fetch_repodata(url, cache_dir=cache_dir, use_cache=use_cache, session=session)
         msg = "Connection error: %s: %s\n" % (e, url)
         stderrlog.info('Could not connect to %s\n' % url)
         log.debug(msg)
@@ -217,9 +260,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     # pool = ThreadPool(5)
     if index is None:
         index = {}
-    stdoutlog.info("Fetching package metadata ...")
-    # if not isinstance(channel_urls, dict):
-    #     channel_urls = prioritize_channels(channel_urls)
+    if not context.json:
+        stdoutlog.info("Fetching package metadata ...")
 
     urls = tuple(filter(offline_keep, channel_urls))
     try:
@@ -248,23 +290,29 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
 
     def make_index(repodatas):
         result = dict()
-        for channel, repodata in repodatas:
+
+        for channel_url, repodata in repodatas:
             if repodata is None:
                 continue
-            url_s, priority = channel_urls[channel]
-            channel = channel.rstrip('/')
+            canonical_name, priority = channel_urls[channel_url]
+            channel = Channel(channel_url)
             for fn, info in iteritems(repodata['packages']):
-                key = url_s + '::' + fn if url_s != DEFAULTS else fn
-                key = Dist(key)
-                url = channel + '/' + fn
-                info.update(dict(fn=fn, schannel=url_s, channel=channel, priority=priority,
-                                 url=url))
+                full_url = join_url(channel_url, fn)
+                info.update(dict(fn=fn,
+                                 schannel=canonical_name,
+                                 channel=channel_url,
+                                 priority=priority,
+                                 url=full_url,
+                                 auth=channel.auth,
+                                 ))
+                key = Dist(canonical_name + '::' + fn if canonical_name != 'defaults' else fn)
                 result[key] = Record(**info)
         return result
 
     index = make_index(repodatas)
 
-    stdoutlog.info('\n')
+    if not context.json:
+        stdoutlog.info('\n')
     if unknown:
         add_unknown(index, channel_urls)
     if context.add_pip_as_python_dependency:

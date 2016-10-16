@@ -50,6 +50,7 @@ class CondaError(Exception):
         result.update(exception_type=text_type(type(self)),
                       exception_name=self.__class__.__name__,
                       message=text_type(self),
+                      error=repr(self),
                       **self._kwargs)
         return result
 
@@ -69,4 +70,10 @@ class CondaMultiError(CondaError):
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),
                     exception_name=self.__class__.__name__,
-                    errors=tuple(error.dump_map() for error in self.errors))
+                    errors=tuple(error.dump_map() for error in self.errors),
+                    error="Multiple Errors Encountered.",
+                    )
+
+
+class CondaExitZero(CondaError):
+    pass

@@ -402,7 +402,7 @@ def ensure_override_channels_requires_channel(args, dashc=True):
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
     if args.dry_run:
-        raise DryRunExit
+        raise DryRunExit()
 
     options = []
     for option in choices:
@@ -430,7 +430,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
-        raise DryRunExit
+        raise DryRunExit()
     if context.always_yes:
         return True
     try:

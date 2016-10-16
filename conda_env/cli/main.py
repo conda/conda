@@ -1,4 +1,7 @@
 from __future__ import print_function, division, absolute_import
+
+from logging import getLogger, CRITICAL
+
 import os
 import sys
 
@@ -66,6 +69,14 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     context._add_argparse_args(args)
+    if getattr(args, 'json', False):
+        # # Silence logging info to avoid interfering with JSON output
+        # for logger in Logger.manager.loggerDict:
+        #     if logger not in ('fetch', 'progress'):
+        #         getLogger(logger).setLevel(CRITICAL + 1)
+        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
+            getLogger(logger).setLevel(CRITICAL + 1)
+
     return conda_exception_handler(args.func, args, parser)
 
 
