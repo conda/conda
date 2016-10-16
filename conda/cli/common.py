@@ -94,7 +94,7 @@ class Packages(Completer):
         if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
-        return [dist.package_name for dist in index]
+        return [record.name for record in index]
 
 class InstalledPackages(Completer):
     def __init__(self, prefix, parsed_args, **kwargs):
@@ -105,7 +105,7 @@ class InstalledPackages(Completer):
     def _get_items(self):
         from conda.core.linked_data import linked
         packages = linked(context.prefix_w_legacy_search)
-        return [dist.package_name for dist in packages]
+        return [dist.quad[0] for dist in packages]
 
 def add_parser_help(p):
     """

@@ -37,12 +37,13 @@ def pretty_diff(diff):
     for s in diff:
         fn = s[1:]
         dist = Dist(fn)
-        if dist.channel != DEFAULTS:
-            dist.version += ' (%s)' % dist.channel
+        name, version, _, channel = dist.quad
+        if channel != DEFAULTS:
+            version += ' (%s)' % channel
         if s.startswith('-'):
-            removed[dist.package_name.lower()] = dist.version
+            removed[name.lower()] = version
         elif s.startswith('+'):
-            added[dist.package_name.lower()] = dist.version
+            added[name.lower()] = version
     changed = set(added) & set(removed)
     for name in sorted(changed):
         yield ' %s  {%s -> %s}' % (name, removed[name], added[name])

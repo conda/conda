@@ -405,11 +405,13 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         args = [shell_path, path]
     env = os.environ.copy()
+    name, version, _, _ = dist.quad
+    build_number = dist.build_number()
     env[str('ROOT_PREFIX')] = sys.prefix
     env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = dist.package_name
-    env[str('PKG_VERSION')] = dist.version
-    env[str('PKG_BUILDNUM')] = dist.build_number
+    env[str('PKG_NAME')] = name
+    env[str('PKG_VERSION')] = version
+    env[str('PKG_BUILDNUM')] = build_number
     if action == 'pre-link':
         env[str('SOURCE_DIR')] = str(prefix)
     try:

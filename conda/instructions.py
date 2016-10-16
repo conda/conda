@@ -129,7 +129,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((Dist(arg).package_name,
+            getLogger('progress.update').info((Dist(arg).dist_name,
                                                state['i'] - 1))
         cmd = _commands[instruction]
 

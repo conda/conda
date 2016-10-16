@@ -54,13 +54,10 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     rec['schannel'] = schannel
     rec['link'] = rec.get('link') or EMPTY_LINK
 
-    d = Dist(dist_name)
     if ignore_channels:
-        dist = Dist(channel=None, package_name=d.package_name, version=d.version,
-                    build_string=d.build_string)
+        dist = Dist(channel=None, dist_name=dist_name)
     else:
-        dist = Dist(channel=schannel, package_name=d.package_name, version=d.version,
-                    build_string=d.build_string)
+        dist = Dist(channel=schannel, dist_name=dist_name)
     linked_data_[prefix][dist] = rec
 
     return rec

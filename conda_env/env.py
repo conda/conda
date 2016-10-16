@@ -1,21 +1,15 @@
 from __future__ import absolute_import, print_function
-from collections import OrderedDict
-from copy import copy
-import os
-import re
-import sys
 
-# TODO This should never have to import from conda.cli
+import os
+from collections import OrderedDict
+from conda.base.context import context
+from conda.cli import common
+from conda.core.linked_data import linked
+from copy import copy
 from itertools import chain
 
-from conda.cli import common
-from conda import install
-from conda.base.context import context
-
-from . import compat
-from . import exceptions
-from . import yaml
-from conda_env.pip_util import add_pip_installed
+from . import compat, exceptions, yaml
+from .pip_util import add_pip_installed
 
 
 def load_from_directory(directory):
@@ -48,7 +42,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     Returns:     Environment obejct
 
     """
-    installed = install.linked(prefix, ignore_channels=ignore_channels)
+    installed = linked(prefix, ignore_channels=ignore_channels)
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed
     add_pip_installed(prefix, installed, json=True)

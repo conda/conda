@@ -48,8 +48,13 @@ class Dist(Entity):
 
     @property
     def quad(self):
+        # returns: name, version, build_string, channel
         parts = self.dist_name.rsplit('-', 2) + ['', '']
         return parts[0], parts[1], parts[2], self.channel or DEFAULTS
+
+    def build_number(self):
+        n = self.quad[2].rsplit('_')[-1] or 0
+        return int(n)
 
     def __str__(self):
         base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
@@ -75,8 +80,8 @@ class Dist(Entity):
         if string.endswith('@'):
             return cls(channel='@', dist_name=string, with_features_depends=None)
 
-        REGEX_STR = (r'(?:([^\s\[\]]+)::)?'  # optional channel
-                     r'([^\s\[\]]+)'  # 3.x dist
+        REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
+                     r'([^\s\[\]]+)'               # 3.x dist
                      r'(?:\[([a-zA-Z0-9_-]+)\])?'  # with_features_depends
                      )
         channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
@@ -104,34 +109,3 @@ class Dist(Entity):
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__key__() == other.__key__()
-
-#
-#
-# def dist2pair(dist):
-#     dist = str(dist)
-#     if dist.endswith(']'):
-#         dist = dist.split('[', 1)[0]
-#     if dist.endswith('.tar.bz2'):
-#         dist = dist[:-8]
-#     parts = dist.split('::', 1)
-#     return 'defaults' if len(parts) < 2 else parts[0], parts[-1]
-#
-#
-# def dist2quad(dist):
-#     channel, dist = dist2pair(dist)
-#     parts = dist.rsplit('-', 2) + ['', '']
-#     return (str(parts[0]), str(parts[1]), str(parts[2]), str(channel))
-#
-#
-# def dist2name(dist):
-#     return dist2quad(dist)[0]
-#
-#
-# def name_dist(dist):
-#     return dist2name(dist)
-#
-#
-# def dist2filename(dist, suffix='.tar.bz2'):
-#     return dist2pair(dist)[1] + suffix
-#
-#

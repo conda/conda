@@ -230,7 +230,7 @@ def execute_search(args, parser):
             json[name] = []
 
         if args.outdated:
-            vers_inst = [dist.version for dist in linked if dist.package_name == name]
+            vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name

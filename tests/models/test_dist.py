@@ -13,10 +13,10 @@ class DistTests(TestCase):
     def test_dist(self):
         d = Dist.from_string("spyder-app-2.3.8-py27_0.tar.bz2")
         assert d.channel == 'defaults'
-        assert d.package_name == "spyder-app"
-        assert d.version == "2.3.8"
-        assert d.build_string == "py27_0"
-        assert d.build_number == 0
+        assert d.quad[0] == "spyder-app"
+        assert d.quad[1] == "2.3.8"
+        assert d.quad[2] == "py27_0"
+        assert d.build_number() == 0
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
 
         assert d == Dist.from_string("spyder-app-2.3.8-py27_0")
@@ -34,20 +34,20 @@ class DistTests(TestCase):
 
         d = Dist("mkl@")
         assert d.channel == "@"
-        assert d.package_name == "mkl@"
-        assert d.version == "0"
-        assert d.build_string == "0"
+        assert d.quad[0] == "mkl@"
+        assert d.quad[1] == "0"
+        assert d.quad[2] == "0"
         assert d.with_feature_depends is None
         assert d.is_feature_package
 
     def test_channel(self):
         d = Dist.from_string("conda-forge::spyder-app-2.3.8-py27_0.tar.bz2")
         assert d.channel == 'conda-forge'
-        assert d.package_name == "spyder-app"
+        assert d.quad[0] == "spyder-app"
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
 
         d = Dist.from_string("s3://some/bucket/name::spyder-app-2.3.8-py27_0.tar.bz2")
         assert d.channel == 's3://some/bucket/name'
-        assert d.package_name == "spyder-app"
+        assert d.quad[0] == "spyder-app"
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
 
