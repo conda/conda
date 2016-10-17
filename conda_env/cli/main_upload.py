@@ -99,7 +99,8 @@ def execute(args, parser):
 
     if uploader.authorized():
         info = uploader.upload()
-        print("Your environment file has been uploaded to {}".format(info.get('url', 'anaconda.org')))
+        url = info.get('url', 'anaconda.org')
+        print("Your environment file has been uploaded to {}".format(url))
     else:
         msg = "\n".join(["You are not authorized to upload a package into Anaconda.org",
                          "Verify that you are logged in anaconda.org with:",

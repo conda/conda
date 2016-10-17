@@ -1,7 +1,7 @@
 import re
 from conda.resolve import normalized_version
 from .. import env
-from ..exceptions import EnvironmentFileNotDownloaded, CondaEnvException
+from ..exceptions import EnvironmentFileNotDownloaded
 try:
     from binstar_client import errors
     from binstar_client.utils import get_binstar
@@ -72,7 +72,9 @@ class BinstarSpec(object):
     @property
     def file_data(self):
         if self._file_data is None:
-            self._file_data = [data for data in self.package['files'] if data['type'] == ENVIRONMENT_TYPE]
+            self._file_data = [data
+                               for data in self.package['files']
+                               if data['type'] == ENVIRONMENT_TYPE]
         return self._file_data
 
     @property
@@ -81,12 +83,14 @@ class BinstarSpec(object):
         :raises: EnvironmentFileNotDownloaded
         """
         if self._environment is None:
-            versions = [{
-                'normalized': normalized_version(d['version']),
-                'original': d['version']} for d in self.file_data]
+            versions = [{'normalized': normalized_version(d['version']), 'original': d['version']}
+                        for d in self.file_data]
             latest_version = max(versions, key=lambda x: x['normalized'])['original']
-            file_data = [data for data in self.package['files'] if data['version'] == latest_version]
-            req = self.binstar.download(self.username, self.packagename, latest_version, file_data[0]['basename'])
+            file_data = [data
+                         for data in self.package['files']
+                         if data['version'] == latest_version]
+            req = self.binstar.download(self.username, self.packagename, latest_version,
+                                        file_data[0]['basename'])
             if req is None:
                 raise EnvironmentFileNotDownloaded(self.username, self.packagename)
             self._environment = req.text

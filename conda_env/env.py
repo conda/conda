@@ -2,8 +2,6 @@ from __future__ import absolute_import, print_function
 from collections import OrderedDict
 from copy import copy
 import os
-import re
-import sys
 
 # TODO This should never have to import from conda.cli
 from itertools import chain
