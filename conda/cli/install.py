@@ -9,9 +9,6 @@ from __future__ import absolute_import, division, print_function
 import errno
 import logging
 import os
-import shutil
-import tarfile
-import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
@@ -23,7 +20,7 @@ from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
 from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
-                          CondaFileNotFoundError, CondaIOError, CondaImportError, CondaOSError,
+                          CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
@@ -35,24 +32,6 @@ from ..resolve import Resolve
 from ..utils import on_win
 
 log = logging.getLogger(__name__)
-
-
-def install_tar(prefix, tar_path, verbose=False):
-    if not exists(tar_path):
-        raise CondaFileNotFoundError(tar_path)
-    tmp_dir = tempfile.mkdtemp()
-    t = tarfile.open(tar_path, 'r')
-    t.extractall(path=tmp_dir)
-    t.close()
-
-    paths = []
-    for root, dirs, files in os.walk(tmp_dir):
-        for fn in files:
-            if fn.endswith('.tar.bz2'):
-                paths.append(join(root, fn))
-
-    explicit(paths, prefix, verbose=verbose)
-    shutil.rmtree(tmp_dir)
 
 
 def check_prefix(prefix, json=False):
@@ -211,13 +190,6 @@ def install(args, parser, command='install'):
         else:
             raise CondaValueError("cannot mix specifications with conda package"
                                   " filenames")
-
-    # handle tar file containing conda packages
-    if len(args.packages) == 1:
-        tar_path = args.packages[0]
-        if tar_path.endswith('.tar'):
-            install_tar(prefix, tar_path, verbose=not context.quiet)
-            return
 
     if newenv and args.clone:
         package_diff = set(args.packages) - set(default_packages)
