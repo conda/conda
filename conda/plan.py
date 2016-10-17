@@ -250,7 +250,7 @@ def nothing_to_do(actions):
 
 
 def add_unlink(actions, dist):
-    assert not isinstance(dist, string_types)
+    assert isinstance(dist, Dist)
     if inst.UNLINK not in actions:
         actions[inst.UNLINK] = []
     actions[inst.UNLINK].append(dist)

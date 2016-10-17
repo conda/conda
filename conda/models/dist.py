@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import re
 
 from conda.base.constants import DEFAULTS
+from conda.models.record import Record
 from logging import getLogger
 
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
@@ -20,6 +21,8 @@ class DistType(EntityType):
             if isinstance(value, Dist):
                 return value
             elif value.__class__.__name__ == "Package":
+                return Dist.from_string(value.fn, channel_override=value.schannel)
+            elif isinstance(value, Record):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             else:
                 return Dist.from_string(value)

@@ -44,6 +44,7 @@ def PRINT_CMD(state, arg):
 
 
 def FETCH_CMD(state, arg):
+    assert isinstance(arg, Dist)
     fetch_pkg(state['index'][arg])
 
 

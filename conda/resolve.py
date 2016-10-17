@@ -266,17 +266,17 @@ class Resolve(object):
             filter = {}
         else:
             filter.clear()
-        filter.update({fstr+'@': False for fstr in iterkeys(self.trackers)})
+        filter.update({Dist(fstr+'@'): False for fstr in iterkeys(self.trackers)})
         if features:
-            filter.update({fstr+'@': True for fstr in features})
+            filter.update({Dist(fstr+'@'): True for fstr in features})
         return filter
 
-    def valid(self, spec, filter):
+    def valid(self, spec_or_dist, filter):
         """Tests if a package, MatchSpec, or a list of both has satisfiable
         dependencies, assuming cyclic dependencies are always valid.
 
         Args:
-            fkey: a package key, a MatchSpec, or an iterable of these.
+            spec_or_dist: a package key, a MatchSpec, or an iterable of these.
             filter: a dictionary of (fkey,valid) pairs, used to consider a subset
                 of dependencies, and to eliminate repeated searches.
 
@@ -291,15 +291,15 @@ class Resolve(object):
         def v_ms_(ms):
             return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
 
-        def v_fkey_(fkey):
-            fkey = Dist(fkey)
-            val = filter.get(fkey)
+        def v_fkey_(dist):
+            assert isinstance(dist, Dist)
+            val = filter.get(dist)
             if val is None:
-                filter[fkey] = True
-                val = filter[fkey] = all(v_ms_(ms) for ms in self.ms_depends(fkey))
+                filter[dist] = True
+                val = filter[dist] = all(v_ms_(ms) for ms in self.ms_depends(dist))
             return val
 
-        result = v_(spec)
+        result = v_(spec_or_dist)
         return result
 
     def invalid_chains(self, spec, filter):
@@ -313,7 +313,7 @@ class Resolve(object):
 
         Args:
             spec: a package key or MatchSpec
-            filter: a dictionary of (fkey, valid) pairs to be used when
+            filter: a dictionary of (dist, valid) pairs to be used when
                 testing for package validity.
 
         Returns:
@@ -322,10 +322,11 @@ class Resolve(object):
         def chains_(spec, names):
             if self.valid(spec, filter) or spec.name in names:
                 return
-            specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
+            dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
             found = False
-            for fkey in specs:
-                for m2 in self.ms_depends(Dist(fkey)):
+            for dist in dists:
+                assert isinstance(dist, Dist)
+                for m2 in self.ms_depends(dist):
                     for x in chains_(m2, names):
                         found = True
                         yield (spec,) + x
@@ -546,6 +547,8 @@ class Resolve(object):
         return res
 
     def ms_depends(self, dist):
+        # returns List[MatchSpec]
+        assert isinstance(dist, Dist)
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
@@ -560,6 +563,7 @@ class Resolve(object):
                 deps = [MatchSpec(d) for d in rec.get('depends', [])]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
+
         return deps
 
     def depends_on(self, spec, target):
