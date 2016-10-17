@@ -292,13 +292,15 @@ class Resolve(object):
             return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
 
         def v_fkey_(fkey):
+            fkey = Dist(fkey)
             val = filter.get(fkey)
             if val is None:
                 filter[fkey] = True
                 val = filter[fkey] = all(v_ms_(ms) for ms in self.ms_depends(fkey))
             return val
 
-        return v_(spec)
+        result = v_(spec)
+        return result
 
     def invalid_chains(self, spec, filter):
         """Constructs a set of 'dependency chains' for invalid specs.
@@ -323,7 +325,7 @@ class Resolve(object):
             specs = self.find_matches(spec) if isinstance(spec, MatchSpec) else [spec]
             found = False
             for fkey in specs:
-                for m2 in self.ms_depends(fkey):
+                for m2 in self.ms_depends(Dist(fkey)):
                     for x in chains_(m2, names):
                         found = True
                         yield (spec,) + x
