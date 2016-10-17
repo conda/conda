@@ -50,9 +50,9 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     pip_pkgs = sorted(installed - conda_pkgs)
 
     if no_builds:
-        dependencies = ['='.join(a.rsplit('-', 2)[0:2]) for a in sorted(conda_pkgs)]
+        dependencies = ['='.join(a.quad[0:3]) for a in sorted(conda_pkgs)]
     else:
-        dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
+        dependencies = ['='.join(a.quad[0:3]) for a in sorted(conda_pkgs)]
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
     # conda uses ruamel_yaml which returns a ruamel_yaml.comments.CommentedSeq

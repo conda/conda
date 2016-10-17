@@ -30,14 +30,14 @@ class DistTests(TestCase):
 
     def test_with_feature_depends(self):
         d = Dist.from_string("spyder-app-2.3.8-py27_0[mkl]")
-        assert d.with_feature_depends == "mkl"
+        assert d.with_features_depends == "mkl"
 
         d = Dist("mkl@")
         assert d.channel == "@"
         assert d.quad[0] == "mkl@"
-        assert d.quad[1] == "0"
-        assert d.quad[2] == "0"
-        assert d.with_feature_depends is None
+        assert d.quad[1] == ""
+        assert d.quad[2] == ""
+        assert d.with_features_depends is None
         assert d.is_feature_package
 
     def test_channel(self):
