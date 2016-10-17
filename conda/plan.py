@@ -107,9 +107,12 @@ def display_actions(actions, index, show_channel_urls=None):
         rec = index.get(dist)
         if rec is None:
             package_name, version, build, schannel = dist.quad
-            rec = dict(name=package_name, version=version,
-                       build=build, channel=None,
-                       schannel='<unknown>')
+            rec = dict(name=package_name,
+                       version=version,
+                       build=build,
+                       channel=None,
+                       schannel='<unknown>',
+                       build_number=int(build) if build.isdigit() else 0)
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
