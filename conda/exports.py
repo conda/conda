@@ -40,11 +40,11 @@ fetch_index = fetch_index
 from conda.core.package_cache import download, rm_fetched, package_cache  # NOQA
 download, rm_fetched, package_cache = download, rm_fetched, package_cache
 
-from conda.install import (delete_trash, move_to_trash,  # NOQA
-                           prefix_placeholder, rm_rf, symlink_conda)  # NOQA
-delete_trash = delete_trash
-move_to_trash = move_to_trash
+from conda.install import prefix_placeholder, rm_rf, symlink_conda  # NOQA
 prefix_placeholder, rm_rf, symlink_conda = prefix_placeholder, rm_rf, symlink_conda
+
+from conda.common.disk import delete_trash, move_to_trash  # NOQA
+delete_trash, move_to_trash = delete_trash, move_to_trash
 
 from conda.core.linked_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
