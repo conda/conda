@@ -758,7 +758,7 @@ class Resolve(object):
 
         if None in res:
             return None
-        res = [Dist(fn) for fn in sorted(res)]
+        res = [Dist(f) for f in sorted(res)]
         log.debug('explicit(%r) finished', specs)
         return res
 
@@ -880,7 +880,8 @@ class Resolve(object):
             elif limit is not None:
                 preserve.append(dist)
             elif ver:
-                specs.append(MatchSpec('%s >=%s' % (nm, ver), optional=True, target=dist.full_name))
+                specs.append(MatchSpec('%s >=%s' % (nm, ver), optional=True,
+                                       target=dist.full_name))
             else:
                 specs.append(MatchSpec(nm, optional=True, target=dist.full_name))
         return specs, preserve

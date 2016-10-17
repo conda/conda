@@ -34,9 +34,6 @@ import subprocess
 import sys
 import traceback
 from collections import namedtuple
-from conda.core.linked_data import create_meta, load_meta, delete_linked_data
-from conda.core.package_cache import is_extracted, read_url
-from conda.models.dist import Dist
 from enum import Enum
 from itertools import chain
 from os.path import (abspath, basename, dirname, isdir, isfile, islink, join, normcase,
@@ -46,14 +43,15 @@ from . import CondaError
 from .base.constants import UTF8
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf, yield_lines
+from .core.linked_data import create_meta, delete_linked_data, load_meta
+from .core.package_cache import is_extracted
 from .exceptions import CondaOSError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
-from .models.record import Link
+from .models.dist import Dist
 from .utils import on_win
 
 
 # conda-build compatibility
-from .common.disk import delete_trash, move_to_trash, move_path_to_trash  # NOQA
 
 
 if on_win:

@@ -262,17 +262,14 @@ def execute_search(args, parser):
             features = r.features(dist)
 
             if not context.json:
-                try:
-                    print('%-25s %s  %-15s %15s  %-15s %s' % (
-                        disp_name, inst,
-                        pkg.version,
-                        pkg.build,
-                        pkg.schannel,
-                        disp_features(features),
-                        ))
-                    disp_name = ''
-                except KeyError:
-                    import pdb; pdb.set_trace()
+                print('%-25s %s  %-15s %15s  %-15s %s' % (
+                    disp_name, inst,
+                    pkg.version,
+                    pkg.build,
+                    pkg.schannel,
+                    disp_features(features),
+                    ))
+                disp_name = ''
             else:
                 data = {}
                 data.update(pkg.info.dump())

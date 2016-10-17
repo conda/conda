@@ -23,8 +23,6 @@ from ..models.dist import Dist
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
 
-
-
 # ------- package cache ----- construction
 
 # The current package cache does not support the ability to store multiple packages

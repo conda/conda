@@ -218,11 +218,11 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    dist = Dist(pkg[1:])
+                    name, version, build, channel = Dist(pkg[1:]).quad
                     if pkg.startswith('+'):
-                        added[name.lower()] = (dist.version, dist.build, dist.channel)
+                        added[name.lower()] = (version, build, channel)
                     elif pkg.startswith('-'):
-                        removed[name.lower()] = (dist.version, dist.build, dist.channel)
+                        removed[name.lower()] = (version, build, channel)
 
                 changed = set(added) & set(removed)
                 for name in sorted(changed):
