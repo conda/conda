@@ -604,7 +604,8 @@ def remove_features_actions(prefix, index, features):
                 to_link.append(subst[:-8])
 
     if to_link:
-        actions.update(ensure_linked_actions(to_link, prefix))
+        dists = (Dist(d) for d in to_link)
+        actions.update(ensure_linked_actions(dists, prefix))
     return actions
 
 
@@ -622,18 +623,21 @@ def revert_actions(prefix, revision=-1, index=None):
     if state == curr:
         return {}
 
-    actions = ensure_linked_actions(state, prefix)
+    dists = (Dist(s) for s in state)
+    actions = ensure_linked_actions(dists, prefix)
     for dist in curr - state:
-        add_unlink(actions, dist)
+        add_unlink(actions, Dist(dist))
 
     # check whether it is a safe revision
     from .instructions import split_linkarg, LINK, UNLINK, FETCH
     from .exceptions import CondaRevisionError
-    for arg in set(actions.get(LINK,
-                               []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
-        dist, lt = split_linkarg(arg)
-        fkey = dist + '.tar.bz2'
-        if fkey not in index:
+    for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
+        if isinstance(arg, Dist):
+            dist = arg
+        else:
+            dist, lt = split_linkarg(arg)
+            dist = Dist(dist)
+        if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
