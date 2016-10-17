@@ -73,6 +73,9 @@ class Dist(Entity):
         else:
             return self.dist_name + extension
 
+    def to_matchspec(self):
+        return ' '.join(self.quad[:3])
+
     @classmethod
     def from_string(cls, string, channel_override=None):
         string = text_type(string)

@@ -155,11 +155,11 @@ def install(args, parser, command='install'):
 """ % prefix)
 
     linked = install_linked(prefix)
-    lnames = linked
+    linked_dists = linked
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in lnames:
+            if name not in linked_dists:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
 
@@ -194,7 +194,7 @@ def install(args, parser, command='install'):
         if not linked:
             raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
-        specs.extend(nm for nm in lnames)
+        specs.extend(d.to_matchspec() for d in linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:
