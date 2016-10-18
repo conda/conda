@@ -1,4 +1,4 @@
-## 4.2.10 (unreleased)
+## 4.2.10 (2016-10-17)
 
 ### Improvements
 * add json output for `conda info -s` (#3588)
@@ -12,6 +12,11 @@
 * fix #3602 search channels by platform (#3629)
 * fix duplicated packages when updating environment (#3563)
 * fix #3590 exception when parsing invalid yaml (#3593 via #3634)
+* fix #3655 a string decoding error (#3656)
+
+### Non-User-Facing Changes
+* backport conda.exports module to 4.2.x (#3654)
+* travis-ci OSX fix (#3615 via #3657)
 
 
 ## 4.1.13 (unreleased)
