@@ -17,6 +17,7 @@ from functools import wraps
 from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
 from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+from warnings import warn
 
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
@@ -39,6 +40,10 @@ stdoutlog = getLogger('stdoutlog')
 stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
+
+# for conda-build backward compatibility
+handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
+                                     "Now handled by CondaSession.")
 
 
 def create_cache_dir():
