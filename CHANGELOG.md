@@ -1,4 +1,4 @@
-## 4.2.10 (2016-10-17)
+## 4.2.10 (2016-10-18)
 
 ### Improvements
 * add json output for `conda info -s` (#3588)
