@@ -6,6 +6,7 @@
 * allow conda config files to have .yaml extensions or 'condarc' anywhere in filename (#3633)
 
 ### Bug Fixes
+* fix conda-build's handle_proxy_407 import (#3666)
 * fix #3442, #3459, #3481, #3531, #3548 multiple networking and auth issues (#3550)
 * add back linux-ppc64le subdir support (#3584)
 * fix #3600 ensure links are removed when unlinking (#3625)
