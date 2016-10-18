@@ -1,9 +1,13 @@
 ## 4.3.0 (unreleased)
 
+### Deprecations/Breaking Changes
+* remove dead install_tar function (#3641)
+
 ### Improvements
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
 * imporoved solver hint detection, simplified filtering (#3597)
+* add multikey configuration validation (#3432)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
@@ -12,6 +16,7 @@
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
 * add conda.exports module (#3429)
+* apply PEP-8 to conda-env (#3653)
 
 
 ## 4.2.10 (unreleased)
