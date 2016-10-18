@@ -38,6 +38,10 @@ stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
 
+# for conda-build backward compatibility
+handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
+                                     "Now handled by CondaSession.")
+
 
 def create_cache_dir():
     cache_dir = join(context.pkgs_dirs[0], 'cache')
