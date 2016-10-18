@@ -52,6 +52,7 @@ from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
 from .models.record import Record, EMPTY_LINK, Link
 from .utils import on_win
+from .noarch import get_noarch_cls
 
 
 # conda-build compatibility
@@ -928,6 +929,10 @@ def is_linked(prefix, dist):
     return load_meta(prefix, dist)
 
 
+def link_noarch(prefix, meta_dict, src_dir, dist):
+    get_noarch_cls(meta_dict.get("noarch"))().link(prefix, src_dir, dist)
+
+
 def link(prefix, dist, linktype=LINK_HARD, index=None):
     """
     Set up a package in a specified (environment) prefix.  We assume that
@@ -954,24 +959,29 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         os.makedirs(prefix)
 
     with DirectoryLock(prefix), FileLock(source_dir):
-        for filepath in files:
-            src = join(source_dir, filepath)
-            dst = join(prefix, filepath)
-            dst_dir = dirname(dst)
-            if not isdir(dst_dir):
-                os.makedirs(dst_dir)
-            if os.path.exists(dst):
-                log.info("file exists, but clobbering: %r" % dst)
-                rm_rf(dst)
-            lt = linktype
-            if filepath in has_prefix_files or filepath in no_link or islink(src):
-                lt = LINK_COPY
+        meta_dict = index.get(dist + '.tar.bz2', {})
+        if meta_dict.get('noarch'):
+            link_noarch(prefix, meta_dict, source_dir, dist)
+        else:
+            for filepath in files:
+                src = join(source_dir, filepath)
+                dst = join(prefix, filepath)
+                dst_dir = dirname(dst)
+                if not isdir(dst_dir):
+                    os.makedirs(dst_dir)
+                if os.path.exists(dst):
+                    log.info("file exists, but clobbering: %r" % dst)
+                    rm_rf(dst)
+                lt = linktype
+                if filepath in has_prefix_files or filepath in no_link or islink(src):
+                    lt = LINK_COPY
 
-            try:
-                _link(src, dst, lt)
-            except OSError as e:
-                raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                                   (src, dst, lt, e))
+                try:
+                    if not meta_dict.get('noarch'):
+                        _link(src, dst, lt)
+                except OSError as e:
+                    raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
+                                       (src, dst, lt, e))
 
         for filepath in sorted(has_prefix_files):
             placeholder, mode = has_prefix_files[filepath]
@@ -994,7 +1004,6 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         if not run_script(prefix, dist, 'post-link'):
             raise LinkError("Error: post-link failed for: %s" % dist)
 
-        meta_dict = index.get(dist + '.tar.bz2', {})
         meta_dict['url'] = read_url(dist)
         alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
         if isfile(alt_files_path):
@@ -1040,10 +1049,18 @@ def unlink(prefix, dist):
         dst_dirs2.add(join(prefix, 'conda-meta'))
         dst_dirs2.add(prefix)
 
+        noarch = meta.get("noarch")
+        if noarch:
+            get_noarch_cls(noarch)().unlink(prefix, dist)
+
         # remove empty directories
         for path in sorted(dst_dirs2, key=len, reverse=True):
             if isdir(path) and not os.listdir(path):
                 rm_rf(path)
+
+        alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
+        if isfile(alt_files_path):
+            rm_rf(alt_files_path)
 
 
 def messages(prefix):
