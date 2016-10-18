@@ -5,7 +5,7 @@ from itertools import chain
 from logging import getLogger
 from requests.packages.urllib3.util import Url
 
-from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN
+from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, UTF8
 from ..base.context import context
 from ..common.compat import iteritems, odict, with_metaclass
 from ..common.url import (has_scheme, is_url, is_windows_path, join_url, on_win, path_to_url,
@@ -203,7 +203,9 @@ class Channel(object):
     def from_value(value):
         if value is None:
             return Channel(name="<unknown>")
-        elif has_scheme(value):
+        if hasattr(value, 'decode'):
+            value = value.decode(UTF8)
+        if has_scheme(value):
             if value.startswith('file:') and on_win:
                 value = value.replace('\\', '/')
             return Channel.from_url(value)
