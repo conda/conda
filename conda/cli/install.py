@@ -173,7 +173,7 @@ def install(args, parser, command='install'):
         if not linked_dists:
             raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
-        specs.extend(d.to_matchspec() for d in linked_dists)
+        specs.extend(d.quad[0] for d in linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:

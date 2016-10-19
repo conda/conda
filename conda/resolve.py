@@ -514,7 +514,8 @@ class Resolve(object):
             dist = Dist(fstr + '@')
             reduced_index[dist] = self.index[dist]
         while slist:
-            for dist in self.find_matches(slist.pop()):
+            this_spec = slist.pop()
+            for dist in self.find_matches(this_spec):
                 if reduced_index.get(dist) is None and self.valid(dist, filter):
                     reduced_index[dist] = self.index[dist]
                     for ms in self.ms_depends(dist):
@@ -536,14 +537,14 @@ class Resolve(object):
 
     def find_matches(self, ms):
         # type: (MatchSpec) -> List[Dist]
-        ms = MatchSpec(ms)
+        assert isinstance(ms, MatchSpec)
         res = self.find_matches_.get(ms, None)
         if res is None:
             if ms.name[0] == '@':
                 res = self.trackers.get(ms.name[1:], [])
             else:
-                res = self.groups.get(ms.name, [])
-                res = [p for p in res if self.match_fast(ms, p)]
+                res1 = self.groups.get(ms.name, [])
+                res = [p for p in res1 if self.match_fast(ms, p)]
             self.find_matches_[ms] = res
         assert all(isinstance(d, Dist) for d in res)
         return res
