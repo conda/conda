@@ -11,6 +11,7 @@ from collections import defaultdict
 from conda.base.constants import DEFAULTS
 from conda.core.package_cache import cached_url, is_fetched, is_extracted, find_new_location
 from conda.models.dist import Dist
+from conda.models.record import Record
 from os.path import (abspath, dirname, expanduser, exists,
                      isdir, isfile, islink, join, relpath, curdir)
 
@@ -56,7 +57,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     linked = {dist.dist_name: dist for dist in install_linked(prefix)}
     index_args = index_args or {}
     index = index or {}
-    verifies = []
+    verifies = []  # List[Tuple(filename, md5)]
     channels = set()
     for spec in specs:
         if spec == '@EXPLICIT':
@@ -92,7 +93,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         dist = Dist(fn[:-8])
         # Add explicit file to index so we'll be sure to see it later
         if is_local:
-            index[dist] = {'fn': dist.to_filename(), 'url': url, 'md5': md5}
+            index[dist] = Record(**{'fn': dist.to_filename(), 'url': url, 'md5': md5})
             verifies.append((fn, md5))
 
         pkg_path = is_fetched(dist)
@@ -115,11 +116,11 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 pkg_path, conflict = find_new_location(dist)
                 pkg_path = join(pkg_path, dist.to_filename())
                 if conflict:
-                    actions[RM_FETCHED].append(conflict)
+                    actions[RM_FETCHED].append(Dist(conflict))
                 if not is_local:
                     if dist not in index or index[dist].get('not_fetched'):
                         channels.add(schannel)
-                    verifies.append((dist + '.tar.bz2', md5))
+                    verifies.append((dist.to_filename(), md5))
                 actions[FETCH].append(dist)
             actions[EXTRACT].append(dist)
 

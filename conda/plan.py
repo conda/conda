@@ -303,6 +303,7 @@ def plan_from_actions(actions):
 # supplying an index and setting force=True
 def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):
+    assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
@@ -338,7 +339,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             fetched_in, conflict = find_new_location(dist)
             fetched_in = join(fetched_in, dist.to_filename())
             if conflict is not None:
-                actions[inst.RM_FETCHED].append(conflict)
+                actions[inst.RM_FETCHED].append(Dist(conflict))
             actions[inst.FETCH].append(dist)
 
         if not extracted_in:

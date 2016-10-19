@@ -55,15 +55,18 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
+    assert isinstance(arg, Dist)
     if not is_extracted(arg):
         extract(arg)
 
 
 def RM_EXTRACTED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_extracted(arg)
 
 
 def RM_FETCHED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_fetched(arg)
 
 
