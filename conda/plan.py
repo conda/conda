@@ -18,6 +18,7 @@ from os.path import abspath, basename, dirname, exists, join
 from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
+from .common.compat import text_type
 from .common.disk import rm_rf
 from .core.linked_data import is_linked
 from .core.package_cache import find_new_location, is_fetched
@@ -272,7 +273,7 @@ def plan_from_actions(actions):
             if op in actions:
                 pkgs = []
                 for pkg in actions[op]:
-                    if 'menuinst' in pkg:
+                    if 'menuinst' in text_type(pkg):
                         res.append((op, pkg))
                     else:
                         pkgs.append(pkg)
