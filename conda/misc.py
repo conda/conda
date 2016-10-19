@@ -93,7 +93,16 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         dist = Dist(fn[:-8])
         # Add explicit file to index so we'll be sure to see it later
         if is_local:
-            index[dist] = Record(**{'fn': dist.to_filename(), 'url': url, 'md5': md5})
+            index[dist] = Record(**{
+                'fn': dist.to_filename(),
+                'url': url,
+                'md5': md5,
+                'build': dist.quad[2],
+                'build_number': dist.build_number(),
+                'name': dist.quad[0],
+                'version': dist.quad[1],
+
+            })
             verifies.append((fn, md5))
 
         pkg_path = is_fetched(dist)

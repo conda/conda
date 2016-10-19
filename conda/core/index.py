@@ -8,6 +8,7 @@ import requests
 import warnings
 from functools import wraps
 from logging import DEBUG, getLogger
+from os import makedirs
 from os.path import dirname, join
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -22,7 +23,6 @@ from ..common.compat import iteritems, itervalues
 from ..common.url import join_url, url_to_path
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
-from ..fetch import create_cache_dir
 from ..lock import FileLock
 from ..models.channel import Channel, offline_keep, prioritize_channels
 from ..models.dist import Dist
@@ -376,3 +376,12 @@ def add_pip_dependency(index):
     for info in itervalues(index):
         if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
             info['depends'] = info['depends'] + ('pip',)
+
+
+def create_cache_dir():
+    cache_dir = join(context.pkgs_dirs[0], 'cache')
+    try:
+        makedirs(cache_dir)
+    except OSError:
+        pass
+    return cache_dir

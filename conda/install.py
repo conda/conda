@@ -52,6 +52,10 @@ from .utils import on_win
 
 
 # conda-build compatibility
+from .common.disk import delete_trash, move_path_to_trash  # NOQA
+delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
+from .core.linked_data import is_linked, linked, linked_data  # NOQA
+is_linked, linked, linked_data = is_linked, linked, linked_data
 
 
 if on_win:

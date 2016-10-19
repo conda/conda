@@ -5,29 +5,21 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
 import shutil
 import tempfile
 from logging import getLogger
 from os.path import basename, join
 from warnings import warn
 
-from .base.context import context
-
 log = getLogger(__name__)
 
 # for conda-build backward compatibility
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
-
-
-def create_cache_dir():
-    cache_dir = join(context.pkgs_dirs[0], 'cache')
-    try:
-        os.makedirs(cache_dir)
-    except OSError:
-        pass
-    return cache_dir
+from .core.package_cache import download  # NOQA
+download = download
+from .core.index import fetch_index  # NOQA
+fetch_index = fetch_index
 
 
 class TmpDownload(object):
