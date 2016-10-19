@@ -56,8 +56,11 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
     # conda uses ruamel_yaml which returns a ruamel_yaml.comments.CommentedSeq
     # this doesn't dump correctly using pyyaml
-    channels = context.channels
-
+    channels = list(context.channels)
+    if not ignore_channels:
+        for dist in installed:
+            if dist.channel not in channels:
+                channels.insert(0, dist.channel)
     return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
 
 
