@@ -11,7 +11,8 @@ give away, or further distribute your email address to third parties.
 * No corporate marketing hype.
 * No spam.
 
-Archived announcements can be found `here <http://us13.campaign-archive1.com/home/?u=28f85eefa68de727efcbd93f9&id=cb4ca49e7d>`_.
+For convenience, we use MailChimp to manage subscriptions. Archived announcements
+can be found `here <http://us13.campaign-archive1.com/home/?u=28f85eefa68de727efcbd93f9&id=cb4ca49e7d>`_.
 
 .. raw:: html
 
@@ -33,11 +34,11 @@ Archived announcements can be found `here <http://us13.campaign-archive1.com/hom
    </div>
    <div class="mc-field-group">
     <label for="mce-NAME">Name </label>
-    <input type="text" value="" name="NAME" class="" id="mce-NAME">
+    <input type="text" value="" name="NAME" class="" id="mce-NAME" placeholder="(optional)">
    </div>
    <div class="mc-field-group">
     <label for="mce-AFFILIATIO">Affiliations (e.g. Company, Projects) </label>
-    <input type="text" value="" name="AFFILIATIO" class="" id="mce-AFFILIATIO">
+    <input type="text" value="" name="AFFILIATIO" class="" id="mce-AFFILIATIO" placeholder="(optional)">
    </div>
     <div id="mce-responses" class="clear">
         <div class="response" id="mce-error-response" style="display:none"></div>
