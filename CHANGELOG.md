@@ -1,9 +1,13 @@
 ## 4.3.0 (unreleased)
 
+### Deprecations/Breaking Changes
+* remove dead install_tar function (#3641)
+
 ### Improvements
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
 * imporoved solver hint detection, simplified filtering (#3597)
+* add multikey configuration validation (#3432)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
@@ -12,9 +16,10 @@
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
 * add conda.exports module (#3429)
+* apply PEP-8 to conda-env (#3653)
 
 
-## 4.2.10 (unreleased)
+## 4.2.10 (2016-10-18)
 
 ### Improvements
 * add json output for `conda info -s` (#3588)
@@ -22,12 +27,18 @@
 * allow conda config files to have .yaml extensions or 'condarc' anywhere in filename (#3633)
 
 ### Bug Fixes
+* fix conda-build's handle_proxy_407 import (#3666)
 * fix #3442, #3459, #3481, #3531, #3548 multiple networking and auth issues (#3550)
 * add back linux-ppc64le subdir support (#3584)
 * fix #3600 ensure links are removed when unlinking (#3625)
 * fix #3602 search channels by platform (#3629)
 * fix duplicated packages when updating environment (#3563)
 * fix #3590 exception when parsing invalid yaml (#3593 via #3634)
+* fix #3655 a string decoding error (#3656)
+
+### Non-User-Facing Changes
+* backport conda.exports module to 4.2.x (#3654)
+* travis-ci OSX fix (#3615 via #3657)
 
 
 ## 4.1.13 (unreleased)

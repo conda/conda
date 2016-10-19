@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from warnings import warn
-
 from functools import partial
+from warnings import warn
 
 from conda import compat, plan
 compat = compat

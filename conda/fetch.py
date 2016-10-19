@@ -10,10 +10,15 @@ import shutil
 import tempfile
 from logging import getLogger
 from os.path import basename, join
+from warnings import warn
 
 from .base.context import context
 
 log = getLogger(__name__)
+
+# for conda-build backward compatibility
+handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
+                                     "Now handled by CondaSession.")
 
 
 def create_cache_dir():
