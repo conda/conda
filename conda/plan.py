@@ -12,22 +12,21 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 from collections import defaultdict
-from .base.constants import DEFAULTS
-from .common.disk import rm_rf
-from .compat import string_types
-from .core.linked_data import is_linked
-from .core.package_cache import is_fetched, find_new_location
-from .models.dist import Dist
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
 from . import instructions as inst
+from .base.constants import DEFAULTS
 from .base.context import context
+from .common.disk import rm_rf
+from .core.linked_data import is_linked
+from .core.package_cache import find_new_location, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
 from .history import History
 from .install import LINK_COPY, LINK_HARD, LINK_SOFT, is_extracted, link_name_map, try_hard_link
 from .models.channel import Channel
+from .models.dist import Dist
 from .resolve import MatchSpec, Package, Resolve
 from .utils import human_bytes, md5_file, on_win
 
