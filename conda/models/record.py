@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField, StringField)
+                                     EnumField, IntegerField, ListField, StringField, MapField)
 from ..base.constants import Arch, Platform
 from ..common.compat import string_types
 
@@ -58,7 +58,7 @@ class Record(DictSafeMixin, Entity):
     track_features = StringField(required=False)
     version = StringField()
 
-    fn = StringField(required=False)
+    fn = StringField(required=False, nullable=True)
     schannel = StringField(required=False, nullable=True)
     channel = StringField(required=False, nullable=True)
     priority = IntegerField(required=False)
@@ -67,3 +67,5 @@ class Record(DictSafeMixin, Entity):
 
     files = ListField(string_types, default=(), required=False)
     link = ComposableField(Link, required=False)
+
+    with_features_depends = MapField(required=False)

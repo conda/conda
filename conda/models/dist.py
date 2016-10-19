@@ -5,7 +5,7 @@ import re
 from logging import getLogger
 
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
-from ..base.constants import DEFAULTS
+from ..base.constants import DEFAULTS, UTF8
 from ..common.compat import text_type, with_metaclass
 from ..models.record import Record
 
@@ -55,7 +55,10 @@ class Dist(Entity):
         return parts[0], parts[1], parts[2], self.channel or DEFAULTS
 
     def build_number(self):
-        n = self.quad[2].rsplit('_')[-1] or 0
+        n = self.quad[2].rsplit('_')[-1]
+        if hasattr(n, 'decode'):
+            n = n.decode(UTF8)
+        n = int(n) if n.isdigit() else 0
         return int(n)
 
     def __str__(self):
