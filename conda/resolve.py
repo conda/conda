@@ -534,7 +534,7 @@ class Resolve(object):
         return ms.match_fast(rec['version'], rec['build'])
 
     def find_matches(self, ms):
-        # returns List[Dist]
+        # type: (MatchSpec) -> List[Dist]
         ms = MatchSpec(ms)
         res = self.find_matches_.get(ms, None)
         if res is None:
@@ -544,10 +544,11 @@ class Resolve(object):
                 res = self.groups.get(ms.name, [])
                 res = [p for p in res if self.match_fast(ms, p)]
             self.find_matches_[ms] = res
+        assert all(isinstance(d, Dist) for d in res)
         return res
 
     def ms_depends(self, dist):
-        # returns List[MatchSpec]
+        # type: (Dist) -> List[MatchSpec]
         assert isinstance(dist, Dist)
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
@@ -719,10 +720,11 @@ class Resolve(object):
         return eqv, eqb
 
     def dependency_sort(self, must_have):
-        # must_have: Dict[package_name, Dist]
+        # type: (Dict[package_name, Dist]) -> List[Dist]
+        assert isinstance(must_have, dict)
+        assertion = lambda k, v: isinstance(k, string_types) and isinstance(v, Dist)
+        assert all(assertion(*item) for item in iteritems(must_have))
 
-        if not isinstance(must_have, dict):
-            must_have = {self.package_name(dist): dist for dist in must_have}
         digraph = {}
         for key, dist in iteritems(must_have):
             if dist in self.index:
@@ -735,6 +737,7 @@ class Resolve(object):
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
         # Take any key that were not sorted
         result.extend(must_have.values())
+        assert all(isinstance(d, Dist) for d in result)
         return result
 
     def explicit(self, specs):

@@ -207,14 +207,17 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.INSTALL, prefix, 'flask=0.10')
             assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
 
             # Test force reinstall
             run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10')
             assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
 
             run_command(Commands.UPDATE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
 
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.')

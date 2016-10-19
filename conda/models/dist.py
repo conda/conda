@@ -2,13 +2,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import re
-
-from conda.base.constants import DEFAULTS
-from conda.models.record import Record
 from logging import getLogger
 
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
+from ..base.constants import DEFAULTS
 from ..common.compat import text_type, with_metaclass
+from ..models.record import Record
 
 log = getLogger(__name__)
 
@@ -105,13 +104,26 @@ class Dist(Entity):
         return (self.channel, self.dist_name, self.with_features_depends)
 
     def __lt__(self, other):
+        assert isinstance(other, self.__class__)
         return self.__key__() < other.__key__()
 
     def __gt__(self, other):
+        assert isinstance(other, self.__class__)
         return self.__key__() > other.__key__()
+
+    def __le__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() <= other.__key__()
+
+    def __ge__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() >= other.__key__()
 
     def __hash__(self):
         return hash(self.__key__())
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__key__() == other.__key__()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)

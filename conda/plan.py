@@ -423,13 +423,12 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             continue
 
         if name in names_linked:
-            # if Python/Numpy is already linked, we add that instead of the
-            # default
+            # if Python/Numpy is already linked, we add that instead of the default
             log.debug('H3 %s' % name)
-            fkey = names_linked[name]
-            info = r.index[fkey]
+            dist = Dist(names_linked[name])
+            info = r.index[dist]
             ver = '.'.join(info['version'].split('.', 2)[:2])
-            spec = '%s %s* (target=%s)' % (info['name'], ver, fkey)
+            spec = '%s %s* (target=%s)' % (info['name'], ver, dist)
             specs.append(spec)
             continue
 
