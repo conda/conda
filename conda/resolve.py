@@ -785,8 +785,9 @@ class Resolve(object):
         match the installed packages as closely as possible.
         If no substitute is found, None is returned.
         """
-        d = Dist(fn)
-        name, version, unused_bld, schannel = self.package_quad(d)
+        assert all(isinstance(d, Dist) for d in installed)
+        dist = Dist(fn)
+        name, version, unused_bld, schannel = self.package_quad(dist)
         candidates = {}
         for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
             fn1 = pkg.dist
