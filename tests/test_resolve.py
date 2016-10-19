@@ -524,38 +524,38 @@ def test_nonexistent():
 
 def test_nonexistent_deps():
     index2 = index.copy()
-    index2['mypackage-1.0-py33_0.tar.bz2'] = {
+    index2['mypackage-1.0-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
         'name': 'mypackage',
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
-    }
-    index2['mypackage-1.1-py33_0.tar.bz2'] = {
+    })
+    index2['mypackage-1.1-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*'],
         'name': 'mypackage',
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
-    }
-    index2['anotherpackage-1.0-py33_0.tar.bz2'] = {
+    })
+    index2['anotherpackage-1.0-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage 1.1'],
         'name': 'anotherpackage',
         'requires': ['nose', 'mypackage 1.1'],
         'version': '1.0',
-    }
-    index2['anotherpackage-2.0-py33_0.tar.bz2'] = {
+    })
+    index2['anotherpackage-2.0-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage'],
         'name': 'anotherpackage',
         'requires': ['nose', 'mypackage'],
         'version': '2.0',
-    }
+    })
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
@@ -625,38 +625,38 @@ def test_nonexistent_deps():
 
     # This time, the latest version is messed up
     index3 = index.copy()
-    index3['mypackage-1.1-py33_0.tar.bz2'] = {
+    index3['mypackage-1.1-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
         'name': 'mypackage',
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
-    }
-    index3['mypackage-1.0-py33_0.tar.bz2'] = {
+    })
+    index3['mypackage-1.0-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*'],
         'name': 'mypackage',
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
-    }
-    index3['anotherpackage-1.0-py33_0.tar.bz2'] = {
+    })
+    index3['anotherpackage-1.0-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage 1.0'],
         'name': 'anotherpackage',
         'requires': ['nose', 'mypackage 1.0'],
         'version': '1.0',
-    }
-    index3['anotherpackage-2.0-py33_0.tar.bz2'] = {
+    })
+    index3['anotherpackage-2.0-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage'],
         'name': 'anotherpackage',
         'requires': ['nose', 'mypackage'],
         'version': '2.0',
-    }
+    })
     index3 = {Dist(key): value for key, value in iteritems(index3)}
     r = Resolve(index3)
 
@@ -728,22 +728,22 @@ def test_nonexistent_deps():
 
 def test_install_package_with_feature():
     index2 = index.copy()
-    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = {
+    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = Record(**{
         'build': 'featurepy33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
         'name': 'mypackage',
         'version': '1.0',
         'features': 'feature',
-    }
-    index2['feature-1.0-py33_0.tar.bz2'] = {
+    })
+    index2['feature-1.0-py33_0.tar.bz2'] = Record(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
         'name': 'feature',
         'version': '1.0',
         'track_features': 'feature',
-    }
+    })
 
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
@@ -754,22 +754,22 @@ def test_install_package_with_feature():
 
 def test_circular_dependencies():
     index2 = index.copy()
-    index2['package1-1.0-0.tar.bz2'] = {
+    index2['package1-1.0-0.tar.bz2'] = Record(**{
         'build': '0',
         'build_number': 0,
         'depends': ['package2'],
         'name': 'package1',
         'requires': ['package2'],
         'version': '1.0',
-    }
-    index2['package2-1.0-0.tar.bz2'] = {
+    })
+    index2['package2-1.0-0.tar.bz2'] = Record(**{
         'build': '0',
         'build_number': 0,
         'depends': ['package1'],
         'name': 'package2',
         'requires': ['package1'],
         'version': '1.0',
-    }
+    })
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
@@ -876,8 +876,7 @@ def test_no_features():
             ]]]
 
     index2 = index.copy()
-    index2["pandas-0.12.0-np16py27_0.tar.bz2"] = \
-        {
+    index2["pandas-0.12.0-np16py27_0.tar.bz2"] = Record(**{
             "build": "np16py27_0",
             "build_number": 0,
             "depends": [
@@ -894,10 +893,9 @@ def test_no_features():
               "pytz"
             ],
             "version": "0.12.0"
-        }
+        })
     # Make it want to choose the pro version by having it be newer.
-    index2["numpy-1.6.2-py27_p5.tar.bz2"] = \
-        {
+    index2["numpy-1.6.2-py27_p5.tar.bz2"] = Record(**{
             "build": "py27_p5",
             "build_number": 5,
             "depends": [
@@ -912,7 +910,7 @@ def test_no_features():
               "python 2.7"
             ],
             "version": "1.6.2"
-        }
+        })
 
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r2 = Resolve(index2)
