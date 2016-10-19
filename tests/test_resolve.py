@@ -7,12 +7,13 @@ from conda.base.context import reset_context
 from conda.common.compat import iteritems, text_type
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
+from conda.models.record import Record
 from conda.resolve import MatchSpec, Package, Resolve
 from os.path import dirname, join
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(key): value for key, value in iteritems(json.load(fi))}
+    index = {Dist(key): Record(**value) for key, value in iteritems(json.load(fi))}
 
 r = Resolve(index)
 

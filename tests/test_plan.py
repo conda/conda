@@ -1,5 +1,6 @@
 import os
 from conda.models.dist import Dist
+from conda.models.record import Record
 
 from contextlib import contextmanager
 import sys
@@ -28,7 +29,7 @@ from .decorators import skip_if_no_mock
 from .helpers import mock
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(k): v for k, v in iteritems(json.load(fi))}
+    index = {Dist(k): Record(**v) for k, v in iteritems(json.load(fi))}
     r = Resolve(index)
 
 
