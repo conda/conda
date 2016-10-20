@@ -10,113 +10,9 @@ from stat import S_IREAD, S_IWRITE
 
 from ..common.disk import rm_rf
 from ..common.url import quote_plus, unquote_plus
+from .._vendor.appdirs import AppDirs, EnvAppDirs
 
 log = getLogger(__name__)
-
-
-# def binstar_load_token(binstar_api_url):
-#     if not binstar_api_url:
-#         return None
-#     try:
-#         from binstar_client.utils import load_token
-#         return load_token(binstar_api_url)
-#     except ImportError:
-#         log.debug("Cannot get binstar token for %s because anaconda-client is not "
-#                   "available.", binstar_api_url)
-#         return None
-#     except Exception as e:
-#         log.info("Exception occurred loading binstar token for url %s.\n%r",
-#                  binstar_api_url, e)
-#         return None
-#
-#
-# def get_binstar_client(anaconda_site):
-#     try:
-#         from binstar_client.utils import get_server_api
-#         with captured():
-#             return get_server_api(site=anaconda_site)
-#     except ImportError:
-#         log.debug("Could not import binstar_client.")
-#         return None
-#
-#
-# def get_conda_url_from_binstar_api(url):
-#     # TODO: Need to respect context.offline
-#     try:
-#         with warnings.catch_warnings():
-#             warnings.simplefilter("ignore", InsecureRequestWarning)
-#             r = get(url, timeout=(3.05, 6.1), headers={'Content-Type': 'application/json'},
-#                     verify=False)  # We'll respect context.ssl_verify on all other calls
-#         r.raise_for_status()
-#         return r.json()['conda_url']
-#     except Exception as e:  # NOQA
-#         log.debug("%r", e)
-#         return None
-#
-#
-# def get_binstar_server_url_pair(url):
-#     # Technically this is core logic, but let's keep anaconda_client logic isolated
-#     # to this module.
-#
-#     # Step 1. Try url as given
-#     result = get_conda_url_from_binstar_api(url)
-#     if result:
-#         return url, result
-#
-#     url_parts = urlparse(url)
-#
-#     # Step 2. Try url with /api prepended to path
-#     test_url = replace_path(url_parts, '/api' + url_parts.path if url_parts.path else '/api').url
-#     result = get_conda_url_from_binstar_api(test_url)
-#     if result:
-#         return test_url, result
-#
-#     # Step 3. If host is a domain name (not an IP address), try api.{url}
-#     if not is_ip_address(url_parts.host):
-#         test_url = replace_host(url_parts, 'api.' + url_parts.host)
-#         result = get_conda_url_from_binstar_api(test_url)
-#         if result:
-#             return test_url, result
-#
-#     # Step 4. Replace first occurrence of "conda" with "api"
-#     #         Note: Dangerous since users could legitimately have /conda in this url
-#     test_url = replace_first_conda_with_api(url)
-#     result = get_conda_url_from_binstar_api(test_url)
-#     if result:
-#         return test_url, result
-#
-#     # Step 5. No options left. The url is not associated with an Anaconda Server API.
-#     return None, url
-#
-#
-# def get_binstar_domain_and_token_for_site(anaconda_site):
-#     bs_client = get_binstar_client(anaconda_site)
-#     return bs_client.domain, bs_client.token
-#
-#
-# def get_channel_url_components(channel_url):
-#     # try to extract a binstar api token from the url
-#     cleaned_url, token = split_anaconda_token(channel_url)
-#     if token:
-#         # a token was given in the channel_url
-#         # remove it and handle it separately
-#         binstar_api_url, conda_repo_url = get_binstar_server_url_pair(cleaned_url)
-#     else:
-#         # try to get token from anaconda client
-#         binstar_api_url, conda_repo_url = get_binstar_server_url_pair(channel_url)
-#         token = binstar_load_token(binstar_api_url)
-#     return binstar_api_url, conda_repo_url, token
-#
-#
-# def get_anaconda_site_components(anaconda_site):
-#     binstar_domain, token = get_binstar_domain_and_token_for_site(anaconda_site)
-#     binstar_api_url, conda_repo_url = get_binstar_server_url_pair(binstar_domain)
-#     return binstar_api_url, conda_repo_url, token
-#
-#
-# def replace_first_conda_with_api(url):
-#     # replace first occurrence of 'conda' with 'api' in url
-#     return re.sub(r'([./])conda([./])', r'\1api\2', url, count=1)
 
 
 def replace_first_api_with_conda(url):
@@ -124,40 +20,35 @@ def replace_first_api_with_conda(url):
     return re.sub(r'([./])api([./])', r'\1conda\2', url, count=1)
 
 
+def _get_binstar_token_directory():
+    if 'BINSTAR_CONFIG_DIR' in os.environ:
+        return EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR']).user_data_dir
+    else:
+        return AppDirs('binstar', 'ContinuumIO').user_data_dir
+
+
 def read_binstar_tokens():
     tokens = dict()
-    try:
-        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
-    except ImportError:
+    token_dir = _get_binstar_token_directory()
+    if not isdir(token_dir):
         return tokens
 
-    if 'BINSTAR_CONFIG_DIR' in os.environ:
-        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
-    else:
-        dirs = AppDirs('binstar', 'ContinuumIO')
-    token_files = glob(join(dirs.user_data_dir, '*.token'))
+    token_files = glob(join(token_dir, '*.token'))
     for tkn_file in token_files:
         url = re.sub(r'\.token$', '', unquote_plus(basename(tkn_file)))
         with open(tkn_file) as f:
             token = f.read()
         tokens[url] = tokens[replace_first_api_with_conda(url)] = token
+
     return tokens
 
 
 def set_binstar_token(url, token):
-    try:
-        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
-    except ImportError:
-        raise
+    token_dir = _get_binstar_token_directory()
+    if not isdir(token_dir):
+        os.makedirs(token_dir)
 
-    if 'BINSTAR_CONFIG_DIR' in os.environ:
-        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
-    else:
-        dirs = AppDirs('binstar', 'ContinuumIO')
-
-    if not isdir(dirs.user_data_dir):
-        os.makedirs(dirs.user_data_dir)
-    tokenfile = join(dirs.user_data_dir, '%s.token' % quote_plus(url))
+    tokenfile = join(token_dir, '%s.token' % quote_plus(url))
 
     if isfile(tokenfile):
         os.unlink(tokenfile)
@@ -167,17 +58,8 @@ def set_binstar_token(url, token):
 
 
 def remove_binstar_token(url):
-    try:
-        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
-    except ImportError:
-        raise
-
-    if 'BINSTAR_CONFIG_DIR' in os.environ:
-        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
-    else:
-        dirs = AppDirs('binstar', 'ContinuumIO')
-
-    tokenfile = join(dirs.user_data_dir, '%s.token' % quote_plus(url))
+    token_dir = _get_binstar_token_directory()
+    tokenfile = join(token_dir, '%s.token' % quote_plus(url))
     rm_rf(tokenfile)
 
 
