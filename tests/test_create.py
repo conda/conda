@@ -746,6 +746,7 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+            reset_context()
 
     def test_anaconda_token_with_private_package(self):
         # TODO: should also write a test to use binstar_client to set the token,
