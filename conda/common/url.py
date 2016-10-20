@@ -10,12 +10,13 @@ from os.path import abspath, expanduser
 
 try:
     # Python 3
-    from urllib.parse import quote, unquote, urlunparse, urljoin  # NOQA
-    from urllib.request import pathname2url
+    from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
+                              urlunparse as stdlib_urlparse, urljoin)  # NOQA
+    from urllib.request import pathname2url  # NOQA
 except ImportError:
     # Python 2
-    from urllib import quote, unquote, pathname2url
-    from urlparse import urlunparse, urljoin  # NOQA
+    from urllib import quote, quote_plus, unquote, unquote_plus, pathname2url  # NOQA
+    from urlparse import urlunparse as stdlib_urlparse, urljoin  # NOQA
 
 from requests.packages.urllib3.exceptions import LocationParseError
 from requests.packages.urllib3.util.url import Url, parse_url
