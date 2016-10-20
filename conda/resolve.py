@@ -101,16 +101,15 @@ class MatchSpec(object):
     def _match_full(self, version, build):
         return self.build.match(build) and self.version.match(version)
 
-    def match(self, info):
-        if type(info) is dict:
-            name = info.get('name')
-            version = info.get('version')
-            build = info.get('build')
-        else:
-            name, version, build, schannel = Dist(info).quad
+    def match(self, dist):
+        # type: (Dist) -> bool
+        assert isinstance(dist, Dist)
+        name, version, build, _ = dist.quad
         if name != self.name:
             return False
-        return self.match_fast(version, build)
+        result = self.match_fast(version, build)
+        assert isinstance(result, bool), type(result)
+        return result
 
     def to_filename(self):
         if self.is_exact() and not self.optional:
@@ -528,8 +527,9 @@ class Resolve(object):
         n, v, b = rec['name'], rec['version'], rec['build']
         return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
 
-    def match(self, ms, fkey):
-        return MatchSpec(ms).match(self.index[fkey])
+    def match(self, ms, dist):
+        # type: (MatchSpec, Dist) -> bool
+        return MatchSpec(ms).match(dist)
 
     def match_fast(self, ms, fkey):
         rec = self.index[fkey]
@@ -566,7 +566,7 @@ class Resolve(object):
                 deps = [MatchSpec(d) for d in rec.get('depends', [])]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
-
+        assert all(isinstance(ms, MatchSpec) for ms in deps)
         return deps
 
     def depends_on(self, spec, target):
@@ -775,6 +775,8 @@ class Resolve(object):
         return res
 
     def sum_matches(self, fn1, fn2):
+        assert isinstance(fn1, Dist)
+        assert isinstance(fn2, Dist)
         return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
 
     def find_substitute(self, installed, features, fn):
