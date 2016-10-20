@@ -1,11 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
+from conda.models.dist import Dist
 from logging import getLogger
 
 from .base.context import context
-from .fetch import fetch_pkg
-from .install import (LINK_HARD, extract, is_extracted, link, messages, name_dist, rm_extracted,
-                      rm_fetched, symlink_conda, unlink)
+from conda.core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
+from .install import (LINK_HARD, link, messages, symlink_conda, unlink)
 
 
 log = getLogger(__name__)
@@ -44,7 +44,8 @@ def PRINT_CMD(state, arg):
 
 
 def FETCH_CMD(state, arg):
-    fetch_pkg(state['index'][arg + '.tar.bz2'])
+    assert isinstance(arg, Dist)
+    fetch_pkg(state['index'][arg])
 
 
 def PROGRESS_CMD(state, arg):
@@ -54,15 +55,18 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
+    assert isinstance(arg, Dist)
     if not is_extracted(arg):
         extract(arg)
 
 
 def RM_EXTRACTED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_extracted(arg)
 
 
 def RM_FETCHED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_fetched(arg)
 
 
@@ -74,13 +78,15 @@ def split_linkarg(arg):
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
+    dist = Dist(dist)
     log.debug("=======> LINKING %s <=======", dist)
     link(state['prefix'], dist, lt, index=state['index'])
 
 
 def UNLINK_CMD(state, arg):
     log.debug("=======> UNLINKING %s <=======", arg)
-    unlink(state['prefix'], arg)
+    dist = Dist(arg)
+    unlink(state['prefix'], dist)
 
 
 def SYMLINK_CONDA_CMD(state, arg):
@@ -127,7 +133,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((name_dist(arg),
+            getLogger('progress.update').info((Dist(arg).dist_name,
                                                state['i'] - 1))
         cmd = _commands[instruction]
 

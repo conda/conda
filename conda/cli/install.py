@@ -12,19 +12,19 @@ import os
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from .. import text_type
 from .._vendor.auxlib.ish import dals
-from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
+from ..common.compat import text_type
+from ..core.index import get_index
+from ..core.linked_data import is_linked, linked as install_linked
 from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
-from ..install import is_linked, linked as install_linked, name_dist
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
                     install_actions, is_root_prefix, nothing_to_do, revert_actions)
@@ -133,12 +133,12 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
-    linked = install_linked(prefix)
-    lnames = {name_dist(d) for d in linked}
+    linked_dists = install_linked(prefix)
+    linked_names = tuple(ld.quad[0] for ld in linked_dists)
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in lnames:
+            if name not in linked_names:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
 
@@ -170,10 +170,10 @@ def install(args, parser, command='install'):
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
     elif getattr(args, 'all', False):
-        if not linked:
+        if not linked_dists:
             raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
-        specs.extend(nm for nm in lnames)
+        specs.extend(d.quad[0] for d in linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:
@@ -210,12 +210,12 @@ def install(args, parser, command='install'):
                       prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
-    add_defaults_to_specs(r, linked, specs, update=isupdate)
+    add_defaults_to_specs(r, linked_dists, specs, update=isupdate)
 
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
-        installed_metadata = [is_linked(prefix, dist) for dist in linked]
+        installed_metadata = [is_linked(prefix, dist) for dist in linked_dists]
         for name in orig_packages:
             vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]

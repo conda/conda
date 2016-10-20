@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from conda.exports import text_type
 from contextlib import contextmanager
 from logging import getLogger, Handler
 from os.path import exists, join
@@ -13,10 +14,10 @@ from uuid import uuid4
 import mock
 
 from conda.cli import conda_argparse
-from conda.install import linked as install_linked, dist2dirname
 from conda.install import on_win
 from conda_env.cli.main_create import configure_parser as create_configure_parser
 from conda_env.cli.main_update import configure_parser as update_configure_parser
+from conda.core.linked_data import linked
 
 from . import utils
 
@@ -77,18 +78,18 @@ def make_temp_envs_dir():
         rmtree(envs_dir, ignore_errors=True)
 
 
-def package_is_installed(prefix, package, exact=False):
-    packages = list(install_linked(prefix))
-    if '::' not in package:
-        packages = list(map(dist2dirname, packages))
+def package_is_installed(prefix, dist, exact=False):
+    packages = list(linked(prefix))
+    if '::' not in text_type(dist):
+        packages = [p.dist_name for p in packages]
     if exact:
-        return package in packages
-    return any(p.startswith(package) for p in packages)
+        return dist in packages
+    return any(p.startswith(dist) for p in packages)
 
 
 def assert_package_is_installed(prefix, package, exact=False):
     if not package_is_installed(prefix, package, exact):
-        print(list(install_linked(prefix)))
+        print(list(linked(prefix)))
         raise AssertionError("package {0} is not in prefix".format(package))
 
 

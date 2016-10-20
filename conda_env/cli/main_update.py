@@ -76,7 +76,7 @@ def execute(args, parser):
         spec = install_specs.detect(name=name, filename=args.file,
                                     directory=os.getcwd())
         env = spec.environment
-    except exceptions.SpecNotFound as e:
+    except exceptions.SpecNotFound:
         raise
 
     if not args.name:

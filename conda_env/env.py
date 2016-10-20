@@ -1,20 +1,15 @@
 from __future__ import absolute_import, print_function
-from collections import OrderedDict
-from copy import copy
-import os
 
-# TODO This should never have to import from conda.cli
+import os
+from collections import OrderedDict
+from conda.base.context import context
+from conda.cli import common  # TODO: this should never have to import form conda.cli
+from conda.core.linked_data import linked
+from copy import copy
 from itertools import chain
 
-from conda.cli import common
-from conda import install
-from conda.base.context import context
-
-from . import compat
-from . import exceptions
-from . import yaml
-from conda_env.pip_util import add_pip_installed
-
+from . import compat, exceptions, yaml
+from .pip_util import add_pip_installed
 
 def load_from_directory(directory):
     """Load and return an ``Environment`` from a given ``directory``"""
@@ -46,7 +41,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     Returns:     Environment obejct
 
     """
-    installed = install.linked(prefix, ignore_channels=ignore_channels)
+    installed = linked(prefix, ignore_channels=ignore_channels)
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed
     add_pip_installed(prefix, installed, json=True)
@@ -54,15 +49,18 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     pip_pkgs = sorted(installed - conda_pkgs)
 
     if no_builds:
-        dependencies = ['='.join(a.rsplit('-', 2)[0:2]) for a in sorted(conda_pkgs)]
+        dependencies = ['='.join(a.quad[0:3]) for a in sorted(conda_pkgs)]
     else:
-        dependencies = ['='.join(a.rsplit('-', 2)) for a in sorted(conda_pkgs)]
+        dependencies = ['='.join(a.quad[0:3]) for a in sorted(conda_pkgs)]
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
     # conda uses ruamel_yaml which returns a ruamel_yaml.comments.CommentedSeq
     # this doesn't dump correctly using pyyaml
-    channels = context.channels
-
+    channels = list(context.channels)
+    if not ignore_channels:
+        for dist in installed:
+            if dist.channel not in channels:
+                channels.insert(0, dist.channel)
     return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
 
 

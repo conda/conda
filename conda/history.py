@@ -1,8 +1,7 @@
-from __future__ import print_function, division, absolute_import
-
-import json
+from __future__ import absolute_import, division, print_function
 
 import errno
+import json
 import logging
 import os
 import re
@@ -11,8 +10,10 @@ import time
 import warnings
 from os.path import isdir, isfile, join
 
-from .install import linked, dist2quad
-from .exceptions import CondaHistoryError, CondaFileIOError
+from .base.constants import DEFAULTS
+from .core.linked_data import linked
+from .exceptions import CondaFileIOError, CondaHistoryError
+from .models.dist import Dist
 
 log = logging.getLogger(__name__)
 
@@ -35,8 +36,9 @@ def pretty_diff(diff):
     removed = {}
     for s in diff:
         fn = s[1:]
-        name, version, _, channel = dist2quad(fn)
-        if channel != 'defaults':
+        dist = Dist(fn)
+        name, version, _, channel = dist.quad
+        if channel != DEFAULTS:
             version += ' (%s)' % channel
         if s.startswith('-'):
             removed[name.lower()] = version
@@ -216,7 +218,7 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    name, version, build, channel = dist2quad(pkg[1:])
+                    name, version, build, channel = Dist(pkg[1:]).quad
                     if pkg.startswith('+'):
                         added[name.lower()] = (version, build, channel)
                     elif pkg.startswith('-'):

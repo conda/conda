@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import errno
 import sys
 from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
@@ -193,8 +194,8 @@ def rm_rf(path, max_retries=5, trash=True):
             finally:
                 # If path was removed, ensure it's not in linked_data_
                 if islink(path) or isfile(path):
-                    from conda.install import delete_linked_data_any
-                    delete_linked_data_any(path)
+                    from ..core.linked_data import delete_prefix_from_linked_data
+                    delete_prefix_from_linked_data(path)
         if lexists(path):
             try:
                 backoff_unlink(path)
@@ -270,8 +271,32 @@ def move_path_to_trash(path, preclean=True):
             log.debug("Could not move %s to %s.\n%r", path, trash_file, e)
         else:
             log.debug("Moved to trash: %s", path)
-            from ..install import delete_linked_data_any
-            delete_linked_data_any(path)
+            from ..core.linked_data import delete_prefix_from_linked_data
+            delete_prefix_from_linked_data(path)
             return True
 
     return False
+
+
+def yield_lines(path):
+    """Generator function for lines in file.  Empty generator if path does not exist.
+
+    Args:
+        path (str): path to file
+
+    Returns:
+        iterator: each line in file, not starting with '#'
+
+    """
+    try:
+        with open(path) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                yield line
+    except (IOError, OSError) as e:
+        if e.errno == errno.ENOENT:
+            raise StopIteration
+        else:
+            raise

@@ -14,9 +14,8 @@ from ..api import get_index
 from ..base.context import context
 from ..common.compat import text_type
 from ..exceptions import CommandArgumentError, PackageNotFoundError
-from ..install import dist2quad
 from ..misc import make_icon_url
-from ..models.channel import Channel
+from ..models.dist import Dist
 from ..resolve import NoPackagesFoundError, Package
 
 descr = """Search for packages and display their information. The input is a
@@ -156,10 +155,11 @@ def execute_search(args, parser):
 
     prefix = context.prefix_w_legacy_search
 
-    import conda.install
+    import conda.core.linked_data
+    import conda.core.package_cache
 
-    linked = conda.install.linked(prefix)
-    extracted = conda.install.extracted()
+    linked = conda.core.linked_data.linked(prefix)
+    extracted = conda.core.package_cache.extracted()
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
@@ -229,8 +229,7 @@ def execute_search(args, parser):
             json[name] = []
 
         if args.outdated:
-            vers_inst = [dist[1] for dist in map(dist2quad, linked)
-                         if dist[0] == name]
+            vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name
@@ -244,12 +243,12 @@ def execute_search(args, parser):
                 continue
 
         for pkg in pkgs:
-            dist = pkg.fn[:-8]
+            dist = Dist(pkg)
             if args.canonical:
                 if not context.json:
-                    print(dist)
+                    print(dist.dist_name)
                 else:
-                    json.append(dist)
+                    json.append(dist.dist_name)
                 continue
             if platform and platform != context.subdir:
                 inst = ' '
@@ -260,13 +259,15 @@ def execute_search(args, parser):
             else:
                 inst = ' '
 
+            features = r.features(dist)
+
             if not context.json:
                 print('%-25s %s  %-15s %15s  %-15s %s' % (
                     disp_name, inst,
                     pkg.version,
                     pkg.build,
-                    Channel(pkg.channel).canonical_name,
-                    disp_features(r.features(pkg.fn)),
+                    pkg.schannel,
+                    disp_features(features),
                     ))
                 disp_name = ''
             else:
@@ -279,9 +280,9 @@ def execute_search(args, parser):
                     'version': pkg.version,
                     'build': pkg.build,
                     'build_number': pkg.build_number,
-                    'channel': Channel(pkg.channel).canonical_name,
+                    'channel': pkg.schannel,
                     'full_channel': pkg.channel,
-                    'features': list(r.features(pkg.fn)),
+                    'features': list(features),
                     'license': pkg.info.get('license'),
                     'size': pkg.info.get('size'),
                     'depends': pkg.info.get('depends'),

@@ -7,39 +7,40 @@ NOTE:
     keys.  We try to keep fixes to this "impedance mismatch" local to this
     module.
 """
-
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import os
 import sys
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename, dirname, join, exists
+from os.path import abspath, basename, dirname, exists, join
 
-from .base.context import context
-from .models.channel import Channel
 from . import instructions as inst
-from .exceptions import (InstallError, RemoveError, CondaIndexError,
-                         CondaRuntimeError, ArgumentError)
+from .base.constants import DEFAULTS
+from .base.context import context
+from .common.compat import text_type
+from .common.disk import rm_rf
+from .core.linked_data import is_linked
+from .core.package_cache import find_new_location, is_fetched
+from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
+                         RemoveError)
 from .history import History
-from .install import (dist2quad, LINK_HARD, link_name_map, name_dist, is_fetched,
-                      is_extracted, is_linked, find_new_location, dist2filename, LINK_COPY,
-                      LINK_SOFT, try_hard_link)
-from conda.common.disk import rm_rf
-from .resolve import MatchSpec, Resolve, Package
-from .utils import md5_file, human_bytes, on_win
-
-# For backwards compatibility
+from .install import LINK_COPY, LINK_HARD, LINK_SOFT, is_extracted, link_name_map, try_hard_link
+from .models.channel import Channel
+from .models.dist import Dist
+from .resolve import MatchSpec, Package, Resolve
+from .utils import human_bytes, md5_file, on_win
 
 log = getLogger(__name__)
+
 
 def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for dist, extra in dists_extras:
-        dist = dist2quad(dist)
-        line = fmt % (dist[0]+'-'+dist[1], dist[2])
+        name, version, build, _ = dist.quad
+        line = fmt % (name + '-' + version, build)
         if extra:
             line += extra
         print(line)
@@ -61,7 +62,7 @@ def display_actions(actions, index, show_channel_urls=None):
     def channel_filt(s):
         if show_channel_urls is False:
             return ''
-        if show_channel_urls is None and s == 'defaults':
+        if show_channel_urls is None and s == DEFAULTS:
             return ''
         return s
 
@@ -70,7 +71,8 @@ def display_actions(actions, index, show_channel_urls=None):
 
         disp_lst = []
         for dist in actions[inst.FETCH]:
-            info = index[dist + '.tar.bz2']
+            dist = Dist(dist)
+            info = index[dist]
             extra = '%15s' % human_bytes(info['size'])
             schannel = channel_filt(channel_str(info))
             if schannel:
@@ -79,8 +81,7 @@ def display_actions(actions, index, show_channel_urls=None):
         print_dists(disp_lst)
 
         if index and len(actions[inst.FETCH]) > 1:
-            num_bytes = sum(index[dist + '.tar.bz2']['size']
-                            for dist in actions[inst.FETCH])
+            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[inst.FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -92,28 +93,30 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(inst.LINK, []):
-        dist, lt = inst.split_linkarg(arg)
-        fkey = dist + '.tar.bz2'
-        rec = index[fkey]
+        d, lt = inst.split_linkarg(arg)
+        dist = Dist(d)
+        rec = index[dist]
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
-        records[pkg][1] = Package(fkey, rec)
+        records[pkg][1] = Package(dist.to_filename(), rec)
         linktypes[pkg] = lt
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
-        dist, lt = inst.split_linkarg(arg)
-        fkey = dist + '.tar.bz2'
-        rec = index.get(fkey)
+        dist = Dist(arg)
+        rec = index.get(dist)
         if rec is None:
-            pkg, ver, build, schannel = dist2quad(dist)
-            rec = dict(name=pkg, version=ver, build=build, channel=None,
+            package_name, version, build, schannel = dist.quad
+            rec = dict(name=package_name,
+                       version=version,
+                       build=build,
+                       channel=None,
                        schannel='<unknown>',
                        build_number=int(build) if build.isdigit() else 0)
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
-        records[pkg][0] = Package(fkey, rec)
+        records[pkg][0] = Package(dist.to_filename(), rec)
         features[pkg][0] = rec.get('features', '')
 
     #                     Put a minimum length here---.    .--For the :
@@ -247,6 +250,7 @@ def nothing_to_do(actions):
 
 
 def add_unlink(actions, dist):
+    assert isinstance(dist, Dist)
     if inst.UNLINK not in actions:
         actions[inst.UNLINK] = []
     actions[inst.UNLINK].append(dist)
@@ -269,7 +273,7 @@ def plan_from_actions(actions):
             if op in actions:
                 pkgs = []
                 for pkg in actions[op]:
-                    if 'menuinst' in pkg:
+                    if 'menuinst' in text_type(pkg):
                         res.append((op, pkg))
                     else:
                         pkgs.append(pkg)
@@ -300,6 +304,7 @@ def plan_from_actions(actions):
 # supplying an index and setting force=True
 def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):
+    assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
@@ -310,9 +315,9 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
 
         if fetched_in and index is not None:
             # Test the MD5, and possibly re-fetch
-            fn = dist + '.tar.bz2'
+            fn = dist.to_filename()
             try:
-                if md5_file(fetched_in) != index[fn]['md5']:
+                if md5_file(fetched_in) != index[dist]['md5']:
                     # RM_FETCHED now removes the extracted data too
                     actions[inst.RM_FETCHED].append(dist)
                     # Re-fetch, re-extract, re-link
@@ -333,9 +338,9 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
         if not extracted_in and not fetched_in:
             # If there is a cache conflict, clean it up
             fetched_in, conflict = find_new_location(dist)
-            fetched_in = join(fetched_in, dist2filename(dist))
+            fetched_in = join(fetched_in, dist.to_filename())
             if conflict is not None:
-                actions[inst.RM_FETCHED].append(conflict)
+                actions[inst.RM_FETCHED].append(Dist(conflict))
             actions[inst.FETCH].append(dist)
 
         if not extracted_in:
@@ -390,8 +395,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     if r.explicit(specs):
         return
     log.debug('H0 specs=%r' % specs)
-    linked = [d if d.endswith('.tar.bz2') else d + '.tar.bz2' for d in linked]
-    names_linked = {r.index[fn]['name']: fn for fn in linked if fn in r.index}
+    names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
 
     for name, def_ver in [('python', context.default_python),
@@ -420,13 +424,12 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             continue
 
         if name in names_linked:
-            # if Python/Numpy is already linked, we add that instead of the
-            # default
+            # if Python/Numpy is already linked, we add that instead of the default
             log.debug('H3 %s' % name)
-            fkey = names_linked[name]
-            info = r.index[fkey]
+            dist = Dist(names_linked[name])
+            info = r.index[dist]
             ver = '.'.join(info['version'].split('.', 2)[:2])
-            spec = '%s %s* (target=%s)' % (info['name'], ver, fkey)
+            spec = '%s %s* (target=%s)' % (info['name'], ver, dist)
             specs.append(spec)
             continue
 
@@ -484,8 +487,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     pkgs = r.install(specs, installed, update_deps=update_deps)
 
     for fn in pkgs:
-        dist = fn[:-8]
-        name = name_dist(dist)
+        dist = Dist(fn)
+        name = r.package_name(dist)
         if not name or only_names and name not in only_names:
             continue
         must_have[name] = dist
@@ -528,9 +531,9 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
     if actions[inst.LINK]:
         actions[inst.SYMLINK_CONDA] = [context.root_dir]
 
-    for fkey in sorted(linked):
-        dist = fkey[:-8]
-        name = name_dist(dist)
+    for dist in sorted(linked):
+        dist = Dist(dist)
+        name = r.package_name(dist)
         replace_existing = name in must_have and dist != must_have[name]
         prune_it = prune and dist not in smh
         if replace_existing or prune_it:
@@ -541,39 +544,41 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
-    linked = r.installed
+    # linked = r.installed
+    linked_dists = [Dist(d) for d in r.installed]
 
     if force:
         mss = list(map(MatchSpec, specs))
-        nlinked = {r.package_name(fn): fn[:-8]
-                   for fn in linked
-                   if not any(r.match(ms, fn) for ms in mss)}
+        nlinked = {r.package_name(dist): dist
+                   for dist in linked_dists
+                   if not any(r.match(ms, dist.to_filename()) for ms in mss)}
     else:
-        add_defaults_to_specs(r, linked, specs, update=True)
-        nlinked = {r.package_name(fn): fn[:-8] for fn in r.remove(specs, linked)}
+        add_defaults_to_specs(r, linked_dists, specs, update=True)
+        nlinked = {r.package_name(dist): dist
+                   for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
 
-    linked = {r.package_name(fn): fn[:-8] for fn in linked}
+    linked = {r.package_name(dist): dist for dist in linked_dists}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
-    for old_fn in reversed(r.dependency_sort(linked)):
-        dist = old_fn + '.tar.bz2'
-        name = r.package_name(dist)
-        if old_fn == nlinked.get(name, ''):
+    for old_dist in reversed(r.dependency_sort(linked)):
+        # dist = old_fn + '.tar.bz2'
+        name = r.package_name(old_dist)
+        if old_dist == nlinked.get(name):
             continue
-        if pinned and any(r.match(ms, dist) for ms in pinned_specs):
-            msg = "Cannot remove %s becaue it is pinned. Use --no-pin to override."
-            raise CondaRuntimeError(msg % dist)
+        if pinned and any(r.match(ms, old_dist.to_filename()) for ms in pinned_specs):
+            msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
+            raise CondaRuntimeError(msg % old_dist.to_filename())
         if context.conda_in_root and name == 'conda' and name not in nlinked:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")
             else:
                 raise RemoveError("Error: this 'remove' command cannot be executed because it\n"
                                   "would require removing 'conda' dependencies")
-        add_unlink(actions, old_fn)
+        add_unlink(actions, old_dist)
 
     return actions
 
@@ -599,7 +604,8 @@ def remove_features_actions(prefix, index, features):
                 to_link.append(subst[:-8])
 
     if to_link:
-        actions.update(ensure_linked_actions(to_link, prefix))
+        dists = (Dist(d) for d in to_link)
+        actions.update(ensure_linked_actions(dists, prefix))
     return actions
 
 
@@ -617,18 +623,21 @@ def revert_actions(prefix, revision=-1, index=None):
     if state == curr:
         return {}
 
-    actions = ensure_linked_actions(state, prefix)
+    dists = (Dist(s) for s in state)
+    actions = ensure_linked_actions(dists, prefix)
     for dist in curr - state:
-        add_unlink(actions, dist)
+        add_unlink(actions, Dist(dist))
 
     # check whether it is a safe revision
     from .instructions import split_linkarg, LINK, UNLINK, FETCH
     from .exceptions import CondaRevisionError
-    for arg in set(actions.get(LINK,
-                               []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
-        dist, lt = split_linkarg(arg)
-        fkey = dist + '.tar.bz2'
-        if fkey not in index:
+    for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
+        if isinstance(arg, Dist):
+            dist = arg
+        else:
+            dist, lt = split_linkarg(arg)
+            dist = Dist(dist)
+        if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 

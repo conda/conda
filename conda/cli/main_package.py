@@ -17,13 +17,15 @@ import shutil
 import tarfile
 import tempfile
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda.core.linked_data import is_linked, linked_data
+from conda.core.linked_data import linked
 from os.path import basename, dirname, isfile, islink, join, abspath, isdir
 
 from ..base.context import context, get_prefix
 
 from .common import add_parser_prefix
 from ..common.compat import PY3, itervalues
-from ..install import is_linked, linked, linked_data, PREFIX_PLACEHOLDER
+from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
 
 

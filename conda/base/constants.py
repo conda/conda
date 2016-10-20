@@ -3,7 +3,7 @@
 This file should hold almost all string literals and magic numbers used throughout the code base.
 The exception is if a literal is specifically meant to be private to and isolated within a module.
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 from enum import Enum
@@ -75,6 +75,7 @@ SEARCH_PATH = (
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
 CONDA_HOMEPAGE_URL = 'http://conda.pydata.org'
+DEFAULTS = 'defaults'
 
 PLATFORM_DIRECTORIES = ("linux-64",
                         "linux-32",
