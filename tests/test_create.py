@@ -13,7 +13,9 @@ from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
 from conda.cli.main import generate_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
+from conda.cli.main_clean import configure_parser as clean_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
+from conda.cli.main_info import configure_parser as info_configure_parser
 from conda.cli.main_install import configure_parser as install_configure_parser
 from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
@@ -24,6 +26,7 @@ from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
+from conda.core.index import create_cache_dir
 from conda.core.linked_data import linked as install_linked, linked_data, linked_data_
 from conda.exceptions import CondaHTTPError, DryRunExit, conda_exception_handler
 from conda.utils import on_win
@@ -65,7 +68,9 @@ def make_temp_prefix(name=None, create_directory=True):
 
 class Commands:
     CONFIG = "config"
+    CLEAN = "clean"
     CREATE = "create"
+    INFO = "info"
     INSTALL = "install"
     LIST = "list"
     REMOVE = "remove"
@@ -75,7 +80,9 @@ class Commands:
 
 parser_config = {
     Commands.CONFIG: config_configure_parser,
+    Commands.CLEAN: clean_configure_parser,
     Commands.CREATE: create_configure_parser,
+    Commands.INFO: info_configure_parser,
     Commands.INSTALL: install_configure_parser,
     Commands.LIST: list_configure_parser,
     Commands.REMOVE: remove_configure_parser,
@@ -304,7 +311,7 @@ class IntegrationTests(TestCase):
                 copyfile(tar_old_path, tar_new_path)
                 with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
                     f.write(json.dumps(repodata, cls=EntityEncoder).encode('utf-8'))
-                run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
+                run_command(Commands.INSTALL, prefix, '-c', channel, 'flask', '--json')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
                 run_command(Commands.REMOVE, prefix, 'flask')
@@ -329,7 +336,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_tarball_install_and_bad_metadata(self):
-        with make_temp_env("python flask=0.10.1") as prefix:
+        with make_temp_env("python flask=0.10.1 --json") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
@@ -361,7 +368,7 @@ class IntegrationTests(TestCase):
 
             # regression test for #2886 (part 2 of 2)
             # install tarball from package cache, local channel
-            run_command(Commands.REMOVE, prefix, 'flask')
+            run_command(Commands.REMOVE, prefix, 'flask', '--json')
             assert not package_is_installed(prefix, 'flask-0')
             run_command(Commands.INSTALL, prefix, tar_old_path)
             # The last install was from the `local::` channel
@@ -746,6 +753,7 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+            reset_context()
 
     def test_anaconda_token_with_private_package(self):
         # TODO: should also write a test to use binstar_client to set the token,
@@ -786,3 +794,16 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+
+    def test_clean_index_cache(self):
+        prefix = ''
+
+        # make sure we have something in the index cache
+        stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
+        assert "flask" in json_loads(stdout)
+        index_cache_dir = create_cache_dir()
+        assert glob(join(index_cache_dir, "*.json"))
+
+        # now clear it
+        run_command(Commands.CLEAN, prefix, "--index-cache")
+        assert not glob(join(index_cache_dir, "*.json"))
