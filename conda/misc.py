@@ -1,7 +1,7 @@
 # this module contains miscellaneous stuff which enventually could be moved
 # into other places
 
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, absolute_import, unicode_literals
 
 import os
 import re
@@ -22,8 +22,6 @@ from .compat import iteritems, itervalues
 from .models.channel import Channel
 from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
                          PackageNotFoundError, CondaRuntimeError)
-# from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
-#                       linked_data, find_new_location, cached_url, dist2filename)
 from .core.linked_data import linked as install_linked, is_linked, linked_data
 from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
 from .plan import execute_actions

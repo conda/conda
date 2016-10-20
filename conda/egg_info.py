@@ -2,7 +2,7 @@
 Functions related to core conda functionality that relates to manually
 installed Python packages, e.g. using "python setup.py install", or "pip".
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import re

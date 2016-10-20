@@ -7,7 +7,7 @@
 # NOTE:
 #     This module is deprecated.  Don't import from this here when writing
 #     new code.
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
 import json
