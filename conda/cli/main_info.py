@@ -11,6 +11,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from conda.common.url import mask_anaconda_token
 from os import listdir
 from os.path import exists, expanduser, join
 
@@ -238,7 +239,7 @@ def execute(args, parser):
         pkgs_dirs=context.pkgs_dirs,
         envs_dirs=context.envs_dirs,
         default_prefix=context.default_prefix,
-        channels=channels,
+        channels=[mask_anaconda_token(c) for c in channels],
         rc_path=rc_path,
         user_rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,

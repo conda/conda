@@ -135,6 +135,11 @@ def strip_scheme(url):
     return url.split('://', 1)[-1]
 
 
+def mask_anaconda_token(url):
+    _, token = split_anaconda_token(url)
+    return url.replace(token, "<TOKEN>", 1)
+
+
 def split_anaconda_token(url):
     """
     Examples:
