@@ -26,6 +26,7 @@ from conda.common.yaml import yaml_load
 from conda.compat import itervalues
 from conda.connection import LocalFSAdapter
 from conda.exceptions import CondaHTTPError, DryRunExit, conda_exception_handler
+from conda.fetch import create_cache_dir
 from conda.install import dist2dirname, linked as install_linked, linked_data, linked_data_
 from conda.utils import on_win
 from contextlib import contextmanager
