@@ -311,7 +311,7 @@ class IntegrationTests(TestCase):
                 copyfile(tar_old_path, tar_new_path)
                 with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
                     f.write(json.dumps(repodata, cls=EntityEncoder).encode('utf-8'))
-                run_command(Commands.INSTALL, prefix, '-c', channel, 'flask')
+                run_command(Commands.INSTALL, prefix, '-c', channel, 'flask', '--json')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
                 run_command(Commands.REMOVE, prefix, 'flask')
@@ -336,7 +336,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_tarball_install_and_bad_metadata(self):
-        with make_temp_env("python flask=0.10.1") as prefix:
+        with make_temp_env("python flask=0.10.1 --json") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
@@ -368,7 +368,7 @@ class IntegrationTests(TestCase):
 
             # regression test for #2886 (part 2 of 2)
             # install tarball from package cache, local channel
-            run_command(Commands.REMOVE, prefix, 'flask')
+            run_command(Commands.REMOVE, prefix, 'flask', '--json')
             assert not package_is_installed(prefix, 'flask-0')
             run_command(Commands.INSTALL, prefix, tar_old_path)
             # The last install was from the `local::` channel
