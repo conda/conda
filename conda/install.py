@@ -50,15 +50,13 @@ from .lock import DirectoryLock, FileLock
 from .models.dist import Dist
 from .utils import on_win
 
-
 # conda-build compatibility
 from .common.disk import delete_trash, move_path_to_trash  # NOQA
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.linked_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
-from .core.package_cache import package_cache, rm_fetched
+from .core.package_cache import package_cache, rm_fetched  # NOQA
 rm_fetched, package_cache = rm_fetched, package_cache
-
 
 if on_win:
     import ctypes
