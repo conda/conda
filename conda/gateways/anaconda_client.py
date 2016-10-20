@@ -5,9 +5,11 @@ import os
 import re
 from glob import glob
 from logging import getLogger
-from os.path import basename, join
+from os.path import basename, isdir, isfile, join
+from stat import S_IREAD, S_IWRITE
 
-from ..common.url import unquote
+from ..common.disk import rm_rf
+from ..common.url import quote_plus, unquote_plus
 
 log = getLogger(__name__)
 
@@ -135,13 +137,49 @@ def read_binstar_tokens():
         dirs = AppDirs('binstar', 'ContinuumIO')
     token_files = glob(join(dirs.user_data_dir, '*.token'))
     for tkn_file in token_files:
-        url = re.sub(r'\.token$', '', unquote(basename(tkn_file)))
+        url = re.sub(r'\.token$', '', unquote_plus(basename(tkn_file)))
         with open(tkn_file) as f:
             token = f.read()
-        tokens[url] = token
-        tokens[replace_first_api_with_conda(url)] = token
+        tokens[url] = tokens[replace_first_api_with_conda(url)] = token
     return tokens
 
 
+def set_binstar_token(url, token):
+    try:
+        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
+    except ImportError:
+        raise
+
+    if 'BINSTAR_CONFIG_DIR' in os.environ:
+        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
+    else:
+        dirs = AppDirs('binstar', 'ContinuumIO')
+
+    if not isdir(dirs.user_data_dir):
+        os.makedirs(dirs.user_data_dir)
+    tokenfile = join(dirs.user_data_dir, '%s.token' % quote_plus(url))
+
+    if isfile(tokenfile):
+        os.unlink(tokenfile)
+    with open(tokenfile, 'w') as fd:
+        fd.write(token)
+    os.chmod(tokenfile, S_IWRITE | S_IREAD)
+
+
+def remove_binstar_token(url):
+    try:
+        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
+    except ImportError:
+        raise
+
+    if 'BINSTAR_CONFIG_DIR' in os.environ:
+        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
+    else:
+        dirs = AppDirs('binstar', 'ContinuumIO')
+
+    tokenfile = join(dirs.user_data_dir, '%s.token' % quote_plus(url))
+    rm_rf(tokenfile)
+
+
 if __name__ == "__main__":
-    read_binstar_tokens()
+    print(read_binstar_tokens())
