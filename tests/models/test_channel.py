@@ -22,6 +22,8 @@ class DefaultConfigChannelTests(TestCase):
         cls.platform = context.subdir
         cls.DEFAULT_URLS = ['https://repo.continuum.io/pkgs/free/%s' % cls.platform,
                             'https://repo.continuum.io/pkgs/free/noarch',
+                            'https://repo.continuum.io/pkgs/r/%s' % cls.platform,
+                            'https://repo.continuum.io/pkgs/r/noarch',
                             'https://repo.continuum.io/pkgs/pro/%s' % cls.platform,
                             'https://repo.continuum.io/pkgs/pro/noarch']
         if on_win:
