@@ -89,10 +89,12 @@ PLATFORM_DIRECTORIES = ("linux-64",
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
 DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
+                         'https://repo.continuum.io/pkgs/r',
                          'https://repo.continuum.io/pkgs/pro',
                          )
 
 DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
+                        'https://repo.continuum.io/pkgs/r',
                         'https://repo.continuum.io/pkgs/pro',
                         'https://repo.continuum.io/pkgs/msys2',
                         )
