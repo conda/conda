@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
+
 import pytest
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
@@ -58,3 +60,13 @@ class ContextTests(TestCase):
             "ftp://new.url:8082/conda-forge/label/dev/linux-64",
             "ftp://new.url:8082/conda-forge/label/dev/noarch",
         ]
+
+    def test_conda_envs_path(self):
+        os.environ['CONDA_ENVS_PATH'] = '/my/envs/dir/1'
+        reset_context()
+        assert context.envs_dirs[0] == '/my/envs/dir/1'
+
+        os.environ['CONDA_ENVS_PATH'] = os.pathsep.join(['/my/envs/dir/1', '/my/envs/dir/2'])
+        reset_context()
+        assert context.envs_dirs[0] == '/my/envs/dir/1'
+        assert context.envs_dirs[1] == '/my/envs/dir/2'
