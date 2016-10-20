@@ -20,6 +20,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
+from conda.common.disk import rm_rf
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
@@ -801,3 +802,18 @@ class IntegrationTests(TestCase):
         # now clear it
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
+
+    def test_install_mkdir(self):
+        try:
+            prefix = make_temp_prefix()
+            assert isdir(prefix)
+            run_command(Commands.INSTALL, prefix, "python=3.5", "--mkdir")
+            assert_package_is_installed(prefix, "python-3.5")
+
+            rm_rf(prefix)
+            assert not isdir(prefix)
+            run_command(Commands.INSTALL, prefix, "python=3.5", "--mkdir")
+            assert_package_is_installed(prefix, "python-3.5")
+
+        finally:
+            rmtree(prefix, ignore_errors=True)
