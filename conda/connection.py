@@ -209,21 +209,6 @@ class S3Adapter(requests.adapters.BaseAdapter):
 
         try:
             import boto
-
-            # silly patch for AWS because
-            # TODO: remove or change to warning once boto >2.39.0 is released
-            # https://github.com/boto/boto/issues/2617
-            from boto.pyami.config import Config, ConfigParser
-
-            def get(self, section, name, default=None, **kw):
-                try:
-                    val = ConfigParser.get(self, section, name, **kw)
-                except:
-                    val = default
-                return val
-
-            Config.get = get
-
         except ImportError:
             stderrlog.info('\nError: boto is required for S3 channels. '
                            'Please install it with `conda install boto`\n'
