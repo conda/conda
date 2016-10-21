@@ -25,7 +25,7 @@ is probably best if you do not take advantage of this directly, but rather
 through the Require and Prevent functions.
 
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import pycosat
