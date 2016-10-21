@@ -1,3 +1,12 @@
+## 4.2.11 (unreleased)
+
+### Bug Fixes
+* fix anaconda api token bug (#3674)
+* fix #3646 FileMode enum comparison (#3683)
+* fix #3517 conda install --mkdir (#3684)
+* fix #3560 hack anaconda token coverup on conda info (#3686)
+
+
 ## 4.2.10 (2016-10-18)
 
 ### Improvements
