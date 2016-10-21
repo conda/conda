@@ -11,6 +11,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from conda.common.url import mask_anaconda_token
 from os import listdir
 from os.path import exists, expanduser, join
 
@@ -225,6 +226,7 @@ def execute(args, parser):
     if not context.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]
+    channels = [mask_anaconda_token(c) for c in channels]
 
     info_dict = dict(
         platform=context.subdir,
