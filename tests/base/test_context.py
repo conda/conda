@@ -10,6 +10,7 @@ from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.yaml import yaml_load
 from conda.models.channel import Channel
+from conda.utils import on_win
 from unittest import TestCase
 
 
@@ -63,8 +64,9 @@ class ContextTests(TestCase):
 
     def test_conda_envs_path(self):
         saved_envs_path = os.environ.get('CONDA_ENVS_PATH')
-        path1 = os.sep + os.sep.join(['my', 'envs', 'dir', '1'])
-        path2 = os.sep + os.sep.join(['my', 'envs', 'dir', '2'])
+        beginning = "C:" + os.sep if on_win else os.sep
+        path1 = beginning + os.sep.join(['my', 'envs', 'dir', '1'])
+        path2 = beginning + os.sep.join(['my', 'envs', 'dir', '2'])
         try:
             os.environ['CONDA_ENVS_PATH'] = path1
             reset_context()
