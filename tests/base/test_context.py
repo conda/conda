@@ -62,11 +62,20 @@ class ContextTests(TestCase):
         ]
 
     def test_conda_envs_path(self):
-        os.environ['CONDA_ENVS_PATH'] = '/my/envs/dir/1'
-        reset_context()
-        assert context.envs_dirs[0] == '/my/envs/dir/1'
+        saved_envs_path = os.environ.get('CONDA_ENVS_PATH')
+        path1 = os.sep.join(['my', 'envs', 'dir', '1'])
+        path2 = os.sep.join(['my', 'envs', 'dir', '2'])
+        try:
+            os.environ['CONDA_ENVS_PATH'] = path1
+            reset_context()
+            assert context.envs_dirs[0] == path1
 
-        os.environ['CONDA_ENVS_PATH'] = os.pathsep.join(['/my/envs/dir/1', '/my/envs/dir/2'])
-        reset_context()
-        assert context.envs_dirs[0] == '/my/envs/dir/1'
-        assert context.envs_dirs[1] == '/my/envs/dir/2'
+            os.environ['CONDA_ENVS_PATH'] = os.pathsep.join([path1, path2])
+            reset_context()
+            assert context.envs_dirs[0] == path1
+            assert context.envs_dirs[1] == path2
+        finally:
+            if saved_envs_path:
+                os.environ['CONDA_ENVS_PATH'] = saved_envs_path
+            else:
+                del os.environ['CONDA_ENVS_PATH']
