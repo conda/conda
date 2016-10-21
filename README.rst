@@ -3,7 +3,7 @@
    directory and run ``make html; make live``
 
 .. image:: https://s3.amazonaws.com/conda-dev/conda_logo.svg
-   :alt:  Conda Logo
+   :alt: Conda Logo
 
 ----------------------------------------
 
