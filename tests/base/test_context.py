@@ -63,8 +63,8 @@ class ContextTests(TestCase):
 
     def test_conda_envs_path(self):
         saved_envs_path = os.environ.get('CONDA_ENVS_PATH')
-        path1 = os.sep.join(['my', 'envs', 'dir', '1'])
-        path2 = os.sep.join(['my', 'envs', 'dir', '2'])
+        path1 = os.sep + os.sep.join(['my', 'envs', 'dir', '1'])
+        path2 = os.sep + os.sep.join(['my', 'envs', 'dir', '2'])
         try:
             os.environ['CONDA_ENVS_PATH'] = path1
             reset_context()
