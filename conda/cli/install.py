@@ -121,7 +121,7 @@ def install(args, parser, command='install'):
     isinstall = bool(command == 'install')
     if newenv:
         common.ensure_name_or_prefix(args, command)
-    prefix = context.prefix if newenv else context.prefix_w_legacy_search
+    prefix = context.prefix if newenv or args.mkdir else context.prefix_w_legacy_search
     if newenv:
         check_prefix(prefix, json=context.json)
     if context.force_32bit and is_root_prefix(prefix):

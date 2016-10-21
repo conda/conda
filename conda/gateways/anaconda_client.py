@@ -39,7 +39,6 @@ def read_binstar_tokens():
         with open(tkn_file) as f:
             token = f.read()
         tokens[url] = tokens[replace_first_api_with_conda(url)] = token
-
     return tokens
 
 
