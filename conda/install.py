@@ -281,7 +281,7 @@ def binary_replace(data, a, b):
 
 
 def replace_long_shebang(mode, data):
-    if mode is FileMode.text:
+    if mode == FileMode.text:
         shebang_match = SHEBANG_REGEX.match(data)
         if shebang_match:
             whole_shebang, executable, options = shebang_match.groups()
@@ -350,7 +350,7 @@ def replace_pyzzer_entry_point_shebang(all_data, placeholder, new_prefix):
 
 
 def replace_prefix(mode, data, placeholder, new_prefix):
-    if mode is FileMode.text:
+    if mode == FileMode.text:
         data = data.replace(placeholder.encode(UTF8), new_prefix.encode(UTF8))
     elif mode == FileMode.binary:
         data = binary_replace(data, placeholder.encode(UTF8), new_prefix.encode(UTF8))
@@ -360,7 +360,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
 
 
 def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text):
-    if on_win and mode is FileMode.text:
+    if on_win and mode == FileMode.text:
         # force all prefix replacements to forward slashes to simplify need to escape backslashes
         # replace with unix-style path separators
         new_prefix = new_prefix.replace('\\', '/')
