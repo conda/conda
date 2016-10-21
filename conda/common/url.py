@@ -137,7 +137,7 @@ def strip_scheme(url):
 
 def mask_anaconda_token(url):
     _, token = split_anaconda_token(url)
-    return url.replace(token, "<TOKEN>", 1)
+    return url.replace(token, "<TOKEN>", 1) if token else url
 
 
 def split_anaconda_token(url):

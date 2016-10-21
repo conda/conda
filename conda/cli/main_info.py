@@ -226,6 +226,7 @@ def execute(args, parser):
     if not context.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]
+    channels = [mask_anaconda_token(c) for c in channels]
 
     info_dict = dict(
         platform=context.subdir,
@@ -239,7 +240,7 @@ def execute(args, parser):
         pkgs_dirs=context.pkgs_dirs,
         envs_dirs=context.envs_dirs,
         default_prefix=context.default_prefix,
-        channels=[mask_anaconda_token(c) for c in channels],
+        channels=channels,
         rc_path=rc_path,
         user_rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,
