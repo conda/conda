@@ -123,3 +123,11 @@ class _Null(object):
 NULL = _Null()
 
 UTF8 = 'UTF-8'
+ROOT_NO_RM = (
+    'python',
+    'pycosat',
+    'ruamel_yaml',
+    'conda',
+    'openssl',
+    'requests',
+)

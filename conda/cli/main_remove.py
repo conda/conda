@@ -16,7 +16,8 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes,
                      confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
-                     names_in_specs, root_no_rm, specs_from_args, stdout_json)
+                     names_in_specs, specs_from_args, stdout_json)
+from conda.base.constants import ROOT_NO_RM
 from conda.core.index import get_index
 from ..base.context import check_write, context
 from ..common.disk import delete_trash
@@ -146,9 +147,9 @@ def execute(args, parser):
     else:
         specs = specs_from_args(args.package_names)
         if (context.conda_in_root and plan.is_root_prefix(prefix) and
-                names_in_specs(root_no_rm, specs)):
+                names_in_specs(ROOT_NO_RM, specs)):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
-                                        ', '.join(root_no_rm))
+                                        ', '.join(ROOT_NO_RM))
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
 

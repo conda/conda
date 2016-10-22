@@ -5,20 +5,17 @@ import contextlib
 import os
 import re
 import sys
+from functools import partial
 from os.path import abspath, basename
 
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import NULL, ROOT_ENV_NAME
-from ..base.context import context
+from ..base.context import context, get_prefix as context_get_prefix
 from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DryRunExit)
 from ..resolve import MatchSpec
 from ..utils import memoize
-
-# for conda-build 1.21.11 compatibility only
-from ..base.context import get_prefix as context_get_prefix
-from functools import partial
 get_prefix = partial(context_get_prefix, context)
 
 
@@ -577,8 +574,6 @@ def stdout_json_success(success=True, **kwargs):
     result = {'success': success}
     result.update(kwargs)
     stdout_json(result)
-
-root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda', 'openssl', 'requests'
 
 
 def handle_envs_list(acc, output=True):
