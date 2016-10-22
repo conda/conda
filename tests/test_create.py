@@ -809,24 +809,25 @@ class IntegrationTests(TestCase):
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
-    def test_clean_packages(self):
-        with make_temp_env("flask") as prefix:
-            pkgs_dir = context.pkgs_dirs[0]
-            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-            pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-            assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-
-            run_command(Commands.CLEAN, prefix, "--packages --yes")
-
-            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-            pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-            assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-
-        run_command(Commands.CLEAN, prefix, "--packages --yes")
-
-        pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-        pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-        assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+    # TODO: this test breaks A LOT of conda; figure out how to re-enable
+    # def test_clean_packages(self):
+    #     with make_temp_env("flask") as prefix:
+    #         pkgs_dir = context.pkgs_dirs[0]
+    #         pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+    #         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+    #         assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+    #
+    #         run_command(Commands.CLEAN, prefix, "--packages --yes")
+    #
+    #         pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+    #         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+    #         assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+    #
+    #     run_command(Commands.CLEAN, prefix, "--packages --yes")
+    #
+    #     pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+    #     pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+    #     assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
 
     def test_clean_source_cache(self):
         cache_dirs = {
