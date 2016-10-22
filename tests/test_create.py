@@ -322,16 +322,11 @@ class IntegrationTests(TestCase):
                 # install from build channel as a tarball
                 conda_bld = join(sys.prefix, 'conda-bld')
                 conda_bld_sub = join(conda_bld, context.subdir)
-
+                if not isdir(conda_bld_sub):
+                    os.makedirs(conda_bld_sub)
                 tar_bld_path = join(conda_bld_sub, flask_fname)
-                if os.path.exists(conda_bld):
-                    try:
-                        os.rename(tar_new_path, tar_bld_path)
-                    except OSError:
-                        pass
-                else:
-                    os.makedirs(conda_bld)
-                    os.rename(subchan, conda_bld_sub)
+                copyfile(tar_new_path, tar_bld_path)
+                # CondaFileNotFoundError: '/home/travis/virtualenv/python2.7.9/conda-bld/linux-64/flask-0.10.1-py27_2.tar.bz2'.
                 run_command(Commands.INSTALL, prefix, tar_bld_path)
                 assert_package_is_installed(prefix, 'flask-')
 
@@ -808,6 +803,40 @@ class IntegrationTests(TestCase):
         # now clear it
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
+
+    # TODO: this test breaks A LOT of conda; figure out how to re-enable
+    # def test_clean_packages(self):
+    #     with make_temp_env("flask") as prefix:
+    #         pkgs_dir = context.pkgs_dirs[0]
+    #         pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+    #         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+    #         assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+    #
+    #         run_command(Commands.CLEAN, prefix, "--packages --yes")
+    #
+    #         pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+    #         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+    #         assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+    #
+    #     run_command(Commands.CLEAN, prefix, "--packages --yes")
+    #
+    #     pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+    #     pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+    #     assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+
+    def test_clean_source_cache(self):
+        cache_dirs = {
+            'source cache': text_type(context.src_cache),
+            'git cache': text_type(context.git_cache),
+            'hg cache': text_type(context.hg_cache),
+            'svn cache': text_type(context.svn_cache),
+        }
+
+        assert all(isdir(d) for d in itervalues(cache_dirs))
+
+        run_command(Commands.CLEAN, '', "--source-cache --yes")
+
+        assert not all(isdir(d) for d in itervalues(cache_dirs))
 
     def test_install_mkdir(self):
         try:

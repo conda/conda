@@ -51,6 +51,16 @@ def try_write(dir_path, heavy=False):
         return access(dir_path, W_OK)
 
 
+def conda_bld_ensure_dir(path):
+    # this can fail in parallel operation, depending on timing.  Just try to make the dir,
+    #    but don't bail if fail.
+    if not isdir(path):
+        try:
+            makedirs(path)
+        except OSError:
+            pass
+
+
 def backoff_unlink(file_or_symlink_path):
     def _unlink(path):
         make_writable(path)
