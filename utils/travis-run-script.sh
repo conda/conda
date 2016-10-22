@@ -26,7 +26,9 @@ main_test() {
 
     # activate tests
     local workingdir="$(pwd)"
-    local bindir="$(dirname $(which python))"
+    local python_prefix=$(python -c "import sys; print(sys.prefix)")
+    local bindir="$python_prefix/bin"
+    mkdir $bindir
     make_conda_entrypoint "$bindir/conda" $workingdir
     cp shell/activate $bindir
     cp shell/deactivate $bindir
