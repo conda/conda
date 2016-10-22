@@ -2,12 +2,13 @@ set -e
 set +x
 
 make_conda_entrypoint() {
-    local filepath="$(pwd)/shell/conda"
+    local filepath="$1"
+    local workingdir="$2"
 	cat <<- EOF > $filepath
 	#!$(which python)
 	if __name__ == '__main__':
 	   import sys
-       sys.path.insert(0, '$(pwd)')
+       sys.path.insert(0, '$workingdir')
 	   import conda.cli
 	   sys.exit(conda.cli.main())
 	EOF
@@ -24,9 +25,12 @@ main_test() {
     python setup.py --version
 
     # activate tests
-    make_conda_entrypoint
-    chmod +x shell/activate shell/deactivate
-    export PATH="$(pwd)/shell:$PATH"
+    local workingdir="$(pwd)"
+    local bindir="$(dirname $(which python))"
+    make_conda_entrypoint "$bindir/conda" $workingdir
+    cp shell/activate $bindir
+    cp shell/deactivate $bindir
+    chmod +x $bindir/activate $bindir/deactivate
     hash -r
     which conda
     python -m conda info
