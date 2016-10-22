@@ -8,7 +8,7 @@ make_conda_entrypoint() {
 	#!$(which python)
 	if __name__ == '__main__':
 	   import sys
-       sys.path.insert(0, '$workingdir')
+	   sys.path.insert(0, '$workingdir')
 	   import conda.cli
 	   sys.exit(conda.cli.main())
 	EOF
@@ -26,14 +26,14 @@ main_test() {
 
     # activate tests
     python setup.py develop
-    local workingdir="$(pwd)"
-    local python_prefix=$(python -c "import sys; print(sys.prefix)")
-    local bindir="$python_prefix/bin"
-    mkdir -p $bindir
-    make_conda_entrypoint "$bindir/conda" $workingdir
-    cp shell/activate $bindir
-    cp shell/deactivate $bindir
-    chmod +x $bindir/activate $bindir/deactivate
+    # local workingdir="$(pwd)"
+    # local python_prefix=$(python -c "import sys; print(sys.prefix)")
+    # local bindir="$python_prefix/bin"
+    # mkdir -p $bindir
+    # make_conda_entrypoint "$bindir/conda" $workingdir
+    # cp shell/activate $bindir
+    # cp shell/deactivate $bindir
+    # chmod +x $bindir/activate $bindir/deactivate
     hash -r
     which conda
     python -m conda info
