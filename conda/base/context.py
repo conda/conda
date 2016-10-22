@@ -17,7 +17,7 @@ from .._vendor.auxlib.path import expand
 from ..common.compat import iteritems, odict
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
-from ..common.disk import try_write
+from ..common.disk import try_write, conda_bld_ensure_dir
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token, urlparse
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
@@ -107,6 +107,46 @@ class Context(Configuration):
     bld_path = PrimitiveParameter('')
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
                                         parameter_type=(bool, NoneType))
+    _croot = PrimitiveParameter('', aliases=('croot',))
+    conda_build = MapParameter(string_types, aliases=('conda-build',))
+
+    @property
+    def croot(self):
+        """This is where source caches and work folders live"""
+        if self._croot:
+            return abspath(expanduser(self._croot))
+        elif self.bld_path:
+            return abspath(expanduser(self.bld_path))
+        elif 'root-dir' in self.conda_build:
+            return abspath(expanduser(self.conda_build['root-dir']))
+        elif self.root_writable:
+            return join(self.root_dir, 'conda-bld')
+        else:
+            return abspath(expanduser('~/conda-bld'))
+
+    @property
+    def src_cache(self):
+        path = join(self.croot, 'src_cache')
+        conda_bld_ensure_dir(path)
+        return path
+
+    @property
+    def git_cache(self):
+        path = join(self.croot, 'git_cache')
+        conda_bld_ensure_dir(path)
+        return path
+
+    @property
+    def hg_cache(self):
+        path = join(self.croot, 'hg_cache')
+        conda_bld_ensure_dir(path)
+        return path
+
+    @property
+    def svn_cache(self):
+        path = join(self.croot, 'svn_cache')
+        conda_bld_ensure_dir(path)
+        return path
 
     def post_build_validation(self):
         errors = []

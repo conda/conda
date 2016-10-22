@@ -828,6 +828,20 @@ class IntegrationTests(TestCase):
         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
         assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
 
+    def test_clean_source_cache(self):
+        cache_dirs = {
+            'source cache': text_type(context.src_cache),
+            'git cache': text_type(context.git_cache),
+            'hg cache': text_type(context.hg_cache),
+            'svn cache': text_type(context.svn_cache),
+        }
+
+        assert all(isdir(d) for d in itervalues(cache_dirs))
+
+        run_command(Commands.CLEAN, '', "--source-cache --yes")
+
+        assert not all(isdir(d) for d in itervalues(cache_dirs))
+
     def test_install_mkdir(self):
         try:
             prefix = make_temp_prefix()
