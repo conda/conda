@@ -2,7 +2,7 @@ set -e
 set +x
 
 make_conda_entrypoint() {
-    local filepath="$(pwd)/scripts/conda"
+    local filepath="$(pwd)/shell/conda"
 	cat <<- EOF > $filepath
 	#!$(which python)
 	if __name__ == '__main__':
