@@ -322,16 +322,11 @@ class IntegrationTests(TestCase):
                 # install from build channel as a tarball
                 conda_bld = join(sys.prefix, 'conda-bld')
                 conda_bld_sub = join(conda_bld, context.subdir)
-
+                if not isdir(conda_bld_sub):
+                    os.makedirs(conda_bld_sub)
                 tar_bld_path = join(conda_bld_sub, flask_fname)
-                if os.path.exists(conda_bld):
-                    try:
-                        os.rename(tar_new_path, tar_bld_path)
-                    except OSError:
-                        pass
-                else:
-                    os.makedirs(conda_bld)
-                    os.rename(subchan, conda_bld_sub)
+                copyfile(tar_new_path, tar_bld_path)
+                # CondaFileNotFoundError: '/home/travis/virtualenv/python2.7.9/conda-bld/linux-64/flask-0.10.1-py27_2.tar.bz2'.
                 run_command(Commands.INSTALL, prefix, tar_bld_path)
                 assert_package_is_installed(prefix, 'flask-')
 
