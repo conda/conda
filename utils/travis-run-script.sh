@@ -1,6 +1,20 @@
 set -e
 set +x
 
+make_conda_entrypoint() {
+    local filepath="$(pwd)/scripts/conda"
+	cat <<- EOF > $filepath
+	#!$(which python)
+	if __name__ == '__main__':
+	   import sys
+       sys.path.insert(0, '$(pwd)')
+	   import conda.cli
+	   sys.exit(conda.cli.main())
+	EOF
+    chmod +x $filepath
+    cat $filepath
+}
+
 main_test() {
     export PYTHONHASHSEED=$(python -c "import random as r; print(r.randint(0,4294967296))")
     echo $PYTHONHASHSEED
@@ -10,8 +24,11 @@ main_test() {
     python setup.py --version
 
     # activate tests
-    python setup.py install
+    make_conda_entrypoint
+    chmod +x shell/activate shell/deactivate
+    export PATH="$(pwd)/shell:$PATH"
     hash -r
+    which conda
     python -m conda info
     python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
