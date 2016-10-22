@@ -25,6 +25,7 @@ main_test() {
     python setup.py --version
 
     # activate tests
+    python setup.py develop
     local workingdir="$(pwd)"
     local python_prefix=$(python -c "import sys; print(sys.prefix)")
     local bindir="$python_prefix/bin"
