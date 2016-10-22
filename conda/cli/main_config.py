@@ -289,6 +289,7 @@ def execute_config(args, parser):
                                            'debug',
                                            'default_channels',
                                            'disallow',
+                                           'envs_dirs',
                                            'json',
                                            'offline',
                                            'proxy_servers',

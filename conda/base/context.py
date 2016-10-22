@@ -104,6 +104,9 @@ class Context(Configuration):
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
                                         parameter_type=(bool, NoneType))
 
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
+                                   string_delimiter=os.pathsep)
+
     @property
     def default_python(self):
         ver = sys.version_info
@@ -155,8 +158,6 @@ class Context(Configuration):
     @property
     def root_writable(self):
         return try_write(self.root_dir)
-
-    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
 
     @property
     def envs_dirs(self):
