@@ -67,7 +67,10 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
+
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
+    _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
 
     # connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
@@ -169,8 +172,6 @@ class Context(Configuration):
     def root_writable(self):
         return try_write(self.root_dir)
 
-    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
-
     @property
     def envs_dirs(self):
         return tuple(abspath(expanduser(p))
@@ -181,7 +182,10 @@ class Context(Configuration):
 
     @property
     def pkgs_dirs(self):
-        return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
+        if self._pkgs_dirs:
+            return list(self._pkgs_dirs)
+        else:
+            return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
 
     @property
     def default_prefix(self):
