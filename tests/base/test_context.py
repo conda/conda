@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
+
 import pytest
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
@@ -8,6 +10,7 @@ from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter, ValidationError
 from conda.common.yaml import yaml_load
 from conda.models.channel import Channel
+from conda.utils import on_win
 from unittest import TestCase
 
 
@@ -66,3 +69,23 @@ class ContextTests(TestCase):
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
         context._add_raw_data(rd)
         pytest.raises(ValidationError, context.validate_configuration)
+
+    def test_conda_envs_path(self):
+        saved_envs_path = os.environ.get('CONDA_ENVS_PATH')
+        beginning = "C:" + os.sep if on_win else os.sep
+        path1 = beginning + os.sep.join(['my', 'envs', 'dir', '1'])
+        path2 = beginning + os.sep.join(['my', 'envs', 'dir', '2'])
+        try:
+            os.environ['CONDA_ENVS_PATH'] = path1
+            reset_context()
+            assert context.envs_dirs[0] == path1
+
+            os.environ['CONDA_ENVS_PATH'] = os.pathsep.join([path1, path2])
+            reset_context()
+            assert context.envs_dirs[0] == path1
+            assert context.envs_dirs[1] == path2
+        finally:
+            if saved_envs_path:
+                os.environ['CONDA_ENVS_PATH'] = saved_envs_path
+            else:
+                del os.environ['CONDA_ENVS_PATH']
