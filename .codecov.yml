@@ -6,4 +6,5 @@ coverage:
 ignore:
   - conda-env/.*
   - conda/_vendor/.*
+  - conda/gateways/adapters/ftp.py
   - tests/.*
