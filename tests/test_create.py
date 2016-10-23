@@ -824,6 +824,30 @@ class IntegrationTests(TestCase):
     #     pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
     #     assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
 
+    def test_clean_tarballs(self):
+        with make_temp_env("flask") as prefix:
+            pkgs_dir = context.pkgs_dirs[0]
+            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+            pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+            pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
+            assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+            assert any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
+
+            run_command(Commands.CLEAN, prefix, "--packages --yes")
+            run_command(Commands.CLEAN, prefix, "--tarballs --yes")
+
+            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+            pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+            pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
+            assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+            assert not any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
+
+        run_command(Commands.CLEAN, prefix, "--packages --yes")
+
+        pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+        pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+        assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+
     def test_clean_source_cache(self):
         cache_dirs = {
             'source cache': text_type(context.src_cache),
