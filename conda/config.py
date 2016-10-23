@@ -107,7 +107,6 @@ arch_name = context.arch_name
 bits = context.bits
 platform = context.platform
 
-
 # put back because of conda build
 default_python = context.default_python
 binstar_upload = context.binstar_upload

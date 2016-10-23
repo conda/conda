@@ -5,7 +5,8 @@ from itertools import chain
 from logging import getLogger
 from requests.packages.urllib3.util import Url
 
-from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, UTF8
+from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY,
+                              UTF8)
 from ..base.context import context
 from ..common.compat import iteritems, odict, with_metaclass
 from ..common.url import (has_scheme, is_url, is_windows_path, join_url, on_win, path_to_url,
@@ -381,7 +382,7 @@ def prioritize_channels(channels, with_credentials=True, platform=None):
         for url in channel.urls(with_credentials, platform):
             if url in result:
                 continue
-            result[url] = channel.canonical_name, q
+            result[url] = channel.canonical_name, min(q, MAX_CHANNEL_PRIORITY - 1)
     return result
 
 
