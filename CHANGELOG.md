@@ -24,6 +24,9 @@
 * refactor dist into an object (#3616)
 * vendor appdirs; remove conda's dependency on anaconda-client import (#3675)
 * revert boto patch from #2380 (#3676)
+* move and update ROOT_NO_RM (#3697)
+* integration tests for conda clean (#3695, #3699)
+* disable coverage on s3 and ftp requests adapaters (#3696, #3701)
 
 
 ## 4.2.11 (unreleased)
