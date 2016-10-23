@@ -3,13 +3,14 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, absolute_import, unicode_literals
 
 import os
 import sys
 from os.path import abspath, expanduser, isfile, join
 
 from conda.base.context import context, non_x86_linux_machines  # NOQA
+non_x86_linux_machines = non_x86_linux_machines
 
 
 # ----- rc file -----
@@ -53,8 +54,8 @@ rc_bool_keys = [
 rc_string_keys = [
     'ssl_verify',
     'channel_alias',
-    'client_cert',
-    'client_cert_key',
+    'client_ssl_cert',
+    'client_ssl_cert_key',
 ]
 
 # Not supported by conda config yet

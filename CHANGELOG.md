@@ -1,17 +1,87 @@
 ## 4.3.0 (unreleased)
 
+### Deprecations/Breaking Changes
+* the 'r' channel is now part of defaults (#3677)
+* remove dead install_tar function (#3641)
+
+### Improvements
+* cache VersionOrder objects to improve performance (#3596)
+* fix documentation and typos (#3526, #3572, #3627)
+* imporoved solver hint detection, simplified filtering (#3597)
+* add multikey configuration validation (#3432)
+* some Fish autocompletions (#2519)
+* fix #3667 unicode literals and unicode decode (#3682)
+
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
 * fix link field in record object (#3424)
+* anaconda api token bug fix; additional tests (#3673)
 
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
+* add conda.exports module (#3429)
+* apply PEP-8 to conda-env (#3653)
+* refactor dist into an object (#3616)
+* vendor appdirs; remove conda's dependency on anaconda-client import (#3675)
+* revert boto patch from #2380 (#3676)
+
+
+## 4.2.11 (unreleased)
+
+### Bug Fixes
+* fix anaconda api token bug (#3674)
+* fix #3646 FileMode enum comparison (#3683)
+* fix #3517 conda install --mkdir (#3684)
+* fix #3560 hack anaconda token coverup on conda info (#3686)
+
+
+## 4.2.10 (2016-10-18)
+
+### Improvements
+* add json output for `conda info -s` (#3588)
+* ignore certain binary prefixes on windows (#3539)
+* allow conda config files to have .yaml extensions or 'condarc' anywhere in filename (#3633)
+
+### Bug Fixes
+* fix conda-build's handle_proxy_407 import (#3666)
+* fix #3442, #3459, #3481, #3531, #3548 multiple networking and auth issues (#3550)
+* add back linux-ppc64le subdir support (#3584)
+* fix #3600 ensure links are removed when unlinking (#3625)
+* fix #3602 search channels by platform (#3629)
+* fix duplicated packages when updating environment (#3563)
+* fix #3590 exception when parsing invalid yaml (#3593 via #3634)
+* fix #3655 a string decoding error (#3656)
+
+### Non-User-Facing Changes
+* backport conda.exports module to 4.2.x (#3654)
+* travis-ci OSX fix (#3615 via #3657)
 
 
 ## 4.1.13 (unreleased)
 
 ### Non-User-Facing Changes
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
+* fix the api->conda substitution (#3456)
+
+
+## 4.2.9 (2016-09-27)
+
+### Bug Fixes
+* fix #3536 conda-env messaging to stdout with --json flag (#3537)
+* fix #3525 writing to sys.stdout with --json flag for post-link scripts (#3538)
+* fix #3492 make NULL falsey with python 3 (#3524)
+
+
+## 4.2.8 (2016-09-26)
+
+### Improvements
+* add "error" key back to json error output (#3523)
+
+### Bug Fixes
+* fix #3453 conda fails with create_default_packages (#3454)
+* fix #3455 --dry-run fails (#3457)
+* dial down error messages for rm_rf (#3522)
+* fix #3467 AttributeError encountered for map config parameter validation (#3521)
 
 
 ## 4.2.7 (2016-09-16)

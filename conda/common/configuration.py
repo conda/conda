@@ -23,7 +23,7 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import join
+from os.path import join, basename
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
 try:
@@ -36,8 +36,10 @@ except ImportError:
     from .._vendor.toolz.itertoolz import concat, concatv, unique
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
+    from ruamel_yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
+    from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first, frozendict, last, AttrDict
@@ -65,6 +67,15 @@ def pretty_map(dictionary, padding='  '):
     return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
 
 
+class LoadError(CondaError):
+    def __init__(self, message, filepath, line, column):
+        self.line = line
+        self.filepath = filepath
+        self.column = column
+        msg = "Load Error: in %s on line %s, column %s. %s" % (filepath, line, column, message)
+        super(LoadError, self).__init__(msg)
+
+
 class ConfigurationError(CondaError):
     pass
 
@@ -76,10 +87,6 @@ class ValidationError(ConfigurationError):
         self.parameter_value = parameter_value
         self.source = source
         super(ConfigurationError, self).__init__(msg, **kwargs)
-
-        def __str__(self):
-            return ("Parameter %s = %r declared in %s is invalid."
-                    % (self.parameter_name, self.parameter_value, self.source))
 
 
 class MultipleKeysError(ValidationError):
@@ -335,7 +342,11 @@ class YamlRawParameter(RawParameter):
     @classmethod
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath, 'r') as fh:
-            ruamel_yaml = yaml_load(fh)
+            try:
+                ruamel_yaml = yaml_load(fh)
+            except ScannerError as err:
+                mark = err.problem_mark
+                raise LoadError("Invalid YAML", filepath, mark.line, mark.column)
         return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 
 
@@ -343,7 +354,7 @@ def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_yaml_loader(fullpath):
-        assert fullpath.endswith(".yml") or fullpath.endswith("condarc"), fullpath
+        assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(fullpath), fullpath
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_yaml_loader(fullpath):
@@ -442,8 +453,8 @@ class Parameter(object):
         # strategy is "extract and merge," which is actually just map and reduce
         # extract matches from each source in SEARCH_PATH
         # then merge matches together
-        if self.name in instance._cache:
-            return instance._cache[self.name]
+        if self.name in instance._cache_:
+            return instance._cache_[self.name]
 
         matches, errors = self._get_all_matches(instance)
         try:
@@ -454,7 +465,7 @@ class Parameter(object):
         else:
             errors.extend(self.collect_errors(instance, result))
         raise_errors(errors)
-        instance._cache[self.name] = result
+        instance._cache_[self.name] = result
         return result
 
     def collect_errors(self, instance, value, source="<<merged>>"):
@@ -514,7 +525,8 @@ class PrimitiveParameter(Parameter):
             default (Any):  The parameter's default value.
             aliases (Iterable[str]): Alternate names for the parameter.
             validation (callable): Given a parameter value as input, return a boolean indicating
-                validity, or alternately return a string describing an invalid value.
+                validity, or alternately return a string describing an invalid value. Returning
+                `None` also indicates a valid value.
             parameter_type (type or Tuple[type]): Type-validation of parameter's value. If None,
                 type(default) is used.
 
@@ -637,9 +649,11 @@ class MapParameter(Parameter):
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(MapParameter, self).collect_errors(instance, value)
-        element_type = self._element_type
-        errors.extend(InvalidElementTypeError(self.name, val, source, type(val), element_type, key)
-                      for key, val in iteritems(value) if not isinstance(val, element_type))
+        if isinstance(value, Mapping):
+            element_type = self._element_type
+            errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
+                                                  element_type, key)
+                          for key, val in iteritems(value) if not isinstance(val, element_type))
         return errors
 
     def _merge(self, matches):
@@ -686,7 +700,7 @@ class Configuration(object):
 
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         self.raw_data = odict()
-        self._cache = dict()
+        self._cache_ = dict()
         self._validation_errors = defaultdict(list)
         if search_path:
             self._add_search_path(search_path)
@@ -700,7 +714,7 @@ class Configuration(object):
 
     def _add_env_vars(self, app_name):
         self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def _add_argparse_args(self, argparse_args):
@@ -708,12 +722,12 @@ class Configuration(object):
                                        if v is not NULL)
         source = ArgParseRawParameter.source
         self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def _add_raw_data(self, raw_data):
         self.raw_data.update(raw_data)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def check_source(self, source):
@@ -751,6 +765,24 @@ class Configuration(object):
         validation_errors = list(chain.from_iterable(self.check_source(source)[1]
                                                      for source in self.raw_data))
         raise_errors(validation_errors)
+        self.validate_configuration()
+
+    @staticmethod
+    def _collect_validation_error(func, *args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except ConfigurationError as e:
+            return e.errors if hasattr(e, 'errors') else e,
+        return ()
+
+    def validate_configuration(self):
+        errors = chain.from_iterable(Configuration._collect_validation_error(getattr, self, name)
+                                     for name in self.parameter_names)
+        post_errors = self.post_build_validation()
+        raise_errors(tuple(chain.from_iterable((errors, post_errors))))
+
+    def post_build_validation(self):
+        return ()
 
     def collect_all(self):
         typed_values = odict()

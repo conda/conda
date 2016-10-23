@@ -2,7 +2,7 @@
 For compatibility between Python versions.
 Taken mostly from six.py by Benjamin Peterson.
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 import types
@@ -40,7 +40,7 @@ class TemporaryDirectory(object):
         return self.name
 
     def cleanup(self, _warn=False, _warnings=_warnings):
-        from .install import rm_rf as _rm_rf
+        from .common.disk import rm_rf as _rm_rf
         if self.name and not self._closed:
             try:
                 _rm_rf(self.name)

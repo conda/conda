@@ -15,7 +15,7 @@ globally (such as downloading packages).
 
 We don't raise an error if the lock is named with the current PID
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
 import time

@@ -24,7 +24,7 @@ class RequirementsSpec(object):
 
     def _valid_name(self):
         if self.name is None:
-            self.msg = "Environment with requierements.txt file needs a name"
+            self.msg = "Environment with requirements.txt file needs a name"
             return False
         else:
             return True

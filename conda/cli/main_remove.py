@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
 import logging
@@ -16,8 +16,9 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes,
                      confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
-                     names_in_specs, root_no_rm, specs_from_args, stdout_json)
-from ..api import get_index
+                     names_in_specs, specs_from_args, stdout_json)
+from conda.base.constants import ROOT_NO_RM
+from conda.core.index import get_index
 from ..base.context import check_write, context
 from ..common.disk import delete_trash
 from ..compat import iteritems, iterkeys
@@ -106,8 +107,8 @@ def configure_parser(sub_parsers, name='remove'):
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
-    from conda.install import linked_data
     from conda.common.disk import rm_rf
+    from conda.core.linked_data import linked_data
 
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
@@ -123,7 +124,7 @@ def execute(args, parser):
     channel_urls = args.channel or ()
     if not args.features and args.all:
         index = linked_data(prefix)
-        index = {dist + '.tar.bz2': info for dist, info in iteritems(index)}
+        index = {dist: info for dist, info in iteritems(index)}
     else:
         index = get_index(channel_urls=channel_urls,
                           prepend=not args.override_channels,
@@ -140,15 +141,15 @@ def execute(args, parser):
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
         actions = {inst.PREFIX: prefix}
-        for fkey in sorted(iterkeys(index)):
-            plan.add_unlink(actions, fkey[:-8])
+        for dist in sorted(iterkeys(index)):
+            plan.add_unlink(actions, dist)
 
     else:
         specs = specs_from_args(args.package_names)
         if (context.conda_in_root and plan.is_root_prefix(prefix) and
-                names_in_specs(root_no_rm, specs)):
+                names_in_specs(ROOT_NO_RM, specs)):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
-                                        ', '.join(root_no_rm))
+                                        ', '.join(ROOT_NO_RM))
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
 

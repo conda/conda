@@ -1,4 +1,6 @@
 import os
+from conda.models.dist import Dist
+from conda.models.record import Record
 
 from contextlib import contextmanager
 import sys
@@ -17,6 +19,7 @@ import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
 from conda.utils import on_win
+from conda.common.compat import iteritems
 
 # FIXME This should be a relative import
 from tests.helpers import captured
@@ -26,12 +29,12 @@ from .decorators import skip_if_no_mock
 from .helpers import mock
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = json.load(fi)
+    index = {Dist(k): Record(**v) for k, v in iteritems(json.load(fi))}
     r = Resolve(index)
 
 
 def solve(specs):
-    return [fn[:-8] for fn in r.solve(specs)]
+    return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
 class TestMisc(unittest.TestCase):
@@ -67,7 +70,7 @@ class add_unlink_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_simply_adds_unlink_on_non_windows(self):
         actions = {}
-        dist = self.generate_random_dist()
+        dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertIn(inst.UNLINK, actions)
@@ -76,7 +79,7 @@ class add_unlink_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_adds_to_existing_actions(self):
         actions = {inst.UNLINK: [{"foo": "bar"}]}
-        dist = self.generate_random_dist()
+        dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertEqual(2, len(actions[inst.UNLINK]))
@@ -139,10 +142,10 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 def test_display_actions():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
-    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0', "numpy-1.7.1-py27_0"]})
+    actions = defaultdict(list, {"FETCH": [Dist('sympy-0.7.2-py27_0'), Dist("numpy-1.7.1-py27_0")]})
     # The older test index doesn't have the size metadata
-    index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
-    index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
+    index[Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')]['size'] = 4374752
+    index[Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")]['size'] = 5994338
 
     with captured() as c:
         display_actions(actions, index)
@@ -280,8 +283,8 @@ def test_display_actions_show_channel_urls():
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
-    index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
-    index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
+    index[Dist('sympy-0.7.2-py27_0.tar.bz2')]['size'] = 4374752
+    index[Dist("numpy-1.7.1-py27_0.tar.bz2")]['size'] = 5994338
 
     with captured() as c:
         display_actions(actions, index)
@@ -414,8 +417,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
-    index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
+    index[Dist('cython-0.19.1-py33_0.tar.bz2')]['channel'] = 'my_channel'
+    index[Dist('dateutil-1.5-py33_0.tar.bz2')]['channel'] = 'my_channel'
 
     with captured() as c:
         display_actions(actions, index)
@@ -598,8 +601,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
     reset_context(())
 
-    index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
-    index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
+    index[Dist('cython-0.19.1-py33_0.tar.bz2')]['channel'] = 'my_channel'
+    index[Dist('dateutil-1.5-py33_0.tar.bz2')]['channel'] = 'my_channel'
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 3', 'dateutil-1.5-py33_0 3',
     'numpy-1.7.1-py33_0 3', 'python-3.3.2-0 3', 'readline-6.2-0 3', 'sqlite-3.7.13-0 3', 'tk-8.5.13-0 3', 'zlib-1.2.7-0 3']})
