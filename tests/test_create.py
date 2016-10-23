@@ -804,25 +804,34 @@ class IntegrationTests(TestCase):
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
-    # TODO: this test breaks A LOT of conda; figure out how to re-enable
-    # def test_clean_packages(self):
-    #     with make_temp_env("flask") as prefix:
-    #         pkgs_dir = context.pkgs_dirs[0]
-    #         pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-    #         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-    #         assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-    #
-    #         run_command(Commands.CLEAN, prefix, "--packages --yes")
-    #
-    #         pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-    #         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-    #         assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-    #
-    #     run_command(Commands.CLEAN, prefix, "--packages --yes")
-    #
-    #     pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-    #     pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-    #     assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+    def test_clean_tarballs_and_packages(self):
+        try:
+            with make_temp_env("flask") as prefix:
+                pkgs_dir = context.pkgs_dirs[0]
+                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+                pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+                pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
+                assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+                assert any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
+
+                run_command(Commands.CLEAN, prefix, "--packages --yes")
+                run_command(Commands.CLEAN, prefix, "--tarballs --yes")
+
+                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+                pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+                pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
+                assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+                assert not any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
+
+            run_command(Commands.CLEAN, prefix, "--packages --yes")
+
+            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+            pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
+            assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+        finally:
+            import conda.core.package_cache
+            conda.core.package_cache.package_cache_.clear()
+            conda.core.package_cache.fname_table_.clear()
 
     def test_clean_source_cache(self):
         cache_dirs = {
