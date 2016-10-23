@@ -19,14 +19,6 @@
    :alt: Codecov Status
    :target: https://codecov.io/github/conda/conda?branch=master
 
-.. image:: https://scrutinizer-ci.com/g/conda/conda/badges/quality-score.png?b=master
-   :alt: Scrutinizer Code Quality
-   :target: https://scrutinizer-ci.com/g/conda/conda/?branch=master
-
-.. image:: https://www.quantifiedcode.com/api/v1/project/81377831ebe54def8b31c55a4b5b4cb0/badge.svg
-   :alt: Quantified Code
-   :target: https://www.quantifiedcode.com/app/project/81377831ebe54def8b31c55a4b5b4cb0
-
 .. image:: https://badges.gitter.im/conda/conda.svg
    :alt: Join the chat at https://gitter.im/conda/conda
    :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
