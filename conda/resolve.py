@@ -693,16 +693,16 @@ class Resolve(object):
     def generate_version_metrics(self, C, specs, include0=False):
         eqv = {}  # a C.minimize() objective: Dict[varname, coeff]
         eqb = {}  # a C.minimize() objective: Dict[varname, coeff]
-        sdict = {}  # Dict[package_name, matchspec.target]
+        sdict = {}  # Dict[package_name, Dist]
 
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             rec = sdict.setdefault(s.name, [])
             if s.target:
-                assert isinstance(s.target, Dist)
-                if s.target in self.index:
-                    if self.index[s.target].get('priority', 0) < MAX_CHANNEL_PRIORITY:
-                        rec.append(s.target)
+                dist = Dist(s.target)
+                if dist in self.index:
+                    if self.index[dist].get('priority', 0) < MAX_CHANNEL_PRIORITY:
+                        rec.append(dist)
 
         for name, targets in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
