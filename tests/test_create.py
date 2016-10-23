@@ -824,7 +824,7 @@ class IntegrationTests(TestCase):
     #     pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
     #     assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
 
-    def test_clean_tarballs(self):
+    def test_clean_tarballs_and_packages(self):
         with make_temp_env("flask") as prefix:
             pkgs_dir = context.pkgs_dirs[0]
             pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
@@ -847,6 +847,10 @@ class IntegrationTests(TestCase):
         pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
         pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
         assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+
+        import conda.core.package_cache
+        conda.core.package_cache.package_cache_.clear()
+        conda.core.package_cache.fname_table_.clear()
 
     def test_clean_source_cache(self):
         cache_dirs = {
