@@ -23,17 +23,10 @@ main_test() {
     # basic unit tests
     python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" tests
     python setup.py --version
+}
 
-    # activate tests
+activate_test() {
     python setup.py develop
-    # local workingdir="$(pwd)"
-    # local python_prefix=$(python -c "import sys; print(sys.prefix)")
-    # local bindir="$python_prefix/bin"
-    # mkdir -p $bindir
-    # make_conda_entrypoint "$bindir/conda" $workingdir
-    # cp shell/activate $bindir
-    # cp shell/deactivate $bindir
-    # chmod +x $bindir/activate $bindir/deactivate
     hash -r
     which conda
     python -m conda info
@@ -70,4 +63,7 @@ elif [[ -n $CONDA_BUILD ]]; then
     # fi
 else
     main_test
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        activate_test
+    fi
 fi
