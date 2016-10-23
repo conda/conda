@@ -27,9 +27,9 @@ from requests import Response
 from requests.adapters import BaseAdapter
 from requests.hooks import dispatch_hook
 
-from conda.common.compat import StringIO
-from conda.common.url import urlparse
-from conda.exceptions import AuthenticationError
+from ...common.compat import StringIO
+from ...common.url import urlparse
+from ...exceptions import AuthenticationError
 
 
 log = getLogger(__name__)
