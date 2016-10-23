@@ -1,9 +1,10 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, absolute_import, unicode_literals
 
 import operator as op
 import re
 
 from .compat import zip_longest, string_types, zip
+from .exceptions import CondaRuntimeError, CondaValueError
 
 # normalized_version() is needed by conda-env
 # It is currently being pulled from resolve instead, but
@@ -16,6 +17,8 @@ def ver_eval(vtest, spec):
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
+version_cache = {}
+
 class VersionOrder(object):
     '''
     This class implements an order relation between version strings.
@@ -125,7 +128,15 @@ class VersionOrder(object):
 
       1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
     '''
-    def __init__(self, version):
+
+    def __new__(cls, version):
+        if isinstance(version, cls):
+            return version
+        self = version_cache.get(version)
+        if self is not None:
+            return self
+        self = version_cache[version] = object.__new__(cls)
+
         # when fillvalue ==  0  =>  1.1 == 1.1.0
         # when fillvalue == -1  =>  1.1  < 1.1.0
         self.fillvalue = 0
@@ -135,7 +146,7 @@ class VersionOrder(object):
         version = version.strip().rstrip().lower()
         # basic validity checks
         if version == '':
-            raise ValueError("Empty version string.")
+            raise CondaValueError("Empty version string.")
         invalid = not version_check_re.match(version)
         if invalid and '-' in version and '_' not in version:
             # Allow for dashes as long as there are no underscores
@@ -143,7 +154,7 @@ class VersionOrder(object):
             version = version.replace('-', '_')
             invalid = not version_check_re.match(version)
         if invalid:
-            raise ValueError(message + "invalid character(s).")
+            raise CondaValueError(message + "invalid character(s).")
         self.norm_version = version
 
         # find epoch
@@ -154,10 +165,10 @@ class VersionOrder(object):
         elif len(version) == 2:
             # epoch given, must be an integer
             if not version[0].isdigit():
-                raise ValueError(message + "epoch must be an integer.")
+                raise CondaValueError(message + "epoch must be an integer.")
             epoch = [version[0]]
         else:
-            raise ValueError(message + "duplicated epoch separator '!'.")
+            raise CondaValueError(message + "duplicated epoch separator '!'.")
 
         # find local version string
         version = version[-1].split('+')
@@ -168,7 +179,7 @@ class VersionOrder(object):
             # local version given
             self.local = version[1].replace('_', '.').split('.')
         else:
-            raise ValueError(message + "duplicated local version separator '+'.")
+            raise CondaValueError(message + "duplicated local version separator '+'.")
 
         # split version
         self.version = epoch + version[0].replace('_', '.').split('.')
@@ -179,7 +190,7 @@ class VersionOrder(object):
             for k in range(len(v)):
                 c = version_split_re.findall(v[k])
                 if not c:
-                    raise ValueError(message + "empty version component.")
+                    raise CondaValueError(message + "empty version component.")
                 for j in range(len(c)):
                     if c[j].isdigit():
                         c[j] = int(c[j])
@@ -196,6 +207,7 @@ class VersionOrder(object):
                     # components shall start with a number to keep numbers and
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
+        return self
 
     def __str__(self):
         return self.norm_version
@@ -273,8 +285,14 @@ class VersionOrder(object):
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
 version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
+regex_split_re = re.compile(r'(\^\S+?\$)')
+regex_split_converter = {
+    '|': 'any',
+    ',': 'all',
+}
 opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
           '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
+
 
 class VersionSpec(object):
     def exact_match_(self, vspec):
@@ -302,6 +320,17 @@ class VersionSpec(object):
         self.spec = spec
         if isinstance(spec, tuple):
             self.match = self.all_match_ if spec[0] == 'all' else self.any_match_
+        elif regex_split_re.match(spec):
+            m = regex_split_re.match(spec)
+            first = m.group()
+            operator = spec[m.end()] if len(spec) > m.end() else None
+            if operator is None:
+                self.spec = first
+                self.regex = re.compile(spec)
+                self.match = self.regex_match_
+            else:
+                return VersionSpec((regex_split_converter[operator],
+                                    tuple(VersionSpec(s) for s in (first, spec[m.end()+1:]))))
         elif '|' in spec:
             return VersionSpec(('any', tuple(VersionSpec(s) for s in spec.split('|'))))
         elif ',' in spec:
@@ -309,7 +338,7 @@ class VersionSpec(object):
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
-                raise RuntimeError('Invalid version spec: %s' % spec)
+                raise CondaRuntimeError('Invalid version spec: %s' % spec)
             op, b = m.groups()
             self.op = opdict[op]
             self.cmp = VersionOrder(b)

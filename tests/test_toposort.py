@@ -1,6 +1,7 @@
 import unittest
 from conda.toposort import toposort, pop_key
 
+
 class TopoSortTests(unittest.TestCase):
 
     def test_pop_key(self):

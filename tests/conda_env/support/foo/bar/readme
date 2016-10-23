@@ -1,0 +1,2 @@
+This is here for testing purposes to verify that load_from_default()
+can scan parent directories properly.

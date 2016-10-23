@@ -2,7 +2,7 @@ import os.path
 import sys
 import unittest
 
-from conda.fetch import cache_fn_url
+from conda.core.index import cache_fn_url
 from conda.misc import url_pat, walk_prefix
 
 
@@ -36,6 +36,7 @@ def make_mock_directory(tmpdir, mock_directory):
             tmpdir.join(key).write("TEST")
         else:
             make_mock_directory(tmpdir.mkdir(key), value)
+
 
 def test_walk_prefix(tmpdir):  # tmpdir is a py.test utility
     # Each directory is a dict whose keys are names. If the value is

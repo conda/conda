@@ -1,12 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
+from conda.models.dist import Dist
 from logging import getLogger
 
-from .config import root_dir
-from .exceptions import InvalidInstruction
-from .fetch import fetch_pkg
-from .install import (is_extracted, messages, extract, rm_extracted, rm_fetched, LINK_HARD,
-                      link, unlink, symlink_conda, name_dist)
+from .base.context import context
+from conda.core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
+from .install import (LINK_HARD, link, messages, symlink_conda, unlink)
 
 
 log = getLogger(__name__)
@@ -45,7 +44,8 @@ def PRINT_CMD(state, arg):
 
 
 def FETCH_CMD(state, arg):
-    fetch_pkg(state['index'][arg + '.tar.bz2'])
+    assert isinstance(arg, Dist)
+    fetch_pkg(state['index'][arg])
 
 
 def PROGRESS_CMD(state, arg):
@@ -55,32 +55,38 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
+    assert isinstance(arg, Dist)
     if not is_extracted(arg):
         extract(arg)
 
 
 def RM_EXTRACTED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_extracted(arg)
 
 
 def RM_FETCHED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_fetched(arg)
 
 
 def split_linkarg(arg):
-    "Return tuple(dist, linktype, shortcuts)"
+    """Return tuple(dist, linktype)"""
     parts = arg.split()
-    return (parts[0], int(LINK_HARD if len(parts) < 2 else parts[1]),
-            False if len(parts) < 3 else parts[2] == 'True')
+    return (parts[0], int(LINK_HARD if len(parts) < 2 else parts[1]))
 
 
 def LINK_CMD(state, arg):
-    dist, lt, shortcuts = split_linkarg(arg)
-    link(state['prefix'], dist, lt, index=state['index'], shortcuts=shortcuts)
+    dist, lt = split_linkarg(arg)
+    dist = Dist(dist)
+    log.debug("=======> LINKING %s <=======", dist)
+    link(state['prefix'], dist, lt, index=state['index'])
 
 
 def UNLINK_CMD(state, arg):
-    unlink(state['prefix'], arg)
+    log.debug("=======> UNLINKING %s <=======", arg)
+    dist = Dist(arg)
+    unlink(state['prefix'], dist)
 
 
 def SYMLINK_CONDA_CMD(state, arg):
@@ -102,8 +108,7 @@ commands = {
 
 
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
-    """
-    Execute the instructions in the plan
+    """Execute the instructions in the plan
 
     :param plan: A list of (instruction, arg) tuples
     :param index: The meta-data index
@@ -118,20 +123,19 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         from .console import setup_verbose_handlers
         setup_verbose_handlers()
 
-    state = {'i': None, 'prefix': root_dir, 'index': index}
+    log.debug("executing plan %s", plan)
+
+    state = {'i': None, 'prefix': context.root_dir, 'index': index}
 
     for instruction, arg in plan:
 
-        log.debug(' %s(%r)' % (instruction, arg))
+        log.debug(' %s(%r)', instruction, arg)
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((name_dist(arg),
+            getLogger('progress.update').info((Dist(arg).dist_name,
                                                state['i'] - 1))
-        cmd = _commands.get(instruction)
-
-        if cmd is None:
-            raise InvalidInstruction(instruction)
+        cmd = _commands[instruction]
 
         cmd(state, arg)
 

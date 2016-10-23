@@ -4,48 +4,34 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
 import logging
 import os
-import shutil
-import sys
-import tarfile
-import tempfile
 from difflib import get_close_matches
-from os.path import isdir, join, basename, exists, abspath
+from os.path import abspath, basename, exists, isdir, join
 
+from .._vendor.auxlib.ish import dals
+from ..base.constants import ROOT_ENV_NAME
+from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..config import create_default_packages, force_32bit, root_env_name
-from ..install import linked as install_linked
-from ..install import name_dist, is_linked
-from ..misc import explicit, clone_env, append_env, touch_nonadmin
-from ..plan import (is_root_prefix, get_pinned_specs, install_actions, add_defaults_to_specs,
-                    display_actions, revert_actions, nothing_to_do, execute_actions)
-from ..resolve import NoPackagesFound, Unsatisfiable, Resolve
-from ..utils import find_parent_shell
+from ..common.compat import text_type
+from ..core.index import get_index
+from ..core.linked_data import is_linked, linked as install_linked
+from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
+                          CondaIOError, CondaImportError, CondaOSError,
+                          CondaRuntimeError, CondaSystemExit, CondaValueError,
+                          DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
+                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
+from ..misc import append_env, clone_env, explicit, touch_nonadmin
+from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
+                    install_actions, is_root_prefix, nothing_to_do, revert_actions)
+from ..resolve import Resolve
+from ..utils import on_win
 
 log = logging.getLogger(__name__)
-
-
-def install_tar(prefix, tar_path, verbose=False):
-    if not exists(tar_path):
-        sys.exit("File does not exist: %s" % tar_path)
-    tmp_dir = tempfile.mkdtemp()
-    t = tarfile.open(tar_path, 'r')
-    t.extractall(path=tmp_dir)
-    t.close()
-
-    paths = []
-    for root, dirs, files in os.walk(tmp_dir):
-        for fn in files:
-            if fn.endswith('.tar.bz2'):
-                paths.append(join(root, fn))
-
-    explicit(paths, prefix, verbose=verbose)
-    shutil.rmtree(tmp_dir)
 
 
 def check_prefix(prefix, json=False):
@@ -53,28 +39,24 @@ def check_prefix(prefix, json=False):
     error = None
     if name.startswith('.'):
         error = "environment name cannot start with '.': %s" % name
-    if name == root_env_name:
+    if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
+        if isdir(prefix) and 'conda-meta' not in os.listdir(prefix):
+            return None
         error = "prefix already exists: %s" % prefix
 
     if error:
-        common.error_and_exit(error, json=json, error_type="ValueError")
+        raise CondaValueError(error, json)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            common.error_and_exit('no such directory: %s' % src_arg,
-                                  json=json,
-                                  error_type="NoEnvironmentFound")
+            raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
     else:
-        src_prefix = common.find_prefix_name(src_arg)
-        if src_prefix is None:
-            common.error_and_exit('could not find environment: %s' % src_arg,
-                                  json=json,
-                                  error_type="NoEnvironmentFound")
+        src_prefix = context.clone_src
 
     if not json:
         print("Source:      %s" % src_prefix)
@@ -96,70 +78,74 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 
 def print_activate(arg):
-    shell = find_parent_shell(path=False)
-    print("#")
-    print("# To activate this environment, use:")
-    if shell in ["powershell.exe", "cmd.exe"]:
-        print("# > activate %s" % arg)
-        print("#")
-        print("# To deactivate this environment, use:")
-        print("# > deactivate")
+    if on_win:
+        message = dals("""
+        #
+        # To activate this environment, use:
+        # > activate %s
+        #
+        # To deactivate this environment, use:
+        # > deactivate %s
+        #
+        # * for power-users using bash, you must source
+        #
+        """)
     else:
-        print("# $ source activate %s" % arg)
-        print("#")
-        print("# To deactivate this environment, use:")
-        print("# $ source deactivate")
-    print("#")
+        message = dals("""
+        #
+        # To activate this environment, use:
+        # > source activate %s
+        #
+        # To deactivate this environment, use:
+        # > source deactivate %s
+        #
+        """)
+
+    return message % (arg, arg)
 
 
 def get_revision(arg, json=False):
     try:
         return int(arg)
     except ValueError:
-        common.error_and_exit("expected revision number, not: '%s'" % arg,
-                              json=json,
-                              error_type="ValueError")
+        CondaValueError("expected revision number, not: '%s'" % arg, json)
 
 
 def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
+    context.validate_configuration()
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
     if newenv:
         common.ensure_name_or_prefix(args, command)
-    prefix = common.get_prefix(args, search=not newenv)
+    prefix = context.prefix if newenv or args.mkdir else context.prefix_w_legacy_search
     if newenv:
-        check_prefix(prefix, json=args.json)
-    if force_32bit and is_root_prefix(prefix):
-        common.error_and_exit("cannot use CONDA_FORCE_32BIT=1 in root env")
-
+        check_prefix(prefix, json=context.json)
+    if context.force_32bit and is_root_prefix(prefix):
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
     if isupdate and not (args.file or args.all or args.packages):
-        common.error_and_exit("""no package names supplied
+        raise CondaValueError("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
-""" % prefix,
-                              json=args.json,
-                              error_type="ValueError")
+""" % prefix)
 
-    linked = install_linked(prefix)
-    lnames = {name_dist(d) for d in linked}
+    linked_dists = install_linked(prefix)
+    linked_names = tuple(ld.quad[0] for ld in linked_dists)
     if isupdate and not args.all:
         for name in args.packages:
-            common.arg2spec(name, json=args.json, update=True)
-            if name not in lnames:
-                common.error_and_exit("Package '%s' is not installed in %s" %
-                                      (name, prefix),
-                                      json=args.json,
-                                      error_type="ValueError")
+            common.arg2spec(name, json=context.json, update=True)
+            if name not in linked_names:
+                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
+                                           (name, prefix))
 
     if newenv and not args.no_default_packages:
-        default_packages = create_default_packages[:]
+        default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
-        for default_pkg in create_default_packages:
+        for default_pkg in context.create_default_packages:
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
                 default_packages.remove(default_pkg)
         args.packages.extend(default_packages)
@@ -179,76 +165,68 @@ def install(args, parser, command='install'):
     specs = []
     if args.file:
         for fpath in args.file:
-            specs.extend(common.specs_from_url(fpath, json=args.json))
+            specs.extend(common.specs_from_url(fpath, json=context.json))
         if '@EXPLICIT' in specs:
-            explicit(specs, prefix, verbose=not args.quiet, index_args=index_args)
+            explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
     elif getattr(args, 'all', False):
-        if not linked:
-            common.error_and_exit("There are no packages installed in the "
-                                  "prefix %s" % prefix)
-        specs.extend(nm for nm in lnames)
-    specs.extend(common.specs_from_args(args.packages, json=args.json))
+        if not linked_dists:
+            raise PackageNotFoundError('', "There are no packages installed in the "
+                                       "prefix %s" % prefix)
+        specs.extend(d.quad[0] for d in linked_dists)
+    specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:
-        get_revision(args.revision, json=args.json)
-    elif not (newenv and args.clone):
-        common.check_specs(prefix, specs, json=args.json,
-                           create=(command == 'create'))
+        get_revision(args.revision, json=context.json)
+    elif isinstall and not (args.file or args.packages):
+        raise CondaValueError("too few arguments, "
+                              "must supply command line package specs or --file")
 
     num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
     if num_cp:
         if num_cp == len(args.packages):
-            explicit(args.packages, prefix, verbose=not args.quiet)
+            explicit(args.packages, prefix, verbose=not context.quiet)
             return
         else:
-            common.error_and_exit(
-                "cannot mix specifications with conda package filenames",
-                json=args.json,
-                error_type="ValueError")
-
-    # handle tar file containing conda packages
-    if len(args.packages) == 1:
-        tar_path = args.packages[0]
-        if tar_path.endswith('.tar'):
-            install_tar(prefix, tar_path, verbose=not args.quiet)
-            return
+            raise CondaValueError("cannot mix specifications with conda package"
+                                  " filenames")
 
     if newenv and args.clone:
-        if set(args.packages) - set(default_packages):
-            common.error_and_exit('did not expect any arguments for --clone',
-                                  json=args.json,
-                                  error_type="ValueError")
-        clone(args.clone, prefix, json=args.json, quiet=args.quiet, index_args=index_args)
+        package_diff = set(args.packages) - set(default_packages)
+        if package_diff:
+            raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
+                                        'did not expect any arguments for --clone')
+
+        clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not args.json:
-            print_activate(args.name if args.name else prefix)
+        if not context.json:
+            print(print_activate(args.name if args.name else prefix))
         return
 
-    index_args.update({'json': args.json, 'prefix': prefix})
-    index = common.get_index_trap(**index_args)
-
+    index = get_index(channel_urls=index_args['channel_urls'], prepend=index_args['prepend'],
+                      platform=None, use_local=index_args['use_local'],
+                      use_cache=index_args['use_cache'], unknown=index_args['unknown'],
+                      prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
-    add_defaults_to_specs(r, linked, specs, update=isupdate)
+    add_defaults_to_specs(r, linked_dists, specs, update=isupdate)
 
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
-        installed_metadata = [is_linked(prefix, dist) for dist in linked]
+        installed_metadata = [is_linked(prefix, dist) for dist in linked_dists]
         for name in orig_packages:
             vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
+            channel_inst = [m['channel'] for m in installed_metadata if m['name'] == name]
 
             try:
                 assert len(vers_inst) == 1, name
                 assert len(build_inst) == 1, name
+                assert len(channel_inst) == 1, name
             except AssertionError as e:
-                if args.json:
-                    common.exception_and_exit(e, json=True)
-                else:
-                    raise
+                raise CondaAssertionError(text_type(e))
 
             pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
@@ -256,13 +234,14 @@ def install(args, parser, command='install'):
                 continue
             latest = pkgs[-1]
 
-            if (latest.version == vers_inst[0] and
-                    latest.build_number == build_inst[0]):
+            if all([latest.version == vers_inst[0],
+                    latest.build_number == build_inst[0],
+                    latest.channel == channel_inst[0]]):
                 args.packages.remove(name)
         if not args.packages:
             from .main_list import print_packages
 
-            if not args.json:
+            if not context.json:
                 regex = '^(%s)$' % '|'.join(orig_packages)
                 print('# All requested packages already installed.')
                 print_packages(prefix, regex)
@@ -270,7 +249,6 @@ def install(args, parser, command='install'):
                 common.stdout_json_success(
                     message='All requested packages already installed.')
             return
-
     if args.force:
         args.no_deps = True
 
@@ -284,41 +262,29 @@ def install(args, parser, command='install'):
             try:
                 os.makedirs(prefix)
             except OSError:
-                common.error_and_exit("Error: could not create directory: %s" % prefix,
-                                      json=args.json,
-                                      error_type="OSError")
+                raise CondaOSError("Error: could not create directory: %s" % prefix)
         else:
-            common.error_and_exit("""\
-environment does not exist: %s
-#
-# Use 'conda create' to create an environment before installing packages
-# into it.
-#""" % prefix,
-                                  json=args.json,
-                                  error_type="NoEnvironmentFound")
-
-    shortcuts = args.shortcuts if hasattr(args, "shortcuts") else None
+            raise CondaEnvironmentNotFoundError(prefix)
 
     try:
         if isinstall and args.revision:
-            actions = revert_actions(prefix, get_revision(args.revision))
+            actions = revert_actions(prefix, get_revision(args.revision), index)
         else:
-            with common.json_progress_bars(json=args.json and not args.quiet):
+            with common.json_progress_bars(json=context.json and not context.quiet):
                 actions = install_actions(prefix, index, specs,
                                           force=args.force,
                                           only_names=only_names,
                                           pinned=args.pinned,
-                                          always_copy=args.copy,
+                                          always_copy=context.always_copy,
                                           minimal_hint=args.alt_hint,
-                                          update_deps=args.update_deps,
-                                          shortcuts=shortcuts)
-    except NoPackagesFound as e:
-        error_message = e.args[0]
+                                          update_deps=context.update_dependencies)
+    except NoPackagesFoundError as e:
+        error_message = [e.args[0]]
 
         if isupdate and args.all:
             # Packages not found here just means they were installed but
             # cannot be found any more. Just skip them.
-            if not args.json:
+            if not context.json:
                 print("Warning: %s, skipping" % error_message)
             else:
                 # Not sure what to do here
@@ -345,40 +311,40 @@ environment does not exist: %s
                 if not close:
                     continue
                 if nfound == 0:
-                    error_message += "\n\nClose matches found; did you mean one of these?\n"
-                error_message += "\n    %s: %s" % (pkg, ', '.join(close))
+                    error_message.append("\n\nClose matches found; did you mean one of these?\n")
+                error_message.append("\n    %s: %s" % (pkg, ', '.join(close)))
                 nfound += 1
-            error_message += '\n\nYou can search for packages on anaconda.org with'
-            error_message += '\n\n    anaconda search -t conda %s' % pkg
+            error_message.append('\n\nYou can search for packages on anaconda.org with')
+            error_message.append('\n\n    anaconda search -t conda %s' % pkg)
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
-                error_message += '\n\n(and similarly for the other packages)'
+                error_message.append('\n\n(and similarly for the other packages)')
 
             if not find_executable('anaconda', include_others=False):
-                error_message += '\n\nYou may need to install the anaconda-client'
-                error_message += ' command line client with'
-                error_message += '\n\n    conda install anaconda-client'
+                error_message.append('\n\nYou may need to install the anaconda-client')
+                error_message.append(' command line client with')
+                error_message.append('\n\n    conda install anaconda-client')
 
             pinned_specs = get_pinned_specs(prefix)
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
-                error_message += "\n\nNote that you have pinned specs in %s:" % path
-                error_message += "\n\n    %r" % pinned_specs
+                error_message.append("\n\nNote that you have pinned specs in %s:" % path)
+                error_message.append("\n\n    %r" % pinned_specs)
 
-            common.error_and_exit(error_message, json=args.json)
-    except (Unsatisfiable, SystemExit) as e:
+            error_message = ''.join(error_message)
+
+            raise PackageNotFoundError('', error_message)
+
+    except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
-        error_type = 'UnsatisfiableSpecifications'
         if e.args and 'could not import' in e.args[0]:
-            error_type = 'ImportError'
-        common.exception_and_exit(e, json=args.json, newline=True,
-                                  error_text=False,
-                                  error_type=error_type)
+            raise CondaImportError(text_type(e))
+        raise
 
-    if nothing_to_do(actions):
+    if nothing_to_do(actions) and not newenv:
         from .main_list import print_packages
 
-        if not args.json:
+        if not context.json:
             regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
             print('\n# All requested packages already installed.')
             print_packages(prefix, regex)
@@ -386,48 +352,52 @@ environment does not exist: %s
             common.stdout_json_success(
                 message='All requested packages already installed.')
         return
+    elif newenv:
+        # needed in the case of creating an empty env
+        from ..instructions import LINK, UNLINK, SYMLINK_CONDA
+        if not actions[LINK] and not actions[UNLINK]:
+            actions[SYMLINK_CONDA] = [context.root_dir]
 
-    if not args.json:
+    if not context.json:
         print()
         print("Package plan for installation in environment %s:" % prefix)
-        display_actions(actions, index, show_channel_urls=args.show_channel_urls)
+        display_actions(actions, index, show_channel_urls=context.show_channel_urls)
 
     if command in {'install', 'update'}:
-        common.check_write(command, prefix)
+        check_write(command, prefix)
 
-    if not args.json:
+    if not context.json:
         common.confirm_yn(args)
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
-        sys.exit(0)
+        raise DryRunExit()
 
-    with common.json_progress_bars(json=args.json and not args.quiet):
+    with common.json_progress_bars(json=context.json and not context.quiet):
         try:
-            execute_actions(actions, index, verbose=not args.quiet)
+            execute_actions(actions, index, verbose=not context.quiet)
             if not (command == 'update' and args.all):
                 try:
                     with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                        f.write('# %s specs: %s\n' % (command, specs))
+                        f.write('# %s specs: %s\n' % (command, ','.join(specs)))
                 except IOError as e:
                     if e.errno == errno.EACCES:
                         log.debug("Can't write the history file")
                     else:
-                        raise
+                        raise CondaIOError("Can't write the history file", e)
 
         except RuntimeError as e:
             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                error_type = "AlreadyLocked"
+                raise LockError('Already locked: %s' % text_type(e))
             else:
-                error_type = "RuntimeError"
-            common.exception_and_exit(e, error_type=error_type, json=args.json)
+                raise CondaRuntimeError('RuntimeError: %s' % e)
         except SystemExit as e:
-            common.exception_and_exit(e, json=args.json)
+            raise CondaSystemExit('Exiting', e)
 
     if newenv:
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not args.json:
-            print_activate(args.name if args.name else prefix)
+        if not context.json:
+            print(print_activate(args.name if args.name else prefix))
 
-    if args.json:
+    if context.json:
         common.stdout_json_success(actions=actions)

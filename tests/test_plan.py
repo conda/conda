@@ -1,3 +1,7 @@
+import os
+from conda.models.dist import Dist
+from conda.models.record import Record
+
 from contextlib import contextmanager
 import sys
 import json
@@ -8,37 +12,38 @@ from collections import defaultdict
 
 import pytest
 
-from conda.config import default_python, pkgs_dirs
-import conda.config
+from conda.base.context import context, reset_context
 from conda.install import LINK_HARD
 import conda.plan as plan
 import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve
+from conda.utils import on_win
+from conda.common.compat import iteritems
 
 # FIXME This should be a relative import
 from tests.helpers import captured
-from conda.exceptions import CondaException
+from conda import CondaError
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = json.load(fi)
+    index = {Dist(k): Record(**v) for k, v in iteritems(json.load(fi))}
     r = Resolve(index)
 
 
 def solve(specs):
-    return [fn[:-8] for fn in r.solve(specs)]
+    return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
 class TestMisc(unittest.TestCase):
 
     def test_split_linkarg(self):
         for arg, res in [
-            ('w3-1.2-0', ('w3-1.2-0', LINK_HARD, False)),
-            ('w3-1.2-0 1', ('w3-1.2-0', 1, False)),
-            ('w3-1.2-0 1 True', ('w3-1.2-0', 1, True))]:
+            ('w3-1.2-0', ('w3-1.2-0', LINK_HARD)),
+            ('w3-1.2-0 1', ('w3-1.2-0', 1)),
+            ('w3-1.2-0 1 True', ('w3-1.2-0', 1))]:
             self.assertEqual(inst.split_linkarg(arg), res)
 
 
@@ -65,7 +70,7 @@ class add_unlink_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_simply_adds_unlink_on_non_windows(self):
         actions = {}
-        dist = self.generate_random_dist()
+        dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertIn(inst.UNLINK, actions)
@@ -74,7 +79,7 @@ class add_unlink_TestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_adds_to_existing_actions(self):
         actions = {inst.UNLINK: [{"foo": "bar"}]}
-        dist = self.generate_random_dist()
+        dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
             plan.add_unlink(actions, dist)
         self.assertEqual(2, len(actions[inst.UNLINK]))
@@ -120,7 +125,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
     def test_4(self):
         self.linked = []
-        ps = ['python 2.7*'] if default_python == '2.7' else []
+        ps = ['python 2.7*'] if context.default_python == '2.7' else []
         for specs, added in [
             (['python'], ps),
             (['numpy'], ps),
@@ -133,14 +138,14 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             ]:
             self.check(specs, added)
 
+
 def test_display_actions():
-    import conda.plan
-    conda.plan.config_show_channel_urls = False
-    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
-        "numpy-1.7.1-py27_0"]})
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
+    reset_context(())
+    actions = defaultdict(list, {"FETCH": [Dist('sympy-0.7.2-py27_0'), Dist("numpy-1.7.1-py27_0")]})
     # The older test index doesn't have the size metadata
-    index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
-    index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
+    index[Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')]['size'] = 4374752
+    index[Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")]['size'] = 5994338
 
     with captured() as c:
         display_actions(actions, index)
@@ -181,7 +186,6 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-
     assert c.stdout == """
 The following packages will be REMOVED:
 
@@ -192,7 +196,6 @@ The following packages will be REMOVED:
     zlib:     1.2.7-0 \n\
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
     ['cython-0.19-py33_0']})
@@ -245,7 +248,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
-
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
         'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
             'dateutil-1.5-py33_0']})
@@ -263,7 +265,6 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-
     with captured() as c:
         display_actions(actions, index)
 
@@ -276,15 +277,14 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 """
 
 
-
 def test_display_actions_show_channel_urls():
-    import conda.plan
-    conda.plan.config_show_channel_urls = True
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
+    reset_context(())
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
-    index['sympy-0.7.2-py27_0.tar.bz2']['size'] = 4374752
-    index["numpy-1.7.1-py27_0.tar.bz2"]['size'] = 5994338
+    index[Dist('sympy-0.7.2-py27_0.tar.bz2')]['size'] = 4374752
+    index[Dist("numpy-1.7.1-py27_0.tar.bz2")]['size'] = 5994338
 
     with captured() as c:
         display_actions(actions, index)
@@ -300,7 +300,6 @@ The following packages will be downloaded:
                                            Total:         9.9 MB
 
 """
-
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
@@ -326,7 +325,6 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-
     assert c.stdout == """
 The following packages will be REMOVED:
 
@@ -337,7 +335,6 @@ The following packages will be REMOVED:
     zlib:     1.2.7-0  <unknown>
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
     ['cython-0.19-py33_0']})
@@ -354,7 +351,6 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-
     with captured() as c:
         display_actions(actions, index)
 
@@ -364,7 +360,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     cython: 0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
         'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
@@ -391,7 +386,6 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     dateutil: 2.1-py33_1   <unknown> --> 1.5-py33_0    <unknown>
 
 """
-
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
         'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
@@ -423,8 +417,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
-    index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
+    index[Dist('cython-0.19.1-py33_0.tar.bz2')]['channel'] = 'my_channel'
+    index[Dist('dateutil-1.5-py33_0.tar.bz2')]['channel'] = 'my_channel'
 
     with captured() as c:
         display_actions(actions, index)
@@ -439,7 +433,6 @@ The following packages will be UPDATED:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-
     with captured() as c:
         display_actions(actions, index)
 
@@ -453,8 +446,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 
 def test_display_actions_link_type():
-    import conda.plan
-    conda.plan.config_show_channel_urls = False
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
+    reset_context(())
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 2', 'dateutil-1.5-py33_0 2',
     'numpy-1.7.1-py33_0 2', 'python-3.3.2-0 2', 'readline-6.2-0 2', 'sqlite-3.7.13-0 2', 'tk-8.5.13-0 2', 'zlib-1.2.7-0 2']})
@@ -605,11 +598,11 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     dateutil: 2.1-py33_1    --> 1.5-py33_0  (copy)
 
 """
-    import conda.plan
-    conda.plan.config_show_channel_urls = True
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
+    reset_context(())
 
-    index['cython-0.19.1-py33_0.tar.bz2']['channel'] = 'my_channel'
-    index['dateutil-1.5-py33_0.tar.bz2']['channel'] = 'my_channel'
+    index[Dist('cython-0.19.1-py33_0.tar.bz2')]['channel'] = 'my_channel'
+    index[Dist('dateutil-1.5-py33_0.tar.bz2')]['channel'] = 'my_channel'
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 3', 'dateutil-1.5-py33_0 3',
     'numpy-1.7.1-py33_0 3', 'python-3.3.2-0 3', 'readline-6.2-0 3', 'sqlite-3.7.13-0 3', 'tk-8.5.13-0 3', 'zlib-1.2.7-0 3']})
@@ -661,9 +654,10 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
+
 def test_display_actions_features():
-    import conda.plan
-    conda.plan.config_show_channel_urls = False
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
+    reset_context(())
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
@@ -739,8 +733,8 @@ The following packages will be UPDATED:
     numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
 
 """
-    import conda.plan
-    conda.plan.config_show_channel_urls = True
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
+    reset_context(())
 
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
@@ -754,7 +748,6 @@ The following NEW packages will be INSTALLED:
     numpy:  1.7.1-py33_p0 <unknown> [mkl]
 
 """
-
 
     actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
@@ -793,7 +786,6 @@ The following packages will be UPDATED:
 
 """
 
-
     actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
 
     with captured() as c:
@@ -818,6 +810,7 @@ The following packages will be UPDATED:
     numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.1-py33_0 <unknown>
 
 """
+
 
 def test_display_actions_no_index():
     # Test removing a package that is not in the index. This issue
@@ -862,6 +855,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
+
 class TestDeprecatedExecutePlan(unittest.TestCase):
 
     def test_update_old_plan(self):
@@ -871,7 +865,7 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
         expected = [('INSTRUCTION', 'arg')]
         self.assertEqual(new_plan, expected)
 
-        with self.assertRaises(CondaException):
+        with self.assertRaises(CondaError):
             plan.update_old_plan(['INVALID'])
 
     def test_execute_plan(self):
@@ -885,17 +879,14 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
             INSTRUCTION_CMD.called = True
             INSTRUCTION_CMD.arg = arg
 
-
         set_commands({'INSTRUCTION': INSTRUCTION_CMD})
 
         old_plan = ['# plan', 'INSTRUCTION arg']
 
         plan.execute_plan(old_plan)
 
-
         self.assertTrue(INSTRUCTION_CMD.called)
         self.assertEqual(INSTRUCTION_CMD.arg, 'arg')
-
 
 
 class PlanFromActionsTests(unittest.TestCase):
@@ -920,7 +911,7 @@ class PlanFromActionsTests(unittest.TestCase):
             ('LINK', menuinst),
         ]
 
-        if sys.platform == 'win32':
+        if on_win:
             # menuinst should be linked first
             expected_plan = [
                 ('PREFIX', 'aprefix'),

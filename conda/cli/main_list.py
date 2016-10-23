@@ -4,21 +4,20 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import re
 from argparse import RawDescriptionHelpFormatter
+from conda.base.constants import DEFAULTS
+from conda.core.linked_data import is_linked, linked, linked_data
 from os.path import isdir, isfile
 
-from .common import (add_parser_help, add_parser_prefix, add_parser_json,
-                     add_parser_show_channel_urls, disp_features, error_and_exit, stdout_json,
-                     get_prefix)
-from ..config import show_channel_urls, subdir, use_pip
+from .common import (add_parser_help, add_parser_json, add_parser_prefix,
+                     add_parser_show_channel_urls, disp_features, stdout_json)
+from ..base.context import context
 from ..egg_info import get_egg_info
-from ..install import dist2quad, linked
-from ..install import name_dist, is_linked, linked_data
-
+from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
 
 descr = "List linked packages in a conda environment."
 
@@ -108,13 +107,13 @@ def configure_parser(sub_parsers):
 def print_export_header():
     print('# This file may be used to create an environment using:')
     print('# $ conda create --name <env> --file <this file>')
-    print('# platform: %s' % subdir)
+    print('# platform: %s' % context.subdir)
 
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.lower()):
-        name = name_dist(dist)
+    for dist in sorted(installed, key=lambda x: x.quad[0].lower()):
+        name = dist.quad[0]
         if pat and pat.search(name) is None:
             continue
 
@@ -122,17 +121,15 @@ def get_packages(installed, regex):
 
 
 def list_packages(prefix, installed, regex=None, format='human',
-                  show_channel_urls=show_channel_urls):
-    res = 1
-
+                  show_channel_urls=context.show_channel_urls):
+    res = 0
     result = []
     for dist in get_packages(installed, regex):
-        res = 0
         if format == 'canonical':
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist2quad(dist)[:3]))
+            result.append('='.join(dist.quad[:3]))
             continue
 
         try:
@@ -142,26 +139,20 @@ def list_packages(prefix, installed, regex=None, format='human',
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')
-            if show_channel_urls or show_channel_urls is None and schannel != 'defaults':
+            if show_channel_urls or show_channel_urls is None and schannel != DEFAULTS:
                 disp += '  %s' % schannel
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
-            log.debug(str(e))
-            result.append('%-25s %-15s %15s' % dist2quad(dist)[:3])
+            log.debug("exception for dist %s:\n%r", dist, e)
+            result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
 
     return res, result
 
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
-                   json=False, show_channel_urls=show_channel_urls):
+                   json=False, show_channel_urls=context.show_channel_urls):
     if not isdir(prefix):
-        error_and_exit("""\
-Error: environment does not exist: %s
-#
-# Use 'conda create' to create an environment before listing its packages.""" %
-                       prefix,
-                       json=json,
-                       error_type="NoEnvironmentFound")
+        raise CondaEnvironmentNotFoundError(prefix)
 
     if not json:
         if format == 'human':
@@ -171,8 +162,11 @@ Error: environment does not exist: %s
             print_export_header()
 
     installed = linked(prefix)
-    if piplist and use_pip and format == 'human':
-        installed.update(get_egg_info(prefix))
+    log.debug("installed conda packages:\n%s", installed)
+    if piplist and context.use_pip and format == 'human':
+        other_python = get_egg_info(prefix)
+        log.debug("other installed python packages:\n%s", other_python)
+        installed.update(other_python)
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
@@ -185,7 +179,7 @@ Error: environment does not exist: %s
 
 def print_explicit(prefix, add_md5=False):
     if not isdir(prefix):
-        error_and_exit("Error: environment does not exist: %s" % prefix)
+        raise CondaEnvironmentNotFoundError(prefix)
     print_export_header()
     print("@EXPLICIT")
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
@@ -198,8 +192,7 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
-    prefix = get_prefix(args)
-
+    prefix = context.prefix_w_legacy_search
     regex = args.regex
     if args.full_name:
         regex = r'^%s$' % regex
@@ -209,14 +202,12 @@ def execute(args, parser):
 
         h = History(prefix)
         if isfile(h.path):
-            if not args.json:
+            if not context.json:
                 h.print_log()
             else:
                 stdout_json(h.object_log())
         else:
-            error_and_exit("No revision log found: %s\n" % h.path,
-                           json=args.json,
-                           error_type="NoRevisionLog")
+            raise CondaFileNotFoundError(h.path, "No revision log found: %s\n" % h.path)
         return
 
     if args.explicit:
@@ -229,11 +220,10 @@ def execute(args, parser):
         format = 'export'
     else:
         format = 'human'
-
-    if args.json:
+    if context.json:
         format = 'canonical'
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
-                              json=args.json,
-                              show_channel_urls=args.show_channel_urls)
+                              json=context.json,
+                              show_channel_urls=context.show_channel_urls)
     return exitcode

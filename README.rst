@@ -11,25 +11,25 @@
    :alt: Travis-CI Build Status
    :target: https://travis-ci.org/conda/conda
 
-.. image:: https://ci.appveyor.com/api/projects/status/idy477yjwiswsskg/branch/master?svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/v6fl568drifhia2d/branch/master?svg=true
    :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ContinuumAnalytics/conda/branch/master
+   :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda/branch/master
 
 .. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
    :alt: Codecov Status
    :target: https://codecov.io/github/conda/conda?branch=master
 
-.. image:: https://scrutinizer-ci.com/g/conda/conda/badges/quality-score.png?b=master
-   :alt: Scrutinizer Code Quality
-   :target: https://scrutinizer-ci.com/g/conda/conda/?branch=master
-
-.. image:: https://www.quantifiedcode.com/api/v1/project/81377831ebe54def8b31c55a4b5b4cb0/badge.svg
-   :alt: Quantified Code
-   :target: https://www.quantifiedcode.com/app/project/81377831ebe54def8b31c55a4b5b4cb0
-
 .. image:: https://badges.gitter.im/conda/conda.svg
    :alt: Join the chat at https://gitter.im/conda/conda
    :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
+|
+
+.. image:: https://s3.amazonaws.com/conda-dev/conda-announce-signup-button.svg
+   :alt: Join the Conda Announcment List
+   :target: http://conda.pydata.org/docs/announcements.html
+
+|
 
 Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
@@ -188,6 +188,6 @@ separate instance of `Miniconda <http://conda.pydata.org/miniconda.html>`_ and
 work off it. This is also the only way to test conda in both Python 2 and
 Python 3, as conda can only be installed into a root environment.
 
-Run the conda tests by ``conda install pytest pytest-cov`` and then running ``py.test``
+Run the conda tests by ``conda install pytest pytest-cov pytest-timeout mock responses`` and then running ``py.test``
 in the conda directory. The tests are also run by Travis CI when you make a
 pull request.

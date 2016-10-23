@@ -4,11 +4,13 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .common import add_parser_install, add_parser_json
 from .install import install
-from conda.install import on_win
+from ..base.constants import NULL
+from ..common.disk import delete_trash
+from ..utils import on_win
 
 help = "Create a new conda environment from a list of specified packages. "
 descr = (help +
@@ -23,6 +25,7 @@ Examples:
 
 """
 
+
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'create',
@@ -34,9 +37,17 @@ def configure_parser(sub_parsers):
         p.add_argument(
             "--shortcuts",
             action="store_true",
-            help="Install start menu shortcuts"
+            help="Install start menu shortcuts",
+            dest="shortcuts",
+            default=NULL,
         )
-
+        p.add_argument(
+            "--no-shortcuts",
+            action="store_false",
+            help="Don't install start menu shortcuts",
+            dest="shortcuts",
+            default=NULL,
+        )
     add_parser_install(p)
     add_parser_json(p)
     p.add_argument(
@@ -55,3 +66,4 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     install(args, parser, 'create')
+    delete_trash()

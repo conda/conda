@@ -1,12 +1,12 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import contextlib
 import json
 import logging
 import sys
 
-from .progressbar import (Bar, ETA, FileTransferSpeed, Percentage,
-                          ProgressBar)
+from ._vendor.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
+from .base.context import context
 from .utils import memoized
 
 
@@ -55,6 +55,7 @@ class ProgressHandler(logging.Handler):
                 progress.finish()
         except LookupError:
             pass
+
 
 class JsonFetchProgressHandler(logging.Handler):
     def emit(self, record):
@@ -135,14 +136,17 @@ class PrintHandler(logging.Handler):
         if record.name == 'print':
             print(record.msg)
 
+
 class DotHandler(logging.Handler):
     def emit(self, record):
-        try:
-            sys.stdout.write('.')
-            sys.stdout.flush()
-        except IOError:
-            # sys.stdout.flush doesn't work in pythonw
-            pass
+        if not context.json:
+            try:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+            except IOError:
+                # sys.stdout.flush doesn't work in pythonw
+                pass
+
 
 class SysStdoutWriteHandler(logging.Handler):
     def emit(self, record):
@@ -178,6 +182,11 @@ def setup_verbose_handlers():
     print_logger.setLevel(logging.INFO)
     print_logger.addHandler(PrintHandler())
 
+    fetch_prog_logger.propagate = False
+    prog_logger.propagate = False
+    print_logger.propagate = False
+
+
 @contextlib.contextmanager
 def json_progress_bars():
     setup_verbose_handlers()
@@ -198,6 +207,10 @@ def json_progress_bars():
     fetch_prog_logger.addHandler(json_fetch_prog_handler)
     prog_logger.addHandler(json_prog_handler)
 
+    fetch_prog_logger.propagate = False
+    prog_logger.propagate = False
+    print_logger.propagate = False
+
     yield
 
     fetch_prog_logger.removeHandler(json_fetch_prog_handler)
@@ -210,11 +223,15 @@ def setup_handlers():
     dotlogger = logging.getLogger('dotupdate')
     dotlogger.setLevel(logging.DEBUG)
     dotlogger.addHandler(DotHandler())
+    dotlogger.propagate = False
 
     stdoutlogger = logging.getLogger('stdoutlog')
     stdoutlogger.setLevel(logging.DEBUG)
     stdoutlogger.addHandler(SysStdoutWriteHandler())
+    stdoutlogger.propagate = False
 
     stderrlogger = logging.getLogger('stderrlog')
     stderrlogger.setLevel(logging.DEBUG)
     stderrlogger.addHandler(SysStderrWriteHandler())
+    stderrlogger.propagate = False
+    # stderrlogger.addFilter()

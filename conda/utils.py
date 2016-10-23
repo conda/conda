@@ -1,19 +1,19 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
-import sys
-import hashlib
 import collections
-from functools import partial
-from os.path import abspath, isdir, join
-import os
+import hashlib
+import logging
 import re
-import subprocess
-import tempfile
+import sys
+import threading
+from functools import partial
 
+from .common.url import path_to_url
 
 log = logging.getLogger(__name__)
-stderrlog = logging.getLogger('stderrlog')
+
+on_win = bool(sys.platform == "win32")
+
 
 class memoized(object):
     """Decorator. Caches a function's return value each time it is called.
@@ -23,6 +23,7 @@ class memoized(object):
     def __init__(self, func):
         self.func = func
         self.cache = {}
+        self.lock = threading.Lock()
 
     def __call__(self, *args, **kw):
         newargs = []
@@ -37,12 +38,13 @@ class memoized(object):
                 newargs.append(arg)
         newargs = tuple(newargs)
         key = (newargs, frozenset(sorted(kw.items())))
-        if key in self.cache:
-            return self.cache[key]
-        else:
-            value = self.func(*args, **kw)
-            self.cache[key] = value
-            return value
+        with self.lock:
+            if key in self.cache:
+                return self.cache[key]
+            else:
+                value = self.func(*args, **kw)
+                self.cache[key] = value
+                return value
 
 
 # For instance methods only
@@ -86,49 +88,6 @@ def gnu_get_libc_version():
     return f()
 
 
-def can_open(file):
-    """
-    Return True if the given ``file`` can be opened for writing
-    """
-    try:
-        fp = open(file, "ab")
-        fp.close()
-        return True
-    except IOError:
-        stderrlog.info("Unable to open %s\n" % file)
-        return False
-
-
-def can_open_all(files):
-    """
-    Return True if all of the provided ``files`` can be opened
-    """
-    for f in files:
-        if not can_open(f):
-            return False
-    return True
-
-
-def can_open_all_files_in_prefix(prefix, files):
-    """
-    Returns True if all ``files`` at a given ``prefix`` can be opened
-    """
-    return can_open_all((os.path.join(prefix, f) for f in files))
-
-def try_write(dir_path):
-    if not isdir(dir_path):
-        return False
-    # try to create a file to see if `dir_path` is writable, see #2151
-    temp_filename = join(dir_path, '.conda-try-write-%d' % os.getpid())
-    try:
-        with open(temp_filename, mode='wb') as fo:
-            fo.write(b'This is a test file.\n')
-        os.unlink(temp_filename)
-        return True
-    except (IOError, OSError):
-        return False
-
-
 def hashsum_file(path, mode='md5'):
     h = hashlib.new(mode)
     with open(path, 'rb') as fi:
@@ -142,39 +101,6 @@ def hashsum_file(path, mode='md5'):
 
 def md5_file(path):
     return hashsum_file(path, 'md5')
-
-
-def url_path(path):
-    path = abspath(path)
-    if sys.platform == 'win32':
-        path = '/' + path.replace(':', '|').replace('\\', '/')
-    return 'file://%s' % path
-
-
-def run_in(command, shell, cwd=None, env=None):
-    if hasattr(shell, "keys"):
-        shell = shell["exe"]
-    if shell == 'cmd.exe':
-        cmd_script = tempfile.NamedTemporaryFile(suffix='.bat', mode='wt', delete=False)
-        cmd_script.write(command)
-        cmd_script.close()
-        cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
-        try:
-            p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 cwd=cwd, env=env)
-            stdout, stderr = p.communicate()
-        finally:
-            os.unlink(cmd_script.name)
-    elif shell == 'powershell':
-        raise NotImplementedError
-    else:
-        cmd_bits = ([shells[shell]["exe"]] + shells[shell]["shell_args"] +
-                    [translate_stream(command, shells[shell]["path_to"])])
-        p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-    streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")
-               for stream in (stdout, stderr)]
-    return streams
 
 
 def path_identity(path):
@@ -221,6 +147,7 @@ def unix_path_to_win(path, root_prefix=""):
 def win_path_to_cygwin(path):
     return win_path_to_unix(path, "/cygdrive")
 
+
 def cygwin_path_to_win(path):
     return unix_path_to_win(path, "/cygdrive")
 
@@ -244,70 +171,6 @@ def human_bytes(n):
     g = m/1024
     return '%.2f GB' % g
 
-# This is necessary for Windows, for linking the environment, and for printing the correct
-# activation instructions on Windows, depending on the shell type.  It would be great to
-# get rid of it, but I don't know how to otherwise detect which shell is used to create
-# or install conda packages.
-def find_parent_shell(path=False, max_stack_depth=10):
-    """return process name or path of parent.  Default is to return only name of process."""
-    try:
-        import psutil
-    except ImportError:
-        stderrlog.warn("No psutil available.\n"
-                       "To proceed, please conda install psutil")
-        return None
-    process = psutil.Process()
-    pname = process.parent().name().lower()
-    stack_depth = 0
-    while (any(proc in pname for proc in ["conda", "python", "py.test"]) and
-           stack_depth < max_stack_depth):
-        if process:
-            process = process.parent()
-            pname = process.parent().name().lower()
-            stack_depth += 1
-        else:
-            # fallback defaults to system default
-            if sys.platform == 'win32':
-                return 'cmd.exe'
-            else:
-                return 'bash'
-    if path:
-        return process.parent().exe()
-    return process.parent().name()
-
-
-@memoized
-def get_yaml():
-    try:
-        import ruamel_yaml as yaml
-    except ImportError:
-        try:
-            import ruamel.yaml as yaml
-        except ImportError:
-            try:
-                import yaml
-            except ImportError:
-                sys.exit("No yaml library available.\n"
-                         "To proceed, please conda install ruamel_yaml")
-    return yaml
-
-
-def yaml_load(filehandle):
-    yaml = get_yaml()
-    try:
-        return yaml.load(filehandle, Loader=yaml.RoundTripLoader, version="1.1")
-    except AttributeError:
-        return yaml.load(filehandle)
-
-
-def yaml_dump(string):
-    yaml = get_yaml()
-    try:
-        return yaml.dump(string, Dumper=yaml.RoundTripDumper,
-                         block_seq_indent=2, default_flow_style=False,
-                         indent=4)
-    except AttributeError:
-        return yaml.dump(string, default_flow_style=False)
 
 # TODO: this should be done in a more extensible way
 #     (like files for each shell, with some registration mechanism.)
@@ -343,7 +206,7 @@ msys2_shell_base = dict(
                         binpath="/Scripts/",  # mind the trailing slash.
 )
 
-if sys.platform == "win32":
+if on_win:
     shells = {
         # "powershell.exe": dict(
         #    echo="echo",
@@ -407,6 +270,12 @@ if sys.platform == "win32":
         "sh.exe": dict(
             msys2_shell_base, exe="sh.exe",
         ),
+        "zsh.exe": dict(
+            msys2_shell_base, exe="zsh.exe",
+        ),
+        "zsh": dict(
+            msys2_shell_base, exe="zsh",
+        ),
     }
 
 else:
@@ -422,3 +291,6 @@ else:
             pathsep=" ",
                     ),
     }
+
+# put back because of conda build
+urlpath = url_path = path_to_url

@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Determine the directory containing this script
+if [[ -n $BASH_VERSION ]]; then
+    _SCRIPT_LOCATION=${BASH_SOURCE[0]}
+    _SHELL="bash"
+elif [[ -n $ZSH_VERSION ]]; then
+    _SCRIPT_LOCATION=${funcstack[1]}
+    _SHELL="zsh"
+else
+    echo "Only bash and zsh are supported"
+    return 1
+fi
+_CONDA_DIR=$(dirname "$_SCRIPT_LOCATION")
+
+case "$(uname -s)" in
+    CYGWIN*|MINGW*|MSYS*)
+        EXT=".exe"
+        export MSYS2_ENV_CONV_EXCL=CONDA_PATH
+        ;;
+    *)
+        EXT=""
+        ;;
+esac
+
+# shift over all args.  We don't accept any, so it's OK that we ignore them all here.
+while [[ $# > 0 ]]
+do
+    key="$1"
+    case $key in
+        -h|--help)
+            "$_CONDA_DIR/conda" ..deactivate $_SHELL$EXT -h
+            if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
+                exit 0
+            else
+                return 0
+            fi
+            ;;
+    esac
+    shift # past argument or value
+done
+
+# Ensure that this script is sourced, not executed
+# Note that if the script was executed, we're running inside bash!
+# Also note that errors are ignored as `activate foo` doesn't generate a bad
+# value for $0 which would cause errors.
+if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
+    (>&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
+instead of 'deactivate'.
+")
+    "$_CONDA_DIR/conda" ..deactivate $_SHELL$EXT -h
+    exit 1
+fi
+
+if [[ -z "$CONDA_PATH_BACKUP" ]]; then
+    if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
+        exit 0
+    else
+        return 0
+    fi
+fi
+
+if (( $? == 0 )); then
+    # Inverse of activation: run deactivate scripts prior to deactivating env
+    _CONDA_D="${CONDA_PREFIX}/etc/conda/deactivate.d"
+    if [[ -d $_CONDA_D ]]; then
+        IFS=$(echo -en "\n\b") && for f in $(find "$_CONDA_D" -iname "*.sh"); do source "$f"; done
+    fi
+
+    unset CONDA_DEFAULT_ENV
+    unset CONDA_PREFIX
+    export PATH="$CONDA_PATH_BACKUP"
+    unset CONDA_PATH_BACKUP
+    export PS1="$CONDA_PS1_BACKUP"
+    unset CONDA_PS1_BACKUP
+else
+    return $?
+fi
+
+if [[ -n $BASH_VERSION ]]; then
+    hash -r
+elif [[ -n $ZSH_VERSION ]]; then
+    rehash
+fi

@@ -4,17 +4,19 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .common import (Completer, Packages, add_parser_prefix, add_parser_known,
-                     add_parser_use_index_cache, add_parser_offline, add_parser_channels,
-                     add_parser_json, add_parser_use_local, exception_and_exit, error_and_exit,
-                     ensure_use_local, ensure_override_channels_requires_channel,
-                     get_index_trap, get_prefix, stdout_json, disp_features)
-from ..config import subdir, canonical_channel_name
-from ..install import dist2quad
+from .common import (Completer, Packages, add_parser_channels, add_parser_json, add_parser_known,
+                     add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
+                     add_parser_use_local, disp_features,
+                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
+from ..api import get_index
+from ..base.context import context
+from ..common.compat import text_type
+from ..exceptions import CommandArgumentError, PackageNotFoundError
 from ..misc import make_icon_url
-from ..resolve import NoPackagesFound, Package
+from ..models.dist import Dist
+from ..resolve import NoPackagesFoundError, Package
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -121,8 +123,8 @@ package.""",
 def execute(args, parser):
     try:
         execute_search(args, parser)
-    except NoPackagesFound as e:
-        exception_and_exit(e, json=args.json)
+    except NoPackagesFoundError as e:
+        raise PackageNotFoundError('', text_type(e))
 
 def execute_search(args, parser):
     import re
@@ -146,30 +148,30 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
-                error_and_exit(
-                    "'%s' is not a valid regex pattern (exception: %s)" %
-                    (regex, e),
-                    json=args.json,
-                    error_type="ValueError")
+                raise CommandArgumentError("Failed to compile regex pattern for "
+                                           "search: %(regex)s\n"
+                                           "regex error: %(regex_error)s",
+                                           regex=regex, regex_error=repr(e))
 
-    prefix = get_prefix(args)
+    prefix = context.prefix_w_legacy_search
 
-    import conda.install
+    import conda.core.linked_data
+    import conda.core.package_cache
 
-    linked = conda.install.linked(prefix)
-    extracted = conda.install.extracted()
+    linked = conda.core.linked_data.linked(prefix)
+    extracted = conda.core.package_cache.extracted()
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
-    if platform and platform != subdir:
+    if platform and platform != context.subdir:
         args.unknown = False
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
-    index = get_index_trap(channel_urls=channel_urls, prepend=not args.override_channels,
-                           platform=args.platform, use_local=args.use_local,
-                           use_cache=args.use_index_cache, prefix=prefix,
-                           unknown=args.unknown, json=args.json)
+    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels,
+                      platform=args.platform, use_local=args.use_local,
+                      use_cache=args.use_index_cache, prefix=None,
+                      unknown=args.unknown)
 
     r = Resolve(index)
 
@@ -227,8 +229,7 @@ def execute_search(args, parser):
             json[name] = []
 
         if args.outdated:
-            vers_inst = [dist[1] for dist in map(dist2quad, linked)
-                         if dist[0] == name]
+            vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name
@@ -242,14 +243,14 @@ def execute_search(args, parser):
                 continue
 
         for pkg in pkgs:
-            dist = pkg.fn[:-8]
+            dist = Dist(pkg)
             if args.canonical:
-                if not args.json:
-                    print(dist)
+                if not context.json:
+                    print(dist.dist_name)
                 else:
-                    json.append(dist)
+                    json.append(dist.dist_name)
                 continue
-            if platform and platform != subdir:
+            if platform and platform != context.subdir:
                 inst = ' '
             elif dist in linked:
                 inst = '*'
@@ -258,18 +259,20 @@ def execute_search(args, parser):
             else:
                 inst = ' '
 
-            if not args.json:
+            features = r.features(dist)
+
+            if not context.json:
                 print('%-25s %s  %-15s %15s  %-15s %s' % (
                     disp_name, inst,
                     pkg.version,
                     pkg.build,
-                    canonical_channel_name(pkg.channel),
-                    disp_features(r.features(pkg.fn)),
+                    pkg.schannel,
+                    disp_features(features),
                     ))
                 disp_name = ''
             else:
                 data = {}
-                data.update(pkg.info)
+                data.update(pkg.info.dump())
                 data.update({
                     'fn': pkg.fn,
                     'installed': inst == '*',
@@ -277,9 +280,9 @@ def execute_search(args, parser):
                     'version': pkg.version,
                     'build': pkg.build,
                     'build_number': pkg.build_number,
-                    'channel': canonical_channel_name(pkg.channel),
+                    'channel': pkg.schannel,
                     'full_channel': pkg.channel,
-                    'features': list(r.features(pkg.fn)),
+                    'features': list(features),
                     'license': pkg.info.get('license'),
                     'size': pkg.info.get('size'),
                     'depends': pkg.info.get('depends'),
@@ -290,5 +293,5 @@ def execute_search(args, parser):
                     data['icon'] = make_icon_url(pkg.info)
                 json[name].append(data)
 
-    if args.json:
+    if context.json:
         stdout_json(json)

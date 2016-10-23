@@ -28,20 +28,28 @@ here = os.path.abspath(os.path.dirname(__file__))
 src_dir = os.path.join(here, "conda")
 sys.path.insert(0, src_dir)
 
-import auxlib  # noqa -- build-time dependency only
 import conda  # NOQA
-
+from conda._vendor.auxlib import packaging  # NOQA
 
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
-scripts = ['bin/activate',
-           'bin/deactivate',
+scripts = ['shell/activate',
+           'shell/deactivate',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
-    scripts.extend(['bin/activate.bat',
-                    'bin/deactivate.bat'])
+    scripts.extend(['shell/activate.bat',
+                    'shell/deactivate.bat'])
+
+install_requires = [
+    'pycosat >=0.6.1',
+    'requests >=2.5.3',
+]
+
+if sys.version_info < (3, 4):
+    install_requires.append('enum34')
+
 
 setup(
     name=conda.__name__,
@@ -62,20 +70,16 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=[
-        'conda',
-        'conda.cli',
-        'conda.progressbar'
-    ],
+    packages=packaging.find_packages(exclude=("tests",
+                                              "tests.*",
+                                              "build",
+                                              "utils",
+                                              ".tox")),
     cmdclass={
-        'build_py': auxlib.BuildPyCommand,
-        'sdist': auxlib.SDistCommand,
+        'build_py': packaging.BuildPyCommand,
+        'sdist': packaging.SDistCommand,
     },
-    install_requires=[
-        'pycosat >=0.6.1',
-        'pyyaml',
-        'requests',
-    ],
+    install_requires=[],
     entry_points={
         'console_scripts': [
             "conda = conda.cli.main:main"

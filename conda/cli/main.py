@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-'''conda is a tool for managing environments and packages.
+"""conda is a tool for managing environments and packages.
 
 conda provides the following commands:
 
@@ -33,14 +33,60 @@ conda provides the following commands:
 Additional help for each command can be accessed by using:
 
     conda <command> -h
-'''
+"""
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
 import importlib
+import sys
+from argparse import SUPPRESS
+from logging import CRITICAL, DEBUG, getLogger
 
-def main():
+from .. import __version__
+
+log = getLogger(__name__)
+
+
+def generate_parser():
+    from ..cli import conda_argparse
+    p = conda_argparse.ArgumentParser(
+        description='conda is a tool for managing and deploying applications,'
+                    ' environments and packages.',
+    )
+    p.add_argument(
+        '-V', '--version',
+        action='version',
+        version='conda %s' % __version__,
+        help="Show the conda version number and exit."
+    )
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    sub_parsers = p.add_subparsers(
+        metavar='command',
+        dest='cmd',
+    )
+    # http://bugs.python.org/issue9253
+    # http://stackoverflow.com/a/18283730/1599393
+    sub_parsers.required = True
+
+    return p, sub_parsers
+
+
+def _main():
+    from ..base.context import context
+    from ..gateways.logging import set_all_logger_level, set_verbosity
+    from ..exceptions import CommandNotFoundError
+    from ..utils import on_win
+
+    log.debug("conda.cli.main called with %s", sys.argv)
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
         if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
@@ -48,47 +94,20 @@ def main():
             activate.main()
             return
         if argv1 in ('activate', 'deactivate'):
-            sys.stderr.write("Error: '%s' is not a conda command.\n" % argv1)
-            if sys.platform != 'win32':
-                sys.stderr.write('Did you mean "source %s" ?\n' %
-                                 ' '.join(sys.argv[1:]))
-            sys.exit(1)
+
+            message = "'%s' is not a conda command.\n" % argv1
+            if not on_win:
+                message += ' Did you mean "source %s" ?\n' % ' '.join(sys.argv[1:])
+
+            raise CommandNotFoundError(argv1, message)
 
     if len(sys.argv) == 1:
         sys.argv.append('-h')
 
-    import logging
-    from conda.cli import conda_argparse
-    import argparse
-    import conda
-
-    p = conda_argparse.ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.'
-    )
-    p.add_argument(
-        '-V', '--version',
-        action='version',
-        version='conda %s' % conda.__version__,
-        help="Show the conda version number and exit."
-    )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        help="Show debug output."
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        help=argparse.SUPPRESS,
-    )
-    sub_parsers = p.add_subparsers(
-        metavar='command',
-        dest='cmd',
-    )
+    p, sub_parsers = generate_parser()
 
     main_modules = ["info", "help", "list", "search", "create", "install", "update",
-                    "remove", "config", "init", "clean", "package", "bundle"]
+                    "remove", "config", "clean", "package"]
     modules = ["conda.cli.main_"+suffix for suffix in main_modules]
     for module in modules:
         imported = importlib.import_module(module)
@@ -107,57 +126,31 @@ def main():
     sub_parsers.completer = completer
     args = p.parse_args()
 
+    context._add_argparse_args(args)
+
     if getattr(args, 'json', False):
-        # Silence logging info to avoid interfering with JSON output
-        for logger in logging.Logger.manager.loggerDict:
-            if logger not in ('fetch', 'progress'):
-                logging.getLogger(logger).setLevel(logging.CRITICAL + 1)
+        # # Silence logging info to avoid interfering with JSON output
+        # for logger in Logger.manager.loggerDict:
+        #     if logger not in ('fetch', 'progress'):
+        #         getLogger(logger).setLevel(CRITICAL + 1)
+        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
+            getLogger(logger).setLevel(CRITICAL + 1)
 
-    if args.debug:
-        logging.disable(logging.NOTSET)
-        logging.basicConfig(level=logging.DEBUG)
+    if context.debug:
+        set_all_logger_level(DEBUG)
+    elif context.verbosity:
+        set_verbosity(context.verbosity)
+        log.debug("verbosity set to %s", context.verbosity)
 
-    exit_code = args_func(args, p)
+    exit_code = args.func(args, p)
     if isinstance(exit_code, int):
         return exit_code
 
 
-def args_func(args, p):
-    from conda.cli import common
+def main():
+    from ..exceptions import conda_exception_handler
+    return conda_exception_handler(_main)
 
-    use_json = getattr(args, 'json', False)
-    try:
-        exit_code = args.func(args, p)
-        if isinstance(exit_code, int):
-            return exit_code
-    except RuntimeError as e:
-        if 'maximum recursion depth exceeded' in str(e):
-            print_issue_message(e, use_json=use_json)
-            raise
-        common.error_and_exit(str(e), json=use_json)
-    except Exception as e:
-        print_issue_message(e, use_json=use_json)
-        raise  # as if we did not catch it
-
-
-def print_issue_message(e, use_json=False):
-    from conda.cli import common
-    message = ""
-    if e.__class__.__name__ not in ('ScannerError', 'ParserError'):
-        message = """\
-An unexpected error has occurred, please consider sending the
-following traceback to the conda GitHub issue tracker at:
-
-    https://github.com/conda/conda/issues
-
-Include the output of the command 'conda info' in your report.
-
-"""
-    if use_json:
-        import traceback
-        common.error_and_exit(message + traceback.format_exc(),
-                              error_type="UnexpectedError", json=True)
-    print(message)
 
 if __name__ == '__main__':
     main()

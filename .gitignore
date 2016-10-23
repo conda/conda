@@ -14,3 +14,7 @@ coverage.xml
 junit.xml
 .version
 tmpfile.rc
+.DS_Store
+.coverage*
+*.bz2
+tempfile.rc
