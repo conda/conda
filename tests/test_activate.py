@@ -712,6 +712,7 @@ def run_in(command, shell, cwd=None, env=None):
         cmd_script.close()
         cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
         try:
+            print(cmd_bits)
             p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  cwd=cwd, env=env)
             stdout, stderr = p.communicate()
@@ -722,6 +723,7 @@ def run_in(command, shell, cwd=None, env=None):
     else:
         cmd_bits = ([shells[shell]["exe"]] + shells[shell]["shell_args"] +
                     [translate_stream(command, shells[shell]["path_to"])])
+        print(cmd_bits)
         p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
     streams = [u"%s" % stream.decode('utf-8').replace('\r\n', '\n').rstrip("\n")
