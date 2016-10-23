@@ -971,7 +971,40 @@ def test_multiple_solution():
     assert len(res) <= len(res1)
 
 
-def test_broken_install():
+def test_broken_install_1():
+    installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
+    assert installed == [Dist(fname) for fname in [
+        'dateutil-2.1-py27_1.tar.bz2',
+        'numpy-1.6.2-py27_4.tar.bz2',
+        'openssl-1.0.1c-0.tar.bz2',
+        'pandas-0.11.0-np16py27_1.tar.bz2',
+        'python-2.7.5-0.tar.bz2',
+        'pytz-2013b-py27_0.tar.bz2',
+        'readline-6.2-0.tar.bz2',
+        'scipy-0.12.0-np16py27_0.tar.bz2',
+        'six-1.3.0-py27_0.tar.bz2',
+        'sqlite-3.7.13-0.tar.bz2',
+        'system-5.8-1.tar.bz2',
+        'tk-8.5.13-0.tar.bz2',
+        'zlib-1.2.7-0.tar.bz2']]
+
+    installed.append(Dist('notarealpackage-2.0-0.tar.bz2'))
+    installed.sort()
+    installed2 = list(installed)
+    installed2[2] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
+    installed3 = r.install([], installed2)
+    installed4 = r.install(['numpy 1.6*'], installed2)
+    installed5 = r.install(['numpy'], installed2)
+    installed6 = r.remove(['pandas'], installed2)
+    installed7 = list(installed2)
+    installed7.remove(Dist('pandas-0.11.0-np16py27_1.tar.bz2'))
+    assert installed3 == installed2
+    assert installed4 == installed
+    assert sum(x != y for x, y in zip(installed, installed5)) == 1
+    assert installed6 == installed7
+
+
+def test_broken_install_2():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
     assert installed == [Dist(fname) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
@@ -1140,6 +1173,11 @@ def test_update_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]]
+
+    # Test accidentally duplicated packages
+    installed2 = installed + [Dist('sqlite-3.9.2-0.tar.bz2'), Dist('six-1.10.0-py27_0.tar.bz2')]
+    installed3 = r.install([], installed=installed2)
+    assert installed == installed3
 
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
