@@ -6,23 +6,21 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import email
-import mimetypes
-import os
 import platform
+from conda.gateways.adapters.localfs import LocalFSAdapter
+from conda.gateways.adapters.s3 import S3Adapter
 from logging import getLogger
-from requests import Response, Session, __version__ as REQUESTS_VERSION
-from requests.adapters import BaseAdapter, HTTPAdapter
+from requests import Session, __version__ as REQUESTS_VERSION
+from requests.adapters import HTTPAdapter
 from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
-from requests.structures import CaseInsensitiveDict
 from requests.utils import get_auth_from_url, get_netrc_auth
 
 from . import __version__ as VERSION
 from ._vendor.auxlib.ish import dals
 from .base.context import context
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
-                         split_anaconda_token, url_to_path, urlparse)
+                         split_anaconda_token, urlparse)
 from .compat import iteritems
 from .exceptions import ProxyError
 from .gateways.adapters.ftp import FTPAdapter
@@ -137,7 +135,8 @@ class CondaHttpAuth(AuthBase):
                     return channel.url(with_credentials=True)
         return url
 
-    def handle_407(self, response, **kwargs):
+    @staticmethod
+    def handle_407(response, **kwargs):
         """
         Prompts the user for the proxy username and password and modifies the
         proxy in the session object to include it.
@@ -188,38 +187,3 @@ class CondaHttpAuth(AuthBase):
         _response.request = prep
 
         return _response
-
-
-
-
-
-class LocalFSAdapter(BaseAdapter):
-
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
-        pathname = url_to_path(request.url)
-
-        resp = Response()
-        resp.status_code = 200
-        resp.url = request.url
-
-        try:
-            stats = os.stat(pathname)
-        except OSError as exc:
-            resp.status_code = 404
-            resp.raw = exc
-        else:
-            modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
-            content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
-            resp.headers = CaseInsensitiveDict({
-                "Content-Type": content_type,
-                "Content-Length": stats.st_size,
-                "Last-Modified": modified,
-            })
-
-            resp.raw = open(pathname, "rb")
-            resp.close = resp.raw.close
-
-        return resp
-
-    def close(self):
-        pass
