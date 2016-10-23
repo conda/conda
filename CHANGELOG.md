@@ -1,10 +1,14 @@
-## 4.2.11 (unreleased)
+## 4.2.11 (2016-10-23)
+
+### Improvements
+* only try once for windows trash removal (#3698)
 
 ### Bug Fixes
 * fix anaconda api token bug (#3674)
 * fix #3646 FileMode enum comparison (#3683)
 * fix #3517 conda install --mkdir (#3684)
 * fix #3560 hack anaconda token coverup on conda info (#3686)
+* fix #3469 alias envs_path to envs_dirs (#3685)
 
 
 ## 4.2.10 (2016-10-18)
