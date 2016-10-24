@@ -47,7 +47,6 @@ def print_dists(dists_extras):
 
 
 def display_actions(actions, index, show_channel_urls=None):
-    import pdb; pdb.set_trace()
     if show_channel_urls is None:
         show_channel_urls = context.show_channel_urls
 
