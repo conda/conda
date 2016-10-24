@@ -1,27 +1,87 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import json
 import shutil
-import sys
+import traceback
+from logging import getLogger
+from os import W_OK, access, getpid, link as os_link, makedirs, readlink, symlink
+from os.path import basename, isdir, isfile, islink, join
+
 from ... import CondaError
-from errno import EACCES, EEXIST, ENOENT, EPERM
-from itertools import chain
-from logging import getLogger
-from os import (W_OK, access, chmod, getpid, link as os_link, listdir, lstat, makedirs, readlink,
-                rename, symlink, unlink, walk, stat)
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, lexists
-from shutil import rmtree
-from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
-from time import sleep
-from uuid import uuid4
-
-
+from ..._vendor.auxlib.entity import EntityEncoder
+from ...base.constants import LinkType
+from ...exceptions import CondaOSError
+from ...gateways.disk.delete import backoff_unlink, rm_rf
+from ...models.dist import Dist
 from ...utils import on_win
-from logging import getLogger
-from os.path import join, basename
 
 log = getLogger(__name__)
+stdoutlog = getLogger('stdoutlog')
 
+
+def write_conda_meta_record(prefix, record):
+    # write into <env>/conda-meta/<dist>.json
+    meta_dir = join(prefix, 'conda-meta')
+    if not isdir(meta_dir):
+        makedirs(meta_dir)
+    dist = Dist(record)
+    with open(join(meta_dir, dist.to_filename('.json')), 'w') as fo:
+        json.dump(record, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+
+
+def try_write(dir_path, heavy=False):
+    """Test write access to a directory.
+
+    Args:
+        dir_path (str): directory to test write access
+        heavy (bool): Actually create and delete a file, or do a faster os.access test.
+           https://docs.python.org/dev/library/os.html?highlight=xattr#os.access
+
+    Returns:
+        bool
+
+    """
+    if not isdir(dir_path):
+        return False
+    if on_win or heavy:
+        # try to create a file to see if `dir_path` is writable, see #2151
+        temp_filename = join(dir_path, '.conda-try-write-%d' % getpid())
+        try:
+            with open(temp_filename, mode='wb') as fo:
+                fo.write(b'This is a test file.\n')
+            backoff_unlink(temp_filename)
+            return True
+        except (IOError, OSError):
+            return False
+        finally:
+            backoff_unlink(temp_filename)
+    else:
+        return access(dir_path, W_OK)
+
+
+def try_hard_link(pkgs_dir, prefix, dist):
+    # TODO: Usage of this function is bad all around it looks like
+
+    dist = Dist(dist)
+    src = join(pkgs_dir, dist.dist_name, 'info', 'index.json')
+    dst = join(prefix, '.tmp-%s' % dist.dist_name)
+    assert isfile(src), src
+    assert not isfile(dst), dst
+    try:
+        if not isdir(prefix):
+            makedirs(prefix)
+        link(src, dst, LinkType.hard_link)
+        # Some file systems (at least BeeGFS) do not support hard-links
+        # between files in different directories. Depending on the
+        # file system configuration, a symbolic link may be created
+        # instead. If a symbolic link is created instead of a hard link,
+        # return False.
+        return not islink(dst)
+    except OSError:
+        return False
+    finally:
+        rm_rf(dst)
 
 
 def make_menu(prefix, file_path, remove=False):
@@ -79,69 +139,23 @@ if on_win:
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise CondaOSError('win32 soft link failed')
 
-    def win_conda_bat_redirect(src, dst, shell):
-        """Special function for Windows XP where the `CreateSymbolicLink`
-        function is not available.
 
-        Simply creates a `.bat` file at `dst` which calls `src` together with
-        all command line arguments.
-
-        Works of course only with callable files, e.g. `.bat` or `.exe` files.
-        """
-        from conda.utils import shells
-        try:
-            makedirs(dirname(dst))
-        except OSError as exc:  # Python >2.5
-            if exc.errno == errno.EEXIST and isdir(dirname(dst)):
-                pass
-            else:
-                raise
-
-        # bat file redirect
-        if not isfile(dst + '.bat'):
-            with open(dst + '.bat', 'w') as f:
-                f.write('@echo off\ncall "%s" %%*\n' % src)
-
-        # TODO: probably need one here for powershell at some point
-
-        # This one is for bash/cygwin/msys
-        # set default shell to bash.exe when not provided, as that's most common
-        if not shell:
-            shell = "bash.exe"
-
-        # technically these are "links" - but islink doesn't work on win
-        if not isfile(dst):
-            with open(dst, "w") as f:
-                f.write("#!/usr/bin/env bash \n")
-                if src.endswith("conda"):
-                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
-                else:
-                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
-            # Make the new file executable
-            # http://stackoverflow.com/a/30463972/1170370
-            mode = stat(dst).st_mode
-            mode |= (mode & 292) >> 2    # copy R bits to X
-            chmod(dst, mode)
-
-
-
-
-def link(src, dst, linktype=LINK_HARD):
-    if linktype == LINK_HARD:
+def link(src, dst, link_type=LinkType.hard_link):
+    if link_type == LinkType.hard_link:
         if on_win:
             win_hard_link(src, dst)
         else:
             os_link(src, dst)
-    elif linktype == LINK_SOFT:
+    elif link_type == LinkType.hard_soft:
         if on_win:
             win_soft_link(src, dst)
         else:
             symlink(src, dst)
-    elif linktype == LINK_COPY:
+    elif link_type == LinkType.hard_copy:
         # copy relative symlinks as symlinks
         if not on_win and islink(src) and not readlink(src).startswith('/'):
             symlink(readlink(src), dst)
         else:
             shutil.copy2(src, dst)
     else:
-        raise CondaError("Did not expect linktype=%r" % linktype)
+        raise CondaError("Did not expect linktype=%r" % link_type)

@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.base.constants import FileMode
+import re
+import struct
 from logging import getLogger
+from os import chmod, lstat
+from os.path import realpath
+from stat import S_IMODE
+
+from . import exp_backoff_fn
+from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
+from ...utils import on_win
 
 log = getLogger(__name__)
 
-
 SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
-
 
 
 class _PaddingError(Exception):
@@ -30,7 +36,7 @@ def binary_replace(data, a, b):
 
     def replace(match):
         occurances = match.group().count(a)
-        padding = (len(a) - len(b))*occurances
+        padding = (len(a) - len(b)) * occurances
         if padding < 0:
             raise _PaddingError
         return match.group().replace(a, b) + b'\0' * padding
@@ -128,7 +134,7 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         # replace with unix-style path separators
         new_prefix = new_prefix.replace('\\', '/')
 
-    path = os.path.realpath(path)
+    path = realpath(path)
     with open(path, 'rb') as fi:
         original_data = data = fi.read()
 
@@ -138,7 +144,7 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
     if data == original_data:
         return
-    st = os.lstat(path)
+    st = lstat(path)
     with exp_backoff_fn(open, path, 'wb') as fo:
         fo.write(data)
-    os.chmod(path, stat.S_IMODE(st.st_mode))
+    chmod(path, S_IMODE(st.st_mode))

@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+
+from errno import EEXIST, ENOENT
 from logging import getLogger
+from os import listdir, makedirs, rename, unlink, walk
+from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
+from shutil import rmtree
+from uuid import uuid4
+
+from . import exp_backoff_fn
+from .permissions import make_writable, recursive_make_writable
+from ...base.context import context
+from ...common.compat import text_type
+from ...utils import on_win
 
 log = getLogger(__name__)
-
-
 
 
 def rm_rf(path, max_retries=5, trash=True):
@@ -28,7 +38,7 @@ def rm_rf(path, max_retries=5, trash=True):
             finally:
                 # If path was removed, ensure it's not in linked_data_
                 if islink(path) or isfile(path):
-                    from ..core.linked_data import delete_prefix_from_linked_data
+                    from ...core.linked_data import delete_prefix_from_linked_data
                     delete_prefix_from_linked_data(path)
         if lexists(path):
             try:
@@ -52,7 +62,6 @@ def rm_rf(path, max_retries=5, trash=True):
 
 
 def delete_trash(prefix=None):
-    from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
         if not lexists(trash_dir):
@@ -87,7 +96,6 @@ def move_path_to_trash(path, preclean=True):
     """
     Move a path to the trash
     """
-    from ..base.context import context
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
 
@@ -105,12 +113,11 @@ def move_path_to_trash(path, preclean=True):
             log.debug("Could not move %s to %s.\n%r", path, trash_file, e)
         else:
             log.debug("Moved to trash: %s", path)
-            from ..core.linked_data import delete_prefix_from_linked_data
+            from ...core.linked_data import delete_prefix_from_linked_data
             delete_prefix_from_linked_data(path)
             return True
 
     return False
-
 
 
 def backoff_unlink(file_or_symlink_path):
@@ -158,6 +165,3 @@ def backoff_rmdir(dirpath):
             _rmdir(join(root, dir))
 
     _rmdir(dirpath)
-
-
-

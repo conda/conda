@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+
+import sys
+from errno import EACCES, ENOENT, EPERM
 from logging import getLogger
+from os.path import basename
+from time import sleep
+
+from ...utils import on_win
 
 log = getLogger(__name__)
-
-
 
 
 def exp_backoff_fn(fn, *args, **kwargs):

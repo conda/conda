@@ -21,38 +21,23 @@ These API functions have argument names referring to:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import errno
 import functools
 import logging
 import os
-import re
-import shlex
-import shutil
 import stat
-import struct
-import subprocess
 import sys
-import traceback
-from collections import namedtuple
-from enum import Enum
-from itertools import chain
-from os.path import (abspath, basename, dirname, isdir, isfile, islink, join, normcase,
+from errno import EACCES, EEXIST, EPERM, EROFS
+from os import chmod, makedirs
+from os.path import (dirname, isdir, isfile, join, normcase,
                      normpath)
 
-from . import CondaError
-from .base.constants import UTF8, PREFIX_PLACEHOLDER
+from .base.constants import PREFIX_PLACEHOLDER
 from .base.context import context
-from .common.disk import exp_backoff_fn, rm_rf, yield_lines
-from .core.linked_data import create_meta, delete_linked_data, load_meta
-from .core.package_cache import is_extracted
-from .exceptions import CondaOSError, LinkError, PaddingError
-from .lock import DirectoryLock, FileLock
-from .models.dist import Dist
-from .utils import on_win
+from .core.linked_data import delete_linked_data, load_meta
+from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
+from .lock import DirectoryLock
 from .noarch import get_noarch_cls
-
-# conda-build compatibility
-from .common.disk import delete_trash, move_path_to_trash  # NOQA
+from .utils import on_win
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.linked_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
@@ -65,39 +50,55 @@ stdoutlog = logging.getLogger('stdoutlog')
 
 
 
-
-
-
-
-class FileType(Enum):
-    regular = 'regular'
-    softlink = 'softlink'
-    hardlink = 'hardlink'
-    directory = 'directory'
-
-
-
-
-
-def _remove_readonly(func, path, excinfo):
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
-
-
-def warn_failed_remove(function, path, exc_info):
-    if exc_info[1].errno == errno.EACCES:
-        log.warn("Cannot remove, permission denied: {0}".format(path))
-    elif exc_info[1].errno == errno.ENOTEMPTY:
-        log.warn("Cannot remove, not empty: {0}".format(path))
-    else:
-        log.warn("Cannot remove, unknown reason: {0}".format(path))
-
-
-
-
 # backwards compatibility for conda-build
 prefix_placeholder = PREFIX_PLACEHOLDER
 
+
+
+if on_win:
+    def win_conda_bat_redirect(src, dst, shell):
+        """Special function for Windows XP where the `CreateSymbolicLink`
+        function is not available.
+
+        Simply creates a `.bat` file at `dst` which calls `src` together with
+        all command line arguments.
+
+        Works of course only with callable files, e.g. `.bat` or `.exe` files.
+        """
+        from conda.utils import shells
+        try:
+            makedirs(dirname(dst))
+        except OSError as exc:  # Python >2.5
+            if exc.errno == EEXIST and isdir(dirname(dst)):
+                pass
+            else:
+                raise
+
+        # bat file redirect
+        if not isfile(dst + '.bat'):
+            with open(dst + '.bat', 'w') as f:
+                f.write('@echo off\ncall "%s" %%*\n' % src)
+
+        # TODO: probably need one here for powershell at some point
+
+        # This one is for bash/cygwin/msys
+        # set default shell to bash.exe when not provided, as that's most common
+        if not shell:
+            shell = "bash.exe"
+
+        # technically these are "links" - but islink doesn't work on win
+        if not isfile(dst):
+            with open(dst, "w") as f:
+                f.write("#!/usr/bin/env bash \n")
+                if src.endswith("conda"):
+                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
+                else:
+                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
+            # Make the new file executable
+            # http://stackoverflow.com/a/30463972/1170370
+            mode = stat(dst).st_mode
+            mode |= (mode & 292) >> 2    # copy R bits to X
+            chmod(dst, mode)
 
 
 
@@ -135,7 +136,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
                 symlink_fn(root_file, prefix_file)
         except (IOError, OSError) as e:
             if (os.path.lexists(prefix_file) and
-                    (e.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST))):
+                    (e.errno in (EPERM, EACCES, EROFS, EEXIST))):
                 log.debug("Cannot symlink {0} to {1}. Ignoring since link already exists."
                           .format(root_file, prefix_file))
             else:
@@ -144,104 +145,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
 
 # ========================== begin API functions =========================
 
-def try_hard_link(pkgs_dir, prefix, dist):
-    # TODO: Usage of this function is bad all around it looks like
 
-    dist = Dist(dist)
-    src = join(pkgs_dir, dist.dist_name, 'info', 'index.json')
-    dst = join(prefix, '.tmp-%s' % dist.dist_name)
-    assert isfile(src), src
-    assert not isfile(dst), dst
-    try:
-        if not isdir(prefix):
-            os.makedirs(prefix)
-        _link(src, dst, LINK_HARD)
-        # Some file systems (at least BeeGFS) do not support hard-links
-        # between files in different directories. Depending on the
-        # file system configuration, a symbolic link may be created
-        # instead. If a symbolic link is created instead of a hard link,
-        # return False.
-        return not os.path.islink(dst)
-    except OSError:
-        return False
-    finally:
-        rm_rf(dst)
-
-
-
-def link(prefix, dist, linktype=LINK_HARD, index=None):
-    """
-    Set up a package in a specified (environment) prefix.  We assume that
-    the package has been extracted (using extract() above).
-    """
-    log.debug("linking package %s with link type %s", dist, linktype)
-    index = index or {}
-    source_dir = is_extracted(dist)
-    assert source_dir is not None
-    pkgs_dir = dirname(source_dir)
-    log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r', pkgs_dir, prefix, dist, linktype)
-
-    if not run_script(source_dir, dist, 'pre-link', prefix):
-        raise LinkError('Error: pre-link failed: %s' % dist)
-
-    info_dir = join(source_dir, 'info')
-    files = list(yield_lines(join(info_dir, 'files')))
-    has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
-    no_link = read_no_link(info_dir)
-
-    # for the lock issue
-    # may run into lock if prefix not exist
-    if not isdir(prefix):
-        os.makedirs(prefix)
-
-    with DirectoryLock(prefix), FileLock(source_dir):
-        meta_dict = index.get(dist + '.tar.bz2', {})
-        if meta_dict.get('noarch'):
-            link_noarch(prefix, meta_dict, source_dir, dist)
-        else:
-            for filepath in files:
-                src = join(source_dir, filepath)
-                dst = join(prefix, filepath)
-                dst_dir = dirname(dst)
-                if not isdir(dst_dir):
-                    os.makedirs(dst_dir)
-                if os.path.exists(dst):
-                    log.info("file exists, but clobbering: %r" % dst)
-                    rm_rf(dst)
-                lt = linktype
-                if filepath in has_prefix_files or filepath in no_link or islink(src):
-                    lt = LINK_COPY
-
-                try:
-                    if not meta_dict.get('noarch'):
-                        _link(src, dst, lt)
-                except OSError as e:
-                    raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                                       (src, dst, lt, e))
-
-        for filepath in sorted(has_prefix_files):
-            placeholder, mode = has_prefix_files[filepath]
-            try:
-                update_prefix(join(prefix, filepath), prefix, placeholder, mode)
-            except _PaddingError:
-                raise PaddingError(dist, placeholder, len(placeholder))
-
-        # make sure that the child environment behaves like the parent,
-        #    wrt user/system install on win
-        # This is critical for doing shortcuts correctly
-        if on_win:
-            nonadmin = join(sys.prefix, ".nonadmin")
-            if isfile(nonadmin):
-                open(join(prefix, ".nonadmin"), 'w').close()
-
-        if context.shortcuts:
-            mk_menus(prefix, files, remove=False)
-
-        if not run_script(prefix, dist, 'post-link'):
-            raise LinkError("Error: post-link failed for: %s" % dist)
-
-
-        create_meta(prefix, dist, source_dir, index, files, linktype)
 
 
 def unlink(prefix, dist):
@@ -251,11 +155,12 @@ def unlink(prefix, dist):
     """
     with DirectoryLock(prefix):
         log.debug("unlinking package %s", dist)
+        from conda.core.install import run_script
         run_script(prefix, dist, 'pre-unlink')
 
         meta = load_meta(prefix, dist)
         # Always try to run this - it should not throw errors where menus do not exist
-        mk_menus(prefix, meta['files'], remove=True)
+        # TODO: add this line back: mk_menus(prefix, meta['files'], remove=True)
         dst_dirs1 = set()
 
         for f in meta['files']:
@@ -284,7 +189,7 @@ def unlink(prefix, dist):
             if isdir(path) and not os.listdir(path):
                 rm_rf(path)
 
-        alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
+        alt_files_path = join(prefix, 'conda-meta', dist.to_filename('.files'))
         if isfile(alt_files_path):
             rm_rf(alt_files_path)
 

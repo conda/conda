@@ -1,56 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
-from logging import getLogger
-import errno
-import shutil
-import sys
-from conda import CondaError
-from errno import EACCES, EEXIST, ENOENT, EPERM
+
+from errno import EACCES, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
-from os import (W_OK, access, chmod, getpid, link as os_link, listdir, lstat, makedirs, readlink,
-                rename, symlink, unlink, walk, stat)
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, lexists
-from shutil import rmtree
+from os import (chmod, lstat, walk)
+from os.path import isdir, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
-from time import sleep
-from uuid import uuid4
 
-from ...compat import lchmod, text_type
-from ...exceptions import CondaOSError
-from ...utils import on_win
+from . import exp_backoff_fn
+from ...compat import lchmod
 
 log = getLogger(__name__)
-
-
-def try_write(dir_path, heavy=False):
-    """Test write access to a directory.
-
-    Args:
-        dir_path (str): directory to test write access
-        heavy (bool): Actually create and delete a file, or do a faster os.access test.
-           https://docs.python.org/dev/library/os.html?highlight=xattr#os.access
-
-    Returns:
-        bool
-
-    """
-    if not isdir(dir_path):
-        return False
-    if on_win or heavy:
-        # try to create a file to see if `dir_path` is writable, see #2151
-        temp_filename = join(dir_path, '.conda-try-write-%d' % getpid())
-        try:
-            with open(temp_filename, mode='wb') as fo:
-                fo.write(b'This is a test file.\n')
-            backoff_unlink(temp_filename)
-            return True
-        except (IOError, OSError):
-            return False
-        finally:
-            backoff_unlink(temp_filename)
-    else:
-        return access(dir_path, W_OK)
 
 
 def make_writable(path):

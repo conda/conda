@@ -3,16 +3,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import re
 import shlex
+from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from itertools import chain
 from logging import getLogger
 from os.path import islink, join
 
-from ...base.constants import FileMode, PREFIX_PLACEHOLDER
+from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
 
 log = getLogger(__name__)
-
 
 
 def yield_lines(path):
@@ -107,3 +107,12 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
+
+
+def read_icondata(extracted_package_directory):
+    try:
+        data = open(join(extracted_package_directory, 'info', 'icon.png'), 'rb').read()
+        return b64encode(data).decode(UTF8)
+    except IOError:
+        pass
+    return None

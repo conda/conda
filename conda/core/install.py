@@ -1,62 +1,90 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import re
+import json
+import os
 import sys
-from conda.base.context import context
-
-from conda.common.disk import link as disk_link, yield_lines
-from conda.common.path import get_leaf_directories
-from conda.exceptions import CondaOSError
-from conda.utils import on_win
-from enum import Enum
+from copy import deepcopy
 from logging import getLogger
 from os import makedirs
-from os.path import join, isdir, dirname, islink, isfile
+from os.path import isfile, join
+from subprocess import CalledProcessError, check_call
+
+from .package_cache import read_url
+from ..base.constants import LinkType
+from ..base.context import context
+from ..common.path import get_leaf_directories
+from ..core.linked_data import set_linked_data
+from ..exceptions import CondaOSError, LinkError, PaddingError
+from ..gateways.disk.create import link as create_link, make_menu, write_conda_meta_record
+from ..gateways.disk.read import collect_all_info_for_package, read_icondata, yield_lines
+from ..gateways.disk.update import _PaddingError, update_prefix
+from ..models.dist import Dist
+from ..models.record import Link, Record
+from ..utils import on_win
 
 log = getLogger(__name__)
 
 
-class LinkType(Enum):
-    # LINK_HARD = 1
-    # LINK_SOFT = 2
-    # LINK_COPY = 3
-    # link_name_map = {
-    #     LINK_HARD: 'hard-link',
-    #     LINK_SOFT: 'soft-link',
-    #     LINK_COPY: 'copy',
-    # }
-    hard_link = 1
-    soft_link = 2
-    copy = 3
 
+class PackageInstaller(object):
 
+    def __init__(self, prefix, extracted_package_directory, record):
+        self.prefix = prefix
+        self.extracted_package_directory = extracted_package_directory
+        self.record = record
 
+    def link(self, requested_link_type=LinkType.hard_link):
+        requested_link_type = LinkType.make(requested_link_type)
+        log.debug("linking package:\n"
+                  "  prefix=%s\n"
+                  "  source=%s\n"
+                  "  link_type=%s\n",
+                  self.prefix, self.extracted_package_directory, requested_link_type)
 
+        files, has_prefix_files, no_link, soft_links, menu_files = collect_all_info_for_package(self.extracted_package_directory)
+        leaf_directories = get_leaf_directories(files)
+        file_operations = self.make_op_details(files, has_prefix_files, no_link, soft_links, menu_files, requested_link_type)
 
+        # TODO: discuss with @mcg1969
+        # run pre-link script
+        # if not run_script(source_dir, dist, 'pre-link', prefix):
+        #     raise LinkError('Error: pre-link failed: %s' % dist)
 
+        self.execute_file_operations(self.extracted_package_directory, self.prefix, leaf_directories, file_operations)
 
+        # Step 5. Run post-link script
+        dist = Dist(self.record)
+        if not run_script(self.prefix, dist, 'post-link'):
+            raise LinkError("Error: post-link failed for: %s" % dist)
 
-def make_op_details(files, has_prefix_files, no_link, soft_links, menu_files, requested_link_type):
-    file_operations = []
-    for filepath in files:
-        if filepath in has_prefix_files:
-            link_type = LINK_COPY
-            prefix_placehoder, file_mode = has_prefix_files[filepath]
-        elif filepath in no_link or filepath in soft_links:
-            link_type = LINK_COPY
-            prefix_placehoder, file_mode = None, None
-        else:
-            link_type = requested_link_type
-            prefix_placehoder, file_mode = None, None
-        is_menu_file = filepath in menu_files
-        file_operations.append((filepath, link_type, prefix_placehoder, file_mode, is_menu_file))
+        # Step 6. Create package's prefix/conda-meta file
+        self.create_meta(files, requested_link_type)
 
-    # file_paths, link_types, prefix_placeholders, file_modes, is_menu_file
-    return file_operations
+    @staticmethod
+    def make_op_details(files, has_prefix_files, no_link, soft_links, menu_files,
+                        requested_link_type):
+        file_operations = []
+        for filepath in files:
+            if filepath in has_prefix_files:
+                link_type = LinkType.copy
+                prefix_placehoder, file_mode = has_prefix_files[filepath]
+            elif filepath in no_link or filepath in soft_links:
+                link_type = LinkType.copy
+                prefix_placehoder, file_mode = None, None
+            else:
+                link_type = requested_link_type
+                prefix_placehoder, file_mode = None, None
+            is_menu_file = filepath in menu_files
+            file_operations.append(
+                (filepath, link_type, prefix_placehoder, file_mode, is_menu_file))
 
+        # file_paths, link_types, prefix_placeholders, file_modes, is_menu_file
+        return file_operations
 
-def execute_file_operations(extracted_package_directory, prefix, leaf_directories, file_operations):
+    @staticmethod
+    def execute_file_operations(extracted_package_directory, prefix, leaf_directories,
+                                file_operations):
 
         # Step 1. Make all directories
         for d in leaf_directories:
@@ -69,15 +97,16 @@ def execute_file_operations(extracted_package_directory, prefix, leaf_directorie
             source_path = join(extracted_package_directory, file_path)
             destination_path = join(prefix, file_path)
             try:
-                disk_link(source_path, destination_path, link_type)
+                create_link(source_path, destination_path, link_type)
             except OSError as e:
                 raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                                   (src, dst, lt, e))
+                                   (source_path, destination_path, link_type, e))
             if prefix_placeholder:
                 try:
                     update_prefix(destination_path, prefix, prefix_placeholder, file_mode)
                 except _PaddingError:
-                    raise PaddingError(dist, prefix_placeholder, len(prefix_placeholder))
+                    raise PaddingError(destination_path, prefix_placeholder,
+                                       len(prefix_placeholder))
 
             if on_win and is_menu_file and context.shortcuts:
                 make_menu(prefix, file_path, remove=False)
@@ -87,48 +116,42 @@ def execute_file_operations(extracted_package_directory, prefix, leaf_directorie
             #    wrt user/system install on win
             # This is critical for doing shortcuts correctly
             # TODO: I don't understand; talk to @msarahan
-            nonadmin = join(sys.prefix, ".nonadmin")  # TODO: sys.prefix is almost certainly *wrong* here
+            nonadmin = join(sys.prefix,
+                            ".nonadmin")  # TODO: sys.prefix is almost certainly *wrong* here
             if isfile(nonadmin):
                 open(join(prefix, ".nonadmin"), 'w').close()
 
+    def create_meta(self, files, link_type):
+        """
+        Create the conda metadata, in a given prefix, for a given package.
+        """
+        meta_dict = deepcopy(self.record)
+        dist = Dist(self.record)
+        meta_dict['url'] = read_url(dist)
+        alt_files_path = join(self.prefix, 'conda-meta', dist.to_filename('.files'))
+        if isfile(alt_files_path):
+            # alt_files_path is a hack for noarch
+            meta_dict['files'] = list(yield_lines(alt_files_path))
+        else:
+            meta_dict['files'] = files
+        meta_dict['link'] = Link(source=self.extracted_package_directory, type=link_type)
+        if 'icon' in meta_dict:
+            meta_dict['icondata'] = read_icondata(self.extracted_package_directory)
 
+        # read info/index.json first
+        with open(join(self.extracted_package_directory, 'info', 'index.json')) as fi:
+            meta = Record(**json.load(fi))  # TODO: change to LinkedPackageData
 
+        meta.update(meta_dict)
 
-class PackageInstaller(object):
+        # add extra info, add to our internal cache
+        if not meta.get('url'):
+            meta['url'] = read_url(dist)
 
-    def __init__(self, prefix, extracted_package_directory, record):
-        self.prefix = prefix
-        self.extracted_package_directory = extracted_package_directory
-        self.record = record
+        write_conda_meta_record(self.prefix, meta)
 
-    def link(self, requested_link_type='LINK_HARD'):
-        log.debug("linking package:\n"
-                  "  prefix=%s\n"
-                  "  source=%s\n"
-                  "  link_type=%s\n",
-                  self.prefix, self.extracted_package_directory, link_type)
-
-        source_dir = self.extracted_package_directory
-
-        files, has_prefix_files, no_link, soft_links, menu_files = collect_all_info_for_package(self.extracted_package_directory)
-        leaf_directories = get_leaf_directories(files)
-        file_operations = make_op_details(files, has_prefix_files, no_link, soft_links, menu_files, link_type)
-
-        # TODO: discuss with @mcg1969
-        # run pre-link script
-        # if not run_script(source_dir, dist, 'pre-link', prefix):
-        #     raise LinkError('Error: pre-link failed: %s' % dist)
-
-        execute_file_operations(extracted_package_directory, prefix, leaf_directories, file_operations)
-
-        # Step 5. Run post-link script
-        if not run_script(prefix, dist, 'post-link'):
-            raise LinkError("Error: post-link failed for: %s" % dist)
-
-        # Step 6. Create package's prefix/conda-meta file
-        create_meta(prefix, dist, info_dir, meta_dict)
-
-
+        # update in-memory cache
+        set_linked_data(self.prefix, dist.dist_name, meta)
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
@@ -161,8 +184,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     if action == 'pre-link':
         env[str('SOURCE_DIR')] = str(prefix)
     try:
-        subprocess.check_call(args, env=env)
-    except subprocess.CalledProcessError:
+        check_call(args, env=env)
+    except CalledProcessError:
         return False
     return True
 
