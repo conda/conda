@@ -108,7 +108,7 @@ Alias for non-url channels used with the -c or --channel flag. The default is ``
 
 .. code-block:: yaml
 
-  channel_alias: https://your.repo/
+  channel_alias: https://your.repo/conda
 
 Disallow installation of specific packages (disallow)
 -----------------------------------------------------
