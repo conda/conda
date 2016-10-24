@@ -15,9 +15,13 @@
     :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
     :alt: Windows tests (Appveyor)
 
-.. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=Coverage
+.. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=coverage
    :alt: Codecov Status
    :target: https://codecov.io/github/conda/conda?branch=master
+
+.. image:: https://img.shields.io/github/release/conda/conda.svg
+   :alt: latest release version
+   :target: https://github.com/conda/conda/releases
 
 |
 
