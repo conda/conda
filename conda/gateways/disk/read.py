@@ -43,7 +43,7 @@ def collect_all_info_for_package(extracted_package_directory):
     info_dir = join(extracted_package_directory, 'info')
 
     # collect information from info directory
-    files = tuple(yield_lines(join(extracted_package_directory, 'info', 'files')))
+    files = tuple(ln for ln in (line.strip() for line in yield_lines(join(extracted_package_directory, 'info', 'files'))) if ln)
 
     # file system calls
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))

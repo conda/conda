@@ -33,6 +33,11 @@ lib/python3.5/site-packages/django/apps/config.py
 lib/python3.5/site-packages/django/apps/registry.py
 """
 
+files = """
+lib/python3.5/site-packages/__pycache__/itsdangerous.cpython-35.pyc
+lib/python3.5/site-packages/itsdangerous-0.24-py3.5.egg-info
+lib/python3.5/site-packages/itsdangerous.py
+"""
 
 def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
@@ -43,15 +48,25 @@ def get_leaf_directories(files):
     # give this function a list of files, and it will hand back a list of leaf directories to
     # pass to os.makedirs()
     directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
+    if not directories:
+        return ()
+
     leaves = []
 
     def _process(x, y):
         if not tokenized_startswith(y, x):
             leaves.append(x)
         return y
-
     last = reduce(_process, directories)
-    if not tokenized_startswith(last, leaves[-1]):
+
+    if not leaves:
+        leaves.append(directories[-1])
+    elif not tokenized_startswith(last, leaves[-1]):
         leaves.append(last)
 
     return tuple('/'.join(leaf) for leaf in leaves)
+
+if __name__ == "__main__":
+    files = files.strip().split('\n')
+    leaves = get_leaf_directories(files)
+    print(leaves)

@@ -11,7 +11,7 @@ from os.path import isfile, join
 from subprocess import CalledProcessError, check_call
 
 from .package_cache import read_url
-from ..base.constants import LinkType
+from ..base.constants import LinkType, NULL
 from ..base.context import context
 from ..common.path import get_leaf_directories
 from ..core.linked_data import set_linked_data
@@ -22,6 +22,11 @@ from ..gateways.disk.update import _PaddingError, update_prefix
 from ..models.dist import Dist
 from ..models.record import Link, Record
 from ..utils import on_win
+
+try:
+    from cytoolz.itertoolz import concatv, groupby
+except ImportError:
+    from .._vendor.toolz.itertoolz import concatv, groupby
 
 log = getLogger(__name__)
 
@@ -71,13 +76,12 @@ class PackageInstaller(object):
                 prefix_placehoder, file_mode = has_prefix_files[filepath]
             elif filepath in no_link or filepath in soft_links:
                 link_type = LinkType.copy
-                prefix_placehoder, file_mode = None, None
+                prefix_placehoder, file_mode = '', None
             else:
                 link_type = requested_link_type
-                prefix_placehoder, file_mode = None, None
+                prefix_placehoder, file_mode = '', None
             is_menu_file = filepath in menu_files
-            file_operations.append(
-                (filepath, link_type, prefix_placehoder, file_mode, is_menu_file))
+            file_operations.append((filepath, link_type, prefix_placehoder, file_mode, is_menu_file))
 
         # file_paths, link_types, prefix_placeholders, file_modes, is_menu_file
         return file_operations
@@ -91,8 +95,6 @@ class PackageInstaller(object):
             makedirs(join(prefix, d), exist_ok=True)
 
         # Step 2. Do the actual file linking
-        # Step 3. Replace prefix placeholder within all necessary files
-        # Step 4. Make shortcuts on Windows
         for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in file_operations:
             source_path = join(extracted_package_directory, file_path)
             destination_path = join(prefix, file_path)
@@ -101,13 +103,17 @@ class PackageInstaller(object):
             except OSError as e:
                 raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                                    (source_path, destination_path, link_type, e))
+
+        # Step 3. Replace prefix placeholder within all necessary files
+        # Step 4. Make shortcuts on Windows
+        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in file_operations:
+            destination_path = join(prefix, file_path)
             if prefix_placeholder:
                 try:
                     update_prefix(destination_path, prefix, prefix_placeholder, file_mode)
                 except _PaddingError:
                     raise PaddingError(destination_path, prefix_placeholder,
                                        len(prefix_placeholder))
-
             if on_win and is_menu_file and context.shortcuts:
                 make_menu(prefix, file_path, remove=False)
 
@@ -141,7 +147,6 @@ class PackageInstaller(object):
         # read info/index.json first
         with open(join(self.extracted_package_directory, 'info', 'index.json')) as fi:
             meta = Record(**json.load(fi))  # TODO: change to LinkedPackageData
-        import pdb; pdb.set_trace()
         meta.update(meta_dict)
 
         # add extra info, add to our internal cache
