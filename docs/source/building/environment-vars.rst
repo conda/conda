@@ -47,6 +47,8 @@ override this behavior.)
   * - ``CPU_COUNT``
     - Number of CPUs on the system, as reported by
       ``multiprocessing.cpu_count()``
+  * - ``SHLIB_EXT``
+    - The shared library extension
   * - ``DIRTY``
     - Set to 1 if `--dirty` flag passed to `conda build` command.  May be used to skip parts of
       build script conditionally (downloads, extraction, other things that need not be repeated
