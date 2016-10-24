@@ -91,7 +91,7 @@ class LinkType(Enum):
         return self.value
 
     def __str__(self):
-        return self.name
+        return self.name.replace('_', '-')
 
 
 
