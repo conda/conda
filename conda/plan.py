@@ -369,6 +369,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                 lt = LinkType.soft_link
             else:
                 lt = LinkType.copy
+
             actions[inst.LINK].append('%s %d' % (dist, lt))
 
         except (OSError, IOError):

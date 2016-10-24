@@ -87,6 +87,12 @@ class LinkType(Enum):
         else:
             return cls(value)
 
+    def __int__(self):
+        return self.value
+
+    def __str__(self):
+        return self.name
+
 
 
 
