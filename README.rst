@@ -15,13 +15,9 @@
     :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
     :alt: Windows tests (Appveyor)
 
-.. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg
+.. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=Coverage
    :alt: Codecov Status
    :target: https://codecov.io/github/conda/conda?branch=master
-
-.. image:: https://badges.gitter.im/conda/conda.svg
-   :alt: Join the chat at https://gitter.im/conda/conda
-   :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
 |
 
