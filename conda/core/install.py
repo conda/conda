@@ -2,53 +2,38 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import re
+import sys
+from conda.base.context import context
 
 from conda.common.disk import link as disk_link, yield_lines
 from conda.common.path import get_leaf_directories
 from conda.exceptions import CondaOSError
+from conda.utils import on_win
 from enum import Enum
 from logging import getLogger
 from os import makedirs
-from os.path import join, isdir, dirname, islink
+from os.path import join, isdir, dirname, islink, isfile
 
 log = getLogger(__name__)
 
 
+class LinkType(Enum):
+    # LINK_HARD = 1
+    # LINK_SOFT = 2
+    # LINK_COPY = 3
+    # link_name_map = {
+    #     LINK_HARD: 'hard-link',
+    #     LINK_SOFT: 'soft-link',
+    #     LINK_COPY: 'copy',
+    # }
+    hard_link = 1
+    soft_link = 2
+    copy = 3
 
 
-LINK_HARD = 1
-LINK_SOFT = 2
-LINK_COPY = 3
-link_name_map = {
-    LINK_HARD: 'hard-link',
-    LINK_SOFT: 'soft-link',
-    LINK_COPY: 'copy',
-}
 
 
 
-
-def read_soft_links(extracted_package_directory, files):
-    return tuple(f for f in files if islink(join(extracted_package_directory, f)))
-
-
-def collect_all_info_for_package(extracted_package_directory):
-    info_dir = join(extracted_package_directory, 'info')
-
-    # collect information from info directory
-    from ..install import read_has_prefix, read_no_link
-    files = tuple(yield_lines(join(extracted_package_directory, 'info', 'files')))
-
-    # file system calls
-    has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
-    no_link = read_no_link(info_dir)
-    soft_links = read_soft_links(extracted_package_directory, files)
-
-    # simple processing
-    MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-    menu_files = tuple(f for f in files if MENU_RE.match(f))
-
-    return files, has_prefix_files, no_link, soft_links, menu_files
 
 
 
@@ -95,14 +80,14 @@ def execute_file_operations(extracted_package_directory, prefix, leaf_directorie
                     raise PaddingError(dist, prefix_placeholder, len(prefix_placeholder))
 
             if on_win and is_menu_file and context.shortcuts:
-                make_menu(source_path, remove=False)
+                make_menu(prefix, file_path, remove=False)
 
         if on_win:
             # make sure that the child environment behaves like the parent,
             #    wrt user/system install on win
             # This is critical for doing shortcuts correctly
             # TODO: I don't understand; talk to @msarahan
-            nonadmin = join(sys.prefix, ".nonadmin")
+            nonadmin = join(sys.prefix, ".nonadmin")  # TODO: sys.prefix is almost certainly *wrong* here
             if isfile(nonadmin):
                 open(join(prefix, ".nonadmin"), 'w').close()
 

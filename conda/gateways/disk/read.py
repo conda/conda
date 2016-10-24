@@ -1,8 +1,60 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+
+import re
+import shlex
+from collections import namedtuple
+from errno import ENOENT
+from itertools import chain
 from logging import getLogger
+from os.path import islink, join
+
+from ...base.constants import FileMode, PREFIX_PLACEHOLDER
 
 log = getLogger(__name__)
+
+
+
+def yield_lines(path):
+    """Generator function for lines in file.  Empty generator if path does not exist.
+
+    Args:
+        path (str): path to file
+
+    Returns:
+        iterator: each line in file, not starting with '#'
+
+    """
+    try:
+        with open(path) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                yield line
+    except (IOError, OSError) as e:
+        if e.errno == ENOENT:
+            raise StopIteration
+        else:
+            raise
+
+
+def collect_all_info_for_package(extracted_package_directory):
+    info_dir = join(extracted_package_directory, 'info')
+
+    # collect information from info directory
+    files = tuple(yield_lines(join(extracted_package_directory, 'info', 'files')))
+
+    # file system calls
+    has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
+    no_link = read_no_link(info_dir)
+    soft_links = read_soft_links(extracted_package_directory, files)
+
+    # simple processing
+    MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+    menu_files = tuple(f for f in files if MENU_RE.match(f))
+
+    return files, has_prefix_files, no_link, soft_links, menu_files
 
 
 def read_has_prefix(path):
@@ -51,3 +103,7 @@ def read_files(path):
 def read_no_link(info_dir):
     return set(chain(yield_lines(join(info_dir, 'no_link')),
                      yield_lines(join(info_dir, 'no_softlink'))))
+
+
+def read_soft_links(extracted_package_directory, files):
+    return tuple(f for f in files if islink(join(extracted_package_directory, f)))

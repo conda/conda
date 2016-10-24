@@ -101,41 +101,6 @@ prefix_placeholder = PREFIX_PLACEHOLDER
 
 
 
-
-
-def mk_menus(prefix, files, remove=False):
-    """
-    Create cross-platform menu items (e.g. Windows Start Menu)
-
-    Passes all menu config files %PREFIX%/Menu/*.json to ``menuinst.install``.
-    ``remove=True`` will remove the menu items.
-    """
-    menu_files = [f for f in files
-                  if (f.lower().startswith('menu/') and
-                      f.lower().endswith('.json'))]
-    if not menu_files:
-        return
-    elif basename(abspath(prefix)).startswith('_'):
-        logging.warn("Environment name starts with underscore '_'.  "
-                     "Skipping menu installation.")
-        return
-
-    try:
-        import menuinst
-    except:
-        logging.warn("Menuinst could not be imported:")
-        logging.warn(traceback.format_exc())
-        return
-
-    for f in menu_files:
-        try:
-            menuinst.install(join(prefix, f), remove, prefix)
-        except:
-            stdoutlog.error("menuinst Exception:")
-            stdoutlog.error(traceback.format_exc())
-
-
-
 # Should this be an API function?
 def symlink_conda(prefix, root_dir, shell=None):
     # do not symlink root env - this clobbers activate incorrectly.
