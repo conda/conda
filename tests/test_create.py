@@ -21,7 +21,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.disk import rm_rf
+from conda.gateways.disk.delete import rm_rf
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
