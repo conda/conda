@@ -1,11 +1,14 @@
 from __future__ import absolute_import, division, print_function
 
+from conda.base.constants import LinkType
+from conda.core.install import PackageInstaller
 from conda.models.dist import Dist
 from logging import getLogger
+from os.path import join
 
 from .base.context import context
 from conda.core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
-from .install import (LINK_HARD, link, messages, symlink_conda, unlink)
+from .install import messages, symlink_conda, unlink
 
 
 log = getLogger(__name__)
@@ -73,14 +76,16 @@ def RM_FETCHED_CMD(state, arg):
 def split_linkarg(arg):
     """Return tuple(dist, linktype)"""
     parts = arg.split()
-    return (parts[0], int(LINK_HARD if len(parts) < 2 else parts[1]))
+    return (parts[0], int(LinkType.hard_link if len(parts) < 2 else parts[1]))
 
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
     dist = Dist(dist)
     log.debug("=======> LINKING %s <=======", dist)
-    link(state['prefix'], dist, lt, index=state['index'])
+    extracted_package_directory = join(context.pkgs_dirs[0], dist.dist_name)
+    pi = PackageInstaller(state['prefix'], extracted_package_directory, state['index'])
+    pi.link(lt)
 
 
 def UNLINK_CMD(state, arg):

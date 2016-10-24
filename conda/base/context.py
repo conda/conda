@@ -17,7 +17,7 @@ from .._vendor.auxlib.path import expand
 from ..common.compat import iteritems, odict
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
-from ..common.disk import try_write, conda_bld_ensure_dir
+from ..common.disk import conda_bld_ensure_dir
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token, urlparse
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
@@ -207,6 +207,7 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
+        from ..gateways.disk.create import try_write
         return try_write(self.root_dir)
 
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
