@@ -40,7 +40,7 @@ from os.path import (abspath, basename, dirname, isdir, isfile, islink, join, no
                      normpath)
 
 from . import CondaError
-from .base.constants import UTF8
+from .base.constants import UTF8, PREFIX_PLACEHOLDER
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf, yield_lines
 from .core.linked_data import create_meta, delete_linked_data, load_meta
@@ -59,91 +59,14 @@ is_linked, linked, linked_data = is_linked, linked, linked_data
 from .core.package_cache import package_cache, rm_fetched  # NOQA
 rm_fetched, package_cache = rm_fetched, package_cache
 
-if on_win:
-    import ctypes
-    from ctypes import wintypes
-
-    CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
-    CreateHardLink.restype = wintypes.BOOL
-    CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                               wintypes.LPVOID]
-    try:
-        CreateSymbolicLink = ctypes.windll.kernel32.CreateSymbolicLinkW
-        CreateSymbolicLink.restype = wintypes.BOOL
-        CreateSymbolicLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                                       wintypes.DWORD]
-    except AttributeError:
-        CreateSymbolicLink = None
-
-    def win_hard_link(src, dst):
-        "Equivalent to os.link, using the win32 CreateHardLink call."
-        if not CreateHardLink(dst, src, None):
-            raise CondaOSError('win32 hard link failed')
-
-    def win_soft_link(src, dst):
-        "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
-        if CreateSymbolicLink is None:
-            raise CondaOSError('win32 soft link not supported')
-        if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise CondaOSError('win32 soft link failed')
-
-    def win_conda_bat_redirect(src, dst, shell):
-        """Special function for Windows XP where the `CreateSymbolicLink`
-        function is not available.
-
-        Simply creates a `.bat` file at `dst` which calls `src` together with
-        all command line arguments.
-
-        Works of course only with callable files, e.g. `.bat` or `.exe` files.
-        """
-        from conda.utils import shells
-        try:
-            os.makedirs(os.path.dirname(dst))
-        except OSError as exc:  # Python >2.5
-            if exc.errno == errno.EEXIST and os.path.isdir(os.path.dirname(dst)):
-                pass
-            else:
-                raise
-
-        # bat file redirect
-        if not os.path.isfile(dst + '.bat'):
-            with open(dst + '.bat', 'w') as f:
-                f.write('@echo off\ncall "%s" %%*\n' % src)
-
-        # TODO: probably need one here for powershell at some point
-
-        # This one is for bash/cygwin/msys
-        # set default shell to bash.exe when not provided, as that's most common
-        if not shell:
-            shell = "bash.exe"
-
-        # technically these are "links" - but islink doesn't work on win
-        if not os.path.isfile(dst):
-            with open(dst, "w") as f:
-                f.write("#!/usr/bin/env bash \n")
-                if src.endswith("conda"):
-                    f.write('%s "$@"' % shells[shell]['path_to'](src+".exe"))
-                else:
-                    f.write('source %s "$@"' % shells[shell]['path_to'](src))
-            # Make the new file executable
-            # http://stackoverflow.com/a/30463972/1170370
-            mode = os.stat(dst).st_mode
-            mode |= (mode & 292) >> 2    # copy R bits to X
-            os.chmod(dst, mode)
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
 
 
-SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
 
 
-class FileMode(Enum):
-    text = 'text'
-    binary = 'binary'
 
-    def __str__(self):
-        return "%s" % self.value
 
 
 class FileType(Enum):
@@ -153,34 +76,7 @@ class FileType(Enum):
     directory = 'directory'
 
 
-LINK_HARD = 1
-LINK_SOFT = 2
-LINK_COPY = 3
-link_name_map = {
-    LINK_HARD: 'hard-link',
-    LINK_SOFT: 'soft-link',
-    LINK_COPY: 'copy',
-}
 
-def _link(src, dst, linktype=LINK_HARD):
-    if linktype == LINK_HARD:
-        if on_win:
-            win_hard_link(src, dst)
-        else:
-            os.link(src, dst)
-    elif linktype == LINK_SOFT:
-        if on_win:
-            win_soft_link(src, dst)
-        else:
-            os.symlink(src, dst)
-    elif linktype == LINK_COPY:
-        # copy relative symlinks as symlinks
-        if not on_win and islink(src) and not os.readlink(src).startswith('/'):
-            os.symlink(os.readlink(src), dst)
-        else:
-            shutil.copy2(src, dst)
-    else:
-        raise CondaError("Did not expect linktype=%r" % linktype)
 
 
 def _remove_readonly(func, path, excinfo):
@@ -197,190 +93,14 @@ def warn_failed_remove(function, path, exc_info):
         log.warn("Cannot remove, unknown reason: {0}".format(path))
 
 
-PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
-                      # this is intentionally split into parts,
-                      # such that running this program on itself
-                      # will leave it unchanged
-                      'anaconda3')
+
 
 # backwards compatibility for conda-build
 prefix_placeholder = PREFIX_PLACEHOLDER
 
 
-def read_has_prefix(path):
-    """
-    reads `has_prefix` file and return dict mapping filepaths to tuples(placeholder, FileMode)
-
-    A line in `has_prefix` contains one of
-      * filepath
-      * placeholder mode filepath
-
-    mode values are one of
-      * text
-      * binary
-    """
-    ParseResult = namedtuple('ParseResult', ('placeholder', 'filemode', 'filepath'))
-
-    def parse_line(line):
-        # placeholder, filemode, filepath
-        parts = tuple(x.strip('"\'') for x in shlex.split(line, posix=False))
-        if len(parts) == 1:
-            return ParseResult(PREFIX_PLACEHOLDER, FileMode.text, parts[0])
-        elif len(parts) == 3:
-            return ParseResult(parts[0], FileMode(parts[1]), parts[2])
-        else:
-            raise RuntimeError("Invalid has_prefix file at path: %s" % path)
-    parsed_lines = (parse_line(line) for line in yield_lines(path))
-    return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 
 
-def read_files(path):
-    ParseResult = namedtuple('ParseResult', ('filepath', 'hash', 'bytes', 'type'))
-
-    def parse_line(line):
-        # 'filepath', 'hash', 'bytes', 'type'
-        parts = line.split(',')
-        if len(parts) == 4:
-            return ParseResult(*parts)
-        elif len(parts) == 1:
-            return ParseResult(parts[0], None, None, None)
-        else:
-            raise RuntimeError("Invalid files at path: %s" % path)
-
-    return tuple(parse_line(line) for line in yield_lines(path))
-
-
-class _PaddingError(Exception):
-    pass
-
-
-def binary_replace(data, a, b):
-    """
-    Perform a binary replacement of `data`, where the placeholder `a` is
-    replaced with `b` and the remaining string is padded with null characters.
-    All input arguments are expected to be bytes objects.
-    """
-    if on_win:
-        if has_pyzzer_entry_point(data):
-            return replace_pyzzer_entry_point_shebang(data, a, b)
-        # currently we should skip replacement on Windows for things we don't understand.
-        else:
-            return data
-
-    def replace(match):
-        occurances = match.group().count(a)
-        padding = (len(a) - len(b))*occurances
-        if padding < 0:
-            raise _PaddingError
-        return match.group().replace(a, b) + b'\0' * padding
-
-    original_data_len = len(data)
-    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
-    data = pat.sub(replace, data)
-    assert len(data) == original_data_len
-
-    return data
-
-
-def replace_long_shebang(mode, data):
-    if mode == FileMode.text:
-        shebang_match = SHEBANG_REGEX.match(data)
-        if shebang_match:
-            whole_shebang, executable, options = shebang_match.groups()
-            if len(whole_shebang) > 127:
-                executable_name = executable.decode(UTF8).split('/')[-1]
-                new_shebang = '#!/usr/bin/env %s%s' % (executable_name, options.decode(UTF8))
-                data = data.replace(whole_shebang, new_shebang.encode(UTF8))
-    else:
-        # TODO: binary shebangs exist; figure this out in the future if text works well
-        log.debug("TODO: binary shebangs exist; figure this out in the future if text works well")
-    return data
-
-
-def has_pyzzer_entry_point(data):
-    pos = data.rfind(b'PK\x05\x06')
-    return pos >= 0
-
-
-def replace_pyzzer_entry_point_shebang(all_data, placeholder, new_prefix):
-    """Code adapted from pyzzer.  This is meant to deal with entry point exe's created by distlib,
-    which consist of a launcher, then a shebang, then a zip archive of the entry point code to run.
-    We need to change the shebang.
-    https://bitbucket.org/vinay.sajip/pyzzer/src/5d5740cb04308f067d5844a56fbe91e7a27efccc/pyzzer/__init__.py?at=default&fileviewer=file-view-default#__init__.py-112  # NOQA
-    """
-    # Copyright (c) 2013 Vinay Sajip.
-    #
-    # Permission is hereby granted, free of charge, to any person obtaining a copy
-    # of this software and associated documentation files (the "Software"), to deal
-    # in the Software without restriction, including without limitation the rights
-    # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    # copies of the Software, and to permit persons to whom the Software is
-    # furnished to do so, subject to the following conditions:
-    #
-    # The above copyright notice and this permission notice shall be included in
-    # all copies or substantial portions of the Software.
-    #
-    # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    # THE SOFTWARE.
-    launcher = shebang = None
-    pos = all_data.rfind(b'PK\x05\x06')
-    if pos >= 0:
-        end_cdr = all_data[pos + 12:pos + 20]
-        cdr_size, cdr_offset = struct.unpack('<LL', end_cdr)
-        arc_pos = pos - cdr_size - cdr_offset
-        data = all_data[arc_pos:]
-        if arc_pos > 0:
-            pos = all_data.rfind(b'#!', 0, arc_pos)
-            if pos >= 0:
-                shebang = all_data[pos:arc_pos]
-                if pos > 0:
-                    launcher = all_data[:pos]
-
-        if data and shebang and launcher:
-            if hasattr(placeholder, 'encode'):
-                placeholder = placeholder.encode('utf-8')
-            if hasattr(new_prefix, 'encode'):
-                new_prefix = new_prefix.encode('utf-8')
-            shebang = shebang.replace(placeholder, new_prefix)
-            all_data = b"".join([launcher, shebang, data])
-    return all_data
-
-
-def replace_prefix(mode, data, placeholder, new_prefix):
-    if mode == FileMode.text:
-        data = data.replace(placeholder.encode(UTF8), new_prefix.encode(UTF8))
-    elif mode == FileMode.binary:
-        data = binary_replace(data, placeholder.encode(UTF8), new_prefix.encode(UTF8))
-    else:
-        raise RuntimeError("Invalid mode: %r" % mode)
-    return data
-
-
-def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMode.text):
-    if on_win and mode == FileMode.text:
-        # force all prefix replacements to forward slashes to simplify need to escape backslashes
-        # replace with unix-style path separators
-        new_prefix = new_prefix.replace('\\', '/')
-
-    path = os.path.realpath(path)
-    with open(path, 'rb') as fi:
-        original_data = data = fi.read()
-
-    data = replace_prefix(mode, data, placeholder, new_prefix)
-    if not on_win:
-        data = replace_long_shebang(mode, data)
-
-    if data == original_data:
-        return
-    st = os.lstat(path)
-    with exp_backoff_fn(open, path, 'wb') as fo:
-        fo.write(data)
-    os.chmod(path, stat.S_IMODE(st.st_mode))
 
 
 def mk_menus(prefix, files, remove=False):
@@ -414,46 +134,6 @@ def mk_menus(prefix, files, remove=False):
             stdoutlog.error("menuinst Exception:")
             stdoutlog.error(traceback.format_exc())
 
-
-def run_script(prefix, dist, action='post-link', env_prefix=None):
-    """
-    call the post-link (or pre-unlink) script, and return True on success,
-    False on failure
-    """
-    path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
-            dist.dist_name,
-            action,
-            'bat' if on_win else 'sh'))
-    if not isfile(path):
-        return True
-    if on_win:
-        try:
-            args = [os.environ['COMSPEC'], '/c', path]
-        except KeyError:
-            return False
-    else:
-        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
-        args = [shell_path, path]
-    env = os.environ.copy()
-    name, version, _, _ = dist.quad
-    build_number = dist.build_number()
-    env[str('ROOT_PREFIX')] = sys.prefix
-    env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = name
-    env[str('PKG_VERSION')] = version
-    env[str('PKG_BUILDNUM')] = build_number
-    if action == 'pre-link':
-        env[str('SOURCE_DIR')] = str(prefix)
-    try:
-        subprocess.check_call(args, env=env)
-    except subprocess.CalledProcessError:
-        return False
-    return True
-
-
-def read_no_link(info_dir):
-    return set(chain(yield_lines(join(info_dir, 'no_link')),
-                     yield_lines(join(info_dir, 'no_softlink'))))
 
 
 # Should this be an API function?

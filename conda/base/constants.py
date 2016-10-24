@@ -51,6 +51,21 @@ class Platform(Enum):
         return self.value
 
 
+class FileMode(Enum):
+    text = 'text'
+    binary = 'binary'
+
+    def __str__(self):
+        return "%s" % self.value
+
+
+PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
+                      # this is intentionally split into parts,
+                      # such that running this program on itself
+                      # will leave it unchanged
+                      'anaconda3')
+
+
 machine_bits = 8 * tuple.__itemsize__
 
 CONDA = 'CONDA'

@@ -3,8 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import re
 
-from conda.common.disk import yield_lines
+from conda.common.disk import link as disk_link, yield_lines
+from conda.common.path import get_leaf_directories
+from conda.exceptions import CondaOSError
+from enum import Enum
 from logging import getLogger
+from os import makedirs
 from os.path import join, isdir, dirname, islink
 
 log = getLogger(__name__)
@@ -12,138 +16,16 @@ log = getLogger(__name__)
 
 
 
+LINK_HARD = 1
+LINK_SOFT = 2
+LINK_COPY = 3
+link_name_map = {
+    LINK_HARD: 'hard-link',
+    LINK_SOFT: 'soft-link',
+    LINK_COPY: 'copy',
+}
 
 
-
-def link(prefix, dist, linktype=LINK_HARD, index=None):
-    """
-    Set up a package in a specified (environment) prefix.  We assume that
-    the package has been extracted (using extract() above).
-    """
-    log.debug("linking package %s with link type %s", dist, linktype)
-    index = index or {}
-    source_dir = is_extracted(dist)
-    assert source_dir is not None
-    pkgs_dir = dirname(source_dir)
-    log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r' %
-              (pkgs_dir, prefix, dist, linktype))
-
-    if not run_script(source_dir, dist, 'pre-link', prefix):
-        raise LinkError('Error: pre-link failed: %s' % dist)
-
-    info_dir = join(source_dir, 'info')
-    files = list(yield_lines(join(info_dir, 'files')))
-    has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
-    no_link = read_no_link(info_dir)
-
-    # for the lock issue
-    # may run into lock if prefix not exist
-    if not isdir(prefix):
-        os.makedirs(prefix)
-
-    with DirectoryLock(prefix), FileLock(source_dir):
-        meta_dict = index.get(dist + '.tar.bz2', {})
-        if meta_dict.get('noarch'):
-            link_noarch(prefix, meta_dict, source_dir, dist)
-        else:
-            for filepath in files:
-                src = join(source_dir, filepath)
-                dst = join(prefix, filepath)
-                dst_dir = dirname(dst)
-                if not isdir(dst_dir):
-                    os.makedirs(dst_dir)
-                if os.path.exists(dst):
-                    log.info("file exists, but clobbering: %r" % dst)
-                    rm_rf(dst)
-                lt = linktype
-                if filepath in has_prefix_files or filepath in no_link or islink(src):
-                    lt = LINK_COPY
-
-                try:
-                    if not meta_dict.get('noarch'):
-                        _link(src, dst, lt)
-                except OSError as e:
-                    raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                                       (src, dst, lt, e))
-
-        for filepath in sorted(has_prefix_files):
-            placeholder, mode = has_prefix_files[filepath]
-            try:
-                update_prefix(join(prefix, filepath), prefix, placeholder, mode)
-            except _PaddingError:
-                raise PaddingError(dist, placeholder, len(placeholder))
-
-        # make sure that the child environment behaves like the parent,
-        #    wrt user/system install on win
-        # This is critical for doing shortcuts correctly
-        if on_win:
-            nonadmin = join(sys.prefix, ".nonadmin")
-            if isfile(nonadmin):
-                open(join(prefix, ".nonadmin"), 'w').close()
-
-        if context.shortcuts:
-            mk_menus(prefix, files, remove=False)
-
-        if not run_script(prefix, dist, 'post-link'):
-            raise LinkError("Error: post-link failed for: %s" % dist)
-
-        meta_dict['url'] = read_url(dist)
-        alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
-        if isfile(alt_files_path):
-            # alt_files_path is a hack for noarch
-            meta_dict['files'] = list(yield_lines(alt_files_path))
-        else:
-            meta_dict['files'] = files
-        meta_dict['link'] = Link(source=source_dir, type=link_name_map.get(linktype))
-        if 'icon' in meta_dict:
-            meta_dict['icondata'] = read_icondata(source_dir)
-
-        create_meta(prefix, dist, info_dir, meta_dict)
-
-
-def unlink(prefix, dist):
-    """
-    Remove a package from the specified environment, it is an error if the
-    package does not exist in the prefix.
-    """
-    with DirectoryLock(prefix):
-        log.debug("unlinking package %s", dist)
-        run_script(prefix, dist, 'pre-unlink')
-
-        meta = load_meta(prefix, dist)
-        # Always try to run this - it should not throw errors where menus do not exist
-        mk_menus(prefix, meta['files'], remove=True)
-        dst_dirs1 = set()
-
-        for f in meta['files']:
-            dst = join(prefix, f)
-            dst_dirs1.add(dirname(dst))
-            rm_rf(dst)
-
-        # remove the meta-file last
-        delete_linked_data(prefix, dist, delete=True)
-
-        dst_dirs2 = set()
-        for path in dst_dirs1:
-            while len(path) > len(prefix):
-                dst_dirs2.add(path)
-                path = dirname(path)
-        # in case there is nothing left
-        dst_dirs2.add(join(prefix, 'conda-meta'))
-        dst_dirs2.add(prefix)
-
-        noarch = meta.get("noarch")
-        if noarch:
-            get_noarch_cls(noarch)().unlink(prefix, dist)
-
-        # remove empty directories
-        for path in sorted(dst_dirs2, key=len, reverse=True):
-            if isdir(path) and not os.listdir(path):
-                rm_rf(path)
-
-        alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
-        if isfile(alt_files_path):
-            rm_rf(alt_files_path)
 
 
 def read_soft_links(extracted_package_directory, files):
@@ -193,17 +75,16 @@ def execute_file_operations(extracted_package_directory, prefix, leaf_directorie
 
         # Step 1. Make all directories
         for d in leaf_directories:
-            makedirs(join(prefix, d))
+            makedirs(join(prefix, d), exist_ok=True)
 
         # Step 2. Do the actual file linking
         # Step 3. Replace prefix placeholder within all necessary files
         # Step 4. Make shortcuts on Windows
-        for op in file_operations:
-            file_path, link_type, prefix_placeholder, file_mode, is_menu_file = op
+        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in file_operations:
             source_path = join(extracted_package_directory, file_path)
             destination_path = join(prefix, file_path)
             try:
-                _link(source_path, destination_path, link_type)
+                disk_link(source_path, destination_path, link_type)
             except OSError as e:
                 raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                                    (src, dst, lt, e))
@@ -220,6 +101,7 @@ def execute_file_operations(extracted_package_directory, prefix, leaf_directorie
             # make sure that the child environment behaves like the parent,
             #    wrt user/system install on win
             # This is critical for doing shortcuts correctly
+            # TODO: I don't understand; talk to @msarahan
             nonadmin = join(sys.prefix, ".nonadmin")
             if isfile(nonadmin):
                 open(join(prefix, ".nonadmin"), 'w').close()
@@ -229,20 +111,12 @@ def execute_file_operations(extracted_package_directory, prefix, leaf_directorie
 
 class PackageInstaller(object):
 
-    def __init__(self, prefix, extracted_package_directory):
-
-        # directories to create
-
-        # source_paths, destination_paths, link_types, prefix_to_replace
-
-        # destination_paths, prefix_to_replace
-
-
-
+    def __init__(self, prefix, extracted_package_directory, record):
         self.prefix = prefix
         self.extracted_package_directory = extracted_package_directory
+        self.record = record
 
-    def link(self, link_type='LINK_HARD'):
+    def link(self, requested_link_type='LINK_HARD'):
         log.debug("linking package:\n"
                   "  prefix=%s\n"
                   "  source=%s\n"
@@ -255,87 +129,55 @@ class PackageInstaller(object):
         leaf_directories = get_leaf_directories(files)
         file_operations = make_op_details(files, has_prefix_files, no_link, soft_links, menu_files, link_type)
 
-
-
-
-
-
         # TODO: discuss with @mcg1969
         # run pre-link script
         # if not run_script(source_dir, dist, 'pre-link', prefix):
         #     raise LinkError('Error: pre-link failed: %s' % dist)
 
+        execute_file_operations(extracted_package_directory, prefix, leaf_directories, file_operations)
 
+        # Step 5. Run post-link script
+        if not run_script(prefix, dist, 'post-link'):
+            raise LinkError("Error: post-link failed for: %s" % dist)
 
-        # # for the lock issue
-        # # may run into lock if prefix not exist
-        # if not isdir(prefix):
-        #     os.makedirs(prefix)
-        assert isdir(self.prefix)
-
-
-
-            # Step 5. Run post-link script
-            if not run_script(prefix, dist, 'post-link'):
-                raise LinkError("Error: post-link failed for: %s" % dist)
-
-            # Step 6. Create package's prefix/conda-meta file
-            create_meta(prefix, dist, info_dir, meta_dict)
+        # Step 6. Create package's prefix/conda-meta file
+        create_meta(prefix, dist, info_dir, meta_dict)
 
 
 
 
-            # meta_dict = index.get(dist + '.tar.bz2', {})
-            # if meta_dict.get('noarch'):
-            #     link_noarch(prefix, meta_dict, source_dir, dist)
-            # else:
-            #     for filepath in files:
-            #         src = join(source_dir, filepath)
-            #         dst = join(prefix, filepath)
-            #         dst_dir = dirname(dst)
-            #         if not isdir(dst_dir):
-            #             os.makedirs(dst_dir)
-            #         if os.path.exists(dst):
-            #             log.info("file exists, but clobbering: %r" % dst)
-            #             rm_rf(dst)
-            #         lt = linktype
-            #         if filepath in has_prefix_files or filepath in no_link or islink(src):
-            #             lt = LINK_COPY
-            #
-            #         try:
-            #             if not meta_dict.get('noarch'):
-            #                 _link(src, dst, lt)
-            #         except OSError as e:
-            #             raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-            #                                (src, dst, lt, e))
+def run_script(prefix, dist, action='post-link', env_prefix=None):
+    """
+    call the post-link (or pre-unlink) script, and return True on success,
+    False on failure
+    """
+    path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
+            dist.dist_name,
+            action,
+            'bat' if on_win else 'sh'))
+    if not isfile(path):
+        return True
+    if on_win:
+        try:
+            args = [os.environ['COMSPEC'], '/c', path]
+        except KeyError:
+            return False
+    else:
+        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
+        args = [shell_path, path]
+    env = os.environ.copy()
+    name, version, _, _ = dist.quad
+    build_number = dist.build_number()
+    env[str('ROOT_PREFIX')] = sys.prefix
+    env[str('PREFIX')] = str(env_prefix or prefix)
+    env[str('PKG_NAME')] = name
+    env[str('PKG_VERSION')] = version
+    env[str('PKG_BUILDNUM')] = build_number
+    if action == 'pre-link':
+        env[str('SOURCE_DIR')] = str(prefix)
+    try:
+        subprocess.check_call(args, env=env)
+    except subprocess.CalledProcessError:
+        return False
+    return True
 
-            # replace prefix placeholder within all necessary files
-            for filepath in sorted(has_prefix_files):
-                placeholder, mode = has_prefix_files[filepath]
-                try:
-                    update_prefix(join(prefix, filepath), prefix, placeholder, mode)
-                except _PaddingError:
-                    raise PaddingError(dist, placeholder, len(placeholder))
-
-            # make shortcuts on Windows
-
-                if context.shortcuts:
-                    mk_menus(prefix, files, remove=False)
-
-            # run post-link script
-            if not run_script(prefix, dist, 'post-link'):
-                raise LinkError("Error: post-link failed for: %s" % dist)
-
-            # # create package's prefix/conda-meta file
-            # meta_dict['url'] = read_url(dist)
-            # alt_files_path = join(prefix, 'conda-meta', dist2filename(dist, '.files'))
-            # if isfile(alt_files_path):
-            #     # alt_files_path is a hack for noarch
-            #     meta_dict['files'] = list(yield_lines(alt_files_path))
-            # else:
-            #     meta_dict['files'] = files
-            # meta_dict['link'] = Link(source=source_dir, type=link_name_map.get(linktype))
-            # if 'icon' in meta_dict:
-            #     meta_dict['icondata'] = read_icondata(source_dir)
-            #
-            # create_meta(prefix, dist, info_dir, meta_dict)
