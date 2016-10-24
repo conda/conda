@@ -7,13 +7,13 @@
 
 ----------------------------------------
 
-.. image:: https://travis-ci.org/conda/conda.svg?branch=master
-   :alt: Travis-CI Build Status
-   :target: https://travis-ci.org/conda/conda
+.. image:: https://img.shields.io/travis/conda/conda/master.svg?maxAge=900&label=Linux%20%26%20MacOS
+    :target: https://travis-ci.org/conda/conda
+    :alt: Linux & MacOS tests (Travis)
 
-.. image:: https://ci.appveyor.com/api/projects/status/v6fl568drifhia2d/branch/master?svg=true
-   :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda/branch/master
+.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/master.svg?maxAge=900&label=Windows
+    :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
+    :alt: Windows tests (Appveyor)
 
 .. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
    :alt: Codecov Status
