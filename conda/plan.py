@@ -157,7 +157,7 @@ def display_actions(actions, index, show_channel_urls=None):
             oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
 
         lt = linktypes.get(pkg, LinkType.hard_link)
-        lt = '' if lt == LinkType.hard_link else (' (%s)' % lt.name)
+        lt = '' if lt == LinkType.hard_link else (' (%s)' % lt)
         if pkg in removed or pkg in new:
             oldfmt[pkg] += lt
             continue

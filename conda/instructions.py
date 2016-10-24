@@ -7,7 +7,7 @@ from logging import getLogger
 from os.path import join
 
 from .base.context import context
-from conda.core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
+from .core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
 from .install import messages, symlink_conda, unlink
 
 
@@ -84,7 +84,7 @@ def LINK_CMD(state, arg):
     dist = Dist(dist)
     log.debug("=======> LINKING %s <=======", dist)
     extracted_package_directory = join(context.pkgs_dirs[0], dist.dist_name)
-    pi = PackageInstaller(state['prefix'], extracted_package_directory, state['index'])
+    pi = PackageInstaller(state['prefix'], extracted_package_directory, state['index'][dist])
     pi.link(lt)
 
 

@@ -146,12 +146,12 @@ def link(src, dst, link_type=LinkType.hard_link):
             win_hard_link(src, dst)
         else:
             os_link(src, dst)
-    elif link_type == LinkType.hard_soft:
+    elif link_type == LinkType.soft_link:
         if on_win:
             win_soft_link(src, dst)
         else:
             symlink(src, dst)
-    elif link_type == LinkType.hard_copy:
+    elif link_type == LinkType.copy:
         # copy relative symlinks as symlinks
         if not on_win and islink(src) and not readlink(src).startswith('/'):
             symlink(readlink(src), dst)

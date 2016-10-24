@@ -5,7 +5,7 @@ from logging import getLogger
 
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, StringField, MapField)
-from ..base.constants import Arch, Platform
+from ..base.constants import Arch, Platform, LinkType
 from ..common.compat import string_types
 
 log = getLogger(__name__)
@@ -13,10 +13,10 @@ log = getLogger(__name__)
 
 class Link(DictSafeMixin, Entity):
     source = StringField()
-    type = StringField()
+    type = EnumField(LinkType, required=False)
 
 
-EMPTY_LINK = Link(source='', type='')
+EMPTY_LINK = Link(source='')
 
 # TODO: eventually stop mixing Record with LinkedPackageData
 # class LinkedPackageData(DictSafeMixin, Entity):

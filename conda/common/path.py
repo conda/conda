@@ -42,8 +42,6 @@ def get_leaf_directories(files):
     # type: (List[str]) -> List[str]
     # give this function a list of files, and it will hand back a list of leaf directories to
     # pass to os.makedirs()
-    files = files.strip().split('\n')
-
     directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
     leaves = []
 
@@ -56,4 +54,4 @@ def get_leaf_directories(files):
     if not tokenized_startswith(last, leaves[-1]):
         leaves.append(last)
 
-    return leaves
+    return tuple('/'.join(leaf) for leaf in leaves)

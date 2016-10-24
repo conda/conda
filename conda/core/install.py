@@ -141,7 +141,7 @@ class PackageInstaller(object):
         # read info/index.json first
         with open(join(self.extracted_package_directory, 'info', 'index.json')) as fi:
             meta = Record(**json.load(fi))  # TODO: change to LinkedPackageData
-
+        import pdb; pdb.set_trace()
         meta.update(meta_dict)
 
         # add extra info, add to our internal cache
