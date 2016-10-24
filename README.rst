@@ -7,21 +7,21 @@
 
 ----------------------------------------
 
-.. image:: https://travis-ci.org/conda/conda.svg?branch=master
-   :alt: Travis-CI Build Status
-   :target: https://travis-ci.org/conda/conda
+.. image:: https://img.shields.io/travis/conda/conda/master.svg?maxAge=900&label=Linux%20%26%20MacOS
+    :target: https://travis-ci.org/conda/conda
+    :alt: Linux & MacOS tests (Travis)
 
-.. image:: https://ci.appveyor.com/api/projects/status/v6fl568drifhia2d/branch/master?svg=true
-   :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda/branch/master
+.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/master.svg?maxAge=900&label=Windows
+    :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
+    :alt: Windows tests (Appveyor)
 
-.. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
+.. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=coverage
    :alt: Codecov Status
    :target: https://codecov.io/github/conda/conda?branch=master
 
-.. image:: https://badges.gitter.im/conda/conda.svg
-   :alt: Join the chat at https://gitter.im/conda/conda
-   :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+.. image:: https://img.shields.io/github/release/conda/conda.svg
+   :alt: latest release version
+   :target: https://github.com/conda/conda/releases
 
 |
 

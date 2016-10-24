@@ -8,7 +8,7 @@ from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from uuid import uuid4
 
-from . import exp_backoff_fn
+from . import exp_backoff_fn, MAX_TRIES
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import text_type
@@ -72,9 +72,9 @@ def delete_trash(prefix=None):
             path = join(trash_dir, p)
             try:
                 if isdir(path):
-                    backoff_rmdir(path)
+                    backoff_rmdir(path, max_tries=1)
                 else:
-                    backoff_unlink(path)
+                    backoff_unlink(path, max_tries=1)
             except (IOError, OSError) as e:
                 log.info("Could not delete path in trash dir %s\n%r", path, e)
         if listdir(trash_dir):
@@ -120,20 +120,21 @@ def move_path_to_trash(path, preclean=True):
     return False
 
 
-def backoff_unlink(file_or_symlink_path):
+def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
     def _unlink(path):
         make_writable(path)
         unlink(path)
 
     try:
-        exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path)
+        exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path,
+                       max_tries=max_tries)
     except (IOError, OSError) as e:
         if e.errno not in (ENOENT,):
             # errno.ENOENT File not found error / No such file or directory
             raise
 
 
-def backoff_rmdir(dirpath):
+def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
     if not isdir(dirpath):
         return
 
@@ -145,13 +146,13 @@ def backoff_rmdir(dirpath):
     def retry(func, path, exc_info):
         if getattr(exc_info[1], 'errno', None) == ENOENT:
             return
-        recursive_make_writable(dirname(path))
+        recursive_make_writable(dirname(path), max_tries=max_tries)
         func(path)
 
     def _rmdir(path):
         try:
             recursive_make_writable(path)
-            exp_backoff_fn(rmtree, path, onerror=retry)
+            exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
         except (IOError, OSError) as e:
             if e.errno == ENOENT:
                 log.debug("no such file or directory: %s", path)

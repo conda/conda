@@ -157,6 +157,9 @@ class Context(Configuration):
             errors.append(error)
         return errors
 
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
+                                   string_delimiter=os.pathsep)
+
     @property
     def default_python(self):
         ver = sys.version_info
@@ -209,8 +212,6 @@ class Context(Configuration):
     def root_writable(self):
         from ..gateways.disk.create import try_write
         return try_write(self.root_dir)
-
-    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
 
     @property
     def envs_dirs(self):

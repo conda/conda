@@ -17,7 +17,7 @@ from .package_cache import package_cache
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL, DEFAULTS
+from ..base.constants import CONDA_HOMEPAGE_URL, DEFAULTS, MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
 from ..common.url import join_url, url_to_path
@@ -54,7 +54,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
     # supplement index with information from prefix/conda-meta
     if prefix:
-        priorities = {c: p for c, p in itervalues(channel_urls)}
+        priorities = {chnl: prrty for chnl, prrty in itervalues(channel_urls)}
         maxp = max(itervalues(priorities)) + 1 if priorities else 1
         for dist, info in iteritems(linked_data(prefix)):
             fn = info['fn']
@@ -70,7 +70,12 @@ def get_index(channel_urls=(), prepend=True, platform=None,
                 # only if the package in not in the repodata, use local
                 # conda-meta (with 'depends' defaulting to [])
                 info.setdefault('depends', [])
-                info['priority'] = priority
+
+                # If the schannel is known but the package is not in the index, it is
+                # because 1) the channel is unavailable offline or 2) the package has
+                # been removed from that channel. Either way, we should prefer any
+                # other version of the package to this one.
+                info['priority'] = MAX_CHANNEL_PRIORITY if schannel in priorities else priority
                 index[key] = info
 
     return index

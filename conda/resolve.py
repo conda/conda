@@ -4,7 +4,7 @@ import logging
 import re
 from itertools import chain
 
-from .base.constants import DEFAULTS
+from .base.constants import DEFAULTS, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
@@ -588,10 +588,11 @@ class Resolve(object):
     def version_key(self, dist, vtype=None):
         assert isinstance(dist, Dist)
         rec = self.index[dist]
-        cpri = -rec.get('priority', 1)
+        cpri = rec.get('priority', 1)
+        valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
         bld = rec.get('build_number', 0)
-        return (cpri, ver, bld) if context.channel_priority else (ver, cpri, bld)
+        return (valid, -cpri, ver, bld) if context.channel_priority else (valid, ver, -cpri, bld)
 
     def features(self, dist):
         return set(self.index[dist].get('features', '').split())
@@ -692,13 +693,16 @@ class Resolve(object):
     def generate_version_metrics(self, C, specs, include0=False):
         eqv = {}  # a C.minimize() objective: Dict[varname, coeff]
         eqb = {}  # a C.minimize() objective: Dict[varname, coeff]
-        sdict = {}  # Dict[package_name, matchspec.target]
+        sdict = {}  # Dict[package_name, Dist]
 
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             rec = sdict.setdefault(s.name, [])
             if s.target:
-                rec.append(s.target)
+                dist = Dist(s.target)
+                if dist in self.index:
+                    if self.index[dist].get('priority', 0) < MAX_CHANNEL_PRIORITY:
+                        rec.append(dist)
 
         for name, targets in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
@@ -708,10 +712,10 @@ class Resolve(object):
                     continue
                 if pkey is None:
                     iv = ib = 0
-                elif pkey[0] != version_key[0] or pkey[1] != version_key[1]:
+                elif any(pk != vk for pk, vk in zip(pkey[:3], version_key[:3])):
                     iv += 1
                     ib = 0
-                elif pkey[2] != version_key[2]:
+                elif pkey[3] != version_key[3]:
                     ib += 1
 
                 if iv or include0:

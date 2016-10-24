@@ -11,16 +11,18 @@ from ...utils import on_win
 
 log = getLogger(__name__)
 
+MAX_TRIES = 7
+
 
 def exp_backoff_fn(fn, *args, **kwargs):
     """Mostly for retrying file operations that fail on Windows due to virus scanners"""
+    max_tries = kwargs.pop('max_tries', MAX_TRIES)
     if not on_win:
         return fn(*args, **kwargs)
 
     import random
     # with max_tries = 6, max total time ~= 3.2 sec
     # with max_tries = 7, max total time ~= 6.5 sec
-    max_tries = 7
     for n in range(max_tries):
         try:
             result = fn(*args, **kwargs)

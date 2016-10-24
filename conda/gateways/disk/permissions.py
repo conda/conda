@@ -8,7 +8,7 @@ from os import (chmod, lstat, walk)
 from os.path import isdir, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 
-from . import exp_backoff_fn
+from . import MAX_TRIES, exp_backoff_fn
 from ...compat import lchmod
 
 log = getLogger(__name__)
@@ -37,7 +37,7 @@ def make_writable(path):
             raise
 
 
-def recursive_make_writable(path):
+def recursive_make_writable(path, max_tries=MAX_TRIES):
     # The need for this function was pointed out at
     #   https://github.com/conda/conda/issues/3266#issuecomment-239241915
     # Especially on windows, file removal will often fail because it is marked read-only
@@ -45,11 +45,11 @@ def recursive_make_writable(path):
         for root, dirs, files in walk(path):
             for path in chain.from_iterable((files, dirs)):
                 try:
-                    exp_backoff_fn(make_writable, join(root, path))
+                    exp_backoff_fn(make_writable, join(root, path), max_tries=max_tries)
                 except (IOError, OSError) as e:
                     if e.errno == ENOENT:
                         log.debug("no such file or directory: %s", path)
                     else:
                         raise
     else:
-        exp_backoff_fn(make_writable, path)
+        exp_backoff_fn(make_writable, path, max_tries=max_tries)
