@@ -37,9 +37,12 @@ main_test() {
 
     python -m pytest --cov-report xml ${shells} -m "not installed" tests
 
+    # `develop` instead of `install` to avoid coverage issues of tracking two
+    # separate "codes"
     python setup.py --version
-    python setup.py install
+    python setup.py develop
     hash -r
+    which conda
     python -m conda info
 
     python -m pytest --cov-report xml --cov-append ${shells} -m "installed" tests
@@ -126,6 +129,9 @@ elif [[ -n "${CONDA_BUILD}" ]]; then
     conda_build_unit_test
 else
     main_test
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        activate_test
+    fi
 fi
 
 echo "DONE SCRIPT"

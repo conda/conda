@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import partial
+from warnings import warn
 
 from conda import compat, plan
 compat = compat
@@ -29,16 +30,23 @@ text_type, TemporaryDirectory = text_type, TemporaryDirectory
 from conda.connection import CondaSession  # NOQA
 CondaSession = CondaSession
 
-from conda.fetch import TmpDownload, download, fetch_index, handle_proxy_407  # NOQA
-TmpDownload, download, fetch_index = TmpDownload, download, fetch_index
-handle_proxy_407 = handle_proxy_407
+from conda.fetch import TmpDownload  # NOQA
+TmpDownload = TmpDownload
+handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
+                                     "Now handled by CondaSession.")
+from conda.core.index import fetch_index  # NOQA
+fetch_index = fetch_index
+from conda.core.package_cache import download, rm_fetched, package_cache  # NOQA
+download, rm_fetched, package_cache = download, rm_fetched, package_cache
 
-from conda.install import (delete_trash, is_linked, linked, linked_data, move_to_trash,  # NOQA
-                           prefix_placeholder, rm_rf, symlink_conda, rm_fetched, package_cache)  # NOQA
-delete_trash, is_linked, linked = delete_trash, is_linked, linked
-linked_data, move_to_trash = linked_data, move_to_trash
+from conda.install import prefix_placeholder, rm_rf, symlink_conda  # NOQA
 prefix_placeholder, rm_rf, symlink_conda = prefix_placeholder, rm_rf, symlink_conda
-rm_fetched, package_cache = rm_fetched, package_cache
+
+from conda.common.disk import delete_trash, move_to_trash  # NOQA
+delete_trash, move_to_trash = delete_trash, move_to_trash
+
+from conda.core.linked_data import is_linked, linked, linked_data  # NOQA
+is_linked, linked, linked_data = is_linked, linked, linked_data
 
 from conda.lock import Locked  # NOQA
 Locked = Locked

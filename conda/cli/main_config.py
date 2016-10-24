@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import collections
 import json
@@ -283,12 +283,13 @@ def execute_config(args, parser):
                                            'channel_alias',
                                            'channel_priority',
                                            'channels',
-                                           'client_cert',
-                                           'client_cert_key',
+                                           'client_ssl_cert',
+                                           'client_ssl_cert_key',
                                            'create_default_packages',
                                            'debug',
                                            'default_channels',
                                            'disallow',
+                                           'envs_dirs',
                                            'json',
                                            'offline',
                                            'proxy_servers',
@@ -305,6 +306,7 @@ def execute_config(args, parser):
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': ')))
         else:
             print('\n'.join(format_dict(d)))
+        context.validate_configuration()
         return
 
     if args.validate:

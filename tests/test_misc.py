@@ -2,7 +2,7 @@ import os.path
 import sys
 import unittest
 
-from conda.fetch import cache_fn_url
+from conda.core.index import cache_fn_url
 from conda.misc import url_pat, walk_prefix
 
 

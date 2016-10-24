@@ -291,6 +291,7 @@ class NewIntegrationTest(unittest.TestCase):
         # install something from other channel not in config file
         run_conda_command(Commands.INSTALL, test_env_name_2, "-c", "numba", "llvmlite")
         snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
+        assert 'numba' in snowflake
 
         check1, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
 

@@ -1,25 +1,21 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
 import contextlib
 import os
 import re
 import sys
-from conda._vendor.auxlib.entity import EntityEncoder
+from functools import partial
 from os.path import abspath, basename
 
 from .. import console
-from ..base.constants import ROOT_ENV_NAME, NULL
-from ..base.context import context
-from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
-                          CondaValueError, CondaFileIOError)
-from ..install import dist2quad
+from .._vendor.auxlib.entity import EntityEncoder
+from ..base.constants import NULL, ROOT_ENV_NAME
+from ..base.context import context, get_prefix as context_get_prefix
+from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
+                          DryRunExit)
 from ..resolve import MatchSpec
 from ..utils import memoize
-
-# for conda-build 1.21.11 compatibility only
-from conda.base.context import get_prefix as context_get_prefix
-from functools import partial
 get_prefix = partial(context_get_prefix, context)
 
 
@@ -86,7 +82,7 @@ class Packages(Completer):
 
     def _get_items(self):
         # TODO: Include .tar.bz2 files for local installs.
-        from ..api import get_index
+        from conda.core.index import get_index
         args = self.parsed_args
         call_dict = dict(channel_urls=args.channel or (),
                          use_cache=True,
@@ -95,7 +91,7 @@ class Packages(Completer):
         if hasattr(args, 'platform'):  # in search
             call_dict['platform'] = args.platform
         index = get_index(**call_dict)
-        return [dist2quad(i)[0] for i in index]
+        return [record.name for record in index]
 
 class InstalledPackages(Completer):
     def __init__(self, prefix, parsed_args, **kwargs):
@@ -104,9 +100,9 @@ class InstalledPackages(Completer):
 
     @memoize
     def _get_items(self):
-        import conda.install
-        packages = conda.install.linked(context.prefix_w_legacy_search)
-        return [dist2quad(i)[0] for i in packages]
+        from conda.core.linked_data import linked
+        packages = linked(context.prefix_w_legacy_search)
+        return [dist.quad[0] for dist in packages]
 
 def add_parser_help(p):
     """
@@ -403,7 +399,7 @@ def ensure_override_channels_requires_channel(args, dashc=True):
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
     if args.dry_run:
-        raise DryRunExit
+        raise DryRunExit()
 
     options = []
     for option in choices:
@@ -431,7 +427,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
-        raise DryRunExit
+        raise DryRunExit()
     if context.always_yes:
         return True
     try:
@@ -560,7 +556,7 @@ def get_index_trap(*args, **kwargs):
     Retrieves the package index, but traps exceptions and reports them as
     JSON if necessary.
     """
-    from ..api import get_index
+    from conda.core.index import get_index
     kwargs.pop('json', None)
     return get_index(*args, **kwargs)
 
@@ -578,8 +574,6 @@ def stdout_json_success(success=True, **kwargs):
     result = {'success': success}
     result.update(kwargs)
     stdout_json(result)
-
-root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda', 'openssl', 'requests'
 
 
 def handle_envs_list(acc, output=True):

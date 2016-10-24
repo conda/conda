@@ -3,7 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import sys
@@ -350,21 +350,11 @@ def rm_index_cache():
 
 
 def find_source_cache():
-    try:
-        import conda_build.source
-    except ImportError:
-        return {
-            'warnings': ["conda-build is not installed; could not clean source cache"],
-            'cache_dirs': [],
-            'cache_sizes': {},
-            'total_size': 0,
-        }
-
     cache_dirs = {
-        'source cache': conda_build.source.SRC_CACHE,
-        'git cache': conda_build.source.GIT_CACHE,
-        'hg cache': conda_build.source.HG_CACHE,
-        'svn cache': conda_build.source.SVN_CACHE,
+        'source cache': context.src_cache,
+        'git cache': context.git_cache,
+        'hg cache': context.hg_cache,
+        'svn cache': context.svn_cache,
     }
 
     sizes = {}

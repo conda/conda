@@ -840,7 +840,15 @@ class DictSafeMixin(object):
     def __iter__(self):
         for key in self.__fields__:
             if key in self:
+                yield key
+
+    def iteritems(self):
+        for key in self.__fields__:
+            if key in self:
                 yield key, getattr(self, key)
+
+    def items(self):
+        return self.iteritems()
 
     def copy(self):
         return deepcopy(self)
@@ -859,7 +867,7 @@ class DictSafeMixin(object):
                 for k in E:
                     self[k] = E[k]
             else:
-                for k, v in E:
+                for k, v in iteritems(E):
                     self[k] = v
         for k in F:
             self[k] = F[k]

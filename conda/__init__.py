@@ -4,7 +4,7 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 """OS-agnostic, system-level binary package manager."""
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import sys
@@ -50,6 +50,7 @@ class CondaError(Exception):
         result.update(exception_type=text_type(type(self)),
                       exception_name=self.__class__.__name__,
                       message=text_type(self),
+                      error=repr(self),
                       **self._kwargs)
         return result
 
@@ -69,4 +70,10 @@ class CondaMultiError(CondaError):
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),
                     exception_name=self.__class__.__name__,
-                    errors=tuple(error.dump_map() for error in self.errors))
+                    errors=tuple(error.dump_map() for error in self.errors),
+                    error="Multiple Errors Encountered.",
+                    )
+
+
+class CondaExitZero(CondaError):
+    pass

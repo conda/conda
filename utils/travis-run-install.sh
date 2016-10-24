@@ -19,6 +19,14 @@ set -x
 osx_setup() {
     echo "OSX SETUP"
 
+    # as of October 24, 2016 need to use latest RVM to avoid
+    # shell_session_update issue
+    # reference:
+    #   https://github.com/direnv/direnv/issues/210
+    #   https://github.com/travis-ci/travis-ci/issues/6307
+    #   https://github.com/rvm/rvm/issues/3725
+    rvm get head
+
     # update Homebrew basics
     brew update || brew update
 

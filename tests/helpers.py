@@ -25,7 +25,7 @@ except ImportError:
 
 from contextlib import contextmanager
 
-from conda.compat import StringIO
+from conda.compat import StringIO, iteritems
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
@@ -46,7 +46,7 @@ def raises(exception, func, string=None):
 
 def run_conda_command(*args):
     # used in tests_config (31 times) and test_info (6 times)
-    env = os.environ.copy()
+    env = {str(k): str(v) for k, v in iteritems(os.environ)}
     p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, env=env)
 

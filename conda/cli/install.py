@@ -4,30 +4,27 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
 import logging
 import os
-import shutil
-import tarfile
-import tempfile
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from .. import text_type
 from .._vendor.auxlib.ish import dals
-from ..api import get_index
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
+from ..common.compat import text_type
+from ..core.index import get_index
+from ..core.linked_data import is_linked, linked as install_linked
 from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
-                          CondaFileNotFoundError, CondaIOError, CondaImportError, CondaOSError,
+                          CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
-from ..install import is_linked, linked as install_linked, name_dist
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
                     install_actions, is_root_prefix, nothing_to_do, revert_actions)
@@ -35,24 +32,6 @@ from ..resolve import Resolve
 from ..utils import on_win
 
 log = logging.getLogger(__name__)
-
-
-def install_tar(prefix, tar_path, verbose=False):
-    if not exists(tar_path):
-        raise CondaFileNotFoundError(tar_path)
-    tmp_dir = tempfile.mkdtemp()
-    t = tarfile.open(tar_path, 'r')
-    t.extractall(path=tmp_dir)
-    t.close()
-
-    paths = []
-    for root, dirs, files in os.walk(tmp_dir):
-        for fn in files:
-            if fn.endswith('.tar.bz2'):
-                paths.append(join(root, fn))
-
-    explicit(paths, prefix, verbose=verbose)
-    shutil.rmtree(tmp_dir)
 
 
 def check_prefix(prefix, json=False):
@@ -63,7 +42,7 @@ def check_prefix(prefix, json=False):
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
-        if isdir(prefix) and not os.listdir(prefix):
+        if isdir(prefix) and 'conda-meta' not in os.listdir(prefix):
             return None
         error = "prefix already exists: %s" % prefix
 
@@ -136,13 +115,13 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
-    context.validate_all()
+    context.validate_configuration()
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
     if newenv:
         common.ensure_name_or_prefix(args, command)
-    prefix = context.prefix if newenv else context.prefix_w_legacy_search
+    prefix = context.prefix if newenv or args.mkdir else context.prefix_w_legacy_search
     if newenv:
         check_prefix(prefix, json=context.json)
     if context.force_32bit and is_root_prefix(prefix):
@@ -154,17 +133,17 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
-    linked = install_linked(prefix)
-    lnames = {name_dist(d) for d in linked}
+    linked_dists = install_linked(prefix)
+    linked_names = tuple(ld.quad[0] for ld in linked_dists)
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in lnames:
+            if name not in linked_names:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
 
     if newenv and not args.no_default_packages:
-        default_packages = context.create_default_packages[:]
+        default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
         for default_pkg in context.create_default_packages:
             if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
@@ -191,10 +170,10 @@ def install(args, parser, command='install'):
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
     elif getattr(args, 'all', False):
-        if not linked:
+        if not linked_dists:
             raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
-        specs.extend(nm for nm in lnames)
+        specs.extend(d.quad[0] for d in linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:
@@ -211,13 +190,6 @@ def install(args, parser, command='install'):
         else:
             raise CondaValueError("cannot mix specifications with conda package"
                                   " filenames")
-
-    # handle tar file containing conda packages
-    if len(args.packages) == 1:
-        tar_path = args.packages[0]
-        if tar_path.endswith('.tar'):
-            install_tar(prefix, tar_path, verbose=not context.quiet)
-            return
 
     if newenv and args.clone:
         package_diff = set(args.packages) - set(default_packages)
@@ -238,12 +210,12 @@ def install(args, parser, command='install'):
                       prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
-    add_defaults_to_specs(r, linked, specs, update=isupdate)
+    add_defaults_to_specs(r, linked_dists, specs, update=isupdate)
 
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
-        installed_metadata = [is_linked(prefix, dist) for dist in linked]
+        installed_metadata = [is_linked(prefix, dist) for dist in linked_dists]
         for name in orig_packages:
             vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
@@ -398,7 +370,7 @@ def install(args, parser, command='install'):
         common.confirm_yn(args)
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
-        raise DryRunExit
+        raise DryRunExit()
 
     with common.json_progress_bars(json=context.json and not context.quiet):
         try:
