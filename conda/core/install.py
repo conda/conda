@@ -16,7 +16,7 @@ from ..base.context import context
 from ..common.path import get_leaf_directories
 from ..core.linked_data import set_linked_data
 from ..exceptions import CondaOSError, LinkError, PaddingError
-from ..gateways.disk.create import link as create_link, make_menu, write_conda_meta_record
+from ..gateways.disk.create import link as create_link, make_menu, write_conda_meta_record, mkdir_p
 from ..gateways.disk.read import collect_all_info_for_package, read_icondata, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
 from ..models.dist import Dist
@@ -92,7 +92,7 @@ class PackageInstaller(object):
 
         # Step 1. Make all directories
         for d in leaf_directories:
-            makedirs(join(prefix, d), exist_ok=True)
+            mkdir_p(join(prefix, d))
 
         # Step 2. Do the actual file linking
         for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in file_operations:

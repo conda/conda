@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import EEXIST
+
 import json
 import shutil
 import traceback
@@ -105,6 +107,14 @@ def make_menu(prefix, file_path, remove=False):
         stdoutlog.error(traceback.format_exc())
 
 
+def mkdir_p(path):
+    try:
+        makedirs(path)
+    except OSError as e:
+        if e.errno == EEXIST and isdir(path):
+            pass
+        else:
+            raise
 
 
 

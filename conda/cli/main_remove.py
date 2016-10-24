@@ -107,7 +107,7 @@ def configure_parser(sub_parsers, name='remove'):
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
-    from conda.common.disk import rm_rf
+    from conda.gateways.disk.delete import rm_rf
     from conda.core.linked_data import linked_data
 
     if not (args.all or args.package_names):
