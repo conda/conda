@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import json
+
 import re
 import shlex
 from base64 import b64encode
 from collections import namedtuple
+from conda.models.record import Record
 from errno import ENOENT
 from itertools import chain
 from logging import getLogger
-from os.path import islink, join
+from os.path import islink, join, isfile
 
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
 
@@ -39,22 +42,31 @@ def yield_lines(path):
             raise
 
 
+PackageInfoContents = namedtuple('PackageInfoContents',
+                                 ('files', 'has_prefix_files', 'no_link', 'soft_links',
+                                  'index_json_record', 'icondata'))
+
+
 def collect_all_info_for_package(extracted_package_directory):
     info_dir = join(extracted_package_directory, 'info')
 
-    # collect information from info directory
-    files = tuple(ln for ln in (line.strip() for line in yield_lines(join(extracted_package_directory, 'info', 'files'))) if ln)
+    files_path = join(extracted_package_directory, 'info', 'files')
+    files = tuple(ln for ln in (line.strip() for line in yield_lines(files_path)) if ln)
 
-    # file system calls
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
     soft_links = read_soft_links(extracted_package_directory, files)
+    index_json_record = read_index_json(extracted_package_directory)
+    icondata = read_icondata(extracted_package_directory)
 
-    # simple processing
-    MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-    menu_files = tuple(f for f in files if MENU_RE.match(f))
+    return PackageInfoContents(files, has_prefix_files, no_link, soft_links,
+                               index_json_record, icondata)
 
-    return files, has_prefix_files, no_link, soft_links, menu_files
+
+def read_index_json(extracted_package_directory):
+    with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
+        record = Record(**json.load(fi))  # TODO: change to LinkedPackageData
+    return record
 
 
 def read_has_prefix(path):
@@ -110,9 +122,10 @@ def read_soft_links(extracted_package_directory, files):
 
 
 def read_icondata(extracted_package_directory):
-    try:
-        data = open(join(extracted_package_directory, 'info', 'icon.png'), 'rb').read()
+    icon_file_path = join(extracted_package_directory, 'info', 'icon.png')
+    if isfile(icon_file_path):
+        with open(icon_file_path, 'rb') as f:
+            data = f.read()
         return b64encode(data).decode(UTF8)
-    except IOError:
-        pass
-    return None
+    else:
+        return None

@@ -260,6 +260,7 @@ def extract(dist):
 
 
 def read_url(dist):
+    assert isinstance(dist, Dist)
     res = package_cache().get(dist, {}).get('urls', (None,))
     return res[0] if res else None
 

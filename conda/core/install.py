@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
+from collections import namedtuple
+
 import os
+import re
 import sys
-from copy import deepcopy
 from logging import getLogger
-from os import makedirs
-from os.path import isfile, join, dirname
+from os.path import isfile, join
 from subprocess import CalledProcessError, check_call
 
-from .package_cache import read_url, is_extracted
-from ..base.constants import LinkType, NULL
+from .package_cache import is_extracted, read_url
+from ..base.constants import LinkType
 from ..base.context import context
 from ..common.path import get_leaf_directories
 from ..core.linked_data import set_linked_data
 from ..exceptions import CondaOSError, LinkError, PaddingError
-from ..gateways.disk.create import link as create_link, make_menu, write_conda_meta_record, mkdir_p
-from ..gateways.disk.read import collect_all_info_for_package, read_icondata, yield_lines
+from ..gateways.disk.create import link as create_link, make_menu, mkdir_p, write_conda_meta_record
+from ..gateways.disk.read import collect_all_info_for_package, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
-from ..models.dist import Dist
-from ..models.record import Link, Record
+from ..models.record import Link
 from ..utils import on_win
 
 try:
@@ -31,7 +30,6 @@ except ImportError:
 log = getLogger(__name__)
 
 
-
 class PackageInstaller(object):
 
     def __init__(self, prefix, index, dist):
@@ -40,40 +38,48 @@ class PackageInstaller(object):
         self.dist = dist
 
     def link(self, requested_link_type=LinkType.hard_link):
-        requested_link_type = LinkType.make(requested_link_type)
         log.debug("linking package %s with link type %s", self.dist, requested_link_type)
         extracted_package_directory = is_extracted(self.dist)
         assert extracted_package_directory is not None
-        pkgs_dir = dirname(extracted_package_directory)
-        log.debug('pkgs_dir=%r, prefix=%r, dist=%r, linktype=%r', pkgs_dir, self.prefix,
-                  self.dist, requested_link_type)
         log.debug("linking package:\n"
                   "  prefix=%s\n"
                   "  source=%s\n"
                   "  link_type=%s\n",
                   self.prefix, extracted_package_directory, requested_link_type)
 
-        files, has_prefix_files, no_link, soft_links, menu_files = collect_all_info_for_package(extracted_package_directory)
-        leaf_directories = get_leaf_directories(files)
-        file_operations = self.make_op_details(files, has_prefix_files, no_link, soft_links, menu_files, requested_link_type)
+        # filesystem read actions
+        package_info = collect_all_info_for_package(extracted_package_directory)
+        url = read_url(self.dist)
+
+        # simple processing
+        leaf_directories = get_leaf_directories(package_info.files)
+        file_operations = self.make_op_details(package_info.files, package_info.has_prefix_files,
+                                               package_info.no_link, package_info.soft_links,
+                                               requested_link_type)
 
         # TODO: discuss with @mcg1969
         # run pre-link script
         # if not run_script(source_dir, dist, 'pre-link', prefix):
         #     raise LinkError('Error: pre-link failed: %s' % dist)
 
-        self.execute_file_operations(extracted_package_directory, self.prefix, leaf_directories, file_operations)
+        self.execute_file_operations(extracted_package_directory, self.prefix, leaf_directories,
+                                     file_operations)
 
         # Step 5. Run post-link script
         if not run_script(self.prefix, self.dist, 'post-link'):
             raise LinkError("Error: post-link failed for: %s" % self.dist)
 
         # Step 6. Create package's prefix/conda-meta file
-        self.create_meta(extracted_package_directory, files, requested_link_type)
+        meta_record = self.create_meta(extracted_package_directory, package_info, requested_link_type,
+                                       self.prefix, self.dist, self.index, url)
+        write_conda_meta_record(self.prefix, meta_record)
+        set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
     @staticmethod
-    def make_op_details(files, has_prefix_files, no_link, soft_links, menu_files,
-                        requested_link_type):
+    def make_op_details(files, has_prefix_files, no_link, soft_links, requested_link_type):
+        MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+        LinkOperation = namedtuple('LinkOperation', ('filepath', 'link_type', 'prefix_placehoder',
+                                                     'file_mode', 'is_menu_file'))
         file_operations = []
         for filepath in files:
             if filepath in has_prefix_files:
@@ -85,8 +91,9 @@ class PackageInstaller(object):
             else:
                 link_type = requested_link_type
                 prefix_placehoder, file_mode = '', None
-            is_menu_file = filepath in menu_files
-            file_operations.append((filepath, link_type, prefix_placehoder, file_mode, is_menu_file))
+            is_menu_file = bool(MENU_RE.match(filepath))
+            file_operations.append(LinkOperation(filepath, link_type, prefix_placehoder,
+                                                 file_mode, is_menu_file))
 
         # file_paths, link_types, prefix_placeholders, file_modes, is_menu_file
         return file_operations
@@ -126,40 +133,33 @@ class PackageInstaller(object):
             #    wrt user/system install on win
             # This is critical for doing shortcuts correctly
             # TODO: I don't understand; talk to @msarahan
-            nonadmin = join(sys.prefix,
-                            ".nonadmin")  # TODO: sys.prefix is almost certainly *wrong* here
+            # TODO: sys.prefix is almost certainly *wrong* here
+            nonadmin = join(sys.prefix, ".nonadmin")
             if isfile(nonadmin):
                 open(join(prefix, ".nonadmin"), 'w').close()
 
-    def create_meta(self, extracted_package_directory, files, link_type):
+    @staticmethod
+    def create_meta(extracted_package_directory, package_info, link_type, prefix, dist,
+                    index, url):
         """
         Create the conda metadata, in a given prefix, for a given package.
         """
-        meta_dict = self.index.get(self.dist, {})
-        meta_dict['url'] = read_url(self.dist)
-        alt_files_path = join(self.prefix, 'conda-meta', self.dist.to_filename('.files'))
-        if isfile(alt_files_path):
-            # alt_files_path is a hack for noarch
-            meta_dict['files'] = list(yield_lines(alt_files_path))
-        else:
-            meta_dict['files'] = files
+        meta_dict = index.get(dist, {})
+        meta_dict['url'] = url
+
+        # alt_files_path is a hack for python_noarch
+        alt_files_path = join(prefix, 'conda-meta', dist.to_filename('.files'))
+        meta_dict['files'] = (list(yield_lines(alt_files_path)) if isfile(alt_files_path)
+                              else package_info.files)
         meta_dict['link'] = Link(source=extracted_package_directory, type=link_type)
         if 'icon' in meta_dict:
-            meta_dict['icondata'] = read_icondata(extracted_package_directory)
+            meta_dict['icondata'] = package_info.icondata
 
-        # read info/index.json first
-        with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-            meta = Record(**json.load(fi))  # TODO: change to LinkedPackageData
+        meta = package_info.index_json_record
         meta.update(meta_dict)
 
-        # add extra info, add to our internal cache
-        if not meta.get('url'):
-            meta['url'] = read_url(self.dist)
+        return meta
 
-        write_conda_meta_record(self.prefix, meta)
-
-        # update in-memory cache
-        set_linked_data(self.prefix, self.dist.dist_name, meta)
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

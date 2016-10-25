@@ -81,7 +81,7 @@ def split_linkarg(arg):
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
-    dist = Dist(dist)
+    dist, lt = Dist(dist), LinkType.make(lt)
     log.debug("=======> LINKING %s <=======", dist)
     PackageInstaller(state['prefix'], state['index'], dist).link(lt)
 
