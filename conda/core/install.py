@@ -30,6 +30,10 @@ except ImportError:
 
 log = getLogger(__name__)
 
+MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+LinkOperation = namedtuple('LinkOperation',
+                           ('short_path', 'source_path', 'destination_path', 'link_type',
+                            'prefix_placehoder', 'file_mode', 'is_menu_file'))
 
 class PackageInstaller(object):
 
@@ -78,11 +82,6 @@ class PackageInstaller(object):
     @staticmethod
     def make_link_operations(extracted_package_directory, prefix, requested_link_type,
                              package_info):
-        MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-        LinkOperation = namedtuple('LinkOperation',
-                                   ('short_path', 'source_path', 'destination_path', 'link_type',
-                                    'prefix_placehoder', 'file_mode', 'is_menu_file'))
-
         def make_link_operation(short_path):
             if short_path in package_info.has_prefix_files:
                 link_type = LinkType.copy
@@ -165,14 +164,8 @@ class NoarchPythonPackageInstaller(PackageInstaller):
     @staticmethod
     def make_link_operations(extracted_package_directory, prefix, requested_link_type,
                              package_info):
-        MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-        LinkOperation = namedtuple('LinkOperation',
-                                   ('short_path', 'source_path', 'destination_path', 'link_type',
-                                    'prefix_placehoder', 'file_mode', 'is_menu_file'))
-
         site_packages_dir = NoarchPythonPackageInstaller.get_site_packages_dir(prefix)
         bin_dir = NoarchPythonPackageInstaller.get_bin_dir(prefix)
-
 
         def make_link_operation(short_path):
             if short_path in package_info.has_prefix_files:

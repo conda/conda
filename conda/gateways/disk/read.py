@@ -42,7 +42,7 @@ def yield_lines(path):
 
 PackageInfoContents = namedtuple('PackageInfoContents',
                                  ('files', 'has_prefix_files', 'no_link', 'soft_links',
-                                  'index_json_record', 'icondata'))
+                                  'index_json_record', 'icondata', 'noarch'))
 
 
 def collect_all_info_for_package(extracted_package_directory):
@@ -56,9 +56,19 @@ def collect_all_info_for_package(extracted_package_directory):
     soft_links = read_soft_links(extracted_package_directory, files)
     index_json_record = read_index_json(extracted_package_directory)
     icondata = read_icondata(extracted_package_directory)
+    noarch = read_noarch(extracted_package_directory)
 
     return PackageInfoContents(files, has_prefix_files, no_link, soft_links,
-                               index_json_record, icondata)
+                               index_json_record, icondata, noarch)
+
+
+def read_noarch(extracted_package_directory):
+    noarch_path = join(extracted_package_directory, 'info', 'noarch.json')
+    if isfile(noarch_path):
+        with open(noarch_path, 'r') as f:
+            return json.loads(f.read())
+    else:
+        return {}
 
 
 def read_index_json(extracted_package_directory):
