@@ -40,6 +40,7 @@ import tarfile
 import time
 import traceback
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
+from conda.cli.common import error_and_exit
 
 try:
     from conda.lock import Locked
@@ -372,6 +373,10 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env['PKG_NAME'], env['PKG_VERSION'], env['PKG_BUILDNUM'] = \
                 str(dist).rsplit('-', 2)
     if action == 'pre-link':
+        error_and_exit("""
+Package uses a pre-link script. Pre-link scripts are potentially dangerous and highly discouraged.
+Future versions of conda may deprecate and ignore pre-link scripts. Consider using a different
+package.""")
         env['SOURCE_DIR'] = str(prefix)
     try:
         subprocess.check_call(args, env=env)
