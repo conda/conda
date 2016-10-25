@@ -4,11 +4,12 @@ import errno
 import os
 import re
 import sys
+import functools
 from textwrap import dedent
 from os.path import isdir, abspath
 
 from conda import text_type
-from ..exceptions import (CondaSystemExit, CondaValueError, CondaEnvironmentError,
+from ..exceptions import (CondaHelp, CondaValueError, CondaEnvironmentError,
                           TooManyArgumentsError, TooFewArgumentsError)
 from ..utils import on_win, shells
 
@@ -88,8 +89,10 @@ def help(mode, shell, unknown):
         unknown = ("[{{program}}]: ERROR: "
                    "Unknown/Invalid flag/parameter ({unknown})\n").format(
                    unknown=" ".join(unknown))
+        conda_exception = functools.partial(CondaHelp,returncode=1)
     else:
         unknown = ""
+        conda_exception = functools.partial(CondaHelp,returncode=0)
 
     # mode will be ..checkenv in activate if an environment is already
     # activated
@@ -97,20 +100,20 @@ def help(mode, shell, unknown):
         unknown = unknown.format(program="ACTIVATE")
 
         if shell in ["cmd.exe", "powershell.exe"]:
-            raise CondaSystemExit(HELP_ACTIVATE.format(
+            raise conda_exception(HELP_ACTIVATE.format(
                 command='activate',
                 unknown=unknown,
                 blurb=WIN_ACTIVATE,
                 **kwargs))
 
         elif shell in ["csh", "tcsh"]:
-            raise CondaSystemExit(HELP_ACTIVATE.format(
+            raise conda_exception(HELP_ACTIVATE.format(
                 command='source "`which activate`"',
                 unknown=unknown,
                 blurb=UNIX_ACTIVATE,
                 **kwargs))
         else:
-            raise CondaSystemExit(HELP_ACTIVATE.format(
+            raise conda_exception(HELP_ACTIVATE.format(
                 command='. activate',
                 unknown=unknown,
                 blurb=UNIX_ACTIVATE,
@@ -119,25 +122,25 @@ def help(mode, shell, unknown):
         unknown = unknown.format(program="DEACTIVATE")
 
         if shell in ["cmd.exe", "powershell.exe"]:
-            raise CondaSystemExit(HELP_DEACTIVATE.format(
+            raise conda_exception(HELP_DEACTIVATE.format(
                 command='deactivate',
                 unknown=unknown,
                 blurb=WIN_DEACTIVATE,
                 **kwargs))
         elif shell in ["csh", "tcsh"]:
-            raise CondaSystemExit(HELP_DEACTIVATE.format(
+            raise conda_exception(HELP_DEACTIVATE.format(
                 command='source "`which deactivate`"',
                 unknown=unknown,
                 blurb=UNIX_DEACTIVATE,
                 **kwargs))
         else:
-            raise CondaSystemExit(HELP_DEACTIVATE.format(
+            raise conda_exception(HELP_DEACTIVATE.format(
                 command='. deactivate',
                 unknown=unknown,
                 blurb=UNIX_DEACTIVATE,
                 **kwargs))
     else:
-        raise CondaSystemExit("No help available for command {mode}".format(mode=mode))
+        raise conda_exception("No help available for command {mode}".format(mode=mode))
 
 
 def prefix_from_arg(arg, shelldict):
