@@ -10,12 +10,13 @@
 * imporoved solver hint detection, simplified filtering (#3597)
 * add multikey configuration validation (#3432)
 * some Fish autocompletions (#2519)
-* fix #3667 unicode literals and unicode decode (#3682)
+* reduce priority for packages removed from the index (#3703)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
 * fix link field in record object (#3424)
 * anaconda api token bug fix; additional tests (#3673)
+* fix #3667 unicode literals and unicode decode (#3682)
 
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
@@ -27,6 +28,7 @@
 * move and update ROOT_NO_RM (#3697)
 * integration tests for conda clean (#3695, #3699)
 * disable coverage on s3 and ftp requests adapaters (#3696, #3701)
+* github repo hygiene (#3705, #3706)
 
 
 ## 4.2.11 (2016-10-23)
