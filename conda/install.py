@@ -619,6 +619,10 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         sys.exit('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
+
+    if not os.path.isfile(join(info_dir, "files")):
+        error_and_exit("installing this package requires a minimum conda version of 4.3")
+
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
