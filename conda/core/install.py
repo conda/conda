@@ -4,8 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import re
 import sys
+import warnings
 from collections import namedtuple
-from logging import getLogger, warning
+from logging import getLogger
 from os.path import isfile, join
 from subprocess import CalledProcessError, check_call
 
@@ -53,17 +54,18 @@ class PackageInstaller(object):
         url = read_url(self.dist)
 
         # simple processing
-        leaf_directories = get_leaf_directories(package_info.files)
-        file_operations = self.make_op_details(package_info.files, package_info.has_prefix_files,
+        operations = self.make_link_operations(extracted_package_directory, self.prefix,
+                                               package_info.files, package_info.has_prefix_files,
                                                package_info.no_link, package_info.soft_links,
                                                requested_link_type)
+        leaf_directories = get_leaf_directories(package_info.files)
 
         # run pre-link script
         if not run_script(extracted_package_directory, self.dist, 'pre-link', self.prefix):
             raise LinkError('Error: pre-link failed: %s' % self.dist)
 
-        self.execute_file_operations(extracted_package_directory, self.prefix, leaf_directories,
-                                     file_operations)
+        self.execute_link_operations(extracted_package_directory, self.prefix, leaf_directories,
+                                     operations)
 
         # run post-link script
         if not run_script(self.prefix, self.dist, 'post-link'):
@@ -77,39 +79,40 @@ class PackageInstaller(object):
         set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
     @staticmethod
-    def make_op_details(files, has_prefix_files, no_link, soft_links, requested_link_type):
-        # TODO: need to return source_path and destination_path in LinkOperation
-
+    def make_link_operations(extracted_package_directory, prefix, files, has_prefix_files,
+                             no_link, soft_links, requested_link_type):
         MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-        LinkOperation = namedtuple('LinkOperation', ('filepath', 'link_type', 'prefix_placehoder',
-                                                     'file_mode', 'is_menu_file'))
-        file_operations = []
-        for filepath in files:
-            if filepath in has_prefix_files:
+        LinkOperation = namedtuple('LinkOperation',
+                                   ('short_path', 'source_path', 'destination_paht', 'link_type',
+                                    'prefix_placehoder', 'file_mode', 'is_menu_file'))
+
+        def make_link_operation(short_path):
+            if short_path in has_prefix_files:
                 link_type = LinkType.copy
-                prefix_placehoder, file_mode = has_prefix_files[filepath]
-            elif filepath in no_link or filepath in soft_links:
+                prefix_placehoder, file_mode = has_prefix_files[short_path]
+            elif short_path in no_link or short_path in soft_links:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
                 link_type = requested_link_type
                 prefix_placehoder, file_mode = '', None
-            is_menu_file = bool(MENU_RE.match(filepath))
-            file_operations.append(LinkOperation(filepath, link_type, prefix_placehoder,
-                                                 file_mode, is_menu_file))
+            is_menu_file = bool(MENU_RE.match(short_path))
+            source_path = join(extracted_package_directory, short_path)
+            destination_path = join(prefix, short_path)
+            return LinkOperation(source_path, destination_path, short_path, link_type,
+                                 prefix_placehoder, file_mode, is_menu_file)
 
-        # file_paths, link_types, prefix_placeholders, file_modes, is_menu_file
-        return file_operations
+        return (make_link_operation(p) for p in files)
 
     @staticmethod
-    def execute_file_operations(extracted_package_directory, prefix, leaf_directories,
-                                file_operations):
+    def execute_link_operations(extracted_package_directory, prefix, leaf_directories,
+                                link_operations):
         # Step 1. Make all directories
         for d in leaf_directories:
             mkdir_p(join(prefix, d))
 
         # Step 2. Do the actual file linking
-        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in file_operations:
+        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in link_operations:
             source_path = join(extracted_package_directory, file_path)
             destination_path = join(prefix, file_path)
             try:
@@ -120,7 +123,7 @@ class PackageInstaller(object):
 
         # Step 3. Replace prefix placeholder within all necessary files
         # Step 4. Make shortcuts on Windows
-        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in file_operations:
+        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in link_operations:
             destination_path = join(prefix, file_path)
             if prefix_placeholder:
                 try:
@@ -142,7 +145,7 @@ class PackageInstaller(object):
                 open(join(prefix, ".nonadmin"), 'w').close()
 
     @staticmethod
-    def create_meta(extracted_package_directory, package_info, link_type, prefix, dist,
+    def create_meta(extracted_package_directory, package_info, prefix, dist, requested_link_type,
                     index, url):
         """
         Create the conda metadata, in a given prefix, for a given package.
@@ -154,7 +157,7 @@ class PackageInstaller(object):
         alt_files_path = join(prefix, 'conda-meta', dist.to_filename('.files'))
         meta_dict['files'] = (list(yield_lines(alt_files_path)) if isfile(alt_files_path)
                               else package_info.files)
-        meta_dict['link'] = Link(source=extracted_package_directory, type=link_type)
+        meta_dict['link'] = Link(source=extracted_package_directory, type=requested_link_type)
         if 'icon' in meta_dict:
             meta_dict['icondata'] = package_info.icondata
 
@@ -164,13 +167,18 @@ class PackageInstaller(object):
         return meta
 
 
+class NoarchPythonPackageInstaller(PackageInstaller):
+    pass
+
+
 def run_script(prefix, dist, action='post-link', env_prefix=None):
     """
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
     if action == 'pre-link':
-        warning.warn('The package %s uses a pre-link script.')
+        warnings.warn("The package %s uses a pre-link script.\n"
+                      "Pre-link scripts may be deprecated in the near future.")
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
             dist.dist_name,
             action,
