@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.base.context import context
 from errno import EEXIST
 
 import json
@@ -8,7 +9,7 @@ import shutil
 import traceback
 from logging import getLogger
 from os import W_OK, access, getpid, link as os_link, makedirs, readlink, symlink
-from os.path import basename, isdir, isfile, islink, join
+from os.path import basename, isdir, isfile, islink, join, exists
 
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
@@ -151,6 +152,9 @@ if on_win:
 
 
 def link(src, dst, link_type=LinkType.hard_link):
+    if exists(dst) and context.force:
+        log.info("file exists, but clobbering: %r" % dst)
+        rm_rf(dst)
     if link_type == LinkType.hard_link:
         if on_win:
             win_hard_link(src, dst)

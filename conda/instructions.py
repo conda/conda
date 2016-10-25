@@ -83,9 +83,7 @@ def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
     dist = Dist(dist)
     log.debug("=======> LINKING %s <=======", dist)
-    extracted_package_directory = join(context.pkgs_dirs[0], dist.dist_name)
-    pi = PackageInstaller(state['prefix'], extracted_package_directory, state['index'][dist])
-    pi.link(lt)
+    PackageInstaller(state['prefix'], state['index'], dist).link(lt)
 
 
 def UNLINK_CMD(state, arg):
