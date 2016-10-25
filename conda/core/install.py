@@ -55,17 +55,14 @@ class PackageInstaller(object):
 
         # simple processing
         operations = self.make_link_operations(extracted_package_directory, self.prefix,
-                                               package_info.files, package_info.has_prefix_files,
-                                               package_info.no_link, package_info.soft_links,
-                                               requested_link_type)
-        leaf_directories = get_leaf_directories(package_info.files)
+                                               requested_link_type, package_info)
+        leaf_directories = get_leaf_directories(op.destination_path for op in operations)
 
         # run pre-link script
         if not run_script(extracted_package_directory, self.dist, 'pre-link', self.prefix):
             raise LinkError('Error: pre-link failed: %s' % self.dist)
 
-        self.execute_link_operations(extracted_package_directory, self.prefix, leaf_directories,
-                                     operations)
+        self.execute_link_operations(self.prefix, leaf_directories, operations)
 
         # run post-link script
         if not run_script(self.prefix, self.dist, 'post-link'):
@@ -79,18 +76,18 @@ class PackageInstaller(object):
         set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
     @staticmethod
-    def make_link_operations(extracted_package_directory, prefix, files, has_prefix_files,
-                             no_link, soft_links, requested_link_type):
+    def make_link_operations(extracted_package_directory, prefix, requested_link_type,
+                             package_info):
         MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
         LinkOperation = namedtuple('LinkOperation',
-                                   ('short_path', 'source_path', 'destination_paht', 'link_type',
+                                   ('short_path', 'source_path', 'destination_path', 'link_type',
                                     'prefix_placehoder', 'file_mode', 'is_menu_file'))
 
         def make_link_operation(short_path):
-            if short_path in has_prefix_files:
+            if short_path in package_info.has_prefix_files:
                 link_type = LinkType.copy
-                prefix_placehoder, file_mode = has_prefix_files[short_path]
-            elif short_path in no_link or short_path in soft_links:
+                prefix_placehoder, file_mode = package_info.has_prefix_files[short_path]
+            elif short_path in package_info.no_link or short_path in package_info.soft_links:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
@@ -102,37 +99,33 @@ class PackageInstaller(object):
             return LinkOperation(source_path, destination_path, short_path, link_type,
                                  prefix_placehoder, file_mode, is_menu_file)
 
-        return (make_link_operation(p) for p in files)
+        return (make_link_operation(p) for p in package_info.files)
 
     @staticmethod
-    def execute_link_operations(extracted_package_directory, prefix, leaf_directories,
-                                link_operations):
+    def execute_link_operations(prefix, leaf_directories, link_operations):
         # Step 1. Make all directories
-        for d in leaf_directories:
-            mkdir_p(join(prefix, d))
+        for leaf_directory in leaf_directories:
+            mkdir_p(leaf_directory)
 
         # Step 2. Do the actual file linking
-        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in link_operations:
-            source_path = join(extracted_package_directory, file_path)
-            destination_path = join(prefix, file_path)
+        for op in link_operations:
             try:
-                create_link(source_path, destination_path, link_type)
+                create_link(op.source_path, op.destination_path, op.link_type)
             except OSError as e:
                 raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
-                                   (source_path, destination_path, link_type, e))
+                                   (op.source_path, op.destination_path, op.link_type, e))
 
         # Step 3. Replace prefix placeholder within all necessary files
         # Step 4. Make shortcuts on Windows
-        for file_path, link_type, prefix_placeholder, file_mode, is_menu_file in link_operations:
-            destination_path = join(prefix, file_path)
-            if prefix_placeholder:
+        for op in link_operations:
+            if op.prefix_placeholder:
                 try:
-                    update_prefix(destination_path, prefix, prefix_placeholder, file_mode)
+                    update_prefix(op.destination_path, prefix, op.prefix_placeholder, op.file_mode)
                 except _PaddingError:
-                    raise PaddingError(destination_path, prefix_placeholder,
-                                       len(prefix_placeholder))
-            if on_win and is_menu_file and context.shortcuts:
-                make_menu(prefix, file_path, remove=False)
+                    raise PaddingError(op.destination_path, op.prefix_placeholder,
+                                       len(op.prefix_placeholder))
+            if on_win and op.is_menu_file and context.shortcuts:
+                make_menu(prefix, op.short_path, remove=False)
 
         if on_win:
             # make sure that the child environment behaves like the parent,
