@@ -7,7 +7,7 @@ env:
 
 # apt-get is only available to the Ubuntu tests (os: linux)
 # the other tests (os: osx) uses Homebrew to install shell
-# dependencies and is done in ./utils/travis-run-install.sh
+# dependencies and is done in ./utils/travis-install.sh
 addons:
   apt:
     packages:
@@ -42,10 +42,10 @@ matrix:
     #   language: python
 
 install:
-  - source ./utils/travis-run-install.sh
+  - source ./utils/travis-install.sh
 
 script:
-  - source ./utils/travis-run-script.sh
+  - source ./utils/travis-script.sh
 
 sudo: false
 

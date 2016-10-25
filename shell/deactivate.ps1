@@ -66,8 +66,6 @@ while ( "${num}" -ne -1 ) {
     $arg=$args[$num]
     $num=${num} + 1
 
-    echo "arg is this |$arg|"
-
     # check if variable is blank, if so stop parsing
     if ( "${arg}" -eq "" ) {
         $num=-1
@@ -192,7 +190,7 @@ if ( Test-Path -PathType Container "${_CONDA_DIR}" ) {
     Get-ChildItem -Path "${_CONDA_DIR}" -Filter "*.ps1" | % {
         $f="$_"
         if ( "${CONDA_VERBOSE}" -eq "${TRUE}" ) {
-            echo "[DEACTIVATE]: Sourcing ${_CONDA_DIR}\${f}."
+            Write-Output "[DEACTIVATE]: Sourcing ${_CONDA_DIR}\${f}."
         }
         . "${_CONDA_DIR}\${f}"
     }

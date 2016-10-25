@@ -270,7 +270,7 @@ if ( Test-Path -PathType Container "${_CONDA_DIR}" ) {
     Get-ChildItem -Path "${_CONDA_DIR}" -Filter "*.ps1" | % {
         $f="$_"
         if ( "${CONDA_VERBOSE}" -eq "${TRUE}" ) {
-            echo "[ACTIVATE]: Sourcing ${_CONDA_DIR}\${f}."
+            Write-Output "[ACTIVATE]: Sourcing ${_CONDA_DIR}\${f}."
         }
         . "${_CONDA_DIR}\${f}"
     }

@@ -177,6 +177,10 @@ def human_bytes(n):
 
 # TODO: this should be done in a more extensible way
 #     (like files for each shell, with some registration mechanism.)
+#
+# remember the exe fields are exclusively used to call the correct
+# executable for the unittesting, hence why some of the Windows paths
+# are absolutes
 posix_base = dict(
     binpath='/bin/',  # mind the trailing slash.
     defaultenv_print='echo "${CONDA_DEFAULT_ENV}"',
@@ -304,15 +308,18 @@ if on_win:
         ),
         "bash.cygwin": dict(
             cygwin_base,
-            exe='bash.exe',
+            # this is the default install location for Cygwin
+            exe='C:\\cygwin64\\bin\\bash.exe',
         ),
         "bash.mingw": dict(
             mingw_base,
-            exe='bash.exe',
+            # this is the default install location for MinGW
+            exe='C:\\MinGW\\msys\\1.0\\bin\\bash.exe',
         ),
         "bash.msys": dict(
             msys_base,
-            exe='bash.exe',
+            # this is the default install location for MSYS
+            exe='C:\\msys64\\usr\\bin\\bash.exe',
         ),
         # "zsh.msys": dict(
         #     msys_base,

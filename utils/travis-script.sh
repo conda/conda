@@ -24,6 +24,7 @@ main_test() {
     echo "${PYTHONHASHSEED}"
 
     # detect what shells are available to test with
+    # refer to conda.util.shells for appropriate syntaxes
     # don't bother testing for the default shell `sh`, generally speaking the default
     # shell will be supported if it's one of the supported shells
     shells=""
@@ -129,9 +130,6 @@ elif [[ -n "${CONDA_BUILD}" ]]; then
     conda_build_unit_test
 else
     main_test
-    if [[ "$(uname -s)" == "Linux" ]]; then
-        activate_test
-    fi
 fi
 
 echo "DONE SCRIPT"

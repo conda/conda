@@ -152,8 +152,8 @@ test_extras() {
     echo "TEST EXTRAS"
 
     # install/upgrade unittest dependencies
-    python -m pip install -U mock pytest pytest-cov pytest-timeout radon \
-                             responses anaconda-client nbformat
+    python -m pip install -U mock pytest pytest-cov pytest-timeout radon
+    python -m pip install -U responses anaconda-client nbformat
 
     echo "END TEST EXTRAS"
 }
@@ -162,25 +162,35 @@ test_extras() {
 miniconda_install() {
     echo "MINICONDA INSTALL"
 
-    [[ -f "${HOME}/.condarc" ]] && rm -f "${HOME}/.condarc"
-
     # get, install, and verify miniconda
     if [[ ! -d "${HOME}/miniconda" ]]; then
         if [[ ! -f "${HOME}/miniconda.sh" ]]; then
+            # build download url
             case "$(uname -s)" in
                 'Darwin')
-                    MINICONDA_URL="Miniconda3-4.0.5-MacOSX-x86_64.sh"
+                    filename="Miniconda3-4.0.5-MacOSX-x86_64.sh"
                     ;;
                 'Linux')
-                    MINICONDA_URL="Miniconda3-4.0.5-Linux-x86_64.sh"
+                    filename="Miniconda3-4.0.5-Linux-x86_64.sh"
                     ;;
                 *)  ;;
             esac
-            curl "http://repo.continuum.io/miniconda/${MINICONDA_URL}" -o "${HOME}/miniconda.sh"
+
+            # try download
+            curl "${MINICONDA_URL}/${filename}" -o "${HOME}/miniconda.sh"
         fi
 
+        # run install
         bash "${HOME}/miniconda.sh" -bfp "${HOME}/miniconda"
     fi
+    # check for success
+    if [[ ! -d "${HOME}\miniconda" ]]; then
+        echo "MINICONDA INSTALL FAILED"
+        cat "${HOME}\miniconda.log"
+        exit 1
+    fi
+
+    # update PATH
     PATH="${HOME}/miniconda/bin:${PATH}"
     export PATH
     hash -r
@@ -199,6 +209,8 @@ miniconda_install() {
 
     # disable automatic updates
     conda config --set auto_update_conda false
+    # conda config --set always_yes yes
+    # conda update conda
 
     echo "END MINICONDA INSTALL"
 }
@@ -252,6 +264,11 @@ conda_build_extras() {
 # "MAIN FUNCTION"                                                         #
 echo "START INSTALLING"
 
+# set globals
+MINICONDA_URL="http://repo.continuum.io/miniconda/"
+
+# TODO: if a newer build exists kill this build
+
 # show basic environment details                                          #
 which -a python
 env | sort
@@ -265,7 +282,10 @@ env | sort
 PATH=$(./shell/envvar_cleanup.bash "$PATH" -d)
 export PATH
 
-# perform the appropriate test setup                                      #
+# remove any stray CONDARC                                                #
+[[ -f "${HOME}/.condarc" ]] && rm -f "${HOME}/.condarc"
+
+# perform the appropriate install                                         #
 if [[ "${FLAKE8}" == true ]]; then
     python_install
     flake8_extras
