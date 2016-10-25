@@ -73,9 +73,8 @@ class PackageInstaller(object):
             raise LinkError("Error: post-link failed for: %s" % self.dist)
 
         # create package's prefix/conda-meta file
-        meta_record = self.create_meta(extracted_package_directory, package_info,
-                                       requested_link_type, self.prefix, self.dist,
-                                       self.index, url)
+        meta_record = self.create_meta(extracted_package_directory, package_info, self.prefix,
+                                       self.dist, requested_link_type, self.index, url)
         write_conda_meta_record(self.prefix, meta_record)
         set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
