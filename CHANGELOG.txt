@@ -1,3 +1,8 @@
+2016-XX-XX   3.19.4:
+--------------------
+  * improve handling of local dependency information
+
+
 2016-07-09  4.0.11:
 -------------------
   * allow auto_update_conda from sysrc, #3015 via #3021
