@@ -621,7 +621,7 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     info_dir = join(source_dir, 'info')
 
     if not os.path.isfile(join(info_dir, "files")):
-        error_and_exit("installing this package requires a minimum conda version of 4.3")
+        error_and_exit("Installing %s requires a minimum conda version of 4.3." % dist)
 
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
@@ -630,8 +630,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     with open(join(info_dir, "index.json")) as index_json:
         data = json.load(index_json)
 
-    if data.get("noarch") in [True, False, "generic"]:
-        error_and_exit("installing this package requires a minimum conda version of 4.3")
+    if data.get("noarch") in (True, False, "generic"):
+        error_and_exit("Installing %s requires a minimum conda version of 4.3." % dist)
 
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
