@@ -6,6 +6,7 @@ from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 
+from ..common.compat import itervalues
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -125,3 +126,15 @@ def is_linked(prefix, dist):
 def set_linked_data(prefix, dist_name, record):
     if prefix in linked_data_:
         load_linked_data(prefix, dist_name, record)
+
+
+def get_python_version_for_prefix(prefix):
+    py_record_iter = (rcrd for rcrd in itervalues(linked_data(prefix)) if rcrd.name == 'python')
+    record = next(py_record_iter, None)
+    if record is None:
+        return None
+    next_record = next(py_record_iter, None)
+    if next_record is not None:
+        raise RuntimeError("multiple python record found in prefix %s" % prefix)
+    else:
+        return record.version[:3]

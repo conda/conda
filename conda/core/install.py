@@ -14,7 +14,7 @@ from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
 from ..common.path import get_leaf_directories
-from ..core.linked_data import set_linked_data
+from ..core.linked_data import set_linked_data, get_python_version_for_prefix
 from ..exceptions import CondaOSError, LinkError, PaddingError
 from ..gateways.disk.create import link as create_link, make_menu, mkdir_p, write_conda_meta_record
 from ..gateways.disk.delete import rm_rf
@@ -161,7 +161,57 @@ class PackageInstaller(object):
 
 
 class NoarchPythonPackageInstaller(PackageInstaller):
-    pass
+
+    @staticmethod
+    def make_link_operations(extracted_package_directory, prefix, requested_link_type,
+                             package_info):
+        MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+        LinkOperation = namedtuple('LinkOperation',
+                                   ('short_path', 'source_path', 'destination_path', 'link_type',
+                                    'prefix_placehoder', 'file_mode', 'is_menu_file'))
+
+        site_packages_dir = NoarchPythonPackageInstaller.get_site_packages_dir(prefix)
+        bin_dir = NoarchPythonPackageInstaller.get_bin_dir(prefix)
+
+
+        def make_link_operation(short_path):
+            if short_path in package_info.has_prefix_files:
+                link_type = LinkType.copy
+                prefix_placehoder, file_mode = package_info.has_prefix_files[short_path]
+            elif short_path in package_info.no_link or short_path in package_info.soft_links:
+                link_type = LinkType.copy
+                prefix_placehoder, file_mode = '', None
+            else:
+                link_type = requested_link_type
+                prefix_placehoder, file_mode = '', None
+            is_menu_file = bool(MENU_RE.match(short_path))
+            source_path = join(extracted_package_directory, short_path)
+            if short_path.startswith('site-packages/'):
+                short_path = site_packages_dir + short_path
+            elif short_path.startswith('python-scripts/'):
+                short_path = short_path.replace('python-scripts/', '', 1)
+                short_path = bin_dir + short_path
+            destination_path = join(prefix, short_path)
+            return LinkOperation(source_path, destination_path, short_path, link_type,
+                                 prefix_placehoder, file_mode, is_menu_file)
+
+        return (make_link_operation(p) for p in package_info.files)
+
+    @staticmethod
+    def get_site_packages_dir(prefix):
+        if on_win:
+            return join(prefix, 'Lib')
+        else:
+            return join(prefix, 'lib/python%s' % get_python_version_for_prefix(prefix))
+
+    @staticmethod
+    def get_bin_dir(prefix):
+        if on_win:
+            return join(prefix, 'Scripts')
+        else:
+            return join(prefix, 'bin')
+
+
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

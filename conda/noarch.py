@@ -42,30 +42,6 @@ def unlink_package(path):
         pass
 
 
-def get_python_version_for_prefix(prefix):
-    from conda.install import linked_data
-    record = next((record for record in itervalues(linked_data(prefix)) if
-                   record.name == 'python'), None)
-    if record is not None:
-        return record.version[:3]
-    raise RuntimeError(
-        "No python version found in %s. Python required to install noarch package" % prefix
-    )
-
-
-def get_site_packages_dir(prefix):
-    if on_win:
-        return join(prefix, 'Lib')
-    else:
-        return join(prefix, 'lib/python%s' % get_python_version_for_prefix(prefix))
-
-
-def get_bin_dir(prefix):
-    if on_win:
-        return join(prefix, 'Scripts')
-    else:
-        return join(prefix, 'bin')
-
 
 def link_files(prefix, src_root, dst_root, files, src_dir):
     dst_files = []
