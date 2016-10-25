@@ -40,6 +40,7 @@ import tarfile
 import time
 import traceback
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
+from conda.cli.common import error_and_exit
 
 try:
     from conda.lock import Locked
@@ -621,6 +622,12 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
+
+    with open(join(info_dir, "index.json")) as index_json:
+        data = json.load(index_json)
+
+    if data.get("noarch") in [True, False, "generic"]:
+        error_and_exit("installing this package requires a minimum conda version of 4.3")
 
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
