@@ -31,6 +31,21 @@
 * github repo hygiene (#3705, #3706)
 
 
+## 4.1.13 (unreleased)
+
+### Improvements
+* use install.rm_rf for TemporaryDirectory cleanup (#3425)
+
+### Bug Fixes
+* fix the api->conda substitution (#3456)
+
+
+## 3.19.4 (unreleased)
+
+### Improvements
+* improve handling of local dependency information (#2107)
+
+
 ## 4.2.11 (2016-10-23)
 
 ### Improvements
