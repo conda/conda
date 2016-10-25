@@ -2,8 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
-
-import re
 import shlex
 from base64 import b64encode
 from collections import namedtuple
@@ -11,7 +9,7 @@ from conda.models.record import Record
 from errno import ENOENT
 from itertools import chain
 from logging import getLogger
-from os.path import islink, join, isfile
+from os.path import isfile, islink, join
 
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
 

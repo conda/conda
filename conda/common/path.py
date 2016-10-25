@@ -1,43 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import split
-
 from functools import reduce
 from logging import getLogger
 
 log = getLogger(__name__)
 
-
-files = """
-bin/django-admin
-bin/django-admin.py
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/PKG-INFO
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/SOURCES.txt
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/dependency_links.txt
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/entry_points.txt
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/not-zip-safe
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/requires.txt
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/scripts/django-admin.py
-lib/python3.5/site-packages/Django-1.10.2-py3.5.egg-info/top_level.txt
-lib/python3.5/site-packages/django/__init__.py
-lib/python3.5/site-packages/django/__main__.py
-lib/python3.5/site-packages/django/__pycache__/__init__.cpython-35.pyc
-lib/python3.5/site-packages/django/__pycache__/__main__.cpython-35.pyc
-lib/python3.5/site-packages/django/__pycache__/shortcuts.cpython-35.pyc
-lib/python3.5/site-packages/django/apps/__init__.py
-lib/python3.5/site-packages/django/apps/__pycache__/__init__.cpython-35.pyc
-lib/python3.5/site-packages/django/apps/__pycache__/config.cpython-35.pyc
-lib/python3.5/site-packages/django/apps/__pycache__/registry.cpython-35.pyc
-lib/python3.5/site-packages/django/apps/config.py
-lib/python3.5/site-packages/django/apps/registry.py
-"""
-
-files = """
-lib/python3.5/site-packages/__pycache__/itsdangerous.cpython-35.pyc
-lib/python3.5/site-packages/itsdangerous-0.24-py3.5.egg-info
-lib/python3.5/site-packages/itsdangerous.py
-"""
 
 def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
@@ -65,8 +33,3 @@ def get_leaf_directories(files):
         leaves.append(last)
 
     return tuple('/'.join(leaf) for leaf in leaves)
-
-if __name__ == "__main__":
-    files = files.strip().split('\n')
-    leaves = get_leaf_directories(files)
-    print(leaves)

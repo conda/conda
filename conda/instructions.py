@@ -1,14 +1,13 @@
 from __future__ import absolute_import, division, print_function
 
-from conda.base.constants import LinkType
-from conda.core.install import PackageInstaller
-from conda.models.dist import Dist
 from logging import getLogger
-from os.path import join
 
+from .base.constants import LinkType
 from .base.context import context
-from .core.package_cache import fetch_pkg, is_extracted, extract, rm_extracted, rm_fetched
-from .install import messages, symlink_conda, unlink
+from .core.install import PackageInstaller
+from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
+from .install import symlink_conda, unlink
+from .models.dist import Dist
 
 
 log = getLogger(__name__)
@@ -146,5 +145,3 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 state['maxval'] == state['i']):
             state['i'] = None
             getLogger('progress.stop').info(None)
-
-    messages(state['prefix'])

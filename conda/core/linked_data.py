@@ -125,5 +125,3 @@ def is_linked(prefix, dist):
 def set_linked_data(prefix, dist_name, record):
     if prefix in linked_data_:
         load_linked_data(prefix, dist_name, record)
-
-

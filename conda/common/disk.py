@@ -8,7 +8,6 @@ from os.path import isdir
 log = getLogger(__name__)
 
 
-
 def conda_bld_ensure_dir(path):
     # this can fail in parallel operation, depending on timing.  Just try to make the dir,
     #    but don't bail if fail.
@@ -17,15 +16,3 @@ def conda_bld_ensure_dir(path):
             makedirs(path)
         except OSError:
             pass
-
-
-
-
-
-
-
-
-
-
-
-

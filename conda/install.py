@@ -25,14 +25,12 @@ import functools
 import logging
 import os
 import stat
-import sys
 from errno import EACCES, EEXIST, EPERM, EROFS
 from os import chmod, makedirs
 from os.path import (dirname, isdir, isfile, join, normcase,
                      normpath)
 
 from .base.constants import PREFIX_PLACEHOLDER
-from .base.context import context
 from .core.linked_data import delete_linked_data, load_meta
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
 from .lock import DirectoryLock
@@ -49,10 +47,8 @@ log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
 
 
-
 # backwards compatibility for conda-build
 prefix_placeholder = PREFIX_PLACEHOLDER
-
 
 
 if on_win:
@@ -101,7 +97,6 @@ if on_win:
             chmod(dst, mode)
 
 
-
 # Should this be an API function?
 def symlink_conda(prefix, root_dir, shell=None):
     # do not symlink root env - this clobbers activate incorrectly.
@@ -144,9 +139,6 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
 
 
 # ========================== begin API functions =========================
-
-
-
 
 def unlink(prefix, dist):
     """
@@ -192,15 +184,3 @@ def unlink(prefix, dist):
         alt_files_path = join(prefix, 'conda-meta', dist.to_filename('.files'))
         if isfile(alt_files_path):
             rm_rf(alt_files_path)
-
-
-def messages(prefix):
-    path = join(prefix, '.messages.txt')
-    try:
-        with open(path) as fi:
-            fh = sys.stderr if context.json else sys.stdout
-            fh.write(fi.read())
-    except IOError:
-        pass
-    finally:
-        rm_rf(path)

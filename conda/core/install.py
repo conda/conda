@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import namedtuple
-
 import os
 import re
 import sys
-from logging import getLogger
+from collections import namedtuple
+from logging import getLogger, warning
 from os.path import isfile, join
 from subprocess import CalledProcessError, check_call
 
@@ -17,6 +16,7 @@ from ..common.path import get_leaf_directories
 from ..core.linked_data import set_linked_data
 from ..exceptions import CondaOSError, LinkError, PaddingError
 from ..gateways.disk.create import link as create_link, make_menu, mkdir_p, write_conda_meta_record
+from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
 from ..models.record import Link
@@ -25,7 +25,7 @@ from ..utils import on_win
 try:
     from cytoolz.itertoolz import concatv, groupby
 except ImportError:
-    from .._vendor.toolz.itertoolz import concatv, groupby
+    from .._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -48,6 +48,7 @@ class PackageInstaller(object):
                   self.prefix, extracted_package_directory, requested_link_type)
 
         # filesystem read actions
+        #   do all filesystem reads necessaary for the rest of the linking for this package
         package_info = collect_all_info_for_package(extracted_package_directory)
         url = read_url(self.dist)
 
@@ -57,26 +58,28 @@ class PackageInstaller(object):
                                                package_info.no_link, package_info.soft_links,
                                                requested_link_type)
 
-        # TODO: discuss with @mcg1969
         # run pre-link script
-        # if not run_script(source_dir, dist, 'pre-link', prefix):
-        #     raise LinkError('Error: pre-link failed: %s' % dist)
+        if not run_script(extracted_package_directory, self.dist, 'pre-link', self.prefix):
+            raise LinkError('Error: pre-link failed: %s' % self.dist)
 
         self.execute_file_operations(extracted_package_directory, self.prefix, leaf_directories,
                                      file_operations)
 
-        # Step 5. Run post-link script
+        # run post-link script
         if not run_script(self.prefix, self.dist, 'post-link'):
             raise LinkError("Error: post-link failed for: %s" % self.dist)
 
-        # Step 6. Create package's prefix/conda-meta file
-        meta_record = self.create_meta(extracted_package_directory, package_info, requested_link_type,
-                                       self.prefix, self.dist, self.index, url)
+        # create package's prefix/conda-meta file
+        meta_record = self.create_meta(extracted_package_directory, package_info,
+                                       requested_link_type, self.prefix, self.dist,
+                                       self.index, url)
         write_conda_meta_record(self.prefix, meta_record)
         set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
     @staticmethod
     def make_op_details(files, has_prefix_files, no_link, soft_links, requested_link_type):
+        # TODO: need to return source_path and destination_path in LinkOperation
+
         MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
         LinkOperation = namedtuple('LinkOperation', ('filepath', 'link_type', 'prefix_placehoder',
                                                      'file_mode', 'is_menu_file'))
@@ -161,12 +164,13 @@ class PackageInstaller(object):
         return meta
 
 
-
 def run_script(prefix, dist, action='post-link', env_prefix=None):
     """
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
+    if action == 'pre-link':
+        warning.warn('The package %s uses a pre-link script.')
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
             dist.dist_name,
             action,
@@ -195,5 +199,16 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         check_call(args, env=env)
     except CalledProcessError:
         return False
-    return True
+    else:
+        return True
+    finally:
+        messages(prefix)
 
+
+def messages(prefix):
+    path = join(prefix, '.messages.txt')
+    if isfile(path):
+        with open(path) as fi:
+            fh = sys.stderr if context.json else sys.stdout
+            fh.write(fi.read())
+        rm_rf(path)
