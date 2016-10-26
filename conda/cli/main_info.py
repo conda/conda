@@ -154,6 +154,7 @@ def execute(args, parser):
     from conda.models.channel import offline_keep
     from conda.resolve import Resolve
     from conda.api import get_index
+    from conda.connection import user_agent
 
     if args.root:
         if context.json:
@@ -249,7 +250,11 @@ def execute(args, parser):
         envs=[],
         python_version='.'.join(map(str, sys.version_info)),
         requests_version=requests_version,
+        user_agent=user_agent,
     )
+    if not on_win:
+        info_dict['UID'] = os.geteuid()
+        info_dict['GID'] = os.getegid()
 
     if args.all or context.json:
         for option in options:
@@ -277,7 +282,15 @@ Current conda install:
            channel URLs : %(_channels)s
             config file : %(rc_path)s
            offline mode : %(offline)s
+             user-agent : %(user_agent)s\
 """ % info_dict)
+
+        if not on_win:
+            print("""\
+                UID:GID : %(UID)s:%(GID)s
+""" % info_dict)
+        else:
+            print()
 
     if args.envs:
         handle_envs_list(info_dict['envs'], not context.json)
