@@ -285,7 +285,7 @@ Current conda install:
 
         if not on_win:
             print("""\
-              UID:GID : %(UID)s:%(GID)s
+                UID:GID : %(UID)s:%(GID)s
 """ % info_dict)
         else:
             print()
