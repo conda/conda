@@ -4,6 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import shutil
 import traceback
+from conda._vendor.auxlib.ish import dals
+from conda._vendor.auxlib.packaging import call
+from conda.common.path import missing_pyc_files
 from errno import EEXIST
 from logging import getLogger
 from os import W_OK, access, getpid, link as os_link, makedirs, readlink, symlink
@@ -21,6 +24,19 @@ from ...utils import on_win
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
 
+
+entry_point_template = dals("""
+#!(python_exe)s
+# -*- coding: utf-8 -*-
+import re
+import sys
+
+from %(module)s import %(func)s
+
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(%(func)s())
+""")
 
 def write_conda_meta_record(prefix, record):
     # write into <env>/conda-meta/<dist>.json
@@ -171,3 +187,10 @@ def link(src, dst, link_type=LinkType.hard_link):
             shutil.copy2(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
+
+
+def compile_missing_pyc(prefix, python_major_minor_version, files):
+    py_pyc_files = missing_pyc_files(python_major_minor_version, files)
+    python_exe = join(prefix, 'python') if on_win else join(prefix, 'bin', 'python%s' % python_major_minor_version)
+    result = call("%s -Wi -m py_compile %s" % (python_exe, ' '.join(f[0] for f in py_pyc_files)))
+    import pdb; pdb.set_trace()

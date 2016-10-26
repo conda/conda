@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 from logging import getLogger
+from os.path import dirname, basename
 
 log = getLogger(__name__)
 
@@ -33,3 +34,27 @@ def get_leaf_directories(files):
         leaves.append(last)
 
     return tuple('/'.join(leaf) for leaf in leaves)
+
+
+def missing_pyc_files(python_major_minor_version, files):
+    pyver_string = python_major_minor_version.replace('.', '')
+    def pyc_path(file):
+        if python_major_minor_version.startswith('2'):
+            return file + "c"
+        else:
+            base_fn, base_extention = basename(file).rsplit('.', 1)
+            return "%s/__pycache__/%s.cpython-%s.%sc" % (dirname(file), base_fn, pyver_string,
+                                                         base_extention)
+
+    py_files = (f for f in files if f.endswith('.py'))
+    pyc_matches = ((py_file, pyc_path(py_file)) for py_file in py_files)
+    return tuple(match for match in pyc_matches if match[1] in files)
+
+
+def parse_entry_point_def(ep_definition):
+    cmd_mod, func = ep_definition.rsplit(':', 1)
+    command, module = cmd_mod.rsplit("=", 1)
+    command, module, func = command.strip(), module.strip(), func.strip()
+    return command, module, func
+
+

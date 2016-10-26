@@ -129,6 +129,7 @@ def set_linked_data(prefix, dist_name, record):
 
 
 def get_python_version_for_prefix(prefix):
+    # returns a string e.g. "2.7", "3.4", "3.5 or None
     py_record_iter = (rcrd for rcrd in itervalues(linked_data(prefix)) if rcrd.name == 'python')
     record = next(py_record_iter, None)
     if record is None:

@@ -59,19 +59,8 @@ def link_files(prefix, src_root, dst_root, files, src_dir):
     return dst_files
 
 
-def compile_missing_pyc(prefix, files, cwd):
-    compile_files = []
-    for fn in files:
-        python_major_version = get_python_version_for_prefix(prefix)[0]
-        cache_prefix = ("__pycache__" + os.sep) if python_major_version == '3' else ""
-        pyc_name = os.path.dirname(fn) + cache_prefix + os.path.basename(fn) + 'c'
-        if fn.endswith(".py") and pyc_name not in files:
-            compile_files.append(fn)
 
-    if compile_files:
-        print('compiling .pyc files...')
-        for f in compile_files:
-            subprocess.call(["python", '-Wi', '-m', 'py_compile', f], cwd=cwd)
+
 
 
 def create_entry_points(src_dir, bin_dir, prefix):
