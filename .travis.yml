@@ -17,8 +17,6 @@ install:
   # TODO: Use a "latest" url
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget http://repo.continuum.io/miniconda/Miniconda-3.5.2-Linux-x86_64.sh -O miniconda.sh;
-    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.0.0-Linux-x86_64.sh -O miniconda.sh;
     else
       wget http://repo.continuum.io/miniconda/Miniconda3-3.5.2-Linux-x86_64.sh -O miniconda.sh;
     fi
@@ -26,12 +24,18 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
-  - bin/conda install --force --no-deps conda requests
+  - if [[ "$TRAVIS_PYTHON_VERSION" != "3.3" ]]; then
+      conda update conda;
+    fi
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      conda install enum34;
+    fi
   - conda --version
-  - conda install -c conda pytest requests mock conda-env pycrypto pyflakes python=$TRAVIS_PYTHON_VERSION
+  - conda install pytest mock pycrypto pyflakes
   - if [[ "$PYCOSAT" ]]; then
       conda install pycosat=$PYCOSAT;
     fi
+  - conda install conda=3.19.3 conda-env=2.4.5
   - python setup.py install
   - conda info -a
 
