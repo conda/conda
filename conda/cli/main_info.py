@@ -251,8 +251,8 @@ def execute(args, parser):
         user_agent=user_agent,
     )
     if not on_win:
-        info_dict['UID'] = os.getuid()
-        info_dict['GID'] = os.getgid()
+        info_dict['UID'] = os.geteuid()
+        info_dict['GID'] = os.getegid()
 
     if args.all or context.json:
         for option in options:
@@ -285,7 +285,7 @@ Current conda install:
 
         if not on_win:
             print("""\
-              UID / GID : %(UID)s / %(GID)s
+              UID:GID : %(UID)s:%(GID)s
 """ % info_dict)
         else:
             print()
