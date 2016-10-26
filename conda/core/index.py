@@ -397,7 +397,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
         result = dict()
 
         for channel_url, repodata in repodatas:
-            if repodata is None:
+            if not repodata:
                 continue
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
