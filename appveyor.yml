@@ -39,15 +39,16 @@ install:
   - set PATH=%HOME%/miniconda;%HOME%/miniconda/Scripts;%$HOME%/miniconda/Library/bin;%PATH%
   - conda info
   - conda config --set always_yes yes
-  - conda install --force --no-deps conda requests
+  - conda update conda
+  - conda install enum34
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
   - python -c "import sys; print(sys.prefix)"
-  - conda install python=%PYTHON_VERSION%
-  - conda install -c conda pytest requests mock pycrypto pyflakes pycosat
+  - conda install pytest requests mock pycrypto pyflakes pycosat
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
+  - conda install conda=3.19.3 conda-env=2.4.5
   - python setup.py install
 
 
