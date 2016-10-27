@@ -11,12 +11,14 @@
 * add multikey configuration validation (#3432)
 * some Fish autocompletions (#2519)
 * reduce priority for packages removed from the index (#3703)
+* add user-agent, uid, gid to conda info (#3671)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
 * fix link field in record object (#3424)
 * anaconda api token bug fix; additional tests (#3673)
 * fix #3667 unicode literals and unicode decode (#3682)
+* add conda-env entrypoint (#3743)
 
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
