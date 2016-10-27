@@ -123,7 +123,7 @@ class ContextTests(TestCase):
             ]
             assert channel.url() == join_url(url, context.subdir)
             assert channel.channel_name == basename(path)
-            assert channel.channel_location == dirname(path)
+            assert channel.channel_location == path_to_url(dirname(path)).replace('file://', '', 1)
             assert channel.canonical_name == "local"
 
         finally:
@@ -169,7 +169,7 @@ class ContextTests(TestCase):
             ]
             assert channel.url() == join_url(url, context.subdir)
             assert channel.channel_name == basename(path)
-            assert channel.channel_location == dirname(path)
+            assert channel.channel_location == path_to_url(dirname(path)).replace('file://', '', 1)
             assert channel.canonical_name == "local"
 
         finally:
