@@ -5,6 +5,7 @@ from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
+from conda.common.url import join_url
 from conda.common.yaml import yaml_load
 from conda.models.channel import Channel
 from conda.utils import on_win
@@ -85,6 +86,22 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.urls() == [
             'https://repo.continuum.io/pkgs/free/osx-64',
             'https://repo.continuum.io/pkgs/free/noarch',
+        ]
+
+    def test_bare_channel(self):
+        url = "http://conda-01"
+        channel = Channel(url)
+        assert channel.scheme == "http"
+        assert channel.location == "conda-01"
+        assert channel.platform is None
+        assert channel.canonical_name == url
+        assert channel.name is None
+
+        assert channel.base_url == url
+        assert channel.url() == join_url(url, context.subdir)
+        assert channel.urls() == [
+            join_url(url, context.subdir),
+            join_url(url, 'noarch'),
         ]
 
 

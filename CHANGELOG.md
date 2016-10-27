@@ -48,6 +48,17 @@
 * improve handling of local dependency information (#2107)
 
 
+## 4.2.12 (unreleased)
+
+### Bug Fixes
+
+* fix #3732, #3471, #3744 CONDA_BLD_PATH (#3747)
+* fix #3717 allow no-name channels (#3748)
+* fix #3738 move conda-env to ruamel_yaml (#3740)
+* fix conda-env entry point (#3745 via #3743)
+* fix again #3664 trash emptying (#3746)
+
+
 ## 4.2.11 (2016-10-23)
 
 ### Improvements
