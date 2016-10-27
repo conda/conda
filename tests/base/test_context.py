@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from os.path import basename, dirname
+
 import os
 
 import pytest
@@ -8,6 +10,7 @@ from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
+from conda.common.url import path_to_url, join_url
 from conda.common.yaml import yaml_load
 from conda.models.channel import Channel
 from conda.utils import on_win
@@ -81,3 +84,96 @@ class ContextTests(TestCase):
                 os.environ['CONDA_ENVS_PATH'] = saved_envs_path
             else:
                 del os.environ['CONDA_ENVS_PATH']
+
+
+    def test_conda_bld_path_1(self):
+        saved_envs_path = os.environ.get('CONDA_BLD_PATH')
+        beginning = "C:" + os.sep if on_win else os.sep
+        path = beginning + os.sep.join(['tmp', 'conda-bld'])
+        url = path_to_url(path)
+        try:
+            os.environ['CONDA_BLD_PATH'] = path
+            reset_context()
+
+            channel = Channel('local')
+            assert channel.channel_name == "local"
+            assert channel.channel_location is None
+            assert channel.platform is None
+            assert channel.package_filename is None
+            assert channel.auth is None
+            assert channel.token is None
+            assert channel.scheme is None
+            assert channel.canonical_name == "local"
+            assert channel.url() is None
+            assert channel.urls() == [
+                join_url(url, context.subdir),
+                join_url(url, 'noarch'),
+            ]
+
+            channel = Channel(url)
+            assert channel.canonical_name == "local"
+            assert channel.platform is None
+            assert channel.package_filename is None
+            assert channel.auth is None
+            assert channel.token is None
+            assert channel.scheme == "file"
+            assert channel.urls() == [
+                join_url(url, context.subdir),
+                join_url(url, 'noarch'),
+            ]
+            assert channel.url() == join_url(url, context.subdir)
+            assert channel.channel_name == basename(path)
+            assert channel.channel_location == path_to_url(dirname(path)).replace('file://', '', 1)
+            assert channel.canonical_name == "local"
+
+        finally:
+            if saved_envs_path:
+                os.environ['CONDA_BLD_PATH'] = saved_envs_path
+            else:
+                del os.environ['CONDA_BLD_PATH']
+
+    def test_conda_bld_path_2(self):
+        saved_envs_path = os.environ.get('CONDA_BLD_PATH')
+        beginning = "C:" + os.sep if on_win else os.sep
+        path = beginning + os.sep.join(['random', 'directory'])
+        url = path_to_url(path)
+        try:
+            os.environ['CONDA_BLD_PATH'] = path
+            reset_context()
+
+            channel = Channel('local')
+            assert channel.channel_name == "local"
+            assert channel.channel_location is None
+            assert channel.platform is None
+            assert channel.package_filename is None
+            assert channel.auth is None
+            assert channel.token is None
+            assert channel.scheme is None
+            assert channel.canonical_name == "local"
+            assert channel.url() is None
+            assert channel.urls() == [
+                join_url(url, context.subdir),
+                join_url(url, 'noarch'),
+            ]
+
+            channel = Channel(url)
+            assert channel.canonical_name == "local"
+            assert channel.platform is None
+            assert channel.package_filename is None
+            assert channel.auth is None
+            assert channel.token is None
+            assert channel.scheme == "file"
+            assert channel.urls() == [
+                join_url(url, context.subdir),
+                join_url(url, 'noarch'),
+            ]
+            assert channel.url() == join_url(url, context.subdir)
+            assert channel.channel_name == basename(path)
+            assert channel.channel_location == path_to_url(dirname(path)).replace('file://', '', 1)
+            assert channel.canonical_name == "local"
+
+        finally:
+            if saved_envs_path:
+                os.environ['CONDA_BLD_PATH'] = saved_envs_path
+            else:
+                del os.environ['CONDA_BLD_PATH']
