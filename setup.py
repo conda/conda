@@ -82,7 +82,8 @@ setup(
     install_requires=[],
     entry_points={
         'console_scripts': [
-            "conda = conda.cli.main:main"
+            "conda = conda.cli.main:main",
+            "conda-env = conda_env.cli.main:main"
         ],
     },
     scripts=scripts,
