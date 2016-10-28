@@ -4,12 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import re
 from glob import glob
-from logging import getLogger
+from conda.gateways.logging import getLogger
 from os.path import basename, isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
 
-from ..common.disk import rm_rf
-from ..common.url import quote_plus, unquote_plus
+from conda.common.disk import rm_rf
+from conda.common.url import quote_plus, unquote_plus
 
 log = getLogger(__name__)
 

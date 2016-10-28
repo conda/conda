@@ -25,12 +25,12 @@ from requests.utils import get_auth_from_url, get_netrc_auth
 from . import __version__ as VERSION
 from ._vendor.auxlib.ish import dals
 from .base.context import context
+from .common.anaconda_client import read_binstar_tokens
 from .common.disk import rm_rf
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
                          split_anaconda_token, url_to_path, url_to_s3_info, urlparse)
 from .compat import StringIO, iteritems
 from .exceptions import AuthenticationError, ProxyError
-from .gateways.anaconda_client import read_binstar_tokens
 from .utils import gnu_get_libc_version
 
 RETRIES = 3
