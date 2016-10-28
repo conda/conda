@@ -346,16 +346,16 @@ with Python 2.7::
 .. _version-from-channel:
 
 Issue: install a specific version from channels
------------------------------------------------
+===============================================
 
 Suppose you have a specific need to install the Python ``cx_freeze`` module
-with Python 3.4.  A first step is to create a Python 3.4 environment::
+with Python 3.4.  A first step is to create a Python 3.4 environment:
 
 .. code-block:: bash
 
    conda create -n py34 python=3.4
 
-Using this environment you should first attempt::
+Using this environment you should first attempt:
 
 .. code-block:: bash
 
