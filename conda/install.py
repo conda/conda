@@ -627,10 +627,8 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
 
-    with open(join(info_dir, "index.json")) as index_json:
-        data = json.load(index_json)
-
-    if data.get("noarch") in (True, False, "generic"):
+    full_dist_name = "%s.tar.bz2" % dist
+    if not index.get(full_dist_name, {}).get("noarch", None) in (True, False, None, "generic"):
         error_and_exit("Installing %s requires a minimum conda version of 4.3." % dist)
 
     with Locked(prefix), Locked(pkgs_dir):
