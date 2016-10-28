@@ -119,6 +119,29 @@ log = getLogger(__name__)
 #     return re.sub(r'([./])conda([./])', r'\1api\2', url, count=1)
 
 
+def get_binstar_directory():
+    # returns an absolute directory path or None
+    try:
+        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
+    except ImportError:
+        return None
+
+    if 'BINSTAR_CONFIG_DIR' in os.environ:
+        return EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR']).user_data_dir
+    else:
+        return AppDirs('binstar', 'ContinuumIO').user_data_dir
+
+
+def get_anaconda_default_site():
+    # returns site_name or None if not set
+    pass
+
+
+def get_anaconda_site_url(site_name):
+    # returns the url for an anaconda_site
+    pass
+
+
 def replace_first_api_with_conda(url):
     # replace first occurrence of 'api' with 'conda' in url
     return re.sub(r'([./])api([./])', r'\1conda\2', url, count=1)
@@ -126,16 +149,10 @@ def replace_first_api_with_conda(url):
 
 def read_binstar_tokens():
     tokens = dict()
-    try:
-        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
-    except ImportError:
+    binstar_dir = get_binstar_directory()
+    if not binstar_dir:
         return tokens
-
-    if 'BINSTAR_CONFIG_DIR' in os.environ:
-        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
-    else:
-        dirs = AppDirs('binstar', 'ContinuumIO')
-    token_files = glob(join(dirs.user_data_dir, '*.token'))
+    token_files = glob(join(binstar_dir, '*.token'))
     for tkn_file in token_files:
         url = re.sub(r'\.token$', '', unquote_plus(basename(tkn_file)))
         with open(tkn_file) as f:
@@ -145,19 +162,13 @@ def read_binstar_tokens():
 
 
 def set_binstar_token(url, token):
-    try:
-        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
-    except ImportError:
-        raise
+    binstar_dir = get_binstar_directory()
+    if not binstar_dir:
+        raise EnvironmentError("anaconda-client must be installed")
 
-    if 'BINSTAR_CONFIG_DIR' in os.environ:
-        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
-    else:
-        dirs = AppDirs('binstar', 'ContinuumIO')
-
-    if not isdir(dirs.user_data_dir):
-        os.makedirs(dirs.user_data_dir)
-    tokenfile = join(dirs.user_data_dir, '%s.token' % quote_plus(url))
+    if not isdir(binstar_dir):
+        os.makedirs(binstar_dir)
+    tokenfile = join(binstar_dir, '%s.token' % quote_plus(url))
 
     if isfile(tokenfile):
         os.unlink(tokenfile)
@@ -167,17 +178,11 @@ def set_binstar_token(url, token):
 
 
 def remove_binstar_token(url):
-    try:
-        from binstar_client.utils.appdirs import AppDirs, EnvAppDirs
-    except ImportError:
-        raise
+    binstar_dir = get_binstar_directory()
+    if not binstar_dir:
+        raise EnvironmentError("anaconda-client must be installed")
 
-    if 'BINSTAR_CONFIG_DIR' in os.environ:
-        dirs = EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR'])
-    else:
-        dirs = AppDirs('binstar', 'ContinuumIO')
-
-    tokenfile = join(dirs.user_data_dir, '%s.token' % quote_plus(url))
+    tokenfile = join(binstar_dir, '%s.token' % quote_plus(url))
     rm_rf(tokenfile)
 
 
