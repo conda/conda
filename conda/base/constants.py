@@ -80,13 +80,13 @@ PLATFORM_DIRECTORIES = ("linux-64",
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
-DEFAULT_CHANNELS_UNIX = ('http://repotest.continuum.io/pkgs/free',
-                         'http://repotest.continuum.io/pkgs/pro',
+DEFAULT_CHANNELS_UNIX = ('http://repo.continuum.io/pkgs/free',
+                         'http://repo.continuum.io/pkgs/pro',
                          )
 
-DEFAULT_CHANNELS_WIN = ('http://repotest.continuum.io/pkgs/free',
-                        'http://repotest.continuum.io/pkgs/pro',
-                        'http://repotest.continuum.io/pkgs/msys2',
+DEFAULT_CHANNELS_WIN = ('http://repo.continuum.io/pkgs/free',
+                        'http://repo.continuum.io/pkgs/pro',
+                        'http://repo.continuum.io/pkgs/msys2',
                         )
 
 if Platform.from_sys() is Platform.win:

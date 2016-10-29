@@ -35,7 +35,7 @@ class TestFetchRepoData(unittest.TestCase):
 class TestTmpDownload(unittest.TestCase):
 
     def test_tmpDownload(self):
-        url = "http://repotest.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
+        url = "http://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
         with TmpDownload(url) as dst:
             assert exists(dst)
             assert isfile(dst)
