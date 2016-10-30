@@ -62,7 +62,7 @@ test_extras() {
 
 
 miniconda_install() {
-    curl http://repo.continuum.io/miniconda/Miniconda3-4.0.5-Linux-x86_64.sh -o ~/miniconda.sh
+    curl -L http://repo.continuum.io/miniconda/Miniconda3-4.0.5-Linux-x86_64.sh -o ~/miniconda.sh
     bash ~/miniconda.sh -bfp ~/miniconda
     export PATH=~/miniconda/bin:$PATH
     hash -r
