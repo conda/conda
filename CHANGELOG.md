@@ -13,7 +13,7 @@
 * improve handling of local dependency information (#2107)
 
 
-## 4.2.12 (unreleased)
+## 4.2.12 (2016-11-02)
 
 ### Bug Fixes
 
