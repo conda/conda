@@ -366,8 +366,8 @@ class CondaTypeError(CondaError, TypeError):
 
 
 class CondaAssertionError(CondaError, AssertionError):
-    def __init__(self, message):
-        msg = 'Assertion error: %s' % message
+    def __init__(self, message, expected, actual):
+        msg = "Assertion error: %s expected %s and got %s" % (message, expected, actual)
         super(CondaAssertionError, self).__init__(msg)
 
 

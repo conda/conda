@@ -221,12 +221,15 @@ def install(args, parser, command='install'):
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
             channel_inst = [m['channel'] for m in installed_metadata if m['name'] == name]
 
-            try:
-                assert len(vers_inst) == 1, name
-                assert len(build_inst) == 1, name
-                assert len(channel_inst) == 1, name
-            except AssertionError as e:
-                raise CondaAssertionError(text_type(e))
+            if len(vers_inst) != 1:
+                msg = "Number of versions for %s;" % name
+                raise CondaAssertionError(msg, 1, len(vers_inst))
+            if len(build_inst) != 1:
+                msg = "Number of builds for %s;" % name
+                raise CondaAssertionError(msg, 1, len(build_inst))
+            if len(channel_inst) != 1:
+                msg = "Number of channels for %s;" % name
+                raise CondaAssertionError(msg, 1, len(channel_inst))
 
             pkgs = sorted(r.get_pkgs(name))
             if not pkgs:
