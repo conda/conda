@@ -11,7 +11,8 @@ try:
     from binstar_client.utils import get_server_api
 except ImportError:
     get_server_api = None
-from binstar_client.utils.spec import parse_specs
+
+from binstar_client.utils import parse_specs
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
@@ -163,4 +164,13 @@ class BinstarSpec(object):
 
     def parse(self):
         """Parse environment definition handle"""
-        return self.name.split('/', 1)
+        split_name = self.name.split('/')
+
+        if len(split_name) == 3:
+            #We have a version
+            self.version = split_name[2]
+            return split_name[0:2]
+        elif len(split_name) == 2:
+            #No version should be user/package
+            return split_name
+
