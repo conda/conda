@@ -126,32 +126,16 @@ class BinstarSpec(object):
 
     @property
     def username(self):
-        if self.specs._user is None:
-            self.specs_error()
-        else:
-            return self.specs._user
-
-    @property
-    def version(self):
-        if self.specs._version is None:
-            return None
-        else:
-            return self.specs._version
+        if self._username is None:
+            self._username = self.parse()[0]
+        return self._username
 
     @property
     def packagename(self):
-        if self.specs._package is None:
-            self.specs_error()
-        else:
-            return self.specs._package
-
-    def specs_error(self):
-        self.msg = "{} was not able to parsed.\n"\
-            "Package name should be either user/package: darth/deathstar:\n"\
-            "Or user/package/version darth/deathstar/1.0".format(self.name)
-        raise errors.UserError(self.msg)
+        if self._packagename is None:
+            self._packagename = self.parse()[1]
+        return self._packagename
 
     def parse(self):
         """Parse environment definition handle"""
         return self.name.split('/', 1)
-

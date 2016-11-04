@@ -29,7 +29,7 @@ class TestBinstarSpec(unittest.TestCase):
         self.assertEqual(spec.msg, "Invalid name, try the format: user/package")
 
     def test_package_not_exist(self):
-        with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
+        with patch('conda_env.specs.binstar.get_server_api') as get_binstar_mock:
             package = MagicMock(side_effect=errors.NotFound('msg'))
             binstar = MagicMock(package=package)
             get_binstar_mock.return_value = binstar
@@ -38,7 +38,7 @@ class TestBinstarSpec(unittest.TestCase):
             self.assertEqual(spec.can_handle(), False)
 
     def test_package_without_environment_file(self):
-        with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
+        with patch('conda_env.specs.binstar.get_server_api') as get_binstar_mock:
             package = MagicMock(return_value={'files': []})
             binstar = MagicMock(package=package)
             get_binstar_mock.return_value = binstar
@@ -51,7 +51,7 @@ class TestBinstarSpec(unittest.TestCase):
             'files': [{'type': 'env', 'version': '1', 'basename': 'environment.yml'}]
         }
         fake_req = MagicMock(text=u"name: env")
-        with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
+        with patch('conda_env.specs.binstar.get_server_api') as get_binstar_mock:
             package = MagicMock(return_value=fake_package)
             downloader = MagicMock(return_value=fake_req)
             binstar = MagicMock(package=package, download=downloader)
@@ -69,7 +69,7 @@ class TestBinstarSpec(unittest.TestCase):
             ]
         }
         fake_req = MagicMock(text=u"name: env")
-        with patch('conda_env.specs.binstar.get_binstar') as get_binstar_mock:
+        with patch('conda_env.specs.binstar.get_server_api') as get_binstar_mock:
             package = MagicMock(return_value=fake_package)
             downloader = MagicMock(return_value=fake_req)
             binstar = MagicMock(package=package, download=downloader)
