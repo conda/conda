@@ -161,16 +161,3 @@ class BinstarSpec(object):
             "Package name should be either user/package: darth/deathstar:\n"\
             "Or user/package/version darth/deathstar/1.0".format(self.name)
         raise errors.UserError(self.msg)
-
-    def parse(self):
-        """Parse environment definition handle"""
-        split_name = self.name.split('/')
-
-        if len(split_name) == 3:
-            #We have a version
-            self.version = split_name[2]
-            return split_name[0:2]
-        elif len(split_name) == 2:
-            #No version should be user/package
-            return split_name
-
