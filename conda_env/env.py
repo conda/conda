@@ -175,5 +175,3 @@ class Environment(object):
     def save(self):
         with open(self.filename, "wb") as fp:
             self.to_yaml(stream=fp)
-
-
