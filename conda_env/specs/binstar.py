@@ -100,13 +100,15 @@ class BinstarSpec(object):
                 'original': d['version']} for d in self.file_data]
 
             if self.version:
-                file_data = [data for data in self.package['files'] if data['version'] == self.version]
+                file_data = [
+                    data for data in self.package['files'] if data['version'] == self.version
+                ]
                 req = self.binstar.download(
-					self.username, self.packagename,
-					self.version, file_data[0]['basename'])
+                    self.username, self.packagename,
+                    self.version, file_data[0]['basename'])
             else:
-				latest_version = max(versions, key=lambda x: x['normalized'])['original']
-				file_data = [data for data in self.package['files'] if data['version'] == latest_version]
+                latest_version = max(versions, key=lambda x: x['normalized'])['original']
+                file_data = [data for data in self.package['files'] if data['version'] == latest_version]
                 req = self.binstar.download(self.username, self.packagename, latest_version, file_data[0]['basename'])
 
             if req is None:
