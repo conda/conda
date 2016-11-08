@@ -40,6 +40,7 @@ import tarfile
 import time
 import traceback
 from os.path import abspath, basename, dirname, isdir, isfile, islink, join, relpath
+from conda.cli.common import error_and_exit
 
 try:
     from conda.lock import Locked
@@ -622,9 +623,17 @@ def link(pkgs_dir, prefix, dist, linktype=LINK_HARD, index=None):
         sys.exit('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
+
+    if not os.path.isfile(join(info_dir, "files")):
+        error_and_exit("Installing %s requires a minimum conda version of 4.3." % dist)
+
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
+
+    full_dist_name = "%s.tar.bz2" % dist
+    if not index.get(full_dist_name, {}).get("noarch", None) in (True, False, None, "generic"):
+        error_and_exit("Installing %s requires a minimum conda version of 4.3." % dist)
 
     with Locked(prefix), Locked(pkgs_dir):
         for f in files:
