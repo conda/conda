@@ -58,17 +58,17 @@ class PackageInstaller(object):
 
     def link(self, requested_link_type=LinkType.hard_link):
         log.debug("linking package %s with link type %s", self.dist, requested_link_type)
-        extracted_package_dir = is_extracted(self.dist)
-        assert extracted_package_dir is not None
+        self.extracted_package_dir = is_extracted(self.dist)
+        assert self.extracted_package_dir is not None
         log.debug("linking package:\n"
                   "  prefix=%s\n"
                   "  source=%s\n"
                   "  link_type=%s\n",
-                  self.prefix, extracted_package_dir, requested_link_type)
+                  self.prefix, self.extracted_package_dir, requested_link_type)
 
         # filesystem read actions
         #   do all filesystem reads necessary for the rest of the linking for this package
-        self.package_info = collect_all_info_for_package(extracted_package_dir)
+        self.package_info = collect_all_info_for_package(self.extracted_package_dir)
         url = read_url(self.dist)  # TODO: consider making this part of package_info
 
         # simple processing
@@ -87,8 +87,7 @@ class PackageInstaller(object):
             raise LinkError("Error: post-link failed for: %s" % self.dist)
 
         # create package's prefix/conda-meta file
-        meta_record = self._create_meta(extracted_package_dir, dest_short_paths,
-                                        requested_link_type, url)
+        meta_record = self._create_meta(dest_short_paths, requested_link_type, url)
         write_conda_meta_record(self.prefix, meta_record)
         set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
@@ -109,8 +108,7 @@ class PackageInstaller(object):
             dest_short_path = source_short_path
             return LinkOperation(source_short_path, dest_short_path, link_type, prefix_placehoder,
                                  file_mode, is_menu_file)
-
-        return (make_link_operation(p) for p in package_info.files)
+        return tuple(make_link_operation(p) for p in package_info.files)
 
     def _execute_link_operations(self, leaf_directories, link_operations):
         # major side-effects in this method
@@ -124,8 +122,10 @@ class PackageInstaller(object):
         # Step 2. Do the actual file linking
         for op in link_operations:
             try:
-                create_link(op.source_path, op.dest_path, op.link_type)
-                dest_short_paths.append(op.short_path)
+                create_link(join(self.extracted_package_dir, op.source_short_path),
+                            join(self.prefix, op.dest_short_path),
+                            op.link_type)
+                dest_short_paths.append(op.dest_short_path)
             except OSError as e:
                 raise CondaOSError('failed to link (src=%r, dst=%r, type=%r, error=%r)' %
                                    (op.source_path, op.dest_path, op.link_type, e))
@@ -135,7 +135,8 @@ class PackageInstaller(object):
         for op in link_operations:
             if op.prefix_placeholder:
                 try:
-                    update_prefix(op.dest_path, self.prefix, op.prefix_placeholder, op.file_mode)
+                    update_prefix(join(self.prefix, op.dest_short_path), self.prefix,
+                                  op.prefix_placeholder, op.file_mode)
                 except _PaddingError:
                     raise PaddingError(op.dest_path, op.prefix_placeholder,
                                        len(op.prefix_placeholder))
@@ -154,7 +155,7 @@ class PackageInstaller(object):
 
         return dest_short_paths
 
-    def _create_meta(self, extracted_package_dir, dest_short_paths, requested_link_type, url):
+    def _create_meta(self, dest_short_paths, requested_link_type, url):
         """
         Create the conda metadata, in a given prefix, for a given package.
         """
@@ -166,7 +167,7 @@ class PackageInstaller(object):
         alt_files_path = join(self.prefix, 'conda-meta', self.dist.to_filename('.files'))
         meta_dict['files'] = (list(yield_lines(alt_files_path)) if isfile(alt_files_path)
                               else dest_short_paths)
-        meta_dict['link'] = Link(source=extracted_package_dir, type=requested_link_type)
+        meta_dict['link'] = Link(source=self.extracted_package_dir, type=requested_link_type)
         if 'icon' in meta_dict:
             meta_dict['icondata'] = package_info.icondata
 
@@ -208,7 +209,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
             return LinkOperation(source_short_path, dest_short_path, link_type, prefix_placehoder,
                                  file_mode, is_menu_file)
 
-        return (make_link_operation(p) for p in package_info.files)
+        return tuple(make_link_operation(p) for p in package_info.files)
 
     def _execute_link_operations(self, leaf_directories, link_operations):
         dest_short_paths = super(NoarchPythonPackageInstaller, self)._execute_link_operations(

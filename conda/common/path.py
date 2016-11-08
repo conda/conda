@@ -8,9 +8,9 @@ from os.path import basename, dirname, join
 from ..utils import on_win
 
 try:
-    from cytoolz.itertoolz import accumulate
+    from cytoolz.itertoolz import accumulate, concat
 except ImportError:
-    from .._vendor.toolz.itertoolz import accumulate
+    from .._vendor.toolz.itertoolz import accumulate, concat
 
 
 log = getLogger(__name__)
@@ -46,7 +46,7 @@ def get_leaf_directories(files):
 
 def explode_directories(child_directories):
     # get all directories including parents
-    return set(accumulate(join, directory.split('/')) for directory in child_directories)
+    return set(concat(accumulate(join, directory.split('/')) for directory in child_directories))
 
 
 def missing_pyc_files(python_major_minor_version, files):
