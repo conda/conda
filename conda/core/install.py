@@ -70,7 +70,7 @@ class PackageInstaller(object):
         url = read_url(self.dist)  # TODO: consider making this part of package_info
 
         # simple processing
-        operations = self._make_link_operations(requested_link_type, package_info)
+        operations = self._make_link_operations(requested_link_type)
         leaf_directories = get_leaf_directories(join(self.prefix, op.dest_short_path)
                                                 for op in operations)
 
@@ -86,12 +86,13 @@ class PackageInstaller(object):
 
         # create package's prefix/conda-meta file
         meta_record = self._create_meta(extracted_package_dir, dest_short_paths,
-                                        requested_link_type, package_info, url)
+                                        requested_link_type, url)
         write_conda_meta_record(self.prefix, meta_record)
         set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
-    def _make_link_operations(self, requested_link_type, package_info):
+    def _make_link_operations(self, requested_link_type):
         # no side effects in this method!
+        package_info = self.package_info
         def make_link_operation(source_short_path):
             if source_short_path in package_info.has_prefix_files:
                 link_type = LinkType.copy
@@ -151,11 +152,11 @@ class PackageInstaller(object):
 
         return dest_short_paths
 
-    def _create_meta(self, extracted_package_dir, dest_short_paths, requested_link_type,
-                      package_info, url):
+    def _create_meta(self, extracted_package_dir, dest_short_paths, requested_link_type, url):
         """
         Create the conda metadata, in a given prefix, for a given package.
         """
+        package_info = self.package_info
         meta_dict = self.index.get(self.dist, {})
         meta_dict['url'] = url
 
@@ -175,7 +176,8 @@ class PackageInstaller(object):
 
 class NoarchPythonPackageInstaller(PackageInstaller):
 
-    def _make_link_operations(self, requested_link_type, package_info):
+    def _make_link_operations(self, requested_link_type):
+        package_info = self.package_info
         site_packages_dir = NoarchPythonPackageInstaller.get_site_packages_dir(self.prefix)
         bin_dir = get_bin_directory(self.prefix)
 
@@ -229,8 +231,12 @@ class NoarchPythonPackageInstaller(PackageInstaller):
         if on_win:
             return join(prefix, 'Lib', 'site-packages')
         else:
-            return join(prefix, 'lib', 'python%s' % get_python_version_for_prefix(prefix), 'site-packages')
+            return join(prefix, 'lib', 'python%s' % get_python_version_for_prefix(prefix),
+                        'site-packages')
 
+
+class PackageUninstaller(object):
+    pass
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
