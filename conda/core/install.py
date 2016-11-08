@@ -41,8 +41,8 @@ LinkOperation = namedtuple('LinkOperation',
 
 def get_package_installer(prefix, index, dist):
     # a factory-type function for getting the correct PackageInstaller class
-    record = index[dist]
-    if record.noarch and record.noarch.lower() == 'python':
+    record = index.get(dist, None)  # None can happen when handing .tar.bz2 file paths at the CLI
+    if record and record.noarch and record.noarch.lower() == 'python':
         return NoarchPythonPackageInstaller(prefix, index, dist)
     else:
         return PackageInstaller(prefix, index, dist)
