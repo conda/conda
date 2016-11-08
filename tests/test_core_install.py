@@ -1,30 +1,61 @@
-# import pytest
-# import unittest
-# import sys
-# from os.path import join
-# import os
-# from shutil import rmtree
-# from conda.compat import text_type
-#
-# from conda import noarch
-#
-# try:
-#     from unittest.mock import patch, Mock
-# except ImportError:
-#     from mock import patch, Mock
-#
-#
-# def stub_sys_platform(platform):
-#     def sys_platform(func):
-#         def func_wrapper(plat):
-#             sys_plat = sys.platform
-#             sys.platform = platform
-#             func(plat)
-#             sys.platform = sys_plat
-#         return func_wrapper
-#     return sys_platform
-#
-#
+import pytest
+import unittest
+import re
+
+from conda.base.constants import LinkType, FileMode
+from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
+                                LinkOperation)
+from conda.models.dist import Dist
+from conda.models.package_info import PackageInfoContents
+from conda.models.record import Link
+
+
+class TestPackageInstaller(unittest.TestCase):
+    def setUp(self):
+        self.dist = Dist("channel", "dist_name")
+        files = tuple(["test/path/1", "test/path/2", "test/path/3", "menu/test.json"])
+        has_prefix_files = {"test/path/1": ("/opt/anaconda1anaconda2anaconda3", FileMode.text)}
+        no_link = set(["test/path/2"])
+        soft_links = tuple(["test/path/3"])
+        index_json_records = {"key": "value"}
+        icondata = "icondata"
+        noarch = None
+        self.package_info = PackageInfoContents(files, has_prefix_files, no_link, soft_links,
+                                                index_json_records, icondata, noarch)
+
+    def test_make_link_operation(self):
+        package_installer = PackageInstaller("prefix", {}, self.dist)
+        package_installer.package_info = self.package_info
+        output = package_installer._make_link_operations(LinkType.hard_link)
+        expected_output = tuple([LinkOperation("test/path/1", "test/path/1", LinkType.copy,
+                                               "/opt/anaconda1anaconda2anaconda3", FileMode.text,
+                                               False),
+                                 LinkOperation("test/path/2", "test/path/2", LinkType.copy, "",
+                                               None, False),
+                                 LinkOperation("test/path/3", "test/path/3", LinkType.copy, "",
+                                               None, False),
+                                 LinkOperation("menu/test.json", "menu/test.json",
+                                               LinkType.hard_link, "", None, True)])
+
+        self.assertEquals(output, expected_output)
+
+    def test_create_meta(self):
+        dest_short_paths = ["dest/path/1", "dest/path/2", "dest/path/3"]
+        package_installer = PackageInstaller("prefix", {self.dist: {"icon": "icon"}}, self.dist)
+        package_installer.package_info = self.package_info
+        package_installer.extracted_package_dir = "extracted_package_dir"
+
+        output = package_installer._create_meta(dest_short_paths, LinkType.directory,
+                                                "http://test.url")
+        expected_output = {"key": "value",
+                           "icon": "icon",
+                           "url": "http://test.url",
+                           "files": dest_short_paths,
+                           "link": Link(source="extracted_package_dir", type=LinkType.directory),
+                           "icondata": "icondata"
+                           }
+        self.assertEquals(output, expected_output)
+
 # def setup_info_dir(info_dir):
 #     os.mkdir(info_dir)
 #     entry_point_info = '{"type": "python", "entry_points": ["cmd = module.foo:func"]}'
