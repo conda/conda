@@ -13,6 +13,7 @@ import sys
 from .common import (Completer, add_parser_json, stdout_json_success)
 from .. import CondaError
 from .._vendor.auxlib.compat import isiterable
+from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.type_coercion import boolify
 from ..base.context import context
 from ..common.configuration import pretty_list, pretty_map
@@ -303,7 +304,8 @@ def execute_config(args, parser):
                                            'verbosity',
                                            )))
         if context.json:
-            print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': ')))
+            print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
+                  cls=EntityEncoder))
         else:
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
