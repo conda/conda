@@ -16,7 +16,8 @@ from ..._vendor.auxlib.ish import dals
 from ..._vendor.auxlib.packaging import call
 from ...base.constants import LinkType
 from ...base.context import context
-from ...common.path import get_bin_directory, missing_pyc_files, parse_entry_point_def
+from ...common.path import (get_bin_directory, get_python_path, missing_pyc_files,
+                            parse_entry_point_def)
 from ...exceptions import ClobberError, CondaOSError
 from ...gateways.disk.delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
@@ -212,6 +213,6 @@ def link(src, dst, link_type=LinkType.hard_link):
 
 def compile_missing_pyc(prefix, python_major_minor_version, files):
     py_pyc_files = missing_pyc_files(python_major_minor_version, files)
-    python_exe = join(prefix, 'python') if on_win else join(prefix, 'bin', 'python%s' % python_major_minor_version)
+    python_exe = get_python_path(prefix)
     result = call("%s -Wi -m py_compile %s" % (python_exe, ' '.join(f[0] for f in py_pyc_files)))
     import pdb; pdb.set_trace()

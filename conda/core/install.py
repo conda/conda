@@ -94,6 +94,7 @@ class PackageInstaller(object):
     def _make_link_operations(self, requested_link_type):
         # no side effects in this method!
         package_info = self.package_info
+
         def make_link_operation(source_short_path):
             if source_short_path in package_info.has_prefix_files:
                 link_type = LinkType.copy
@@ -228,7 +229,6 @@ class NoarchPythonPackageInstaller(PackageInstaller):
 
         return sorted(dest_short_paths, extra_pyc_paths, entry_point_paths)
 
-
     @staticmethod
     def get_site_packages_dir(prefix):
         if on_win:
@@ -279,10 +279,6 @@ class PackageUninstaller(object):
         alt_files_path = join(self.prefix, 'conda-meta', self.dist.to_filename('.files'))
         if isfile(alt_files_path):
             rm_rf(alt_files_path)
-
-
-
-
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

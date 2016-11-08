@@ -51,6 +51,7 @@ def explode_directories(child_directories):
 
 def missing_pyc_files(python_major_minor_version, files):
     pyver_string = python_major_minor_version.replace('.', '')
+
     def pyc_path(file):
         if python_major_minor_version.startswith('2'):
             return file + "c"

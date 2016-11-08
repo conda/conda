@@ -27,14 +27,10 @@ import os
 import stat
 from errno import EACCES, EEXIST, EPERM, EROFS
 from os import chmod, makedirs
-from os.path import (dirname, isdir, isfile, join, normcase,
-                     normpath)
+from os.path import dirname, isdir, isfile, join, normcase, normpath
 
 from .base.constants import PREFIX_PLACEHOLDER
-from .core.linked_data import delete_linked_data, load_meta
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
-from .lock import DirectoryLock
-from .noarch import get_noarch_cls
 from .utils import on_win
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.linked_data import is_linked, linked, linked_data  # NOQA
@@ -136,7 +132,3 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
                           .format(root_file, prefix_file))
             else:
                 raise
-
-
-# ========================== begin API functions =========================
-
