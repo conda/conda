@@ -79,6 +79,8 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
+    http_connect_timeout_secs = PrimitiveParameter(6.1)
+    http_read_timeout_secs = PrimitiveParameter(60.)
 
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))

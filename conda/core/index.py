@@ -130,8 +130,9 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         filename = 'repodata.json'
 
     try:
+        timeout = context.http_connect_timeout_secs, context.http_read_timeout_secs
         resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                           timeout=(3.05, 60))
+                           timeout=timeout)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp))
         resp.raise_for_status()
