@@ -52,7 +52,7 @@ class Record(DictSafeMixin, Entity):
     md5 = StringField(required=False, nullable=True)
     name = StringField()
     # TODO: noarch should support being a string or bool
-    noarch = StringField(required=False)
+    noarch = StringField(required=False, nullable=True)
     platform = EnumField(Platform, required=False, nullable=True)
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)
