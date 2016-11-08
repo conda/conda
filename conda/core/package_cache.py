@@ -321,7 +321,8 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     with FileLock(dst_path):
         rm_rf(dst_path)
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
+            timeout = context.http_connect_timeout_secs, context.http_read_timeout_secs
+            resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             msg = "HTTPError: %s: %s\n" % (e, url)
