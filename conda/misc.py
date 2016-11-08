@@ -1,35 +1,34 @@
 # this module contains miscellaneous stuff which enventually could be moved
 # into other places
 
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import re
 import shutil
 import sys
 from collections import defaultdict
-from conda.base.constants import DEFAULTS
-from conda.core.package_cache import cached_url, is_fetched, is_extracted, find_new_location
-from conda.models.dist import Dist
-from conda.models.record import Record
-from os.path import (abspath, dirname, expanduser, exists,
-                     isdir, isfile, islink, join, relpath, curdir)
+from os.path import (abspath, curdir, dirname, exists, expanduser, isdir, isfile, islink, join,
+                     relpath)
 
-from conda.core.index import get_index
+from .base.constants import DEFAULTS, LinkType
 from .base.context import context
-from .common.url import path_to_url, is_url
+from .common.url import is_url, path_to_url
 from .compat import iteritems, itervalues
+from .core.index import get_index
+from .core.linked_data import is_linked, linked as install_linked, linked_data
+from .core.package_cache import cached_url, find_new_location, is_extracted, is_fetched
+from .exceptions import (CondaFileNotFoundError, CondaRuntimeError, MD5MismatchError,
+                         PackageNotFoundError, ParseError)
+from .gateways.disk.create import try_hard_link
+from .gateways.disk.delete import rm_rf
+from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel
-from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
-                         PackageNotFoundError, CondaRuntimeError)
-from .core.linked_data import linked as install_linked, is_linked, linked_data
-from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
+from .models.dist import Dist
+from .models.record import Record
 from .plan import execute_actions
-from .resolve import Resolve, MatchSpec
+from .resolve import MatchSpec, Resolve
 from .utils import md5_file, on_win
-from .common.disk import rm_rf
-from .install import LINK_COPY, LINK_HARD, LINK_SOFT
-from .install import try_hard_link
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -44,6 +43,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
             continue
         res.update(set(meta.get('files', ())))
     return res
+
 
 url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
                      r'(?P<fn>[^/\\#]+\.tar\.bz2)'
@@ -155,16 +155,16 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 with open(index_json, 'w'):
                     pass
             if context.always_copy:
-                lt = LINK_COPY
+                lt = LinkType.copy
             elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LINK_HARD
+                lt = LinkType.hard_link
             elif context.allow_softlinks and not on_win:
-                lt = LINK_SOFT
+                lt = LinkType.soft_link
             else:
-                lt = LINK_COPY
+                lt = LinkType.copy
             actions[LINK].append('%s %d' % (dist, lt))
         except (OSError, IOError):
-            actions[LINK].append('%s %d' % (dist, LINK_COPY))
+            actions[LINK].append('%s %d' % (dist, LinkType.copy))
         finally:
             if not dir_path:
                 # Remove the dummy data

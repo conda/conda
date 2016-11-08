@@ -20,7 +20,7 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
 from conda.base.constants import ROOT_NO_RM
 from conda.core.index import get_index
 from ..base.context import check_write, context
-from ..common.disk import delete_trash
+from ..gateways.disk.delete import delete_trash
 from ..compat import iteritems, iterkeys
 from ..console import json_progress_bars
 from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
@@ -107,7 +107,7 @@ def configure_parser(sub_parsers, name='remove'):
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
-    from conda.common.disk import rm_rf
+    from conda.gateways.disk.delete import rm_rf
     from conda.core.linked_data import linked_data
 
     if not (args.all or args.package_names):

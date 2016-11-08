@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import conda.common.disk
-import errno
 import pytest
 import random
 import shutil
@@ -12,13 +10,14 @@ import sys
 import tempfile
 import unittest
 from conda import install
+from conda.base.constants import FileMode
 from conda.base.context import context
-from conda.common.disk import move_path_to_trash
+from conda.gateways.disk.delete import move_path_to_trash
 from conda.compat import text_type
 from conda.core.package_cache import download
-from conda.install import (FileMode, PaddingError, binary_replace, on_win,
-                           read_no_link, update_prefix, warn_failed_remove, yield_lines,
-                           _PaddingError)
+from conda.gateways.disk.read import yield_lines, read_no_link
+from conda.gateways.disk.update import binary_replace, _PaddingError, update_prefix
+from conda.utils import on_win
 from contextlib import contextmanager
 from os import chdir, getcwd, makedirs
 from os.path import dirname, exists, join, relpath
@@ -187,35 +186,35 @@ class FileTests(unittest.TestCase):
         self.assertFalse(exists(tmp_dir))
 
 
-class remove_readonly_TestCase(unittest.TestCase):
-    def test_takes_three_args(self):
-        with self.assertRaises(TypeError):
-            install.\
-                _remove_readonly()
-
-        with self.assertRaises(TypeError):
-            install._remove_readonly(True)
-
-        with self.assertRaises(TypeError):
-            install._remove_readonly(True, True)
-
-        with self.assertRaises(TypeError):
-            install._remove_readonly(True, True, True, True)
-
-    @skip_if_no_mock
-    def test_calls_os_chmod(self):
-        some_path = generate_random_path()
-        with patch.object(install.os, 'chmod') as chmod:
-            install._remove_readonly(mock.Mock(), some_path, {})
-        chmod.assert_called_with(some_path, stat.S_IWRITE)
-
-    @skip_if_no_mock
-    def test_calls_func(self):
-        some_path = generate_random_path()
-        func = mock.Mock()
-        with patch.object(install.os, 'chmod'):
-            install._remove_readonly(func, some_path, {})
-        func.assert_called_with(some_path)
+# class remove_readonly_TestCase(unittest.TestCase):
+#     def test_takes_three_args(self):
+#         with self.assertRaises(TypeError):
+#             install.\
+#                 _remove_readonly()
+#
+#         with self.assertRaises(TypeError):
+#             install._remove_readonly(True)
+#
+#         with self.assertRaises(TypeError):
+#             install._remove_readonly(True, True)
+#
+#         with self.assertRaises(TypeError):
+#             install._remove_readonly(True, True, True, True)
+#
+#     @skip_if_no_mock
+#     def test_calls_os_chmod(self):
+#         some_path = generate_random_path()
+#         with patch.object(install.os, 'chmod') as chmod:
+#             install._remove_readonly(mock.Mock(), some_path, {})
+#         chmod.assert_called_with(some_path, stat.S_IWRITE)
+#
+#     @skip_if_no_mock
+#     def test_calls_func(self):
+#         some_path = generate_random_path()
+#         func = mock.Mock()
+#         with patch.object(install.os, 'chmod'):
+#             install._remove_readonly(func, some_path, {})
+#         func.assert_called_with(some_path)
 
 
 # class rm_rf_file_and_link_TestCase(unittest.TestCase):

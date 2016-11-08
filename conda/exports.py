@@ -42,7 +42,7 @@ download, rm_fetched, package_cache = download, rm_fetched, package_cache
 from conda.install import prefix_placeholder, rm_rf, symlink_conda  # NOQA
 prefix_placeholder, rm_rf, symlink_conda = prefix_placeholder, rm_rf, symlink_conda
 
-from conda.common.disk import delete_trash, move_to_trash  # NOQA
+from conda.gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
 
 from conda.core.linked_data import is_linked, linked, linked_data  # NOQA

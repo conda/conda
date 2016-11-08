@@ -8,9 +8,9 @@ from logging import getLogger
 from os.path import basename, isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
 
-from ..common.disk import rm_rf
-from ..common.url import quote_plus, unquote_plus
+from .disk.delete import rm_rf
 from .._vendor.appdirs import AppDirs, EnvAppDirs
+from ..common.url import quote_plus, unquote_plus
 
 log = getLogger(__name__)
 

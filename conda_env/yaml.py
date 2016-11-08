@@ -5,7 +5,9 @@ This is based on the answer at http://stackoverflow.com/a/16782282
 """
 from __future__ import absolute_import, print_function
 from collections import OrderedDict
-import yaml
+
+from conda.common.yaml import get_yaml
+yaml = get_yaml()
 
 
 def represent_ordereddict(dumper, data):
