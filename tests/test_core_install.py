@@ -1,6 +1,5 @@
 import pytest
 import unittest
-import re
 
 from conda.base.constants import LinkType, FileMode
 from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
@@ -8,6 +7,12 @@ from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPyth
 from conda.models.dist import Dist
 from conda.models.package_info import PackageInfoContents
 from conda.models.record import Link
+from conda.utils import on_win
+
+try:
+    from unittest.mock import patch, Mock
+except ImportError:
+    from mock import patch, Mock
 
 
 class TestPackageInstaller(unittest.TestCase):
@@ -55,6 +60,44 @@ class TestPackageInstaller(unittest.TestCase):
                            "icondata": "icondata"
                            }
         self.assertEquals(output, expected_output)
+
+
+class TestNoarchPackageInstaller(unittest.TestCase):
+    def setUp(self):
+        self.dist = Dist("channel", "dist_name")
+        files = tuple(["site-packages/test/1", "python-scripts/test/2", "test/path/3",
+                       "menu/test.json"])
+        has_prefix_files = {"site-packages/test/1": ("/opt/anaconda1anaconda2anaconda3",
+                                                     FileMode.text)}
+        no_link = set(["python-scripts/test/2"])
+        soft_links = tuple(["test/path/3"])
+        index_json_records = {"key": "value"}
+        icondata = "icondata"
+        noarch = None
+        self.package_info = PackageInfoContents(files, has_prefix_files, no_link, soft_links,
+                                                index_json_records, icondata, noarch)
+
+    @patch("conda.core.install.NoarchPythonPackageInstaller.get_site_packages_dir",
+           return_value="path/to/site-packages")
+    def test_make_link_operation(self, get_site_packages_dir):
+        noarch_installer = NoarchPythonPackageInstaller("prefix", {}, self.dist)
+        noarch_installer.package_info = self.package_info
+        site_packages_dir = "path/to/site-packages"
+        bin_dir = "prefix/Scripts" if on_win else "prefix/bin"
+
+        output = noarch_installer._make_link_operations(LinkType.soft_link)
+        expected_output = tuple([LinkOperation("site-packages/test/1",
+                                               "%s/test/1" % site_packages_dir, LinkType.copy,
+                                               "/opt/anaconda1anaconda2anaconda3", FileMode.text,
+                                               False),
+                                 LinkOperation("python-scripts/test/2", "%s/test/2" % bin_dir,
+                                               LinkType.copy, "", None, False),
+                                 LinkOperation("test/path/3", "test/path/3", LinkType.copy,
+                                               "", None, False),
+                                 LinkOperation("menu/test.json", "menu/test.json",
+                                               LinkType.soft_link, "", None, True)])
+        self.assertEquals(output, expected_output)
+
 
 # def setup_info_dir(info_dir):
 #     os.mkdir(info_dir)
