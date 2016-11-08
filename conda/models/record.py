@@ -11,9 +11,16 @@ from ..common.compat import string_types
 log = getLogger(__name__)
 
 
+class LinkTypeField(EnumField):
+    def box(self, instance, val):
+        if isinstance(val, string_types):
+            val = val.replace('-', '_')
+        return super(LinkTypeField, self).box(instance, val)
+
+
 class Link(DictSafeMixin, Entity):
     source = StringField()
-    type = EnumField(LinkType, required=False)
+    type = LinkTypeField(LinkType, required=False)
 
 
 EMPTY_LINK = Link(source='')

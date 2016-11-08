@@ -14,7 +14,7 @@ from ... import CondaError, PACKAGE_ROOT
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ..._vendor.auxlib.packaging import call
-from ...base.constants import LinkType
+from ...base.constants import LinkType, UTF8
 from ...base.context import context
 from ...common.path import (get_bin_directory, get_python_path, missing_pyc_files,
                             parse_entry_point_def)
@@ -67,7 +67,10 @@ def write_conda_meta_record(prefix, record):
         makedirs(meta_dir)
     dist = Dist(record)
     with open(join(meta_dir, dist.to_filename('.json')), 'w') as fo:
-        json.dump(record, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+        json_str = json.dumps(record, indent=2, sort_keys=True, cls=EntityEncoder)
+        if hasattr(json_str, 'decode'):
+            json_str = json_str.decode(UTF8)
+        fo.write(json_str)
 
 
 def try_write(dir_path, heavy=False):
