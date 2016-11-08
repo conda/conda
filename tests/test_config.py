@@ -6,6 +6,7 @@
 import os
 import pytest
 import unittest
+from conda.models.channel import Channel
 from contextlib import contextmanager
 from datetime import datetime
 from os.path import join, dirname
@@ -14,8 +15,9 @@ from tempfile import mkstemp, NamedTemporaryFile
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import (reset_context, pkgs_dir_from_envs_dir, context)
+from conda.common.configuration import LoadError
 from conda.common.yaml import yaml_load
-from conda.common.disk import backoff_unlink
+from conda.common.disk import rm_rf
 from tests.helpers import run_conda_command
 
 # use condarc from source tree to run these tests against
@@ -89,8 +91,8 @@ class TestConfig(unittest.TestCase):
     def test_normalize_urls(self):
         context = reset_context([join(dirname(__file__), 'condarc')])
         current_platform = context.subdir
-        assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org/'
-        assert context.channel_alias == 'https://your.repo/'
+        assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org'
+        assert context.channel_alias == Channel('https://your.repo/')
         # assert binstar.channel_prefix(False) == 'https://your.repo/'
         # assert binstar.binstar_domain == 'https://mybinstar.com/'
         # assert binstar.binstar_domain_tok == 'https://mybinstar.com/t/01234abcde/'
@@ -287,12 +289,30 @@ def make_temp_condarc(value=None):
         reset_context([temp_path])
         yield temp_path
     finally:
-        backoff_unlink(temp_path)
+        rm_rf(temp_path)
 
 
 def _read_test_condarc(rc):
     with open(rc) as f:
         return f.read()
+
+
+def test_invalid_config():
+    condarc="""\
+fgddgh
+channels:
+  - test
+"""
+    try:
+        with make_temp_condarc(condarc) as rc:
+            rc_path = rc
+            run_conda_command('config', '--file', rc, '--add',
+                                           'channels', 'test')
+    except LoadError as err:
+        error1 = "Load Error: in "
+        error2 = "on line 1, column 8. Invalid YAML"
+        assert error1 in err.message
+        assert error2 in err.message
 
 # Tests for the conda config command
 # FIXME This shoiuld be multiple individual tests
@@ -373,6 +393,16 @@ channels:
         assert _read_test_condarc(rc) == """\
 always_yes: true
 """
+
+
+def test_config_command_show():
+    # test alphabetical yaml output
+    with make_temp_condarc() as rc:
+        stdout, stderr = run_conda_command('config', '--file', rc, '--show')
+        output_keys = yaml_load(stdout).keys()
+
+        assert stderr == ''
+        assert sorted(output_keys) == [item for item in output_keys]
 
 
 # FIXME Break into multiple tests

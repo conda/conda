@@ -1,9 +1,9 @@
-# (c) 2012# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2016 Continuum Analytics, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import os
@@ -11,12 +11,12 @@ from collections import defaultdict
 from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
 
-from conda import Message
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
+from .. import Message
 from ..base.context import context
-from ..common.disk import backoff_unlink
+from ..common.disk import rm_rf
 from ..exceptions import ArgumentError
-from ..install import rm_rf
+from ..lock import LOCK_EXTENSION
 from ..utils import human_bytes
 
 stdout = logging.getLogger('stdout')
@@ -167,11 +167,8 @@ class CrossPlatformStLink(object):
             cls._st_nlink = cls._windows_st_nlink
 
 
-def find_lock():
+def find_lock(file_ending=LOCK_EXTENSION, extra_path=None):
     from os.path import join
-
-    from conda.lock import LOCK_EXTENSION
-
     lock_dirs = context.pkgs_dirs[:]
     lock_dirs += [context.root_dir]
     for envs_dir in context.envs_dirs:
@@ -186,11 +183,12 @@ def find_lock():
     except ImportError:
         pass
 
+    lock_dirs = lock_dirs + list(extra_path) if extra_path else lock_dirs
     for dir in lock_dirs:
         if not os.path.exists(dir):
             continue
         for dn in os.listdir(dir):
-            if os.path.exists(join(dir, dn)) and dn.endswith(LOCK_EXTENSION):
+            if os.path.exists(join(dir, dn)) and dn.endswith(file_ending):
                 path = join(dir, dn)
                 yield path
 
@@ -271,7 +269,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
                 if verbose:
                     stdout.info(Message('removing_file_message', "Removing %s" % fn,
                                         filename=fn))
-                backoff_unlink(os.path.join(pkgs_dir, fn))
+                    rm_rf(os.path.join(pkgs_dir, fn))
             else:
                 if verbose:
                     stdout.info(Message('cannot_remove_file_permissions_warning',
@@ -388,21 +386,11 @@ def rm_index_cache():
 
 
 def find_source_cache():
-    try:
-        import conda_build.source
-    except ImportError:
-        return {
-            'warnings': ["conda-build is not installed; could not clean source cache"],
-            'cache_dirs': [],
-            'cache_sizes': {},
-            'total_size': 0,
-        }
-
     cache_dirs = {
-        'source cache': conda_build.source.SRC_CACHE,
-        'git cache': conda_build.source.GIT_CACHE,
-        'hg cache': conda_build.source.HG_CACHE,
-        'svn cache': conda_build.source.SVN_CACHE,
+        'source cache': context.src_cache,
+        'git cache': context.git_cache,
+        'hg cache': context.hg_cache,
+        'svn cache': context.svn_cache,
     }
 
     sizes = {}
@@ -469,7 +457,7 @@ def execute(args, parser):
         json_result['lock'] = {
             'files': locks
         }
-        rm_lock(locks, verbose=not args.json)
+        rm_lock(locks, verbose=not context.json)
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
@@ -480,7 +468,7 @@ def execute(args, parser):
             'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
-        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not args.json)
+        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not context.json)
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
@@ -500,7 +488,7 @@ def execute(args, parser):
             'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
         }
         rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
-                verbose=not args.json)
+                verbose=not context.json)
 
     if args.source_cache or args.all:
         json_result['source_cache'] = find_source_cache()

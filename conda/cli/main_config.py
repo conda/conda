@@ -3,24 +3,28 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
+import collections
+import json
 import logging
 import os
 
-from conda import CondaError, Message
-from .common import Completer, add_parser_json
+from .common import (Completer, add_parser_json)
+from .. import CondaError, Message
+from .._vendor.auxlib.compat import isiterable
+from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.type_coercion import boolify
 from ..base.context import context
-from ..common.yaml import yaml_load, yaml_dump
-from ..compat import string_types, iteritems, itervalues
-from ..config import (rc_bool_keys, rc_string_keys, rc_list_keys, sys_rc_path,
-                      user_rc_path, rc_other)
-from ..exceptions import (CondaValueError, CondaKeyError, CouldntParseError)
+from ..common.configuration import pretty_list, pretty_map
+from ..common.yaml import yaml_dump, yaml_load
+from ..compat import iteritems, string_types
+from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
+                      user_rc_path)
+from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
 
 stdout = logging.getLogger('stdout')
 stderr = logging.getLogger('stderr')
-
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -232,53 +236,128 @@ def execute(args, parser):
         raise CondaError(e)
 
 
+def format_dict(d):
+    lines = []
+    for k, v in iteritems(d):
+        if isinstance(v, collections.Mapping):
+            if v:
+                lines.append("%s:" % k)
+                lines.append(pretty_map(v))
+            else:
+                lines.append("%s: {}" % k)
+        elif isiterable(v):
+            if v:
+                lines.append("%s:" % k)
+                lines.append(pretty_list(v))
+            else:
+                lines.append("%s: []" % k)
+        else:
+            lines.append("%s: %s" % (k, v if v is not None else "None"))
+    return lines
+
+
 def execute_config(args, parser):
     json_warnings = []
     json_get = {}
 
     if args.show_sources:
-        lines = []
-        for source, reprs in iteritems(context.collect_all()):
-            lines.append("==> %s <==" % source)
-            lines.extend(itervalues(reprs))
-            lines.append('')
-
-        stdout.info(Message('show_context_sources_linebyline', '\n'.join(lines),
-                            sources=lines))
+# <<<<<<< HEAD
+#         lines = []
+#         for source, reprs in iteritems(context.collect_all()):
+#             lines.append("==> %s <==" % source)
+#             lines.extend(itervalues(reprs))
+#             lines.append('')
+#
+#         stdout.info(Message('show_context_sources_linebyline', '\n'.join(lines),
+#                             sources=lines))
+#         return
+#
+#     if args.show:
+#         d = dict((key, getattr(context, key))
+#                  for key in ('add_anaconda_token',
+#                              'add_pip_as_python_dependency',
+#                              'allow_softlinks',
+#                              'always_copy',
+#                              'always_yes',
+#                              'binstar_upload',
+#                              'auto_update_conda',
+#                              'changeps1',
+#                              'channel_alias',
+#                              'channel_priority',
+#                              'channels',
+#                              'create_default_packages',
+#                              'debug',
+#                              'default_channels',
+#                              'disallow',
+#                              'json',
+#                              'offline',
+#                              'proxy_servers',
+#                              'quiet',
+#                              'shortcuts',
+#                              'show_channel_urls',
+#                              'ssl_verify',
+#                              'track_features',
+#                              'update_dependencies',
+#                              'use_pip',
+#                              'verbosity',
+#                              ))
+#         stdout.info(Message('show_all_context_args_yaml', yaml_dump(d),
+#                             context_args_dict=d))
+#
+# =======
+        if context.json:
+            print(json.dumps(context.collect_all(), sort_keys=True,
+                             indent=2, separators=(',', ': ')))
+        else:
+            lines = []
+            for source, reprs in iteritems(context.collect_all()):
+                lines.append("==> %s <==" % source)
+                lines.extend(format_dict(reprs))
+                lines.append('')
+            stdout.info(Message('show_context_sources_linebyline', '\n'.join(lines),
+                                sources=lines))
         return
 
     if args.show:
-        d = dict((key, getattr(context, key))
-                 for key in ('add_anaconda_token',
-                             'add_pip_as_python_dependency',
-                             'allow_softlinks',
-                             'always_copy',
-                             'always_yes',
-                             'binstar_upload',
-                             'auto_update_conda',
-                             'changeps1',
-                             'channel_alias',
-                             'channel_priority',
-                             'channels',
-                             'create_default_packages',
-                             'debug',
-                             'default_channels',
-                             'disallow',
-                             'json',
-                             'offline',
-                             'proxy_servers',
-                             'quiet',
-                             'shortcuts',
-                             'show_channel_urls',
-                             'ssl_verify',
-                             'track_features',
-                             'update_dependencies',
-                             'use_pip',
-                             'verbosity',
-                             ))
-        stdout.info(Message('show_all_context_args_yaml', yaml_dump(d),
-                            context_args_dict=d))
-
+        from collections import OrderedDict
+        d = OrderedDict((key, getattr(context, key))
+                        for key in sorted(('add_anaconda_token',
+                                           'add_pip_as_python_dependency',
+                                           'allow_softlinks',
+                                           'always_copy',
+                                           'always_yes',
+                                           'auto_update_conda',
+                                           'binstar_upload',
+                                           'changeps1',
+                                           'channel_alias',
+                                           'channel_priority',
+                                           'channels',
+                                           'client_ssl_cert',
+                                           'client_ssl_cert_key',
+                                           'create_default_packages',
+                                           'debug',
+                                           'default_channels',
+                                           'disallow',
+                                           'envs_dirs',
+                                           'json',
+                                           'offline',
+                                           'proxy_servers',
+                                           'quiet',
+                                           'shortcuts',
+                                           'show_channel_urls',
+                                           'ssl_verify',
+                                           'track_features',
+                                           'update_dependencies',
+                                           'use_pip',
+                                           'verbosity',
+                                           )))
+        if context.json:
+            print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
+                  cls=EntityEncoder))
+        else:
+            stdout.info(Message('show_all_context_args_yaml', '\n'.join(format_dict(d)),
+                                context_args_dict=d))
+        context.validate_configuration()
         return
 
     if args.validate:

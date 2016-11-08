@@ -4,14 +4,15 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 """OS-agnostic, system-level binary package manager."""
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import sys
-from logging import basicConfig, INFO
+from json import dumps
 
+from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.packaging import get_version
-from .compat import text_type, iteritems
+from .compat import iteritems, text_type
 from .gateways.logging import initialize_logging
 
 __all__ = [
@@ -51,6 +52,7 @@ class CondaError(Exception):
         result.update(exception_type=text_type(type(self)),
                       exception_name=self.__class__.__name__,
                       message=text_type(self),
+                      error=repr(self),
                       **self._kwargs)
         return result
 
@@ -70,7 +72,13 @@ class CondaMultiError(CondaError):
     def dump_map(self):
         return dict(exception_type=text_type(type(self)),
                     exception_name=self.__class__.__name__,
-                    errors=tuple(error.dump_map() for error in self.errors))
+                    errors=tuple(error.dump_map() for error in self.errors),
+                    error="Multiple Errors Encountered.",
+                    )
+
+
+class CondaExitZero(CondaError):
+    pass
 
 
 class Message(object):
@@ -92,9 +100,5 @@ class Message(object):
             return self.message
 
     def to_json(self):
-        from json import dumps
-        return dumps(dict(message_name=self._message_name, message=self.message,
-                          **self._kwargs), indent=2)
-
-
-basicConfig(level=INFO)
+        return dumps(dict(message_name=self._message_name, message=self.message, **self._kwargs),
+                     indent=2, cls=EntityEncoder, separators=(',', ': '), sort_keys=True)

@@ -6,8 +6,9 @@ from tempfile import mktemp
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.exceptions import CondaRuntimeError, CondaHTTPError
-from conda.fetch import fetch_repodata, TmpDownload, download
-
+from conda.fetch import TmpDownload
+from conda.core.index import fetch_repodata
+from conda.core.package_cache import download
 
 
 class TestFetchRepoData(unittest.TestCase):

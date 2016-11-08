@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import sys
-from conda._vendor.auxlib.path import expand
+from collections import Sequence
 from itertools import chain
 from logging import getLogger
 from os.path import abspath, basename, dirname, expanduser, isdir, join
@@ -11,70 +11,86 @@ from platform import machine
 
 from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda
 from .._vendor.auxlib.compat import NoneType, string_types
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
-from .._vendor.toolz.itertoolz import concatv
-from ..common.configuration import (Configuration, MapParameter, PrimitiveParameter,
-                                    SequenceParameter)
-from ..common.url import urlparse
+from .._vendor.auxlib.path import expand
+from ..common.compat import iteritems, odict
+from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
+                                    SequenceParameter, ValidationError)
+from ..common.disk import try_write, conda_bld_ensure_dir
+from ..common.url import has_scheme, path_to_url, split_scheme_auth_token, urlparse
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
+
+try:
+    from cytoolz.itertoolz import concat, concatv
+except ImportError:
+    from .._vendor.toolz.itertoolz import concat, concatv
 
 log = getLogger(__name__)
 
+try:
+    import cio_test  # NOQA
+except ImportError:
+    log.info("No cio_test package found.")
 
-default_python = '%d.%d' % sys.version_info[:2]
-# CONDA_FORCE_32BIT should only be used when running conda-build (in order
-# to build 32-bit packages on a 64-bit system).  We don't want to mention it
-# in the documentation, because it can mess up a lot of things.
-force_32bit = bool(int(os.getenv('CONDA_FORCE_32BIT', 0)))
-
-# ----- operating system and architecture -----
-
-_sys_map = {
+_platform_map = {
     'linux2': 'linux',
     'linux': 'linux',
     'darwin': 'osx',
     'win32': 'win',
-    'openbsd5': 'openbsd',
 }
-non_x86_linux_machines = {'armv6l', 'armv7l', 'ppc64le'}
-platform = _sys_map.get(sys.platform, 'unknown')
-bits = 8 * tuple.__itemsize__
-if force_32bit:
-    bits = 32
+non_x86_linux_machines = {
+    'armv6l',
+    'armv7l',
+    'ppc64le',
+}
+_arch_names = {
+    32: 'x86',
+    64: 'x86_64',
+}
 
-if platform == 'linux' and machine() in non_x86_linux_machines:
-    arch_name = machine()
-    subdir = 'linux-%s' % arch_name
-else:
-    arch_name = {64: 'x86_64', 32: 'x86'}[bits]
-    subdir = '%s-%d' % (platform, bits)
+
+def channel_alias_validation(value):
+    if value and not has_scheme(value):
+        return "channel_alias value '%s' must have scheme/protocol." % value
+    return True
 
 
 class Context(Configuration):
 
-    arch_name = property(lambda self: arch_name)
-    bits = property(lambda self: bits)
-    default_python = property(lambda self: default_python)
-    platform = property(lambda self: platform)
-    subdir = property(lambda self: subdir)
-
-    add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     changeps1 = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
-    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
+    force_32bit = PrimitiveParameter(False)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
-    proxy_servers = MapParameter(string_types)
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
 
+    # connection details
+    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
+    client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
+    client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
+    proxy_servers = MapParameter(string_types)
+
+    add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
+    _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
+                                        aliases=('channel_alias',),
+                                        validation=channel_alias_validation)
+    http_connect_timeout_secs = PrimitiveParameter(6.1)
+    http_read_timeout_secs = PrimitiveParameter(60.)
+
     # channels
-    channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS)
     channels = SequenceParameter(string_types, default=('defaults',))
-    default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS)
+    _migrated_channel_aliases = SequenceParameter(string_types,
+                                                  aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
+    _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
+                                          aliases=('default_channels',))
+    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
+    _custom_multichannels = MapParameter(Sequence, aliases=('custom_multichannels',))
 
     # command line
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -94,19 +110,100 @@ class Context(Configuration):
     bld_path = PrimitiveParameter('')
     binstar_upload = PrimitiveParameter(None, aliases=('anaconda_upload',),
                                         parameter_type=(bool, NoneType))
+    _croot = PrimitiveParameter('', aliases=('croot',))
+    conda_build = MapParameter(string_types, aliases=('conda-build',))
 
     @property
-    def local_build_root(self):
-        if self.bld_path:
-            return expand(self.bld_path)
+    def croot(self):
+        """This is where source caches and work folders live"""
+        if self._croot:
+            return abspath(expanduser(self._croot))
+        elif self.bld_path:
+            return abspath(expanduser(self.bld_path))
+        elif 'root-dir' in self.conda_build:
+            return abspath(expanduser(self.conda_build['root-dir']))
         elif self.root_writable:
             return join(self.root_dir, 'conda-bld')
         else:
-            return expand('~/conda-bld')
+            return abspath(expanduser('~/conda-bld'))
 
     @property
-    def force_32bit(self):
-        return False
+    def src_cache(self):
+        path = join(self.croot, 'src_cache')
+        conda_bld_ensure_dir(path)
+        return path
+
+    @property
+    def git_cache(self):
+        path = join(self.croot, 'git_cache')
+        conda_bld_ensure_dir(path)
+        return path
+
+    @property
+    def hg_cache(self):
+        path = join(self.croot, 'hg_cache')
+        conda_bld_ensure_dir(path)
+        return path
+
+    @property
+    def svn_cache(self):
+        path = join(self.croot, 'svn_cache')
+        conda_bld_ensure_dir(path)
+        return path
+
+    def post_build_validation(self):
+        errors = []
+        if self.client_ssl_cert_key and not self.client_ssl_cert:
+            error = ValidationError('client_ssl_cert', self.client_ssl_cert, "<<merged>>",
+                                    "'client_ssl_cert' is required when 'client_ssl_cert_key' "
+                                    "is defined")
+            errors.append(error)
+        return errors
+
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
+                                   string_delimiter=os.pathsep)
+
+    @property
+    def default_python(self):
+        ver = sys.version_info
+        return '%d.%d' % (ver.major, ver.minor)
+
+    @property
+    def arch_name(self):
+        m = machine()
+        if self.platform == 'linux' and m in non_x86_linux_machines:
+            return m
+        else:
+            return _arch_names[self.bits]
+
+    @property
+    def platform(self):
+        return _platform_map.get(sys.platform, 'unknown')
+
+    @property
+    def subdir(self):
+        m = machine()
+        if m in non_x86_linux_machines:
+            return 'linux-%s' % m
+        else:
+            return '%s-%d' % (self.platform, self.bits)
+
+    @property
+    def bits(self):
+        if self.force_32bit:
+            return 32
+        else:
+            return 8 * tuple.__itemsize__
+
+    @property
+    def local_build_root(self):
+        # TODO: import from conda_build, and fall back to something incredibly simple
+        if self.bld_path:
+            return expand(self.bld_path)
+        elif self.root_writable:
+            return join(self.conda_prefix, 'conda-bld')
+        else:
+            return expand('~/conda-bld')
 
     @property
     def root_dir(self):
@@ -116,10 +213,7 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from conda.common.disk import try_write
         return try_write(self.root_dir)
-
-    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
 
     @property
     def envs_dirs(self):
@@ -176,18 +270,61 @@ class Context(Configuration):
     def conda_prefix(self):
         return sys.prefix
 
+    @memoizedproperty
+    def channel_alias(self):
+        from ..models.channel import Channel
+        location, scheme, auth, token = split_scheme_auth_token(self._channel_alias)
+        return Channel(scheme=scheme, auth=auth, location=location, token=token)
+
     @property
-    def binstar_hosts(self):
-        return (urlparse(self.channel_alias).hostname,
-                'anaconda.org',
-                'binstar.org')
+    def migrated_channel_aliases(self):
+        from ..models.channel import Channel
+        return tuple(Channel(scheme=scheme, auth=auth, location=location, token=token)
+                     for location, scheme, auth, token in
+                     (split_scheme_auth_token(c) for c in self._migrated_channel_aliases))
+
+    @memoizedproperty
+    def default_channels(self):
+        # the format for 'default_channels' is a list of strings that either
+        #   - start with a scheme
+        #   - are meant to be prepended with channel_alias
+        from ..models.channel import Channel
+        return tuple(Channel.make_simple_channel(self.channel_alias, v)
+                     for v in self._default_channels)
+
+    @memoizedproperty
+    def local_build_root_channel(self):
+        from ..models.channel import Channel
+        url_parts = urlparse(path_to_url(self.local_build_root))
+        location, name = url_parts.path.rsplit('/', 1)
+        if not location:
+            location = '/'
+        return Channel(scheme=url_parts.scheme, location=location, name=name)
+
+    @memoizedproperty
+    def custom_multichannels(self):
+        from ..models.channel import Channel
+        default_custom_multichannels = {
+            'defaults': self.default_channels,
+            'local': (self.local_build_root_channel,),
+        }
+        all_channels = default_custom_multichannels, self._custom_multichannels
+        return odict((name, tuple(Channel(v) for v in c))
+                     for name, c in concat(map(iteritems, all_channels)))
+
+    @memoizedproperty
+    def custom_channels(self):
+        from ..models.channel import Channel
+        custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
+                           for name, url in iteritems(self._custom_channels))
+        all_sources = self.default_channels, (self.local_build_root_channel,), custom_channels
+        all_channels = (ch for ch in concat(all_sources))
+        return odict((x.name, x) for x in all_channels)
 
 
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda'
     return basename(sys.prefix) == '_conda' and basename(dirname(sys.prefix)) == 'envs'
-
-context = Context(SEARCH_PATH, conda, None)
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
@@ -236,6 +373,15 @@ def get_help_dict():
         'ssl_verify': dals("""
             # ssl_verify can be a boolean value or a filename string
             """),
+        'client_ssl_cert': dals("""
+            # client_ssl_cert can be a path pointing to a single file
+            # containing the private key and the certificate (e.g. .pem),
+            # or use 'client_ssl_cert_key' in conjuction with 'client_ssl_cert' for
+            # individual files
+            """),
+        'client_ssl_cert_key': dals("""
+            # used in conjunction with 'client_ssl_cert' for a matching key file
+            """),
         'track_features': dals("""
             """),
         'channels': dals("""
@@ -252,6 +398,11 @@ def get_help_dict():
             """),
         'proxy_servers': dals("""
             """),
+        'force_32bit': dals("""
+            CONDA_FORCE_32BIT should only be used when running conda-build (in order
+            to build 32-bit packages on a 64-bit system).  We don't want to mention it
+            in the documentation, because it can mess up a lot of things.
+        """)
     }
 
 
@@ -319,3 +470,10 @@ def inroot_notwritable(prefix):
     """
     return (abspath(prefix).startswith(context.root_dir) and
             not context.root_writable)
+
+try:
+    context = Context(SEARCH_PATH, conda, None)
+except LoadError as e:
+    print(e, file=sys.stderr)
+    # Exception handler isn't loaded so use sys.exit
+    sys.exit(1)

@@ -1,20 +1,23 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
-import logging
+import json
 import os
 import re
 import sys
 import time
 import warnings
+from logging import getLogger
 from os.path import isdir, isfile, join
 
-from conda import Message
-from .install import linked, dist2quad
-from .exceptions import CondaHistoryError, CondaFileIOError
+from . import Message
+from .base.constants import DEFAULTS
+from .core.linked_data import linked
+from .exceptions import CondaFileIOError, CondaHistoryError
+from .models.dist import Dist
 
-log = logging.getLogger(__name__)
-stdout = logging.getLogger('stdout')
+log = getLogger(__name__)
+stdout = getLogger('stdout')
 
 
 class CondaHistoryWarning(Warning):
@@ -35,8 +38,9 @@ def pretty_diff(diff):
     removed = {}
     for s in diff:
         fn = s[1:]
-        name, version, _, channel = dist2quad(fn)
-        if channel != 'defaults':
+        dist = Dist(fn)
+        name, version, _, channel = dist.quad
+        if channel != DEFAULTS:
             version += ' (%s)' % channel
         if s.startswith('-'):
             removed[name.lower()] = version
@@ -155,7 +159,7 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    item['specs'] = eval(specs)
+                    item['specs'] = json.loads(specs.replace("'", '"'))
             if 'cmd' in item:
                 res.append(item)
         return res
@@ -218,7 +222,7 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    name, version, build, channel = dist2quad(pkg[1:])
+                    name, version, build, channel = Dist(pkg[1:]).quad
                     if pkg.startswith('+'):
                         added[name.lower()] = (version, build, channel)
                     elif pkg.startswith('-'):

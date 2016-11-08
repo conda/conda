@@ -4,23 +4,25 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
 import re
 from argparse import RawDescriptionHelpFormatter
+from logging import getLogger
 from os.path import isdir, isfile
 
-from conda import Message
-from .common import (add_parser_help, add_parser_prefix, add_parser_json,
+from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features)
-from ..base.context import context, subdir
+from .. import Message
+from ..base.constants import DEFAULTS
+from ..base.context import context
+from ..core.linked_data import is_linked, linked, linked_data
 from ..egg_info import get_egg_info
-from ..exceptions import (CondaEnvironmentNotFoundError, CondaFileNotFoundError,
-                          CondaEnvironmentError)
-from ..install import dist2quad, is_linked, linked, linked_data, name_dist
+from ..exceptions import (CondaEnvironmentError, CondaEnvironmentNotFoundError,
+                          CondaFileNotFoundError)
 
-stdout = logging.getLogger('stdout')
+stdout = getLogger('stdout')
+log = getLogger(__name__)
 
 descr = "List linked packages in a conda environment."
 
@@ -45,7 +47,6 @@ Reinstall packages from an export file:
     conda create -n myenv --file package-list.txt
 
 """
-log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -110,7 +111,7 @@ def configure_parser(sub_parsers):
 def get_export_header_pieces():
     return ('# This file may be used to create an environment using:',
             '# $ conda create --name <env> --file <this file>',
-            '# platform: %s' % subdir
+            '# platform: %s' % context.subdir
             )
 
 
@@ -120,8 +121,8 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: name_dist(x).lower()):
-        name = name_dist(dist)
+    for dist in sorted(installed, key=lambda x: x.quad[0].lower()):
+        name = dist.quad[0]
         if pat and pat.search(name) is None:
             continue
 
@@ -137,7 +138,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist2quad(dist)[:3]))
+            result.append('='.join(dist.quad[:3]))
             continue
 
         try:
@@ -147,12 +148,12 @@ def list_packages(prefix, installed, regex=None, format='human',
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')
-            if show_channel_urls or show_channel_urls is None and schannel != 'defaults':
+            if show_channel_urls or show_channel_urls is None and schannel != DEFAULTS:
                 disp += '  %s' % schannel
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug("exception for dist %s:\n%r", dist, e)
-            result.append('%-25s %-15s %15s' % dist2quad(dist)[:3])
+            result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
 
     return res, result
 
@@ -235,7 +236,6 @@ def print_explicit(prefix, add_md5=False):
 
 def execute(args, parser):
     prefix = context.prefix_w_legacy_search
-
     regex = args.regex
     if args.full_name:
         regex = r'^%s$' % regex
@@ -245,7 +245,7 @@ def execute(args, parser):
 
         h = History(prefix)
         if isfile(h.path):
-            if not args.json:
+            if not context.json:
                 h.print_log()
             else:
                 stdout.info(Message('history_log_printout', '', log=h.object_log()))
@@ -260,15 +260,13 @@ def execute(args, parser):
     if args.canonical:
         format = 'canonical'
     elif args.export:
-        print_explicit(prefix, args.md5)
-        return
+        format = 'export'
     else:
         format = 'human'
-
-    if args.json:
+    if context.json:
         format = 'canonical'
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
-                              json=args.json,
-                              show_channel_urls=args.show_channel_urls)
+                              json=context.json,
+                              show_channel_urls=context.show_channel_urls)
     return exitcode
