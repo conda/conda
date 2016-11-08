@@ -219,5 +219,6 @@ def compile_missing_pyc(prefix, python_major_minor_version, files):
     python_exe = get_python_path(prefix)
     result = call("%s -Wi -m py_compile %s" % (python_exe, ' '.join(f[0] for f in py_pyc_files)))
     # TODO, make sure `result` is a list of files created
-    import pdb; pdb.set_trace()
+    import pdb
+    pdb.set_trace()
     return result
