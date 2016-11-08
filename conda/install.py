@@ -24,9 +24,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import functools
 import logging
 import os
-import stat
 from errno import EACCES, EEXIST, EPERM, EROFS
-from os import chmod, makedirs
+from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
 
 from .base.constants import PREFIX_PLACEHOLDER
