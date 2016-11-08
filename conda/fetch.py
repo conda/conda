@@ -16,6 +16,7 @@ import warnings
 from functools import wraps
 from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
+from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.connectionpool import InsecureRequestWarning
 from warnings import warn
 
@@ -139,8 +140,9 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     except ValueError as e:
         raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
+    except (ConnectionError, HTTPError, SSLError) as e:
+        status_code = getattr(e.response, 'status_code', None)
+        if status_code == 404:
             if url.endswith('/noarch'):  # noarch directory might not exist
                 return None
 
@@ -152,7 +154,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             Further configuration help can be found at <%s>.
             """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
-        elif e.response.status_code == 403:
+        elif status_code == 403:
             if url.endswith('/noarch'):
                 return None
             else:
@@ -164,7 +166,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 Further configuration help can be found at <%s>.
                 """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
-        elif e.response.status_code == 401:
+        elif status_code == 401:
             channel = Channel(url)
             if channel.token:
                 help_message = dals("""
@@ -203,7 +205,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 Further configuration help can be found at <%s>.
                 """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
-        elif 500 <= e.response.status_code < 600:
+        elif 500 <= status_code < 600:
             help_message = dals("""
             An remote server error occurred when trying to retrieve this URL.
 
@@ -214,24 +216,11 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             """)
 
         else:
-            help_message = "An HTTP error occurred when trying to retrieve this URL."
+            help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
 
-        raise CondaHTTPError(help_message, e.response.url, e.response.status_code,
-                             e.response.reason)
+        raise CondaHTTPError(help_message, e.response and e.response.url, status_code,
+                             e.response and e.response.reason)
 
-    except requests.exceptions.SSLError as e:
-        msg = "SSL Error: %s\n" % e
-        stderrlog.info("SSL verification error: %s\n" % e)
-        log.debug(msg)
-
-    except requests.exceptions.ConnectionError as e:
-        msg = "Connection error: %s: %s\n" % (e, url)
-        stderrlog.info('Could not connect to %s\n' % url)
-        log.debug(msg)
-        if fail_unknown_host:
-            raise CondaRuntimeError(msg)
-
-        raise CondaRuntimeError(msg)
     cache['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
