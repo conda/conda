@@ -145,6 +145,13 @@ class FileMode(Enum):
         return "%s" % self.value
 
 
+class FileType(Enum):
+    regular = 'regular'
+    softlink = 'softlink'
+    hardlink = 'hardlink'
+    directory = 'directory'
+
+
 LINK_HARD = 1
 LINK_SOFT = 2
 LINK_COPY = 3
@@ -224,6 +231,23 @@ def read_has_prefix(path):
             raise RuntimeError("Invalid has_prefix file at path: %s" % path)
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
+
+
+def read_files(package_directory):
+    info_files_path = join(package_directory, 'info', 'files')
+    ParseResult = namedtuple('ParseResult', ('filepath', 'hash', 'bytes', 'type'))
+
+    def parse_line(line):
+        # 'filepath', 'hash', 'bytes', 'type'
+        parts = line.split(',')
+        if len(parts) == 4:
+            return ParseResult(*parts)
+        elif len(parts) == 1:
+            return ParseResult(parts[0], None, None, None)
+        else:
+            raise RuntimeError("Invalid files at path: %s" % info_files_path)
+
+    return tuple(parse_line(line) for line in yield_lines(info_files_path))
 
 
 class _PaddingError(Exception):
@@ -515,7 +539,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         raise LinkError('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
-    files = list(yield_lines(join(info_dir, 'files')))
+    files = [f[0] for f in read_files(source_dir)]
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
 
