@@ -161,7 +161,7 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
 
     for root, dirs, files in walk(dirpath, topdown=False):
         for file in files:
-            backoff_unlink(join(root, file))
+            backoff_unlink(join(root, file), max_tries=max_tries)
         for dir in dirs:
             _rmdir(join(root, dir))
 

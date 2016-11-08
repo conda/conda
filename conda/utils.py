@@ -6,6 +6,7 @@ import logging
 import re
 import sys
 import threading
+from conda.base.constants import UTF8
 from functools import partial
 
 from .common.url import path_to_url
@@ -85,7 +86,11 @@ def gnu_get_libc_version():
     libc = CDLL('libc.so.6')
     f = libc.gnu_get_libc_version
     f.restype = c_char_p
-    return f()
+
+    result = f()
+    if hasattr(result, 'decode'):
+        result = result.decode(UTF8)
+    return result
 
 
 def hashsum_file(path, mode='md5'):

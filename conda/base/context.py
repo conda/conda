@@ -298,7 +298,6 @@ class Context(Configuration):
         location, name = url_parts.path.rsplit('/', 1)
         if not location:
             location = '/'
-        assert name == 'conda-bld'
         return Channel(scheme=url_parts.scheme, location=location, name=name)
 
     @memoizedproperty

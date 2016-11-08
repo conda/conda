@@ -74,9 +74,14 @@ def _get_channel_for_name(channel_name):
 def _read_channel_configuration(scheme, host, port, path):
     # return location, name, scheme, auth, token
 
-    test_url = Url(host=host, port=port, path=path).url.rstrip('/')
+    path = path and path.rstrip('/')
+    test_url = Url(host=host, port=port, path=path).url
 
-    # Step 1. migrated_custom_channels matches
+    # Step 1. No path given; channel name is None
+    if not path:
+        return Url(host=host, port=port).url.rstrip('/'), None, scheme or None, None, None
+
+    # Step 2. migrated_custom_channels matches
     for name, location in sorted(context.migrated_custom_channels.items(), reverse=True,
                                  key=lambda x: len(x[0])):
         location, _scheme, _auth, _token = split_scheme_auth_token(location)
@@ -87,14 +92,14 @@ def _read_channel_configuration(scheme, host, port, path):
             channel = _get_channel_for_name(channel_name)
             return channel.location, channel_name, channel.scheme, channel.auth, channel.token
 
-    # Step 2. migrated_channel_aliases matches
+    # Step 3. migrated_channel_aliases matches
     for migrated_alias in context.migrated_channel_aliases:
         if test_url.startswith(migrated_alias.location):
             name = test_url.replace(migrated_alias.location, '', 1).strip('/')
             ca = context.channel_alias
             return ca.location, name, ca.scheme, ca.auth, ca.token
 
-    # Step 3. custom_channels matches
+    # Step 4. custom_channels matches
     for name, channel in sorted(context.custom_channels.items(), reverse=True,
                                 key=lambda x: len(x[0])):
         that_test_url = join_url(channel.location, channel.name)
@@ -103,13 +108,13 @@ def _read_channel_configuration(scheme, host, port, path):
             return (channel.location, join_url(channel.name, subname), scheme,
                     channel.auth, channel.token)
 
-    # Step 4. channel_alias match
+    # Step 5. channel_alias match
     ca = context.channel_alias
     if ca.location and test_url.startswith(ca.location):
         name = test_url.replace(ca.location, '', 1).strip('/') or None
         return ca.location, name, scheme, ca.auth, ca.token
 
-    # Step 5. not-otherwise-specified file://-type urls
+    # Step 6. not-otherwise-specified file://-type urls
     if host is None:
         # this should probably only happen with a file:// type url
         assert port is None
@@ -119,7 +124,7 @@ def _read_channel_configuration(scheme, host, port, path):
         _scheme, _auth, _token = 'file', None, None
         return location, name, _scheme, _auth, _token
 
-    # Step 6. fall through to host:port as channel_location and path as channel_name
+    # Step 7. fall through to host:port as channel_location and path as channel_name
     return (Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None,
             scheme or None, None, None)
 
@@ -251,7 +256,7 @@ class Channel(object):
                     return multiname
 
         for that_name in context.custom_channels:
-            if tokenized_startswith(self.name.split('/'), that_name.split('/')):
+            if self.name and tokenized_startswith(self.name.split('/'), that_name.split('/')):
                 return self.name
 
         if any(c.location == self.location
@@ -260,7 +265,7 @@ class Channel(object):
 
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
-        return "%s://%s/%s" % (self.scheme, self.location, self.name)
+        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
     def urls(self, with_credentials=False, platform=None):
         base = [self.location]
