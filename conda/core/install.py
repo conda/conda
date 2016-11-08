@@ -227,7 +227,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
         for entry_point in entry_points:
             entry_point_paths.extend(create_entry_point(entry_point, self.prefix))
 
-        return sorted(dest_short_paths, extra_pyc_paths, entry_point_paths)
+        return sorted(concatv(dest_short_paths, extra_pyc_paths, entry_point_paths))
 
     @staticmethod
     def get_site_packages_dir(prefix):
