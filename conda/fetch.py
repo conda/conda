@@ -113,7 +113,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     try:
         resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                           timeout=(3.05, 60))
+                           timeout=(6.1, 60))
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp))
         resp.raise_for_status()
@@ -401,7 +401,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     with FileLock(dst_path):
         rm_rf(dst_path)
         try:
-            resp = session.get(url, stream=True, proxies=session.proxies, timeout=(3.05, 27))
+            resp = session.get(url, stream=True, proxies=session.proxies, timeout=(6.1, 60))
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             msg = "HTTPError: %s: %s\n" % (e, url)
