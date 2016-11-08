@@ -4,18 +4,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import shutil
 import traceback
-from conda._vendor.auxlib.ish import dals
-from conda._vendor.auxlib.packaging import call
-from conda.common.path import missing_pyc_files
 from errno import EEXIST
+from io import open
 from logging import getLogger
-from os import W_OK, access, getpid, link as os_link, makedirs, readlink, symlink
+from os import W_OK, access, chmod, getpid, link as os_link, makedirs, readlink, symlink
 from os.path import basename, exists, isdir, isfile, islink, join
 
-from ... import CondaError
+from ... import CondaError, PACKAGE_ROOT
 from ..._vendor.auxlib.entity import EntityEncoder
+from ..._vendor.auxlib.ish import dals
+from ..._vendor.auxlib.packaging import call
 from ...base.constants import LinkType
 from ...base.context import context
+from ...common.path import get_bin_directory, missing_pyc_files, parse_entry_point_def
 from ...exceptions import ClobberError, CondaOSError
 from ...gateways.disk.delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
@@ -26,17 +27,37 @@ stdoutlog = getLogger('stdoutlog')
 
 
 entry_point_template = dals("""
-#!(python_exe)s
 # -*- coding: utf-8 -*-
-import re
-import sys
-
-from %(module)s import %(func)s
-
 if __name__ == '__main__':
-    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
-    sys.exit(%(func)s())
+    from sys import exit
+    from %(module)s import %(func)s
+    exit(%(func)s())
 """)
+
+
+def create_entry_point(entry_point_def, prefix):
+    # returns a list of file paths created
+    command, module, func = parse_entry_point_def(entry_point_def)
+    ep_path = join(get_bin_directory(prefix), command)
+
+    pyscript = entry_point_template % {'module': module, 'func': func}
+
+    if on_win:
+        # create -script.py
+        with open(ep_path + '-script.py', 'w') as fo:
+            fo.write(pyscript)
+
+        # link cli-XX.exe
+        link(join(PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits), ep_path + '.exe')
+        return [ep_path + '-script.py', ep_path + '.exe']
+    else:
+        # create py file
+        with open(ep_path, 'w') as fo:
+            fo.write('#!%s\n' % join(get_bin_directory(prefix), 'python'))
+            fo.write(pyscript)
+        chmod(ep_path, 0o755)
+        return [ep_path]
+
 
 def write_conda_meta_record(prefix, record):
     # write into <env>/conda-meta/<dist>.json

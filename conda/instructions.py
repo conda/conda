@@ -4,7 +4,7 @@ from logging import getLogger
 
 from .base.constants import LinkType
 from .base.context import context
-from .core.install import PackageInstaller
+from .core.install import get_package_installer
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .install import symlink_conda, unlink
 from .models.dist import Dist
@@ -82,7 +82,8 @@ def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
     dist, lt = Dist(dist), LinkType.make(lt)
     log.debug("=======> LINKING %s <=======", dist)
-    PackageInstaller(state['prefix'], state['index'], dist).link(lt)
+    installer = get_package_installer(state['prefix'], state['index'], dist)
+    installer.link(lt)
 
 
 def UNLINK_CMD(state, arg):

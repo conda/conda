@@ -5,13 +5,14 @@ import json
 import shlex
 from base64 import b64encode
 from collections import namedtuple
-from conda.models.record import Record
 from errno import ENOENT
 from itertools import chain
 from logging import getLogger
 from os.path import isfile, islink, join
 
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
+from ...models.package_info import PackageInfoContents
+from ...models.record import Record
 
 log = getLogger(__name__)
 
@@ -38,11 +39,6 @@ def yield_lines(path):
             raise StopIteration
         else:
             raise
-
-
-PackageInfoContents = namedtuple('PackageInfoContents',
-                                 ('files', 'has_prefix_files', 'no_link', 'soft_links',
-                                  'index_json_record', 'icondata', 'noarch'))
 
 
 def collect_all_info_for_package(extracted_package_directory):

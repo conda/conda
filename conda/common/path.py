@@ -3,7 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 from logging import getLogger
-from os.path import dirname, basename
+from os.path import basename, dirname, join
+
+from ..utils import on_win
 
 log = getLogger(__name__)
 
@@ -58,3 +60,9 @@ def parse_entry_point_def(ep_definition):
     return command, module, func
 
 
+def get_python_path(prefix):
+    return join(prefix, "python.exe") if on_win else join(prefix, "bin", "python")
+
+
+def get_bin_directory(prefix):
+    return join(prefix, 'Scripts') if on_win else join(prefix, 'bin')

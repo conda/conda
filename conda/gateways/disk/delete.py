@@ -8,7 +8,7 @@ from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from uuid import uuid4
 
-from . import exp_backoff_fn, MAX_TRIES
+from . import MAX_TRIES, exp_backoff_fn
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import text_type

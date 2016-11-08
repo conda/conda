@@ -13,11 +13,11 @@ from subprocess import CalledProcessError, check_call
 from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import get_leaf_directories
-from ..core.linked_data import set_linked_data, get_python_version_for_prefix
+from ..common.path import get_bin_directory, get_leaf_directories
+from ..core.linked_data import get_python_version_for_prefix, set_linked_data
 from ..exceptions import CondaOSError, LinkError, PaddingError
-from ..gateways.disk.create import link as create_link, make_menu, mkdir_p, write_conda_meta_record, \
-    compile_missing_pyc
+from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, link as create_link,
+                                    make_menu, mkdir_p, write_conda_meta_record)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
@@ -37,12 +37,22 @@ LinkOperation = namedtuple('LinkOperation',
                             'prefix_placeholder', 'file_mode', 'is_menu_file'))
 
 
+def get_package_installer(prefix, index, dist):
+    # a factory-type function for getting the correct PackageInstaller class
+    record = index[dist]
+    if record.noarch and record.noarch.lower() == 'python':
+        return NoarchPythonPackageInstaller(prefix, index, dist)
+    else:
+        return PackageInstaller(prefix, index, dist)
+
+
 class PackageInstaller(object):
 
     def __init__(self, prefix, index, dist):
         self.prefix = prefix
         self.index = index
         self.dist = dist
+        self.package_info = None  # set in the link method
 
     def link(self, requested_link_type=LinkType.hard_link):
         log.debug("linking package %s with link type %s", self.dist, requested_link_type)
@@ -55,20 +65,20 @@ class PackageInstaller(object):
                   self.prefix, extracted_package_dir, requested_link_type)
 
         # filesystem read actions
-        #   do all filesystem reads necessaary for the rest of the linking for this package
-        package_info = collect_all_info_for_package(extracted_package_dir)
-        url = read_url(self.dist)
+        #   do all filesystem reads necessary for the rest of the linking for this package
+        self.package_info = collect_all_info_for_package(extracted_package_dir)
+        url = read_url(self.dist)  # TODO: consider making this part of package_info
 
         # simple processing
-        operations = self._make_link_operations(self.prefix, requested_link_type, package_info)
+        operations = self._make_link_operations(requested_link_type, package_info)
         leaf_directories = get_leaf_directories(join(self.prefix, op.dest_short_path)
                                                 for op in operations)
 
-        # run pre-link script
-        if not run_script(extracted_package_dir, self.dist, 'pre-link', self.prefix):
-            raise LinkError('Error: pre-link failed: %s' % self.dist)
+        # # run pre-link script
+        # if not run_script(extracted_package_dir, self.dist, 'pre-link', self.prefix):
+        #     raise LinkError('Error: pre-link failed: %s' % self.dist)
 
-        dest_short_paths = self._execute_link_operations(self.prefix, leaf_directories, operations)
+        dest_short_paths = self._execute_link_operations(leaf_directories, operations)
 
         # run post-link script
         if not run_script(self.prefix, self.dist, 'post-link'):
@@ -81,6 +91,7 @@ class PackageInstaller(object):
         set_linked_data(self.prefix, self.dist.dist_name, meta_record)
 
     def _make_link_operations(self, requested_link_type, package_info):
+        # no side effects in this method!
         def make_link_operation(source_short_path):
             if source_short_path in package_info.has_prefix_files:
                 link_type = LinkType.copy
@@ -99,6 +110,8 @@ class PackageInstaller(object):
         return (make_link_operation(p) for p in package_info.files)
 
     def _execute_link_operations(self, leaf_directories, link_operations):
+        # major side-effects in this method
+
         dest_short_paths = []
 
         # Step 1. Make all directories
@@ -164,9 +177,11 @@ class NoarchPythonPackageInstaller(PackageInstaller):
 
     def _make_link_operations(self, requested_link_type, package_info):
         site_packages_dir = NoarchPythonPackageInstaller.get_site_packages_dir(self.prefix)
-        bin_dir = NoarchPythonPackageInstaller.get_bin_dir(self.prefix)
+        bin_dir = get_bin_directory(self.prefix)
 
         def make_link_operation(source_short_path):
+            # no side effects in this method!
+
             # first part, same as parent class
             if source_short_path in package_info.has_prefix_files:
                 link_type = LinkType.copy
@@ -199,7 +214,12 @@ class NoarchPythonPackageInstaller(PackageInstaller):
         python_veresion = get_python_version_for_prefix(self.prefix)
         extra_pyc_paths = compile_missing_pyc(self.prefix, python_veresion,
                                               (op.dest_short_path for op in link_operations))
-        entry_point_paths = create_entry_points(src_dir, bin_dir, prefix)
+
+        # create entry points
+        entry_points = self.package_info.noarch.get('entry_points', ())
+        entry_point_paths = []
+        for entry_point in entry_points:
+            entry_point_paths.extend(create_entry_point(entry_point, self.prefix))
 
         return sorted(dest_short_paths, extra_pyc_paths, entry_point_paths)
 
@@ -207,17 +227,9 @@ class NoarchPythonPackageInstaller(PackageInstaller):
     @staticmethod
     def get_site_packages_dir(prefix):
         if on_win:
-            return join(prefix, 'Lib')
+            return join(prefix, 'Lib', 'site-packages')
         else:
-            return join(prefix, 'lib', 'python%s' % get_python_version_for_prefix(prefix))
-
-    @staticmethod
-    def get_bin_dir(prefix):
-        if on_win:
-            return join(prefix, 'Scripts')
-        else:
-            return join(prefix, 'bin')
-
+            return join(prefix, 'lib', 'python%s' % get_python_version_for_prefix(prefix), 'site-packages')
 
 
 
