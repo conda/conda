@@ -7,6 +7,12 @@ from os.path import basename, dirname, join
 
 from ..utils import on_win
 
+try:
+    from cytoolz.itertoolz import accumulate
+except ImportError:
+    from .._vendor.toolz.itertoolz import accumulate
+
+
 log = getLogger(__name__)
 
 
@@ -36,6 +42,11 @@ def get_leaf_directories(files):
         leaves.append(last)
 
     return tuple('/'.join(leaf) for leaf in leaves)
+
+
+def explode_directories(child_directories):
+    # get all directories including parents
+    return set(accumulate(join, directory.split('/')) for directory in child_directories)
 
 
 def missing_pyc_files(python_major_minor_version, files):

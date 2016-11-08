@@ -7,14 +7,16 @@ import sys
 import warnings
 from collections import namedtuple
 from logging import getLogger
-from os.path import isfile, join
+from os import listdir
+from os.path import dirname, isdir, isfile, join
 from subprocess import CalledProcessError, check_call
 
 from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import get_bin_directory, get_leaf_directories
-from ..core.linked_data import get_python_version_for_prefix, set_linked_data
+from ..common.path import explode_directories, get_bin_directory, get_leaf_directories
+from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
+                                set_linked_data)
 from ..exceptions import CondaOSError, LinkError, PaddingError
 from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, link as create_link,
                                     make_menu, mkdir_p, write_conda_meta_record)
@@ -236,7 +238,50 @@ class NoarchPythonPackageInstaller(PackageInstaller):
 
 
 class PackageUninstaller(object):
-    pass
+
+    def __init__(self, prefix, dist):
+        self.prefix = prefix
+        self.dist = dist
+
+    def unlink(self):
+        """
+        Remove a package from the specified environment, it is an error if the
+        package does not exist in the prefix.
+        """
+        log.debug("unlinking package %s", self.dist)
+        run_script(self.prefix, self.dist, 'pre-unlink')
+
+        meta = load_meta(self.prefix, self.dist)
+
+        # Always try to run this - it should not throw errors where menus do not exist
+        # TODO: add this line back: mk_menus(prefix, meta['files'], remove=True)
+
+        dirs_with_removals = set()
+
+        for f in meta['files']:
+            dirs_with_removals.add(dirname(f))
+            rm_rf(join(self.prefix, f))
+
+        # remove the meta-file last
+        delete_linked_data(self.prefix, self.dist, delete=True)
+
+        dirs_with_removals.add('conda-meta')  # in case there is nothing left
+        directory_removal_candidates = (join(self.prefix, d) for d in
+                                        sorted(explode_directories(dirs_with_removals),
+                                               reverse=True))
+
+        # remove empty directories
+        for d in directory_removal_candidates:
+            if isdir(d) and not listdir(d):
+                rm_rf(d)
+
+        alt_files_path = join(self.prefix, 'conda-meta', self.dist.to_filename('.files'))
+        if isfile(alt_files_path):
+            rm_rf(alt_files_path)
+
+
+
+
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

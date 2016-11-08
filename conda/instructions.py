@@ -4,7 +4,7 @@ from logging import getLogger
 
 from .base.constants import LinkType
 from .base.context import context
-from .core.install import get_package_installer
+from .core.install import get_package_installer, PackageUninstaller
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .install import symlink_conda, unlink
 from .models.dist import Dist
@@ -89,7 +89,7 @@ def LINK_CMD(state, arg):
 def UNLINK_CMD(state, arg):
     log.debug("=======> UNLINKING %s <=======", arg)
     dist = Dist(arg)
-    unlink(state['prefix'], dist)
+    PackageUninstaller(state['prefix'], dist).unlink()
 
 
 def SYMLINK_CONDA_CMD(state, arg):
