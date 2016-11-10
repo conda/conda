@@ -141,6 +141,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
     except (ConnectionError, HTTPError, SSLError) as e:
+        # status_code might not exist on SSLError
         status_code = getattr(e.response, 'status_code', None)
         if status_code == 404:
             if url.endswith('/noarch'):  # noarch directory might not exist
@@ -219,7 +220,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
 
         raise CondaHTTPError(help_message, e.response.url if e.response else None, status_code,
-                            e.response.reason if e.response else None)
+                             e.response.reason if e.response else None)
 
     cache['_url'] = url
     try:
