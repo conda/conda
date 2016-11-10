@@ -83,6 +83,8 @@ PLATFORM_DIRECTORIES = ("linux-64",
                         "win-32",
                         "osx-64",
                         "linux-ppc64le",
+                        "linux-armv6l",
+                        "linux-armv7l",
                         "noarch",
                         )
 
