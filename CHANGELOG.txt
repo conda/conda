@@ -1,8 +1,8 @@
-<<<<<<< HEAD
 4.1.13 (unreleased):
 --------------------
   * use install.rm_rf for TemporaryDirectory cleanup, #3425
   * fix the api->conda substitution, #3456
+  * fix silent directory removal, #3730
 
 
 3.19.4 (unreleased):
