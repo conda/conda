@@ -1,3 +1,9 @@
+## 4.2.13 (unreleased)
+
+### Improvements
+* double/extend http timeouts (#3831)
+
+
 ## 4.1.13 (unreleased)
 
 ### Improvements
