@@ -374,9 +374,10 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
                 str(dist).rsplit('-', 2)
     if action == 'pre-link':
         sys.stderr.write("""
-Package %s uses a pre-link script. Pre-link scripts are potentially dangerous and highly discouraged.
-Future versions of conda may deprecate and ignore pre-link scripts. Consider using a different
-package.\n""" % dist)
+Package %s uses a pre-link script. Pre-link scripts are potentially dangerous  discouraged.
+This is because pre-link scripts have the ability to change the package contents in the
+package cache, and therefore modify the underlying files for already-created conda
+environments.  Future versions of conda may deprecate and ignore pre-link scripts.\n""" % dist)
         env['SOURCE_DIR'] = str(prefix)
     try:
         subprocess.check_call(args, env=env)
