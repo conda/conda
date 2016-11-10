@@ -383,6 +383,12 @@ class CondaSignatureError(CondaError):
         super(CondaSignatureError, self).__init__(msg)
 
 
+class CondaCorruptEnvironmentError(CondaError):
+    def __init__(self, message):
+        msg = "Corrupt environment error: %s" % message
+        super(CondaCorruptEnvironmentError, self).__init__(msg)
+
+
 def print_conda_exception(exception):
     from conda.base.context import context
 
