@@ -142,7 +142,7 @@ class PackageInstaller(object):
                     raise PaddingError(op.dest_path, op.prefix_placeholder,
                                        len(op.prefix_placeholder))
             if on_win and op.is_menu_file and context.shortcuts:
-                make_menu(self.prefix, op.short_path, remove=False)
+                make_menu(self.prefix, op.dest_short_path, remove=False)
 
         if on_win:
             # make sure that the child environment behaves like the parent,
