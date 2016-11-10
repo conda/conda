@@ -202,9 +202,10 @@ class NoarchPythonPackageInstaller(PackageInstaller):
 
             # second part, noarch python-specific
             if source_short_path.startswith('site-packages/'):
-                dest_short_path = site_packages_dir + source_short_path
+                dest_short_path = site_packages_dir + source_short_path.replace(
+                    'site-packages', '', 1)
             elif source_short_path.startswith('python-scripts/'):
-                dest_short_path = bin_dir + source_short_path.replace('python-scripts/', '', 1)
+                dest_short_path = bin_dir + source_short_path.replace('python-scripts', '', 1)
             else:
                 dest_short_path = source_short_path
             return LinkOperation(source_short_path, dest_short_path, link_type, prefix_placehoder,
