@@ -80,28 +80,28 @@ class TestNoarchPackageInstaller(unittest.TestCase):
                                                 index_json_records, icondata, noarch)
 
     @patch("conda.core.install.NoarchPythonPackageInstaller.get_site_packages_dir",
-           return_value=join("path", "to", "site-packages"))
+           return_value="path/to/site-packages")
     def test_make_link_operation(self, get_site_packages_dir):
         noarch_installer = NoarchPythonPackageInstaller("prefix", {}, self.dist)
         noarch_installer.package_info = self.package_info
-        site_packages_dir = join("path", "to", "site-packages")
-        bin_dir = join("prefix", "Scripts") if on_win else join("prefix", "bin")
+        site_packages_dir = "path/to/site-packages"
+        bin_dir = "prefix/Scripts" if on_win else "prefix/bin"
 
         output = noarch_installer._make_link_operations(LinkType.soft_link)
-        expected_output = tuple([LinkOperation(join("site-packages", "test", "1"),
-                                               join("%s", "test", "1") % site_packages_dir,
+        expected_output = tuple([LinkOperation("site-packages/test/1",
+                                               "%s/test/1" % site_packages_dir,
                                                LinkType.copy,
                                                "/opt/anaconda1anaconda2anaconda3",
                                                FileMode.text,
                                                False),
-                                 LinkOperation(join("python-scripts", "test" "2"),
-                                               join("%s", "test", "2") % bin_dir,
+                                 LinkOperation("python-scripts/test/2",
+                                               "%s/test/2" % bin_dir,
                                                LinkType.copy, "", None, False),
-                                 LinkOperation(join("test", "path", "3"),
-                                               join("test", "path" "3"), LinkType.copy,
+                                 LinkOperation("test/path/3",
+                                               "test/path/3", LinkType.copy,
                                                "", None, False),
-                                 LinkOperation(join("menu", "test.json"),
-                                               join("menu", "test.json"),
+                                 LinkOperation("menu/test.json",
+                                               "menu/test.json",
                                                LinkType.soft_link, "", None, True)])
         self.assertEquals(output, expected_output)
 

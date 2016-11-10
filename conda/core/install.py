@@ -73,8 +73,7 @@ class PackageInstaller(object):
 
         # simple processing
         operations = self._make_link_operations(requested_link_type)
-        leaf_directories = get_leaf_directories(join(self.prefix, op.dest_short_path)
-                                                for op in operations)
+        leaf_directories = get_leaf_directories(op.dest_short_path for op in operations)
 
         # # run pre-link script
         # if not run_script(extracted_package_dir, self.dist, 'pre-link', self.prefix):
@@ -118,7 +117,7 @@ class PackageInstaller(object):
 
         # Step 1. Make all directories
         for leaf_directory in leaf_directories:
-            mkdir_p(leaf_directory)
+            mkdir_p(join(self.prefix, leaf_directory))
 
         # Step 2. Do the actual file linking
         for op in link_operations:
@@ -233,10 +232,9 @@ class NoarchPythonPackageInstaller(PackageInstaller):
     @staticmethod
     def get_site_packages_dir(prefix):
         if on_win:
-            return join(prefix, 'Lib', 'site-packages')
+            return 'Lib/site-packages'
         else:
-            return join(prefix, 'lib', 'python%s' % get_python_version_for_prefix(prefix),
-                        'site-packages')
+            return 'lib/python%s/site-packages' % get_python_version_for_prefix(prefix)
 
 
 class PackageUninstaller(object):
@@ -263,6 +261,9 @@ class PackageUninstaller(object):
         for f in meta['files']:
             dirs_with_removals.add(dirname(f))
             rm_rf(join(self.prefix, f))
+
+            if on_win and bool(MENU_RE.match(f)):
+                make_menu(self.prefix, f, remove=False)
 
         # remove the meta-file last
         delete_linked_data(self.prefix, self.dist, delete=True)
