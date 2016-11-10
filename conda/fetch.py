@@ -205,7 +205,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 Further configuration help can be found at <%s>.
                 """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
-        elif 500 <= status_code < 600:
+        elif status_code is not None and 500 <= status_code < 600:
             help_message = dals("""
             An remote server error occurred when trying to retrieve this URL.
 
@@ -218,8 +218,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
 
-        raise CondaHTTPError(help_message, e.response and e.response.url, status_code,
-                             e.response and e.response.reason)
+        raise CondaHTTPError(help_message, e.response.url if e.response else None, status_code,
+                            e.response.reason if e.response else None)
 
     cache['_url'] = url
     try:
