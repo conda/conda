@@ -14,7 +14,7 @@ from subprocess import CalledProcessError, check_call
 from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import explode_directories, get_bin_directory, get_leaf_directories
+from ..common.path import explode_directories, get_leaf_directories, get_bin_directory_short_path
 from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
                                 set_linked_data)
 from ..exceptions import CondaOSError, LinkError, PaddingError
@@ -182,7 +182,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
     def _make_link_operations(self, requested_link_type):
         package_info = self.package_info
         site_packages_dir = NoarchPythonPackageInstaller.get_site_packages_dir(self.prefix)
-        bin_dir = get_bin_directory(self.prefix)
+        bin_dir = get_bin_directory_short_path()
 
         def make_link_operation(source_short_path):
             # no side effects in this method!

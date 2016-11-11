@@ -76,5 +76,5 @@ def get_python_path(prefix):
     return join(prefix, "python.exe") if on_win else join(prefix, "bin", "python")
 
 
-def get_bin_directory(prefix):
-    return join(prefix, 'Scripts') if on_win else join(prefix, 'bin')
+def get_bin_directory_short_path():
+    return 'Scripts' if on_win else 'bin'

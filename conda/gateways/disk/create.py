@@ -16,8 +16,8 @@ from ..._vendor.auxlib.ish import dals
 from ..._vendor.auxlib.packaging import call
 from ...base.constants import LinkType, UTF8
 from ...base.context import context
-from ...common.path import (get_bin_directory, get_python_path, missing_pyc_files,
-                            parse_entry_point_def)
+from ...common.path import (get_python_path, missing_pyc_files, parse_entry_point_def,
+                            get_bin_directory_short_path)
 from ...exceptions import ClobberError, CondaOSError
 from ...gateways.disk.delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
@@ -39,13 +39,13 @@ if __name__ == '__main__':
 def create_entry_point(entry_point_def, prefix):
     # returns a list of file paths created
     command, module, func = parse_entry_point_def(entry_point_def)
-    ep_path = join(get_bin_directory(prefix), command)
+    ep_path = "%s/%s" % (get_bin_directory_short_path(), command)
 
     pyscript = entry_point_template % {'module': module, 'func': func}
 
     if on_win:
         # create -script.py
-        with open(ep_path + '-script.py', 'w') as fo:
+        with open(join(prefix, ep_path + '-script.py'), 'w') as fo:
             fo.write(pyscript)
 
         # link cli-XX.exe
@@ -54,7 +54,7 @@ def create_entry_point(entry_point_def, prefix):
     else:
         # create py file
         with open(ep_path, 'w') as fo:
-            fo.write('#!%s\n' % join(get_bin_directory(prefix), 'python'))
+            fo.write('#!%s\n' % join(prefix, get_bin_directory_short_path(), 'python'))
             fo.write(pyscript)
         chmod(ep_path, 0o755)
         return [ep_path]
