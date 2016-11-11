@@ -31,6 +31,7 @@ requirements:
     - requests
     - conda-env
     - menuinst  [win]
+    - enum34    [py<34]
 
 test:
   commands:

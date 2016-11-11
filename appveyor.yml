@@ -41,7 +41,6 @@ install:
   - conda info
   - conda config --set always_yes yes
   - conda update conda
-  - conda install enum34
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
