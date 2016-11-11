@@ -6,7 +6,6 @@ from .base.constants import LinkType
 from .base.context import context
 from .core.install import get_package_installer, PackageUninstaller
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
-from .install import symlink_conda
 from .models.dist import Dist
 
 
