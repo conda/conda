@@ -552,7 +552,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         mss = list(map(MatchSpec, specs))
         nlinked = {r.package_name(dist): dist
                    for dist in linked_dists
-                   if not any(r.match(ms, dist.to_filename()) for ms in mss)}
+                   if not any(r.match(ms, dist) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
         nlinked = {r.package_name(dist): dist
