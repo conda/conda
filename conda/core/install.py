@@ -253,9 +253,6 @@ class PackageUninstaller(object):
 
         meta = load_meta(self.prefix, self.dist)
 
-        # Always try to run this - it should not throw errors where menus do not exist
-        # TODO: add this line back: mk_menus(prefix, meta['files'], remove=True)
-
         dirs_with_removals = set()
 
         for f in meta['files']:
@@ -263,6 +260,7 @@ class PackageUninstaller(object):
             rm_rf(join(self.prefix, f))
 
             if on_win and bool(MENU_RE.match(f)):
+                # Always try to run this - it should not throw errors where menus do not exist
                 make_menu(self.prefix, f, remove=False)
 
         # remove the meta-file last
