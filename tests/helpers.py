@@ -42,7 +42,8 @@ def run_conda_command(*args):
                          stderr=subprocess.PIPE, env=env)
     stdout, stderr = p.communicate()
     return (stdout.decode('utf-8').replace('\r\n', '\n'),
-        stderr.decode('utf-8').replace('\r\n', '\n'))
+        stderr.decode('utf-8').replace('\r\n', '\n').replace(
+        "Using Anaconda API: https://api.anaconda.org\n", ""))
 
 class CapturedText(object):
     pass
@@ -93,7 +94,8 @@ def capture_with_argv(*argv):
 
     stdout.seek(0)
     stderr.seek(0)
-    return stdout.read(), stderr.read()
+    return stdout.read(), stderr.read().replace(
+        "Using Anaconda API: https://api.anaconda.org\n", "")
 
 
 def capture_json_with_argv(*argv):
