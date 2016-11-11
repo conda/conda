@@ -126,17 +126,3 @@ def test_permission_file():
 
             path = basename(lock.lock_file_path)
             assert not exists(join(f.name, path))
-
-
-def test_delete_lock():
-    from .test_create import make_temp_env
-    from conda.exceptions import delete_lock
-    with make_temp_env() as prefix:
-        try:
-            with DirectoryLock(prefix) as lock:
-                path = basename(lock.lock_file_path)
-                assert isfile(join(prefix, path))
-                raise TypeError
-        except TypeError:
-            delete_lock(extra_path=prefix)
-            assert not exists(join(prefix, path))

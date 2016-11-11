@@ -8,9 +8,9 @@ import warnings
 from functools import wraps
 from logging import DEBUG, getLogger
 from os import makedirs
-from os.path import dirname, join
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from os.path import join
 
 from .linked_data import linked_data
 from .package_cache import package_cache
@@ -20,7 +20,7 @@ from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL, DEFAULTS, MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
-from ..common.url import join_url, url_to_path
+from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
 from ..models.channel import Channel, offline_keep, prioritize_channels
@@ -145,7 +145,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                     return resp_content.decode('utf-8')
 
             if url.startswith('file://'):
-                file_path = url_to_path(url)
                 json_str = get_json_str(filename, resp.content)
             else:
                 json_str = get_json_str(filename, resp.content)
