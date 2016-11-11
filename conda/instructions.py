@@ -93,7 +93,8 @@ def UNLINK_CMD(state, arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    symlink_conda(state['prefix'], arg)
+    log.debug("No longer symlinking conda. Passing for prefix %s", state['prefix'])
+    # symlink_conda(state['prefix'], arg)
 
 # Map instruction to command (a python function)
 commands = {

@@ -29,7 +29,7 @@ from conda.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
 from conda.core.linked_data import linked as install_linked, linked_data, linked_data_
-from conda.exceptions import CondaHTTPError, DryRunExit, conda_exception_handler
+from conda.exceptions import CondaHTTPError, DryRunExit, conda_exception_handler, RemoveError
 from conda.utils import on_win
 from contextlib import contextmanager
 from datetime import datetime
@@ -861,3 +861,24 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+
+    def test_force_remove(self):
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "conda")
+            assert_package_is_installed(prefix, "conda-")
+            assert_package_is_installed(prefix, "pycosat-")
+
+            self.assertRaises(RemoveError, run_command, Commands.REMOVE, prefix, 'conda')
+            assert_package_is_installed(prefix, "conda-")
+            assert_package_is_installed(prefix, "pycosat-")
+
+            stdout, stderr = run_command(Commands.REMOVE, prefix, "conda", "--force")
+
+            # assert conda is no longer in conda list
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            assert not any([line.startswith("conda   ") for line in stdout_lines])
+
+            assert package_is_installed(prefix, "pycosat-")
+
