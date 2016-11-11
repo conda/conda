@@ -85,7 +85,7 @@ class TestNoarchPackageInstaller(unittest.TestCase):
         noarch_installer = NoarchPythonPackageInstaller("prefix", {}, self.dist)
         noarch_installer.package_info = self.package_info
         site_packages_dir = "path/to/site-packages"
-        bin_dir = "prefix/Scripts" if on_win else "prefix/bin"
+        bin_dir = "Scripts" if on_win else "bin"
 
         output = noarch_installer._make_link_operations(LinkType.soft_link)
         expected_output = tuple([LinkOperation("site-packages/test/1",
