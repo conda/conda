@@ -48,9 +48,6 @@ delete_trash, move_to_trash = delete_trash, move_to_trash
 from conda.core.linked_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
 
-from conda.lock import Locked  # NOQA
-Locked = Locked
-
 from conda.misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
