@@ -257,12 +257,13 @@ class PackageUninstaller(object):
         dirs_with_removals = set()
 
         for f in meta['files']:
-            dirs_with_removals.add(dirname(f))
-            rm_rf(join(self.prefix, win_path_ok(f)))
-
             if on_win and bool(MENU_RE.match(f)):
                 # Always try to run this - it should not throw errors where menus do not exist
+                # note that it will probably remove the file though; rm_rf shouldn't care
                 make_menu(self.prefix, win_path_ok(f), remove=False)
+
+            dirs_with_removals.add(dirname(f))
+            rm_rf(join(self.prefix, win_path_ok(f)))
 
         # remove the meta-file last
         delete_linked_data(self.prefix, self.dist, delete=True)
