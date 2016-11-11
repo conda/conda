@@ -377,25 +377,10 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
-    @pytest.mark.timeout(600)
-    def test_install_python2_and_env_symlinks(self):
+    def test_install_python2(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
-
-            # test symlinks created with env
-            print(os.listdir(join(prefix, BIN_DIRECTORY)))
-            if on_win:
-                assert isfile(join(prefix, BIN_DIRECTORY, 'activate'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'conda'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'activate.bat'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate.bat'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'conda.bat'))
-            else:
-                assert islink(join(prefix, BIN_DIRECTORY, 'activate'))
-                assert islink(join(prefix, BIN_DIRECTORY, 'deactivate'))
-                assert islink(join(prefix, BIN_DIRECTORY, 'conda'))
 
     @pytest.mark.timeout(300)
     def test_remove_all(self):
