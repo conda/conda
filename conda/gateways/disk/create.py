@@ -18,7 +18,7 @@ from ..._vendor.auxlib.packaging import call
 from ...base.constants import LinkType, UTF8
 from ...base.context import context
 from ...common.path import (get_python_path, missing_pyc_files, parse_entry_point_def,
-                            get_bin_directory_short_path)
+                            get_bin_directory_short_path, win_path_ok)
 from ...exceptions import ClobberError, CondaOSError
 from ...gateways.disk.delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
@@ -50,7 +50,8 @@ def create_entry_point(entry_point_def, prefix):
             fo.write(pyscript)
 
         # link cli-XX.exe
-        link(join(PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits), ep_path + '.exe')
+        link(join(PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
+             join(prefix, win_path_ok(ep_path + '.exe')))
         return [ep_path + '-script.py', ep_path + '.exe']
     else:
         # create py file
@@ -143,7 +144,7 @@ def make_menu(prefix, file_path, remove=False):
 
     import menuinst
     try:
-        menuinst.install(join(prefix, file_path), remove, prefix)
+        menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except:
         stdoutlog.error("menuinst Exception:")
         stdoutlog.error(traceback.format_exc())

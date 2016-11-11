@@ -78,3 +78,7 @@ def get_python_path(prefix):
 
 def get_bin_directory_short_path():
     return 'Scripts' if on_win else 'bin'
+
+
+def win_path_ok(path):
+    return path.replace('/', '\\') if on_win else path

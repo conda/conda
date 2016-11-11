@@ -14,7 +14,8 @@ from subprocess import CalledProcessError, check_call
 from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import explode_directories, get_leaf_directories, get_bin_directory_short_path
+from ..common.path import explode_directories, get_leaf_directories, get_bin_directory_short_path, \
+    win_path_ok
 from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
                                 set_linked_data)
 from ..exceptions import CondaOSError, LinkError, PaddingError
@@ -117,13 +118,13 @@ class PackageInstaller(object):
 
         # Step 1. Make all directories
         for leaf_directory in leaf_directories:
-            mkdir_p(join(self.prefix, leaf_directory))
+            mkdir_p(join(self.prefix, win_path_ok(leaf_directory)))
 
         # Step 2. Do the actual file linking
         for op in link_operations:
             try:
-                create_link(join(self.extracted_package_dir, op.source_short_path),
-                            join(self.prefix, op.dest_short_path),
+                create_link(join(self.extracted_package_dir, win_path_ok(op.source_short_path)),
+                            join(self.prefix, win_path_ok(op.dest_short_path)),
                             op.link_type)
                 dest_short_paths.append(op.dest_short_path)
             except OSError as e:
@@ -135,13 +136,13 @@ class PackageInstaller(object):
         for op in link_operations:
             if op.prefix_placeholder:
                 try:
-                    update_prefix(join(self.prefix, op.dest_short_path), self.prefix,
+                    update_prefix(join(self.prefix, win_path_ok(op.dest_short_path)), self.prefix,
                                   op.prefix_placeholder, op.file_mode)
                 except _PaddingError:
                     raise PaddingError(op.dest_path, op.prefix_placeholder,
                                        len(op.prefix_placeholder))
             if on_win and op.is_menu_file and context.shortcuts:
-                make_menu(self.prefix, op.dest_short_path, remove=False)
+                make_menu(self.prefix, win_path_ok(op.dest_short_path), remove=False)
 
         if on_win:
             # make sure that the child environment behaves like the parent,
@@ -257,17 +258,17 @@ class PackageUninstaller(object):
 
         for f in meta['files']:
             dirs_with_removals.add(dirname(f))
-            rm_rf(join(self.prefix, f))
+            rm_rf(join(self.prefix, win_path_ok(f)))
 
             if on_win and bool(MENU_RE.match(f)):
                 # Always try to run this - it should not throw errors where menus do not exist
-                make_menu(self.prefix, f, remove=False)
+                make_menu(self.prefix, win_path_ok(f), remove=False)
 
         # remove the meta-file last
         delete_linked_data(self.prefix, self.dist, delete=True)
 
         dirs_with_removals.add('conda-meta')  # in case there is nothing left
-        directory_removal_candidates = (join(self.prefix, d) for d in
+        directory_removal_candidates = (join(self.prefix, win_path_ok(d)) for d in
                                         sorted(explode_directories(dirs_with_removals),
                                                reverse=True))
 
