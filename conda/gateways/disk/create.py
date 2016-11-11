@@ -2,12 +2,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
+import os
 import shutil
 import traceback
 from errno import EEXIST
 from io import open
 from logging import getLogger
-from os import W_OK, access, chmod, getpid, link as os_link, makedirs, readlink, symlink
+from os import W_OK, access, chmod, getpid, makedirs, readlink, symlink
 from os.path import basename, exists, isdir, isfile, islink, join
 
 from ... import CondaError, PACKAGE_ROOT
@@ -198,7 +199,7 @@ def link(src, dst, link_type=LinkType.hard_link):
         if on_win:
             win_hard_link(src, dst)
         else:
-            os_link(src, dst)
+            os.link(src, dst)
     elif link_type == LinkType.soft_link:
         if on_win:
             win_soft_link(src, dst)
