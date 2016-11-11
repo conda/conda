@@ -8,7 +8,7 @@ import traceback
 from errno import EEXIST
 from io import open
 from logging import getLogger
-from os import W_OK, access, chmod, getpid, makedirs, readlink, symlink
+from os import W_OK, access, chmod, getpid, makedirs
 from os.path import basename, exists, isdir, isfile, islink, join
 
 from ... import CondaError, PACKAGE_ROOT
@@ -204,11 +204,11 @@ def link(src, dst, link_type=LinkType.hard_link):
         if on_win:
             win_soft_link(src, dst)
         else:
-            symlink(src, dst)
+            os.symlink(src, dst)
     elif link_type == LinkType.copy:
         # copy relative symlinks as symlinks
-        if not on_win and islink(src) and not readlink(src).startswith('/'):
-            symlink(readlink(src), dst)
+        if not on_win and islink(src) and not os.readlink(src).startswith('/'):
+            os.symlink(os.readlink(src), dst)
         else:
             shutil.copy2(src, dst)
     else:
