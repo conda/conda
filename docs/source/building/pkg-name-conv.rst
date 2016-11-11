@@ -14,7 +14,7 @@ conda employs the following naming conventions with respect to packages:
 **package name**
     The name of a package, without any reference to a particular version.
     Conda package names are normalized, and may contain only lowercase alpha
-    characters, numeric digits, underscores, or hyphens.  In usage
+    characters, numeric digits, underscores, hyphens, or dots.  In usage
     documentation, these will be referred to by `package_name`.
 
 .. _package_version:
