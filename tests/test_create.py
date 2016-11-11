@@ -244,7 +244,6 @@ class IntegrationTests(TestCase):
     @pytest.mark.timeout(300)
     def test_create_empty_env(self):
         with make_temp_env() as prefix:
-            assert exists(join(prefix, BIN_DIRECTORY))
             assert exists(join(prefix, 'conda-meta/history'))
 
             list_output = run_command(Commands.LIST, prefix)
