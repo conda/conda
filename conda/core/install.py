@@ -14,10 +14,10 @@ from subprocess import CalledProcessError, check_call
 from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import explode_directories, get_leaf_directories, get_bin_directory_short_path, \
-    win_path_ok
+from ..common.path import (explode_directories, get_leaf_directories,
+                           get_bin_directory_short_path, win_path_ok)
 from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
-                                set_linked_data)
+                                set_linked_data, get_site_packages_dir)
 from ..exceptions import CondaOSError, LinkError, PaddingError
 from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, link as create_link,
                                     make_menu, mkdir_p, write_conda_meta_record)
@@ -182,7 +182,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
 
     def _make_link_operations(self, requested_link_type):
         package_info = self.package_info
-        site_packages_dir = NoarchPythonPackageInstaller.get_site_packages_dir(self.prefix)
+        site_packages_dir = get_site_packages_dir(self.prefix)
         bin_dir = get_bin_directory_short_path()
 
         def make_link_operation(source_short_path):
@@ -229,13 +229,6 @@ class NoarchPythonPackageInstaller(PackageInstaller):
             entry_point_paths.extend(create_entry_point(entry_point, self.prefix))
 
         return sorted(concatv(dest_short_paths, extra_pyc_paths, entry_point_paths))
-
-    @staticmethod
-    def get_site_packages_dir(prefix):
-        if on_win:
-            return 'Lib/site-packages'
-        else:
-            return 'lib/python%s/site-packages' % get_python_version_for_prefix(prefix)
 
 
 class PackageUninstaller(object):

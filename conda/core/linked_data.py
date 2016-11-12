@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
+from conda.utils import on_win
 from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
@@ -139,3 +140,10 @@ def get_python_version_for_prefix(prefix):
         raise RuntimeError("multiple python record found in prefix %s" % prefix)
     else:
         return record.version[:3]
+
+
+def get_site_packages_dir(prefix):
+    if on_win:
+        return 'Lib/site-packages'
+    else:
+        return 'lib/python%s/site-packages' % get_python_version_for_prefix(prefix)
