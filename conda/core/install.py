@@ -220,7 +220,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
         # create pyc files
         python_veresion = get_python_version_for_prefix(self.prefix)
         extra_pyc_paths = compile_missing_pyc(self.prefix, python_veresion,
-                                              (op.dest_short_path for op in link_operations))
+                                              tuple(op.dest_short_path for op in link_operations))
 
         # create entry points
         entry_points = self.package_info.noarch.get('entry_points', ())

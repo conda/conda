@@ -10,15 +10,16 @@ from io import open
 from logging import getLogger
 from os import W_OK, access, chmod, getpid, makedirs
 from os.path import basename, exists, isdir, isfile, islink, join
+from subprocess import PIPE, Popen, check_call
+from shlex import split as shlex_split
 
 from ... import CondaError, PACKAGE_ROOT
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
-from ..._vendor.auxlib.packaging import call
 from ...base.constants import LinkType, UTF8
 from ...base.context import context
-from ...common.path import (get_python_path, missing_pyc_files, parse_entry_point_def,
-                            get_bin_directory_short_path, win_path_ok)
+from ...common.path import (get_bin_directory_short_path, get_python_path, missing_pyc_files,
+                            parse_entry_point_def, win_path_ok)
 from ...exceptions import ClobberError, CondaOSError
 from ...gateways.disk.delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
@@ -55,10 +56,10 @@ def create_entry_point(entry_point_def, prefix):
         return [ep_path + '-script.py', ep_path + '.exe']
     else:
         # create py file
-        with open(ep_path, 'w') as fo:
+        with open(join(prefix, ep_path), 'w') as fo:
             fo.write('#!%s\n' % join(prefix, get_bin_directory_short_path(), 'python'))
             fo.write(pyscript)
-        chmod(ep_path, 0o755)
+        chmod(join(prefix, ep_path), 0o755)
         return [ep_path]
 
 
@@ -219,8 +220,18 @@ def link(src, dst, link_type=LinkType.hard_link):
 def compile_missing_pyc(prefix, python_major_minor_version, files):
     py_pyc_files = missing_pyc_files(python_major_minor_version, files)
     python_exe = get_python_path(prefix)
-    result = call("%s -Wi -m py_compile %s" % (python_exe, ' '.join(f[0] for f in py_pyc_files)))
-    # TODO, make sure `result` is a list of files created
-    import pdb
-    pdb.set_trace()
-    return result
+    py_files = (join(prefix, win_path_ok(f[0])) for f in py_pyc_files)
+    command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
+    log.debug(command)
+
+    process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    rc = process.returncode
+    if rc != 0:
+        log.debug("$  %s\n"
+                  "  stdout: %s\n"
+                  "  stderr: %s\n"
+                  "  rc: %d", command, stdout, stderr, rc)
+        raise RuntimeError()
+    pyc_files = tuple(f[1] for f in py_pyc_files)
+    return pyc_files

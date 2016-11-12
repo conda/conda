@@ -50,6 +50,7 @@ def explode_directories(child_directories):
 
 
 def missing_pyc_files(python_major_minor_version, files):
+    # returns a tuple of tuples, with the inner tuple being the .py file and the missing .pyc file
     pyver_string = python_major_minor_version.replace('.', '')
 
     def pyc_path(file):
@@ -62,7 +63,8 @@ def missing_pyc_files(python_major_minor_version, files):
 
     py_files = (f for f in files if f.endswith('.py'))
     pyc_matches = ((py_file, pyc_path(py_file)) for py_file in py_files)
-    return tuple(match for match in pyc_matches if match[1] in files)
+    result = tuple(match for match in pyc_matches if match[1] not in files)
+    return result
 
 
 def parse_entry_point_def(ep_definition):
