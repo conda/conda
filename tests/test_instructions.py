@@ -1,15 +1,26 @@
 import unittest
 from logging import getLogger, Handler, DEBUG
+import os
 
 from conda import instructions
 from conda.instructions import execute_instructions, commands, PROGRESS_CMD
+from conda.exceptions import CondaFileIOError
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 
 def test_expected_operation_order():
     """Ensure expected order of operations"""
     expected = (
+        instructions.CHECK_FETCH,
         instructions.FETCH,
+        instructions.CHECK_EXTRACT,
         instructions.EXTRACT,
+        instructions.CHECK_LINK,
+        instructions.CHECK_UNLINK,
         instructions.UNLINK,
         instructions.LINK,
         instructions.SYMLINK_CONDA,
@@ -111,6 +122,22 @@ class TestExecutePlan(unittest.TestCase):
                     ]
 
         self.assertEqual(h.records, expected)
+
+    def test_check_files_in_tarball_files_exist(self):
+        source_dir = os.getcwd()
+        files = [__file__]
+        self.assertTrue(instructions.check_files_in_package(source_dir, files))
+
+    def test_check_files_in_tarball_files_not_exist(self):
+        source_dir = os.getcwd()
+        files = ["test-thing-that-does-not-exist"]
+        try:
+            instructions.check_files_in_package(source_dir, files)
+        except CondaFileIOError as e:
+            self.assertEquals(type(e), CondaFileIOError)
+        else:
+            self.fail('CondaFileIOError not raised')
+
 
 if __name__ == '__main__':
     unittest.main()

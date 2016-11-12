@@ -256,6 +256,28 @@ def add_unlink(actions, dist):
     actions[inst.UNLINK].append(dist)
 
 
+def add_checks(actions):
+    """
+    Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
+    has a LINK action, add a CHECK_LINK, which will check if permissions are
+    suitable for linking.
+
+    Args:
+        actions: a defaultdict(list) of actions that are to be performed, e.g. inst.FETCH
+
+    Returns:
+        the actions dict with the appropriate checks added
+    """
+    if inst.LINK in actions:
+        actions.setdefault(inst.CHECK_LINK, [True])
+    if inst.UNLINK in actions:
+        actions.setdefault(inst.CHECK_UNLINK, [True])
+    if inst.FETCH in actions:
+        actions.setdefault(inst.CHECK_FETCH, [True])
+    if inst.EXTRACT in actions:
+        actions.setdefault(inst.CHECK_EXTRACT, [True])
+
+
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
@@ -268,7 +290,6 @@ def plan_from_actions(actions):
     if on_win:
         # Always link/unlink menuinst first on windows in case a subsequent
         # package tries to import it to create/remove a shortcut
-
         for op in (inst.UNLINK, inst.FETCH, inst.EXTRACT, inst.LINK):
             if op in actions:
                 pkgs = []
@@ -307,8 +328,10 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
+                           inst.RM_EXTRACTED, inst.EXTRACT, inst.CHECK_UNLINK,
+                           inst.UNLINK, inst.CHECK_LINK, inst.LINK, inst.SYMLINK_CONDA)
+
     for dist in dists:
         fetched_in = is_fetched(dist)
         extracted_in = is_extracted(dist)
@@ -539,6 +562,9 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         if replace_existing or prune_it:
             add_unlink(actions, dist)
 
+    if not force:
+        add_checks(actions)
+
     return actions
 
 
@@ -580,6 +606,8 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                                   "would require removing 'conda' dependencies")
         add_unlink(actions, old_dist)
 
+    add_checks(actions)
+
     return actions
 
 
@@ -606,6 +634,8 @@ def remove_features_actions(prefix, index, features):
     if to_link:
         dists = (Dist(d) for d in to_link)
         actions.update(ensure_linked_actions(dists, prefix))
+
+    add_checks(actions)
     return actions
 
 
@@ -640,6 +670,8 @@ def revert_actions(prefix, revision=-1, index=None):
         if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
+
+    add_checks(actions)
 
     return actions
 
