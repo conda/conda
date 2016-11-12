@@ -10,10 +10,10 @@ from io import open
 from logging import getLogger
 from os import W_OK, access, chmod, getpid, makedirs
 from os.path import basename, exists, isdir, isfile, islink, join
-from subprocess import PIPE, Popen, check_call
 from shlex import split as shlex_split
+from subprocess import PIPE, Popen
 
-from ... import CondaError, PACKAGE_ROOT
+from ... import CondaError, CONDA_PACKAGE_ROOT
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import LinkType, UTF8
@@ -51,7 +51,7 @@ def create_entry_point(entry_point_def, prefix):
             fo.write(pyscript)
 
         # link cli-XX.exe
-        link(join(PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
+        link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
              join(prefix, win_path_ok(ep_path + '.exe')))
         return [ep_path + '-script.py', ep_path + '.exe']
     else:
