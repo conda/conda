@@ -221,36 +221,20 @@ def link(src, dst, link_type=LinkType.hard_link):
 def compile_missing_pyc(prefix, python_major_minor_version, files):
     py_pyc_files = missing_pyc_files(python_major_minor_version, files)
     python_exe = get_python_path()
-    py_files = (join(prefix, win_path_ok(f[0])) for f in py_pyc_files)
 
-    if False:
-        command = python_exe + " -Wi -m py_compile -"
-        log.debug(command)
-        process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                        universal_newlines=True)
-        stdout, stderr = process.communicate(input='\n'.join(py_files) + '\n')
-    elif False:
+    with cwd(prefix):
+        py_files = (f[0] for f in py_pyc_files)
         command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
         log.debug(command)
-        process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                        universal_newlines=True)
+        process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
-    else:
-        with cwd(prefix):
-            py_files = (f[0] for f in py_pyc_files)
-            python_exe = join(win_path_double_escape(prefix), python_exe)
-            command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
-            log.debug(command)
-            process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                            universal_newlines=True)
-            stdout, stderr = process.communicate()
 
     rc = process.returncode
     if rc != 0:
-        log.debug("$  %s\n"
+        log.debug("%s $  %s\n"
                   "  stdout: %s\n"
                   "  stderr: %s\n"
-                  "  rc: %d", command, stdout, stderr, rc)
+                  "  rc: %d", prefix, command, stdout, stderr, rc)
         raise RuntimeError()
     pyc_files = tuple(f[1] for f in py_pyc_files)
     return pyc_files
