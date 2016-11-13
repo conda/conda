@@ -5,7 +5,6 @@ import json
 import os
 import shutil
 import traceback
-from conda.common.io import cwd
 from errno import EEXIST
 from io import open
 from logging import getLogger
@@ -14,13 +13,14 @@ from os.path import basename, exists, isdir, isfile, islink, join
 from shlex import split as shlex_split
 from subprocess import PIPE, Popen
 
-from ... import CondaError, CONDA_PACKAGE_ROOT
+from ... import CONDA_PACKAGE_ROOT, CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import LinkType, UTF8
 from ...base.context import context
+from ...common.io import cwd
 from ...common.path import (get_bin_directory_short_path, get_python_path, missing_pyc_files,
-                            parse_entry_point_def, win_path_ok, win_path_double_escape)
+                            parse_entry_point_def, win_path_ok)
 from ...exceptions import ClobberError, CondaOSError
 from ...gateways.disk.delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
