@@ -74,8 +74,8 @@ def parse_entry_point_def(ep_definition):
     return command, module, func
 
 
-def get_python_path(prefix):
-    return join(prefix, "python.exe") if on_win else join(prefix, "bin", "python")
+def get_python_path():
+    return "python.exe" if on_win else join("bin", "python")
 
 
 def get_bin_directory_short_path():
@@ -84,3 +84,7 @@ def get_bin_directory_short_path():
 
 def win_path_ok(path):
     return path.replace('/', '\\') if on_win else path
+
+
+def win_path_double_escape(path):
+    return path.replace('/', '\\\\') if on_win else path
