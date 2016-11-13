@@ -5,18 +5,25 @@ from logging import getLogger
 
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, StringField, MapField)
-from ..base.constants import Arch, Platform
+from ..base.constants import Arch, Platform, LinkType
 from ..common.compat import string_types
 
 log = getLogger(__name__)
 
 
+class LinkTypeField(EnumField):
+    def box(self, instance, val):
+        if isinstance(val, string_types):
+            val = val.replace('-', '_')
+        return super(LinkTypeField, self).box(instance, val)
+
+
 class Link(DictSafeMixin, Entity):
     source = StringField()
-    type = StringField()
+    type = LinkTypeField(LinkType, required=False)
 
 
-EMPTY_LINK = Link(source='', type='')
+EMPTY_LINK = Link(source='')
 
 # TODO: eventually stop mixing Record with LinkedPackageData
 # class LinkedPackageData(DictSafeMixin, Entity):
@@ -51,6 +58,8 @@ class Record(DictSafeMixin, Entity):
     license_family = StringField(required=False)
     md5 = StringField(required=False, nullable=True)
     name = StringField()
+    # TODO: noarch should support being a string or bool
+    noarch = StringField(required=False, nullable=True)
     platform = EnumField(Platform, required=False, nullable=True)
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)

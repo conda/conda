@@ -12,10 +12,11 @@ from os.path import basename, dirname, exists, isdir, isfile, join
 
 from ..base.constants import DEFAULTS
 from ..base.context import context
-from ..common.disk import exp_backoff_fn, rm_rf
-from ..common.url import path_to_url, maybe_add_auth
+from ..common.url import maybe_add_auth, path_to_url
 from ..connection import CondaSession, RETRIES
 from ..exceptions import CondaRuntimeError, CondaSignatureError, MD5MismatchError
+from ..gateways.disk import exp_backoff_fn
+from ..gateways.disk.delete import rm_rf
 from ..lock import FileLock
 from ..models.channel import Channel, offline_keep
 from ..models.dist import Dist
@@ -259,6 +260,7 @@ def extract(dist):
 
 
 def read_url(dist):
+    assert isinstance(dist, Dist)
     res = package_cache().get(dist, {}).get('urls', (None,))
     return res[0] if res else None
 

@@ -2,17 +2,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
+from conda.utils import on_win
 from logging import getLogger
-from os import listdir, makedirs
+from os import listdir
 from os.path import isdir, isfile, join
 
-from .package_cache import read_url
-from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import UTF8
-from ..common.disk import rm_rf, yield_lines
+from ..common.compat import itervalues
+from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel
 from ..models.dist import Dist
-from ..models.record import EMPTY_LINK, Link, Record
+from ..models.record import EMPTY_LINK, Record
 
 log = getLogger(__name__)
 
@@ -125,52 +124,26 @@ def is_linked(prefix, dist):
     return load_meta(prefix, dist)
 
 
-def read_icondata(source_dir):
-    import base64
-
-    try:
-        data = open(join(source_dir, 'info', 'icon.png'), 'rb').read()
-        return base64.b64encode(data).decode(UTF8)
-    except IOError:
-        pass
-    return None
-
-
-def create_meta(prefix, dist, source_dir, index, files, linktype):
-    """
-    Create the conda metadata, in a given prefix, for a given package.
-    """
-    from conda.install import link_name_map
-
-    meta_dict = index.get(dist, {})
-    meta_dict['url'] = read_url(dist)
-    alt_files_path = join(prefix, 'conda-meta', dist.to_filename('.files'))
-    if isfile(alt_files_path):
-        # alt_files_path is a hack for noarch
-        meta_dict['files'] = list(yield_lines(alt_files_path))
-    else:
-        meta_dict['files'] = files
-    meta_dict['link'] = Link(source=source_dir, type=link_name_map.get(linktype))
-    if 'icon' in meta_dict:
-        meta_dict['icondata'] = read_icondata(source_dir)
-
-    # read info/index.json first
-    with open(join(source_dir, 'info', 'index.json')) as fi:
-        meta = Record(**json.load(fi))  # TODO: change to LinkedPackageData
-
-    meta.update(meta_dict)
-
-    # add extra info, add to our internal cache
-    if not meta.get('url'):
-        meta['url'] = read_url(dist)
-
-    # write into <env>/conda-meta/<dist>.json
-    meta_dir = join(prefix, 'conda-meta')
-    if not isdir(meta_dir):
-        makedirs(meta_dir)
-    with open(join(meta_dir, dist.to_filename('.json')), 'w') as fo:
-        json.dump(meta, fo, indent=2, sort_keys=True, cls=EntityEncoder)
-
-    # update in-memory cache
+def set_linked_data(prefix, dist_name, record):
     if prefix in linked_data_:
-        load_linked_data(prefix, dist.dist_name, meta)
+        load_linked_data(prefix, dist_name, record)
+
+
+def get_python_version_for_prefix(prefix):
+    # returns a string e.g. "2.7", "3.4", "3.5 or None
+    py_record_iter = (rcrd for rcrd in itervalues(linked_data(prefix)) if rcrd.name == 'python')
+    record = next(py_record_iter, None)
+    if record is None:
+        return None
+    next_record = next(py_record_iter, None)
+    if next_record is not None:
+        raise RuntimeError("multiple python record found in prefix %s" % prefix)
+    else:
+        return record.version[:3]
+
+
+def get_site_packages_dir(prefix):
+    if on_win:
+        return 'Lib/site-packages'
+    else:
+        return 'lib/python%s/site-packages' % get_python_version_for_prefix(prefix)

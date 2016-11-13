@@ -20,7 +20,7 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
 from conda.base.constants import ROOT_NO_RM
 from conda.core.index import get_index
 from ..base.context import check_write, context
-from ..common.disk import delete_trash
+from ..gateways.disk.delete import delete_trash
 from ..compat import iteritems, iterkeys
 from ..console import json_progress_bars
 from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
@@ -107,7 +107,7 @@ def configure_parser(sub_parsers, name='remove'):
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
-    from conda.common.disk import rm_rf
+    from conda.gateways.disk.delete import rm_rf
     from conda.core.linked_data import linked_data
 
     if not (args.all or args.package_names):
@@ -146,8 +146,11 @@ def execute(args, parser):
 
     else:
         specs = specs_from_args(args.package_names)
-        if (context.conda_in_root and plan.is_root_prefix(prefix) and
-                names_in_specs(ROOT_NO_RM, specs)):
+        # import pdb; pdb.set_trace()
+        if (context.conda_in_root
+                and plan.is_root_prefix(prefix)
+                and names_in_specs(ROOT_NO_RM, specs)
+                and not args.force):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
         actions = plan.remove_actions(prefix, specs, index=index,

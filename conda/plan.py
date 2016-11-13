@@ -16,16 +16,16 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
 from . import instructions as inst
-from .base.constants import DEFAULTS
+from .base.constants import DEFAULTS, LinkType
 from .base.context import context
 from .common.compat import text_type
-from .common.disk import rm_rf
 from .core.linked_data import is_linked
-from .core.package_cache import find_new_location, is_fetched
+from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
+from .gateways.disk.create import try_hard_link
+from .gateways.disk.delete import rm_rf
 from .history import History
-from .install import LINK_COPY, LINK_HARD, LINK_SOFT, is_extracted, link_name_map, try_hard_link
 from .models.channel import Channel
 from .models.dist import Dist
 from .resolve import MatchSpec, Package, Resolve
@@ -156,8 +156,8 @@ def display_actions(actions, index, show_channel_urls=None):
         if features[pkg][0]:
             oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
 
-        lt = linktypes.get(pkg, LINK_HARD)
-        lt = '' if lt == LINK_HARD else (' (%s)' % link_name_map[lt])
+        lt = LinkType(linktypes.get(pkg, LinkType.hard_link))
+        lt = '' if lt == LinkType.hard_link else (' (%s)' % lt)
         if pkg in removed or pkg in new:
             oldfmt[pkg] += lt
             continue
@@ -361,17 +361,18 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                 with open(index_json, 'w'):
                     pass
             if context.always_copy or always_copy:
-                lt = LINK_COPY
+                lt = LinkType.copy
             elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LINK_HARD
+                lt = LinkType.hard_link
             elif context.allow_softlinks and not on_win:
-                lt = LINK_SOFT
+                lt = LinkType.soft_link
             else:
-                lt = LINK_COPY
+                lt = LinkType.copy
+
             actions[inst.LINK].append('%s %d' % (dist, lt))
 
         except (OSError, IOError):
-            actions[inst.LINK].append('%s %d' % (dist, LINK_COPY))
+            actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
         finally:
             if not extracted_in:
                 # Remove the dummy data
@@ -551,7 +552,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         mss = list(map(MatchSpec, specs))
         nlinked = {r.package_name(dist): dist
                    for dist in linked_dists
-                   if not any(r.match(ms, dist.to_filename()) for ms in mss)}
+                   if not any(r.match(ms, dist) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
         nlinked = {r.package_name(dist): dist
@@ -572,7 +573,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         if pinned and any(r.match(ms, old_dist.to_filename()) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
             raise CondaRuntimeError(msg % old_dist.to_filename())
-        if context.conda_in_root and name == 'conda' and name not in nlinked:
+        if context.conda_in_root and name == 'conda' and name not in nlinked and not context.force:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")
             else:

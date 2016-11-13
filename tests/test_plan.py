@@ -1,4 +1,5 @@
 import os
+from conda.base.constants import LinkType
 from conda.models.dist import Dist
 from conda.models.record import Record
 
@@ -13,7 +14,6 @@ from collections import defaultdict
 import pytest
 
 from conda.base.context import context, reset_context
-from conda.install import LINK_HARD
 import conda.plan as plan
 import conda.instructions as inst
 from conda.plan import display_actions
@@ -41,7 +41,7 @@ class TestMisc(unittest.TestCase):
 
     def test_split_linkarg(self):
         for arg, res in [
-            ('w3-1.2-0', ('w3-1.2-0', LINK_HARD)),
+            ('w3-1.2-0', ('w3-1.2-0', 1)),
             ('w3-1.2-0 1', ('w3-1.2-0', 1)),
             ('w3-1.2-0 1 True', ('w3-1.2-0', 1))]:
             self.assertEqual(inst.split_linkarg(arg), res)

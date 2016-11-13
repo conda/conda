@@ -95,7 +95,8 @@ GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
                              r"(?:-(?P<dev>\d+)-g(?P<hash>[0-9a-f]{7}))$")
 
 
-def call(path, command, raise_on_error=True):
+def call(command, path=None, raise_on_error=True):
+    path = sys.prefix if path is None else abspath(path)
     p = Popen(split(command), cwd=path, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
@@ -118,12 +119,12 @@ def _get_version_from_version_file(path):
 
 def _git_describe_tags(path):
     try:
-        call(path, "git update-index --refresh", raise_on_error=False)
+        call("git update-index --refresh", path, raise_on_error=False)
     except CalledProcessError as e:
         # git is probably not installed
         log.warn(repr(e))
         return None
-    response = call(path, "git describe --tags --long", raise_on_error=False)
+    response = call("git describe --tags --long", path, raise_on_error=False)
     if response.rc == 0:
         return response.stdout.strip()
     elif response.rc == 128 and "no names found" in response.stderr.lower():

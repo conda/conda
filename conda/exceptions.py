@@ -65,6 +65,16 @@ class TooFewArgumentsError(ArgumentError):
         super(TooFewArgumentsError, self).__init__(msg, *args)
 
 
+class ClobberError(CondaError):
+    def __init__(self, destination_path, source_path, link_type):
+        message = dals("""
+        Conda no longer clobbers existing files without the use of the --force option.
+          source path:      %(source_path)s
+          destination path: %(destination_path)s
+        """)
+        super(ClobberError, self).__init__(message, destination_path=destination_path,
+                                           source_path=source_path, link_type=link_type)
+
 class CommandError(CondaError):
     def __init__(self, command, message):
         self.command = command
@@ -467,7 +477,7 @@ def delete_lock(extra_path=None):
     """
     from .cli.main_clean import find_lock
     from .lock import LOCK_EXTENSION
-    from .common.disk import rm_rf
+    from .gateways.disk.delete import rm_rf
     file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
     locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
     failed_delete = []

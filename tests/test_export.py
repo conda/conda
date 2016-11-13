@@ -1,6 +1,6 @@
 import pytest
 import tempfile
-from conda.install import rm_rf
+from conda.gateways.disk.delete import rm_rf
 from datetime import datetime
 from os.path import exists, join
 from unittest import TestCase
