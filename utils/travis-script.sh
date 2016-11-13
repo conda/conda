@@ -35,6 +35,7 @@ main_test() {
     [[ $(which ksh) ]]  && shells="${shells} --shell=ksh"
     [[ $(which csh) ]]  && shells="${shells} --shell=csh"
     [[ $(which tcsh) ]] && shells="${shells} --shell=tcsh"
+    echo "TESTING ON SHELLS: ${shells}"
 
     python -m pytest --cov-report xml ${shells} -m "not installed" tests
 
@@ -104,7 +105,7 @@ conda_build_unit_test() {
 ###########################################################################
 
 ###########################################################################
-# "MAIN FUNCTION"                                                         #
+# MAIN FUNCTION                                                           #
 echo "START SCRIPT"
 
 # show basic environment details                                          #
@@ -133,5 +134,5 @@ else
 fi
 
 echo "DONE SCRIPT"
-# END "MAIN FUNCTION"                                                     #
+# END MAIN FUNCTION                                                       #
 ###########################################################################

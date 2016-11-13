@@ -255,7 +255,7 @@ Remove-Variable IS_ENV_CONDA_ENVNAME
 #                                                                         #
 # TODO: this is much too complex to do here, delegate to Python           #
 # TODO: redesign conda ..changeps1 to actually return the new prompt      #
-if ( conda ..changeps1 -eq 1 -and (Get-Command Prompt).definition -ne "" ) {
+if ( conda "..changeps1" -eq 1 -and (Get-Command Prompt).definition -ne "" ) {
     $env:CONDA_PS1_BACKUP=Get-Content function:\Prompt
     # Set-Content function:\Prompt $env:CONDA_PS1_BACKUP
 }

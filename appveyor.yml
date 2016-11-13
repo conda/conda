@@ -25,16 +25,17 @@ environment:
       PYTHON_ARCH: "32"
 
 init:
-  - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOME%
+  - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOMEDRIVE%%HOMEPATH%
 
 install:
-  - powershell ./utils/appveyor-install.ps1
+  - powershell .\utils\appveyor-killold.ps1
+  - call .\utils\appveyor-install.bat
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
 
 test_script:
-  - powershell ./utils/appveyor-script.ps1
+  - call .\utils\appveyor-script.bat
 
 on_success:
   - pip install codecov coveralls scrutinizer-ocular

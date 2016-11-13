@@ -203,6 +203,7 @@ CONDA_VERBOSE="${_CONDA_VERBOSE}"
 WHAT_SHELL_AM_I="${_CONDA_WHAT_SHELL_AM_I}"
 if [ -n "${_MSYS2_ENV_CONV_EXCL+x}" ]; then
     MSYS2_ENV_CONV_EXCL="${_MSYS2_ENV_CONV_EXCL}"
+    export MSYS2_ENV_CONV_EXCL
     unset _MSYS2_ENV_CONV_EXCL
 fi
 unset _IS_ENV_CONDA_VERBOSE
@@ -268,7 +269,7 @@ unset IS_ENV_CONDA_ENVNAME
 # PS1 & CONDA_PS1_BACKUP                                                  #
 # export PS1 to restore upon deactivation                                 #
 # customize the PS1 to show what environment has been activated           #
-if [ "$(conda ..changeps1)" = "1" ] && [ -n "${PS1+x}" ]; then
+if [ "$(conda "..changeps1")" = "1" ] && [ -n "${PS1+x}" ]; then
     CONDA_PS1_BACKUP="${PS1}"
     PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
     export CONDA_PS1_BACKUP

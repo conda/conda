@@ -28,10 +28,16 @@ switch ( `uname -s` )
 
         # exclude CONDA_PATH from the Windows -> Cygwin Et Al. path
         # conversion and vice versa
-        if ( $?MSYS2_ENV_CONV_EXCL && "${MSYS2_ENV_CONV_EXCL}" != "" && "${MSYS2_ENV_CONV_EXCL}" != "CONDA_PATH" ) then
-            setenv MSYS2_ENV_CONV_EXCL `envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d`
-        else
+        if ( ! $?MSYS2_ENV_CONV_EXCL) then
             setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
+        else
+            if ( "${MSYS2_ENV_CONV_EXCL}" == "") then
+                setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
+            else
+                if ( "${MSYS2_ENV_CONV_EXCL}" != "CONDA_PATH" ) then
+                    setenv MSYS2_ENV_CONV_EXCL `envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d`
+                endif
+            endif
         endif
         breaksw
 endsw
@@ -233,7 +239,7 @@ set IS_ENV_CONDA_VERBOSE="${_IS_ENV_CONDA_VERBOSE}"
 set CONDA_VERBOSE="${_CONDA_VERBOSE}"
 set WHAT_SHELL_AM_I="${_CONDA_WHAT_SHELL_AM_I}"
 if ( $?_MSYS2_ENV_CONV_EXCL ) then
-    set MSYS2_ENV_CONV_EXCL="${_MSYS2_ENV_CONV_EXCL}"
+    setenv MSYS2_ENV_CONV_EXCL="${_MSYS2_ENV_CONV_EXCL}"
     unset _MSYS2_ENV_CONV_EXCL
 endif
 unset _IS_ENV_CONDA_VERBOSE
@@ -275,10 +281,15 @@ unset WHAT_SHELL_AM_I
 # would result in CONDA_PREFIX being added twice to PATH                  #
 set tmp_path="$path"
 set tmp_PATH="$PATH"
+# if we are on Windows MSYS CSH/TCSH then we will get a _CONDA_BIN that   #
+# contains more than one path, which will be delimited by :, for $path we #
+# use only spaces                                                         #
 set path=(${_CONDA_BIN} ${tmp_path})
+set path=(`echo "${path}" | sed s'|:| |g'`)
 set PATH=(${_CONDA_BIN}:${tmp_PATH})
 unset tmp_path
 unset tmp_PATH
+unset _CONDA_BIN_path
 # END PATH                                                                #
 ###########################################################################
 
@@ -317,7 +328,7 @@ unset IS_ENV_CONDA_ENVNAME
 # PS1 & CONDA_PS1_BACKUP                                                  #
 # export PS1 to restore upon deactivation                                 #
 # customize the PS1 to show what environment has been activated           #
-if ( `conda ..changeps1` == 1 && $?prompt ) then
+if ( `conda "..changeps1"` == 1 && $?prompt ) then
     setenv CONDA_PS1_BACKUP "${prompt}"
     set prompt="(${CONDA_DEFAULT_ENV}) ${prompt}"
 endif

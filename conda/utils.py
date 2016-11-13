@@ -181,7 +181,8 @@ def human_bytes(n):
 # remember the exe fields are exclusively used to call the correct
 # executable for the unittesting, hence why some of the Windows paths
 # are absolutes
-posix_base = dict(
+posix_bash_base = dict(
+    allargs='${@}',
     binpath='/bin/',  # mind the trailing slash.
     defaultenv_print='echo "${CONDA_DEFAULT_ENV}"',
     echo='echo',
@@ -195,6 +196,7 @@ posix_base = dict(
     path_from=path_identity,
     path_print='echo "${PATH}"',
     path_to=path_identity,
+    path_prepend='export PATH="{}:${{PATH}}"',
     prompt_print='echo "${PS1}"',
     prompt_set='export PS1="{value}"',
     prompt_unset='unset PS1',
@@ -207,9 +209,32 @@ posix_base = dict(
     var_set='{variable}="{value}"',
     var_unset='unset {variable}',
 )
+posix_c_base = dict(
+    posix_bash_base,
+    # exe=,
+    allargs='${argv}',
+    envvar_set='setenv {variable} "{value}"',
+    envvar_unset='unsetenv {variable}',
+    nul='>&/dev/null',
+    path_prepend=dedent("""\
+        set path=({0} ${{path}})
+        set PATH=({0}:${{PATH}})"""),
+    prompt_print='echo "${prompt}"',
+    prompt_set='set prompt="{value}"',
+    prompt_unset='unset prompt',
+    shell_args='',
+    source='source "{}"',
+    suffix_executable='',
+    suffix_script='.csh',
+    var_set='set {variable}="{value}"',
+)
 
-cygwin_base = dict(
-    posix_base,
+cygwin_prefix = "C:\\cygwin64\\bin\\"
+cygwin_bash_base = dict(
+    posix_bash_base,
+    # this is the path that needs to be added to PATH just before entering
+    # Cygwin shell such that we can find our executables
+    pathprefix=cygwin_prefix,
     binpath='/Scripts/',  # mind the trailing slash.
     envvar_unset='[ -n "${{{variable}+x}}" ] && unset {variable}',
     path_from=cygwin_path_to_win,
@@ -217,15 +242,33 @@ cygwin_base = dict(
     var_unset='[ -n "${{{variable}+x}}" ] && unset {variable}',
 )
 
-mingw_base = dict(
-    posix_base,
+mingw_prefix = "C:\\MinGW\\msys\\1.0\\bin\\"
+mingw_bash_base = dict(
+    posix_bash_base,
+    # this is the path that needs to be added to PATH just before entering
+    # MinGW shell such that we can find our executables
+    pathprefix=mingw_prefix + ";C:\\MinGW\\MSYS\\1.0\\local\\bin;C:\\MinGW\\bin",
     binpath='/Scripts/',  # mind the trailing slash.
     path_from=unix_path_to_win,
     path_to=win_path_to_unix,
 )
 
-msys_base = dict(
-    posix_base,
+msys_prefix = "C:\\msys64\\usr\\bin\\"
+msys_bash_base = dict(
+    posix_bash_base,
+    # this is the path that needs to be added to PATH just before entering
+    # MSYS2 shell such that we can find our executables
+    pathprefix=msys_prefix,
+    binpath='/Scripts/',  # mind the trailing slash.
+    path_from=unix_path_to_win,
+    path_to=win_path_to_unix,
+    shell_args='',
+)
+msys_c_base = dict(
+    posix_c_base,
+    # this is the path that needs to be added to PATH just before entering
+    # MSYS2 shell such that we can find our executables
+    pathprefix=msys_prefix,
     binpath='/Scripts/',  # mind the trailing slash.
     path_from=unix_path_to_win,
     path_to=win_path_to_unix,
@@ -255,6 +298,7 @@ batch_base = dict(
     path_from=path_identity,
     path_print='@ECHO %PATH%',
     path_to=path_identity,
+    path_prepend='@SET "PATH={};%PATH%"',
     prompt_print='@ECHO %PROMPT%',
     prompt_set='@SET "PROMPT={value}"',
     prompt_unset='@SET PROMPT=',
@@ -267,121 +311,130 @@ batch_base = dict(
     var_set='@SET "{variable}={value}"',
     var_unset='@SET {variable}=',
 )
+powershell_base = dict(
+    posix_bash_base,
+    binpath='\Scripts\\',  # mind the trailing slash.
+    defaultenv_print='echo "${env:CONDA_DEFAULT_ENV}"',
+    envvar_getall=dedent('''\
+        Get-ChildItem env: | % {
+        $name=$_.Name
+        $value=$_.Value
+        echo "$name=$value"
+        }'''),
+    envvar_set='$env:{variable}="{value}"',
+    envvar_unset='$env:{variable}=""',
+    path_delim=';',
+    path_print='echo ${env:Path}',
+    path_prepend='$env:PATH="{};${{env:PATH}}"',
+    prompt_print='(Get-Command Prompt).definition',
+    prompt_set=dedent('''\
+        function Prompt {{
+            return "{value}";
+        }}'''),
+    prompt_unset=dedent('''\
+        function Prompt {
+            return "";
+        }'''),
+    sep='\\',
+    shell_args='-File',
+    source='{}',
+    suffix_executable='.ps1',
+    suffix_script='.ps1',
+    var_set='${variable}="{value}"',
+    var_unset='Remove-Variable {variable}',
+)
 
 if on_win:
     shells = {
         "powershell.exe": dict(
-            posix_base,
+            powershell_base,
             exe='powershell.exe',
-            binpath='\Scripts\\',  # mind the trailing slash.
-            defaultenv_print='echo "${env:CONDA_DEFAULT_ENV}"',
-            envvar_getall=dedent('''\
-                Get-ChildItem env: | % {
-                $name=$_.Name
-                $value=$_.Value
-                echo "$name=$value"
-                }'''),
-            envvar_set='$env:{variable}="{value}"',
-            envvar_unset='$env:{variable}=""',
-            path_delim=';',
-            path_print='echo ${env:Path}',
-            prompt_print='(Get-Command Prompt).definition',
-            prompt_set=dedent('''\
-                function Prompt {{
-                    return "{value}";
-                }}'''),
-            prompt_unset=dedent('''\
-                function Prompt {
-                    return "";
-                }'''),
-            sep='\\',
-            shell_args='-File',
-            source='{}',
-            suffix_executable='.ps1',
-            suffix_script='.ps1',
-            var_set='${variable}="{value}"',
-            var_unset='Remove-Variable {variable}',
         ),
         "cmd.exe": dict(
             batch_base,
             exe='cmd.exe',
         ),
         "bash.cygwin": dict(
-            cygwin_base,
+            cygwin_bash_base,
             # this is the default install location for Cygwin
-            exe='C:\\cygwin64\\bin\\bash.exe',
+            exe=cygwin_prefix + 'bash.exe',
         ),
         "bash.mingw": dict(
-            mingw_base,
+            mingw_bash_base,
             # this is the default install location for MinGW
-            exe='C:\\MinGW\\msys\\1.0\\bin\\bash.exe',
+            exe=mingw_prefix + 'bash.exe',
         ),
         "bash.msys": dict(
-            msys_base,
+            msys_bash_base,
             # this is the default install location for MSYS
-            exe='C:\\msys64\\usr\\bin\\bash.exe',
+            exe=msys_prefix + 'bash.exe',
         ),
-        # "zsh.msys": dict(
-        #     msys_base,
-        #     exe='zsh.exe',
-        # ),
+        "dash.msys": dict(
+            msys_bash_base,
+            # this is the default install location for MSYS
+            exe=msys_prefix + 'dash.exe',
+        ),
+        "zsh.msys": dict(
+            msys_bash_base,
+            # this is the default install location for MSYS
+            exe=msys_prefix + 'zsh.exe',
+        ),
+        "ksh.msys": dict(
+            msys_bash_base,
+            # this is the default install location for MSYS
+            exe=msys_prefix + 'ksh.exe',
+        ),
+        "csh.msys": dict(
+            msys_c_base,
+            # this is the default install location for MSYS
+            exe=msys_prefix + 'csh.exe',
+        ),
+        "tcsh.msys": dict(
+            msys_c_base,
+            # this is the default install location for MSYS
+            exe=msys_prefix + 'tcsh.exe',
+        ),
     }
 
 else:
-    c_shell_base = dict(
-        posix_base,
-        # exe=,
-
-        envvar_set='setenv {variable} "{value}"',
-        envvar_unset='unsetenv {variable}',
-        nul='>&/dev/null',
-        prompt_print='echo "${prompt}"',
-        prompt_set='set prompt="{value}"',
-        prompt_unset='unset prompt',
-        shell_args='',
-        source='source "{}"',
-        suffix_executable='',
-        suffix_script='.csh',
-        var_set='set {variable}="{value}"',
-    )
     shells = {
         "bash": dict(
-            posix_base,
+            posix_bash_base,
             exe='bash',
         ),
         "zsh": dict(
-            posix_base,
+            posix_bash_base,
             exe='zsh',
         ),
         "dash": dict(
-            posix_base,
+            posix_bash_base,
             exe='dash',
             shell_args='',
         ),
         "posh": dict(
-            posix_base,
+            posix_bash_base,
             exe='posh',
         ),
         "ksh": dict(
-            posix_base,
+            posix_bash_base,
             exe='ksh',
             shell_args='',
         ),
         "fish": dict(
-            posix_base,
+            posix_bash_base,
             exe='fish',
             path_delim=' ',
         ),
         "sh": dict(
-            posix_base,
+            posix_bash_base,
             exe='sh',
         ),
         "csh": dict(
-            c_shell_base,
+            posix_c_base,
             exe='csh',
         ),
         "tcsh": dict(
-            c_shell_base,
+            posix_c_base,
             exe='tcsh',
         ),
     }

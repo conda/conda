@@ -76,12 +76,14 @@ if on_win:
         CreateSymbolicLink = None
 
     def win_hard_link(src, dst):
-        "Equivalent to os.link, using the win32 CreateHardLink call."
+        """Equivalent to os.link, using the win32 CreateHardLink call.
+        """
         if not CreateHardLink(dst, src, None):
             raise CondaOSError('win32 hard link failed')
 
     def win_soft_link(src, dst):
-        "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
+        """Equivalent to os.symlink, using the win32 CreateSymbolicLink call.
+        """
         if CreateSymbolicLink is None:
             raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
@@ -96,7 +98,7 @@ if on_win:
 
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
-        from conda.utils import shells
+        # ensure that directory exists first
         try:
             os.makedirs(os.path.dirname(dst))
         except OSError as exc:  # Python >2.5
@@ -115,33 +117,61 @@ if on_win:
 
         # TODO: probably need one here for powershell at some point
 
-        # This one is for bash/cygwin/msys
-        # set default shell to bash.exe when not provided, as that's most common
-        #
-        # in general the shell will not be defined when doing things like conda
-        # build, the shell used in that case isn't too critical since the build
-        # process will activate in a bash sub-shell
-        #
-        # so for sanity purposes we standardize to using MSYS which is the
-        # AppVeyor default
-        if not shell:
-            shell = "bash.msys"
+    def win_conda_unix_redirect(src, dst, shell):
+        """Special function for Windows where the os.symlink function
+        is unavailable due to a lack of user priviledges.
 
-        # technically these are "links" - but islink doesn't work on win
+        Simply creates a source-able intermediate file.
+        """
+        # ensure that directory exists first
+        try:
+            os.makedirs(os.path.dirname(dst))
+        except OSError as exc:  # Python >2.5
+            if exc.errno == errno.EEXIST and os.path.isdir(os.path.dirname(dst)):
+                pass
+            else:
+                raise
+
+        from conda.utils import shells
+        # technically these are "links" - but for obvious reasons
+        # os.path.islink wont work
         if not os.path.isfile(dst):
             with open(dst, "w") as f:
-                # ensure the file ends with a blank line
-                # this is critical for Windows support
+                shell_vars = shells[shell]
+
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                # !! ensure the file ends with a blank line this is       !!
+                # !! critical for Windows support                         !!
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+                # conda is used as an executable
                 if src.endswith("conda"):
-                    f.write(dedent("""\
-                        #!/usr/bin/env bash
-                        {} "$@"
-                        """).format(shells[shell]['path_to'](src+".exe")))
+                    command = shell_vars['path_to'](src+".exe")
+                    text = dedent("""\
+                        #!/usr/bin/env {shebang}
+                        {command} {allargs}
+                        """).format(
+                        shebang=re.sub(
+                            r'\.\w+$',
+                            r'',
+                            os.path.basename(shell_vars["exe"])),
+                        command=command,
+                        **shell_vars)
+                    f.write(text)
+                # all others are used as sourced
                 else:
-                    f.write(dedent("""\
-                        #!/usr/bin/env bash
-                        source {} "$@"
-                        """).format(shells[shell]['path_to'](src)))
+                    command = shell_vars["source"].format(shell_vars['path_to'](src))
+                    text = dedent("""\
+                        #!/usr/bin/env {shebang}
+                        {command} {allargs}
+                        """).format(
+                        shebang=re.sub(
+                            r'\.\w+$',
+                            r'',
+                            os.path.basename(shell_vars["exe"])),
+                        command=command,
+                        **shell_vars)
+                    f.write(text)
 
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
@@ -457,12 +487,23 @@ def symlink_conda(prefix, root_dir, shell=None):
     # prefix should always be longer than, or outside the root dir.
     if normcase(normpath(prefix)) in normcase(normpath(root_dir)):
         return
+
+    if shell is None:
+        shell = "bash.msys"
+
     if on_win:
         where = 'Scripts'
-        symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
     else:
         where = 'bin'
+
+    if on_win:
+        if shell in ["cmd.exe", "powershell.exe"]:
+            symlink_fn = functools.partial(win_conda_bat_redirect, shell=shell)
+        else:
+            symlink_fn = functools.partial(win_conda_unix_redirect, shell=shell)
+    else:
         symlink_fn = os.symlink
+
     if not isdir(join(prefix, where)):
         os.makedirs(join(prefix, where))
     symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
@@ -480,12 +521,13 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
             # try to kill stale links if they exist
             if os.path.lexists(prefix_file):
                 rm_rf(prefix_file)
-            # if they're in use, they won't be killed.  Skip making new symlink.
+
+            # if they're in use, they won't be killed, skip making new symlink
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
         except (IOError, OSError) as e:
             if (os.path.lexists(prefix_file) and
-                    (e.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST))):
+                (e.errno in [errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST])):
                 log.debug("Cannot symlink {0} to {1}. Ignoring since link already exists."
                           .format(root_file, prefix_file))
             else:

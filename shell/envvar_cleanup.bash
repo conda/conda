@@ -210,14 +210,12 @@ if [ -n "${VARIABLE}" ]; then
             x="${old_VARIABLE%%${DELIM}*}"
             old_VARIABLE="${old_VARIABLE#*${DELIM}}"
 
-            FROM="${DELIM}${x}${DELIM}"
-
-            TMP="${VARIABLE/${FROM}/${DELIM}}"
+            tmp_VARIABLE="${VARIABLE/${DELIM}${x}${DELIM}/${DELIM}}"
 
             # if removing the current phrase from the %VARIABLE% didn't change
             # anything that means that it doesn't exist yet in the new unique
             # list, consequently append the value
-            [ "${TMP}" = "${VARIABLE}" ] && VARIABLE="${VARIABLE}${x}${DELIM}"
+            [ "${tmp_VARIABLE}" = "${VARIABLE}" ] && VARIABLE="${VARIABLE}${x}${DELIM}"
         done
     else
         # iterate over all phrases split by delim
@@ -236,8 +234,8 @@ if [ -n "${VARIABLE}" ]; then
                     else
                         # check for a fuzzy match (if applicable)
                         if [ "${FUZZY}" = "${TRUE}" ]; then
-                            TMP="${x/${STR_TO_REMOVE[${j}]}/}"
-                            if [ "${TMP}" != "${x}" ]; then
+                            tmp_VARIABLE="${x/${STR_TO_REMOVE[${j}]}/}"
+                            if [ "${tmp_VARIABLE}" != "${x}" ]; then
                                 FUZZY_MATCH="${j}"
                             fi
                         fi

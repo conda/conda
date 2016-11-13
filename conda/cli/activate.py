@@ -89,10 +89,10 @@ def help(mode, shell, unknown):
         unknown = ("[{{program}}]: ERROR: "
                    "Unknown/Invalid flag/parameter ({unknown})\n").format(
                    unknown=" ".join(unknown))
-        conda_exception = functools.partial(CondaHelp,returncode=1)
+        conda_exception = functools.partial(CondaHelp, returncode=1)
     else:
         unknown = ""
-        conda_exception = functools.partial(CondaHelp,returncode=0)
+        conda_exception = functools.partial(CondaHelp, returncode=0)
 
     # mode will be ..checkenv in activate if an environment is already
     # activated
@@ -205,11 +205,11 @@ def main():
 
     received = len(sys.argv)
     if received >= 2:
-        mode = sys.argv[1]
+        mode = sys.argv[1].strip()
     if received >= 3:
-        shell = sys.argv[2]
+        shell = sys.argv[2].strip()
     if received >= 4:
-        env = sys.argv[3]
+        env = sys.argv[3].strip()
 
     if '-h' in sys.argv or '--help' in sys.argv:
         # all unknown values will be listed after the -h/--help flag
@@ -217,7 +217,7 @@ def main():
             i = sys.argv.index("-h")
         except ValueError:
             i = sys.argv.index("--help")
-        unknown = sys.argv[i+1:]
+        unknown = list(map(lambda s: s.strip(), sys.argv[i+1:]))
 
         help(mode, shell, unknown)
         # note: will never return from the help method

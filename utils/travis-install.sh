@@ -191,7 +191,8 @@ miniconda_install() {
     fi
 
     # update PATH
-    PATH="${HOME}/miniconda/bin:${PATH}"
+    ANACONDA_PATH="${HOME}/miniconda/bin"
+    PATH="${ANACONDA_PATH}:${PATH}"
     export PATH
     hash -r
     which -a conda

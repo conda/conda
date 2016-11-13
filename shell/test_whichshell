@@ -47,19 +47,19 @@ echo ""
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 echo "WHICHSHELL.AWK: ERROR-CLAUSE"
-whichshell_args.bash "test_whichshell" "ed" \
+whichshell_args.bash "test_whichshell" "error-clause" \
 `whichshell_ps.bash && eval 'echo $0' || echo "csh"` | \
 awk -f "`which whichshell.awk`" && echo "++ SELECTED ++" || :
 echo ""
 
 echo "WHICHSHELL.AWK: BOURNE-SHELL-CLAUSE"
-whichshell_args.bash "test_whichshell" "bd" \
+whichshell_args.bash "test_whichshell" "bourne-shell-clause" \
 `whichshell_ps.bash && eval 'echo $0' || echo "csh"` | \
 awk -f "`which whichshell.awk`" && echo "++ SELECTED ++" || :
 echo ""
 
 echo "WHICHSHELL.AWK: C-SHELL-CLAUSE"
-whichshell_args.bash "test_whichshell" "cd" \
+whichshell_args.bash "test_whichshell" "c-shell-clause" \
 `whichshell_ps.bash && eval 'echo $0' || echo "csh"` | \
 awk -f "`which whichshell.awk`" && echo "++ SELECTED ++" || :
 echo ""

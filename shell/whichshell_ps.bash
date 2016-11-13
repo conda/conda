@@ -20,9 +20,16 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ###########################################################################
+# DEFINE BASIC VARS                                                       #
+TRUE=1
+FALSE=0
+# END DEFINE BASIC VARS                                                   #
+###########################################################################
+
+###########################################################################
 # DETECT CYGWIN VS MINGW VS MSYS VS UNIX                                  #
 # since they have incompatible ps commands                                #
-IS_WIN="false"
+IS_WIN="${FALSE}"
 case "$(uname -s)" in
     CYGWIN*)
         IS_WIN="cygwin"
@@ -38,13 +45,45 @@ esac
 ###########################################################################
 
 ###########################################################################
+# PARSE COMMAND LINE                                                      #
+num=0
+while [ $num != -1 ]; do
+    num=$((num + 1))
+    arg=$(eval eval echo '\${$num}') >/dev/null 2>&1
+
+    # check if variable is blank, if so stop parsing
+    if [ $? != 0 ] || [ -z "$(echo ${arg} | sed 's| ||g')" ]; then
+        num=-1
+    else
+        case "${arg}" in
+            -v|--verbose)
+                VERBOSE="${TRUE}"
+                ;;
+            *)
+                ID="${arg}"
+                ;;
+        esac
+    fi
+done
+unset num
+unset arg
+
+# if any of these variables are undefined set them to a default           #
+[ -z "${VERBOSE}" ] && VERBOSE="${FALSE}"
+[ -z "${ID}" ]      && ID="$$"
+# END PARSE COMMAND LINE                                                  #
+###########################################################################
+
+###########################################################################
 # GET PROCESS ID of this executable's parent                              #
-[ "${1}" != "" ] && ID="${1}" || ID=$$
 if [ "${IS_WIN}" == "cygwin" ]; then
     PARENT_PID=($(ps -f -p ${ID}))
     PARENT_PID=${PARENT_PID[8]}
-elif [ "${IS_WIN}" == "mingw" ] || [ "${IS_WIN}" == "msys" ]; then
+elif [ "${IS_WIN}" == "mingw" ]; then
     PARENT_PID=($(ps | grep ${ID} | grep -v "ps" | grep -v "grep"))
+    PARENT_PID=${PARENT_PID[1]}
+elif [ "${IS_WIN}" == "msys" ]; then
+    PARENT_PID=($(ps | grep --regexp="^\s*${ID}\s" | grep -v "ps" | grep -v "grep"))
     PARENT_PID=${PARENT_PID[1]}
 else
     PARENT_PID=$(ps -o ppid= -p ${ID})
@@ -77,60 +116,60 @@ fi
 # if any of the parent process commands obviously tell us what the shell  #
 # is go with that, otherwise leave the comparison logic to whichshell.awk #
 REGEX_BASH="^bash(\s+.+)*"
-IS_BASH=false
-[[ "${PARENT_PROCESS_1}" =~ ${REGEX_BASH} ]] && IS_BASH=true
-[[ "${PARENT_PROCESS_2}" =~ ${REGEX_BASH} ]] && IS_BASH=true
-[[ "${PARENT_PROCESS_3}" =~ ${REGEX_BASH} ]] && IS_BASH=true
+IS_BASH="${FALSE}"
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_BASH} ]] && IS_BASH="${TRUE}"
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_BASH} ]] && IS_BASH="${TRUE}"
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_BASH} ]] && IS_BASH="${TRUE}"
 
 REGEX_DASH="^dash(\s+.+)*"
-IS_DASH=false
-[[ "${PARENT_PROCESS_1}" =~ ${REGEX_DASH} ]] && IS_DASH=true
-[[ "${PARENT_PROCESS_2}" =~ ${REGEX_DASH} ]] && IS_DASH=true
-[[ "${PARENT_PROCESS_3}" =~ ${REGEX_DASH} ]] && IS_DASH=true
+IS_DASH="${FALSE}"
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_DASH} ]] && IS_DASH="${TRUE}"
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_DASH} ]] && IS_DASH="${TRUE}"
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_DASH} ]] && IS_DASH="${TRUE}"
 
 REGEX_POSH="^posh(\s+.+)*"
-IS_POSH=false
-[[ "${PARENT_PROCESS_1}" =~ ${REGEX_POSH} ]] && IS_POSH=true
-[[ "${PARENT_PROCESS_2}" =~ ${REGEX_POSH} ]] && IS_POSH=true
-[[ "${PARENT_PROCESS_3}" =~ ${REGEX_POSH} ]] && IS_POSH=true
+IS_POSH="${FALSE}"
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_POSH} ]] && IS_POSH="${TRUE}"
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_POSH} ]] && IS_POSH="${TRUE}"
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_POSH} ]] && IS_POSH="${TRUE}"
 
 REGEX_ZSH="^zsh(\s+.+)*"
-IS_ZSH=false
-[[ "${PARENT_PROCESS_1}" =~ ${REGEX_ZSH} ]] && IS_ZSH=true
-[[ "${PARENT_PROCESS_2}" =~ ${REGEX_ZSH} ]] && IS_ZSH=true
-[[ "${PARENT_PROCESS_3}" =~ ${REGEX_ZSH} ]] && IS_ZSH=true
+IS_ZSH="${FALSE}"
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_ZSH} ]] && IS_ZSH="${TRUE}"
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_ZSH} ]] && IS_ZSH="${TRUE}"
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_ZSH} ]] && IS_ZSH="${TRUE}"
 
 REGEX_KSH="^ksh(\s+.+)*"
-IS_KSH=false
-[[ "${PARENT_PROCESS_1}" =~ ${REGEX_KSH} ]] && IS_KSH=true
-[[ "${PARENT_PROCESS_2}" =~ ${REGEX_KSH} ]] && IS_KSH=true
-[[ "${PARENT_PROCESS_3}" =~ ${REGEX_KSH} ]] && IS_KSH=true
+IS_KSH="${FALSE}"
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_KSH} ]] && IS_KSH="${TRUE}"
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_KSH} ]] && IS_KSH="${TRUE}"
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_KSH} ]] && IS_KSH="${TRUE}"
 
 REGEX_CSH="^csh(\s+.+)*"
-IS_CSH=false
-[[ "${PARENT_PROCESS_1}" =~ ${REGEX_CSH} ]] && IS_CSH=true
-[[ "${PARENT_PROCESS_2}" =~ ${REGEX_CSH} ]] && IS_CSH=true
-[[ "${PARENT_PROCESS_3}" =~ ${REGEX_CSH} ]] && IS_CSH=true
+IS_CSH="${FALSE}"
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_CSH} ]] && IS_CSH="${TRUE}"
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_CSH} ]] && IS_CSH="${TRUE}"
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_CSH} ]] && IS_CSH="${TRUE}"
 
 REGEX_TCSH="^tcsh(\s+.+)*"
-IS_TCSH=false
-[[ "${PARENT_PROCESS_1}" =~ ${REGEX_TCSH} ]] && IS_TCSH=true
-[[ "${PARENT_PROCESS_2}" =~ ${REGEX_TCSH} ]] && IS_TCSH=true
-[[ "${PARENT_PROCESS_3}" =~ ${REGEX_TCSH} ]] && IS_TCSH=true
+IS_TCSH="${FALSE}"
+[[ "${PARENT_PROCESS_1}" =~ ${REGEX_TCSH} ]] && IS_TCSH="${TRUE}"
+[[ "${PARENT_PROCESS_2}" =~ ${REGEX_TCSH} ]] && IS_TCSH="${TRUE}"
+[[ "${PARENT_PROCESS_3}" =~ ${REGEX_TCSH} ]] && IS_TCSH="${TRUE}"
 
-if [ "${IS_BASH}" = true ]; then
+if [ "${IS_BASH}" = "${TRUE}" ]; then
     PARENT_PROCESS="bash"
-elif [ "${IS_DASH}" = true ]; then
+elif [ "${IS_DASH}" = "${TRUE}" ]; then
     PARENT_PROCESS="dash"
-elif [ "${IS_POSH}" = true ]; then
+elif [ "${IS_POSH}" = "${TRUE}" ]; then
     PARENT_PROCESS="posh"
-elif [ "${IS_ZSH}" = true ]; then
+elif [ "${IS_ZSH}" = "${TRUE}" ]; then
     PARENT_PROCESS="zsh"
-elif [ "${IS_KSH}" = true ]; then
+elif [ "${IS_KSH}" = "${TRUE}" ]; then
     PARENT_PROCESS="ksh"
-elif [ "${IS_CSH}" = true ]; then
+elif [ "${IS_CSH}" = "${TRUE}" ]; then
     PARENT_PROCESS="csh"
-elif [ "${IS_TCSH}" = true ]; then
+elif [ "${IS_TCSH}" = "${TRUE}" ]; then
     PARENT_PROCESS="tcsh"
 else
     PARENT_PROCESS="${PARENT_PROCESS_1}"
@@ -159,7 +198,7 @@ fi
 
 ###########################################################################
 # PARENT PROCESS RETURN                                                   #
-if [ "${2}" == "-v" ]; then
+if [ "${VERBOSE}" = "${TRUE}" ]; then
     echo "${PARENT_PROCESS}"
 else
     if [[ "${PARENT_PROCESS}" =~ .*csh ]]; then

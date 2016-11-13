@@ -28,10 +28,16 @@ switch ( `uname -s` )
 
         # exclude CONDA_PATH from the Windows -> Cygwin Et Al. path
         # conversion and vice versa
-        if ( $?MSYS2_ENV_CONV_EXCL && "${MSYS2_ENV_CONV_EXCL}" != "" && "${MSYS2_ENV_CONV_EXCL}" != "CONDA_PATH" ) then
-            setenv MSYS2_ENV_CONV_EXCL `envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d`
-        else
+        if ( ! $?MSYS2_ENV_CONV_EXCL) then
             setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
+        else
+            if ( "${MSYS2_ENV_CONV_EXCL}" == "") then
+                setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
+            else
+                if ( "${MSYS2_ENV_CONV_EXCL}" != "CONDA_PATH" ) then
+                    setenv MSYS2_ENV_CONV_EXCL `envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d`
+                endif
+            endif
         endif
         breaksw
 endsw
@@ -172,9 +178,9 @@ if ( "${BAD_DEACTIVATE}" == "${TRUE}" ) then
     endif
     unset IS_ENV_CONDA_VERBOSE
     if ( $?MSYS2_ENV_CONV_EXCL ) then
-        set MSYS2_ENV_CONV_EXCL=`envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
+        setenv MSYS2_ENV_CONV_EXCL=`envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
         if ( "${MSYS2_ENV_CONV_EXCL}" == "" ) then
-            unset MSYS2_ENV_CONV_EXCL
+            unsetenv MSYS2_ENV_CONV_EXCL
         endif
     endif
     unset TRUE
@@ -257,9 +263,9 @@ rehash
 ###########################################################################
 # CLEANUP VARS FOR THIS SCOPE                                             #
 if ( $?MSYS2_ENV_CONV_EXCL ) then
-    set MSYS2_ENV_CONV_EXCL=`envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
+    setenv MSYS2_ENV_CONV_EXCL=`envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
     if ( "${MSYS2_ENV_CONV_EXCL}" == "" ) then
-        unset MSYS2_ENV_CONV_EXCL
+        unsetenv MSYS2_ENV_CONV_EXCL
     endif
 endif
 unset TRUE
