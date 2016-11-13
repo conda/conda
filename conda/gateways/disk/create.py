@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import traceback
+from conda.common.io import cwd
 from errno import EEXIST
 from io import open
 from logging import getLogger
@@ -228,12 +229,20 @@ def compile_missing_pyc(prefix, python_major_minor_version, files):
         process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
                         universal_newlines=True)
         stdout, stderr = process.communicate(input='\n'.join(py_files) + '\n')
-    else:
+    elif False:
         command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
         log.debug(command)
         process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
                         universal_newlines=True)
         stdout, stderr = process.communicate()
+    else:
+        with cwd(prefix):
+            py_files = (f[0] for f in py_pyc_files)
+            command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
+            log.debug(command)
+            process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                            universal_newlines=True)
+            stdout, stderr = process.communicate()
 
     rc = process.returncode
     if rc != 0:
