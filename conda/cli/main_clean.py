@@ -13,8 +13,8 @@ from os.path import getsize, isdir, join
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
-from ..common.disk import rm_rf
 from ..exceptions import ArgumentError
+from ..gateways.disk.delete import rm_rf
 from ..lock import LOCK_EXTENSION
 from ..utils import human_bytes
 

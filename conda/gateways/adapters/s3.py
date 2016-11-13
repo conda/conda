@@ -7,7 +7,7 @@ from requests.adapters import BaseAdapter
 from requests.structures import CaseInsensitiveDict
 from tempfile import mkstemp
 
-from ...common.disk import rm_rf
+from ..disk.delete import rm_rf
 from ...common.url import url_to_s3_info
 
 log = getLogger(__name__)

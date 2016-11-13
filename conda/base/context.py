@@ -17,7 +17,7 @@ from .._vendor.auxlib.path import expand
 from ..common.compat import iteritems, odict
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
-from ..common.disk import try_write, conda_bld_ensure_dir
+from ..common.disk import conda_bld_ensure_dir
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token, urlparse
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
@@ -67,7 +67,10 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
+
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
+    _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
 
     # connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
@@ -79,6 +82,8 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
+    http_connect_timeout_secs = PrimitiveParameter(6.1)
+    http_read_timeout_secs = PrimitiveParameter(60.)
 
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))
@@ -95,6 +100,7 @@ class Context(Configuration):
     always_yes = PrimitiveParameter(False, aliases=('yes',))
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
+    force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
     offline = PrimitiveParameter(False)
     quiet = PrimitiveParameter(False)
@@ -210,6 +216,7 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
+        from ..gateways.disk.create import try_write
         return try_write(self.root_dir)
 
     @property
@@ -222,7 +229,10 @@ class Context(Configuration):
 
     @property
     def pkgs_dirs(self):
-        return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
+        if self._pkgs_dirs:
+            return list(self._pkgs_dirs)
+        else:
+            return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
 
     @property
     def default_prefix(self):
@@ -296,7 +306,6 @@ class Context(Configuration):
         location, name = url_parts.path.rsplit('/', 1)
         if not location:
             location = '/'
-        assert name == 'conda-bld'
         return Channel(scheme=url_parts.scheme, location=location, name=name)
 
     @memoizedproperty

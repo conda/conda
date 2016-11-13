@@ -8,9 +8,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import sys
+from os.path import dirname
 
 from ._vendor.auxlib.packaging import get_version
-from .compat import text_type, iteritems
+from .compat import iteritems, text_type
 from .gateways.logging import initialize_logging
 
 __all__ = [
@@ -29,6 +30,7 @@ __url__ = "https://github.com/conda/conda"
 
 if os.getenv('CONDA_ROOT') is None:
     os.environ['CONDA_ROOT'] = sys.prefix
+CONDA_PACKAGE_ROOT = dirname(__file__)
 
 initialize_logging()
 

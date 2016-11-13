@@ -36,15 +36,17 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.disk import rm_rf
+from conda.common.path import missing_pyc_files, get_bin_directory_short_path
+from conda.gateways.disk.delete import rm_rf
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
-from conda.core.linked_data import linked as install_linked, linked_data, linked_data_
-from conda.exceptions import CondaHTTPError, DryRunExit, conda_exception_handler
+from conda.core.linked_data import linked as install_linked, linked_data, linked_data_, \
+    get_python_version_for_prefix, get_site_packages_dir
+from conda.exceptions import CondaHTTPError, DryRunExit, conda_exception_handler, RemoveError
 from conda.utils import on_win
 from contextlib import contextmanager
 
@@ -243,10 +245,29 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
+    def test_noarch_package(self):
+        with make_temp_env("-c scastellarin flask") as prefix:
+            py_ver = get_python_version_for_prefix(prefix)
+            sp_dir = get_site_packages_dir(prefix)
+            pyc_test_pair = missing_pyc_files(py_ver, ("%s/flask/__init__.py" % sp_dir,))
+            assert len(pyc_test_pair) == 1
+            assert pyc_test_pair[0][0] == "%s/flask/__init__.py" % sp_dir
+            assert isfile(join(prefix, pyc_test_pair[0][0]))
+            assert isfile(join(prefix, pyc_test_pair[0][1]))
+            exe_path = join(prefix, get_bin_directory_short_path(), 'flask')
+            if on_win:
+                exe_path += ".exe"
+            assert isfile(exe_path)
+
+            run_command(Commands.REMOVE, prefix, "flask")
+
+            assert not isfile(join(prefix, pyc_test_pair[0][0]))
+            assert not isfile(join(prefix, pyc_test_pair[0][1]))
+            assert not isfile(exe_path)
+
     @pytest.mark.timeout(300)
     def test_create_empty_env(self):
         with make_temp_env() as prefix:
-            assert exists(join(prefix, BIN_DIRECTORY))
             assert exists(join(prefix, 'conda-meta/history'))
 
             list_output = run_command(Commands.LIST, prefix)
@@ -381,25 +402,10 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
-    @pytest.mark.timeout(600)
-    def test_install_python2_and_env_symlinks(self):
+    def test_install_python2(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
-
-            # test symlinks created with env
-            print(os.listdir(join(prefix, BIN_DIRECTORY)))
-            if on_win:
-                assert isfile(join(prefix, BIN_DIRECTORY, 'activate'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'conda'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'activate.bat'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'deactivate.bat'))
-                assert isfile(join(prefix, BIN_DIRECTORY, 'conda.bat'))
-            else:
-                assert islink(join(prefix, BIN_DIRECTORY, 'activate'))
-                assert islink(join(prefix, BIN_DIRECTORY, 'deactivate'))
-                assert islink(join(prefix, BIN_DIRECTORY, 'conda'))
 
     @pytest.mark.timeout(300)
     def test_remove_all(self):
@@ -483,7 +489,7 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 11, 1), reason="configs are borked")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 12, 1), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
@@ -592,7 +598,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 11, 1), reason="deal with this later")
+    @pytest.mark.xfail(datetime.now() < datetime(2016, 12, 1), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
@@ -864,3 +870,24 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+
+    def test_force_remove(self):
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "conda")
+            assert_package_is_installed(prefix, "conda-")
+            assert_package_is_installed(prefix, "pycosat-")
+
+            self.assertRaises(RemoveError, run_command, Commands.REMOVE, prefix, 'conda')
+            assert_package_is_installed(prefix, "conda-")
+            assert_package_is_installed(prefix, "pycosat-")
+
+            stdout, stderr = run_command(Commands.REMOVE, prefix, "conda", "--force")
+
+            # assert conda is no longer in conda list
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            stdout_lines = stdout.split('\n')
+            assert not any([line.startswith("conda   ") for line in stdout_lines])
+
+            assert package_is_installed(prefix, "pycosat-")
+

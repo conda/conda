@@ -65,6 +65,16 @@ class TooFewArgumentsError(ArgumentError):
         super(TooFewArgumentsError, self).__init__(msg, *args)
 
 
+class ClobberError(CondaError):
+    def __init__(self, destination_path, source_path, link_type):
+        message = dals("""
+        Conda no longer clobbers existing files without the use of the --force option.
+          source path:      %(source_path)s
+          destination path: %(destination_path)s
+        """)
+        super(ClobberError, self).__init__(message, destination_path=destination_path,
+                                           source_path=source_path, link_type=link_type)
+
 class CommandError(CondaError):
     def __init__(self, command, message):
         self.command = command
@@ -372,8 +382,8 @@ class CondaTypeError(CondaError, TypeError):
 
 
 class CondaAssertionError(CondaError, AssertionError):
-    def __init__(self, message):
-        msg = 'Assertion error: %s' % message
+    def __init__(self, message, expected, actual):
+        msg = "Assertion error: %s expected %s and got %s" % (message, expected, actual)
         super(CondaAssertionError, self).__init__(msg)
 
 
@@ -387,6 +397,12 @@ class CondaSignatureError(CondaError):
     def __init__(self, message):
         msg = 'Signature error: %s' % message
         super(CondaSignatureError, self).__init__(msg)
+
+
+class CondaCorruptEnvironmentError(CondaError):
+    def __init__(self, message):
+        msg = "Corrupt environment error: %s" % message
+        super(CondaCorruptEnvironmentError, self).__init__(msg)
 
 
 def print_conda_exception(exception):
@@ -467,7 +483,7 @@ def delete_lock(extra_path=None):
     """
     from .cli.main_clean import find_lock
     from .lock import LOCK_EXTENSION
-    from .common.disk import rm_rf
+    from .gateways.disk.delete import rm_rf
     file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
     locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
     failed_delete = []
