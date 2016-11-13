@@ -79,12 +79,11 @@ class TestNoarchPackageInstaller(unittest.TestCase):
         self.package_info = PackageInfoContents(files, has_prefix_files, no_link, soft_links,
                                                 index_json_records, icondata, noarch)
 
-    @patch("conda.core.install.NoarchPythonPackageInstaller.get_site_packages_dir",
-           return_value="path/to/site-packages")
+    @patch("conda.core.linked_data.get_python_version_for_prefix", return_value="2.4")
     def test_make_link_operation(self, get_site_packages_dir):
         noarch_installer = NoarchPythonPackageInstaller("prefix", {}, self.dist)
         noarch_installer.package_info = self.package_info
-        site_packages_dir = "path/to/site-packages"
+        site_packages_dir = "Lib/site-packages" if on_win else "lib/python2.4/site-packages"
         bin_dir = "Scripts" if on_win else "bin"
 
         output = noarch_installer._make_link_operations(LinkType.soft_link)
@@ -103,7 +102,8 @@ class TestNoarchPackageInstaller(unittest.TestCase):
                                  LinkOperation("menu/test.json",
                                                "menu/test.json",
                                                LinkType.soft_link, "", None, True)])
-        self.assertEquals(output, expected_output)
+        # import pdb; pdb.set_trace()
+        assert output == expected_output
 
 
 # def setup_info_dir(info_dir):

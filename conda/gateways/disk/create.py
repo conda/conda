@@ -221,12 +221,20 @@ def compile_missing_pyc(prefix, python_major_minor_version, files):
     py_pyc_files = missing_pyc_files(python_major_minor_version, files)
     python_exe = get_python_path(prefix)
     py_files = (join(prefix, win_path_ok(f[0])) for f in py_pyc_files)
-    command = python_exe + " -Wi -m py_compile -"
-    log.debug(command)
 
-    process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                    universal_newlines=True)
-    stdout, stderr = process.communicate(input='\n'.join(py_files) + '\n')
+    if False:
+        command = python_exe + " -Wi -m py_compile -"
+        log.debug(command)
+        process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                        universal_newlines=True)
+        stdout, stderr = process.communicate(input='\n'.join(py_files) + '\n')
+    else:
+        command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
+        log.debug(command)
+        process = Popen(shlex_split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                        universal_newlines=True)
+        stdout, stderr = process.communicate()
+
     rc = process.returncode
     if rc != 0:
         log.debug("$  %s\n"
