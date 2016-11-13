@@ -87,4 +87,4 @@ def win_path_ok(path):
 
 
 def win_path_double_escape(path):
-    return path.replace('/', '\\\\') if on_win else path
+    return path.replace('\\', '\\\\') if on_win else path
