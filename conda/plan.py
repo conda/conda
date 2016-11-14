@@ -578,7 +578,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         mss = list(map(MatchSpec, specs))
         nlinked = {r.package_name(dist): dist
                    for dist in linked_dists
-                   if not any(r.match(ms, dist.to_filename()) for ms in mss)}
+                   if not any(r.match(ms, dist) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
         nlinked = {r.package_name(dist): dist
@@ -599,7 +599,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         if pinned and any(r.match(ms, old_dist.to_filename()) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
             raise CondaRuntimeError(msg % old_dist.to_filename())
-        if context.conda_in_root and name == 'conda' and name not in nlinked:
+        if context.conda_in_root and name == 'conda' and name not in nlinked and not context.force:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")
             else:

@@ -77,17 +77,17 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # is_local: if the tarball is stored locally (file://)
         # is_cache: if the tarball is sitting in our cache
         is_local = not is_url(url) or url.startswith('file://')
-        prefix = cached_url(url) if is_local else None
-        is_cache = prefix is not None
+        url_prefix = cached_url(url) if is_local else None
+        is_cache = url_prefix is not None
         if is_cache:
             # Channel information from the cache
-            schannel = DEFAULTS if prefix == '' else prefix[:-2]
+            schannel = DEFAULTS if url_prefix == '' else url_prefix[:-2]
         else:
             # Channel information from the URL
             channel, schannel = Channel(url).url_channel_wtf
-            prefix = '' if schannel == DEFAULTS else schannel + '::'
+            url_prefix = '' if schannel == DEFAULTS else schannel + '::'
 
-        fn = prefix + fn
+        fn = url_prefix + fn
         dist = Dist(fn[:-8])
         # Add explicit file to index so we'll be sure to see it later
         if is_local:

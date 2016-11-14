@@ -20,7 +20,7 @@ from ..cli.find_commands import find_executable
 from ..common.compat import text_type
 from ..core.index import get_index
 from ..core.linked_data import is_linked, linked as install_linked
-from ..exceptions import (CondaAssertionError, CondaEnvironmentNotFoundError,
+from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
@@ -221,12 +221,10 @@ def install(args, parser, command='install'):
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
             channel_inst = [m['channel'] for m in installed_metadata if m['name'] == name]
 
-            try:
-                assert len(vers_inst) == 1, name
-                assert len(build_inst) == 1, name
-                assert len(channel_inst) == 1, name
-            except AssertionError as e:
-                raise CondaAssertionError(text_type(e))
+            if len(vers_inst) != 1 or len(build_inst) != 1 or len(channel_inst) != 1:
+                msg = """It seems like there is a package conflict in the conda-meta directory.
+        Please remove duplicates of %s package""" % name
+                raise CondaCorruptEnvironmentError(msg)
 
             pkgs = sorted(r.get_pkgs(name))
             if not pkgs:

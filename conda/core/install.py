@@ -14,9 +14,10 @@ from subprocess import CalledProcessError, check_call
 from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import explode_directories, get_bin_directory, get_leaf_directories
+from ..common.path import (explode_directories, get_leaf_directories,
+                           get_bin_directory_short_path, win_path_ok)
 from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
-                                set_linked_data)
+                                set_linked_data, get_site_packages_dir)
 from ..exceptions import CondaOSError, LinkError, PaddingError
 from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, link as create_link,
                                     make_menu, mkdir_p, write_conda_meta_record)
@@ -73,8 +74,7 @@ class PackageInstaller(object):
 
         # simple processing
         operations = self._make_link_operations(requested_link_type)
-        leaf_directories = get_leaf_directories(join(self.prefix, op.dest_short_path)
-                                                for op in operations)
+        leaf_directories = get_leaf_directories(op.dest_short_path for op in operations)
 
         # # run pre-link script
         # if not run_script(extracted_package_dir, self.dist, 'pre-link', self.prefix):
@@ -118,13 +118,13 @@ class PackageInstaller(object):
 
         # Step 1. Make all directories
         for leaf_directory in leaf_directories:
-            mkdir_p(leaf_directory)
+            mkdir_p(join(self.prefix, win_path_ok(leaf_directory)))
 
         # Step 2. Do the actual file linking
         for op in link_operations:
             try:
-                create_link(join(self.extracted_package_dir, op.source_short_path),
-                            join(self.prefix, op.dest_short_path),
+                create_link(join(self.extracted_package_dir, win_path_ok(op.source_short_path)),
+                            join(self.prefix, win_path_ok(op.dest_short_path)),
                             op.link_type)
                 dest_short_paths.append(op.dest_short_path)
             except OSError as e:
@@ -136,13 +136,13 @@ class PackageInstaller(object):
         for op in link_operations:
             if op.prefix_placeholder:
                 try:
-                    update_prefix(join(self.prefix, op.dest_short_path), self.prefix,
+                    update_prefix(join(self.prefix, win_path_ok(op.dest_short_path)), self.prefix,
                                   op.prefix_placeholder, op.file_mode)
                 except _PaddingError:
                     raise PaddingError(op.dest_path, op.prefix_placeholder,
                                        len(op.prefix_placeholder))
             if on_win and op.is_menu_file and context.shortcuts:
-                make_menu(self.prefix, op.short_path, remove=False)
+                make_menu(self.prefix, win_path_ok(op.dest_short_path), remove=False)
 
         if on_win:
             # make sure that the child environment behaves like the parent,
@@ -182,8 +182,8 @@ class NoarchPythonPackageInstaller(PackageInstaller):
 
     def _make_link_operations(self, requested_link_type):
         package_info = self.package_info
-        site_packages_dir = NoarchPythonPackageInstaller.get_site_packages_dir(self.prefix)
-        bin_dir = get_bin_directory(self.prefix)
+        site_packages_dir = get_site_packages_dir(self.prefix)
+        bin_dir = get_bin_directory_short_path()
 
         def make_link_operation(source_short_path):
             # no side effects in this method!
@@ -202,9 +202,10 @@ class NoarchPythonPackageInstaller(PackageInstaller):
 
             # second part, noarch python-specific
             if source_short_path.startswith('site-packages/'):
-                dest_short_path = site_packages_dir + source_short_path
+                dest_short_path = site_packages_dir + source_short_path.replace(
+                    'site-packages', '', 1)
             elif source_short_path.startswith('python-scripts/'):
-                dest_short_path = bin_dir + source_short_path.replace('python-scripts/', '', 1)
+                dest_short_path = bin_dir + source_short_path.replace('python-scripts', '', 1)
             else:
                 dest_short_path = source_short_path
             return LinkOperation(source_short_path, dest_short_path, link_type, prefix_placehoder,
@@ -219,7 +220,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
         # create pyc files
         python_veresion = get_python_version_for_prefix(self.prefix)
         extra_pyc_paths = compile_missing_pyc(self.prefix, python_veresion,
-                                              (op.dest_short_path for op in link_operations))
+                                              tuple(op.dest_short_path for op in link_operations))
 
         # create entry points
         entry_points = self.package_info.noarch.get('entry_points', ())
@@ -228,14 +229,6 @@ class NoarchPythonPackageInstaller(PackageInstaller):
             entry_point_paths.extend(create_entry_point(entry_point, self.prefix))
 
         return sorted(concatv(dest_short_paths, extra_pyc_paths, entry_point_paths))
-
-    @staticmethod
-    def get_site_packages_dir(prefix):
-        if on_win:
-            return join(prefix, 'Lib', 'site-packages')
-        else:
-            return join(prefix, 'lib', 'python%s' % get_python_version_for_prefix(prefix),
-                        'site-packages')
 
 
 class PackageUninstaller(object):
@@ -254,20 +247,22 @@ class PackageUninstaller(object):
 
         meta = load_meta(self.prefix, self.dist)
 
-        # Always try to run this - it should not throw errors where menus do not exist
-        # TODO: add this line back: mk_menus(prefix, meta['files'], remove=True)
-
         dirs_with_removals = set()
 
         for f in meta['files']:
+            if on_win and bool(MENU_RE.match(f)):
+                # Always try to run this - it should not throw errors where menus do not exist
+                # note that it will probably remove the file though; rm_rf shouldn't care
+                make_menu(self.prefix, win_path_ok(f), remove=True)
+
             dirs_with_removals.add(dirname(f))
-            rm_rf(join(self.prefix, f))
+            rm_rf(join(self.prefix, win_path_ok(f)))
 
         # remove the meta-file last
         delete_linked_data(self.prefix, self.dist, delete=True)
 
         dirs_with_removals.add('conda-meta')  # in case there is nothing left
-        directory_removal_candidates = (join(self.prefix, d) for d in
+        directory_removal_candidates = (join(self.prefix, win_path_ok(d)) for d in
                                         sorted(explode_directories(dirs_with_removals),
                                                reverse=True))
 

@@ -14,7 +14,6 @@ from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, 
 from .exceptions import CondaFileIOError, CondaIOError
 from .file_permissions import FilePermissions
 from .gateways.disk.read import yield_lines
-from .install import symlink_conda
 from .models.dist import Dist
 from .utils import on_win
 
@@ -108,7 +107,8 @@ def UNLINK_CMD(state, arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    symlink_conda(state['prefix'], arg)
+    log.debug("No longer symlinking conda. Passing for prefix %s", state['prefix'])
+    # symlink_conda(state['prefix'], arg)
 
 
 def get_package(plan, instruction):
