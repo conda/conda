@@ -74,12 +74,12 @@ def RM_FETCHED_CMD(state, arg):
 def split_linkarg(arg):
     """Return tuple(dist, linktype)"""
     parts = arg.split()
-    return (parts[0], int(LinkType.hard_link if len(parts) < 2 else parts[1]))
+    return (parts[0], int(LinkType.hardlink if len(parts) < 2 else parts[1]))
 
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
-    dist, lt = Dist(dist), LinkType.make(lt)
+    dist, lt = Dist(dist), LinkType(lt)
     log.debug("=======> LINKING %s <=======", dist)
     installer = get_package_installer(state['prefix'], state['index'], dist)
     installer.link(lt)

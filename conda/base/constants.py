@@ -69,8 +69,8 @@ class LinkType(Enum):
     #     LINK_SOFT: 'soft-link',
     #     LINK_COPY: 'copy',
     # }
-    hard_link = 1
-    soft_link = 2
+    hardlink = 1
+    softlink = 2
     copy = 3
     directory = 4
 

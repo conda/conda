@@ -57,7 +57,7 @@ class PackageInstaller(object):
         self.dist = dist
         self.package_info = None  # set in the link method
 
-    def link(self, requested_link_type=LinkType.hard_link):
+    def link(self, requested_link_type=LinkType.hardlink):
         log.debug("linking package %s with link type %s", self.dist, requested_link_type)
         self.extracted_package_dir = is_extracted(self.dist)
         assert self.extracted_package_dir is not None
