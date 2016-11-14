@@ -162,6 +162,11 @@ class Context(Configuration):
                                     "'client_ssl_cert' is required when 'client_ssl_cert_key' "
                                     "is defined")
             errors.append(error)
+        if self.always_copy and self.always_softlink:
+            error = ValidationError('always_copy', self.always_copy, "<<merged>>",
+                                    "'always_copy' and 'always_softlink' are mutually exclusive. "
+                                    "Only one can be set to 'True'.")
+            errors.append(error)
         return errors
 
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
