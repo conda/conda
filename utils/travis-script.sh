@@ -44,7 +44,6 @@ main_test() {
     python setup.py --version
     python setup.py develop
     hash -r
-    which conda
     python -m conda info
 
     python -m pytest --cov-report xml --cov-append ${shells} -m "installed" tests
