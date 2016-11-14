@@ -44,6 +44,7 @@ class Platform(Enum):
             p = 'linux'
         return cls(p)
 
+
 machine_bits = 8 * tuple.__itemsize__
 
 CONDA = 'CONDA'

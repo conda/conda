@@ -262,6 +262,7 @@ class History(object):
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
+
 if __name__ == '__main__':
     from pprint import pprint
     with History(sys.prefix) as h:

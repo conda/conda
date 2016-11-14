@@ -88,6 +88,7 @@ class RC(object):
 rc = RC()
 envs_dirs = context.envs_dirs
 
+
 def get_rc_path():
     path = os.getenv('CONDARC')
     if path == ' ':
@@ -99,6 +100,7 @@ def get_rc_path():
             return path
     return None
 
+
 rc_path = get_rc_path()
 
 pkgs_dirs = context.pkgs_dirs
@@ -107,7 +109,6 @@ subdir = context.subdir
 arch_name = context.arch_name
 bits = context.bits
 platform = context.platform
-
 
 # put back because of conda build
 default_python = context.default_python

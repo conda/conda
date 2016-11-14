@@ -30,6 +30,7 @@ def debug_argcomplete(msg):
         f.write("\n%s\n" % msg)
         f.flush()
 
+
 try:
     import argcomplete
     argcomplete.CompletionFinder

@@ -42,6 +42,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
         res.update(set(meta['files']))
     return res
 
+
 url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
                      r'(?P<fn>[^/\\#]+\.tar\.bz2)'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')

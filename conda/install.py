@@ -815,6 +815,7 @@ def extract(dist):
                     os.lchown(p, 0, 0)
         add_cached_package(pkgs_dir, url, overwrite=True)
 
+
 # Because the conda-meta .json files do not include channel names in
 # their filenames, we have to pull that information from the .json
 # files themselves. This has made it necessary in virtually all

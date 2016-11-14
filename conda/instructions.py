@@ -86,6 +86,7 @@ def UNLINK_CMD(state, arg):
 def SYMLINK_CONDA_CMD(state, arg):
     symlink_conda(state['prefix'], arg)
 
+
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,

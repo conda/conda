@@ -578,6 +578,7 @@ def stdout_json_success(success=True, **kwargs):
     result.update(kwargs)
     stdout_json(result)
 
+
 root_no_rm = 'python', 'pycosat', 'pyyaml', 'conda', 'openssl', 'requests'
 
 
