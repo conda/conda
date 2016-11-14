@@ -4,8 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import namedtuple
 from logging import getLogger
 
-from .._vendor.auxlib.entity import Entity, ListField
+from .._vendor.auxlib.entity import Entity, ListField, ComposableField, StringField, MapField
 from ..common.compat import string_types
+from .record import Record
 
 log = getLogger(__name__)
 
@@ -16,6 +17,10 @@ PackageInfoContents = namedtuple('PackageInfoContents',
 
 
 class PackageInfo(Entity):
-
-    file = ListField(string_types)
-    # TODO: finish this
+    files = ListField(string_types)
+    has_prefix_files = ListField(string_types)
+    no_link = ListField(string_types)
+    soft_links = ListField(string_types)
+    index_json_record = ComposableField(Record)
+    icondata = StringField()
+    noarch = MapField()
