@@ -182,3 +182,5 @@ class ContextTests(TestCase):
 
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"
+        from conda.config import rc
+        assert rc.get('conda-build')['root-dir'] == "/some/test/path"
