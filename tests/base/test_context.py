@@ -30,6 +30,8 @@ class ContextTests(TestCase):
         migrated_channel_aliases:
           - https://conda.anaconda.org
         channel_alias: ftp://new.url:8082
+        conda-build:
+          root-dir: /some/test/path
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -177,3 +179,6 @@ class ContextTests(TestCase):
                 os.environ['CONDA_BLD_PATH'] = saved_envs_path
             else:
                 del os.environ['CONDA_BLD_PATH']
+
+    def test_conda_build_root_dir(self):
+        assert context.conda_build['root-dir'] == "/some/test/path"
