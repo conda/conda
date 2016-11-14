@@ -19,7 +19,7 @@ def test_expected_operation_order():
     assert expected == instructions.action_codes
 
 
-class TestHandler(Handler):
+class LoggingTestHandler(Handler):
     def __init__(self):
         Handler.__init__(self)
         self.setLevel(DEBUG)
@@ -90,7 +90,7 @@ class TestExecutePlan(unittest.TestCase):
             pass  # NO-OP
 
         _commands = {'PROGRESS': PROGRESS_CMD, 'LINK': cmd}
-        h = TestHandler()
+        h = LoggingTestHandler()
 
         update_logger = getLogger('progress.update')
         update_logger.setLevel(DEBUG)

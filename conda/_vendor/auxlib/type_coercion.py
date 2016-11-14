@@ -4,7 +4,7 @@ from itertools import chain
 from re import IGNORECASE, compile
 
 from .compat import NoneType, integer_types, isiterable, iteritems, string_types, text_type
-from .decorators import memoize, memoizeproperty
+from .decorators import memoize, memoizedproperty
 from .exceptions import AuxlibError
 
 __all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
@@ -30,39 +30,39 @@ class TypeCoercionError(AuxlibError, ValueError):
 
 class _Regex(object):
 
-    @memoizeproperty
+    @memoizedproperty
     def BOOLEAN_TRUE(self):
         return compile(r'^true$|^yes$|^on$', IGNORECASE), True
 
-    @memoizeproperty
+    @memoizedproperty
     def BOOLEAN_FALSE(self):
         return compile(r'^false$|^no$|^off$', IGNORECASE), False
 
-    @memoizeproperty
+    @memoizedproperty
     def NONE(self):
         return compile(r'^none$|^null$', IGNORECASE), None
 
-    @memoizeproperty
+    @memoizedproperty
     def INT(self):
         return compile(r'^[-+]?\d+$'), int
 
-    @memoizeproperty
+    @memoizedproperty
     def BIN(self):
         return compile(r'^[-+]?0[bB][01]+$'), bin
 
-    @memoizeproperty
+    @memoizedproperty
     def OCT(self):
         return compile(r'^[-+]?0[oO][0-7]+$'), oct
 
-    @memoizeproperty
+    @memoizedproperty
     def HEX(self):
         return compile(r'^[-+]?0[xX][0-9a-fA-F]+$'), hex
 
-    @memoizeproperty
+    @memoizedproperty
     def FLOAT(self):
         return compile(r'^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$'), float
 
-    @memoizeproperty
+    @memoizedproperty
     def COMPLEX(self):
         return (compile(r'^(?:[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?)?'  # maybe first float
                         r'[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?j$'),     # second float with j

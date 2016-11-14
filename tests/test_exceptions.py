@@ -2,8 +2,21 @@ import random
 import unittest
 
 import conda
-from conda import exceptions
+from conda.exceptions import CondaAssertionError, CondaCorruptEnvironmentError
 
+
+def test_conda_assertion_error():
+    try:
+        raise CondaAssertionError("message", 1, 2)
+    except CondaAssertionError as err:
+        assert str(err) == "Assertion error: message expected 1 and got 2"
+
+
+def test_conda_corrupt_environment_exception():
+    try:
+        raise CondaCorruptEnvironmentError("Oh noes corrupt environment")
+    except CondaCorruptEnvironmentError as err:
+        assert str(err) == "Corrupt environment error: Oh noes corrupt environment"
 
 # class InvalidInstructionTestCase(unittest.TestCase):
 #     def test_requires_an_instruction(self):

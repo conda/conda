@@ -7,7 +7,7 @@ import textwrap
 
 from conda.cli import common
 from conda.cli import install as cli_install
-from conda.common.disk import rm_rf
+from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from conda.plan import is_root_prefix
 
@@ -65,7 +65,8 @@ def configure_parser(sub_parsers):
     )
     p.add_argument(
         '--force',
-        help='force creation of environment (removing a previously existing environment of the same name).',
+        help=('force creation of environment (removing a previously existing '
+              'environment of the same name).'),
         action='store_true',
         default=False,
     )

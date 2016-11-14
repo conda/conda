@@ -33,11 +33,11 @@ class NotebookTestCase(unittest.TestCase):
         self.assertTrue(nb.inject('content'))
 
         with open(support_file('notebook.ipynb'), 'w') as fb:
-            fb.write(json.dumps(notebook))
+            fb.write(json.dumps(notebook, sort_keys=True))
 
     def test_inject(self):
         nb = Notebook(support_file('notebook.ipynb'))
         self.assertTrue(nb.inject('user/environment'))
 
         with open(support_file('notebook.ipynb'), 'w') as fb:
-            fb.write(json.dumps(notebook))
+            fb.write(json.dumps(notebook, sort_keys=True))

@@ -7,35 +7,27 @@
 
 ----------------------------------------
 
-.. image:: https://travis-ci.org/conda/conda.svg?branch=master
-   :alt: Travis-CI Build Status
-   :target: https://travis-ci.org/conda/conda
+.. image:: https://img.shields.io/travis/conda/conda/master.svg?maxAge=900&label=Linux%20%26%20MacOS
+    :target: https://travis-ci.org/conda/conda
+    :alt: Linux & MacOS tests (Travis)
 
-.. image:: https://ci.appveyor.com/api/projects/status/v6fl568drifhia2d/branch/master?svg=true
-   :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda/branch/master
+.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/master.svg?maxAge=900&label=Windows
+    :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
+    :alt: Windows tests (Appveyor)
 
-.. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
+.. .. image:: https://img.shields.io/codecov/c/github/conda/conda/master.svg?label=coverage
    :alt: Codecov Status
    :target: https://codecov.io/github/conda/conda?branch=master
 
-.. image:: https://scrutinizer-ci.com/g/conda/conda/badges/quality-score.png?b=master
-   :alt: Scrutinizer Code Quality
-   :target: https://scrutinizer-ci.com/g/conda/conda/?branch=master
-
-.. image:: https://www.quantifiedcode.com/api/v1/project/81377831ebe54def8b31c55a4b5b4cb0/badge.svg
-   :alt: Quantified Code
-   :target: https://www.quantifiedcode.com/app/project/81377831ebe54def8b31c55a4b5b4cb0
-
-.. image:: https://badges.gitter.im/conda/conda.svg
-   :alt: Join the chat at https://gitter.im/conda/conda
-   :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+.. image:: https://img.shields.io/github/release/conda/conda.svg
+   :alt: latest release version
+   :target: https://github.com/conda/conda/releases
 
 |
 
 .. image:: https://s3.amazonaws.com/conda-dev/conda-announce-signup-button.svg
    :alt: Join the Conda Announcment List
-   :target: http://conda.pydata.org/docs
+   :target: http://conda.pydata.org/docs/announcements.html
 
 |
 
@@ -196,6 +188,6 @@ separate instance of `Miniconda <http://conda.pydata.org/miniconda.html>`_ and
 work off it. This is also the only way to test conda in both Python 2 and
 Python 3, as conda can only be installed into a root environment.
 
-Run the conda tests by ``conda install pytest pytest-cov`` and then running ``py.test``
+Run the conda tests by ``conda install pytest pytest-cov pytest-timeout mock responses`` and then running ``py.test``
 in the conda directory. The tests are also run by Travis CI when you make a
 pull request.

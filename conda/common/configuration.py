@@ -23,7 +23,7 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import join
+from os.path import join, basename
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
 try:
@@ -36,15 +36,17 @@ except ImportError:
     from .._vendor.toolz.itertoolz import concat, concatv, unique
 try:
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
+    from ruamel_yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
+    from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from .._vendor.auxlib.collection import first, frozendict, last
+from .._vendor.auxlib.collection import first, frozendict, last, AttrDict
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
-from ..base.constants import EMPTY_MAP
+from ..base.constants import EMPTY_MAP, NULL
 from .compat import (isiterable, iteritems, odict, primitive_types, text_type,
                      with_metaclass, string_types, itervalues)
 from .yaml import yaml_load
@@ -55,10 +57,23 @@ __all__ = ["Configuration", "PrimitiveParameter",
 log = getLogger(__name__)
 
 
-def pretty_list(iterable):  # TODO: move elsewhere in conda.common
+def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
-    return ''.join("  - %s\n" % item for item in iterable)
+    return '\n'.join("%s- %s" % (padding, item) for item in iterable)
+
+
+def pretty_map(dictionary, padding='  '):
+    return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
+
+
+class LoadError(CondaError):
+    def __init__(self, message, filepath, line, column):
+        self.line = line
+        self.filepath = filepath
+        self.column = column
+        msg = "Load Error: in %s on line %s, column %s. %s" % (filepath, line, column, message)
+        super(LoadError, self).__init__(msg)
 
 
 class ConfigurationError(CondaError):
@@ -72,10 +87,6 @@ class ValidationError(ConfigurationError):
         self.parameter_value = parameter_value
         self.source = source
         super(ConfigurationError, self).__init__(msg, **kwargs)
-
-        def __str__(self):
-            return ("Parameter %s = %r declared in %s is invalid."
-                    % (self.parameter_name, self.parameter_value, self.source))
 
 
 class MultipleKeysError(ValidationError):
@@ -184,7 +195,7 @@ class RawParameter(object):
         return text_type(vars(self))
 
     @abstractmethod
-    def value(self, parameter_type):
+    def value(self, parameter_obj):
         raise NotImplementedError()
 
     @abstractmethod
@@ -192,7 +203,7 @@ class RawParameter(object):
         raise NotImplementedError()
 
     @abstractmethod
-    def valueflags(self, parameter_type):
+    def valueflags(self, parameter_obj):
         raise NotImplementedError()
 
     @classmethod
@@ -205,14 +216,29 @@ class RawParameter(object):
 class EnvRawParameter(RawParameter):
     source = 'envvars'
 
-    def value(self, parameter_type):
-        return self.__important_split_value[0].strip()
+    def value(self, parameter_obj):
+        if hasattr(parameter_obj, 'string_delimiter'):
+            string_delimiter = getattr(parameter_obj, 'string_delimiter')
+            # TODO: add stripping of !important, !top, and !bottom
+            raw_value = self._raw_value
+            if string_delimiter in raw_value:
+                value = raw_value.split(string_delimiter)
+            else:
+                value = [raw_value]
+            return tuple(v.strip() for v in value)
+        else:
+            return self.__important_split_value[0].strip()
 
     def keyflag(self):
         return ParameterFlag.final if len(self.__important_split_value) >= 2 else None
 
-    def valueflags(self, parameter_type):
-        return None
+    def valueflags(self, parameter_obj):
+        if hasattr(parameter_obj, 'string_delimiter'):
+            string_delimiter = getattr(parameter_obj, 'string_delimiter')
+            # TODO: add stripping of !important, !top, and !bottom
+            return tuple('' for _ in self._raw_value.split(string_delimiter))
+        else:
+            return self.__important_split_value[0].strip()
 
     @property
     def __important_split_value(self):
@@ -221,7 +247,7 @@ class EnvRawParameter(RawParameter):
     @classmethod
     def make_raw_parameters(cls, appname):
         keystart = "{0}_".format(appname.upper())
-        raw_env = dict((k.replace(keystart, '').lower(), v)
+        raw_env = dict((k.replace(keystart, '', 1).lower(), v)
                        for k, v in iteritems(environ) if k.startswith(keystart))
         return super(EnvRawParameter, cls).make_raw_parameters(EnvRawParameter.source, raw_env)
 
@@ -229,19 +255,19 @@ class EnvRawParameter(RawParameter):
 class ArgParseRawParameter(RawParameter):
     source = 'cmd_line'
 
-    def value(self, parameter_type):
+    def value(self, parameter_obj):
         return make_immutable(self._raw_value)
 
     def keyflag(self):
         return None
 
-    def valueflags(self, parameter_type):
+    def valueflags(self, parameter_obj):
         return None
 
     @classmethod
     def make_raw_parameters(cls, args_from_argparse):
         return super(ArgParseRawParameter, cls).make_raw_parameters(ArgParseRawParameter.source,
-                                                                    vars(args_from_argparse))
+                                                                    args_from_argparse)
 
 
 class YamlRawParameter(RawParameter):
@@ -251,18 +277,18 @@ class YamlRawParameter(RawParameter):
         self._keycomment = keycomment
         super(YamlRawParameter, self).__init__(source, key, raw_value)
 
-    def value(self, parameter_type):
-        self.__process(parameter_type)
+    def value(self, parameter_obj):
+        self.__process(parameter_obj)
         return self._value
 
     def keyflag(self):
         return ParameterFlag.from_string(self._keycomment)
 
-    def valueflags(self, parameter_type):
-        self.__process(parameter_type)
+    def valueflags(self, parameter_obj):
+        self.__process(parameter_obj)
         return self._valueflags
 
-    def __process(self, parameter_type):
+    def __process(self, parameter_obj):
         if hasattr(self, '_value'):
             return
         elif isinstance(self._raw_value, CommentedSeq):
@@ -316,7 +342,11 @@ class YamlRawParameter(RawParameter):
     @classmethod
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath, 'r') as fh:
-            ruamel_yaml = yaml_load(fh)
+            try:
+                ruamel_yaml = yaml_load(fh)
+            except ScannerError as err:
+                mark = err.problem_mark
+                raise LoadError("Invalid YAML", filepath, mark.line, mark.column)
         return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 
 
@@ -324,7 +354,7 @@ def load_file_configs(search_path):
     # returns an ordered map of filepath and dict of raw parameter objects
 
     def _file_yaml_loader(fullpath):
-        assert fullpath.endswith(".yml") or fullpath.endswith("condarc"), fullpath
+        assert fullpath.endswith((".yml", ".yaml")) or "condarc" in basename(fullpath), fullpath
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_yaml_loader(fullpath):
@@ -423,8 +453,8 @@ class Parameter(object):
         # strategy is "extract and merge," which is actually just map and reduce
         # extract matches from each source in SEARCH_PATH
         # then merge matches together
-        if self.name in instance._cache:
-            return instance._cache[self.name]
+        if self.name in instance._cache_:
+            return instance._cache_[self.name]
 
         matches, errors = self._get_all_matches(instance)
         try:
@@ -435,7 +465,7 @@ class Parameter(object):
         else:
             errors.extend(self.collect_errors(instance, result))
         raise_errors(errors)
-        instance._cache[self.name] = result
+        instance._cache_[self.name] = result
         return result
 
     def collect_errors(self, instance, value, source="<<merged>>"):
@@ -495,7 +525,8 @@ class PrimitiveParameter(Parameter):
             default (Any):  The parameter's default value.
             aliases (Iterable[str]): Alternate names for the parameter.
             validation (callable): Given a parameter value as input, return a boolean indicating
-                validity, or alternately return a string describing an invalid value.
+                validity, or alternately return a string describing an invalid value. Returning
+                `None` also indicates a valid value.
             parameter_type (type or Tuple[type]): Type-validation of parameter's value. If None,
                 type(default) is used.
 
@@ -507,18 +538,17 @@ class PrimitiveParameter(Parameter):
     def _merge(self, matches):
         important_match = first(matches, self._match_key_is_important, default=None)
         if important_match is not None:
-            return important_match.value(self.__class__)
+            return important_match.value(self)
 
         last_match = last(matches, lambda x: x is not None, default=None)
         if last_match is not None:
-            return last_match.value(self.__class__)
+            return last_match.value(self)
         raise ThisShouldNeverHappenError()  # pragma: no cover
 
-    @classmethod
-    def repr_raw(cls, raw_parameter):
+    def repr_raw(self, raw_parameter):
         return "%s: %s%s" % (raw_parameter.key,
-                             cls._str_format_value(raw_parameter.value(cls)),
-                             cls._str_format_flag(raw_parameter.keyflag()))
+                             self._str_format_value(raw_parameter.value(self)),
+                             self._str_format_flag(raw_parameter.keyflag()))
 
 
 class SequenceParameter(Parameter):
@@ -527,7 +557,8 @@ class SequenceParameter(Parameter):
     """
     _type = tuple
 
-    def __init__(self, element_type, default=(), aliases=(), validation=None):
+    def __init__(self, element_type, default=(), aliases=(), validation=None,
+                 string_delimiter=','):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element in
@@ -539,6 +570,7 @@ class SequenceParameter(Parameter):
 
         """
         self._element_type = element_type
+        self.string_delimiter = string_delimiter
         super(SequenceParameter, self).__init__(default, aliases, validation)
 
     def collect_errors(self, instance, value, source="<<merged>>"):
@@ -558,21 +590,21 @@ class SequenceParameter(Parameter):
 
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
-        def get_marked_lines(match, marker):
+        def get_marked_lines(match, marker, parameter_obj):
             return tuple(line
-                         for line, flag in zip(match.value(self.__class__),
-                                               match.valueflags(self.__class__))
+                         for line, flag in zip(match.value(parameter_obj),
+                                               match.valueflags(parameter_obj))
                          if flag is marker)
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top) for m in relevant_matches)
+        top_lines = concat(get_marked_lines(m, ParameterFlag.top, self) for m in relevant_matches)
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
-        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom) for m in
+        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom, self) for m in
                               reversed(relevant_matches))
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(m.value(self.__class__) for m in reversed(relevant_matches))
+        all_lines = concat(m.value(self) for m in reversed(relevant_matches))
 
         # stack top_lines + all_lines, then de-dupe
         top_deduped = tuple(unique(concatv(top_lines, all_lines)))
@@ -582,19 +614,17 @@ class SequenceParameter(Parameter):
         # NOTE: for a line value marked both top and bottom, the bottom marker will win out
         #       for the top marker to win out, we'd need one additional de-dupe step
         bottom_deduped = unique(concatv(reversed(tuple(bottom_lines)), reversed(top_deduped)))
-
         # just reverse, and we're good to go
         return tuple(reversed(tuple(bottom_deduped)))
 
-    @classmethod
-    def repr_raw(cls, raw_parameter):
+    def repr_raw(self, raw_parameter):
         lines = list()
         lines.append("%s:%s" % (raw_parameter.key,
-                                cls._str_format_flag(raw_parameter.keyflag())))
-        for q, value in enumerate(raw_parameter.value(cls)):
-            valueflag = raw_parameter.valueflags(cls)[q]
-            lines.append("  - %s%s" % (cls._str_format_value(value),
-                                       cls._str_format_flag(valueflag)))
+                                self._str_format_flag(raw_parameter.keyflag())))
+        for q, value in enumerate(raw_parameter.value(self)):
+            valueflag = raw_parameter.valueflags(self)[q]
+            lines.append("  - %s%s" % (self._str_format_value(value),
+                                       self._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
 
@@ -619,9 +649,11 @@ class MapParameter(Parameter):
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(MapParameter, self).collect_errors(instance, value)
-        element_type = self._element_type
-        errors.extend(InvalidElementTypeError(self.name, val, source, type(val), element_type, key)
-                      for key, val in iteritems(value) if not isinstance(val, element_type))
+        if isinstance(value, Mapping):
+            element_type = self._element_type
+            errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
+                                                  element_type, key)
+                          for key, val in iteritems(value) if not isinstance(val, element_type))
         return errors
 
     def _merge(self, matches):
@@ -631,25 +663,24 @@ class MapParameter(Parameter):
 
         # mapkeys with important matches
         def key_is_important(match, key):
-            return match.valueflags(self.__class__).get(key) is ParameterFlag.final
+            return match.valueflags(self).get(key) is ParameterFlag.final
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match.value(self.__class__))
+                                    for k, v in iteritems(match.value(self))
                                     if key_is_important(match, k))
                                for match in relevant_matches)
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m.value(self.__class__) for m in relevant_matches),
+        return merge(concatv((m.value(self) for m in relevant_matches),
                              reversed(important_maps)))
 
-    @classmethod
-    def repr_raw(cls, raw_parameter):
+    def repr_raw(self, raw_parameter):
         lines = list()
         lines.append("%s:%s" % (raw_parameter.key,
-                                cls._str_format_flag(raw_parameter.keyflag())))
-        for valuekey, value in iteritems(raw_parameter.value(cls)):
-            valueflag = raw_parameter.valueflags(cls).get(valuekey)
-            lines.append("  %s: %s%s" % (valuekey, cls._str_format_value(value),
-                                         cls._str_format_flag(valueflag)))
+                                self._str_format_flag(raw_parameter.keyflag())))
+        for valuekey, value in iteritems(raw_parameter.value(self)):
+            valueflag = raw_parameter.valueflags(self).get(valuekey)
+            lines.append("  %s: %s%s" % (valuekey, self._str_format_value(value),
+                                         self._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
 
@@ -669,7 +700,7 @@ class Configuration(object):
 
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         self.raw_data = odict()
-        self._cache = dict()
+        self._cache_ = dict()
         self._validation_errors = defaultdict(list)
         if search_path:
             self._add_search_path(search_path)
@@ -683,25 +714,26 @@ class Configuration(object):
 
     def _add_env_vars(self, app_name):
         self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def _add_argparse_args(self, argparse_args):
-        self._argparse_args = argparse_args
+        self._argparse_args = AttrDict((k, v) for k, v, in iteritems(vars(argparse_args))
+                                       if v is not NULL)
         source = ArgParseRawParameter.source
         self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def _add_raw_data(self, raw_data):
         self.raw_data.update(raw_data)
-        self._cache = dict()
+        self._cache_ = dict()
         return self
 
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__
         # I haven't yet found a way to make it more DRY though
-        parameter_repr = {}
+        typed_values = {}
         validation_errors = []
         raw_parameters = self.raw_data[source]
         for key in self.parameter_names:
@@ -712,7 +744,7 @@ class Configuration(object):
 
             if match is not None:
                 try:
-                    typed_value = typify_data_structure(match.value(parameter.__class__),
+                    typed_value = typify_data_structure(match.value(parameter),
                                                         parameter._element_type)
                 except TypeCoercionError as e:
                     validation_errors.append(CustomValidationError(match.key, e.value,
@@ -722,22 +754,40 @@ class Configuration(object):
                     if collected_errors:
                         validation_errors.extend(collected_errors)
                     else:
-                        parameter_repr[match.key] = parameter.repr_raw(match)
+                        typed_values[match.key] = typed_value  # parameter.repr_raw(match)
             else:
                 # this situation will happen if there is a multikey_error and none of the
                 # matched keys is the primary key
                 pass
-        return parameter_repr, validation_errors
+        return typed_values, validation_errors
 
     def validate_all(self):
         validation_errors = list(chain.from_iterable(self.check_source(source)[1]
                                                      for source in self.raw_data))
         raise_errors(validation_errors)
+        self.validate_configuration()
+
+    @staticmethod
+    def _collect_validation_error(func, *args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except ConfigurationError as e:
+            return e.errors if hasattr(e, 'errors') else e,
+        return ()
+
+    def validate_configuration(self):
+        errors = chain.from_iterable(Configuration._collect_validation_error(getattr, self, name)
+                                     for name in self.parameter_names)
+        post_errors = self.post_build_validation()
+        raise_errors(tuple(chain.from_iterable((errors, post_errors))))
+
+    def post_build_validation(self):
+        return ()
 
     def collect_all(self):
-        parameter_reprs = odict()
+        typed_values = odict()
         validation_errors = odict()
         for source in self.raw_data:
-            parameter_reprs[source], validation_errors[source] = self.check_source(source)
+            typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
-        return odict((k, v) for k, v in iteritems(parameter_reprs) if v)
+        return odict((k, v) for k, v in iteritems(typed_values) if v)

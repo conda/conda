@@ -2,10 +2,11 @@ from __future__ import absolute_import, division, print_function
 
 from logging import getLogger
 
+from .base.constants import LinkType
 from .base.context import context
-from .fetch import fetch_pkg
-from .install import (LINK_HARD, extract, is_extracted, link, messages, name_dist, rm_extracted,
-                      rm_fetched, symlink_conda, unlink)
+from .core.install import get_package_installer, PackageUninstaller
+from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
+from .models.dist import Dist
 
 
 log = getLogger(__name__)
@@ -44,7 +45,8 @@ def PRINT_CMD(state, arg):
 
 
 def FETCH_CMD(state, arg):
-    fetch_pkg(state['index'][arg + '.tar.bz2'])
+    assert isinstance(arg, Dist)
+    fetch_pkg(state['index'][arg])
 
 
 def PROGRESS_CMD(state, arg):
@@ -54,35 +56,44 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
+    assert isinstance(arg, Dist)
     if not is_extracted(arg):
         extract(arg)
 
 
 def RM_EXTRACTED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_extracted(arg)
 
 
 def RM_FETCHED_CMD(state, arg):
+    assert isinstance(arg, Dist)
     rm_fetched(arg)
 
 
 def split_linkarg(arg):
     """Return tuple(dist, linktype)"""
     parts = arg.split()
-    return (parts[0], int(LINK_HARD if len(parts) < 2 else parts[1]))
+    return (parts[0], int(LinkType.hard_link if len(parts) < 2 else parts[1]))
 
 
 def LINK_CMD(state, arg):
     dist, lt = split_linkarg(arg)
-    link(state['prefix'], dist, lt, index=state['index'])
+    dist, lt = Dist(dist), LinkType.make(lt)
+    log.debug("=======> LINKING %s <=======", dist)
+    installer = get_package_installer(state['prefix'], state['index'], dist)
+    installer.link(lt)
 
 
 def UNLINK_CMD(state, arg):
-    unlink(state['prefix'], arg)
+    log.debug("=======> UNLINKING %s <=======", arg)
+    dist = Dist(arg)
+    PackageUninstaller(state['prefix'], dist).unlink()
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    symlink_conda(state['prefix'], arg)
+    log.debug("No longer symlinking conda. Passing for prefix %s", state['prefix'])
+    # symlink_conda(state['prefix'], arg)
 
 # Map instruction to command (a python function)
 commands = {
@@ -125,7 +136,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         if state['i'] is not None and instruction in progress_cmds:
             state['i'] += 1
-            getLogger('progress.update').info((name_dist(arg),
+            getLogger('progress.update').info((Dist(arg).dist_name,
                                                state['i'] - 1))
         cmd = _commands[instruction]
 
@@ -135,5 +146,3 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                 state['maxval'] == state['i']):
             state['i'] = None
             getLogger('progress.stop').info(None)
-
-    messages(state['prefix'])

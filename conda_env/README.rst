@@ -98,7 +98,7 @@ Environment file example
       - numpy=1.9.*
       - nodejs=0.10.*
       - flask
-      - pip:
+      pip:
         - Flask-Testing
 
 **Recommendation:** Always create your `environment.yml` file by hand.

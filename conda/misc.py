@@ -1,30 +1,34 @@
 # this module contains miscellaneous stuff which enventually could be moved
 # into other places
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import re
 import shutil
 import sys
 from collections import defaultdict
-from os.path import (abspath, dirname, expanduser, exists,
-                     isdir, isfile, islink, join, relpath, curdir)
+from os.path import (abspath, curdir, dirname, exists, expanduser, isdir, isfile, islink, join,
+                     relpath)
 
-from .api import get_index
+from .base.constants import DEFAULTS, LinkType
 from .base.context import context
-from .common.url import path_to_url, is_url
+from .common.url import is_url, path_to_url
 from .compat import iteritems, itervalues
+from .core.index import get_index
+from .core.linked_data import is_linked, linked as install_linked, linked_data
+from .core.package_cache import cached_url, find_new_location, is_extracted, is_fetched
+from .exceptions import (CondaFileNotFoundError, CondaRuntimeError, MD5MismatchError,
+                         PackageNotFoundError, ParseError)
+from .gateways.disk.create import try_hard_link
+from .gateways.disk.delete import rm_rf
+from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel
-from .exceptions import (CondaFileNotFoundError, ParseError, MD5MismatchError,
-                         PackageNotFoundError, CondaRuntimeError)
-from .install import (name_dist, linked as install_linked, is_fetched, is_extracted, is_linked,
-                      linked_data, find_new_location, cached_url, dist2filename)
-from .instructions import RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
+from .models.dist import Dist
+from .models.record import Record
 from .plan import execute_actions
-from .resolve import Resolve, MatchSpec
+from .resolve import MatchSpec, Resolve
 from .utils import md5_file, on_win
-from conda.common.disk import backoff_unlink
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -37,8 +41,9 @@ def conda_installed_files(prefix, exclude_self_build=False):
         meta = is_linked(prefix, dist)
         if exclude_self_build and 'file_hash' in meta:
             continue
-        res.update(set(meta['files']))
+        res.update(set(meta.get('files', ())))
     return res
+
 
 url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
                      r'(?P<fn>[^/\\#]+\.tar\.bz2)'
@@ -47,10 +52,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
-    linked = {name_dist(dist): dist for dist in install_linked(prefix)}
+    linked = {dist.dist_name: dist for dist in install_linked(prefix)}
     index_args = index_args or {}
     index = index or {}
-    verifies = []
+    verifies = []  # List[Tuple(filename, md5)]
     channels = set()
     for spec in specs:
         if spec == '@EXPLICIT':
@@ -72,21 +77,30 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # is_local: if the tarball is stored locally (file://)
         # is_cache: if the tarball is sitting in our cache
         is_local = not is_url(url) or url.startswith('file://')
-        prefix = cached_url(url) if is_local else None
-        is_cache = prefix is not None
+        url_prefix = cached_url(url) if is_local else None
+        is_cache = url_prefix is not None
         if is_cache:
             # Channel information from the cache
-            schannel = 'defaults' if prefix == '' else prefix[:-2]
+            schannel = DEFAULTS if url_prefix == '' else url_prefix[:-2]
         else:
             # Channel information from the URL
             channel, schannel = Channel(url).url_channel_wtf
-            prefix = '' if schannel == 'defaults' else schannel + '::'
+            url_prefix = '' if schannel == DEFAULTS else schannel + '::'
 
-        fn = prefix + fn
-        dist = fn[:-8]
+        fn = url_prefix + fn
+        dist = Dist(fn[:-8])
         # Add explicit file to index so we'll be sure to see it later
         if is_local:
-            index[fn] = {'fn': dist2filename(fn), 'url': url, 'md5': md5}
+            index[dist] = Record(**{
+                'fn': dist.to_filename(),
+                'url': url,
+                'md5': md5,
+                'build': dist.quad[2],
+                'build_number': dist.build_number(),
+                'name': dist.quad[0],
+                'version': dist.quad[1],
+
+            })
             verifies.append((fn, md5))
 
         pkg_path = is_fetched(dist)
@@ -107,18 +121,18 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         if not dir_path:
             if not pkg_path:
                 pkg_path, conflict = find_new_location(dist)
-                pkg_path = join(pkg_path, dist2filename(dist))
+                pkg_path = join(pkg_path, dist.to_filename())
                 if conflict:
-                    actions[RM_FETCHED].append(conflict)
+                    actions[RM_FETCHED].append(Dist(conflict))
                 if not is_local:
-                    if fn not in index or index[fn].get('not_fetched'):
+                    if dist not in index or index[dist].get('not_fetched'):
                         channels.add(schannel)
-                    verifies.append((dist + '.tar.bz2', md5))
+                    verifies.append((dist.to_filename(), md5))
                 actions[FETCH].append(dist)
             actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name
-        name = name_dist(dist)
+        name = dist.dist_name
         if name in linked:
             actions[UNLINK].append(linked[name])
 
@@ -127,10 +141,6 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         ######################################
 
         # check for link action
-        from .install import LINK_COPY, LINK_HARD, LINK_SOFT
-        from .install import try_hard_link
-        from .install import rm_rf
-
         fetched_dist = dir_path or pkg_path[:-8]
         fetched_dir = dirname(fetched_dist)
         try:
@@ -145,18 +155,18 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 with open(index_json, 'w'):
                     pass
             if context.always_copy:
-                lt = LINK_COPY
+                lt = LinkType.copy
             elif context.always_softlink:
-                lt = LINK_SOFT
+                lt = LinkType.soft_link
             elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LINK_HARD
+                lt = LinkType.hard_link
             elif context.allow_softlinks and not on_win:
-                lt = LINK_SOFT
+                lt = LinkType.soft_link
             else:
-                lt = LINK_COPY
+                lt = LinkType.copy
             actions[LINK].append('%s %d' % (dist, lt))
         except (OSError, IOError):
-            actions[LINK].append('%s %d' % (dist, LINK_COPY))
+            actions[LINK].append('%s %d' % (dist, LinkType.copy))
         finally:
             if not dir_path:
                 # Remove the dummy data
@@ -179,7 +189,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
     # Finish the MD5 verification
     for fn, md5 in verifies:
-        info = index.get(fn)
+        info = index.get(Dist(fn))
         if info is None:
             raise PackageNotFoundError(fn, "no package '%s' in index" % fn)
         if md5 and 'md5' not in info:
@@ -324,13 +334,13 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         index = get_index(**index_args)
         r = Resolve(index, sort=True)
         for dist in unknowns:
-            name = name_dist(dist)
-            fn = dist2filename(dist)
+            name = dist.dist_name
+            fn = dist.to_filename()
             fkeys = [d for d in r.index.keys() if r.index[d]['fn'] == fn]
             if fkeys:
                 del drecs[dist]
-                dist = sorted(fkeys, key=r.version_key, reverse=True)[0]
-                drecs[dist] = r.index[dist]
+                dist_str = sorted(fkeys, key=r.version_key, reverse=True)[0]
+                drecs[Dist(dist_str)] = r.index[dist_str]
             else:
                 notfound.append(fn)
     if notfound:
@@ -342,7 +352,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     # Assemble the URL and channel list
     urls = {}
     for dist, info in iteritems(drecs):
-        fkey = dist + '.tar.bz2'
+        fkey = dist
         if fkey not in index:
             info['not_fetched'] = True
             index[fkey] = info
@@ -351,7 +361,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
     if r is None:
         r = Resolve(index)
-    dists = r.dependency_sort(urls.keys())
+    dists = r.dependency_sort({d.quad[0]: d for d in urls.keys()})
     urls = [urls[d] for d in dists]
 
     if verbose:
@@ -363,7 +373,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         dst = join(prefix2, f)
         dst_dir = dirname(dst)
         if islink(dst_dir) or isfile(dst_dir):
-            backoff_unlink(dst_dir)
+            rm_rf(dst_dir)
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         if islink(src):

@@ -5,6 +5,7 @@ import logging
 import sys
 from contextlib import contextmanager
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
+from os import chdir, getcwd
 
 from .._vendor.auxlib.logz import NullHandler
 from ..compat import StringIO
@@ -12,6 +13,16 @@ from ..compat import StringIO
 log = getLogger(__name__)
 
 _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+
+
+@contextmanager
+def cwd(directory):
+    saved_cwd = getcwd()
+    try:
+        chdir(directory)
+        yield
+    finally:
+        chdir(saved_cwd)
 
 
 @contextmanager
@@ -31,6 +42,22 @@ def captured():
         c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
         log.info("stderr and stdout yielded back")
+
+
+@contextmanager
+def replace_log_streams():
+    # replace the logger stream handlers with stdout and stderr handlers
+    stdout_logger, stderr_logger = getLogger('stdout'), getLogger('stderr')
+    saved_stdout_strm = stdout_logger.handlers[0].stream
+    saved_stderr_strm = stderr_logger.handlers[0].stream
+    stdout_logger.handlers[0].stream = sys.stdout
+    stderr_logger.handlers[0].stream = sys.stderr
+    try:
+        yield
+    finally:
+        # replace the original streams
+        stdout_logger.handlers[0].stream = saved_stdout_strm
+        stderr_logger.handlers[0].stream = saved_stderr_strm
 
 
 @contextmanager

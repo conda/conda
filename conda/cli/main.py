@@ -35,18 +35,14 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 """
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import importlib
 import sys
 from argparse import SUPPRESS
-from conda.gateways.logging import set_all_logger_level, set_verbosity
 from logging import CRITICAL, DEBUG, getLogger
 
 from .. import __version__
-from ..base.context import context
-from ..exceptions import CommandNotFoundError, conda_exception_handler
-from ..utils import on_win
 
 log = getLogger(__name__)
 
@@ -55,7 +51,7 @@ def generate_parser():
     from ..cli import conda_argparse
     p = conda_argparse.ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.'
+                    ' environments and packages.',
     )
     p.add_argument(
         '-V', '--version',
@@ -85,6 +81,11 @@ def generate_parser():
 
 
 def _main():
+    from ..base.context import context
+    from ..gateways.logging import set_all_logger_level, set_verbosity
+    from ..exceptions import CommandNotFoundError
+    from ..utils import on_win
+
     log.debug("conda.cli.main called with %s", sys.argv)
     if len(sys.argv) > 1:
         argv1 = sys.argv[1]
@@ -106,7 +107,7 @@ def _main():
     p, sub_parsers = generate_parser()
 
     main_modules = ["info", "help", "list", "search", "create", "install", "update",
-                    "remove", "config", "clean"]
+                    "remove", "config", "clean", "package"]
     modules = ["conda.cli.main_"+suffix for suffix in main_modules]
     for module in modules:
         imported = importlib.import_module(module)
@@ -147,6 +148,7 @@ def _main():
 
 
 def main():
+    from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main)
 
 
