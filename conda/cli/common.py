@@ -232,7 +232,7 @@ def add_parser_copy(p):
         action="store_true",
         default=NULL,
         help="Install all packages using copies instead of hard- or soft-linking."
-        )
+    )
 
 def add_parser_pscheck(p):
     p.add_argument(

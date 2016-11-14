@@ -93,7 +93,7 @@ def configure_parser(sub_parsers):
         'win-64', and so on. The default is to search the current platform.""",
         choices=Platforms(),
         default=None,
-        )
+    )
     p.add_argument(
         "--spec",
         action="store_true",
@@ -267,7 +267,7 @@ def execute_search(args, parser):
                     pkg.build,
                     Channel(pkg.channel).canonical_name,
                     disp_features(r.features(pkg.fn)),
-                    ))
+                ))
                 disp_name = ''
             else:
                 data = {}
