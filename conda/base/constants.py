@@ -75,23 +75,20 @@ class LinkType(Enum):
     directory = 4
 
     @classmethod
-    def from_string(cls, string):
-        return cls[string.replace('-', '_')]
+    def __call__(cls, value, *args, **kwargs):
+        if isinstance(value, string_types):
+            return cls[value]
+        return super(LinkType, cls).__call__(value, *args, **kwargs)
 
     @classmethod
-    def make(cls, value):
-        if isinstance(value, string_types):
-            return cls.from_string(value)
-        elif isinstance(value, cls):
-            return value
-        else:
-            return cls(value)
+    def __getitem__(cls, name):
+        return cls._member_map_[name.replace('-', '').replace('_', '').lower()]
 
     def __int__(self):
         return self.value
 
     def __str__(self):
-        return self.name.replace('_', '-')
+        return self.name
 
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
