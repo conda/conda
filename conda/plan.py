@@ -362,6 +362,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                     pass
             if context.always_copy or always_copy:
                 lt = LinkType.copy
+            elif context.always_softlink:
+                lt = LinkType.soft_link
             elif try_hard_link(fetched_dir, prefix, dist):
                 lt = LinkType.hard_link
             elif context.allow_softlinks and not on_win:

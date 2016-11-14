@@ -34,6 +34,9 @@ always_yes: True
 #                        i.e. soft-link when possible)
 allow_softlinks: False
 
+# always use soft-links instead of hard-links (default False)
+always_softlink: True
+
 # change ps1 when using activate (default True)
 changeps1: False
 
