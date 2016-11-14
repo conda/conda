@@ -20,6 +20,16 @@ __all__ = ["rm_rf", "exp_backoff_fn", "try_write"]
 log = getLogger(__name__)
 
 
+def conda_bld_ensure_dir(path):
+    # this can fail in parallel operation, depending on timing.  Just try to make the dir,
+    #    but don't bail if fail.
+    if not isdir(path):
+        try:
+            makedirs(path)
+        except OSError:
+            pass
+
+
 MAX_TRIES = 7
 
 def try_write(dir_path, heavy=False):
