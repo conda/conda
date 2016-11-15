@@ -5,8 +5,18 @@ from logging import getLogger
 from .base.constants import LinkType
 from .base.context import context
 from .core.install import get_package_installer, PackageUninstaller
+from .core.linked_data import load_meta
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .models.dist import Dist
+from .exceptions import CondaFileIOError, CondaIOError
+from .file_permissions import FilePermissions
+from .utils import on_win
+from .gateways.disk.read import yield_lines
+
+from os.path import join, isdir, isfile, islink
+import os
+import ctypes
+import tarfile
 
 
 log = getLogger(__name__)
