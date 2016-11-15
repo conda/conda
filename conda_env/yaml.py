@@ -21,6 +21,7 @@ def represent_ordereddict(dumper, data):
 
     return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
 
+
 yaml.add_representer(OrderedDict, represent_ordereddict)
 
 dump = yaml.dump
