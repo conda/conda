@@ -99,4 +99,3 @@ load_condarc = lambda fn: conda.base.context.reset_context([fn])
 PaddingError = conda.exceptions.PaddingError
 from conda.common.compat import CrossPlatformStLink     # NOQA
 CrossPlatformStLink = CrossPlatformStLink
-
