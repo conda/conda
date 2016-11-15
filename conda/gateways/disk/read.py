@@ -13,6 +13,7 @@ from os.path import isfile, islink, join
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
 from ...models.package_info import PackageInfoContents, PackageInfo
 from ...models.record import Record
+from ...exceptions import CondaUpgradeError
 
 log = getLogger(__name__)
 
@@ -51,7 +52,7 @@ def collect_all_info_for_package(extracted_package_directory):
         with open(file_json_path) as file_json:
             data = json.load(file_json)
         if data.get('version') != 1:
-            raise CondaUpgradeError()
+            raise CondaUpgradeError("Expected files.json schema to be version 1")
 
         return PackageInfo(files=data['files'],
                            index_json_record=read_index_json(extracted_package_directory),
