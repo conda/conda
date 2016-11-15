@@ -80,7 +80,9 @@ import conda.exceptions  # NOQA
 from conda.base.context import get_prefix as context_get_prefix, non_x86_linux_machines  # NOQA
 non_x86_linux_machines = non_x86_linux_machines
 
-from conda.base.constants import DEFAULT_CHANNELS, FileMode, LinkType  # NOQA
+from conda.base.constants import DEFAULT_CHANNELS, FileMode  # NOQA
+from conda.models.package_info import NodeType
+from conda._vendor.auxlib.entity import EntityEncoder
 get_prefix = partial(context_get_prefix, conda.base.context.context)
 get_default_urls = lambda: DEFAULT_CHANNELS
 
