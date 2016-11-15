@@ -59,21 +59,6 @@ def collect_all_info_for_package(extracted_package_directory):
                            noarch=read_noarch(extracted_package_directory),
                            icondata=read_icondata(extracted_package_directory),
                            )
-
-
-
-        # files = tuple(pluck("short_path", data))
-        # has_prefix_files = {
-        #     f.get("short_path"): tuple([f.get("prefix_placeholder"), f.get("file_mode")]) for f in
-        #     data if f.get("prefix_placeholder") is not None}
-        # no_link = set([f.get("no_link") for f in data if f.get("no_link") is not None])
-        # soft_links = tuple([f for f in list(pluck("file_type", data)) if f == "softlink"])
-        # index_json_record = read_index_json(extracted_package_directory)
-        # icondata = read_icondata(extracted_package_directory)
-        # noarch = read_noarch(extracted_package_directory)
-        # return PackageInfoContents(files=files, has_prefix_files=has_prefix_files, no_link=no_link,
-        #                            soft_links=soft_links, index_json_record=index_json_record,
-        #                            icondata=icondata, noarch=noarch)
     else:
         files = tuple(ln for ln in (line.strip() for line in yield_lines(files_path)) if ln)
 
