@@ -51,17 +51,21 @@ class NodeType(Enum):
 
 class PathInfo(Entity):
     path = StringField()
-    sha256 = StringField()
-    size_in_bytes = IntegerField()
-    node_type = EnumField(NodeType)
     prefix_placeholder = StringField(required=False)
     file_mode = EnumField(FileMode, required=False)
     no_link = BooleanField(required=False, nullable=True)
-    inode_paths = ListField(string_types)
+
+
+class PathInfoV1(PathInfo):
+    node_type = EnumField(NodeType)
+    sha256 = StringField()
+    size_in_bytes = IntegerField()
+    inode_paths = ListField(string_types, required=False, nullable=True)
 
 
 class PackageInfo(Entity):
+    path_info_version = IntegerField()
     files = ListField(PathInfo)
     index_json_record = ComposableField(Record)
-    icondata = StringField()
-    noarch = ComposableField(NoarchInfo)
+    icondata = StringField(required=False, nullable=True)
+    noarch = ComposableField(NoarchInfo, required=False, nullable=True)
