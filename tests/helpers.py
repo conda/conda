@@ -50,7 +50,11 @@ def run_conda_command(*args):
     p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, env=env)
 
-    stdout, stderr = [stream.strip().decode('utf-8').replace('\r\n', '\n').replace('\\\\', '\\')
+    stdout, stderr = [stream.strip()
+                          .decode('utf-8')
+                          .replace('\r\n', '\n')
+                          .replace('\\\\', '\\')
+                          .replace("Using Anaconda API: https://api.anaconda.org\n", "")
                       for stream in p.communicate()]
     print(stdout)
     print(stderr, file=sys.stderr)

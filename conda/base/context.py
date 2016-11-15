@@ -69,7 +69,8 @@ class Context(Configuration):
     use_pip = PrimitiveParameter(True)
 
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
-    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs',))
+    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
+                                   string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
 
     # connection details
@@ -117,6 +118,20 @@ class Context(Configuration):
     _croot = PrimitiveParameter('', aliases=('croot',))
     conda_build = MapParameter(string_types, aliases=('conda-build',))
 
+    def post_build_validation(self):
+        errors = []
+        if self.client_ssl_cert_key and not self.client_ssl_cert:
+            error = ValidationError('client_ssl_cert', self.client_ssl_cert, "<<merged>>",
+                                    "'client_ssl_cert' is required when 'client_ssl_cert_key' "
+                                    "is defined")
+            errors.append(error)
+        if self.always_copy and self.always_softlink:
+            error = ValidationError('always_copy', self.always_copy, "<<merged>>",
+                                    "'always_copy' and 'always_softlink' are mutually exclusive. "
+                                    "Only one can be set to 'True'.")
+            errors.append(error)
+        return errors
+
     @property
     def croot(self):
         """This is where source caches and work folders live"""
@@ -154,23 +169,6 @@ class Context(Configuration):
         path = join(self.croot, 'svn_cache')
         conda_bld_ensure_dir(path)
         return path
-
-    def post_build_validation(self):
-        errors = []
-        if self.client_ssl_cert_key and not self.client_ssl_cert:
-            error = ValidationError('client_ssl_cert', self.client_ssl_cert, "<<merged>>",
-                                    "'client_ssl_cert' is required when 'client_ssl_cert_key' "
-                                    "is defined")
-            errors.append(error)
-        if self.always_copy and self.always_softlink:
-            error = ValidationError('always_copy', self.always_copy, "<<merged>>",
-                                    "'always_copy' and 'always_softlink' are mutually exclusive. "
-                                    "Only one can be set to 'True'.")
-            errors.append(error)
-        return errors
-
-    _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
-                                   string_delimiter=os.pathsep)
 
     @property
     def default_python(self):
@@ -485,6 +483,7 @@ def inroot_notwritable(prefix):
     """
     return (abspath(prefix).startswith(context.root_dir) and
             not context.root_writable)
+
 
 try:
     context = Context(SEARCH_PATH, conda, None)
