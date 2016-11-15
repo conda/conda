@@ -39,6 +39,7 @@ requirements:
     - pyyaml
     - ruamel_yaml
     - requests
+    - enum34    [py<34]
 
 test:
   requires:
