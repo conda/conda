@@ -97,4 +97,6 @@ get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
 PaddingError = conda.exceptions.PaddingError
-from conda.common.compat import CrossPlatformStLink
+from conda.common.compat import CrossPlatformStLink     # NOQA
+CrossPlatformStLink = CrossPlatformStLink
+
