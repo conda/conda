@@ -94,9 +94,8 @@ class FilePermissions(object):
                 return False
         elif os.path.isfile(path):
             try:
-                renamed_path = "%s-test-rename" % path
-                os.rename(path, renamed_path)
-                os.rename(renamed_path, path)
+                # Updates the access and modified times of path to the current time
+                os.utime(path, times=None)
             except IOError:
                 return False
         return True
