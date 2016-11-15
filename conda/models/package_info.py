@@ -54,10 +54,10 @@ class PathInfo(Entity):
     prefix_placeholder = StringField(required=False)
     file_mode = EnumField(FileMode, required=False)
     no_link = BooleanField(required=False, nullable=True)
+    node_type = EnumField(NodeType)
 
 
 class PathInfoV1(PathInfo):
-    node_type = EnumField(NodeType)
     sha256 = StringField()
     size_in_bytes = IntegerField()
     inode_paths = ListField(string_types, required=False, nullable=True)
