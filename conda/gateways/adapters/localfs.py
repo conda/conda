@@ -4,14 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from email.utils import formatdate
 from logging import getLogger
 from mimetypes import guess_type
-from os.path import isfile
 from os import lstat
-from requests.models import Response
 from requests.adapters import BaseAdapter
+from requests.models import Response
 from requests.structures import CaseInsensitiveDict
 
 from ...common.url import url_to_path
-from ...exceptions import CondaFileNotFoundError
 
 log = getLogger(__name__)
 
@@ -38,9 +36,6 @@ class LocalFSAdapter(BaseAdapter):
                 "Content-Length": stats.st_size,
                 "Last-Modified": modified,
             })
-
-            if not isfile(pathname):
-                raise CondaFileNotFoundError(pathname)
 
             resp.raw = open(pathname, "rb")
             resp.close = resp.raw.close
