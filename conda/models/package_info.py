@@ -24,17 +24,36 @@ class NoarchInfo(Entity):
     entry_points = ListField(string_types, required=False)
 
 
-class FileType(Enum):
+class NodeType(Enum):
+    """
+    Refers to if the file in question is hard linked or soft linked. Originally designed to be used
+    in files.json
+    """
     hardlink = 1
     softlink = 2
-    directory = 4
+
+    @classmethod
+    def __call__(cls, value, *args, **kwargs):
+        if isinstance(cls, value, *args, **kwargs):
+            return cls[value]
+        return super(NodeType, cls).__call__(value, *args, **kwargs)
+
+    @classmethod
+    def __getitem__(cls, name):
+        return cls._member_map_[name.replace('-', '').replace('_', '').lower()]
+
+    def __int__(self):
+        return self.value
+
+    def __str__(self):
+        return self.name
 
 
 class PathInfo(Entity):
     path = StringField()
     sha256 = StringField()
     size_in_bytes = IntegerField()
-    file_type = EnumField(FileType)
+    node_type = EnumField(NodeType)
     prefix_placeholder = StringField(required=False)
     file_mode = EnumField(FileMode, required=False)
     no_link = BooleanField(required=False, nullable=True)
