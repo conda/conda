@@ -4,9 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from email.utils import formatdate
 from logging import getLogger
 from mimetypes import guess_type
-from os import stat
 from os.path import isfile
-from requests import Response
+from os import lstat
+from requests.models import Response
 from requests.adapters import BaseAdapter
 from requests.structures import CaseInsensitiveDict
 
@@ -26,8 +26,8 @@ class LocalFSAdapter(BaseAdapter):
         resp.url = request.url
 
         try:
-            stats = stat(pathname)
-        except OSError as exc:
+            stats = lstat(pathname)
+        except (IOError, OSError) as exc:
             resp.status_code = 404
             resp.raw = exc
         else:
