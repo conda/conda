@@ -11,17 +11,33 @@
 
 ## 4.1.13 (unreleased)
 
+### Deprecations/Breaking Changes
+* show warning message for pre-link scripts (#3727)
+* error and exit for install of packages that require conda minimum version 4.3 (#3726)
+
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
+* improve handling of local dependency information (#2107)
 
 ### Bug Fixes
 * fix the api->conda substitution (#3456)
+* fix conda/install.py single-file behavior (#3854)
 
 
 ## 3.19.4 (unreleased)
 
+### Deprecations/Breaking Changes
+* show warning message for pre-link scripts (#3727)
+* error and exit for install of packages that require conda minimum version 4.3 (#3726)
+
 ### Improvements
 * improve handling of local dependency information (#2107)
+* use install.rm_rf for TemporaryDirectory cleanup (#3425)
+
+### Bug Fixes
+* fix conda/install.py single-file behavior (#3854)
+* fix the api->conda substitution (#3456)
+* fix silent directory removal (#3730)
 
 
 ## 4.2.12 (2016-11-02)

@@ -490,6 +490,11 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env[str('PREFIX')] = str(env_prefix or prefix)
     env[str('PKG_NAME')], env[str('PKG_VERSION')], env[str('PKG_BUILDNUM')], _ = dist2quad(dist)
     if action == 'pre-link':
+        sys.stderr.write("""
+Package %s uses a pre-link script. Pre-link scripts are potentially dangerous  discouraged.
+This is because pre-link scripts have the ability to change the package contents in the
+package cache, and therefore modify the underlying files for already-created conda
+environments.  Future versions of conda may deprecate and ignore pre-link scripts.\n""" % dist)
         env[str('SOURCE_DIR')] = str(prefix)
     try:
         subprocess.check_call(args, env=env)
@@ -943,9 +948,19 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         raise LinkError('Error: pre-link failed: %s' % dist)
 
     info_dir = join(source_dir, 'info')
+
+    if not os.path.isfile(join(info_dir, "files")):
+        print("Installing %s requires a minimum conda version of 4.3." % dist, file=sys.stderr)
+        sys.exit(1)
+
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
     no_link = read_no_link(info_dir)
+
+    full_dist_name = "%s.tar.bz2" % dist
+    if not index.get(full_dist_name, {}).get("noarch", None) in (True, False, None, "generic"):
+        print("Installing %s requires a minimum conda version of 4.3." % dist, file=sys.stderr)
+        sys.exit(1)
 
     # for the lock issue
     # may run into lock if prefix not exist
@@ -956,6 +971,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
         for filepath in files:
             src = join(source_dir, filepath)
             dst = join(prefix, filepath)
+
             dst_dir = dirname(dst)
             if not isdir(dst_dir):
                 os.makedirs(dst_dir)
