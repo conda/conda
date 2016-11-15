@@ -24,7 +24,6 @@ from os import W_OK
 import os
 from .utils import on_win
 
-
 # file types
 DIR = "d"
 FILE = "f"
