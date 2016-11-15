@@ -2,6 +2,11 @@
 
 ### Improvements
 * double/extend http timeouts (#3831)
+* let descriptive http errors cover more http exceptions (#3834)
+* backport some conda-build configuration (#3875)
+
+### Non-User-Facing Changes
+* flake8 E116, E121, & E123 enabled (#3883)
 
 
 ## 4.1.13 (unreleased)
