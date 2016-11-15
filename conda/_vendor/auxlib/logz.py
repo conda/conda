@@ -130,7 +130,10 @@ def stringify(obj):
         elif name.endswith('requests.models.PreparedRequest'):
             requests_models_PreparedRequest_builder(builder, obj)
         elif name.endswith('requests.models.Response'):
-            requests_models_PreparedRequest_builder(builder, obj.request)
+            if getattr(obj, 'request'):
+                requests_models_PreparedRequest_builder(builder, obj.request)
+            else:
+                log.info("request is 'None' for Response object with url %s", obj.url)
             requests_models_Response_builder(builder, obj)
         else:
             return None

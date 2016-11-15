@@ -105,6 +105,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         with open(cache_path) as f:
             cache = json.load(f)
     except (IOError, ValueError):
+        log.debug("No local cache found for %s at %s", url, cache_path)
         cache = {'packages': {}}
 
     if use_cache:
@@ -131,8 +132,14 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     try:
         timeout = context.http_connect_timeout_secs, context.http_read_timeout_secs
-        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                           timeout=timeout)
+        try:
+            resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
+                               timeout=timeout)
+        except AttributeError:
+            # AttributeError: 'FileNotFoundError' object has no attribute 'read'
+            log.error(">>>>>>>'FileNotFoundError' object has no attribute 'read' >>>>>>>", join_url(url, filename))
+            raise
+
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp))
         resp.raise_for_status()
