@@ -27,11 +27,35 @@ def test_path_translations():
         "test dummy text /usr/bin:/cygdrive/z/documents (x86)/code/conda/tests/envskhkzts/test1:/cygdrive/z/documents/code/conda/tests/envskhkzts/test1/cmd more dummy text"),
     ]
     for windows_path, unix_path, cygwin_path in paths:
-        assert utils.win_path_to_unix(windows_path) == unix_path
-        assert utils.unix_path_to_win(unix_path) == windows_path
+        win2unix = utils.win_path_to_unix(windows_path)
+        unix2win = utils.unix_path_to_win(unix_path)
 
-        assert utils.win_path_to_cygwin(windows_path) == cygwin_path
-        assert utils.cygwin_path_to_win(cygwin_path) == windows_path
+        win2cygwin = utils.win_path_to_cygwin(windows_path)
+        cygwin2win = utils.cygwin_path_to_win(cygwin_path)
+
+        print("win2unix == unix_path :: {} == {} :: {}".format(
+            win2unix,
+            unix_path,
+            win2unix == unix_path))
+        print("unix2win == windows_path :: {} == {} :: {}".format(
+            unix2win,
+            windows_path,
+            unix2win == windows_path))
+
+        print("win2cygwin == cygwin_path :: {} == {} :: {}".format(
+            win2cygwin,
+            cygwin_path,
+            win2cygwin == cygwin_path))
+        print("cygwin2win == windows_path :: {} == {} :: {}".format(
+            cygwin2win,
+            windows_path,
+            cygwin2win == windows_path))
+
+        assert win2unix == unix_path
+        assert unix2win == windows_path
+
+        assert win2cygwin == cygwin_path
+        assert cygwin2win == windows_path
 
 
 def test_text_translations():

@@ -5,10 +5,18 @@ env:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
 
+# apt-get is only available to the Ubuntu tests (os: linux)
+# the other tests (os: osx) uses Homebrew to install shell
+# dependencies and is done in ./utils/travis-install.sh
 addons:
   apt:
     packages:
       - zsh
+      - csh
+      - tcsh
+      - posh
+      - ksh
+
 
 matrix:
   include:
@@ -34,12 +42,10 @@ matrix:
     #   language: python
 
 install:
-  - which -a python
-  - env | sort
-  - source ./utils/travis-run-install.sh
+  - source ./utils/travis-install.sh
 
 script:
-  - source ./utils/travis-run-script.sh
+  - source ./utils/travis-script.sh
 
 sudo: false
 
