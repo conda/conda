@@ -7,8 +7,7 @@ from conda.base.constants import LinkType, FileMode
 from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
                                 LinkOperation)
 from conda.models.dist import Dist
-from conda.models.package_info import (PackageInfoContents, PathInfo, PackageInfo, NoarchInfo,
-                                       NodeType)
+from conda.models.package_info import PathInfo, PackageInfo, NoarchInfo, NodeType
 from conda.models.record import Link, Record
 from conda.utils import on_win
 

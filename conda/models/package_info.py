@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import namedtuple
 from enum import Enum
 from logging import getLogger
 
@@ -12,11 +11,6 @@ from ..base.constants import FileMode
 from ..common.compat import string_types
 
 log = getLogger(__name__)
-
-
-PackageInfoContents = namedtuple('PackageInfoContents',
-                                 ('files', 'has_prefix_files', 'no_link', 'soft_links',
-                                  'index_json_record', 'icondata', 'noarch'))
 
 
 class NoarchInfo(Entity):
@@ -51,8 +45,8 @@ class NodeType(Enum):
 
 class PathInfo(Entity):
     path = StringField()
-    prefix_placeholder = StringField(required=False)
-    file_mode = EnumField(FileMode, required=False)
+    prefix_placeholder = StringField(required=False, nullable=True)
+    file_mode = EnumField(FileMode, required=False, nullable=True)
     no_link = BooleanField(required=False, nullable=True)
     node_type = EnumField(NodeType)
 

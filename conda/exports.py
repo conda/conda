@@ -81,8 +81,8 @@ from conda.base.context import get_prefix as context_get_prefix, non_x86_linux_m
 non_x86_linux_machines = non_x86_linux_machines
 
 from conda.base.constants import DEFAULT_CHANNELS       # NOQA
-from conda.models.package_info import NodeType          # NOQA
-from conda._vendor.auxlib.entity import EntityEncoder   # NOQA
+from .models.package_info import NodeType               # NOQA
+from ._vendor.auxlib.entity import EntityEncoder        # NOQA
 NodeType = NodeType
 EntityEncoder = EntityEncoder
 get_prefix = partial(context_get_prefix, conda.base.context.context)

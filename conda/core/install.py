@@ -98,12 +98,11 @@ class PackageInstaller(object):
         package_info = self.package_info
 
         def make_link_operation(source_path_info):
-            if getattr(source_path_info, "prefix_placeholder", None) is not None:
+            if source_path_info.prefix_placeholder:
                 link_type = LinkType.copy
                 prefix_placehoder = source_path_info.prefix_placeholder
                 file_mode = source_path_info.file_mode
-            elif (getattr(source_path_info, "no_link", None) is not None or
-                    source_path_info.node_type == NodeType.softlink):
+            elif source_path_info.no_link or source_path_info.node_type == NodeType.softlink:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
@@ -193,12 +192,11 @@ class NoarchPythonPackageInstaller(PackageInstaller):
             # no side effects in this method!
 
             # first part, same as parent class
-            if getattr(source_path_info, "prefix_placeholder", None) is not None:
+            if source_path_info.prefix_placeholder:
                 link_type = LinkType.copy
                 prefix_placehoder = source_path_info.prefix_placeholder
                 file_mode = source_path_info.file_mode
-            elif (getattr(source_path_info, "no_link", None) is not None or
-                    source_path_info.node_type == NodeType.softlink):
+            elif source_path_info.no_link or source_path_info.node_type == NodeType.softlink:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
@@ -230,7 +228,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
                                               tuple(op.dest_short_path for op in link_operations))
 
         # create entry points
-        entry_points = self.package_info.noarch.get('entry_points', ())
+        entry_points = self.package_info.noarch.entry_points
         entry_point_paths = []
         for entry_point in entry_points:
             entry_point_paths.extend(create_entry_point(entry_point, self.prefix))
