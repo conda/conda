@@ -9,7 +9,7 @@ from os import lstat
 from requests.adapters import BaseAdapter
 from requests.models import Response
 from requests.structures import CaseInsensitiveDict
-from tempfile import TemporaryFile
+from tempfile import SpooledTemporaryFile
 
 from ...common.compat import ensure_binary
 from ...common.url import url_to_path
@@ -35,7 +35,7 @@ class LocalFSAdapter(BaseAdapter):
                 "path": pathname,
                 "exception": repr(exc),
             }
-            fh = TemporaryFile()
+            fh = SpooledTemporaryFile()
             fh.write(ensure_binary(json.dumps(message)))
             fh.seek(0)
             resp.raw = fh
