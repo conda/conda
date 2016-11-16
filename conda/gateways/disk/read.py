@@ -63,7 +63,6 @@ def collect_all_info_for_package(extracted_package_directory):
 
         has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
         no_link = read_no_link(info_dir)
-        soft_links = read_soft_links(extracted_package_directory, files)
 
         path_info_files = []
         for f in files:

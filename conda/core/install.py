@@ -103,7 +103,7 @@ class PackageInstaller(object):
                 prefix_placehoder = source_path_info.prefix_placeholder
                 file_mode = source_path_info.file_mode
             elif (getattr(source_path_info, "no_link", None) is not None or
-                          source_path_info.node_type == NodeType.softlink):
+                    source_path_info.node_type == NodeType.softlink):
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
@@ -198,7 +198,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
                 prefix_placehoder = source_path_info.prefix_placeholder
                 file_mode = source_path_info.file_mode
             elif (getattr(source_path_info, "no_link", None) is not None or
-                          source_path_info.node_type == NodeType.softlink):
+                    source_path_info.node_type == NodeType.softlink):
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
