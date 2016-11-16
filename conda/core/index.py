@@ -132,14 +132,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     try:
         timeout = context.http_connect_timeout_secs, context.http_read_timeout_secs
-        try:
-            resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                               timeout=timeout)
-        except AttributeError:
-            # AttributeError: 'FileNotFoundError' object has no attribute 'read'
-            log.error(">>>>>>>'FileNotFoundError' object has no attribute 'read' >>>>>>>", join_url(url, filename))
-            raise
-
+        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
+                           timeout=timeout)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp))
         resp.raise_for_status()
@@ -257,6 +251,46 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     return cache or None
 
 
+def _collect_repodatas_serial(use_cache, urls):
+    session = CondaSession()
+    repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
+                 for url in urls]
+    return repodatas
+
+
+def _collect_repodatas_concurrent(executor, use_cache, urls):
+    futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
+                                    session=CondaSession()) for url in urls)
+    repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+    return repodatas
+
+
+def _collect_repodatas(use_cache, urls):
+    # TODO: there HAS to be a way to clean up this logic
+    if context.concurrent:
+        try:
+            import concurrent.futures
+            executor = concurrent.futures.ThreadPoolExecutor(10)
+        except (ImportError, RuntimeError) as e:
+            log.debug(repr(e))
+            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+            # RuntimeError is thrown if number of threads are limited by OS
+            repodatas = _collect_repodatas_serial(use_cache, urls)
+        else:
+            try:
+                repodatas = _collect_repodatas_concurrent(executor, use_cache, urls)
+            except RuntimeError as e:
+                # Cannot start new thread, then give up parallel execution
+                log.debug(repr(e))
+                repodatas = _collect_repodatas_serial(use_cache, urls)
+            finally:
+                executor.shutdown(wait=True)
+    else:
+        repodatas = _collect_repodatas_serial(use_cache, urls)
+
+    return repodatas
+
+
 def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
@@ -266,31 +300,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         stdoutlog.info("Fetching package metadata ...")
 
     urls = tuple(filter(offline_keep, channel_urls))
-    try:
-        import concurrent.futures
-        executor = concurrent.futures.ThreadPoolExecutor(10)
-        if not context.concurrent:
-            raise RuntimeError()
-    except (ImportError, RuntimeError) as e:
-        # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-        # RuntimeError is thrown if number of threads are limited by OS
-        log.debug(repr(e))
-        session = CondaSession()
-        repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                     for url in urls]
-    else:
-        try:
-            futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                                            session=CondaSession()) for url in urls)
-            repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
-        except RuntimeError as e:
-            # Cannot start new thread, then give up parallel execution
-            log.debug(repr(e))
-            session = CondaSession()
-            repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                         for url in urls]
-        finally:
-            executor.shutdown(wait=True)
+    repodatas = _collect_repodatas(use_cache, urls)
+
 
     def make_index(repodatas):
         result = dict()

@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import json
 from email.utils import formatdate
 from logging import getLogger
 from mimetypes import guess_type
 from os import lstat
-from os.path import isfile
 from requests.adapters import BaseAdapter
 from requests.models import Response
 from requests.structures import CaseInsensitiveDict
+from tempfile import TemporaryFile
 
+from ...common.compat import ensure_binary
 from ...common.url import url_to_path
 
 log = getLogger(__name__)
@@ -28,22 +30,27 @@ class LocalFSAdapter(BaseAdapter):
             stats = lstat(pathname)
         except (IOError, OSError) as exc:
             resp.status_code = 404
-            resp.raw = exc
+            message = {
+                "error": "file does not exist",
+                "path": pathname,
+                "exception": repr(exc),
+            }
+            fh = TemporaryFile()
+            fh.write(ensure_binary(json.dumps(message)))
+            fh.seek(0)
+            resp.raw = fh
+            resp.close = resp.raw.close
         else:
-            if isfile(pathname):
-                modified = formatdate(stats.st_mtime, usegmt=True)
-                content_type = guess_type(pathname)[0] or "text/plain"
-                resp.headers = CaseInsensitiveDict({
-                    "Content-Type": content_type,
-                    "Content-Length": stats.st_size,
-                    "Last-Modified": modified,
-                })
+            modified = formatdate(stats.st_mtime, usegmt=True)
+            content_type = guess_type(pathname)[0] or "text/plain"
+            resp.headers = CaseInsensitiveDict({
+                "Content-Type": content_type,
+                "Content-Length": stats.st_size,
+                "Last-Modified": modified,
+            })
 
-                resp.raw = open(pathname, "rb")
-                resp.close = resp.raw.close
-            else:
-                resp.status_code = 404
-                resp.raw = b'{"error": "file does not exist", "path": "%s"}' % pathname
+            resp.raw = open(pathname, "rb")
+            resp.close = resp.raw.close
         return resp
 
     def close(self):
