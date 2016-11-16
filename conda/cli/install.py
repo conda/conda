@@ -200,7 +200,7 @@ def install(args, parser, command='install'):
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not context.json:
+        if not context.json and not context.quiet:
             print(print_activate(args.name if args.name else prefix))
         return
 

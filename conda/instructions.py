@@ -95,6 +95,7 @@ def SYMLINK_CONDA_CMD(state, arg):
     log.debug("No longer symlinking conda. Passing for prefix %s", state['prefix'])
     # symlink_conda(state['prefix'], arg)
 
+
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,

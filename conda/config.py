@@ -9,7 +9,7 @@ import os
 import sys
 from os.path import abspath, expanduser, isfile, join
 
-from conda.base.context import context, non_x86_linux_machines  # NOQA
+from conda.base.context import context, non_x86_linux_machines
 non_x86_linux_machines = non_x86_linux_machines
 
 
@@ -82,11 +82,13 @@ def get_local_urls():
 class RC(object):
 
     def get(self, key, default=None):
+        key = key.replace('-', '_')
         return getattr(context, key, default)
 
 
 rc = RC()
 envs_dirs = context.envs_dirs
+
 
 def get_rc_path():
     path = os.getenv('CONDARC')
@@ -98,6 +100,7 @@ def get_rc_path():
         if isfile(path):
             return path
     return None
+
 
 rc_path = get_rc_path()
 

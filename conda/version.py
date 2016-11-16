@@ -6,14 +6,17 @@ import re
 from .compat import zip_longest, string_types, zip
 from .exceptions import CondaRuntimeError, CondaValueError
 
+
 # normalized_version() is needed by conda-env
 # It is currently being pulled from resolve instead, but
 # eventually it ought to come from here
 def normalized_version(version):
     return VersionOrder(version)
 
+
 def ver_eval(vtest, spec):
     return VersionSpec(spec).match(vtest)
+
 
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')

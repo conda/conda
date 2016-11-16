@@ -4,12 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 import hashlib
 import json
-import requests
 import warnings
 from functools import wraps
 from logging import DEBUG, getLogger
 from os import makedirs
 from os.path import dirname, join
+from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from .linked_data import linked_data
@@ -105,6 +105,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         with open(cache_path) as f:
             cache = json.load(f)
     except (IOError, ValueError):
+        log.debug("No local cache found for %s at %s", url, cache_path)
         cache = {'packages': {}}
 
     if use_cache:
@@ -158,8 +159,10 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     except ValueError as e:
         raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
+    except (ConnectionError, HTTPError, SSLError) as e:
+        # status_code might not exist on SSLError
+        status_code = getattr(e.response, 'status_code', None)
+        if status_code == 404:
             if url.endswith('/noarch'):  # noarch directory might not exist
                 return None
 
@@ -171,7 +174,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             Further configuration help can be found at <%s>.
             """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
-        elif e.response.status_code == 403:
+        elif status_code == 403:
             if url.endswith('/noarch'):
                 return None
             else:
@@ -183,7 +186,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 Further configuration help can be found at <%s>.
                 """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
-        elif e.response.status_code == 401:
+        elif status_code == 401:
             channel = Channel(url)
             if channel.token:
                 help_message = dals("""
@@ -222,7 +225,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                 Further configuration help can be found at <%s>.
                 """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
-        elif 500 <= e.response.status_code < 600:
+        elif status_code is not None and 500 <= status_code < 600:
             help_message = dals("""
             An remote server error occurred when trying to retrieve this URL.
 
@@ -233,24 +236,11 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             """)
 
         else:
-            help_message = "An HTTP error occurred when trying to retrieve this URL."
+            help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
 
-        raise CondaHTTPError(help_message, e.response.url, e.response.status_code,
-                             e.response.reason)
+        raise CondaHTTPError(help_message, e.response.url if e.response else None, status_code,
+                             e.response.reason if e.response else None)
 
-    except requests.exceptions.SSLError as e:
-        msg = "SSL Error: %s\n" % e
-        stderrlog.info("SSL verification error: %s\n" % e)
-        log.debug(msg)
-
-    except requests.exceptions.ConnectionError as e:
-        msg = "Connection error: %s: %s\n" % (e, url)
-        stderrlog.info('Could not connect to %s\n' % url)
-        log.debug(msg)
-        if fail_unknown_host:
-            raise CondaRuntimeError(msg)
-
-        raise CondaRuntimeError(msg)
     cache['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
@@ -259,6 +249,46 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         pass
 
     return cache or None
+
+
+def _collect_repodatas_serial(use_cache, urls):
+    session = CondaSession()
+    repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
+                 for url in urls]
+    return repodatas
+
+
+def _collect_repodatas_concurrent(executor, use_cache, urls):
+    futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
+                                    session=CondaSession()) for url in urls)
+    repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+    return repodatas
+
+
+def _collect_repodatas(use_cache, urls):
+    # TODO: there HAS to be a way to clean up this logic
+    if context.concurrent:
+        try:
+            import concurrent.futures
+            executor = concurrent.futures.ThreadPoolExecutor(10)
+        except (ImportError, RuntimeError) as e:
+            log.debug(repr(e))
+            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+            # RuntimeError is thrown if number of threads are limited by OS
+            repodatas = _collect_repodatas_serial(use_cache, urls)
+        else:
+            try:
+                repodatas = _collect_repodatas_concurrent(executor, use_cache, urls)
+            except RuntimeError as e:
+                # Cannot start new thread, then give up parallel execution
+                log.debug(repr(e))
+                repodatas = _collect_repodatas_serial(use_cache, urls)
+            finally:
+                executor.shutdown(wait=True)
+    else:
+        repodatas = _collect_repodatas_serial(use_cache, urls)
+
+    return repodatas
 
 
 def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
@@ -270,29 +300,7 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
         stdoutlog.info("Fetching package metadata ...")
 
     urls = tuple(filter(offline_keep, channel_urls))
-    try:
-        import concurrent.futures
-        executor = concurrent.futures.ThreadPoolExecutor(10)
-    except (ImportError, RuntimeError) as e:
-        # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-        # RuntimeError is thrown if number of threads are limited by OS
-        log.debug(repr(e))
-        session = CondaSession()
-        repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                     for url in urls]
-    else:
-        try:
-            futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                                            session=CondaSession()) for url in urls)
-            repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
-        except RuntimeError as e:
-            # Cannot start new thread, then give up parallel execution
-            log.debug(repr(e))
-            session = CondaSession()
-            repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                         for url in urls]
-        finally:
-            executor.shutdown(wait=True)
+    repodatas = _collect_repodatas(use_cache, urls)
 
     def make_index(repodatas):
         result = dict()
