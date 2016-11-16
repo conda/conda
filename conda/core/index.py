@@ -302,7 +302,6 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     urls = tuple(filter(offline_keep, channel_urls))
     repodatas = _collect_repodatas(use_cache, urls)
 
-
     def make_index(repodatas):
         result = dict()
 
