@@ -277,6 +277,7 @@ def execute_config(args, parser):
                                            'add_pip_as_python_dependency',
                                            'allow_softlinks',
                                            'always_copy',
+                                           'always_softlink',
                                            'always_yes',
                                            'auto_update_conda',
                                            'binstar_upload',

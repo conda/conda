@@ -67,7 +67,8 @@
     @REM # conda update conda
 
     @REM # install/upgrade basic dependencies
-    @CALL python -m pip install -U psutil ruamel.yaml pycosat pycrypto
+    @CALL python -m pip install -U pycosat pycrypto
+    @CALL conda install -q psutil ruamel_yaml requests
     @IF /I "%PYTHON_VERSION:~0,2%"=="2." (
         @CALL python -m pip install -U enum34 futures
     )
@@ -154,7 +155,6 @@
 @REM #####################################################################
 
 @REM # - conda install -q python=%PYTHON_VERSION%
-@REM # - conda install -q requests
 @REM # - conda install -q pyflakes
 @REM # - conda install -q git menuinst
 @REM # - pip install flake8

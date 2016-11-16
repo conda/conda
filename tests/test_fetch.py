@@ -26,7 +26,7 @@ class TestFetchRepoData(unittest.TestCase):
     #         assert msg in str(execinfo), str(execinfo)
 
     def test_fetchrepodate_connectionerror(self):
-        with pytest.raises(CondaRuntimeError) as execinfo:
+        with pytest.raises(CondaHTTPError) as execinfo:
             url = "http://240.0.0.0/"
             msg = "Connection error:"
             fetch_repodata(url)
