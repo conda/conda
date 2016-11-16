@@ -189,21 +189,24 @@ class NoarchPythonPackageInstaller(PackageInstaller):
         site_packages_dir = get_site_packages_dir(self.prefix)
         bin_dir = get_bin_directory_short_path()
 
-        def make_link_operation(source_short_path):
+        def make_link_operation(source_path_info):
             # no side effects in this method!
 
             # first part, same as parent class
-            if source_short_path in package_info.has_prefix_files:
+            if getattr(source_path_info, "prefix_placeholder", None) is not None:
                 link_type = LinkType.copy
-                prefix_placehoder, file_mode = package_info.has_prefix_files[source_short_path]
-            elif source_short_path in concatv(package_info.no_link, package_info.soft_links):
+                prefix_placehoder = source_path_info.prefix_placeholder
+                file_mode = source_path_info.file_mode
+            elif (getattr(source_path_info, "no_link", None) is not None or
+                          source_path_info.node_type == NodeType.softlink):
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
                 link_type = requested_link_type
                 prefix_placehoder, file_mode = '', None
-            is_menu_file = bool(MENU_RE.match(source_short_path))
+            is_menu_file = bool(MENU_RE.match(source_path_info.path))
 
+            source_short_path = source_path_info.path
             # second part, noarch python-specific
             if source_short_path.startswith('site-packages/'):
                 dest_short_path = site_packages_dir + source_short_path.replace(
