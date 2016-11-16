@@ -67,6 +67,7 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
+    concurrent = PrimitiveParameter(False)
 
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
