@@ -7,8 +7,9 @@ from conda.base.constants import LinkType, FileMode
 from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
                                 LinkOperation)
 from conda.models.dist import Dist
-from conda.models.package_info import PackageInfoContents
-from conda.models.record import Link
+from conda.models.package_info import (PackageInfoContents, PathInfo, PackageInfo, NoarchInfo,
+                                       NodeType)
+from conda.models.record import Link, Record
 from conda.utils import on_win
 
 try:
@@ -20,15 +21,17 @@ except ImportError:
 class TestPackageInstaller(unittest.TestCase):
     def setUp(self):
         self.dist = Dist("channel", "dist_name")
-        files = tuple(["test/path/1", "test/path/2", "test/path/3", "menu/test.json"])
-        has_prefix_files = {"test/path/1": ("/opt/anaconda1anaconda2anaconda3", FileMode.text)}
-        no_link = set(["test/path/2"])
-        soft_links = tuple(["test/path/3"])
-        index_json_records = {"key": "value"}
+        index_json_records = Record(build=0, build_number=0, name="test_foo", version=0)
         icondata = "icondata"
         noarch = None
-        self.package_info = PackageInfoContents(files, has_prefix_files, no_link, soft_links,
-                                                index_json_records, icondata, noarch)
+        files = [PathInfo(path="test/path/1", file_mode=FileMode.text, node_type=NodeType.hardlink,
+                          prefix_placeholder="/opt/anaconda1anaconda2anaconda3",),
+                 PathInfo(path="test/path/2", no_link=True, node_type=NodeType.hardlink),
+                 PathInfo(path="test/path/3", node_type=NodeType.softlink),
+                 PathInfo(path="menu/test.json", node_type=NodeType.hardlink)]
+
+        self.package_info = PackageInfo(path_info_version=0, files=files, icondata=icondata,
+                                        index_json_record=index_json_records)
 
     def test_make_link_operation(self):
         package_installer = PackageInstaller("prefix", {}, self.dist)
@@ -54,13 +57,10 @@ class TestPackageInstaller(unittest.TestCase):
 
         output = package_installer._create_meta(dest_short_paths, LinkType.directory,
                                                 "http://test.url")
-        expected_output = {"key": "value",
-                           "icon": "icon",
-                           "url": "http://test.url",
-                           "files": dest_short_paths,
-                           "link": Link(source="extracted_package_dir", type=LinkType.directory),
-                           "icondata": "icondata"
-                           }
+        expected_output = Record(icon="icon", icondata="icondata", build=0, build_number=0,
+                                 name="test_foo", version=0, url="http://test.url",
+                                 files=dest_short_paths,
+                                 link=Link(source="extracted_package_dir", type=LinkType.directory))
         self.assertEquals(output, expected_output)
 
 

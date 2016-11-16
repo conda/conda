@@ -26,6 +26,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
 from ..models.record import Link
+from ..models.package_info import NodeType
 from ..utils import on_win
 
 try:
@@ -96,20 +97,22 @@ class PackageInstaller(object):
         # no side effects in this method!
         package_info = self.package_info
 
-        def make_link_operation(source_short_path):
-            if source_short_path in package_info.has_prefix_files:
+        def make_link_operation(source_path_info):
+            if getattr(source_path_info, "prefix_placeholder", None) is not None:
                 link_type = LinkType.copy
-                prefix_placehoder, file_mode = package_info.has_prefix_files[source_short_path]
-            elif source_short_path in concatv(package_info.no_link, package_info.soft_links):
+                prefix_placehoder = source_path_info.prefix_placeholder
+                file_mode = source_path_info.file_mode
+            elif (getattr(source_path_info, "no_link", None) is not None or
+                          source_path_info.node_type == NodeType.softlink):
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
                 link_type = requested_link_type
                 prefix_placehoder, file_mode = '', None
-            is_menu_file = bool(MENU_RE.match(source_short_path))
-            dest_short_path = source_short_path
-            return LinkOperation(source_short_path, dest_short_path, link_type, prefix_placehoder,
-                                 file_mode, is_menu_file)
+            is_menu_file = bool(MENU_RE.match(source_path_info.path))
+            dest_short_path = source_path_info.path
+            return LinkOperation(source_path_info.path, dest_short_path, link_type,
+                                 prefix_placehoder, file_mode, is_menu_file)
         return tuple(make_link_operation(p) for p in package_info.files)
 
     def _execute_link_operations(self, leaf_directories, link_operations):
