@@ -63,8 +63,8 @@
 
     @REM # disable automatic updates
     @CALL conda config --set auto_update_conda false
-    @REM # conda config --set always_yes yes
-    @REM # conda update conda
+    @CALL conda config --set always_yes yes
+    @CALL conda update conda
 
     @REM # install/upgrade basic dependencies
     @CALL python -m pip install -U pycosat pycrypto
