@@ -15,7 +15,6 @@ from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
 from ..exceptions import ArgumentError
 from ..gateways.disk.delete import rm_rf
-from ..lock import LOCK_EXTENSION
 from ..utils import human_bytes
 
 descr = """
@@ -159,40 +158,6 @@ class CrossPlatformStLink(object):
             cls.GetFileInformationByHandle.restype = BOOL
 
             cls._st_nlink = cls._windows_st_nlink
-
-
-def find_lock(file_ending=LOCK_EXTENSION, extra_path=None):
-    from os.path import join
-    lock_dirs = context.pkgs_dirs[:]
-    lock_dirs += [context.root_dir]
-    for envs_dir in context.envs_dirs:
-        if os.path.exists(envs_dir):
-            for fn in os.listdir(envs_dir):
-                if os.path.isdir(join(envs_dir, fn)):
-                    lock_dirs.append(join(envs_dir, fn))
-
-    try:
-        from conda_build.config import croot
-        lock_dirs.append(croot)
-    except ImportError:
-        pass
-
-    lock_dirs = lock_dirs + list(extra_path) if extra_path else lock_dirs
-    for dir in lock_dirs:
-        if not os.path.exists(dir):
-            continue
-        for dn in os.listdir(dir):
-            if os.path.exists(join(dir, dn)) and dn.endswith(file_ending):
-                path = join(dir, dn)
-                yield path
-
-
-def rm_lock(locks, verbose=True):
-    from ..install import rm_rf
-    for path in locks:
-        if verbose:
-            print('removing: %s' % path)
-        rm_rf(path)
 
 
 def find_tarballs():
@@ -405,13 +370,6 @@ def execute(args, parser):
     json_result = {
         'success': True
     }
-
-    if args.lock or args.all:
-        locks = list(find_lock())
-        json_result['lock'] = {
-            'files': locks
-        }
-        rm_lock(locks, verbose=not context.json)
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
