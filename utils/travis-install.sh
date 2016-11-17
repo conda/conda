@@ -184,9 +184,9 @@ miniconda_install() {
         bash "${HOME}/miniconda.sh" -bfp "${HOME}/miniconda"
     fi
     # check for success
-    if [[ ! -d "${HOME}\miniconda" ]]; then
+    if [[ ! -d "${HOME}/miniconda" ]]; then
         echo "MINICONDA INSTALL FAILED"
-        cat "${HOME}\miniconda.log"
+        cat "${HOME}/miniconda.log"
         exit 1
     fi
 
@@ -226,8 +226,8 @@ conda_build_extras() {
 
     # install conda-build test dependencies
     conda install -y -q pytest pytest-cov pytest-timeout mock
-    python -m pip install pytest-capturelog
-    conda install -y -q anaconda-client numpy
+    python -m pip install pytest-capturelog pkginfo
+    conda install -y -q anaconda-client numpy conda-verify
     conda install -y -q -c conda-forge perl pytest-xdist
     conda config --set add_pip_as_python_dependency true
 
