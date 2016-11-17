@@ -232,7 +232,7 @@ class Context(Configuration):
                 return join(self.root_dir, 'envs'),
             else:
                 # ~/envs for backwards compatibility
-                return '~/.conda/envs', '~/envs', join(self.root_dir, 'envs')
+                return '~/.conda/envs', '~/envs'
 
         return tuple(abspath(expanduser(p)) for p in self._envs_dirs or _default_envs_dirs())
 
