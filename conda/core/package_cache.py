@@ -17,7 +17,6 @@ from ..connection import CondaSession, RETRIES
 from ..exceptions import CondaRuntimeError, CondaSignatureError, MD5MismatchError
 from ..gateways.disk import exp_backoff_fn
 from ..gateways.disk.delete import rm_rf
-from ..lock import FileLock
 from ..models.channel import Channel, offline_keep
 from ..models.dist import Dist
 
@@ -182,15 +181,13 @@ def rm_fetched(dist):
     for fname in rec['files']:
         del fname_table_[fname]
         del fname_table_[path_to_url(fname)]
-        with FileLock(fname):
-            rm_rf(fname)
-            if exists(fname):
-                log.warn("File not removed during RM_FETCHED instruction: %s", fname)
+        rm_rf(fname)
+        if exists(fname):
+            log.warn("File not removed during RM_FETCHED instruction: %s", fname)
     for fname in rec['dirs']:
-        with FileLock(fname):
-            rm_rf(fname)
-            if exists(fname):
-                log.warn("Directory not removed during RM_FETCHED instruction: %s", fname)
+        rm_rf(fname)
+        if exists(fname):
+            log.warn("Directory not removed during RM_FETCHED instruction: %s", fname)
     del package_cache_[dist]
 
 
@@ -220,10 +217,9 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
-        with FileLock(fname):
-            rm_rf(fname)
-            if exists(fname):
-                log.warn("Directory not removed during RM_EXTRACTED instruction: %s", fname)
+        rm_rf(fname)
+        if exists(fname):
+            log.warn("Directory not removed during RM_EXTRACTED instruction: %s", fname)
     if rec['files']:
         rec['dirs'] = []
     else:
@@ -241,22 +237,21 @@ def extract(dist):
     assert url and fname
     pkgs_dir = dirname(fname)
     path = fname[:-8]
-    with FileLock(path):
-        temp_path = path + '.tmp'
-        rm_rf(temp_path)
-        with tarfile.open(fname) as t:
-            t.extractall(path=temp_path)
-        rm_rf(path)
-        exp_backoff_fn(os.rename, temp_path, path)
-        if sys.platform.startswith('linux') and os.getuid() == 0:
-            # When extracting as root, tarfile will by restore ownership
-            # of extracted files.  However, we want root to be the owner
-            # (our implementation of --no-same-owner).
-            for root, dirs, files in os.walk(path):
-                for fn in files:
-                    p = join(root, fn)
-                    os.lchown(p, 0, 0)
-        add_cached_package(pkgs_dir, url, overwrite=True)
+    temp_path = path + '.tmp'
+    rm_rf(temp_path)
+    with tarfile.open(fname) as t:
+        t.extractall(path=temp_path)
+    rm_rf(path)
+    exp_backoff_fn(os.rename, temp_path, path)
+    if sys.platform.startswith('linux') and os.getuid() == 0:
+        # When extracting as root, tarfile will by restore ownership
+        # of extracted files.  However, we want root to be the owner
+        # (our implementation of --no-same-owner).
+        for root, dirs, files in os.walk(path):
+            for fn in files:
+                p = join(root, fn)
+                os.lchown(p, 0, 0)
+    add_cached_package(pkgs_dir, url, overwrite=True)
 
 
 def read_url(dist):
@@ -320,76 +315,75 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     if retries is None:
         retries = RETRIES
 
-    with FileLock(dst_path):
-        rm_rf(dst_path)
-        try:
-            timeout = context.http_connect_timeout_secs, context.http_read_timeout_secs
-            resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            msg = "HTTPError: %s: %s\n" % (e, url)
-            log.debug(msg)
-            raise CondaRuntimeError(msg)
+    rm_rf(dst_path)
+    try:
+        timeout = context.http_connect_timeout_secs, context.http_read_timeout_secs
+        resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        msg = "HTTPError: %s: %s\n" % (e, url)
+        log.debug(msg)
+        raise CondaRuntimeError(msg)
 
-        except requests.exceptions.ConnectionError as e:
-            msg = "Connection error: %s: %s\n" % (e, url)
-            stderrlog.info('Could not connect to %s\n' % url)
-            log.debug(msg)
-            raise CondaRuntimeError(msg)
+    except requests.exceptions.ConnectionError as e:
+        msg = "Connection error: %s: %s\n" % (e, url)
+        stderrlog.info('Could not connect to %s\n' % url)
+        log.debug(msg)
+        raise CondaRuntimeError(msg)
 
-        except IOError as e:
-            raise CondaRuntimeError("Could not open '%s': %s" % (url, e))
+    except IOError as e:
+        raise CondaRuntimeError("Could not open '%s': %s" % (url, e))
 
-        size = resp.headers.get('Content-Length')
-        if size:
-            size = int(size)
-            fn = basename(dst_path)
-            getLogger('fetch.start').info((fn[:14], size))
+    size = resp.headers.get('Content-Length')
+    if size:
+        size = int(size)
+        fn = basename(dst_path)
+        getLogger('fetch.start').info((fn[:14], size))
 
-        if md5:
-            h = hashlib.new('md5')
-        try:
-            with open(pp, 'wb') as fo:
-                index = 0
-                for chunk in resp.iter_content(2**14):
-                    index += len(chunk)
-                    try:
-                        fo.write(chunk)
-                    except IOError:
-                        raise CondaRuntimeError("Failed to write to %r." % pp)
+    if md5:
+        h = hashlib.new('md5')
+    try:
+        with open(pp, 'wb') as fo:
+            index = 0
+            for chunk in resp.iter_content(2**14):
+                index += len(chunk)
+                try:
+                    fo.write(chunk)
+                except IOError:
+                    raise CondaRuntimeError("Failed to write to %r." % pp)
 
-                    if md5:
-                        h.update(chunk)
+                if md5:
+                    h.update(chunk)
 
-                    if size and 0 <= index <= size:
-                        getLogger('fetch.update').info(index)
+                if size and 0 <= index <= size:
+                    getLogger('fetch.update').info(index)
 
-        except IOError as e:
-            if e.errno == 104 and retries:  # Connection reset by pee
-                # try again
-                log.debug("%s, trying again" % e)
-                return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries - 1)
-            raise CondaRuntimeError("Could not open %r for writing (%s)." % (pp, e))
+    except IOError as e:
+        if e.errno == 104 and retries:  # Connection reset by pee
+            # try again
+            log.debug("%s, trying again" % e)
+            return download(url, dst_path, session=session, md5=md5,
+                            urlstxt=urlstxt, retries=retries - 1)
+        raise CondaRuntimeError("Could not open %r for writing (%s)." % (pp, e))
 
-        if size:
-            getLogger('fetch.stop').info(None)
+    if size:
+        getLogger('fetch.stop').info(None)
 
-        if md5 and h.hexdigest() != md5:
-            if retries:
-                # try again
-                log.debug("MD5 sums mismatch for download: %s (%s != %s), "
-                          "trying again" % (url, h.hexdigest(), md5))
-                return download(url, dst_path, session=session, md5=md5,
-                                urlstxt=urlstxt, retries=retries - 1)
-            raise MD5MismatchError("MD5 sums mismatch for download: %s (%s != %s)"
-                                   % (url, h.hexdigest(), md5))
+    if md5 and h.hexdigest() != md5:
+        if retries:
+            # try again
+            log.debug("MD5 sums mismatch for download: %s (%s != %s), "
+                      "trying again" % (url, h.hexdigest(), md5))
+            return download(url, dst_path, session=session, md5=md5,
+                            urlstxt=urlstxt, retries=retries - 1)
+        raise MD5MismatchError("MD5 sums mismatch for download: %s (%s != %s)"
+                               % (url, h.hexdigest(), md5))
 
-        try:
-            exp_backoff_fn(os.rename, pp, dst_path)
-        except OSError as e:
-            raise CondaRuntimeError("Could not rename %r to %r: %r" %
-                                    (pp, dst_path, e))
+    try:
+        exp_backoff_fn(os.rename, pp, dst_path)
+    except OSError as e:
+        raise CondaRuntimeError("Could not rename %r to %r: %r" %
+                                (pp, dst_path, e))
 
-        if urlstxt:
-            add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)
+    if urlstxt:
+        add_cached_package(dst_dir, url, overwrite=True, urlstxt=True)

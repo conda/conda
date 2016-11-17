@@ -156,8 +156,8 @@ def display_actions(actions, index, show_channel_urls=None):
         if features[pkg][0]:
             oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
 
-        lt = LinkType(linktypes.get(pkg, LinkType.hard_link))
-        lt = '' if lt == LinkType.hard_link else (' (%s)' % lt)
+        lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
+        lt = '' if lt == LinkType.hardlink else (' (%s)' % lt)
         if pkg in removed or pkg in new:
             oldfmt[pkg] += lt
             continue
@@ -385,10 +385,12 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                     pass
             if context.always_copy or always_copy:
                 lt = LinkType.copy
+            elif context.always_softlink:
+                lt = LinkType.softlink
             elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hard_link
+                lt = LinkType.hardlink
             elif context.allow_softlinks and not on_win:
-                lt = LinkType.soft_link
+                lt = LinkType.softlink
             else:
                 lt = LinkType.copy
 

@@ -35,12 +35,21 @@ with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
 scripts = ['shell/activate',
+           'shell/activate.sh',
+           'shell/activate.csh',
            'shell/deactivate',
+           'shell/deactivate.sh',
+           'shell/deactivate.csh',
+           'shell/whichshell_args.bash',
+           'shell/whichshell_ps.bash',
+           'shell/whichshell.awk',
+           'shell/envvar_cleanup.bash',
            ]
 if sys.platform == 'win32':
     # Powershell scripts should go here
     scripts.extend(['shell/activate.bat',
-                    'shell/deactivate.bat'])
+                    'shell/deactivate.bat',
+                    'shell/envvar_cleanup.bat'])
 
 install_requires = [
     'pycosat >=0.6.1',

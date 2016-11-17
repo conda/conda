@@ -118,7 +118,7 @@ def try_hard_link(pkgs_dir, prefix, dist):
     try:
         if not isdir(prefix):
             makedirs(prefix)
-        link(src, dst, LinkType.hard_link)
+        link(src, dst, LinkType.hardlink)
         # Some file systems (at least BeeGFS) do not support hard-links
         # between files in different directories. Depending on the
         # file system configuration, a symbolic link may be created
@@ -191,19 +191,19 @@ if on_win:
             raise CondaOSError('win32 soft link failed')
 
 
-def link(src, dst, link_type=LinkType.hard_link):
+def link(src, dst, link_type=LinkType.hardlink):
     if exists(dst):
         if context.force:
             log.info("file exists, but clobbering: %r" % dst)
             rm_rf(dst)
         else:
             raise ClobberError(dst, src, link_type)
-    if link_type == LinkType.hard_link:
+    if link_type == LinkType.hardlink:
         if on_win:
             win_hard_link(src, dst)
         else:
             os.link(src, dst)
-    elif link_type == LinkType.soft_link:
+    elif link_type == LinkType.softlink:
         if on_win:
             win_soft_link(src, dst)
         else:

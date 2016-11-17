@@ -11,7 +11,6 @@ from logging import getLogger
 from platform import machine
 
 from .._vendor.auxlib.collection import frozendict
-from ..common.compat import string_types
 
 log = getLogger(__name__)
 
@@ -69,29 +68,16 @@ class LinkType(Enum):
     #     LINK_SOFT: 'soft-link',
     #     LINK_COPY: 'copy',
     # }
-    hard_link = 1
-    soft_link = 2
+    hardlink = 1
+    softlink = 2
     copy = 3
     directory = 4
-
-    @classmethod
-    def from_string(cls, string):
-        return cls[string.replace('-', '_')]
-
-    @classmethod
-    def make(cls, value):
-        if isinstance(value, string_types):
-            return cls.from_string(value)
-        elif isinstance(value, cls):
-            return value
-        else:
-            return cls(value)
 
     def __int__(self):
         return self.value
 
     def __str__(self):
-        return self.name.replace('_', '-')
+        return self.name
 
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'

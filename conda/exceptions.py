@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-import os
 import sys
 from logging import getLogger
 from traceback import format_exc
@@ -132,8 +131,14 @@ class DryRunExit(CondaExitZero):
 
 class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
-        msg = ' '.join(text_type(arg) for arg in self.args)
+        msg = ' '.join(text_type(arg) for arg in args)
         super(CondaSystemExit, self).__init__(msg)
+
+
+class CondaHelp(CondaSystemExit):
+    def __init__(self, message, returncode):
+        self.returncode = returncode
+        super(CondaHelp, self).__init__(message)
 
 
 class SubprocessExit(CondaExitZero):
@@ -466,31 +471,31 @@ conda GitHub issue tracker at:
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
 
 
-def delete_lock(extra_path=None):
-    """
-        Delete lock on exception accoding to pid
-        log warning when delete fails
-
-        Args:
-            extra_path : The extra path that you want to search and
-            delete locks
-    """
-    from .cli.main_clean import find_lock
-    from .lock import LOCK_EXTENSION
-    from .gateways.disk.delete import rm_rf
-    file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
-    locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
-    failed_delete = []
-    for path in locks:
-        try:
-            rm_rf(path)
-        except (OSError, IOError) as e:
-            failed_delete.append(path)
-            log.warn("%r Cannot unlink %s.", e, path)
-
-    if failed_delete:
-        log.warn("Unable to remove all for this processlocks.\n"
-                 "Please run `conda clean --lock`.")
+# def delete_lock(extra_path=None):
+#     """
+#         Delete lock on exception accoding to pid
+#         log warning when delete fails
+#
+#         Args:
+#             extra_path : The extra path that you want to search and
+#             delete locks
+#     """
+#     from .cli.main_clean import find_lock
+#     from .lock import LOCK_EXTENSION
+#     from .common.disk import rm_rf
+#     file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
+#     locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
+#     failed_delete = []
+#     for path in locks:
+#         try:
+#             rm_rf(path)
+#         except (OSError, IOError) as e:
+#             failed_delete.append(path)
+#             log.warn("%r Cannot unlink %s.", e, path)
+#
+#     if failed_delete:
+#         log.warn("Unable to remove all for this processlocks.\n"
+#                  "Please run `conda clean --lock`.")
 
 
 def conda_exception_handler(func, *args, **kwargs):
@@ -498,11 +503,14 @@ def conda_exception_handler(func, *args, **kwargs):
         return_value = func(*args, **kwargs)
         if isinstance(return_value, int):
             return return_value
+    except CondaHelp as e:
+        print_conda_exception(e)
+        # delete_lock()
+        return e.returncode
     except CondaExitZero:
         return 0
     except CondaRuntimeError as e:
         print_unexpected_error_message(e)
-        delete_lock()
         return 1
     except CondaError as e:
         from conda.base.context import context
@@ -510,9 +518,7 @@ def conda_exception_handler(func, *args, **kwargs):
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
-        delete_lock()
         return 1
     except Exception as e:
         print_unexpected_error_message(e)
-        delete_lock()
         return 1

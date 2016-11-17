@@ -60,7 +60,7 @@ class S3Adapter(BaseAdapter):
                 "Content-Type": content_type,
                 "Content-Length": key.size,
                 "Last-Modified": modified,
-                })
+            })
 
             _, self._temp_file = mkstemp()
             key.get_contents_to_filename(self._temp_file)

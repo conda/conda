@@ -165,6 +165,7 @@ class SysStderrWriteHandler(logging.Handler):
         except IOError:
             pass
 
+
 _fetch_prog_handler = FetchProgressHandler()
 _prog_handler = ProgressHandler()
 

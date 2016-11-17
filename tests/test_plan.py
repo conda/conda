@@ -458,14 +458,14 @@ def test_display_actions_link_type():
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    cython:   0.19.1-py33_0 (soft-link)
-    dateutil: 1.5-py33_0    (soft-link)
-    numpy:    1.7.1-py33_0  (soft-link)
-    python:   3.3.2-0       (soft-link)
-    readline: 6.2-0         (soft-link)
-    sqlite:   3.7.13-0      (soft-link)
-    tk:       8.5.13-0      (soft-link)
-    zlib:     1.2.7-0       (soft-link)
+    cython:   0.19.1-py33_0 (softlink)
+    dateutil: 1.5-py33_0    (softlink)
+    numpy:    1.7.1-py33_0  (softlink)
+    python:   3.3.2-0       (softlink)
+    readline: 6.2-0         (softlink)
+    sqlite:   3.7.13-0      (softlink)
+    tk:       8.5.13-0      (softlink)
+    zlib:     1.2.7-0       (softlink)
 
 """
 
@@ -479,8 +479,8 @@ The following NEW packages will be INSTALLED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 --> 0.19.1-py33_0 (soft-link)
-    dateutil: 1.5-py33_0  --> 2.1-py33_1    (soft-link)
+    cython:   0.19-py33_0 --> 0.19.1-py33_0 (softlink)
+    dateutil: 1.5-py33_0  --> 2.1-py33_1    (softlink)
 
 """
 
@@ -494,8 +494,8 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    cython:   0.19.1-py33_0 --> 0.19-py33_0 (soft-link)
-    dateutil: 2.1-py33_1    --> 1.5-py33_0  (soft-link)
+    cython:   0.19.1-py33_0 --> 0.19-py33_0 (softlink)
+    dateutil: 2.1-py33_1    --> 1.5-py33_0  (softlink)
 
 """
 

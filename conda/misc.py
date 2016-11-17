@@ -156,10 +156,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                     pass
             if context.always_copy:
                 lt = LinkType.copy
+            elif context.always_softlink:
+                lt = LinkType.softlink
             elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hard_link
+                lt = LinkType.hardlink
             elif context.allow_softlinks and not on_win:
-                lt = LinkType.soft_link
+                lt = LinkType.softlink
             else:
                 lt = LinkType.copy
             actions[LINK].append('%s %d' % (dist, lt))
@@ -297,7 +299,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     """
     untracked_files = untracked(prefix1)
 
-    # Discard conda and any package that depends on it
+    # Discard conda, conda-env and any package that depends on them
     drecs = linked_data(prefix1)
     filter = {}
     found = True
@@ -311,15 +313,20 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 filter['conda'] = dist
                 found = True
                 break
+            if name == "conda-env":
+                filter["conda-env"] = dist
+                found = True
+                break
             for dep in info.get('depends', []):
                 if MatchSpec(dep).name in filter:
                     filter[name] = dist
                     found = True
+
     if filter:
         if not quiet:
             print('The following packages cannot be cloned out of the root environment:')
             for pkg in itervalues(filter):
-                print(' - ' + pkg)
+                print(' - ' + pkg.dist_name)
             drecs = {dist: info for dist, info in iteritems(drecs) if info['name'] not in filter}
 
     # Resolve URLs for packages that do not have URLs

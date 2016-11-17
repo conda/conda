@@ -33,7 +33,7 @@ class TestPackageInstaller(unittest.TestCase):
     def test_make_link_operation(self):
         package_installer = PackageInstaller("prefix", {}, self.dist)
         package_installer.package_info = self.package_info
-        output = package_installer._make_link_operations(LinkType.hard_link)
+        output = package_installer._make_link_operations(LinkType.hardlink)
         expected_output = tuple([LinkOperation("test/path/1", "test/path/1", LinkType.copy,
                                                "/opt/anaconda1anaconda2anaconda3", FileMode.text,
                                                False),
@@ -42,7 +42,7 @@ class TestPackageInstaller(unittest.TestCase):
                                  LinkOperation("test/path/3", "test/path/3", LinkType.copy, "",
                                                None, False),
                                  LinkOperation("menu/test.json", "menu/test.json",
-                                               LinkType.hard_link, "", None, True)])
+                                               LinkType.hardlink, "", None, True)])
 
         self.assertEquals(output, expected_output)
 
@@ -86,7 +86,7 @@ class TestNoarchPackageInstaller(unittest.TestCase):
         site_packages_dir = "Lib/site-packages" if on_win else "lib/python2.4/site-packages"
         bin_dir = "Scripts" if on_win else "bin"
 
-        output = noarch_installer._make_link_operations(LinkType.soft_link)
+        output = noarch_installer._make_link_operations(LinkType.softlink)
         expected_output = tuple([LinkOperation("site-packages/test/1",
                                                "%s/test/1" % site_packages_dir,
                                                LinkType.copy,
@@ -101,7 +101,7 @@ class TestNoarchPackageInstaller(unittest.TestCase):
                                                "", None, False),
                                  LinkOperation("menu/test.json",
                                                "menu/test.json",
-                                               LinkType.soft_link, "", None, True)])
+                                               LinkType.softlink, "", None, True)])
         # import pdb; pdb.set_trace()
         assert output == expected_output
 

@@ -471,6 +471,11 @@ channel_alias: http://alpha.conda.anaconda.org
         assert stdout == ""
         assert stderr == ""
 
+        stdout, stderr = run_conda_command('config', '--file', rc, '--get', 'always_softlink')
+
+        assert stdout == ""
+        assert stderr == ""
+
         stdout, stderr = run_conda_command('config', '--file', rc, '--get', 'track_features')
 
         assert stdout == ""

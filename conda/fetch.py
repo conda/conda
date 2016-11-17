@@ -11,15 +11,16 @@ from logging import getLogger
 from os.path import basename, join
 from warnings import warn
 
-log = getLogger(__name__)
-
 # for conda-build backward compatibility
-handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
-                                     "Now handled by CondaSession.")
 from .core.package_cache import download  # NOQA
 download = download
 from .core.index import fetch_index  # NOQA
 fetch_index = fetch_index
+
+handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
+                                     "Now handled by CondaSession.")
+
+log = getLogger(__name__)
 
 
 class TmpDownload(object):

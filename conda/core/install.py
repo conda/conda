@@ -6,6 +6,7 @@ import re
 import sys
 import warnings
 from collections import namedtuple
+from conda._vendor.auxlib.ish import dals
 from logging import getLogger
 from os import listdir
 from os.path import dirname, isdir, isfile, join
@@ -57,7 +58,7 @@ class PackageInstaller(object):
         self.dist = dist
         self.package_info = None  # set in the link method
 
-    def link(self, requested_link_type=LinkType.hard_link):
+    def link(self, requested_link_type=LinkType.hardlink):
         log.debug("linking package %s with link type %s", self.dist, requested_link_type)
         self.extracted_package_dir = is_extracted(self.dist)
         assert self.extracted_package_dir is not None
@@ -282,8 +283,13 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     False on failure
     """
     if action == 'pre-link':
-        warnings.warn("The package %s uses a pre-link script.\n"
-                      "Pre-link scripts may be deprecated in the near future.")
+        warnings.warn(dals("""
+        Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
+        This is because pre-link scripts have the ability to change the package contents in the
+        package cache, and therefore modify the underlying files for already-created conda
+        environments.  Future versions of conda may deprecate and ignore pre-link scripts.
+        """ % dist))
+
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
             dist.dist_name,
             action,
