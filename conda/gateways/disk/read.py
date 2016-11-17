@@ -11,7 +11,7 @@ from logging import getLogger
 from os.path import isfile, islink, join
 
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
-from ...models.package_info import NodeType, PackageInfo, PathInfoV1, PathInfo
+from ...models.package_info import PathType, PackageInfo, PathInfoV1, PathInfo
 from ...models.record import Record
 from ...exceptions import CondaUpgradeError
 
@@ -51,17 +51,17 @@ def collect_all_info_for_package(extracted_package_directory):
     if isfile(file_json_path):
         with open(file_json_path) as file_json:
             data = json.load(file_json)
-        if data.get('version') != 1:
+        if data.get('paths_version') != 1:
             raise CondaUpgradeError("""The current version of conda is too old to install this
 package. (This version only supports files.json schema version 1.)  Please update conda to install
 this package.""")
 
-        files = (PathInfoV1(**f) for f in data['files'])
+        paths = (PathInfoV1(**f) for f in data['paths'])
         index_json_record = read_index_json(extracted_package_directory)
         noarch = read_noarch(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)
-        return PackageInfo(files=files, index_json_record=index_json_record, noarch=noarch,
-                           icondata=icondata, path_info_version=1)
+        return PackageInfo(paths=paths, index_json_record=index_json_record, noarch=noarch,
+                           icondata=icondata, paths_version=1)
     else:
         files = tuple(ln for ln in (line.strip() for line in yield_lines(files_path)) if ln)
 
@@ -77,17 +77,17 @@ this package.""")
             if f in no_link:
                 path_info["no_link"] = True
             if islink(join(extracted_package_directory, f)):
-                path_info["node_type"] = NodeType.softlink
+                path_info["path_type"] = PathType.softlink
             else:
-                path_info["node_type"] = NodeType.hardlink
+                path_info["path_type"] = PathType.hardlink
             path_info_files.append(PathInfo(**path_info))
 
         index_json_record = read_index_json(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)
         noarch = read_noarch(extracted_package_directory)
 
-        return PackageInfo(files=path_info_files, index_json_record=index_json_record,
-                           icondata=icondata, noarch=noarch, path_info_version=0)
+        return PackageInfo(paths=path_info_files, index_json_record=index_json_record,
+                           icondata=icondata, noarch=noarch, paths_version=0)
 
 
 def read_noarch(extracted_package_directory):
