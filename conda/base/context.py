@@ -226,11 +226,18 @@ class Context(Configuration):
 
     @property
     def envs_dirs(self):
-        return tuple(abspath(expanduser(p))
-                     for p in concatv(self._envs_dirs,
-                                      (join(self.root_dir, 'envs'), )
-                                      if self.root_writable
-                                      else ('~/.conda/envs', join(self.root_dir, 'envs'))))
+        envs_dirs = []
+
+        for p in concatv(self._envs_dirs):
+            envs_dirs.append( abspath( expanduser(p) ) )
+
+        if self.root_writable:
+            envs_dirs.append(join(self.root_dir, 'envs'))
+        else:
+            if not len(self._envs_dirs):
+                envs_dirs.append(abspath(expanduser('~/.conda/envs')))
+
+        return tuple(envs_dirs)
 
     @property
     def pkgs_dirs(self):
