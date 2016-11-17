@@ -6,7 +6,7 @@ from logging import getLogger
 
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
 from ..base.constants import DEFAULTS, UTF8
-from ..common.compat import text_type, with_metaclass
+from ..common.compat import text_type, with_metaclass, ensure_text_type
 from ..models.record import Record
 
 log = getLogger(__name__)
@@ -130,3 +130,19 @@ class Dist(Entity):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    # ############ conda-build compatibility ################
+
+    def split(self, sep=None, maxsplit=-1):
+        assert sep == '::'
+        return [self.channel, self.dist_name] if self.channel else [self.dist_name]
+
+    def rsplit(self, sep=None, maxsplit=-1):
+        assert sep == '-'
+        assert maxsplit == 2
+        name = '%s::%s' % (self.channel, self.quad[0]) if self.channel else self.quad[0]
+        return name, self.quad[1], self.quad[2]
+
+    def __contains__(self, item):
+        return ensure_text_type(item) in self.__str__()
+

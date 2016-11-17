@@ -16,6 +16,7 @@ from os.path import isdir, isfile
 from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.context import context
+from ..common.compat import text_type
 from ..egg_info import get_egg_info
 from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
 
@@ -171,7 +172,7 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
     if not json:
-        print('\n'.join(output))
+        print('\n'.join(map(text_type, output)))
     else:
         stdout_json(output)
     return exitcode
