@@ -157,11 +157,11 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             if context.always_copy:
                 lt = LinkType.copy
             elif context.always_softlink:
-                lt = LinkType.soft_link
+                lt = LinkType.softlink
             elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hard_link
+                lt = LinkType.hardlink
             elif context.allow_softlinks and not on_win:
-                lt = LinkType.soft_link
+                lt = LinkType.softlink
             else:
                 lt = LinkType.copy
             actions[LINK].append('%s %d' % (dist, lt))
