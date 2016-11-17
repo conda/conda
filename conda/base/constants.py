@@ -11,7 +11,6 @@ from logging import getLogger
 from platform import machine
 
 from .._vendor.auxlib.collection import frozendict
-from ..common.compat import string_types
 
 log = getLogger(__name__)
 
@@ -73,16 +72,6 @@ class LinkType(Enum):
     softlink = 2
     copy = 3
     directory = 4
-
-    @classmethod
-    def __call__(cls, value, *args, **kwargs):
-        if isinstance(value, string_types):
-            return cls[value]
-        return super(LinkType, cls).__call__(value, *args, **kwargs)
-
-    @classmethod
-    def __getitem__(cls, name):
-        return cls._member_map_[name.replace('-', '').replace('_', '').lower()]
 
     def __int__(self):
         return self.value
