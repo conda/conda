@@ -177,7 +177,7 @@ miniconda_install() {
             esac
 
             # try download
-            curl "${MINICONDA_URL}/${filename}" -o "${HOME}/miniconda.sh"
+            curl "${MINICONDA_URL}${filename}" -o "${HOME}/miniconda.sh"
         fi
 
         # run install
@@ -266,7 +266,7 @@ conda_build_extras() {
 echo "START INSTALLING"
 
 # set globals
-MINICONDA_URL="http://repo.continuum.io/miniconda/"
+MINICONDA_URL="https://repo.continuum.io/miniconda/"
 
 # TODO: if a newer build exists kill this build
 
