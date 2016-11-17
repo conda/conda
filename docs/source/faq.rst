@@ -12,7 +12,7 @@ General questions
 Conda is a cross-platform and Python-agnostic package manager and environment manager
 program that quickly installs, runs and updates packages and their dependencies and
 easily creates, saves, loads and switches between environments on your local computer.
-Conda is included in all versions of Anaconda, Miniconda and Anaconda Server.
+Conda is included in all versions of Anaconda, Miniconda and Anaconda Repository.
 
 2. What is Miniconda?
 
