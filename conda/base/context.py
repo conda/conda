@@ -224,20 +224,17 @@ class Context(Configuration):
         from ..gateways.disk.create import try_write
         return try_write(self.root_dir)
 
-    @property
+    @memoizedproperty
     def envs_dirs(self):
-        envs_dirs = []
 
-        for p in concatv(self._envs_dirs):
-            envs_dirs.append( abspath( expanduser(p) ) )
+        def _default_envs_dirs():
+            if self.root_writable:
+                return join(self.root_dir, 'envs'),
+            else:
+                # ~/envs for backwards compatibility
+                return '~/.conda/envs', '~/envs', join(self.root_dir, 'envs')
 
-        if self.root_writable:
-            envs_dirs.append(join(self.root_dir, 'envs'))
-        else:
-            if not len(self._envs_dirs):
-                envs_dirs.append(abspath(expanduser('~/.conda/envs')))
-
-        return tuple(envs_dirs)
+        return tuple(abspath(expanduser(p)) for p in self._envs_dirs or _default_envs_dirs())
 
     @property
     def pkgs_dirs(self):
