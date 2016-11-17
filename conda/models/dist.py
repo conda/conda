@@ -145,4 +145,3 @@ class Dist(Entity):
 
     def __contains__(self, item):
         return ensure_text_type(item) in self.__str__()
-
