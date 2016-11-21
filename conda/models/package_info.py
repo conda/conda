@@ -18,23 +18,13 @@ class NoarchInfo(Entity):
     entry_points = ListField(string_types, required=False)
 
 
-class NodeType(Enum):
+class PathType(Enum):
     """
     Refers to if the file in question is hard linked or soft linked. Originally designed to be used
     in files.json
     """
-    hardlink = 1
-    softlink = 2
-
-    @classmethod
-    def __call__(cls, value, *args, **kwargs):
-        if isinstance(cls, value, *args, **kwargs):
-            return cls[value]
-        return super(NodeType, cls).__call__(value, *args, **kwargs)
-
-    @classmethod
-    def __getitem__(cls, name):
-        return cls._member_map_[name.replace('-', '').replace('_', '').lower()]
+    hardlink = 'hardlink'
+    softlink = 'softlink'
 
     def __int__(self):
         return self.value
@@ -44,11 +34,16 @@ class NodeType(Enum):
 
 
 class PathInfo(Entity):
-    path = StringField()
+    _path = StringField()
     prefix_placeholder = StringField(required=False, nullable=True)
     file_mode = EnumField(FileMode, required=False, nullable=True)
     no_link = BooleanField(required=False, nullable=True)
-    node_type = EnumField(NodeType)
+    path_type = EnumField(PathType)
+
+    @property
+    def path(self):
+        # because I don't have aliases as an option for entity fields yet
+        return self._path
 
 
 class PathInfoV1(PathInfo):
@@ -58,8 +53,8 @@ class PathInfoV1(PathInfo):
 
 
 class PackageInfo(Entity):
-    path_info_version = IntegerField()
-    files = ListField(PathInfo)
+    paths_version = IntegerField()
+    paths = ListField(PathInfo)
     index_json_record = ComposableField(Record)
     icondata = StringField(required=False, nullable=True)
     noarch = ComposableField(NoarchInfo, required=False, nullable=True)

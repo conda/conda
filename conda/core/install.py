@@ -26,7 +26,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
 from ..models.record import Link
-from ..models.package_info import NodeType
+from ..models.package_info import PathType
 from ..utils import on_win
 
 try:
@@ -102,7 +102,7 @@ class PackageInstaller(object):
                 link_type = LinkType.copy
                 prefix_placehoder = source_path_info.prefix_placeholder
                 file_mode = source_path_info.file_mode
-            elif source_path_info.no_link or source_path_info.node_type == NodeType.softlink:
+            elif source_path_info.no_link or source_path_info.path_type == PathType.softlink:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
@@ -196,7 +196,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
                 link_type = LinkType.copy
                 prefix_placehoder = source_path_info.prefix_placeholder
                 file_mode = source_path_info.file_mode
-            elif source_path_info.no_link or source_path_info.node_type == NodeType.softlink:
+            elif source_path_info.no_link or source_path_info.path_type == PathType.softlink:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:

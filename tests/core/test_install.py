@@ -7,7 +7,7 @@ from conda.base.constants import LinkType, FileMode
 from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
                                 LinkOperation)
 from conda.models.dist import Dist
-from conda.models.package_info import PathInfo, PackageInfo, NoarchInfo, NodeType
+from conda.models.package_info import PathInfo, PackageInfo, NoarchInfo, PathType
 from conda.models.record import Link, Record
 from conda.utils import on_win
 
@@ -22,13 +22,13 @@ class TestPackageInstaller(unittest.TestCase):
         self.dist = Dist("channel", "dist_name")
         index_json_records = Record(build=0, build_number=0, name="test_foo", version=0)
         icondata = "icondata"
-        files = [PathInfo(path="test/path/1", file_mode=FileMode.text, node_type=NodeType.hardlink,
-                          prefix_placeholder="/opt/anaconda1anaconda2anaconda3",),
-                 PathInfo(path="test/path/2", no_link=True, node_type=NodeType.hardlink),
-                 PathInfo(path="test/path/3", node_type=NodeType.softlink),
-                 PathInfo(path="menu/test.json", node_type=NodeType.hardlink)]
+        paths = [PathInfo(path="test/path/1", file_mode=FileMode.text, path_type=PathType.hardlink,
+                          prefix_placeholder="/opt/anaconda1anaconda2anaconda3", ),
+                 PathInfo(path="test/path/2", no_link=True, path_type=PathType.hardlink),
+                 PathInfo(path="test/path/3", path_type=PathType.softlink),
+                 PathInfo(path="menu/test.json", path_type=PathType.hardlink)]
 
-        self.package_info = PackageInfo(path_info_version=0, files=files, icondata=icondata,
+        self.package_info = PackageInfo(paths_version=0, paths=paths, icondata=icondata,
                                         index_json_record=index_json_records)
 
     def test_make_link_operation(self):
@@ -68,14 +68,14 @@ class TestNoarchPackageInstaller(unittest.TestCase):
         index_json_records = Record(build=0, build_number=0, name="test_foo", version=0)
         icondata = "icondata"
 
-        files = [PathInfo(path="site-packages/test/1", file_mode=FileMode.text,
-                          node_type=NodeType.hardlink,
+        paths = [PathInfo(path="site-packages/test/1", file_mode=FileMode.text,
+                          path_type=PathType.hardlink,
                           prefix_placeholder="/opt/anaconda1anaconda2anaconda3", ),
-                 PathInfo(path="python-scripts/test/2", no_link=True, node_type=NodeType.hardlink),
-                 PathInfo(path="test/path/3", node_type=NodeType.softlink),
-                 PathInfo(path="menu/test.json", node_type=NodeType.hardlink)]
+                 PathInfo(path="python-scripts/test/2", no_link=True, path_type=PathType.hardlink),
+                 PathInfo(path="test/path/3", path_type=PathType.softlink),
+                 PathInfo(path="menu/test.json", path_type=PathType.hardlink)]
 
-        self.package_info = PackageInfo(path_info_version=0, files=files, icondata=icondata,
+        self.package_info = PackageInfo(paths_version=0, paths=paths, icondata=icondata,
                                         index_json_record=index_json_records)
 
     @patch("conda.core.linked_data.get_python_version_for_prefix", return_value="2.4")
