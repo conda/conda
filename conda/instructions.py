@@ -45,8 +45,8 @@ def PRINT_CMD(state, arg):
 
 
 def FETCH_CMD(state, arg):
-    assert isinstance(arg, Dist)
-    fetch_pkg(state['index'][arg])
+    dist = Dist(arg)
+    fetch_pkg(state['index'][dist])
 
 
 def PROGRESS_CMD(state, arg):
@@ -56,19 +56,19 @@ def PROGRESS_CMD(state, arg):
 
 
 def EXTRACT_CMD(state, arg):
-    assert isinstance(arg, Dist)
-    if not is_extracted(arg):
-        extract(arg)
+    dist = Dist(arg)
+    if not is_extracted(dist):
+        extract(dist)
 
 
 def RM_EXTRACTED_CMD(state, arg):
-    assert isinstance(arg, Dist)
-    rm_extracted(arg)
+    dist = Dist(arg)
+    rm_extracted(dist)
 
 
 def RM_FETCHED_CMD(state, arg):
-    assert isinstance(arg, Dist)
-    rm_fetched(arg)
+    dist = Dist(arg)
+    rm_fetched(dist)
 
 
 def split_linkarg(arg):
