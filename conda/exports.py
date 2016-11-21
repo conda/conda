@@ -48,9 +48,6 @@ delete_trash, move_to_trash = delete_trash, move_to_trash
 from conda.core.linked_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
 
-from conda.lock import Locked  # NOQA
-Locked = Locked
-
 from conda.misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
@@ -104,3 +101,5 @@ get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
 PaddingError = conda.exceptions.PaddingError
+from conda.common.compat import CrossPlatformStLink     # NOQA
+CrossPlatformStLink = CrossPlatformStLink

@@ -15,8 +15,8 @@ from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
 from ..exceptions import ArgumentError
 from ..gateways.disk.delete import rm_rf
-from ..lock import LOCK_EXTENSION
 from ..utils import human_bytes
+from ..common.compat import CrossPlatformStLink
 
 descr = """
 Remove unused packages and caches.
@@ -70,129 +70,6 @@ def configure_parser(sub_parsers):
         help="""Remove files from the source cache of conda build.""",
     )
     p.set_defaults(func=execute)
-
-
-# work-around for python bug on Windows prior to python 3.2
-# https://bugs.python.org/issue10027
-# Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
-class CrossPlatformStLink(object):
-    _st_nlink = None
-
-    def __call__(self, path):
-        return self.st_nlink(path)
-
-    @classmethod
-    def st_nlink(cls, path):
-        if cls._st_nlink is None:
-            cls._initialize()
-        return cls._st_nlink(path)
-
-    @classmethod
-    def _standard_st_nlink(cls, path):
-        return lstat(path).st_nlink
-
-    @classmethod
-    def _windows_st_nlink(cls, path):
-        st_nlink = cls._standard_st_nlink(path)
-        if st_nlink != 0:
-            return st_nlink
-        else:
-            # cannot trust python on Windows when st_nlink == 0
-            # get value using windows libraries to be sure of its true value
-            # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
-            GENERIC_READ = 0x80000000
-            FILE_SHARE_READ = 0x00000001
-            OPEN_EXISTING = 3
-            hfile = cls.CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None,
-                                   OPEN_EXISTING, 0, None)
-            if hfile is None:
-                from ctypes import WinError
-                raise WinError()
-            info = cls.BY_HANDLE_FILE_INFORMATION()
-            rv = cls.GetFileInformationByHandle(hfile, info)
-            cls.CloseHandle(hfile)
-            if rv == 0:
-                from ctypes import WinError
-                raise WinError()
-            return info.nNumberOfLinks
-
-    @classmethod
-    def _initialize(cls):
-        if os.name != 'nt':
-            cls._st_nlink = cls._standard_st_nlink
-        else:
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
-            import ctypes
-            from ctypes import POINTER
-            from ctypes.wintypes import DWORD, HANDLE, BOOL
-
-            cls.CreateFile = ctypes.windll.kernel32.CreateFileW
-            cls.CreateFile.argtypes = [ctypes.c_wchar_p, DWORD, DWORD, ctypes.c_void_p,
-                                       DWORD, DWORD, HANDLE]
-            cls.CreateFile.restype = HANDLE
-
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/ms724211
-            cls.CloseHandle = ctypes.windll.kernel32.CloseHandle
-            cls.CloseHandle.argtypes = [HANDLE]
-            cls.CloseHandle.restype = BOOL
-
-            class FILETIME(ctypes.Structure):
-                _fields_ = [("dwLowDateTime", DWORD),
-                            ("dwHighDateTime", DWORD)]
-
-            class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
-                _fields_ = [("dwFileAttributes", DWORD),
-                            ("ftCreationTime", FILETIME),
-                            ("ftLastAccessTime", FILETIME),
-                            ("ftLastWriteTime", FILETIME),
-                            ("dwVolumeSerialNumber", DWORD),
-                            ("nFileSizeHigh", DWORD),
-                            ("nFileSizeLow", DWORD),
-                            ("nNumberOfLinks", DWORD),
-                            ("nFileIndexHigh", DWORD),
-                            ("nFileIndexLow", DWORD)]
-            cls.BY_HANDLE_FILE_INFORMATION = BY_HANDLE_FILE_INFORMATION
-
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa364952
-            cls.GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
-            cls.GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
-            cls.GetFileInformationByHandle.restype = BOOL
-
-            cls._st_nlink = cls._windows_st_nlink
-
-
-def find_lock(file_ending=LOCK_EXTENSION, extra_path=None):
-    from os.path import join
-    lock_dirs = context.pkgs_dirs[:]
-    lock_dirs += [context.root_dir]
-    for envs_dir in context.envs_dirs:
-        if os.path.exists(envs_dir):
-            for fn in os.listdir(envs_dir):
-                if os.path.isdir(join(envs_dir, fn)):
-                    lock_dirs.append(join(envs_dir, fn))
-
-    try:
-        from conda_build.config import croot
-        lock_dirs.append(croot)
-    except ImportError:
-        pass
-
-    lock_dirs = lock_dirs + list(extra_path) if extra_path else lock_dirs
-    for dir in lock_dirs:
-        if not os.path.exists(dir):
-            continue
-        for dn in os.listdir(dir):
-            if os.path.exists(join(dir, dn)) and dn.endswith(file_ending):
-                path = join(dir, dn)
-                yield path
-
-
-def rm_lock(locks, verbose=True):
-    from ..install import rm_rf
-    for path in locks:
-        if verbose:
-            print('removing: %s' % path)
-        rm_rf(path)
 
 
 def find_tarballs():
@@ -405,13 +282,6 @@ def execute(args, parser):
     json_result = {
         'success': True
     }
-
-    if args.lock or args.all:
-        locks = list(find_lock())
-        json_result['lock'] = {
-            'files': locks
-        }
-        rm_lock(locks, verbose=not context.json)
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
