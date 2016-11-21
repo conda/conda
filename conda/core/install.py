@@ -112,7 +112,7 @@ class PackageInstaller(object):
             dest_short_path = source_path_info.path
             return LinkOperation(source_path_info.path, dest_short_path, link_type,
                                  prefix_placehoder, file_mode, is_menu_file)
-        return tuple(make_link_operation(p) for p in package_info.files)
+        return tuple(make_link_operation(p) for p in package_info.paths)
 
     def _execute_link_operations(self, leaf_directories, link_operations):
         # major side-effects in this method
@@ -216,7 +216,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
             return LinkOperation(source_short_path, dest_short_path, link_type, prefix_placehoder,
                                  file_mode, is_menu_file)
 
-        return tuple(make_link_operation(p) for p in package_info.files)
+        return tuple(make_link_operation(p) for p in package_info.paths)
 
     def _execute_link_operations(self, leaf_directories, link_operations):
         dest_short_paths = super(NoarchPythonPackageInstaller, self)._execute_link_operations(

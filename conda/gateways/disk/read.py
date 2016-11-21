@@ -70,7 +70,7 @@ this package.""")
 
         path_info_files = []
         for f in files:
-            path_info = {"path": f}
+            path_info = {"_path": f}
             if f in has_prefix_files.keys():
                 path_info["prefix_placeholder"] = has_prefix_files[f][0]
                 path_info["file_mode"] = has_prefix_files[f][1]
