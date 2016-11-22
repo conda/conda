@@ -30,7 +30,7 @@
 * fix silent directory removal (#3730)
 
 
-## 4.2.13 (2016-11-21)
+## 4.2.13 (2016-11-22)
 
 ### Deprecations/Breaking Changes
 * show warning message for pre-link scripts (#3727)
@@ -45,6 +45,7 @@
 * fix conda/install.py single-file behavior (#3854)
 * fix the api->conda substitution (#3456)
 * fix silent directory removal (#3730)
+* fix #3910 null check for is_url (#3931)
 
 ### Non-User-Facing Changes
 * flake8 E116, E121, & E123 enabled (#3883)
