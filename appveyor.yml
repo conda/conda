@@ -52,13 +52,13 @@ install:
   - conda info
   - conda config --set always_yes yes
   - conda update conda
-  - conda install -q psutil ruamel_yaml requests
+  - conda install -q psutil ruamel_yaml requests=2.11.1
   # - conda info python
   - python -c "import sys; print(sys.version)"
   - python -c "import sys; print(sys.executable)"
   - python -c "import sys; print(sys.prefix)"
   - conda install -q python=%PYTHON_VERSION%
-  - conda install -q pytest requests mock
+  - conda install -q pytest mock
   - conda install -q pycrypto pyflakes pycosat
   - conda install -q git menuinst
   - conda install -q ruamel_yaml
