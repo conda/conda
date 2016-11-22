@@ -9,11 +9,11 @@ class DefaultPackageInfo(TestCase):
         index_json_records = Record(build=0, build_number=0, name="test_foo", version=0)
         icondata = "icondata"
         noarch = NoarchInfo(type="python", entry_points=["test:foo"])
-        paths = [PathInfo(path="test/path/1", file_mode=FileMode.text, path_type=PathType.hardlink,
+        paths = [PathInfo(_path="test/path/1", file_mode=FileMode.text, path_type=PathType.hardlink,
                           prefix_placeholder="/opt/anaconda1anaconda2anaconda3", ),
-                 PathInfo(path="test/path/2", no_link=True, path_type=PathType.hardlink),
-                 PathInfo(path="test/path/3", path_type=PathType.softlink),
-                 PathInfo(path="menu/test.json", path_type=PathType.hardlink)]
+                 PathInfo(_path="test/path/2", no_link=True, path_type=PathType.hardlink),
+                 PathInfo(_path="test/path/3", path_type=PathType.softlink),
+                 PathInfo(_path="menu/test.json", path_type=PathType.hardlink)]
 
         package_info = PackageInfo(paths_version=0, paths=paths, icondata=icondata,
                                    index_json_record=index_json_records, noarch=noarch)
