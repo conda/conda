@@ -68,6 +68,8 @@ def url_to_s3_info(url):
 
 
 def is_url(url):
+    if not url:
+        return False
     try:
         p = urlparse(url)
         return p.netloc is not None or p.scheme == "file"
