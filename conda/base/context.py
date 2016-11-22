@@ -295,6 +295,11 @@ class Context(Configuration):
                      for location, scheme, auth, token in
                      (split_scheme_auth_token(c) for c in self._migrated_channel_aliases))
 
+    @property
+    def prefix_specified(self):
+        return self._argparse_args.get("prefix") is not None and \
+               self._argparse_args.get("name") is not None
+
     @memoizedproperty
     def default_channels(self):
         # the format for 'default_channels' is a list of strings that either

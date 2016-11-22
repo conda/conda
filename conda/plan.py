@@ -14,6 +14,7 @@ import sys
 from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
+import json
 
 from . import instructions as inst
 from .base.constants import DEFAULTS, LinkType
@@ -93,7 +94,7 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(inst.LINK, []):
-        d, lt = inst.split_linkarg(arg)
+        d, lt, prefix = inst.split_linkarg(arg)
         dist = Dist(d)
         rec = index[dist]
         pkg = rec['name']
@@ -313,7 +314,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
         fetched_in = is_fetched(dist)
         extracted_in = is_extracted(dist)
 
-        if fetched_in and index is not None:
+        if fetched_in and force:
             # Test the MD5, and possibly re-fetch
             fn = dist.to_filename()
             try:
@@ -350,15 +351,22 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
         fetched_dir = dirname(fetched_dist)
 
         try:
+            ppath = join(fetched_dist, 'info')
+            index_json = join(ppath, 'index.json')
+            with open(index_json, 'r') as f:
+                index_data = json.load(f)
+            if context.prefix_specified or index_data.get("preferred_env") is None:
+                prefix = prefix
+            else:
+                prefix = join(context.envs_dirs[0], index_data.get("preferred_env"))
+
             # Determine what kind of linking is necessary
             if not extracted_in:
                 # If not already extracted, create some dummy
                 # data to test with
                 rm_rf(fetched_dist)
-                ppath = join(fetched_dist, 'info')
                 os.makedirs(ppath)
-                index_json = join(ppath, 'index.json')
-                with open(index_json, 'w'):
+                with open(index_json, 'w') as f:
                     pass
             if context.always_copy or always_copy:
                 lt = LinkType.copy
@@ -371,10 +379,10 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             else:
                 lt = LinkType.copy
 
-            actions[inst.LINK].append('%s %d' % (dist, lt))
+            actions[inst.LINK].append('%s %d %s' % (dist, lt, prefix))
 
         except (OSError, IOError):
-            actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
+            actions[inst.LINK].append('%s %d %s' % (dist, LinkType.copy, prefix))
         finally:
             if not extracted_in:
                 # Remove the dummy data
@@ -382,6 +390,9 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                     rm_rf(fetched_dist)
                 except (OSError, IOError):
                     pass
+
+    import pdb;
+    pdb.set_trace()
 
     return actions
 
@@ -487,7 +498,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     installed = linked
     if prune:
         installed = []
-    pkgs = r.install(specs, installed, update_deps=update_deps)
+    pkgs = r.install(specs, installed, update_deps=update_deps)  # probably needs context.prefix_specified
+    # thought: r.install() should return Dict[requested_env, List[Dist]]
+    #  if requested_env is not None:
+    #      prefix = join(context.envs_dirs[0], pad_if_needed(requested_env, '_'))
+    #  else:
+    #      prefix = prefix (from above)
 
     for fn in pkgs:
         dist = Dist(fn)
@@ -528,7 +544,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
 
     actions = ensure_linked_actions(
         smh, prefix,
-        index=index if force else None,
+        index=index,
         force=force, always_copy=always_copy)
 
     if actions[inst.LINK]:
@@ -638,7 +654,7 @@ def revert_actions(prefix, revision=-1, index=None):
         if isinstance(arg, Dist):
             dist = arg
         else:
-            dist, lt = split_linkarg(arg)
+            dist, lt, prefix = split_linkarg(arg)
             dist = Dist(dist)
         if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
