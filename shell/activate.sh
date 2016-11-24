@@ -199,6 +199,10 @@ fi
 
 # ensure we deactivate any scripts from the old env                       #
 if [ -n "${CONDA_STACK+x}" ]; then
+    if [ "${CONDA_VERBOSE}" = "${TRUE}" ]; then
+        echo "[ACTIVATE]: Warning: stacking environments (--stacks option) can cause unexpected errors in case of incompatibilities between different conda packages"
+    fi
+else
     . deactivate.sh ""
     if [ $? != 0 ]; then
         unset _CONDA_WHAT_SHELL_AM_I
@@ -212,10 +216,6 @@ if [ -n "${CONDA_STACK+x}" ]; then
             unset _MSYS2_ENV_CONV_EXCL
         fi
         return 1
-    fi
-else
-    if [ "${CONDA_VERBOSE}" = "${TRUE}" ]; then
-        echo "[ACTIVATE]: Warning: stacking environments (--stacks option) can cause unexpected errors in case of incompatibilities between different conda packages"
     fi
 fi
 
