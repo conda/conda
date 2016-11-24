@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from datetime import timedelta
+
 import logging
 import sys
 from logging import getLogger
@@ -237,14 +239,16 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message, url, status_code, reason):
+    def __init__(self, message, url, status_code, reason, elapsed_time):
         message = dals("""
-        HTTP %(status_code)s %(reason)s
-        for url <%(url)s>
+        HTTP %(status_code)s %(reason)s for url <%(url)s>
+        Elapsed: %(elapsed_time)s
 
         """) + message
+        if isinstance(elapsed_time, timedelta):
+            elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
         super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
-                                             reason=reason)
+                                             reason=reason, elapsed_time=elapsed_time)
 
 
 class CondaRevisionError(CondaError):
