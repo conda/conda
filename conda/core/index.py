@@ -235,8 +235,11 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
 
-        raise CondaHTTPError(help_message, e.response.url if e.response else None, status_code,
-                             e.response.reason if e.response else None)
+        raise CondaHTTPError(help_message,
+                             getattr(e.response, 'url', None),
+                             status_code,
+                             getattr(e.response, 'reason', None),
+                             getattr(e.response, 'elapsed', None))
 
     cache['_url'] = url
     try:

@@ -5,6 +5,8 @@ from logging import getLogger, INFO, Handler, Formatter, StreamHandler, DEBUG
 from pprint import pformat
 from sys import stderr
 
+from .compat import text_type
+
 log = getLogger(__name__)
 root_log = getLogger()
 
@@ -114,6 +116,8 @@ def stringify(obj):
         builder.extend("> {0}: {1}".format(key, value)
                        for key, value in sorted(response_object.headers.items(),
                                                 key=response_header_sort_key))
+        elapsed = text_type(response_object.elapsed).split(':', 1)[-1]
+        builder.append('> Elapsed: {0}'.format(elapsed))
         builder.append('')
         content_type = response_object.headers.get('Content-Type')
         if content_type == 'application/json':
