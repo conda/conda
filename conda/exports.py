@@ -77,7 +77,11 @@ import conda.exceptions  # NOQA
 from conda.base.context import get_prefix as context_get_prefix, non_x86_linux_machines  # NOQA
 non_x86_linux_machines = non_x86_linux_machines
 
-from conda.base.constants import DEFAULT_CHANNELS  # NOQA
+from conda.base.constants import DEFAULT_CHANNELS       # NOQA
+from .models.package_info import PathType               # NOQA
+from ._vendor.auxlib.entity import EntityEncoder        # NOQA
+PathType = PathType
+EntityEncoder = EntityEncoder
 get_prefix = partial(context_get_prefix, conda.base.context.context)
 get_default_urls = lambda: DEFAULT_CHANNELS
 
@@ -97,3 +101,5 @@ get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
 PaddingError = conda.exceptions.PaddingError
+from conda.common.compat import CrossPlatformStLink     # NOQA
+CrossPlatformStLink = CrossPlatformStLink

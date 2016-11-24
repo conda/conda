@@ -7,8 +7,8 @@ from conda.base.constants import LinkType, FileMode
 from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
                                 LinkOperation)
 from conda.models.dist import Dist
-from conda.models.package_info import PackageInfoContents
-from conda.models.record import Link
+from conda.models.package_info import PathInfo, PackageInfo, NoarchInfo, PathType
+from conda.models.record import Link, Record
 from conda.utils import on_win
 
 try:
@@ -20,15 +20,16 @@ except ImportError:
 class TestPackageInstaller(unittest.TestCase):
     def setUp(self):
         self.dist = Dist("channel", "dist_name")
-        files = tuple(["test/path/1", "test/path/2", "test/path/3", "menu/test.json"])
-        has_prefix_files = {"test/path/1": ("/opt/anaconda1anaconda2anaconda3", FileMode.text)}
-        no_link = set(["test/path/2"])
-        soft_links = tuple(["test/path/3"])
-        index_json_records = {"key": "value"}
+        index_json_records = Record(build=0, build_number=0, name="test_foo", version=0)
         icondata = "icondata"
-        noarch = None
-        self.package_info = PackageInfoContents(files, has_prefix_files, no_link, soft_links,
-                                                index_json_records, icondata, noarch)
+        paths = [PathInfo(_path="test/path/1", file_mode=FileMode.text, path_type=PathType.hardlink,
+                          prefix_placeholder="/opt/anaconda1anaconda2anaconda3", ),
+                 PathInfo(_path="test/path/2", no_link=True, path_type=PathType.hardlink),
+                 PathInfo(_path="test/path/3", path_type=PathType.softlink),
+                 PathInfo(_path="menu/test.json", path_type=PathType.hardlink)]
+
+        self.package_info = PackageInfo(paths_version=0, paths=paths, icondata=icondata,
+                                        index_json_record=index_json_records)
 
     def test_make_link_operation(self):
         package_installer = PackageInstaller("prefix", {}, self.dist)
@@ -54,30 +55,28 @@ class TestPackageInstaller(unittest.TestCase):
 
         output = package_installer._create_meta(dest_short_paths, LinkType.directory,
                                                 "http://test.url")
-        expected_output = {"key": "value",
-                           "icon": "icon",
-                           "url": "http://test.url",
-                           "files": dest_short_paths,
-                           "link": Link(source="extracted_package_dir", type=LinkType.directory),
-                           "icondata": "icondata"
-                           }
+        expected_output = Record(icon="icon", icondata="icondata", build=0, build_number=0,
+                                 name="test_foo", version=0, url="http://test.url",
+                                 files=dest_short_paths,
+                                 link=Link(source="extracted_package_dir", type=LinkType.directory))
         self.assertEquals(output, expected_output)
 
 
 class TestNoarchPackageInstaller(unittest.TestCase):
     def setUp(self):
         self.dist = Dist("channel", "dist_name")
-        files = tuple(["site-packages/test/1", "python-scripts/test/2", "test/path/3",
-                       "menu/test.json"])
-        has_prefix_files = {"site-packages/test/1": ("/opt/anaconda1anaconda2anaconda3",
-                                                     FileMode.text)}
-        no_link = set(["python-scripts/test/2"])
-        soft_links = tuple(["test/path/3"])
-        index_json_records = {"key": "value"}
+        index_json_records = Record(build=0, build_number=0, name="test_foo", version=0)
         icondata = "icondata"
-        noarch = None
-        self.package_info = PackageInfoContents(files, has_prefix_files, no_link, soft_links,
-                                                index_json_records, icondata, noarch)
+
+        paths = [PathInfo(_path="site-packages/test/1", file_mode=FileMode.text,
+                          path_type=PathType.hardlink,
+                          prefix_placeholder="/opt/anaconda1anaconda2anaconda3", ),
+                 PathInfo(_path="python-scripts/test/2", no_link=True, path_type=PathType.hardlink),
+                 PathInfo(_path="test/path/3", path_type=PathType.softlink),
+                 PathInfo(_path="menu/test.json", path_type=PathType.hardlink)]
+
+        self.package_info = PackageInfo(paths_version=0, paths=paths, icondata=icondata,
+                                        index_json_record=index_json_records)
 
     @patch("conda.core.linked_data.get_python_version_for_prefix", return_value="2.4")
     def test_make_link_operation(self, get_site_packages_dir):
@@ -102,7 +101,6 @@ class TestNoarchPackageInstaller(unittest.TestCase):
                                  LinkOperation("menu/test.json",
                                                "menu/test.json",
                                                LinkType.softlink, "", None, True)])
-        # import pdb; pdb.set_trace()
         assert output == expected_output
 
 
