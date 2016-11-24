@@ -46,14 +46,14 @@ def collect_all_info_for_package(extracted_package_directory):
     info_dir = join(extracted_package_directory, 'info')
 
     files_path = join(extracted_package_directory, 'info', 'files')
-    file_json_path = join(extracted_package_directory, 'info', 'files.json')
+    file_json_path = join(extracted_package_directory, 'info', 'paths.json')
 
     if isfile(file_json_path):
         with open(file_json_path) as file_json:
             data = json.load(file_json)
         if data.get('paths_version') != 1:
             raise CondaUpgradeError("""The current version of conda is too old to install this
-package. (This version only supports files.json schema version 1.)  Please update conda to install
+package. (This version only supports paths.json schema version 1.)  Please update conda to install
 this package.""")
 
         paths = (PathInfoV1(**f) for f in data['paths'])
