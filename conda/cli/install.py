@@ -269,7 +269,7 @@ def install(args, parser, command='install'):
             actions = revert_actions(prefix, get_revision(args.revision), index)
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
-                actions = install_actions(prefix, index, specs,
+                action_set = install_actions(prefix, index, specs,
                                           force=args.force,
                                           only_names=only_names,
                                           pinned=args.pinned,
@@ -339,63 +339,64 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
 
-    if nothing_to_do(actions) and not newenv:
-        from .main_list import print_packages
+    for actions in action_set:
+        if nothing_to_do(actions) and not newenv:
+            from .main_list import print_packages
 
-        if not context.json:
-            regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
-            print('\n# All requested packages already installed.')
-            print_packages(prefix, regex)
-        else:
-            common.stdout_json_success(
-                message='All requested packages already installed.')
-        return
-    elif newenv:
-        # needed in the case of creating an empty env
-        from ..instructions import LINK, UNLINK, SYMLINK_CONDA
-        if not actions[LINK] and not actions[UNLINK]:
-            actions[SYMLINK_CONDA] = [context.root_dir]
-
-    if not context.json:
-        print()
-        print("Package plan for installation in environment %s:" % prefix)
-        display_actions(actions, index, show_channel_urls=context.show_channel_urls)
-
-    if command in {'install', 'update'}:
-        check_write(command, prefix)
-
-    if not context.json:
-        common.confirm_yn(args)
-    elif args.dry_run:
-        common.stdout_json_success(actions=actions, dry_run=True)
-        raise DryRunExit()
-
-    with common.json_progress_bars(json=context.json and not context.quiet):
-        try:
-            execute_actions(actions, index, verbose=not context.quiet)
-            if not (command == 'update' and args.all):
-                try:
-                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                        f.write('# %s specs: %s\n' % (command, ','.join(specs)))
-                except IOError as e:
-                    if e.errno == errno.EACCES:
-                        log.debug("Can't write the history file")
-                    else:
-                        raise CondaIOError("Can't write the history file", e)
-
-        except RuntimeError as e:
-            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked: %s' % text_type(e))
+            if not context.json:
+                regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
+                print('\n# All requested packages already installed.')
+                print_packages(prefix, regex)
             else:
-                raise CondaRuntimeError('RuntimeError: %s' % e)
-        except SystemExit as e:
-            raise CondaSystemExit('Exiting', e)
+                common.stdout_json_success(
+                    message='All requested packages already installed.')
+            return
+        elif newenv:
+            # needed in the case of creating an empty env
+            from ..instructions import LINK, UNLINK, SYMLINK_CONDA
+            if not actions[LINK] and not actions[UNLINK]:
+                actions[SYMLINK_CONDA] = [context.root_dir]
 
-    if newenv:
-        append_env(prefix)
-        touch_nonadmin(prefix)
         if not context.json:
-            print(print_activate(args.name if args.name else prefix))
+            print()
+            print("Package plan for installation in environment %s:" % actions["PREFIX"])
+            display_actions(actions, index, show_channel_urls=context.show_channel_urls)
 
-    if context.json:
-        common.stdout_json_success(actions=actions)
+        if command in {'install', 'update'}:
+            check_write(command, prefix)
+
+        if not context.json:
+            common.confirm_yn(args)
+        elif args.dry_run:
+            common.stdout_json_success(actions=actions, dry_run=True)
+            raise DryRunExit()
+
+        with common.json_progress_bars(json=context.json and not context.quiet):
+            try:
+                execute_actions(actions, index, verbose=not context.quiet)
+                if not (command == 'update' and args.all):
+                    try:
+                        with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                            f.write('# %s specs: %s\n' % (command, ','.join(specs)))
+                    except IOError as e:
+                        if e.errno == errno.EACCES:
+                            log.debug("Can't write the history file")
+                        else:
+                            raise CondaIOError("Can't write the history file", e)
+
+            except RuntimeError as e:
+                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                    raise LockError('Already locked: %s' % text_type(e))
+                else:
+                    raise CondaRuntimeError('RuntimeError: %s' % e)
+            except SystemExit as e:
+                raise CondaSystemExit('Exiting', e)
+
+        if newenv:
+            append_env(prefix)
+            touch_nonadmin(prefix)
+            if not context.json:
+                print(print_activate(args.name if args.name else prefix))
+
+        if context.json:
+            common.stdout_json_success(actions=actions)

@@ -26,15 +26,16 @@ def install(prefix, specs, args, env, prune=False):
     index = get_index(channel_urls=channel_urls,
                       prepend='nodefaults' not in env.channels,
                       prefix=prefix)
-    actions = plan.install_actions(prefix, index, specs, prune=prune)
+    action_set = plan.install_actions(prefix, index, specs, prune=prune)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
-        try:
-            plan.execute_actions(actions, index, verbose=not args.quiet)
-        except RuntimeError as e:
-            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked: %s' % text_type(e))
-            else:
-                raise CondaRuntimeError('RuntimeError: %s' % e)
-        except SystemExit as e:
-            raise CondaSystemExit('Exiting', e)
+        for actions in action_set:
+            try:
+                plan.execute_actions(actions, index, verbose=not args.quiet)
+            except RuntimeError as e:
+                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                    raise LockError('Already locked: %s' % text_type(e))
+                else:
+                    raise CondaRuntimeError('RuntimeError: %s' % e)
+            except SystemExit as e:
+                raise CondaSystemExit('Exiting', e)

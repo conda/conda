@@ -463,19 +463,17 @@ def get_pinned_specs(prefix):
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 
-def maybe_pad(path):
-    new_path = path if path.startswith("_") else "_%s" % path
-    new_path = new_path if path.endswith("_") else "%s_" % new_path
-    new_path = new_path if path.endswith("_") else "%s_" % new_path
-    return new_path
+def maybe_pad(name, pad="_"):
+    new_name = name if name.startswith(pad) else "%s%s" % (pad, name)
+    new_name = new_name if name.endswith(pad) else "%s%s" % (new_name, pad)
+    return new_name
 
 
 def preferred_env_to_prefix(preferred_env):
     if preferred_env is None:
         return context.root_dir
     else:
-        # stuff
-        pass
+        return join(context.envs_dirs[0], maybe_pad(preferred_env, '_'))
 
 
 def prefix_to_private_env_name(prefix):
@@ -509,18 +507,18 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         minimal_hint=False, update_deps=True, prune=False)
     # type: Dict[prefix, List[Dist]]  # without dependencies
 
-    actions = get_actions_for_dists(prefix_with_dists_no_deps_has_resolve,
-                                                    only_names, index, force, always_copy, prune)
+    actions = get_actions_for_dists(prefix_with_dists_no_deps_has_resolve, only_names, index,
+                                    force, always_copy, prune)
     return actions
 
 
 def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune):
     root_only = ('conda', 'conda-env')
     actions = []
-    for dist in dists_for_prefix:
-        prefix = dist.prefix
-        dists = dist.dists
-        r = dist.r
+    for dist_with_prefix in dists_for_prefix:
+        prefix = dist_with_prefix.prefix
+        dists = dist_with_prefix.dists
+        r = dist_with_prefix.r
 
         linked = r.installed
         must_have = {}
@@ -585,8 +583,6 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
                     pinned=True, minimal_hint=False, update_deps=True, prune=False):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
-    # thought:
-
     assert all(isinstance(spec, MatchSpec) for spec in specs)
     r = Resolve(index)
     linked = r.installed
@@ -599,7 +595,7 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
     # Only add a conda spec if conda and conda-env are not in the specs.
     # Also skip this step if we're offline.
     root_only = ('conda', 'conda-env')
-    mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
+    mss = [MatchSpec(s) for s in specs if s.name.startswith(root_only)]
     mss = [ms for ms in mss if ms.name in root_only]
     if is_root_prefix(prefix):
         if context.auto_update_conda and not context.offline and not mss:
@@ -650,11 +646,14 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
         # type: Dict[target_prefix, List[MatchSpec]]
         for dist in dists_for_specs:
             target_prefix = preferred_env_to_prefix(index[dist].preferred_env)
-            solve_again_map[target_prefix].append(dist.to_matchspec())
+            solve_again_map[target_prefix].append(MatchSpec(dist.to_matchspec()))
 
         # call above recursively with new map
         #  old_install_actions(prefix, specs)
-        return tuple(concat(old_install_actions(prfx, spcs) for prfx, spcs in solve_again_map.iteritems()))
+        return tuple(concat(old_install_actions(prfx, index, spcs, force=False, only_names=None,
+                                                always_copy=False, pinned=True, minimal_hint=False,
+                                                update_deps=True, prune=False)
+                            for prfx, spcs in solve_again_map.items()))
         # type: Sequence[DistsForPrefix]
     else:
         return DistsForPrefix(prefix=prefix, dists=dists_for_specs, r=r),
