@@ -31,6 +31,7 @@ from .models.channel import Channel
 from .models.dist import Dist
 from .resolve import MatchSpec, Package, Resolve
 from .utils import human_bytes, md5_file, on_win
+from ._vendor.toolz.itertoolz import concat
 
 log = getLogger(__name__)
 
@@ -391,9 +392,6 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                 except (OSError, IOError):
                     pass
 
-    import pdb;
-    pdb.set_trace()
-
     return actions
 
 # -------------------------------------------------------------------
@@ -464,24 +462,6 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
-DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
-
-
-def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
-    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
-    #        bool, bool, bool) -> Dict[weird]
-    specs = [MatchSpec(spec) for spec in specs]
-
-    # this gets called recursively a couple of times for solving for different envs
-    prefix_with_dists_no_deps_has_resolve = old_install_actions(prefix, specs)
-    # type: Dict[prefix, List[Dist]]  # without dependencies
-
-    prefix_with_dists_and_deps = another_function(prefix_with_dists_no_deps_has_resolve)
-
-    actions = our_new_make_install_actions(something_useful)
-    return actions
-
 
 def maybe_pad(path):
     new_path = path if path.startswith("_") else "_%s" % path
@@ -513,6 +493,92 @@ def preferred_env_matches_prefix(preferred_env, prefix):
     prefix_name = basename(prefix)
     padded_preferred_env = maybe_pad(preferred_env)
     return prefix_name == padded_preferred_env
+
+DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
+
+
+def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
+    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool) -> Dict[weird]
+    specs = [MatchSpec(spec) for spec in specs]
+
+    # this gets called recursively a couple of times for solving for different envs
+    prefix_with_dists_no_deps_has_resolve = old_install_actions(
+        prefix, index, specs, force=False, only_names=None, always_copy=False, pinned=True,
+        minimal_hint=False, update_deps=True, prune=False)
+    # type: Dict[prefix, List[Dist]]  # without dependencies
+
+    actions = get_actions_for_dists(prefix_with_dists_no_deps_has_resolve,
+                                                    only_names, index, force, always_copy, prune)
+    return actions
+
+
+def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune):
+    root_only = ('conda', 'conda-env')
+    actions = []
+    for dist in dists_for_prefix:
+        prefix = dist.prefix
+        dists = dist.dists
+        r = dist.r
+
+        linked = r.installed
+        must_have = {}
+
+        for fn in dists:
+            name = r.package_name(fn)
+            if not name or only_names and name not in only_names:
+                continue
+            must_have[name] = fn
+
+        if is_root_prefix(prefix):
+            # for name in foreign:
+            #     if name in must_have:
+            #         del must_have[name]
+            pass
+        elif basename(prefix).startswith('_'):
+            # anything (including conda) can be installed into environments
+            # starting with '_', mainly to allow conda-build to build conda
+            pass
+
+        elif any(s in must_have for s in root_only):
+            # the solver scheduled an install of conda, but it wasn't in the
+            # specs, so it must have been a dependency.
+            specs = [s for s in dists.to_matchspec() if r.depends_on(s, root_only)]
+            if specs:
+                raise InstallError("""\
+    Error: the following specs depend on 'conda' and can only be installed
+    into the root environment: %s""" % (' '.join(specs),))
+            linked = [r.package_name(s) for s in linked]
+            linked = [s for s in linked if r.depends_on(s, root_only)]
+            if linked:
+                raise InstallError("""\
+    Error: one or more of the packages already installed depend on 'conda'
+    and should only be installed in the root environment: %s
+    These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
+            raise InstallError("Error: 'conda' can only be installed into the "
+                               "root environment")
+
+        smh = r.dependency_sort(must_have)
+
+        action = ensure_linked_actions(
+            smh, prefix,
+            index=index,
+            force=force, always_copy=always_copy)
+
+        if action[inst.LINK]:
+            action[inst.SYMLINK_CONDA] = [context.root_dir]
+
+        for dist in sorted(linked):
+            dist = Dist(dist)
+            name = r.package_name(dist)
+            replace_existing = name in must_have and dist != must_have[name]
+            prune_it = prune and dist not in smh
+            if replace_existing or prune_it:
+                add_unlink(actions, dist)
+
+        actions.append(action)
+    return tuple(actions)
 
 
 def old_install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
@@ -546,7 +612,6 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
     elif mss:
         raise InstallError("Error: 'conda' can only be installed into the root environment")
 
-    must_have = {}
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
 
@@ -554,9 +619,6 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
     if prune:
         installed = []
     pkgs = r.install(specs, installed, update_deps=update_deps)  # probably needs context.prefix_specified
-    # r.install we should probably just call r.solve here
-    #   that will probably get rid of the need for filtering to dists_for_specs
-
     # thought: r.install() should return Dict[requested_env, List[Dist]]
     #  if requested_env is not None:
     #      prefix = join(context.envs_dirs[0], pad_if_needed(requested_env, '_'))
@@ -569,7 +631,7 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
     _specs_contains = lambda dist: any(spec.match(dist) for spec in _specs)
     dists_for_specs = [dist for dist in pkgs if _specs_contains(dist)]
 
-    preferred_envs = set(index[dist].preferred_env for dist in matches)
+    preferred_envs = set(index[dist].preferred_env for dist in dists_for_specs)
     # if len(preferred_envs) == 1 and preferred_env matches prefix
     #    solution is good
     # if len(preferred_envs) == 1 and preferred_env is None
@@ -592,72 +654,11 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
 
         # call above recursively with new map
         #  old_install_actions(prefix, specs)
-        return tuple(concat(old_install_actions(prfx, spcs) for prfx, spcs in iteritems(solve_again_map)))
+        return tuple(concat(old_install_actions(prfx, spcs) for prfx, spcs in solve_again_map.iteritems()))
         # type: Sequence[DistsForPrefix]
     else:
         return DistsForPrefix(prefix=prefix, dists=dists_for_specs, r=r),
         # type: Sequence[DistsForPrefix]
-
-
-def our_new_make_install_actions():
-    # some of this might need to go up
-    for fn in pkgs:
-        dist = Dist(fn)
-        name = r.package_name(dist)
-        if not name or only_names and name not in only_names:
-            continue
-        must_have[name] = dist
-
-    if is_root_prefix(prefix):
-        # for name in foreign:
-        #     if name in must_have:
-        #         del must_have[name]
-        pass
-    elif basename(prefix).startswith('_'):
-        # anything (including conda) can be installed into environments
-        # starting with '_', mainly to allow conda-build to build conda
-        pass
-
-    elif any(s in must_have for s in root_only):
-        # the solver scheduled an install of conda, but it wasn't in the
-        # specs, so it must have been a dependency.
-        specs = [s for s in specs if r.depends_on(s, root_only)]
-        if specs:
-            raise InstallError("""\
-Error: the following specs depend on 'conda' and can only be installed
-into the root environment: %s""" % (' '.join(specs),))
-        linked = [r.package_name(s) for s in linked]
-        linked = [s for s in linked if r.depends_on(s, root_only)]
-        if linked:
-            raise InstallError("""\
-Error: one or more of the packages already installed depend on 'conda'
-and should only be installed in the root environment: %s
-These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
-        raise InstallError("Error: 'conda' can only be installed into the "
-                           "root environment")
-
-    smh = r.dependency_sort(must_have)
-
-
-    # make weird Dict[weird]
-
-    actions = ensure_linked_actions(
-        smh, prefix,
-        index=index,
-        force=force, always_copy=always_copy)
-
-    if actions[inst.LINK]:
-        actions[inst.SYMLINK_CONDA] = [context.root_dir]
-
-    for dist in sorted(linked):
-        dist = Dist(dist)
-        name = r.package_name(dist)
-        replace_existing = name in must_have and dist != must_have[name]
-        prune_it = prune and dist not in smh
-        if replace_existing or prune_it:
-            add_unlink(actions, dist)
-
-    return actions
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
