@@ -12,7 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import os
 import sys
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
@@ -466,7 +466,8 @@ def get_pinned_specs(prefix):
 
 DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
 
-def install_and_uninstall_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
+
+def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
@@ -478,10 +479,40 @@ def install_and_uninstall_actions(prefix, index, specs, force=False, only_names=
 
     prefix_with_dists_and_deps = another_function(prefix_with_dists_no_deps_has_resolve)
 
-
     actions = our_new_make_install_actions(something_useful)
     return actions
 
+
+def maybe_pad(path):
+    new_path = path if path.startswith("_") else "_%s" % path
+    new_path = new_path if path.endswith("_") else "%s_" % new_path
+    new_path = new_path if path.endswith("_") else "%s_" % new_path
+    return new_path
+
+
+def preferred_env_to_prefix(preferred_env):
+    if preferred_env is None:
+        return context.root_dir
+    else:
+        # stuff
+        pass
+
+
+def prefix_to_private_env_name(prefix):
+    # type: (str) -> Option[str]
+    pass
+
+
+def preferred_env_matches_prefix(preferred_env, prefix):
+    # type (str, str) -> bool
+    if preferred_env is None:
+        return True
+    prefix_dir = dirname(prefix)
+    if prefix_dir != join(context.root_dir, 'envs'):
+        return False
+    prefix_name = basename(prefix)
+    padded_preferred_env = maybe_pad(preferred_env)
+    return prefix_name == padded_preferred_env
 
 
 def old_install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
@@ -531,29 +562,6 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
     #      prefix = join(context.envs_dirs[0], pad_if_needed(requested_env, '_'))
     #  else:
     #      prefix = prefix (from above)
-
-
-    def preferred_env_to_prefix(preferred_env):
-        if preferred_env is None:
-            return context.root_dir
-        else:
-            # stuff
-            pass
-
-    def prefix_to_private_env_name(prefix):
-        # type: (str) -> Option[str]
-        pass
-
-    def preferred_env_matches_prefix(preferred_env, prefix):
-        # type (str, str) -> bool
-        if preferred_env is None:
-            return True
-        prefix_dir = dirname(prefix)
-        if prefix_dir != join(context.root_dir, 'envs'):
-            return False
-        prefix_name = basname(prefix)
-        padded_preferred_env = maybe_pad(preferred_env)
-        return prefix_name == padded_preferred_env
 
 
     # This block: Do we need to re-solve, or is our solution good already?
