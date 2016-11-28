@@ -10,6 +10,10 @@
 @REM # # this file is also indented using TABS instead of SPACES to    # #
 @REM # # avoid very odd syntax errors                                  # #
 @REM # #                                                               # #
+@REM # # the setuptools will properly substitute the                   # #
+@REM # # CONDA_INSTALL_PREFIX upon install into the conda              # #
+@REM # # executable bin [see the install_scripts function of setup.py] # #
+@REM # #                                                               # #
 @REM # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 @REM # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -181,7 +185,7 @@
 @REM #####################################################################
 @REM # HELP DIALOG                                                       #
 @IF /I "%CONDA_HELP%"=="%TRUE%" (
-	@CALL "conda" "..deactivate" "%WHAT_SHELL_AM_I%" "-h" "%UNKNOWN%"
+	@CALL "%CONDA_INSTALL_PREFIX%\conda" "..deactivate" "%WHAT_SHELL_AM_I%" "-h" "%UNKNOWN%"
 
 	@ENDLOCAL && (
 		@IF /I "%IS_ENV_CONDA_HELP%"=="%TRUE%" (
@@ -224,7 +228,7 @@
 @REM # removed but they will all start with the same %CONDA_PREFIX%,     #
 @REM # consequently we will use fuzzy matching [/f] to get all of the    #
 @REM # relevant removals                                                 #
-@FOR /F "delims=" %%i IN ('@CALL "envvar_cleanup.bat" "%PATH%" /delim=";" /u /f "%CONDA_PREFIX%"') DO @SET "PATH=%%i"
+@FOR /F "delims=" %%i IN ('@CALL "%CONDA_INSTALL_PREFIX%\envvar_cleanup.bat" "%PATH%" /delim=";" /u /f "%CONDA_PREFIX%"') DO @SET "PATH=%%i"
 @IF NOT errorlevel 0 (
 	@ENDLOCAL && (
 		@IF /I "%IS_ENV_CONDA_VERBOSE%"=="%TRUE%" (

@@ -5,6 +5,10 @@
 # #                                                                     # #
 # # DEACTIVATE FOR BOURNE-SHELL                                         # #
 # #                                                                     # #
+# # the setuptools will properly substitute the CONDA_INSTALL_PREFIX    # #
+# # upon install into the conda executable bin (see the install_scripts # #
+# # function of setup.py)                                               # #
+# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -35,7 +39,7 @@ case "$(uname -s)" in
         # exclude CONDA_PATH from the Windows -> Cygwin Et Al. path
         # conversion and vice versa
         if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "CONDA_PATH" ]; then
-            MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d)
+            MSYS2_ENV_CONV_EXCL=$(${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d)
         else
             MSYS2_ENV_CONV_EXCL="CONDA_PATH"
         fi
@@ -116,7 +120,7 @@ unset arg
 ###########################################################################
 # HELP DIALOG                                                             #
 if [ "${CONDA_HELP}" = "${TRUE}" ]; then
-    conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
+    ${CONDA_INSTALL_PREFIX}/conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     unset WHAT_SHELL_AM_I
     [ "${IS_ENV_CONDA_HELP}" = "${FALSE}" ]    && unset CONDA_HELP
@@ -147,7 +151,7 @@ if [ -z "${CONDA_PREFIX+x}" ] || [ -z "${CONDA_PREFIX}" ]; then
     [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
     unset IS_ENV_CONDA_VERBOSE
     if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ]; then
-        MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH")
+        MSYS2_ENV_CONV_EXCL=$(${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH")
         [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && unset MSYS2_ENV_CONV_EXCL
     fi
     unset TRUE
@@ -163,7 +167,7 @@ fi
 # Unix we will only expect a single path that need to be removed, for     #
 # simplicity and consistency with the Windows *.bat scripts we will use   #
 # fuzzy matching (/f) to get all of the relevant removals                 #
-PATH=$(envvar_cleanup.bash "${PATH}" --delim=":" -u -f "${CONDA_PREFIX}")
+PATH=$(${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${PATH}" --delim=":" -u -f "${CONDA_PREFIX}")
 if [ $? != 0 ]; then
     [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
     unset IS_ENV_CONDA_VERBOSE
@@ -240,7 +244,7 @@ fi
 ###########################################################################
 # CLEANUP VARS FOR THIS SCOPE                                             #
 if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ]; then
-    MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH")
+    MSYS2_ENV_CONV_EXCL=$(${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH")
     [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && unset MSYS2_ENV_CONV_EXCL
 fi
 unset TRUE

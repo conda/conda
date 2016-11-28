@@ -67,24 +67,29 @@ setup(
 from __future__ import print_function, division, absolute_import
 
 import sys
+from re import sub
 from collections import namedtuple
 from logging import getLogger
-from os import getenv, remove, listdir
-from os.path import abspath, dirname, expanduser, isdir, isfile, join
+from os import getenv, remove, listdir, name as osname, stat, chmod
+from os.path import abspath, basename, dirname, expanduser, isdir, isfile, join
 from re import compile
 from shlex import split
 from subprocess import CalledProcessError, Popen, PIPE
 from fnmatch import fnmatchcase
 from distutils.util import convert_path
+from stat import ST_MODE
+import io
 
-try:
+is_develop = 'develop' in sys.argv
+if is_develop:
     from setuptools.command.build_py import build_py
     from setuptools.command.sdist import sdist
+    from setuptools.command.develop import develop
     from setuptools.command.test import test as TestCommand
-except ImportError:
+else:
     from distutils.command.build_py import build_py
     from distutils.command.sdist import sdist
-
+    from distutils.command.install_scripts import install_scripts
     TestCommand = object
 
 log = getLogger(__name__)
@@ -197,6 +202,65 @@ def write_version_file(target_dir, version):
     print("WRITING {0} with version {1}".format(target_file, version))
     with open(target_file, 'w') as f:
         f.write(version)
+
+
+def process_conda_install_scripts(install_dir, files):
+    # files have been copied into new location
+    # check the new files for prefix
+    for file in files:
+        # read text
+        with open(file, 'r') as f:
+            text = f.read()
+
+        # POSIX replacement
+        text = sub(r"\${CONDA_INSTALL_PREFIX}", install_dir, text)
+        # Windows CMD.exe replacement
+        text = sub(r"%CONDA_INSTALL_PREFIX%", install_dir, text)
+
+        # write new text
+        with open(file, 'w') as f:
+            f.write(text)
+
+
+if is_develop:
+    class DevelopCommand(develop):
+        def install_egg_scripts(self, dist):
+            """
+            Override develop's install_egg_scripts.
+
+            Cannot simply super the parent function since we need to track
+            the scripts installed (see the outputs list).
+            """
+            if dist is not self.dist:
+                # Installing a dependency, so fall back to normal behavior
+                return easy_install.install_egg_scripts(self, dist)
+
+            # create wrapper scripts in the script dir, pointing to dist.scripts
+
+            # new-style...
+            self.install_wrapper_scripts(dist)
+
+            # ...and old-style
+            outputs = []
+            for script_name in self.distribution.scripts or []:
+                script_path = abspath(convert_path(script_name))
+                script_name = basename(script_path)
+                with io.open(script_path) as strm:
+                    script_text = strm.read()
+                self.install_script(dist, script_name, script_text, script_path)
+                outputs += [script_name]
+
+            outputs = map(lambda f: join(self.script_dir,f), outputs)
+            process_conda_install_scripts(self.script_dir, outputs)
+else:
+    class InstallScriptsCommand(install_scripts):
+        def run(self):
+            """
+            Extend install_scripts's run.
+            """
+            install_scripts.run(self)
+
+            process_conda_install_scripts(self.install_dir, self.get_outputs())
 
 
 class BuildPyCommand(build_py):

@@ -5,6 +5,10 @@
 # #                                                                     # #
 # # ACTIVATE FOR BOURNE-SHELL                                           # #
 # #                                                                     # #
+# # the setuptools will properly substitute the CONDA_INSTALL_PREFIX    # #
+# # upon install into the conda executable bin (see the install_scripts # #
+# # function of setup.py)                                               # #
+# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -35,7 +39,7 @@ case "$(uname -s)" in
         # exclude CONDA_PATH from the Windows -> MSYS2 path
         # conversion and vice versa
         if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "" ] && ! [ "${MSYS2_ENV_CONV_EXCL}" = "CONDA_PATH" ]; then
-            MSYS2_ENV_CONV_EXCL=$(envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d)
+            MSYS2_ENV_CONV_EXCL=$(${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d)
         else
             MSYS2_ENV_CONV_EXCL="CONDA_PATH"
         fi
@@ -131,7 +135,7 @@ unset is_envname_set
 ###########################################################################
 # HELP DIALOG                                                             #
 if [ "${CONDA_HELP}" = "${TRUE}" ]; then
-    conda "..activate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
+    ${CONDA_INSTALL_PREFIX}/conda "..activate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     unset WHAT_SHELL_AM_I
     [ "${IS_ENV_CONDA_ENVNAME}" = "${FALSE}" ] && unset CONDA_ENVNAME
@@ -159,7 +163,7 @@ unset UNKNOWN
 
 ###########################################################################
 # CHECK ENV AND DEACTIVATE OLD ENV                                        #
-conda "..checkenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
+${CONDA_INSTALL_PREFIX}/conda "..checkenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
 if [ $? != 0 ]; then
     unset WHAT_SHELL_AM_I
     [ "${IS_ENV_CONDA_ENVNAME}" = "${FALSE}" ] && unset CONDA_ENVNAME
@@ -180,7 +184,7 @@ if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ]; then
 fi
 
 # ensure we deactivate any scripts from the old env                       #
-. deactivate.sh ""
+. "${CONDA_INSTALL_PREFIX}/deactivate.sh" ""
 if [ $? != 0 ]; then
     unset _CONDA_WHAT_SHELL_AM_I
     [ "${IS_ENV_CONDA_ENVNAME}" = "0" ] && unset CONDA_ENVNAME
@@ -210,7 +214,7 @@ unset _IS_ENV_CONDA_VERBOSE
 unset _CONDA_VERBOSE
 unset _CONDA_WHAT_SHELL_AM_I
 
-_CONDA_BIN=$(conda "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}" | sed 's| |\ |')
+_CONDA_BIN=$(${CONDA_INSTALL_PREFIX}/conda "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}" | sed 's| |\ |')
 if [ $? != 0 ]; then
     unset WHAT_SHELL_AM_I
     unset _CONDA_BIN
@@ -269,7 +273,7 @@ unset IS_ENV_CONDA_ENVNAME
 # PS1 & CONDA_PS1_BACKUP                                                  #
 # export PS1 to restore upon deactivation                                 #
 # customize the PS1 to show what environment has been activated           #
-if [ "$(conda "..changeps1")" = "1" ] && [ -n "${PS1+x}" ]; then
+if [ "$(${CONDA_INSTALL_PREFIX}/conda "..changeps1")" = "1" ] && [ -n "${PS1+x}" ]; then
     CONDA_PS1_BACKUP="${PS1}"
     PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
     export CONDA_PS1_BACKUP

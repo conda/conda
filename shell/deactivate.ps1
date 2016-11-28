@@ -3,6 +3,10 @@
 # #                                                                     # #
 # # DEACTIVATE FOR WINDOWS POWERSHELL.EXE                               # #
 # #                                                                     # #
+# # the setuptools will properly substitute the CONDA_INSTALL_PREFIX    # #
+# # upon install into the conda executable bin (see the install_scripts # #
+# # function of setup.py)                                               # #
+# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -104,7 +108,7 @@ if ( "${CONDA_VERBOSE}" -eq "" ) { $CONDA_VERBOSE="${FALSE}" }
 ###########################################################################
 # HELP DIALOG                                                             #
 if ( "${CONDA_HELP}" -eq "${TRUE}" ) {
-    conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
+    ${CONDA_INSTALL_PREFIX}\conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     Remove-Variable WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_HELP}" -eq "${TRUE}" ) { $env:CONDA_HELP="${CONDA_HELP}" }
@@ -151,7 +155,7 @@ if ( -not ((Get-ChildItem env:).Name | Select-String -pattern CONDA_PREFIX) -or 
 #                                                                         #
 # replace ; with ? before calling batch program since powershell to batch #
 # converts ; to linebreaks without explicit escaping \;                   #
-$env:Path=(envvar_cleanup.bat ${env:PATH}.replace(";","?") --delim="?" -u -f "${env:CONDA_PREFIX}").replace("?",";")
+$env:Path=(${CONDA_INSTALL_PREFIX}\envvar_cleanup.bat ${env:PATH}.replace(";","?") --delim="?" -u -f "${env:CONDA_PREFIX}").replace("?",";")
 if ( $lastexitcode -ne 0 ) {
     if ( "${IS_ENV_CONDA_VERBOSE}" -eq "${TRUE}" ) { $env:CONDA_VERBOSE="${CONDA_VERBOSE}" }
     Remove-Variable CONDA_VERBOSE

@@ -2,7 +2,7 @@
 
 The `activate` and `deactivate` scripts are the core programs that effectively enable and disable conda virtual environments.
 
-The majority of these files are expected to be installed into the Anaconda bin directory (on Unix) and Anaconda Script directory (on Windows) and effectively available on the user's `$PATH`.
+Many of these scripts utilize each other. These dependencies are hardcoded as `${CONDA_INSTALL_PREFIX}`, this value is substituted accordingly when installing conda. This also means we can do some creative unittesting without actually installing the conda package by setting the `${CONDA_INSTALL_PREFIX}`.
 
 There are three code families for activate and deactivate:
 
@@ -16,7 +16,19 @@ All of the codes have been designed to reflect the greatest similarity in their 
 
 This family contains the bulk of the logic and code. Within POSIX unix shells we support two sub-families; bourne shell and c-shell. Both the activate and deactivate branches described below consult the `whichshell.awk`, `whichshell_args.bash`, and `whichshell_ps.bash` scripts.
 
-For testing and debugging use `test_whichshell` to see how the `whichshell*` codes respond in certain unix shell configurations (e.g. `csh` vs. `bash -l` vs. `dash` etc.). The various conditionals that are detected there can be used to modify the logic in `whichshell.awk`.
+For testing and debugging use `test_whichshell` to see how the `whichshell*` codes respond in certain unix shell configurations (e.g. `csh` vs. `bash -l` vs. `dash` etc.). Make sure that you first set the `${CONDA_INSTALL_PREFIX}`:
+
+```
+# for bourne shells
+CONDA_INSTALL_PREFIX=$(pwd)
+. ./test_whichshell
+
+# for c shells
+set CONDA_INSTALL_PREFIX=`pwd`
+source ./test_whichshell
+```
+
+The various conditionals that are detected there can be used to modify the logic in `whichshell.awk`.
 
 Users interact directly with the `activate` and `deactivate` programs:
 
