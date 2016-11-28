@@ -9,12 +9,12 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import json
 import os
 import sys
 from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
-import json
 
 from . import instructions as inst
 from .base.constants import DEFAULTS, LinkType
@@ -464,9 +464,33 @@ def get_pinned_specs(prefix):
     with open(pinfile) as f:
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
+DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
 
-def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
+def install_and_uninstall_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False):
+    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool) -> Dict[weird]
+    specs = [MatchSpec(spec) for spec in specs]
+
+    # this gets called recursively a couple of times for solving for different envs
+    prefix_with_dists_no_deps_has_resolve = old_install_actions(prefix, specs)
+    # type: Dict[prefix, List[Dist]]  # without dependencies
+
+    prefix_with_dists_and_deps = another_function(prefix_with_dists_no_deps_has_resolve)
+
+
+    actions = our_new_make_install_actions(something_useful)
+    return actions
+
+
+
+def old_install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
+    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool) -> Dict[weird]
+    # thought:
+
+    assert all(isinstance(spec, MatchSpec) for spec in specs)
     r = Resolve(index)
     linked = r.installed
 
@@ -499,12 +523,76 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     if prune:
         installed = []
     pkgs = r.install(specs, installed, update_deps=update_deps)  # probably needs context.prefix_specified
+    # r.install we should probably just call r.solve here
+    #   that will probably get rid of the need for filtering to dists_for_specs
+
     # thought: r.install() should return Dict[requested_env, List[Dist]]
     #  if requested_env is not None:
     #      prefix = join(context.envs_dirs[0], pad_if_needed(requested_env, '_'))
     #  else:
     #      prefix = prefix (from above)
 
+
+    def preferred_env_to_prefix(preferred_env):
+        if preferred_env is None:
+            return context.root_dir
+        else:
+            # stuff
+            pass
+
+    def prefix_to_private_env_name(prefix):
+        # type: (str) -> Option[str]
+        pass
+
+    def preferred_env_matches_prefix(preferred_env, prefix):
+        # type (str, str) -> bool
+        if preferred_env is None:
+            return True
+        prefix_dir = dirname(prefix)
+        if prefix_dir != join(context.root_dir, 'envs'):
+            return False
+        prefix_name = basname(prefix)
+        padded_preferred_env = maybe_pad(preferred_env)
+        return prefix_name == padded_preferred_env
+
+
+    # This block: Do we need to re-solve, or is our solution good already?
+    _specs = [MatchSpec(spec) for spec in specs if spec not in ('conda', 'conda-env')]  # TODO: remove all add_defaults_to_specs
+    _specs_contains = lambda dist: any(spec.match(dist) for spec in _specs)
+    dists_for_specs = [dist for dist in pkgs if _specs_contains(dist)]
+
+    preferred_envs = set(index[dist].preferred_env for dist in matches)
+    # if len(preferred_envs) == 1 and preferred_env matches prefix
+    #    solution is good
+    # if len(preferred_envs) == 1 and preferred_env is None
+    #    solution is good
+    # if len(preferred_envs) == 2 and set([None, preferred_env]) preferred_env matches prefix
+    #    solution is good
+
+    if not all(preferred_env_matches_prefix(preferred_env, prefix) for preferred_env in preferred_envs):
+        # if we get here...
+        # assert prefix is context.root_dir
+
+        # throw out the whole solution, and start again with possibly multiple solves
+
+        # so what do we need to solve now?
+        solve_again_map = defaultdict(list)
+        # type: Dict[target_prefix, List[MatchSpec]]
+        for dist in dists_for_specs:
+            target_prefix = preferred_env_to_prefix(index[dist].preferred_env)
+            solve_again_map[target_prefix].append(dist.to_matchspec())
+
+        # call above recursively with new map
+        #  old_install_actions(prefix, specs)
+        return tuple(concat(old_install_actions(prfx, spcs) for prfx, spcs in iteritems(solve_again_map)))
+        # type: Sequence[DistsForPrefix]
+    else:
+        return DistsForPrefix(prefix=prefix, dists=dists_for_specs, r=r),
+        # type: Sequence[DistsForPrefix]
+
+
+def our_new_make_install_actions():
+    # some of this might need to go up
     for fn in pkgs:
         dist = Dist(fn)
         name = r.package_name(dist)
@@ -541,6 +629,9 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
                            "root environment")
 
     smh = r.dependency_sort(must_have)
+
+
+    # make weird Dict[weird]
 
     actions = ensure_linked_actions(
         smh, prefix,

@@ -249,6 +249,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
 
 def _collect_repodatas_serial(use_cache, urls):
+    # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, Record]]]]
     session = CondaSession()
     repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
                  for url in urls]
@@ -263,6 +264,7 @@ def _collect_repodatas_concurrent(executor, use_cache, urls):
 
 
 def _collect_repodatas(use_cache, urls):
+    # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, Record]]]]  # sorta a lie
     # TODO: there HAS to be a way to clean up this logic
     if context.concurrent:
         try:
@@ -289,6 +291,7 @@ def _collect_repodatas(use_cache, urls):
 
 
 def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
+    # type: (prioritize_channels(), bool, bool, Dict[Dist, Record]) -> Dict[Dist, Record]
     log.debug('channel_urls=' + repr(channel_urls))
     # pool = ThreadPool(5)
     if index is None:
@@ -298,6 +301,8 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
 
     urls = tuple(filter(offline_keep, channel_urls))
     repodatas = _collect_repodatas(use_cache, urls)
+    # type: List[Sequence[str, Option[Dict[Dist, Record]]]]
+    #   this is sorta a lie; actually more primitve types
 
     def make_index(repodatas):
         result = dict()

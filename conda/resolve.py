@@ -880,6 +880,7 @@ class Resolve(object):
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
+        # type: (List[str], Option[?], bool, bool) -> List[Dist]
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall)
         self.restore_bad(pkgs, preserve)
@@ -912,6 +913,7 @@ class Resolve(object):
         return pkgs
 
     def solve(self, specs, returnall=False):
+        # type: (List[str], bool) -> List[Dist]
         try:
             stdoutlog.info("Solving package specifications: ")
             log.debug("Solving for %s", specs)
