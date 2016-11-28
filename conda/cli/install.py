@@ -339,6 +339,9 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
 
+    if not context.json:
+        display_actions(action_set, index, show_channel_urls=context.show_channel_urls)
+
     for actions in action_set:
         if nothing_to_do(actions) and not newenv:
             from .main_list import print_packages
@@ -356,11 +359,6 @@ def install(args, parser, command='install'):
             from ..instructions import LINK, UNLINK, SYMLINK_CONDA
             if not actions[LINK] and not actions[UNLINK]:
                 actions[SYMLINK_CONDA] = [context.root_dir]
-
-        if not context.json:
-            print()
-            print("Package plan for installation in environment %s:" % actions["PREFIX"])
-            display_actions(actions, index, show_channel_urls=context.show_channel_urls)
 
         if command in {'install', 'update'}:
             check_write(command, prefix)
