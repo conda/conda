@@ -66,14 +66,22 @@ if on_win:
                 raise
 
         # bat file redirect
-        if not isfile(dst + '.bat'):
-            with open(dst + '.bat', 'w') as f:
-                f.write(dedent("""\
-                    @echo off
-                    call "{}" %%*
-                    """).format(src))
-
-        # TODO: probably need one here for powershell at some point
+        srcbat = src
+        if isfile(src + ".bat"):
+            srcbat = src + ".bat"
+        with open(dst + '.bat', 'w') as f:
+            f.write(dedent("""\
+                @echo off
+                call "{}" %%*
+                """).format(srcbat))
+        # ps1 file redirect
+        srcps1 = src
+        if isfile(src + ".ps1"):
+            srcps1 = src + ".ps1"
+        with open(dst + '.ps1', 'w') as f:
+            f.write(dedent("""\
+                . "{}" $args
+                """).format(srcps1))
 
     def win_conda_unix_redirect(src, dst, shell):
         """Special function for Windows where the os.symlink function
@@ -93,49 +101,48 @@ if on_win:
         from conda.utils import shells
         # technically these are "links" - but for obvious reasons
         # os.path.islink wont work
-        if not isfile(dst):
-            with open(dst, "w") as f:
-                shell_vars = shells[shell]
+        with open(dst, "w") as f:
+            shell_vars = shells[shell]
 
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                # !! ensure the file ends with a blank line this is       !!
-                # !! critical for Windows support                         !!
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            # !! ensure the file ends with a blank line this is       !!
+            # !! critical for Windows support                         !!
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-                # conda is used as an executable
-                if src.endswith("conda"):
-                    command = shell_vars['path_to'](src+".exe")
-                    text = dedent("""\
-                        #!/usr/bin/env {shebang}
-                        {command} {allargs}
-                        """).format(
-                        shebang=re.sub(
-                            r'\.\w+$',
-                            r'',
-                            os.path.basename(shell_vars["exe"])),
-                        command=command,
-                        **shell_vars)
-                    f.write(text)
-                # all others are used as sourced
-                else:
-                    command = shell_vars["source"].format(shell_vars['path_to'](src))
-                    text = dedent("""\
-                        #!/usr/bin/env {shebang}
-                        {command} {allargs}
-                        """).format(
-                        shebang=re.sub(
-                            r'\.\w+$',
-                            r'',
-                            os.path.basename(shell_vars["exe"])),
-                        command=command,
-                        **shell_vars)
-                    f.write(text)
+            # conda is used as an executable
+            if src.endswith("conda"):
+                command = shell_vars['path_to'](src+".exe")
+                text = dedent("""\
+                    #!/usr/bin/env {shebang}
+                    {command} {allargs}
+                    """).format(
+                    shebang=re.sub(
+                        r'\.\w+$',
+                        r'',
+                        os.path.basename(shell_vars["exe"])),
+                    command=command,
+                    **shell_vars)
+                f.write(text)
+            # all others are used as sourced
+            else:
+                command = shell_vars["source"].format(shell_vars['path_to'](src))
+                text = dedent("""\
+                    #!/usr/bin/env {shebang}
+                    {command} {allargs}
+                    """).format(
+                    shebang=re.sub(
+                        r'\.\w+$',
+                        r'',
+                        os.path.basename(shell_vars["exe"])),
+                    command=command,
+                    **shell_vars)
+                f.write(text)
 
-            # Make the new file executable
-            # http://stackoverflow.com/a/30463972/1170370
-            mode = stat(dst).st_mode
-            mode |= (mode & 292) >> 2    # copy R bits to X
-            chmod(dst, mode)
+        # Make the new file executable
+        # http://stackoverflow.com/a/30463972/1170370
+        mode = stat(dst).st_mode
+        mode |= (mode & 292) >> 2    # copy R bits to X
+        chmod(dst, mode)
 
 
 # Should this be an API function?

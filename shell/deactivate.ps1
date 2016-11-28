@@ -104,7 +104,7 @@ if ( "${CONDA_VERBOSE}" -eq "" ) { $CONDA_VERBOSE="${FALSE}" }
 ###########################################################################
 # HELP DIALOG                                                             #
 if ( "${CONDA_HELP}" -eq "${TRUE}" ) {
-    conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
+    & "conda" "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     Remove-Variable WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_HELP}" -eq "${TRUE}" ) { $env:CONDA_HELP="${CONDA_HELP}" }
@@ -151,7 +151,7 @@ if ( -not ((Get-ChildItem env:).Name | Select-String -pattern CONDA_PREFIX) -or 
 #                                                                         #
 # replace ; with ? before calling batch program since powershell to batch #
 # converts ; to linebreaks without explicit escaping \;                   #
-$env:Path=(envvar_cleanup.bat ${env:PATH}.replace(";","?") --delim="?" -u -f "${env:CONDA_PREFIX}").replace("?",";")
+$env:Path=(& "envvar_cleanup.bat" ${env:PATH}.replace(";","?") --delim="?" -u -f "${env:CONDA_PREFIX}").replace("?",";")
 if ( $lastexitcode -ne 0 ) {
     if ( "${IS_ENV_CONDA_VERBOSE}" -eq "${TRUE}" ) { $env:CONDA_VERBOSE="${CONDA_VERBOSE}" }
     Remove-Variable CONDA_VERBOSE
@@ -177,9 +177,9 @@ $env:CONDA_DEFAULT_ENV=''
 
 ###########################################################################
 # RESTORE PS1 & REMOVE CONDA_PS1_BACKUP                                   #
-if ( "${env:CONDA_PS1_BACKUP}" -ne "" -and (Get-Command Prompt).definition -ne "" ) {
-    Set-Content function:\Prompt $env:CONDA_PS1_BACKUP
-    $env:CONDA_PS1_BACKUP=''
+if ( (Get-Command CONDA_PS1_BACKUP).definition -ne "" -and (Get-Command Prompt).definition -ne "" ) {
+    $function:Prompt=$function:CONDA_PS1_BACKUP
+    Remove-Item -Path function:\CONDA_PS1_BACKUP
 }
 # END RESTORE PS1 & REMOVE CONDA_PS1_BACKUP                               #
 ###########################################################################
