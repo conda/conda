@@ -20,6 +20,7 @@ from . import instructions as inst
 from .base.constants import DEFAULTS, LinkType
 from .base.context import context
 from .common.compat import text_type
+from .core.index import get_index
 from .core.linked_data import is_linked
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
@@ -499,7 +500,7 @@ DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False, channel_urls=None):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     specs = [MatchSpec(spec) for spec in specs]
@@ -507,7 +508,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     # this gets called recursively a couple of times for solving for different envs
     prefix_with_dists_no_deps_has_resolve = old_install_actions(
         prefix, index, specs, force=False, only_names=None, always_copy=False, pinned=True,
-        minimal_hint=False, update_deps=True, prune=False)
+        minimal_hint=False, update_deps=True, prune=False, channel_urls=channel_urls)
     # type: Dict[prefix, List[Dist]]  # without dependencies
 
     actions = get_actions_for_dists(prefix_with_dists_no_deps_has_resolve, only_names, index,
@@ -526,11 +527,17 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
         linked = r.installed
         must_have = {}
 
-        for fn in dists:
-            name = r.package_name(fn)
+        installed = linked
+        if prune:
+            installed = []
+        pkgs = r.install([MatchSpec(dist.to_matchspec()) for dist in dists], installed)
+
+        for fn in pkgs:
+            dist = Dist(fn)
+            name = r.package_name(dist)
             if not name or only_names and name not in only_names:
                 continue
-            must_have[name] = fn
+            must_have[name] = dist
 
         if is_root_prefix(prefix):
             # for name in foreign:
@@ -561,7 +568,6 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
                                "root environment")
 
         smh = r.dependency_sort(must_have)
-
         action = ensure_linked_actions(
             smh, prefix,
             index=index,
@@ -583,11 +589,13 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
 
 
 def old_install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False, channel_urls=None):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
-    r = Resolve(index)
+
+    channels = channel_urls if channel_urls is not None else []
+    r = Resolve(get_index(channel_urls=channels, prefix=prefix))
     linked = r.installed
 
     if pinned:
@@ -649,7 +657,7 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
         #  old_install_actions(prefix, specs)
         return tuple(concat(old_install_actions(prfx, index, spcs, force=False, only_names=None,
                                                 always_copy=False, pinned=True, minimal_hint=False,
-                                                update_deps=True, prune=False)
+                                                update_deps=True, prune=False, channel_urls=channel_urls)
                             for prfx, spcs in solve_again_map.items()))
         # type: Sequence[DistsForPrefix]
     else:

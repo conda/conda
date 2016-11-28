@@ -275,7 +275,8 @@ def install(args, parser, command='install'):
                                           pinned=args.pinned,
                                           always_copy=context.always_copy,
                                           minimal_hint=args.alt_hint,
-                                          update_deps=context.update_dependencies)
+                                          update_deps=context.update_dependencies,
+                                          channel_urls=index_args['channel_urls'])
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
