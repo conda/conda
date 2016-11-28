@@ -16,7 +16,7 @@ if os.environ.get('CONDA_DEFAULT_ENV'):
     # Try to prevent accidentally installing conda into a non-root conda environment
     sys.exit(dedent("""\
         You appear to be in a non-root conda environment. Conda is only supported in
-        the root environment. Deactivate and try again.  If you believe this message
+        the root environment. Deactivate and try again. If you believe this message
         is in error, run CONDA_DEFAULT_ENV='' python setup.py."""))
 
 # When executing the setup.py, we need to be able to import ourselves, this
@@ -63,6 +63,16 @@ install_requires = [
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
 
+packages = packaging.find_packages(
+    exclude=(
+        "tests",
+        "tests.*",
+        "build",
+        "utils",
+        ".tox",
+    )
+)
+
 cmdclass = {
     'build_py': packaging.BuildPyCommand,
     'sdist': packaging.SDistCommand,
@@ -91,11 +101,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=packaging.find_packages(exclude=("tests",
-                                              "tests.*",
-                                              "build",
-                                              "utils",
-                                              ".tox")),
+    packages=packages,
     cmdclass=cmdclass,
     install_requires=[],
     entry_points={
