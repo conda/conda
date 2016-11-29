@@ -96,7 +96,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 'url': url,
                 'md5': md5,
                 'build': dist.quad[2],
-                'build_number': dist.build_number(),
+                'build_number': dist.build_number,
                 'name': dist.quad[0],
                 'version': dist.quad[1],
 
