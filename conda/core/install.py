@@ -309,7 +309,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         args = [shell_path, path]
     env = os.environ.copy()
     name, version, _, _ = dist.quad
-    build_number = dist.build_number()
+    build_number = dist.build_number
     env[str('ROOT_PREFIX')] = sys.prefix
     env[str('PREFIX')] = str(env_prefix or prefix)
     env[str('PKG_NAME')] = name

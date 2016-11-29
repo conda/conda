@@ -45,6 +45,28 @@ class Dist(Entity):
         return self.__str__()
 
     @property
+    def name(self):
+        return self.quad[0]
+
+    @property
+    def version(self):
+        return self.quad[1]
+
+    @property
+    def build_string(self):
+        return self.quad[2]
+
+    @property
+    def build(self):
+        return self.build_string
+
+    @property
+    def build_number(self):
+        n = ensure_text_type(self.quad[2].rsplit('_')[-1])
+        n = int(n) if n.isdigit() else 0
+        return int(n)
+
+    @property
     def pair(self):
         return self.channel or DEFAULTS, self.dist_name
 
@@ -53,13 +75,6 @@ class Dist(Entity):
         # returns: name, version, build_string, channel
         parts = self.dist_name.rsplit('-', 2) + ['', '']
         return parts[0], parts[1], parts[2], self.channel or DEFAULTS
-
-    def build_number(self):
-        n = self.quad[2].rsplit('_')[-1]
-        if hasattr(n, 'decode'):
-            n = n.decode(UTF8)
-        n = int(n) if n.isdigit() else 0
-        return int(n)
 
     def __str__(self):
         base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name

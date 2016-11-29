@@ -144,8 +144,10 @@ def test_display_actions():
     reset_context(())
     actions = defaultdict(list, {"FETCH": [Dist('sympy-0.7.2-py27_0'), Dist("numpy-1.7.1-py27_0")]})
     # The older test index doesn't have the size metadata
-    index[Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')]['size'] = 4374752
-    index[Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")]['size'] = 5994338
+    d = Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')
+    index[d] = Record.from_objects(index[d], size=4374752)
+    d = Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")
+    index[d] = Record.from_objects(index[d], size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
@@ -283,8 +285,10 @@ def test_display_actions_show_channel_urls():
     actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
-    index[Dist('sympy-0.7.2-py27_0.tar.bz2')]['size'] = 4374752
-    index[Dist("numpy-1.7.1-py27_0.tar.bz2")]['size'] = 5994338
+    d = Dist('sympy-0.7.2-py27_0.tar.bz2')
+    index[d] = Record.from_objects(d, size=4374752)
+    d = Dist('numpy-1.7.1-py27_0.tar.bz2')
+    index[d] = Record.from_objects(d, size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
@@ -294,8 +298,8 @@ The following packages will be downloaded:
 
     package                    |            build
     ---------------------------|-----------------
-    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>
-    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>
+    sympy-0.7.2                |           py27_0         4.2 MB  defaults
+    numpy-1.7.1                |           py27_0         5.7 MB  defaults
     ------------------------------------------------------------
                                            Total:         9.9 MB
 
@@ -417,8 +421,10 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    index[Dist('cython-0.19.1-py33_0.tar.bz2')]['channel'] = 'my_channel'
-    index[Dist('dateutil-1.5-py33_0.tar.bz2')]['channel'] = 'my_channel'
+    d = Dist('cython-0.19.1-py33_0.tar.bz2')
+    index[d] = Record.from_objects(d, channel='my_channel')
+    d = Dist('dateutil-1.5-py33_0.tar.bz2')
+    index[d] = Record.from_objects(d, channel='my_channel')
 
     with captured() as c:
         display_actions(actions, index)
@@ -601,8 +607,11 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
     reset_context(())
 
-    index[Dist('cython-0.19.1-py33_0.tar.bz2')]['channel'] = 'my_channel'
-    index[Dist('dateutil-1.5-py33_0.tar.bz2')]['channel'] = 'my_channel'
+    d = Dist('cython-0.19.1-py33_0.tar.bz2')
+    index[d] = Record.from_objects(index[d], channel='my_channel')
+
+    d = Dist('dateutil-1.5-py33_0.tar.bz2')
+    index[d] = Record.from_objects(index[d], channel='my_channel')
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 3', 'dateutil-1.5-py33_0 3',
     'numpy-1.7.1-py33_0 3', 'python-3.3.2-0 3', 'readline-6.2-0 3', 'sqlite-3.7.13-0 3', 'tk-8.5.13-0 3', 'zlib-1.2.7-0 3']})
