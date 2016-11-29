@@ -67,14 +67,14 @@ class TooFewArgumentsError(ArgumentError):
 
 
 class ClobberError(CondaError):
-    def __init__(self, destination_path, source_path, link_type):
+    def __init__(self, destination_path, source_path, path_type):
         message = dals("""
         Conda no longer clobbers existing files without the use of the --force option.
           source path:      %(source_path)s
           destination path: %(destination_path)s
         """)
         super(ClobberError, self).__init__(message, destination_path=destination_path,
-                                           source_path=source_path, link_type=link_type)
+                                           source_path=source_path, path_type=path_type)
 
 class CommandError(CondaError):
     def __init__(self, command, message):

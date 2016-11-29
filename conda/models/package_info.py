@@ -25,6 +25,7 @@ class PathType(Enum):
     """
     hardlink = 'hardlink'
     softlink = 'softlink'
+    directory = 'directory'
 
     def __int__(self):
         return self.value

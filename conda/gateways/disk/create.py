@@ -52,8 +52,8 @@ def create_entry_point(entry_point_def, prefix):
             fo.write(pyscript)
 
         # link cli-XX.exe
-        link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
-             join(prefix, win_path_ok(ep_path + '.exe')))
+        create_link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
+                    join(prefix, win_path_ok(ep_path + '.exe')))
         return [ep_path + '-script.py', ep_path + '.exe']
     else:
         # create py file
@@ -118,7 +118,7 @@ def try_hard_link(pkgs_dir, prefix, dist):
     try:
         if not isdir(prefix):
             makedirs(prefix)
-        link(src, dst, LinkType.hardlink)
+        create_link(src, dst, LinkType.hardlink)
         # Some file systems (at least BeeGFS) do not support hard-links
         # between files in different directories. Depending on the
         # file system configuration, a symbolic link may be created
@@ -191,7 +191,13 @@ if on_win:
             raise CondaOSError('win32 soft link failed')
 
 
-def link(src, dst, link_type=LinkType.hardlink):
+def create_link(src, dst, link_type=LinkType.hardlink):
+    if link_type == LinkType.directory:
+        # A directory is technically not a link.  So link_type is a misnomer.
+        #   Naming is hard.
+        mkdir_p(dst)
+        return
+
     if exists(dst):
         if context.force:
             log.info("file exists, but clobbering: %r" % dst)

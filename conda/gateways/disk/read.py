@@ -5,15 +5,19 @@ import json
 import shlex
 from base64 import b64encode
 from collections import namedtuple
+from conda.common.compat import ensure_text_type
+from conda.common.path import maybe_right_pad, win_path_backout
 from errno import ENOENT
 from itertools import chain
 from logging import getLogger
+from os import walk
 from os.path import isfile, islink, join
 
+from ..._vendor.auxlib.path import expand
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
-from ...models.package_info import PathType, PackageInfo, PathInfoV1, PathInfo
-from ...models.record import Record
 from ...exceptions import CondaUpgradeError
+from ...models.package_info import PackageInfo, PathInfo, PathInfoV1, PathType
+from ...models.record import Record
 
 log = getLogger(__name__)
 
@@ -165,3 +169,16 @@ def read_icondata(extracted_package_directory):
         return b64encode(data).decode(UTF8)
     else:
         return None
+
+
+
+class PrefixInventory(object):
+
+    def __init__(self, prefix):
+        self.prefix = prefix
+
+    def inventory_prefix(self, prefix):
+        prefix = maybe_right_pad(expand(prefix))
+        for root, dirs, files in walk(prefix, topdown=False):
+            root = win_path_backout(ensure_text_type(root).replace(prefix, '', 1))
+            print(root, dirs, files)

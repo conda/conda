@@ -68,6 +68,8 @@ class LinkType(Enum):
     #     LINK_SOFT: 'soft-link',
     #     LINK_COPY: 'copy',
     # }
+    # directory is not a link type, and copy is not a path type
+    # LinkType is still probably the best name here
     hardlink = 1
     softlink = 2
     copy = 3

@@ -16,12 +16,12 @@ from .package_cache import is_extracted, read_url
 from ..base.constants import LinkType
 from ..base.context import context
 from ..common.path import (explode_directories, get_leaf_directories,
-                           get_bin_directory_short_path, win_path_ok)
+                           get_bin_directory_short_path, win_path_ok, get_all_directories)
 from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
-                                set_linked_data, get_site_packages_dir)
+                                set_linked_data, get_site_packages_dir, linked_data)
 from ..exceptions import CondaOSError, LinkError, PaddingError
-from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, link as create_link,
-                                    make_menu, mkdir_p, write_conda_meta_record)
+from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, create_link as create_link,
+                                    make_menu, mkdir_p, write_conda_meta_record, create_directory)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
@@ -40,6 +40,7 @@ MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
 LinkOperation = namedtuple('LinkOperation',
                            ('source_short_path', 'dest_short_path', 'link_type',
                             'prefix_placeholder', 'file_mode', 'is_menu_file'))
+UnlinkOperation = namedtuple('UnlinkOperation', ('prefix_short_path', 'is_menu_file', 'path_type'))
 
 
 def get_package_installer(prefix, index, dist):
@@ -76,13 +77,12 @@ class PackageInstaller(object):
 
         # simple processing
         operations = self._make_link_operations(requested_link_type)
-        leaf_directories = get_leaf_directories(op.dest_short_path for op in operations)
 
         # # run pre-link script
         # if not run_script(extracted_package_dir, self.dist, 'pre-link', self.prefix):
         #     raise LinkError('Error: pre-link failed: %s' % self.dist)
 
-        dest_short_paths = self._execute_link_operations(leaf_directories, operations)
+        dest_short_paths = self._execute_link_operations(operations)
 
         # run post-link script
         if not run_script(self.prefix, self.dist, 'post-link'):
@@ -112,9 +112,18 @@ class PackageInstaller(object):
             dest_short_path = source_path_info.path
             return LinkOperation(source_path_info.path, dest_short_path, link_type,
                                  prefix_placehoder, file_mode, is_menu_file)
-        return tuple(make_link_operation(p) for p in package_info.paths)
 
-    def _execute_link_operations(self, leaf_directories, link_operations):
+        def make_dir_operation(directory_short_path):
+            return LinkOperation(None, directory_short_path, LinkType.directory,
+                                 None, None, False)
+
+        leaf_directories = get_leaf_directories(package_info.paths)
+        directory_create_operations = (make_dir_operation(d) for d in leaf_directories)
+        file_link_operations = (make_link_operation(p) for p in package_info.paths)
+
+        return tuple(concatv(directory_create_operations, file_link_operations))
+
+    def _execute_link_operations(self, link_operations):
         # major side-effects in this method
 
         dest_short_paths = []
@@ -124,7 +133,7 @@ class PackageInstaller(object):
             mkdir_p(join(self.prefix, win_path_ok(leaf_directory)))
 
         # Step 2. Do the actual file linking
-        for op in link_operations:
+        for op in link_operations:  # TODO: sort directories first
             try:
                 create_link(join(self.extracted_package_dir, win_path_ok(op.source_short_path)),
                             join(self.prefix, win_path_ok(op.dest_short_path)),
@@ -183,13 +192,12 @@ class PackageInstaller(object):
 class NoarchPythonPackageInstaller(PackageInstaller):
 
     def _make_link_operations(self, requested_link_type):
+        # no side effects in this method!
         package_info = self.package_info
         site_packages_dir = get_site_packages_dir(self.prefix)
         bin_dir = get_bin_directory_short_path()
 
         def make_link_operation(source_path_info):
-            # no side effects in this method!
-
             # first part, same as parent class
             if source_path_info.prefix_placeholder:
                 link_type = LinkType.copy
@@ -215,6 +223,8 @@ class NoarchPythonPackageInstaller(PackageInstaller):
             return LinkOperation(source_short_path, dest_short_path, link_type, prefix_placehoder,
                                  file_mode, is_menu_file)
 
+        leaf_directories = get_leaf_directories(package_info.paths)
+        directory_create_operations = (make_dir_operation(d) for d in leaf_directories)
         return tuple(make_link_operation(p) for p in package_info.paths)
 
     def _execute_link_operations(self, leaf_directories, link_operations):
@@ -240,6 +250,26 @@ class PackageUninstaller(object):
     def __init__(self, prefix, dist):
         self.prefix = prefix
         self.dist = dist
+        self.linked_data = None
+
+    def _make_unlink_operations(self):
+        linked_package_data = self.linked_data[self.dist]
+        package_files = linked_package_data.files
+        all_directories = sorted(get_all_directories(package_files), key=len, reverse=True)
+
+        def make_file_unlink_operation(path):
+            prefix_short_path = path
+            is_menu_file = bool(MENU_RE.match(path))
+            # using hardlink here, because treatment would be no different than softlink
+            return UnlinkOperation(prefix_short_path, is_menu_file, PathType.hardlink)
+
+        def make_dir_unlink_operation(path):
+            return UnlinkOperation(path, False, PathType.directory)
+
+        return tuple(concatv(
+            (make_file_unlink_operation(p) for p in package_files),
+            (make_dir_unlink_operation(d) for d in all_directories),
+        ))
 
     def unlink(self):
         """
@@ -249,7 +279,14 @@ class PackageUninstaller(object):
         log.debug("unlinking package %s", self.dist)
         run_script(self.prefix, self.dist, 'pre-unlink')
 
+        # file system reads
+        self.linked_data = linked_data(self.prefix)
         meta = load_meta(self.prefix, self.dist)
+
+        # computations
+        self._make_unlink_operations()
+        # files = meta['files']
+
 
         dirs_with_removals = set()
 
@@ -263,6 +300,9 @@ class PackageUninstaller(object):
             rm_rf(join(self.prefix, win_path_ok(f)))
 
         # remove the meta-file last
+        #   TODO: why last?  Won't that leave things more broken than removing it first?
+        #   maybe should rename the file with an extra extension, then remove it once the
+        #   operation is complete
         delete_linked_data(self.prefix, self.dist, delete=True)
 
         dirs_with_removals.add('conda-meta')  # in case there is nothing left
@@ -270,10 +310,13 @@ class PackageUninstaller(object):
                                         sorted(explode_directories(dirs_with_removals),
                                                reverse=True))
 
-        # remove empty directories
+        # remove empty directories; don't crash if we can't
         for d in directory_removal_candidates:
             if isdir(d) and not listdir(d):
-                rm_rf(d)
+                try:
+                    rm_rf(d)
+                except (IOError, OSError) as e:
+                    log.debug("Failed to remove '%s'. %r", d, e)
 
         alt_files_path = join(self.prefix, 'conda-meta', self.dist.to_filename('.files'))
         if isfile(alt_files_path):

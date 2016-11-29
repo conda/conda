@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 from functools import reduce
 from logging import getLogger
 from os.path import basename, dirname, join
@@ -20,14 +21,16 @@ def tokenized_startswith(test_iterable, startswith_iterable):
     return all(t == sw for t, sw in zip(test_iterable, startswith_iterable))
 
 
+def get_all_directories(files):
+    directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
+    return directories or ()
+
+
 def get_leaf_directories(files):
     # type: (List[str]) -> List[str]
     # give this function a list of files, and it will hand back a list of leaf directories to
-    # pass to os.makedirs()
-    directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
-    if not directories:
-        return ()
-
+    #   pass to os.makedirs()
+    directories = get_all_directories(files)
     leaves = []
 
     def _process(x, y):
@@ -88,3 +91,11 @@ def win_path_ok(path):
 
 def win_path_double_escape(path):
     return path.replace('\\', '\\\\') if on_win else path
+
+
+def win_path_backout(path):
+    return path.replace('\\', '/') if on_win else path
+
+
+def maybe_right_pad(path):
+    return path if path.endswith(os.pathsep) else path + os.pathsep

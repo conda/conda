@@ -25,8 +25,10 @@ CHECK_FETCH = 'CHECK_FETCH'
 FETCH = 'FETCH'
 CHECK_EXTRACT = 'CHECK_EXTRACT'
 EXTRACT = 'EXTRACT'
-CHECK_LINK = 'CHECK_LINK'
+MAKE_UNLINK_OPERTIONS = 'MAKE_UNLINK_OPERTIONS'
+MAKE_LINK_OPERATIONS = 'MAKE_LINK_OPERATIONS'
 CHECK_UNLINK = 'CHECK_UNLINK'
+CHECK_LINK = 'CHECK_LINK'
 UNLINK = 'UNLINK'
 LINK = 'LINK'
 RM_EXTRACTED = 'RM_EXTRACTED'
@@ -38,15 +40,10 @@ SYMLINK_CONDA = 'SYMLINK_CONDA'
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
-    CHECK_FETCH,
     FETCH,
-    CHECK_EXTRACT,
     EXTRACT,
-    CHECK_LINK,
-    CHECK_UNLINK,
     UNLINK,
     LINK,
-    SYMLINK_CONDA,
     RM_EXTRACTED,
     RM_FETCHED,
 )
@@ -275,6 +272,21 @@ commands = {
     UNLINK: UNLINK_CMD,
     SYMLINK_CONDA: SYMLINK_CONDA_CMD,
 }
+
+
+OP_ORDER = (CHECK_FETCH,
+            RM_FETCHED,
+            FETCH,
+            CHECK_EXTRACT,
+            RM_EXTRACTED,
+            EXTRACT,
+            MAKE_UNLINK_OPERTIONS,
+            MAKE_LINK_OPERATIONS,
+            CHECK_UNLINK,
+            CHECK_LINK,
+            UNLINK,
+            LINK,
+            )
 
 
 def execute_instructions(plan, index=None, verbose=False, _commands=None):

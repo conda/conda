@@ -26,6 +26,7 @@ from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, Inst
 from .gateways.disk.create import try_hard_link
 from .gateways.disk.delete import rm_rf
 from .history import History
+from .instructions import OP_ORDER
 from .models.channel import Channel
 from .models.dist import Dist
 from .resolve import MatchSpec, Package, Resolve
@@ -328,9 +329,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
-                           inst.RM_EXTRACTED, inst.EXTRACT, inst.CHECK_UNLINK,
-                           inst.UNLINK, inst.CHECK_LINK, inst.LINK, inst.SYMLINK_CONDA)
+    actions['op_order'] = OP_ORDER
 
     for dist in dists:
         fetched_in = is_fetched(dist)
