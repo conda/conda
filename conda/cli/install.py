@@ -7,11 +7,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
+import json
 import logging
 import os
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
+from conda.common.path import prefix_to_env_name
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
@@ -109,6 +111,30 @@ def get_revision(arg, json=False):
         return int(arg)
     except ValueError:
         CondaValueError("expected revision number, not: '%s'" % arg, json)
+
+
+def create_private_envs_meta(action_set):
+    # TODO: determine how to tell if you are dealing with a private env
+    # thought: if the env is of the form _<env>_ it is private
+    def is_private_env(prefix):
+        if prefix is not None and prefix.startswith("_") and prefix.endswith("_"):
+            return True
+        return False
+
+    def get_package_name(link_op_code):
+        parts = link_op_code.split(' ', 2)
+        return parts[0].split("::")[-1]
+
+    private_envs_json = {}
+    for actions in action_set:
+        prefix = actions["PREFIX"]
+        if is_private_env(prefix_to_env_name(prefix)):
+            for link in actions["LINK"]:
+                private_envs_json[get_package_name(link)] = prefix
+
+    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs.json")
+    with open(path_to_private_envs, "w") as f:
+        json.dump(private_envs_json, f)
 
 
 def install(args, parser, command='install'):
@@ -356,6 +382,8 @@ def install(args, parser, command='install'):
     elif args.dry_run:
         common.stdout_json_success(actions=actions, dry_run=True)
         raise DryRunExit()
+
+    create_private_envs_meta(action_set)
 
     for actions in action_set:
         if newenv:
