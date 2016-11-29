@@ -46,7 +46,6 @@ from shlex import split
 from shutil import copyfile, rmtree
 from subprocess import check_call
 from tempfile import gettempdir
-from textwrap import dedent
 from unittest import TestCase
 from uuid import uuid4
 
@@ -273,11 +272,10 @@ class IntegrationTests(TestCase):
             list_output = run_command(Commands.LIST, prefix)
             stdout = list_output[0]
             stderr = list_output[1]
-            expected_output = dedent("""\
-                # packages in environment at {}:
-                #
+            expected_output = """# packages in environment at %s:
+#
 
-                """).format(prefix)
+""" % prefix
             self.assertEqual(stdout, expected_output)
             self.assertEqual(stderr, '')
 
