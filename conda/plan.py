@@ -492,7 +492,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         r, prefix, index, preferred_envs, dists_for_envs)
 
     actions = tuple(
-        get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy, prune)
+        get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy, prune,
+                              update_deps)
         for dists_by_prefix in prefix_with_dists_no_deps_has_resolve)
     return actions
 
@@ -537,7 +538,8 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs)
     return prefix_with_dists_no_deps_has_resolve
 
 
-def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune):
+def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+                          update_deps):
     root_only = ('conda', 'conda-env')
     prefix = dists_for_prefix.prefix
     dists = dists_for_prefix.dists
@@ -549,7 +551,8 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
     installed = linked
     if prune:
         installed = []
-    pkgs = r.install([MatchSpec(dist.to_matchspec()) for dist in dists], installed)
+    pkgs = r.install([MatchSpec(dist.to_matchspec()) for dist in dists], installed,
+                     update_deps=update_deps)
 
     for fn in pkgs:
         dist = Dist(fn)
