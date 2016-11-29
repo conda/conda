@@ -341,9 +341,7 @@ def install(args, parser, command='install'):
 
     if not context.json:
         display_actions(action_set, index, show_channel_urls=context.show_channel_urls)
-
-    for actions in action_set:
-        if nothing_to_do(actions) and not newenv:
+        if all(nothing_to_do(actions) for actions in action_set) and not newenv:
             from .main_list import print_packages
 
             if not context.json:
@@ -354,7 +352,13 @@ def install(args, parser, command='install'):
                 common.stdout_json_success(
                     message='All requested packages already installed.')
             return
-        elif newenv:
+        common.confirm_yn(args)
+    elif args.dry_run:
+        common.stdout_json_success(actions=actions, dry_run=True)
+        raise DryRunExit()
+
+    for actions in action_set:
+        if newenv:
             # needed in the case of creating an empty env
             from ..instructions import LINK, UNLINK, SYMLINK_CONDA
             if not actions[LINK] and not actions[UNLINK]:
@@ -363,11 +367,11 @@ def install(args, parser, command='install'):
         if command in {'install', 'update'}:
             check_write(command, prefix)
 
-        if not context.json:
-            common.confirm_yn(args)
-        elif args.dry_run:
-            common.stdout_json_success(actions=actions, dry_run=True)
-            raise DryRunExit()
+        # if not context.json:
+        #     common.confirm_yn(args)
+        # elif args.dry_run:
+        #     common.stdout_json_success(actions=actions, dry_run=True)
+        #     raise DryRunExit()
 
         with common.json_progress_bars(json=context.json and not context.quiet):
             try:
