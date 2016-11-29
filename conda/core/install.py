@@ -25,7 +25,7 @@ from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, lin
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, yield_lines
 from ..gateways.disk.update import _PaddingError, update_prefix
-from ..models.record import Link
+from ..models.record import Link, Record
 from ..models.package_info import PathType
 from ..utils import on_win
 
@@ -164,21 +164,20 @@ class PackageInstaller(object):
         Create the conda metadata, in a given prefix, for a given package.
         """
         package_info = self.package_info
-        meta_dict = self.index.get(self.dist, {})
-        meta_dict['url'] = url
+        record_from_index = self.index.get(self.dist, {})
+        new_info = dict()
+        new_info['url'] = url
 
         # alt_files_path is a hack for python_noarch
         alt_files_path = join(self.prefix, 'conda-meta', self.dist.to_filename('.files'))
-        meta_dict['files'] = (list(yield_lines(alt_files_path)) if isfile(alt_files_path)
-                              else dest_short_paths)
-        meta_dict['link'] = Link(source=self.extracted_package_dir, type=requested_link_type)
-        if 'icon' in meta_dict:
-            meta_dict['icondata'] = package_info.icondata
+        new_info['files'] = (list(yield_lines(alt_files_path)) if isfile(alt_files_path)
+                             else dest_short_paths)
+        new_info['link'] = Link(source=self.extracted_package_dir, type=requested_link_type)
+        if 'icon' in record_from_index:
+            new_info['icondata'] = package_info.icondata
 
-        meta = package_info.index_json_record
-        meta.update(meta_dict)
-
-        return meta
+        record_from_package = package_info.index_json_record
+        return Record.from_objects(new_info, record_from_index, record_from_package)
 
 
 class NoarchPythonPackageInstaller(PackageInstaller):
@@ -310,7 +309,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         args = [shell_path, path]
     env = os.environ.copy()
     name, version, _, _ = dist.quad
-    build_number = dist.build_number()
+    build_number = dist.build_number
     env[str('ROOT_PREFIX')] = sys.prefix
     env[str('PREFIX')] = str(env_prefix or prefix)
     env[str('PKG_NAME')] = name

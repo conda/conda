@@ -96,7 +96,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 'url': url,
                 'md5': md5,
                 'build': dist.quad[2],
-                'build_number': dist.build_number(),
+                'build_number': dist.build_number,
                 'name': dist.quad[0],
                 'version': dist.quad[1],
 
@@ -359,8 +359,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     for dist, info in iteritems(drecs):
         fkey = dist
         if fkey not in index:
-            info['not_fetched'] = True
-            index[fkey] = info
+            index[fkey] = Record.from_objects(info, not_fetched=True)
             r = None
         urls[dist] = info['url']
 
