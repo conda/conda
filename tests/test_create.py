@@ -417,8 +417,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/conda-forge/setuptools-feedstock/issues/43")
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
