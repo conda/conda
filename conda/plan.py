@@ -479,9 +479,12 @@ def preferred_env_to_prefix(preferred_env):
         return join(context.envs_dirs[0], maybe_pad(preferred_env, '_'))
 
 
-def prefix_to_private_env_name(prefix):
-    # type: (str) -> Option[str]
-    pass
+def prefix_to_env_name(prefix):
+    if prefix == context.root_dir:
+        return None
+    else:
+        env = prefix.split("/envs/")[1:]
+        return env
 
 
 def preferred_env_matches_prefix(preferred_env, prefix):
@@ -495,7 +498,7 @@ def preferred_env_matches_prefix(preferred_env, prefix):
     padded_preferred_env = maybe_pad(preferred_env)
     return prefix_name == padded_preferred_env
 
-# Has one dist for each prefix
+# Has one dist for each env
 DistForEnv = namedtuple('DistForEnv', ['env', 'dist'])
 # Has several dists for each prefix and the related r value
 DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
@@ -507,7 +510,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     #        bool, bool, bool) -> Dict[weird]
     specs = [MatchSpec(spec) for spec in specs]
 
-    specs = augment_specs(prefix, specs)
+    specs = augment_specs(prefix, specs, pinned=pinned)
     r = get_resolve_object(index.copy(), prefix)
 
     dists_for_envs = determine_all_envs(r, specs)
@@ -516,18 +519,36 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     # ABOVE, DO AS LITTLE AS POSSIBLE TO GET `preferred_envs`
     #   SAVE WHATEVER WORK WE'LL NEED FOR BELOW (e.g. `r`)
 
+    prefix_with_dists_no_deps_has_resolve = determine_dists_per_prefix(
+        r, prefix, index, preferred_envs, dists_for_envs)
+
+    actions = tuple(
+        get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy, prune)
+        for dists_by_prefix in prefix_with_dists_no_deps_has_resolve)
+    return actions
+
+
+def not_requires_private_env(prefix, preferred_envs):
+    if (context.prefix_specified is True or not context.prefix == context.root_dir or
+            all(preferred_env_matches_prefix(preferred_env, prefix) for
+                preferred_env in preferred_envs)):
+        return True
+    return False
+
+
+def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs):
     # if len(preferred_envs) == 1 and preferred_env matches prefix
     #    solution is good
     # if len(preferred_envs) == 1 and preferred_env is None
     #    solution is good
     # if len(preferred_envs) == 2 and set([None, preferred_env]) preferred_env matches prefix
     #    solution is good
-    if all(preferred_env_matches_prefix(preferred_env, prefix) for preferred_env in preferred_envs):
+    if not_requires_private_env(prefix, preferred_envs):
         dists = set(d.dist for d in dists_for_envs)
         prefix_with_dists_no_deps_has_resolve = [DistsForPrefix(prefix=prefix, r=r, dists=dists)]
     else:
-        # if we get here...
-        # assert prefix is context.root_dir
+        # Ensure that conda is working in the root dir
+        assert(context.prefix == context.root_dir)
 
         def get_r(preferred_env):
             # don't make r for the prefix where we already have it created
@@ -542,11 +563,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
             prefix_with_dists_no_deps_has_resolve.append(
                 DistsForPrefix(prefix=preferred_env_to_prefix(env), r=get_r(env), dists=dists)
             )
-
-    actions = tuple(get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy,
-                                          prune)
-                    for dists_by_prefix in prefix_with_dists_no_deps_has_resolve)
-    return actions
+    return prefix_with_dists_no_deps_has_resolve
 
 
 def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune):
