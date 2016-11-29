@@ -5,8 +5,8 @@ import re
 from logging import getLogger
 
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
-from ..base.constants import DEFAULTS, UTF8
-from ..common.compat import text_type, with_metaclass, ensure_text_type
+from ..base.constants import DEFAULTS
+from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..models.record import Record
 
 log = getLogger(__name__)
