@@ -132,7 +132,7 @@ def create_private_envs_meta(action_set):
             for link in actions["LINK"]:
                 private_envs_json[get_package_name(link)] = prefix
 
-    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs.json")
+    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
     with open(path_to_private_envs, "w") as f:
         json.dump(private_envs_json, f)
 
