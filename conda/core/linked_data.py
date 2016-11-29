@@ -30,11 +30,15 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     if rec is None:
         try:
             with open(meta_file) as fi:
-                rec = Record(**json.load(fi))
+                rec = json.load(fi)
         except IOError:
             return None
     else:
         linked_data(prefix)  # TODO: is this even doing anything?
+
+        if hasattr(rec, 'dump'):
+            rec = rec.dump()
+
     url = rec.get('url')
     fn = rec.get('fn')
     if not fn:
@@ -48,6 +52,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
         if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
             url = rec['url'] = channel + '/' + fn
     channel, schannel = Channel(url).url_channel_wtf
+
     rec['url'] = url
     rec['channel'] = channel
     rec['schannel'] = schannel
@@ -57,7 +62,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
         dist = Dist(channel=None, dist_name=dist_name)
     else:
         dist = Dist(channel=schannel, dist_name=dist_name)
-    linked_data_[prefix][dist] = rec
+    linked_data_[prefix][dist] = rec = Record(**rec)
 
     return rec
 
