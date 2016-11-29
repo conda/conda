@@ -21,7 +21,7 @@ class NoarchInfo(Entity):
 class PathType(Enum):
     """
     Refers to if the file in question is hard linked or soft linked. Originally designed to be used
-    in files.json
+    in paths.json
     """
     hardlink = 'hardlink'
     softlink = 'softlink'

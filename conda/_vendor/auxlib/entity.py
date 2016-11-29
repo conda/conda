@@ -291,6 +291,8 @@ TODO:
   - Allow returning string error message for validation instead of False
   - profile and optimize
   - use boltons instead of dateutil
+  - correctly implement copy and deepcopy on fields and Entity, DictSafeMixin
+    http://stackoverflow.com/questions/1500718/what-is-the-right-way-to-override-the-copy-deepcopy-operations-on-an-object-in-p
 
 
 Optional Field Properties:
@@ -851,7 +853,7 @@ class DictSafeMixin(object):
         return self.iteritems()
 
     def copy(self):
-        return deepcopy(self)
+        return self.__class__(**self.dump())
 
     def setdefault(self, key, default_value):
         if key not in self:
