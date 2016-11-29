@@ -8,6 +8,10 @@
 # # use == "" instead of -z test (and != "" for -n) for robust support  # #
 # # across different platforms (especially Ubuntu)                      # #
 # #                                                                     # #
+# # the setuptools will properly substitute the CONDA_INSTALL_PREFIX    # #
+# # upon install into the conda executable bin (see the install_scripts # #
+# # function of setup.py)                                               # #
+# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -35,7 +39,7 @@ switch ( `uname -s` )
                 setenv MSYS2_ENV_CONV_EXCL "CONDA_PATH"
             else
                 if ( "${MSYS2_ENV_CONV_EXCL}" != "CONDA_PATH" ) then
-                    setenv MSYS2_ENV_CONV_EXCL `envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d`
+                    setenv MSYS2_ENV_CONV_EXCL `${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL};CONDA_PATH" --delim=";" -d`
                 endif
             endif
         endif
@@ -131,7 +135,7 @@ endif
 ###########################################################################
 # HELP DIALOG                                                             #
 if ( "${CONDA_HELP}" == "${TRUE}" ) then
-    conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
+    ${CONDA_INSTALL_PREFIX}/conda "..deactivate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     unset WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_HELP}" == "${FALSE}" ) then
@@ -178,7 +182,7 @@ if ( "${BAD_DEACTIVATE}" == "${TRUE}" ) then
     endif
     unset IS_ENV_CONDA_VERBOSE
     if ( $?MSYS2_ENV_CONV_EXCL ) then
-        setenv MSYS2_ENV_CONV_EXCL=`envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
+        setenv MSYS2_ENV_CONV_EXCL=`${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
         if ( "${MSYS2_ENV_CONV_EXCL}" == "" ) then
             unsetenv MSYS2_ENV_CONV_EXCL
         endif
@@ -196,7 +200,7 @@ endif
 # to avoid cases when path setting succeeds and is parsed correctly from  #
 # one to the other                                                        #
 set tmp_PATH="${PATH}"
-set PATH=(`envvar_cleanup.bash "${tmp_PATH}" --delim=":" -u -f "${CONDA_PREFIX}"`)
+set PATH=(`${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${tmp_PATH}" --delim=":" -u -f "${CONDA_PREFIX}"`)
 if ( $status != 0 ) then
     unset tmp_PATH
     if ( "${IS_ENV_CONDA_VERBOSE}" == "${FALSE}" ) then
@@ -263,7 +267,7 @@ rehash
 ###########################################################################
 # CLEANUP VARS FOR THIS SCOPE                                             #
 if ( $?MSYS2_ENV_CONV_EXCL ) then
-    setenv MSYS2_ENV_CONV_EXCL=`envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
+    setenv MSYS2_ENV_CONV_EXCL=`${CONDA_INSTALL_PREFIX}/envvar_cleanup.bash "${MSYS2_ENV_CONV_EXCL}" --delim=";" -r "CONDA_PATH"`
     if ( "${MSYS2_ENV_CONV_EXCL}" == "" ) then
         unsetenv MSYS2_ENV_CONV_EXCL
     endif

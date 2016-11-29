@@ -10,6 +10,10 @@
 @REM # # this file is also indented using TABS instead of SPACES to    # #
 @REM # # avoid very odd syntax errors                                  # #
 @REM # #                                                               # #
+@REM # # the setuptools will properly substitute the                   # #
+@REM # # CONDA_INSTALL_PREFIX upon install into the conda              # #
+@REM # # executable bin [see the install_scripts function of setup.py] # #
+@REM # #                                                               # #
 @REM # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 @REM # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -195,7 +199,7 @@
 @REM #####################################################################
 @REM # HELP DIALOG                                                       #
 @IF /I "%CONDA_HELP%"=="%TRUE%" (
-	@CALL "conda" "..activate" "%WHAT_SHELL_AM_I%" "-h" "%UNKNOWN%"
+	@CALL "%CONDA_INSTALL_PREFIX%\conda" "..activate" "%WHAT_SHELL_AM_I%" "-h" "%UNKNOWN%"
 
 	@ENDLOCAL && (
 		@IF /I "%IS_ENV_CONDA_ENVNAME%"=="%TRUE%" (
@@ -220,7 +224,7 @@
 
 @REM #####################################################################
 @REM # CHECK ENV AND DEACTIVATE OLD ENV                                  #
-@CALL "conda" "..checkenv" "%WHAT_SHELL_AM_I%" "%CONDA_ENVNAME%"
+@CALL "%CONDA_INSTALL_PREFIX%\conda" "..checkenv" "%WHAT_SHELL_AM_I%" "%CONDA_ENVNAME%"
 @IF errorlevel 1 (
 	@ENDLOCAL && (
 		@IF /I "%IS_ENV_CONDA_ENVNAME%"=="%TRUE%" (
@@ -242,7 +246,7 @@
 @SET "_IS_ENV_CONDA_VERBOSE=%IS_ENV_CONDA_VERBOSE%"
 
 @REM # ensure we deactivate any scripts from the old env                 #
-@CALL "deactivate.bat"
+@CALL "%CONDA_INSTALL_PREFIX%\deactivate.bat"
 @IF NOT errorlevel 0 (
 	@ENDLOCAL && (
 		@IF /I "%IS_ENV_CONDA_ENVNAME%"=="1" (
@@ -267,7 +271,7 @@
 @SET "CONDA_VERBOSE=%_CONDA_VERBOSE%"
 @SET "WHAT_SHELL_AM_I=%_CONDA_WHAT_SHELL_AM_I%"
 
-@FOR /F "delims=" %%i IN ('@CALL "conda" "..activate" "%WHAT_SHELL_AM_I%" "%CONDA_ENVNAME%"') DO @SET "_CONDA_BIN=%%i"
+@FOR /F "delims=" %%i IN ('@CALL "%CONDA_INSTALL_PREFIX%\conda" "..activate" "%WHAT_SHELL_AM_I%" "%CONDA_ENVNAME%"') DO @SET "_CONDA_BIN=%%i"
 @IF NOT errorlevel 0 (
 	@ENDLOCAL && (
 		@IF /I "%IS_ENV_CONDA_ENVNAME%"=="%TRUE%" (
@@ -319,7 +323,7 @@
 @REM # PROMPT & CONDA_PS1_BACKUP                                         #
 @REM # export PROMPT to restore upon deactivation                        #
 @REM # customize the PROMPT to show what environment has been activated  #
-@FOR /F "delims=" %%i IN ('@CALL "conda" "..changeps1"') DO @SET "_CONDA_CHANGEPS1=%%i"
+@FOR /F "delims=" %%i IN ('@CALL "%CONDA_INSTALL_PREFIX%\conda" "..changeps1"') DO @SET "_CONDA_CHANGEPS1=%%i"
 @IF /I "!_CONDA_CHANGEPS1!"=="1" @IF /I NOT "%PROMPT%"=="" (
 	@SET "CONDA_PS1_BACKUP=%PROMPT%"
 	@SET "PROMPT=(!CONDA_DEFAULT_ENV!) %PROMPT%"

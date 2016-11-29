@@ -9,13 +9,17 @@
 # #                                                                     # #
 # # this works in conjunction with the other whichshell*                # #
 # #                                                                     # #
+# # the setuptools will properly substitute the CONDA_INSTALL_PREFIX    # #
+# # upon install into the conda executable bin (see the install_scripts # #
+# # function of setup.py)                                               # #
+# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ###########################################################################
 # DETECT PARENT PROGRAM                                                   #
 # since this is already an executable we need to get this parent          #
-PARENT_PROCESS=$(whichshell_ps.bash $$ -v)
+PARENT_PROCESS=$(${CONDA_INSTALL_PREFIX}/whichshell_ps.bash $$ -v)
 # END DETECT PARENT PROGRAM                                               #
 ###########################################################################
 

@@ -3,6 +3,10 @@
 # #                                                                     # #
 # # ACTIVATE FOR WINDOWS POWERSHELL.EXE                                 # #
 # #                                                                     # #
+# # the setuptools will properly substitute the CONDA_INSTALL_PREFIX    # #
+# # upon install into the conda executable bin (see the install_scripts # #
+# # function of setup.py)                                               # #
+# #                                                                     # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -127,7 +131,7 @@ if ( "${CONDA_ENVNAME}" -eq "" ) { $CONDA_ENVNAME="root" }
 ###########################################################################
 # HELP DIALOG                                                             #
 if ( "${CONDA_HELP}" -eq "${TRUE}" ) {
-    conda "..activate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
+    ${CONDA_INSTALL_PREFIX}\conda "..activate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     Remove-Variable WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_ENVNAME}" -eq "${TRUE}" ) { $env:CONDA_ENVNAME="${CONDA_ENVNAME}" }
@@ -157,7 +161,7 @@ Remove-Variable UNKNOWN
 
 ###########################################################################
 # CHECK ENV AND DEACTIVATE OLD ENV                                        #
-conda "..checkenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
+${CONDA_INSTALL_PREFIX}\conda "..checkenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
 if ( $lastexitcode -ne 0 ) {
     Remove-Variable WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_ENVNAME}" -eq "${TRUE}" ) { $env:CONDA_ENVNAME="${CONDA_ENVNAME}" }
@@ -175,7 +179,7 @@ $_CONDA_VERBOSE="${CONDA_VERBOSE}"
 $_IS_ENV_CONDA_VERBOSE="${IS_ENV_CONDA_VERBOSE}"
 
 # ensure we deactivate any scripts from the old env                       #
-. (Get-Command deactivate.ps1).path
+. "${CONDA_INSTALL_PREFIX}\deactivate.ps1"
 if ( $lastexitcode -ne 0 ) {
     Remove-Variable _CONDA_WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_ENVNAME}" -eq "${TRUE}" ) { $env:CONDA_ENVNAME="${CONDA_ENVNAME}" }
@@ -194,7 +198,7 @@ Remove-Variable _IS_ENV_CONDA_VERBOSE
 Remove-Variable _CONDA_VERBOSE
 Remove-Variable _CONDA_WHAT_SHELL_AM_I
 
-$_CONDA_BIN=conda "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
+$_CONDA_BIN=${CONDA_INSTALL_PREFIX}\conda "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
 if ( $lastexitcode -ne 0 ) {
     Remove-Variable WHAT_SHELL_AM_I
     Remove-Variable _CONDA_BIN
@@ -255,7 +259,7 @@ Remove-Variable IS_ENV_CONDA_ENVNAME
 #                                                                         #
 # TODO: this is much too complex to do here, delegate to Python           #
 # TODO: redesign conda ..changeps1 to actually return the new prompt      #
-if ( conda "..changeps1" -eq 1 -and (Get-Command Prompt).definition -ne "" ) {
+if ( ${CONDA_INSTALL_PREFIX}\conda "..changeps1" -eq 1 -and (Get-Command Prompt).definition -ne "" ) {
     $env:CONDA_PS1_BACKUP=Get-Content function:\Prompt
     # Set-Content function:\Prompt $env:CONDA_PS1_BACKUP
 }
