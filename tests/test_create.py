@@ -21,24 +21,25 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.path import missing_pyc_files, get_bin_directory_short_path
-from conda.gateways.disk.delete import rm_rf
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
+from conda.common.path import get_bin_directory_short_path, missing_pyc_files
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
-from conda.core.linked_data import linked as install_linked, linked_data, linked_data_, \
-    get_python_version_for_prefix, get_site_packages_dir
-from conda.exceptions import CondaHTTPError, DryRunExit, conda_exception_handler, RemoveError
+from conda.core.linked_data import get_python_version_for_prefix, get_site_packages_dir, \
+    linked as install_linked, linked_data, linked_data_
+from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
+from conda.gateways.disk.delete import rm_rf
+from conda.models.record import Record
 from conda.utils import on_win
 from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
 from json import loads as json_loads
 from logging import DEBUG, getLogger
-from os.path import basename, exists, isdir, isfile, islink, join, relpath
+from os.path import basename, exists, isdir, isfile, join, relpath
 from requests import Session
 from requests.adapters import BaseAdapter
 from shlex import split
@@ -322,9 +323,10 @@ class IntegrationTests(TestCase):
 
             # Regression test for #2812
             # install from local channel
+            flask_data = flask_data.dump()
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
-            repodata = {'info': {}, 'packages': {flask_fname: flask_data}}
+            repodata = {'info': {}, 'packages': {flask_fname: Record(**flask_data)}}
             with make_temp_env() as channel:
                 subchan = join(channel, context.subdir)
                 channel = path_to_url(channel)
@@ -413,8 +415,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
+    @pytest.mark.xfail(strict=True, reason="https://github.com/conda-forge/setuptools-feedstock/issues/43")
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
