@@ -35,7 +35,38 @@ stderrlog = getLogger('stderrlog')
 fail_unknown_host = False
 
 
-def get_index(channel_urls=(), prepend=True, platform=None,
+def supplement_index_with_prefix(index, prefix, channel_priority_map):
+    # type: (Dict[Dist, Record], str, Dict[channel_url, Tuple[canonical_name, priority]) -> None
+    # supplement index with information from prefix/conda-meta
+    assert prefix
+
+    priorities = {chnl: prrty for chnl, prrty in itervalues(channel_priority_map)}
+    maxp = max(itervalues(priorities)) + 1 if priorities else 1
+    for dist, info in iteritems(linked_data(prefix)):
+        fn = info['fn']
+        schannel = info['schannel']
+        prefix = '' if schannel == DEFAULTS else schannel + '::'
+        priority = priorities.get(schannel, maxp)
+        key = Dist(prefix + fn)
+        if key in index:
+            # Copy the link information so the resolver knows this is installed
+            old_record = index[key]
+            link = info.get('link') or EMPTY_LINK
+            index[key] = Record.from_objects(old_record, link=link)
+        else:
+            # # only if the package in not in the repodata, use local
+            # # conda-meta (with 'depends' defaulting to [])
+            # info.setdefault('depends', ())
+
+            # If the schannel is known but the package is not in the index, it is
+            # because 1) the channel is unavailable offline or 2) the package has
+            # been removed from that channel. Either way, we should prefer any
+            # other version of the package to this one.
+            priority = MAX_CHANNEL_PRIORITY if schannel in priorities else priority
+            index[key] = Record.from_objects(info, priority=priority)
+
+
+def get_index(channel_priority_map=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=False, prefix=False):
     """
     Return the index of packages available on the channels
@@ -45,37 +76,14 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     If prefix is supplied, then the packages installed in that prefix are added.
     """
     if use_local:
-        channel_urls = ['local'] + list(channel_urls)
+        channel_priority_map = ['local'] + list(channel_priority_map)
     if prepend:
-        channel_urls += context.channels
-    channel_urls = prioritize_channels(channel_urls, platform=platform)
-    index = fetch_index(channel_urls, use_cache=use_cache, unknown=unknown)
+        channel_priority_map += context.channels
+    channel_priority_map = prioritize_channels(channel_priority_map, platform=platform)
+    index = fetch_index(channel_priority_map, use_cache=use_cache, unknown=unknown)
 
-    # supplement index with information from prefix/conda-meta
     if prefix:
-        priorities = {chnl: prrty for chnl, prrty in itervalues(channel_urls)}
-        maxp = max(itervalues(priorities)) + 1 if priorities else 1
-        for dist, info in iteritems(linked_data(prefix)):
-            fn = info['fn']
-            schannel = info['schannel']
-            prefix = '' if schannel == DEFAULTS else schannel + '::'
-            priority = priorities.get(schannel, maxp)
-            key = Dist(prefix + fn)
-            if key in index:
-                # Copy the link information so the resolver knows this is installed
-                index[key] = index[key].copy()
-                index[key]['link'] = info.get('link') or EMPTY_LINK
-            else:
-                # only if the package in not in the repodata, use local
-                # conda-meta (with 'depends' defaulting to [])
-                info.setdefault('depends', [])
-
-                # If the schannel is known but the package is not in the index, it is
-                # because 1) the channel is unavailable offline or 2) the package has
-                # been removed from that channel. Either way, we should prefer any
-                # other version of the package to this one.
-                info['priority'] = MAX_CHANNEL_PRIORITY if schannel in priorities else priority
-                index[key] = info
+        supplement_index_with_prefix(index, prefix, channel_priority_map)
 
     return index
 

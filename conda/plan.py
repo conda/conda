@@ -13,6 +13,7 @@ import json
 import os
 import sys
 from collections import defaultdict, namedtuple
+from copy import deepcopy
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
@@ -20,7 +21,7 @@ from . import instructions as inst
 from .base.constants import DEFAULTS, LinkType
 from .base.context import context
 from .common.compat import text_type
-from .core.index import get_index
+from .core.index import get_index, supplement_index_with_prefix
 from .core.linked_data import is_linked
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
@@ -32,7 +33,7 @@ from .models.channel import Channel
 from .models.dist import Dist
 from .resolve import MatchSpec, Package, Resolve
 from .utils import human_bytes, md5_file, on_win
-from ._vendor.toolz.itertoolz import concat
+from ._vendor.toolz.itertoolz import concat, pluck
 
 log = getLogger(__name__)
 
@@ -496,122 +497,140 @@ def preferred_env_matches_prefix(preferred_env, prefix):
     padded_preferred_env = maybe_pad(preferred_env)
     return prefix_name == padded_preferred_env
 
-DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
+DistForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False, channel_urls=None):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     specs = [MatchSpec(spec) for spec in specs]
 
-    # this gets called recursively a couple of times for solving for different envs
-    prefix_with_dists_no_deps_has_resolve = old_install_actions(
-        prefix, index, specs, force=False, only_names=None, always_copy=False, pinned=True,
-        minimal_hint=False, update_deps=True, prune=False, channel_urls=channel_urls)
-    # type: Dict[prefix, List[Dist]]  # without dependencies
+    specs = augment_specs(prefix, specs)
+    r = get_resolve_object(index, prefix)
 
-    actions = get_actions_for_dists(prefix_with_dists_no_deps_has_resolve, only_names, index,
-                                    force, always_copy, prune)
+    dists_for_envs = determine_all_envs(r, specs)
+    preferred_envs = set(d.prefix for d in dists_for_envs)
+
+    # ABOVE, DO AS LITTLE AS POSSIBLE TO GET `preferred_envs`
+    #   SAVE WHATEVER WORK WE'LL NEED FOR BELOW (e.g. `r`)
+
+    # if len(preferred_envs) == 1 and preferred_env matches prefix
+    #    solution is good
+    # if len(preferred_envs) == 1 and preferred_env is None
+    #    solution is good
+    # if len(preferred_envs) == 2 and set([None, preferred_env]) preferred_env matches prefix
+    #    solution is good
+    if all(preferred_env_matches_prefix(preferred_env, prefix) for preferred_env in preferred_envs):
+        prefix_with_dists_no_deps_has_resolve = dists_for_envs
+    else:
+        # if we get here...
+        # assert prefix is context.root_dir
+
+        def get_r(preferred_env):
+            # don't make r for the prefix where we already have it created
+            if preferred_env_matches_prefix(preferred_env, prefix):
+                return r
+            else:
+                return get_resolve_object(index, preferred_env_to_prefix(preferred_env))
+
+        prefix_with_dists_no_deps_has_resolve = tuple(
+            DistForPrefix(prefix=dists.prefix, dists=dists.dists, r=get_r(dists.prefix))
+            for dists in dists_for_envs)
+
+    actions = tuple(concat(get_actions_for_dists(dists_by_prefix, only_names, index, force,
+                                                 always_copy, prune)
+                           for dists_by_prefix in prefix_with_dists_no_deps_has_resolve))
     return actions
 
 
 def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune):
     root_only = ('conda', 'conda-env')
     actions = []
-    for dist_with_prefix in dists_for_prefix:
-        prefix = dist_with_prefix.prefix
-        dists = dist_with_prefix.dists
-        r = dist_with_prefix.r
+    prefix = dists_for_prefix.prefix
+    dists = dists_for_prefix.dists
+    r = dists_for_prefix.r
 
-        linked = r.installed
-        must_have = {}
-
-        installed = linked
-        if prune:
-            installed = []
-        pkgs = r.install([MatchSpec(dist.to_matchspec()) for dist in dists], installed)
-
-        for fn in pkgs:
-            dist = Dist(fn)
-            name = r.package_name(dist)
-            if not name or only_names and name not in only_names:
-                continue
-            must_have[name] = dist
-
-        if is_root_prefix(prefix):
-            # for name in foreign:
-            #     if name in must_have:
-            #         del must_have[name]
-            pass
-        elif basename(prefix).startswith('_'):
-            # anything (including conda) can be installed into environments
-            # starting with '_', mainly to allow conda-build to build conda
-            pass
-
-        elif any(s in must_have for s in root_only):
-            # the solver scheduled an install of conda, but it wasn't in the
-            # specs, so it must have been a dependency.
-            specs = [s for s in dists.to_matchspec() if r.depends_on(s, root_only)]
-            if specs:
-                raise InstallError("""\
-    Error: the following specs depend on 'conda' and can only be installed
-    into the root environment: %s""" % (' '.join(specs),))
-            linked = [r.package_name(s) for s in linked]
-            linked = [s for s in linked if r.depends_on(s, root_only)]
-            if linked:
-                raise InstallError("""\
-    Error: one or more of the packages already installed depend on 'conda'
-    and should only be installed in the root environment: %s
-    These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
-            raise InstallError("Error: 'conda' can only be installed into the "
-                               "root environment")
-
-        smh = r.dependency_sort(must_have)
-        action = ensure_linked_actions(
-            smh, prefix,
-            index=index,
-            force=force, always_copy=always_copy)
-
-        if action[inst.LINK]:
-            action[inst.SYMLINK_CONDA] = [context.root_dir]
-
-        for dist in sorted(linked):
-            dist = Dist(dist)
-            name = r.package_name(dist)
-            replace_existing = name in must_have and dist != must_have[name]
-            prune_it = prune and dist not in smh
-            if replace_existing or prune_it:
-                add_unlink(actions, dist)
-
-        actions.append(action)
-    return tuple(actions)
-
-
-def old_install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False, channel_urls=None):
-    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
-    #        bool, bool, bool) -> Dict[weird]
-    assert all(isinstance(spec, MatchSpec) for spec in specs)
-
-    channels = channel_urls if channel_urls is not None else []
-    r = Resolve(get_index(channel_urls=channels, prefix=prefix))
     linked = r.installed
+    must_have = {}
 
+    installed = linked
+    if prune:
+        installed = []
+    pkgs = r.install([MatchSpec(dist.to_matchspec()) for dist in dists], installed)
+
+    for fn in pkgs:
+        dist = Dist(fn)
+        name = r.package_name(dist)
+        if not name or only_names and name not in only_names:
+            continue
+        must_have[name] = dist
+
+    if is_root_prefix(prefix):
+        # for name in foreign:
+        #     if name in must_have:
+        #         del must_have[name]
+        pass
+    elif basename(prefix).startswith('_'):
+        # anything (including conda) can be installed into environments
+        # starting with '_', mainly to allow conda-build to build conda
+        pass
+
+    elif any(s in must_have for s in root_only):
+        # the solver scheduled an install of conda, but it wasn't in the
+        # specs, so it must have been a dependency.
+        specs = [s for s in dists.to_matchspec() if r.depends_on(s, root_only)]
+        if specs:
+            raise InstallError("""\
+Error: the following specs depend on 'conda' and can only be installed
+into the root environment: %s""" % (' '.join(specs),))
+        linked = [r.package_name(s) for s in linked]
+        linked = [s for s in linked if r.depends_on(s, root_only)]
+        if linked:
+            raise InstallError("""\
+Error: one or more of the packages already installed depend on 'conda'
+and should only be installed in the root environment: %s
+These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
+        raise InstallError("Error: 'conda' can only be installed into the "
+                           "root environment")
+
+    smh = r.dependency_sort(must_have)
+    action = ensure_linked_actions(
+        smh, prefix,
+        index=index,
+        force=force, always_copy=always_copy)
+
+    if action[inst.LINK]:
+        action[inst.SYMLINK_CONDA] = [context.root_dir]
+
+    for dist in sorted(linked):
+        dist = Dist(dist)
+        name = r.package_name(dist)
+        replace_existing = name in must_have and dist != must_have[name]
+        prune_it = prune and dist not in smh
+        if replace_existing or prune_it:
+            add_unlink(actions, dist)
+
+    return actions
+
+
+def augment_specs(prefix, specs, pinned=True):
+    # get conda-meta/pinned
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
-        specs += pinned_specs
+        specs += [MatchSpec(spec) for spec in pinned_specs]
 
-    # Only add a conda spec if conda and conda-env are not in the specs.
-    # Also skip this step if we're offline.
+    # support aggressive auto-update conda
+    #   Only add a conda spec if conda and conda-env are not in the specs.
+    #   Also skip this step if we're offline.
     root_only = ('conda', 'conda-env')
     mss = [MatchSpec(s) for s in specs if s.name.startswith(root_only)]
     mss = [ms for ms in mss if ms.name in root_only]
     if is_root_prefix(prefix):
         if context.auto_update_conda and not context.offline and not mss:
-            specs.append('conda')
-            specs.append('conda-env')
+            specs.append(MatchSpec('conda'))
+            specs.append(MatchSpec('conda-env'))
     elif basename(prefix).startswith('_'):
         # anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
@@ -619,50 +638,32 @@ def old_install_actions(prefix, index, specs, force=False, only_names=None, alwa
     elif mss:
         raise InstallError("Error: 'conda' can only be installed into the root environment")
 
+    # support track_features config parameter
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
+    return specs
 
-    installed = linked
-    if prune:
-        installed = []
-    pkgs = r.install(specs, installed, update_deps=update_deps)  # probably needs context.prefix_specified
 
-    # This block: Do we need to re-solve, or is our solution good already?
-    _specs = [MatchSpec(spec) for spec in specs if spec not in ('conda', 'conda-env')]  # TODO: remove all add_defaults_to_specs
+def get_resolve_object(index, prefix):
+    # instantiate resolve object
+    supplement_index_with_prefix(index, prefix, {})
+    r = Resolve(index)
+    return r
+
+
+def determine_all_envs(r, specs, force=False, only_names=None, always_copy=False,
+                       minimal_hint=False, update_deps=True, prune=False, channel_urls=None):
+    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool) -> Dict[weird]
+    assert all(isinstance(spec, MatchSpec) for spec in specs)
+
+    pkgs = r.solve(specs)
+    _specs = [spec for spec in specs if spec not in (MatchSpec('conda'), MatchSpec('conda-env'))]
     _specs_contains = lambda dist: any(spec.match(dist) for spec in _specs)
     dists_for_specs = [dist for dist in pkgs if _specs_contains(dist)]
-
-    preferred_envs = set(index[dist].preferred_env for dist in dists_for_specs)
-    # if len(preferred_envs) == 1 and preferred_env matches prefix
-    #    solution is good
-    # if len(preferred_envs) == 1 and preferred_env is None
-    #    solution is good
-    # if len(preferred_envs) == 2 and set([None, preferred_env]) preferred_env matches prefix
-    #    solution is good
-
-    if not all(preferred_env_matches_prefix(preferred_env, prefix) for preferred_env in preferred_envs):
-        # if we get here...
-        # assert prefix is context.root_dir
-
-        # throw out the whole solution, and start again with possibly multiple solves
-
-        # so what do we need to solve now?
-        solve_again_map = defaultdict(list)
-        # type: Dict[target_prefix, List[MatchSpec]]
-        for dist in dists_for_specs:
-            target_prefix = preferred_env_to_prefix(index[dist].preferred_env)
-            solve_again_map[target_prefix].append(MatchSpec(dist.to_matchspec()))
-
-        # call above recursively with new map
-        #  old_install_actions(prefix, specs)
-        return tuple(concat(old_install_actions(prfx, index, spcs, force=False, only_names=None,
-                                                always_copy=False, pinned=True, minimal_hint=False,
-                                                update_deps=True, prune=False, channel_urls=channel_urls)
-                            for prfx, spcs in solve_again_map.items()))
-        # type: Sequence[DistsForPrefix]
-    else:
-        return DistsForPrefix(prefix=prefix, dists=dists_for_specs, r=r),
-        # type: Sequence[DistsForPrefix]
+    dists_for_envs = tuple(DistForPrefix(prefix=r.index[dist].preferred_env, dists=dist, r=r)
+                      for dist in dists_for_specs)
+    return dists_for_envs
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):

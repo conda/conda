@@ -23,7 +23,7 @@ def install(prefix, specs, args, env, prune=False):
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = channel_urls + [chan for chan in env.channels if chan != 'nodefaults']
-    index = get_index(channel_urls=channel_urls,
+    index = get_index(channel_priority_map=channel_urls,
                       prepend='nodefaults' not in env.channels,
                       prefix=prefix)
     action_set = plan.install_actions(prefix, index, specs, prune=prune)
