@@ -84,7 +84,6 @@ def get_index(channel_priority_map=(), prepend=True, platform=None,
 
     if prefix:
         supplement_index_with_prefix(index, prefix, channel_priority_map)
-
     return index
 
 
@@ -243,8 +242,11 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
 
-        raise CondaHTTPError(help_message, e.response.url if e.response else None, status_code,
-                             e.response.reason if e.response else None)
+        raise CondaHTTPError(help_message,
+                             getattr(e.response, 'url', None),
+                             status_code,
+                             getattr(e.response, 'reason', None),
+                             getattr(e.response, 'elapsed', None))
 
     cache['_url'] = url
     try:
@@ -356,6 +358,7 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 
 def add_unknown(index, priorities):
+    # TODO: discuss with @mcg1969 and document
     priorities = {p[0]: p[1] for p in itervalues(priorities)}
     maxp = max(itervalues(priorities)) + 1 if priorities else 1
     for dist, info in iteritems(package_cache()):
@@ -366,7 +369,7 @@ def add_unknown(index, priorities):
             continue
         try:
             with open(join(info['dirs'][0], 'info', 'index.json')) as fi:
-                meta = Record(**json.load(fi))
+                meta = json.load(fi)
         except IOError:
             continue
         if info['urls']:
@@ -393,13 +396,14 @@ def add_unknown(index, priorities):
                      })
         meta.setdefault('depends', [])
         log.debug("adding cached pkg to index: %s" % dist)
-        index[dist] = meta
+        index[dist] = Record(**meta)
 
 
 def add_pip_dependency(index):
-    for info in itervalues(index):
+    # TODO: discuss with @mcg1969 and document
+    for dist, info in iteritems(index):
         if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-            info['depends'] = info['depends'] + ('pip',)
+            index[dist] = Record.from_objects(info, depends=info['depends'] + ('pip',))
 
 
 def create_cache_dir():

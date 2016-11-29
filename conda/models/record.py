@@ -4,8 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField, StringField, MapField)
-from ..base.constants import Arch, Platform, LinkType
+                                     EnumField, ImmutableEntity, IntegerField, ListField,
+                                     MapField, StringField)
+from ..base.constants import Arch, LinkType, Platform
 from ..common.compat import string_types
 
 log = getLogger(__name__)
@@ -46,7 +47,7 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
-class Record(DictSafeMixin, Entity):
+class Record(DictSafeMixin, ImmutableEntity):
     arch = EnumField(Arch, required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()

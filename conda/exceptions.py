@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from datetime import timedelta
+
 import logging
 import sys
 from logging import getLogger
@@ -9,7 +11,7 @@ from traceback import format_exc
 from . import CondaError, text_type, CondaExitZero
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
-from .compat import iteritems, iterkeys
+from .common.compat import iteritems, iterkeys, string_types
 
 log = logging.getLogger(__name__)
 
@@ -131,14 +133,8 @@ class DryRunExit(CondaExitZero):
 
 class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
-        msg = ' '.join(text_type(arg) for arg in args)
+        msg = ' '.join(text_type(arg) for arg in self.args)
         super(CondaSystemExit, self).__init__(msg)
-
-
-class CondaHelp(CondaSystemExit):
-    def __init__(self, message, returncode):
-        self.returncode = returncode
-        super(CondaHelp, self).__init__(message)
 
 
 class SubprocessExit(CondaExitZero):
@@ -237,14 +233,18 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message, url, status_code, reason):
+    def __init__(self, message, url, status_code, reason, elapsed_time):
         message = dals("""
-        HTTP %(status_code)s %(reason)s
-        for url <%(url)s>
+        HTTP %(status_code)s %(reason)s for url <%(url)s>
+        Elapsed: %(elapsed_time)s
 
         """) + message
+        if isinstance(elapsed_time, timedelta):
+            elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
+        if isinstance(reason, string_types):
+            reason = reason.upper()
         super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
-                                             reason=reason)
+                                             reason=reason, elapsed_time=elapsed_time)
 
 
 class CondaRevisionError(CondaError):
@@ -509,10 +509,6 @@ def conda_exception_handler(func, *args, **kwargs):
         return_value = func(*args, **kwargs)
         if isinstance(return_value, int):
             return return_value
-    except CondaHelp as e:
-        print_conda_exception(e)
-        # delete_lock()
-        return e.returncode
     except CondaExitZero:
         return 0
     except CondaRuntimeError as e:

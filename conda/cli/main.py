@@ -88,7 +88,7 @@ def _main():
 
     log.debug("conda.cli.main called with %s", sys.argv)
     if len(sys.argv) > 1:
-        argv1 = sys.argv[1].strip()
+        argv1 = sys.argv[1]
         if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
             import conda.cli.activate as activate
             activate.main()

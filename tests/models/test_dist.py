@@ -16,7 +16,7 @@ class DistTests(TestCase):
         assert d.quad[0] == "spyder-app"
         assert d.quad[1] == "2.3.8"
         assert d.quad[2] == "py27_0"
-        assert d.build_number() == 0
+        assert d.build_number == 0
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
 
         assert d == Dist.from_string("spyder-app-2.3.8-py27_0")
