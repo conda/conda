@@ -127,7 +127,7 @@ if ( "${CONDA_ENVNAME}" -eq "" ) { $CONDA_ENVNAME="root" }
 ###########################################################################
 # HELP DIALOG                                                             #
 if ( "${CONDA_HELP}" -eq "${TRUE}" ) {
-    conda "..activate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
+    & "conda" "..activate" "${WHAT_SHELL_AM_I}" "-h" ${UNKNOWN}
 
     Remove-Variable WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_ENVNAME}" -eq "${TRUE}" ) { $env:CONDA_ENVNAME="${CONDA_ENVNAME}" }
@@ -157,7 +157,7 @@ Remove-Variable UNKNOWN
 
 ###########################################################################
 # CHECK ENV AND DEACTIVATE OLD ENV                                        #
-conda "..checkenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
+& "conda" "..checkenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
 if ( $lastexitcode -ne 0 ) {
     Remove-Variable WHAT_SHELL_AM_I
     if ( "${IS_ENV_CONDA_ENVNAME}" -eq "${TRUE}" ) { $env:CONDA_ENVNAME="${CONDA_ENVNAME}" }
@@ -194,7 +194,7 @@ Remove-Variable _IS_ENV_CONDA_VERBOSE
 Remove-Variable _CONDA_VERBOSE
 Remove-Variable _CONDA_WHAT_SHELL_AM_I
 
-$_CONDA_BIN=conda "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
+$_CONDA_BIN=& "conda" "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
 if ( $lastexitcode -ne 0 ) {
     Remove-Variable WHAT_SHELL_AM_I
     Remove-Variable _CONDA_BIN
@@ -252,12 +252,13 @@ Remove-Variable IS_ENV_CONDA_ENVNAME
 # PROMPT & CONDA_PS1_BACKUP                                               #
 # export PROMPT to restore upon deactivation                              #
 # customize the PROMPT to show what environment has been activated        #
-#                                                                         #
-# TODO: this is much too complex to do here, delegate to Python           #
-# TODO: redesign conda ..changeps1 to actually return the new prompt      #
-if ( conda "..changeps1" -eq 1 -and (Get-Command Prompt).definition -ne "" ) {
-    $env:CONDA_PS1_BACKUP=Get-Content function:\Prompt
-    # Set-Content function:\Prompt $env:CONDA_PS1_BACKUP
+if ( & "conda" "..changeps1" -eq 1 -and (Get-Command Prompt).definition -ne "" ) {
+    function global:CONDA_PS1_BACKUP { "" }
+    $function:CONDA_PS1_BACKUP=$function:Prompt
+    function global:Prompt {
+        Write-Host "($env:CONDA_DEFAULT_ENV) " -nonewline
+        & $function:CONDA_PS1_BACKUP
+    }
 }
 # END PS1 & CONDA_PS1_BACKUP                                              #
 ###########################################################################

@@ -50,10 +50,7 @@
     @REM # refer to conda.util.shells for appropriate syntaxes
     @SET shells=
     @WHERE /q "cmd.exe"               && @SET "shells=!shells! --shell=cmd.exe"
-    @REM # POWERSHELL has a much more complex prompt than any of the     #
-    @REM # other shells this means that we need to rework fundamental    #
-    @REM # code before unittests are feasible                            #
-    @REM @WHERE /q "powershell.exe"        && @SET "shells=!shells! --shell=powershell.exe"
+    @WHERE /q "powershell.exe"        && @SET "shells=!shells! --shell=powershell.exe"
     @REM # disable all special shell testing as they need more work      #
     @REM @IF EXIST "!CYGWIN_BIN!\bash.exe" [ @SET "shells=!shells! --shell=bash.cygwin"  ]
     @REM @IF EXIST "!MINGW_BIN!\bash.exe"  [ @SET "shells=!shells! --shell=bash.mingw"   ]

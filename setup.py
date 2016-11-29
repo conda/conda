@@ -48,7 +48,9 @@ scripts = ['shell/activate',
 if sys.platform == 'win32':
     # Powershell scripts should go here
     scripts.extend(['shell/activate.bat',
+                    'shell/activate.ps1',
                     'shell/deactivate.bat',
+                    'shell/deactivate.ps1',
                     'shell/envvar_cleanup.bat'])
 
 install_requires = [

@@ -229,12 +229,22 @@ def test_activate_noleftoverargs(shell):
             if shell.endswith(".msys"):
                 # CONDA_PREFIX,CONDA_PS1_BACKUP,CONDA_DEFAULT_ENV,MSYS2_ENV_CONV_EXCL
                 assert len(stdout_diff) == 4
+                assert "CONDA_PREFIX" in stdout_diff
+                assert "CONDA_PS1_BACKUP" in stdout_diff
+                assert "CONDA_DEFAULT_ENV" in stdout_diff
+                assert "MSYS2_ENV_CONV_EXCL" in stdout_diff
+            elif shell == "powershell.exe":
+                # CONDA_PREFIX,CONDA_DEFAULT_ENV
+                # CONDA_PS1_BACKUP is a function
+                assert len(stdout_diff) == 2
+                assert "CONDA_PREFIX" in stdout_diff
+                assert "CONDA_DEFAULT_ENV" in stdout_diff
             else:
                 # CONDA_PREFIX,CONDA_PS1_BACKUP,CONDA_DEFAULT_ENV
                 assert len(stdout_diff) == 3
-            assert "CONDA_PS1_BACKUP" in stdout_diff
-            assert "CONDA_DEFAULT_ENV" in stdout_diff
-            assert "CONDA_PREFIX" in stdout_diff
+                assert "CONDA_PREFIX" in stdout_diff
+                assert "CONDA_PS1_BACKUP" in stdout_diff
+                assert "CONDA_DEFAULT_ENV" in stdout_diff
             assert_equals(stderr,'')
 
 
@@ -848,7 +858,7 @@ def test_deactivate_help(shell):
             assert_equals(stdout, '', stderr)
             if shell in ["cmd.exe"]:
                 assert_in('Usage: deactivate [/h] [/v]', stderr, shell)
-            elif shell in ["powershell"]:
+            elif shell in ["powershell.exe"]:
                 assert_in('Usage: deactivate [-h] [-v]', stderr, shell)
             elif shell in ["csh","tcsh"]:
                 assert_in('Usage: source "`which deactivate`" [-h] [-v]', stderr, shell)
@@ -2296,20 +2306,27 @@ def test_activate_verbose(shell):
 
         dir=os.path.join(shell_vars['path_from'](env_dirs[0]), "etc", "conda", "activate.d")
         os.makedirs(dir)
-        file="test{}".format(shell_vars["suffix_script"])
-        file=os.path.join(dir,file)
-        with open(file, 'w') as f:
-            f.write(shell_vars["envvar_set"].format(
-                variable=testvariable,
-                value=testvalue))
+        activate_file="test{}".format(shell_vars["suffix_script"])
+        activate_file=os.path.join(dir,activate_file)
+        activate_text=shell_vars["envvar_set"].format(
+            variable=testvariable,
+            value=testvalue)
+        with open(activate_file, 'w') as f:
+            f.write(activate_text)
 
         dir=os.path.join(shell_vars['path_from'](env_dirs[0]), "etc", "conda", "deactivate.d")
         os.makedirs(dir)
-        file="test{}".format(shell_vars["suffix_script"])
-        file=os.path.join(dir,file)
-        with open(file, 'w') as f:
-            f.write(shell_vars["envvar_unset"].format(
-                variable=testvariable))
+        deactivate_file="test{}".format(shell_vars["suffix_script"])
+        deactivate_file=os.path.join(dir,deactivate_file)
+        deactivate_text=shell_vars["envvar_unset"].format(
+            variable=testvariable)
+        with open(deactivate_file, 'w') as f:
+            f.write(deactivate_text)
+
+        print("activate_file", activate_file)
+        print("activate_text", activate_text)
+        print("deactivate_file", deactivate_file)
+        print("deactivate_text", deactivate_text)
 
         #-----------------------------------------------------------------------
         # TEST ACTIVATE
