@@ -3,8 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from .._vendor.auxlib.entity import BooleanField, ComposableField, DictSafeMixin, Entity, \
-    EnumField, ImmutableEntity, IntegerField, ListField, MapField, StringField
+from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
+                                     EnumField, ImmutableEntity, IntegerField, ListField,
+                                     MapField, StringField)
 from ..base.constants import Arch, LinkType, Platform
 from ..common.compat import string_types
 
