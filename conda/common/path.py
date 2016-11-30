@@ -98,4 +98,4 @@ def win_path_backout(path):
 
 
 def maybe_right_pad(path):
-    return path if path.endswith(os.pathsep) else path + os.pathsep
+    return path if path.endswith(os.sep) else path + os.sep

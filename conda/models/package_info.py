@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.models.channel import Channel
 from enum import Enum
 from logging import getLogger
 
@@ -54,8 +55,16 @@ class PathInfoV1(PathInfo):
 
 
 class PackageInfo(Entity):
+
+    # attributes external to the package tarball
+    extracted_package_dir = StringField()
+    package_st_dev = IntegerField()  # value of os.lstat(extracted_package_dir).st_dev
+    channel = ComposableField(Channel)
+    repodata_record = ComposableField(Record)
+
+    # attributes within the package tarball
     paths_version = IntegerField()
     paths = ListField(PathInfo)
     index_json_record = ComposableField(Record)
     icondata = StringField(required=False, nullable=True)
-    noarch = ComposableField(NoarchInfo, required=False, nullable=True)
+    noarch = ComposableField(NoarchInfo, required=False, nullable=True)  # TODO: this isn't noarch anymore; package_metadata.json

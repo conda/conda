@@ -147,7 +147,7 @@ def get_python_version_for_prefix(prefix):
         return record.version[:3]
 
 
-def get_site_packages_dir(prefix):
+def get_site_packages_short_path(prefix):
     if on_win:
         return 'Lib/site-packages'
     else:

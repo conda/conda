@@ -28,7 +28,7 @@ from conda.common.yaml import yaml_load
 from conda.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
-from conda.core.linked_data import get_python_version_for_prefix, get_site_packages_dir, \
+from conda.core.linked_data import get_python_version_for_prefix, get_site_packages_short_path, \
     linked as install_linked, linked_data, linked_data_
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
@@ -247,7 +247,7 @@ class IntegrationTests(TestCase):
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
-            sp_dir = get_site_packages_dir(prefix)
+            sp_dir = get_site_packages_short_path(prefix)
             pyc_test_pair = missing_pyc_files(py_ver, ("%s/flask/__init__.py" % sp_dir,))
             assert len(pyc_test_pair) == 1
             assert pyc_test_pair[0][0] == "%s/flask/__init__.py" % sp_dir

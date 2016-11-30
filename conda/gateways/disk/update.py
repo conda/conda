@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import re
 import struct
 from logging import getLogger
-from os import chmod, lstat
+from os import chmod, lstat, rename
 from os.path import realpath
 from stat import S_IMODE
 
@@ -13,6 +13,8 @@ from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
 from ...utils import on_win
 
 log = getLogger(__name__)
+
+rename = rename
 
 SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
 

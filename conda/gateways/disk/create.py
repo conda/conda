@@ -108,7 +108,11 @@ def try_write(dir_path, heavy=False):
 
 
 def try_hard_link(pkgs_dir, prefix, dist):
-    # TODO: Usage of this function is bad all around it looks like
+    # Some file systems (e.g. BeeGFS) do not support hard-links
+    # between files in different directories. Depending on the
+    # file system configuration, a symbolic link may be created
+    # instead. If a symbolic link is created instead of a hard link,
+    # return False.
 
     dist = Dist(dist)
     src = join(pkgs_dir, dist.dist_name, 'info', 'index.json')
@@ -119,16 +123,46 @@ def try_hard_link(pkgs_dir, prefix, dist):
         if not isdir(prefix):
             makedirs(prefix)
         create_link(src, dst, LinkType.hardlink)
-        # Some file systems (at least BeeGFS) do not support hard-links
-        # between files in different directories. Depending on the
-        # file system configuration, a symbolic link may be created
-        # instead. If a symbolic link is created instead of a hard link,
-        # return False.
         return not islink(dst)
     except OSError:
         return False
     finally:
         rm_rf(dst)
+
+
+def hardlink_supported(source_file, dest_dir):
+    # Some file systems (e.g. BeeGFS) do not support hard-links
+    # between files in different directories. Depending on the
+    # file system configuration, a symbolic link may be created
+    # instead. If a symbolic link is created instead of a hard link,
+    # return False.
+    test_file = join(dest_dir, '.tmp.' + basename(source_file))
+    assert isfile(source_file), source_file
+    assert isdir(dest_dir), dest_dir
+    assert not exists(test_file), test_file
+    try:
+        create_link(source_file, test_file, LinkType.hardlink)
+        return not islink(test_file)
+    except (IOError, OSError):
+        return False
+    finally:
+        rm_rf(test_file)
+
+
+def softlink_supported(source_file, dest_dir):
+    # On Windows, softlink creation is restricted to Administrative users by default. It can
+    # optionally be enabled for non-admin users through explicit registry modification.
+    test_path = join(dest_dir, '.tmp.' + basename(source_file))
+    assert isfile(source_file), source_file
+    assert isdir(dest_dir), dest_dir
+    assert not exists(test_path), test_path
+    try:
+        create_link(source_file, test_path, LinkType.softlink)
+        return islink(test_path)
+    except (IOError, OSError):
+        return False
+    finally:
+        rm_rf(test_path)
 
 
 def make_menu(prefix, file_path, remove=False):

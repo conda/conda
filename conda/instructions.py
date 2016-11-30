@@ -37,6 +37,7 @@ PREFIX = 'PREFIX'
 PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
+UNLINKLINKTRANSACTION = 'UNLINKLINKTRANSACTION'
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
@@ -107,6 +108,11 @@ def UNLINK_CMD(state, arg):
 def SYMLINK_CONDA_CMD(state, arg):
     log.debug("No longer symlinking conda. Passing for prefix %s", state['prefix'])
     # symlink_conda(state['prefix'], arg)
+
+
+def UNLINKLINKTRANSACTION_CMD(state, arg):
+    assert isinstance(arg, UnlinkLinkTransaction)
+    arg.run()
 
 
 def get_package(plan, instruction):
@@ -271,6 +277,7 @@ commands = {
     CHECK_UNLINK: CHECK_UNLINK_CMD,
     UNLINK: UNLINK_CMD,
     SYMLINK_CONDA: SYMLINK_CONDA_CMD,
+    UNLINKLINKTRANSACTION: UNLINKLINKTRANSACTION_CMD,
 }
 
 
@@ -319,11 +326,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                                                state['i'] - 1))
         cmd = _commands[instruction]
 
-        # check commands require the plan
-        if 'CHECK' in instruction:
-            cmd(state, plan)
-        else:
-            cmd(state, arg)
+        cmd(state, arg)
 
         if (state['i'] is not None and instruction in progress_cmds and
                 state['maxval'] == state['i']):

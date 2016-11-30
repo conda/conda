@@ -6,33 +6,33 @@ import re
 import sys
 import warnings
 from collections import namedtuple
-from conda._vendor.auxlib.ish import dals
 from logging import getLogger
-from os import listdir
-from os.path import dirname, isdir, isfile, join
+from os.path import dirname, join
 from subprocess import CalledProcessError, check_call
 
 from .package_cache import is_extracted, read_url
+from .._vendor.auxlib.ish import dals
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import (explode_directories, get_leaf_directories,
-                           get_bin_directory_short_path, win_path_ok, get_all_directories)
-from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
-                                set_linked_data, get_site_packages_dir, linked_data)
+from ..common.path import explode_directories, get_all_directories, get_bin_directory_short_path, \
+    get_leaf_directories, win_path_ok
+from ..core.linked_data import delete_linked_data, get_python_version_for_prefix, \
+    get_site_packages_short_path, linked_data, load_meta, set_linked_data
 from ..exceptions import CondaOSError, LinkError, PaddingError
-from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, create_link as create_link,
-                                    make_menu, mkdir_p, write_conda_meta_record, create_directory)
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import collect_all_info_for_package, yield_lines
-from ..gateways.disk.update import _PaddingError, update_prefix
-from ..models.record import Link, Record
+from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, create_link,
+                                    make_menu, mkdir_p, write_conda_meta_record,
+                                    hardlink_supported, softlink_supported)
+from ..gateways.disk.delete import maybe_rmdir_if_empty, rm_rf
+from ..gateways.disk.read import collect_all_info_for_package, isdir, isfile, yield_lines
+from ..gateways.disk.update import _PaddingError, rename, update_prefix
 from ..models.package_info import PathType
+from ..models.record import Link, Record
 from ..utils import on_win
 
 try:
-    from cytoolz.itertoolz import concatv, groupby
+    from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:
-    from .._vendor.toolz.itertoolz import concatv, groupby  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -50,6 +50,239 @@ def get_package_installer(prefix, index, dist):
         return NoarchPythonPackageInstaller(prefix, index, dist)
     else:
         return PackageInstaller(prefix, index, dist)
+
+
+# is_menu_file = bool(MENU_RE.match(source_path_info.path))
+
+
+
+def determine_link_type(extracted_package_dir, target_prefix):
+    source_test_file = join(extracted_package_dir, 'info', 'index.json')
+    if context.always_copy:
+        return LinkType.copy
+    if context.always_softlink:
+        return LinkType.softlink
+    if hardlink_supported(source_test_file, target_prefix):
+        return LinkType.hardlink
+    if context.allow_softlinks and softlink_supported(source_test_file, target_prefix):
+        return LinkType.softlink
+    return LinkType.copy
+
+
+
+
+def make_directory_link_action(target_prefix, directory_short_path):
+    # no side effects in this function!
+    return LinkPathAction(None, None, target_prefix, directory_short_path, LinkType.directory,
+                          None, None)
+
+
+def get_stuff_from_path_info(path_info, requested_link_type):
+    if path_info.prefix_placeholder:
+        link_type = LinkType.copy
+        prefix_placehoder = path_info.prefix_placeholder
+        file_mode = path_info.file_mode
+    elif path_info.no_link or path_info.path_type == PathType.softlink:
+        link_type = LinkType.copy
+        prefix_placehoder, file_mode = '', None
+    else:
+        link_type = requested_link_type
+        prefix_placehoder, file_mode = '', None
+
+    return link_type, prefix_placehoder, file_mode
+
+
+def make_lateral_link_action(source_path_info, extracted_package_dir, target_prefix,
+                             requested_link_type):
+    # no side effects in this function!
+    # a lateral link has the same 'short path' in both the package directory and the target prefix
+    short_path = source_path_info.path
+    link_type, prefix_placehoder, file_mode = get_stuff_from_path_info(source_path_info, requested_link_type)
+    return LinkPathAction(extracted_package_dir, short_path,
+                          target_prefix, short_path, link_type,
+                          prefix_placehoder, file_mode)
+
+
+
+def get_python_noarch_target_path(source_short_path):
+    if source_short_path.startswith('site-packages/'):
+        sp_dir = '%(target_site_packages_short_path)s'
+        # string interpolation done when necessary in the action
+        return source_short_path.replace('site-packages', sp_dir, 1)
+    elif source_short_path.startswith('python-scripts/'):
+        bin_dir = '%(target_bin_dir)s'
+        return source_short_path.replace('python-scripts', bin_dir, 1)
+    else:
+        return source_short_path
+
+
+
+
+
+
+
+
+def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type):
+    # no side effects in this function!
+
+
+    def make_file_link_action(source_path_info):
+
+        # get source and target paths
+        extracted_package_dir = package_info.extracted_package_dir
+        source_short_path = source_path_info.path
+        if package_info.noarch and package_info.noarch.type == 'python':
+            target_short_path = get_python_noarch_target_path(source_path_info.path)
+        else:
+            target_short_path = source_path_info.path
+
+        link_type, prefix_placehoder, file_mode = get_stuff_from_path_info(source_path_info,
+                                                                           requested_link_type)
+        if prefix_placehoder:
+            assert link_type == LinkType.copy
+            return PrefixReplaceLinkAction(transaction_context, package_info,
+                                           extracted_package_dir, source_short_path,
+                                           target_prefix, target_short_path,
+                                           prefix_placehoder, file_mode)
+        else:
+            return LinkPathAction(transaction_context, package_info,
+                                  extracted_package_dir, source_short_path,
+                                  target_prefix, target_short_path, link_type)
+
+    file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
+
+    # leaf_directories = get_leaf_directories(pi.path for pi in package_info.paths)
+    leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
+
+    directory_create_operations = (make_dir_operation(d) for d in leaf_directories)
+    file_link_operations = (make_link_operation(p) for p in package_info.paths)
+
+
+    # first link actions should be directory creation
+    #   won't know which directory actions to create until all file actions are created
+    # last link action should be conda-meta creation, which includes all 'files'
+
+    return tuple(concatv(directory_create_operations, file_link_operations))
+
+
+
+
+class UnlinkLinkTransaction(object):
+
+    def __init__(self, target_prefix, unlink_dists, link_dists):
+        # type: (str, Sequence[Dist], Sequence[PackageInfo]])
+        # order of unlink_dists and link_dists will be preserved throughout
+        #   should be given in dependency-sorted order
+
+        # gather information from disk and caches
+        self.prefix_linked_data = linked_data(target_prefix)
+        self.prefix_inventory = inventory_prefix(target_prefix)
+        self.unlink_dists = unlink_dists
+        self.link_packages_info = link_dists
+
+        link_types = [determine_link_type(extracted_package_dir, target_prefix) for dist in link_dists]
+
+        # make all the path_actions
+        # No side effects!  All disk access should be done in the section above.
+        # first unlink action should be conda-meta json file, because it will roll back
+        # last link action should be conda-meta json file
+
+        transaction_context = dict()
+        self.unlink_actions = tuple((dist, make_unlink_actions(dist)) for dist in self.unlink_dists)
+        self.link_actions = tuple((package_info.dist, make_link_actions(package_info)) for package_info in self.link_packages_info)
+        
+        # we won't definitively know location of site-packages until here
+        transaction_context['target_site_packages_short_path']
+        transaction_context['target_bin_dir']
+
+        # verify link sources
+        # for each LinkPathAction where extracted_package_dir and source_short_path are not None,
+        # verify that the file is visible
+        # in the future, consider checking hashsums
+
+        # verify link destinations
+        # make sure path doesn't exist or will be unlinked first
+        for path in self.unlink_actions:
+            self.prefix_inventory.remove(path)
+
+        # execute the transaction
+        try:
+            for q, dist, unlink_actions in enumerate(self.unlink_actions):
+                run_script(target_prefix, dist, 'pre-unlink')
+                
+                for p, unlink_action in enumerate(unlink_actions):
+                    unlink_action.execute()
+
+                run_script(target_prefix, dist, 'post-unlink')
+                
+                # now here put in try/except/else for link
+
+        except Exception as e:
+            # print big explanatory error message
+            rollback_from = q, p
+        else:
+            for q, dist, unlink_actions in enumerate(self.unlink_actions):
+                for p, unlink_action in enumerate(unlink_actions):
+                    unlink_action.cleanup()
+
+
+
+
+
+
+        # # create per-path unlink and link directives, grouped by dist, in dependency-sorted order
+        # # self.unlink_directives = tuple((dist, self._make_unlink_operations(dist)) for dist in self.unlink_dists)
+        # # # type: Tuple[Tuple[package_name, Tuple[UnlinkOperation]]]
+        # self.package_unlinkers = tuple(PackageUnlinker(dist) for dist in self.unlink_dists)
+        #
+        # # self.link_directives = self._make_link_operations()
+        # # # type: Tuple[Tuple[package_name, Tuple[LinkOperation]]]
+        # self.package_linkers = tuple(PackageLinker(package_info) for package_info in self.link_packages_info)
+
+
+        # # unlink
+        # #   - assert can remove file
+        # #     implies write access within parent directory on unix
+        # #   - as assertions are executed, remove file from prefix_inventory
+        # for unlinker in self.package_unlinkers:
+        #     for directive in unlinker.directives:
+        #         assert can_unlink(directive.path), unlinker.package_name
+        #         # remove path from prefix_inventory
+        #
+        # # package cache
+        # #   - assert all files exist and visible
+        # #   - (maybe?) assert per-file sha sums
+        # for package_info in self.link_packages_info:
+        #     assert join(package_info.package_full_path, )
+        #
+        # # link
+        # #   - build assertions based on algorithm
+        # #   - as assertions are executed, add paths to prefix_inventory
+        #
+        # #   - create assertions, for both package cache and target_prefix
+        # #   - run assertions against file system
+
+        # execute unlink and link directives
+
+
+    def _make_unlink_operations(self, dist):
+        linked_package_data = self.prefix_linked_data[dist]
+        package_files = linked_package_data.files
+        all_directories = sorted(get_all_directories(package_files), key=len, reverse=True)
+
+        def make_file_unlink_operation(path):
+            prefix_short_path = path
+            is_menu_file = bool(MENU_RE.match(path))
+            # using hardlink here, because treatment would be no different than softlink
+            return UnlinkOperation(prefix_short_path, is_menu_file, PathType.hardlink)
+
+        def make_dir_unlink_operation(path):
+            return UnlinkOperation(path, False, PathType.directory)
+
+        return tuple(concatv(
+            (make_file_unlink_operation(p) for p in package_files),
+            (make_dir_unlink_operation(d) for d in all_directories),
+        ))
 
 
 class PackageInstaller(object):
@@ -194,7 +427,7 @@ class NoarchPythonPackageInstaller(PackageInstaller):
     def _make_link_operations(self, requested_link_type):
         # no side effects in this method!
         package_info = self.package_info
-        site_packages_dir = get_site_packages_dir(self.prefix)
+        site_packages_dir = get_site_packages_short_path(self.prefix)
         bin_dir = get_bin_directory_short_path()
 
         def make_link_operation(source_path_info):
@@ -251,25 +484,6 @@ class PackageUninstaller(object):
         self.prefix = prefix
         self.dist = dist
         self.linked_data = None
-
-    def _make_unlink_operations(self):
-        linked_package_data = self.linked_data[self.dist]
-        package_files = linked_package_data.files
-        all_directories = sorted(get_all_directories(package_files), key=len, reverse=True)
-
-        def make_file_unlink_operation(path):
-            prefix_short_path = path
-            is_menu_file = bool(MENU_RE.match(path))
-            # using hardlink here, because treatment would be no different than softlink
-            return UnlinkOperation(prefix_short_path, is_menu_file, PathType.hardlink)
-
-        def make_dir_unlink_operation(path):
-            return UnlinkOperation(path, False, PathType.directory)
-
-        return tuple(concatv(
-            (make_file_unlink_operation(p) for p in package_files),
-            (make_dir_unlink_operation(d) for d in all_directories),
-        ))
 
     def unlink(self):
         """
@@ -377,3 +591,173 @@ def messages(prefix):
             fh = sys.stderr if context.json else sys.stdout
             fh.write(fi.read())
         rm_rf(path)
+
+
+
+class PathAction(object):
+
+    def __init__(self, transaction_context, associated_package_info,
+                 source_prefix, source_short_path,
+                 target_prefix, target_short_path):
+        self.transaction_context = transaction_context
+        self.associated_package_info = associated_package_info
+        self._source_prefix = source_prefix
+        self._source_short_path = source_short_path
+        self._target_prefix = target_prefix
+        self._target_short_path = target_short_path
+
+    @property
+    def source_full_path(self):
+        prfx, shrt_pth = self.source_prefix, self.source_short_path
+        return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
+
+    @property
+    def target_full_path(self):
+        trgt, shrt_pth = self.target_prefix, self.target_short_path
+        return join(trgt, win_path_ok(shrt_pth)) if trgt and shrt_pth else None
+
+    @property
+    def source_prefix(self):
+        return self._source_prefix % self.transaction_context
+
+    @property
+    def source_short_path(self):
+        return self._source_short_path % self.transaction_context
+
+    @property
+    def target_prefix(self):
+        return self._target_prefix % self.transaction_context
+
+    @property
+    def target_short_path(self):
+        return self._target_short_path % self.transaction_context
+
+    def verify(self):
+        raise NotImplementedError()
+
+    def execute(self):
+        raise NotImplementedError()
+
+    def reverse(self):
+        raise NotImplementedError()
+
+    def cleanup(self):
+        raise NotImplementedError()
+
+
+class CreatePathAction(PathAction):
+    # All CreatePathAction subclasses must create a SINGLE new path
+    #   the short/in-prefix version of that path must be returned by execute()
+
+    def cleanup(self):
+        # create actions typically won't need cleanup
+        pass
+
+
+class RemovePathAction(PathAction):
+    # remove actions won't have a source
+
+    def __init__(self, associated_package_info, target_prefix, target_short_path):
+        super(RemovePathAction, self).__init__(associated_package_info, None, None,
+                                               target_prefix, target_short_path)
+
+    def verify(self):
+        # inability to remove will trigger a rollback
+        # can't definitely know if path can be removed until it's done
+        pass
+
+
+class UnlinkPathAction(RemovePathAction):
+
+    def __init__(self, associated_package_info, target_prefix, target_short_path):
+        super(UnlinkPathAction, self).__init__(associated_package_info,
+                                               target_prefix, target_short_path)
+        path = join(target_prefix, target_short_path)
+        self.unlink_path = path
+        self.holding_path = path + '~'
+
+    def verify(self):
+        self.transaction_context['prefix_inventory'].pop(self.target_short_path, None)
+        # technically not verification; this is mutating state of the prefix_inventory
+        # however it's related to verification, because the functionality is used in other
+        #   verification methods
+
+    def execute(self):
+        rename(self.unlink_path, self.holding_path)
+
+    def reverse(self):
+        rename(self.holding_path, self.unlink_path)
+
+    def cleanup(self):
+        rm_rf(self.holding_path)
+
+
+class LinkPathAction(CreatePathAction):
+
+    def __init__(self, transaction_context, associated_package_info,
+                 extracted_package_dir, source_short_path,
+                 target_prefix, target_short_path, link_type):
+        super(LinkPathAction, self).__init__(transaction_context, associated_package_info,
+                                             extracted_package_dir, source_short_path,
+                                             target_prefix, target_short_path)
+        self.link_type = link_type
+
+    def verify(self):
+        if self.link_type != LinkType.directory and self.target_short_path in self.transaction_context['prefix_inventory']:
+            raise VerificationError()
+
+    def execute(self):
+        create_link(self.source_full_path, self.dest_full_path, self.link_type)
+
+    def reverse(self):
+        if self.link_type == LinkType.directory:
+            maybe_rmdir_if_empty(self.dest_full_path)
+        else:
+            rm_rf(self.dest_full_path)
+
+
+class PrefixReplaceLinkAction(LinkPathAction):
+
+    def __init__(self, transaction_context, associated_package_info,
+                 extracted_package_dir, source_short_path,
+                 target_prefix, target_short_path, prefix_placeholder, file_mode):
+        super(PrefixReplaceLinkAction, self).__init__(transaction_context, associated_package_info,
+                                                      extracted_package_dir, source_short_path,
+                                                      target_prefix, target_short_path,
+                                                      LinkType.copy)
+        assert prefix_placeholder
+        self.prefix_placeholder = prefix_placeholder
+        self.file_mode = file_mode
+
+    def execute(self):
+        super(PrefixReplaceLinkAction, self).execute()
+        try:
+            update_prefix(self.dest_full_path, self.target_prefix, self.prefix_placeholder,
+                          self.file_mode)
+        except _PaddingError:
+            raise PaddingError(self.dest_full_path, self.prefix_placeholder,
+                               len(self.prefix_placeholder))
+
+
+
+
+
+class MakeMenuAction(CreatePathAction):
+    pass
+
+
+class RemoveMenuAction(RemovePathAction):
+    pass
+
+
+class CompilePycAction(CreatePathAction):
+    pass
+
+
+class CreatePythonEntryPointAction(CreatePathAction):
+    pass
+
+
+class CreateCondaMetaAction(CreatePathAction):
+    pass
+
