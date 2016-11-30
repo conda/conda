@@ -541,7 +541,7 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
     r = dists_for_prefix.r
 
     linked = linked_data(prefix)
-    add_defaults_to_specs(r, linked, dists)
+    # add_defaults_to_specs(r, linked, dists)
     must_have = {}
 
     installed = linked
@@ -663,7 +663,7 @@ def determine_all_envs(r, specs, channel_priority_map=None):
                 return highest_match[0]
 
     matched_dists = [get_highest(mtchs) for mtchs in matched_specs]
-    dists_for_envs = tuple(DistForEnv(env=r.index[dist].preferred_env, dist=dist)
+    dists_for_envs = tuple(DistForEnv(env=r.index[dist].preferred_env, dist=Dist(dist.dist_name))
                            for dist in matched_dists)
     return dists_for_envs
 
