@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.models.channel import Channel
+from conda.models.dist import Dist
 from enum import Enum
 from logging import getLogger
 
@@ -58,9 +59,10 @@ class PackageInfo(Entity):
 
     # attributes external to the package tarball
     extracted_package_dir = StringField()
-    package_st_dev = IntegerField()  # value of os.lstat(extracted_package_dir).st_dev
     channel = ComposableField(Channel)
     repodata_record = ComposableField(Record)
+    url = StringField()
+    dist = ComposableField(Dist)
 
     # attributes within the package tarball
     paths_version = IntegerField()

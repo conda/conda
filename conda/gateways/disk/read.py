@@ -9,7 +9,7 @@ from errno import ENOENT
 from itertools import chain
 from logging import getLogger
 from os import listdir, lstat, walk
-from os.path import isdir, isfile, islink, join
+from os.path import exists, isdir, isfile, islink, join
 
 from ..._vendor.auxlib.path import expand
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
@@ -21,7 +21,7 @@ from ...models.record import Record
 log = getLogger(__name__)
 
 listdir = listdir
-isdir, isfile, islink = isdir, isfile, islink
+exists, isdir, isfile, islink = exists, isdir, isfile, islink
 
 
 def yield_lines(path):

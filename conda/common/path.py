@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from functools import reduce
 from logging import getLogger
-from os.path import basename, dirname, join
+from os.path import basename, dirname, join, splitext
 
 from ..utils import on_win
 
@@ -52,20 +52,21 @@ def explode_directories(child_directories):
     return set(concat(accumulate(join, directory.split('/')) for directory in child_directories))
 
 
+def pyc_path(path, python_major_minor_version):
+    pyver_string = python_major_minor_version.replace('.', '')
+    if pyver_string.startswith('2'):
+        return path + 'c'
+    else:
+        py_file = basename(path)
+        basename_root, extension = splitext(py_file)
+        pyc_file = "__pycache__/%s.cpython-%s.%sc" % (basename_root, pyver_string, extension)
+        return path.rreplace(py_file, pyc_file, 1)
+
+
 def missing_pyc_files(python_major_minor_version, files):
     # returns a tuple of tuples, with the inner tuple being the .py file and the missing .pyc file
-    pyver_string = python_major_minor_version.replace('.', '')
-
-    def pyc_path(file):
-        if python_major_minor_version.startswith('2'):
-            return file + "c"
-        else:
-            base_fn, base_extention = basename(file).rsplit('.', 1)
-            return "%s/__pycache__/%s.cpython-%s.%sc" % (dirname(file), base_fn, pyver_string,
-                                                         base_extention)
-
     py_files = (f for f in files if f.endswith('.py'))
-    pyc_matches = ((py_file, pyc_path(py_file)) for py_file in py_files)
+    pyc_matches = ((py_file, pyc_path(py_file, python_major_minor_version)) for py_file in py_files)
     result = tuple(match for match in pyc_matches if match[1] not in files)
     return result
 
@@ -77,8 +78,12 @@ def parse_entry_point_def(ep_definition):
     return command, module, func
 
 
-def get_python_path():
-    return "python.exe" if on_win else join("bin", "python")
+def get_python_path(version=None):
+    if on_win:
+        return "python.exe"
+    if version and '.' not in version:
+        version = '.'.join(version)
+    return join("bin", "python%s" % version or '')
 
 
 def get_bin_directory_short_path():

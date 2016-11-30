@@ -39,7 +39,46 @@ if __name__ == '__main__':
 """)
 
 
-def create_entry_point(entry_point_def, prefix):
+def create_unix_entry_point(target_full_path, python_full_path, module, func):
+    pyscript = entry_point_template % {'module': module, 'func': func}
+    with open(target_full_path, 'w') as fo:
+        fo.write('#!%s\n' % python_full_path)
+        fo.write(pyscript)
+    chmod(target_full_path, 0o755)
+
+
+def create_windows_entry_point_py(target_full_path, module, func):
+    pyscript = entry_point_template % {'module': module, 'func': func}
+    with open(target_full_path, 'w') as fo:
+        fo.write(pyscript)
+
+
+# def create_windows_entry_point_exe(target_full_path, link_type):
+#     exe_source = join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits)
+#     create_link(exe_source, target_full_path + '.exe', link_type=link_type)
+#
+#
+# def create_entry_point(target_full_path, python_full_path, module, func, link_type):
+#     pyscript = entry_point_template % {'module': module, 'func': func}
+#
+#     if on_win:
+#         # create -script.py
+#         with open(target_full_path + '-script.py', 'w') as fo:
+#             fo.write(pyscript)
+#
+#         # link cli-XX.exe
+#         create_link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
+#                     target_full_path + '.exe')
+#         return [ep_path + '-script.py', ep_path + '.exe']
+#     else:
+#         with open(target_full_path, 'w') as fo:
+#             fo.write('#!%s\n' % python_full_path)
+#             fo.write(pyscript)
+#         chmod(target_full_path, 0o755)
+#         return [target_full_path]
+
+
+def create_entry_point_old(entry_point_def, prefix):
     # returns a list of file paths created
     command, module, func = parse_entry_point_def(entry_point_def)
     ep_path = "%s/%s" % (get_bin_directory_short_path(), command)
@@ -278,3 +317,18 @@ def compile_missing_pyc(prefix, python_major_minor_version, files):
         raise RuntimeError()
     pyc_files = tuple(f[1] for f in py_pyc_files)
     return pyc_files
+
+
+def compile_pyc(python_exe_full_path, py_full_path):
+    command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
+    log.debug(command)
+    process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+
+    rc = process.returncode
+    if rc != 0:
+        log.debug("$ %s\n"
+                  "  stdout: %s\n"
+                  "  stderr: %s\n"
+                  "  rc: %d", command, stdout, stderr, rc)
+        raise RuntimeError()
