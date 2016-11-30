@@ -13,7 +13,7 @@ import os
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from conda.common.path import prefix_to_env_name
+from conda.common.path import prefix_to_env_name, is_private_env
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
@@ -116,11 +116,6 @@ def get_revision(arg, json=False):
 def create_private_envs_meta(action_set):
     # TODO: determine how to tell if you are dealing with a private env
     # thought: if the env is of the form _<env>_ it is private
-    def is_private_env(prefix):
-        if prefix is not None and prefix.startswith("_") and prefix.endswith("_"):
-            return True
-        return False
-
     def get_package_name(link_op_code):
         parts = link_op_code.split(' ', 2)
         return parts[0].split("::")[-1]

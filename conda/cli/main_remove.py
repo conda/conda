@@ -14,6 +14,7 @@ from argparse import RawDescriptionHelpFormatter
 from collections import namedtuple
 from os.path import join
 
+from conda.common.path import is_private_env
 from conda.models.dist import Dist
 from conda.resolve import MatchSpec
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
@@ -151,7 +152,7 @@ def execute(args, parser):
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
-
+        action_set = actions,
     elif args.all:
         if plan.is_root_prefix(prefix):
             raise CondaEnvironmentError('cannot remove root environment,\n'
@@ -159,7 +160,7 @@ def execute(args, parser):
         actions = {inst.PREFIX: prefix}
         for dist in sorted(iterkeys(index)):
             plan.add_unlink(actions, dist)
-
+        action_set = actions,
     else:
         specs = specs_from_args(args.package_names)
 
@@ -178,13 +179,16 @@ def execute(args, parser):
                 and not args.force):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
-
-        actions = plan.remove_actions(prefix, specs, index=index,
-                                      force=args.force, pinned=args.pinned)
+        actions = []
+        for prfx, spcs in iteritems(prefix_spec_map):
+            index = linked_data(prfx)
+            index = {dist: info for dist, info in iteritems(index)}
+            actions.append(plan.remove_actions(prfx, spcs, index=index, force=args.force,
+                                               pinned=args.pinned))
+        action_set = tuple(actions)
 
     delete_trash()
-
-    if plan.nothing_to_do(actions):
+    if any(plan.nothing_to_do(actions) for actions in action_set):
         if args.all:
             print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
             if not context.json:
@@ -194,42 +198,47 @@ def execute(args, parser):
             if context.json:
                 stdout_json({
                     'success': True,
-                    'actions': actions
+                    'actions': action_set
                 })
             return
         raise PackageNotFoundError('', 'no packages found to remove from '
                                    'environment: %s' % prefix)
+    for action in action_set:
+        if not context.json:
+            print()
+            print("Package plan for package removal in environment %s:" % action["PREFIX"])
+            plan.display_actions(action, index)
 
-    if not context.json:
-        print()
-        print("Package plan for package removal in environment %s:" % prefix)
-        plan.display_actions(actions, index)
-
-    if context.json and args.dry_run:
-        stdout_json({
-            'success': True,
-            'dry_run': True,
-            'actions': actions
-        })
-        return
+        if context.json and args.dry_run:
+            stdout_json({
+                'success': True,
+                'dry_run': True,
+                'actions': action_set
+            })
+            return
 
     if not context.json:
         confirm_yn(args)
 
-    if context.json and not context.quiet:
-        with json_progress_bars():
+    for actions in action_set:
+        if context.json and not context.quiet:
+            with json_progress_bars():
+                plan.execute_actions(actions, index, verbose=not context.quiet)
+        else:
             plan.execute_actions(actions, index, verbose=not context.quiet)
-    else:
-        plan.execute_actions(actions, index, verbose=not context.quiet)
-        if specs:
-            try:
-                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                    f.write('# remove specs: %s\n' % ','.join(specs))
-            except IOError as e:
-                if e.errno == errno.EACCES:
-                    log.debug("Can't write the history file")
-                else:
-                    raise
+            if specs:
+                try:
+                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                        f.write('# remove specs: %s\n' % ','.join(specs))
+                except IOError as e:
+                    if e.errno == errno.EACCES:
+                        log.debug("Can't write the history file")
+                    else:
+                        raise
+
+        if is_private_env(action["PREFIX"]):
+            # TODO: find out if we remove private env if other stuff is also installed in it
+            rm_rf(prefix)
 
     if args.all:
         rm_rf(prefix)

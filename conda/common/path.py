@@ -120,3 +120,9 @@ def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     prefix_name = basename(prefix)
     padded_preferred_env = maybe_pad(preferred_env)
     return prefix_name == padded_preferred_env
+
+
+def is_private_env(prefix):
+    if prefix is not None and prefix.startswith("_") and prefix.endswith("_"):
+        return True
+    return False
