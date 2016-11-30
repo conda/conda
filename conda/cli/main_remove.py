@@ -14,7 +14,7 @@ from argparse import RawDescriptionHelpFormatter
 from collections import namedtuple
 from os.path import join
 
-from conda.common.path import is_private_env
+from conda.common.path import is_private_env, prefix_to_env_name
 from conda.models.dist import Dist
 from conda.resolve import MatchSpec
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
@@ -236,9 +236,10 @@ def execute(args, parser):
                     else:
                         raise
 
-        if is_private_env(action["PREFIX"]):
+        target_prefix = actions["PREFIX"]
+        if is_private_env(prefix_to_env_name(target_prefix)):
             # TODO: find out if we remove private env if other stuff is also installed in it
-            rm_rf(prefix)
+            rm_rf(target_prefix)
 
     if args.all:
         rm_rf(prefix)

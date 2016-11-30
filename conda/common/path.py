@@ -104,7 +104,7 @@ def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
 
 
 def prefix_to_env_name(prefix):
-    split_env = prefix.split("/envs/")[-1]
+    split_env = prefix.split("/envs/")
     if len(split_env) == 1:
         return None
     return split_env[-1]
@@ -122,7 +122,7 @@ def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     return prefix_name == padded_preferred_env
 
 
-def is_private_env(prefix):
-    if prefix is not None and prefix.startswith("_") and prefix.endswith("_"):
+def is_private_env(env):
+    if env is not None and env.startswith("_") and env.endswith("_"):
         return True
     return False
