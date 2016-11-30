@@ -361,21 +361,27 @@ def install(args, parser, command='install'):
         raise
 
     if not context.json:
-        display_actions(action_set, index, show_channel_urls=context.show_channel_urls)
-        if all(nothing_to_do(actions) for actions in action_set) and not newenv:
+        if any(nothing_to_do(actions) for actions in action_set) and not newenv:
             from .main_list import print_packages
 
             if not context.json:
                 regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
                 print('\n# All requested packages already installed.')
-                print_packages(prefix, regex)
+                for action in action_set:
+                    print_packages(action["PREFIX"], regex)
             else:
                 common.stdout_json_success(
                     message='All requested packages already installed.')
             return
+
+        for actions in action_set:
+            print()
+            print("Package plan for installation in environment %s:" % actions["PREFIX"])
+            display_actions(actions, index, show_channel_urls=context.show_channel_urls)
         common.confirm_yn(args)
+
     elif args.dry_run:
-        common.stdout_json_success(actions=actions, dry_run=True)
+        common.stdout_json_success(actions=action_set, dry_run=True)
         raise DryRunExit()
 
     create_private_envs_meta(action_set)

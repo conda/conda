@@ -50,9 +50,6 @@ def print_dists(dists_extras):
 
 
 def display_actions(actions, index, show_channel_urls=None):
-    # for actions in actions_set:
-    #     print()
-    #     print("Package plan for installation in environment %s:" % actions["PREFIX"])
     if show_channel_urls is None:
         show_channel_urls = context.show_channel_urls
 
