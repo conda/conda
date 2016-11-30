@@ -113,19 +113,23 @@ def get_revision(arg, json=False):
         CondaValueError("expected revision number, not: '%s'" % arg, json)
 
 
-def create_private_envs_meta(action_set):
-    # TODO: determine how to tell if you are dealing with a private env
-    # thought: if the env is of the form _<env>_ it is private
+def create_private_envs_meta(action_set, specs):
+    # type: (Sequence[Dict[weird]], Sequence[str]) -> ()
     def get_package_name(link_op_code):
         parts = link_op_code.split(' ', 2)
         return parts[0].split("::")[-1]
+
+    def is_in_specs(pkg):
+        return any(spec for spec in specs if pkg.startswith(spec))
 
     private_envs_json = {}
     for actions in action_set:
         prefix = actions["PREFIX"]
         if is_private_env(prefix_to_env_name(prefix)):
             for link in actions["LINK"]:
-                private_envs_json[get_package_name(link)] = prefix
+                pkg = get_package_name(link)
+                if is_in_specs(pkg):
+                    private_envs_json[pkg] = prefix
 
     path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
     with open(path_to_private_envs, "w") as f:
@@ -384,7 +388,7 @@ def install(args, parser, command='install'):
         common.stdout_json_success(actions=action_set, dry_run=True)
         raise DryRunExit()
 
-    create_private_envs_meta(action_set)
+    create_private_envs_meta(action_set, specs)
 
     for actions in action_set:
         if newenv:

@@ -238,7 +238,8 @@ def execute(args, parser):
 
         target_prefix = actions["PREFIX"]
         if is_private_env(prefix_to_env_name(target_prefix)):
-            # TODO: find out if we remove private env if other stuff is also installed in it
+            # TODO: prune uninstall to remove dependencies
+            #  Then remove the env if it is empty
             rm_rf(target_prefix)
 
     if args.all:
