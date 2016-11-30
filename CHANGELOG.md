@@ -9,7 +9,7 @@
 * noarch python packages (#3712)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
-* imporoved solver hint detection, simplified filtering (#3597)
+* improved solver hint detection, simplified filtering (#3597)
 * add multikey configuration validation (#3432)
 * some Fish autocompletions (#2519)
 * reduce priority for packages removed from the index (#3703)
