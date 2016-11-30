@@ -17,6 +17,7 @@ from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
 from conda.common.path import preferred_env_to_prefix, preferred_env_matches_prefix
+from conda.compat import itervalues
 from . import instructions as inst
 from .base.constants import DEFAULTS, LinkType
 from .base.context import context
@@ -25,7 +26,7 @@ from .core.index import supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
-                         RemoveError)
+                         RemoveError, PackageNotFoundError)
 from .gateways.disk.create import try_hard_link
 from .gateways.disk.delete import rm_rf
 from .history import History
@@ -471,7 +472,7 @@ DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False, channel_priority_map=None):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     specs = [MatchSpec(spec) for spec in specs]
@@ -479,11 +480,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     specs = augment_specs(prefix, specs, pinned=pinned)
     r = get_resolve_object(index.copy(), prefix)
 
-    dists_for_envs = determine_all_envs(r, specs)
+    dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
     preferred_envs = set(d.env for d in dists_for_envs)
-
-    # ABOVE, DO AS LITTLE AS POSSIBLE TO GET `preferred_envs`
-    #   SAVE WHATEVER WORK WE'LL NEED FOR BELOW (e.g. `r`)
 
     prefix_with_dists_no_deps_has_resolve = determine_dists_per_prefix(
         r, prefix, index, preferred_envs, dists_for_envs)
@@ -543,6 +541,7 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
     r = dists_for_prefix.r
 
     linked = linked_data(prefix)
+    add_defaults_to_specs(r, linked, dists)
     must_have = {}
 
     installed = linked
@@ -643,18 +642,29 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def determine_all_envs(r, specs, force=False, only_names=None, always_copy=False,
-                       minimal_hint=False, update_deps=True, prune=False, channel_urls=None):
+def determine_all_envs(r, specs, channel_priority_map=None):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
+    # Find all possible matches for each spec
+    matched_specs = tuple(r.find_matches(spec) for spec in specs if spec not in
+                          (MatchSpec('conda'), MatchSpec('conda-env')))
 
-    pkgs = r.solve(specs)
-    _specs = [spec for spec in specs if spec not in (MatchSpec('conda'), MatchSpec('conda-env'))]
-    _specs_contains = lambda dist: any(spec.match(dist) for spec in _specs)
-    dists_for_specs = [dist for dist in pkgs if _specs_contains(dist)]
+    nth_channel_priority = lambda n: [chnl[0] for chnl in channel_priority_map.values() if
+                                      chnl[1] == n][0]
+
+    prioritized_channel_list = tuple(set((chnl, prrty) for chnl, prrty in itervalues(channel_priority_map)))
+
+    def get_highest(matches):
+        for i in range(0, len(prioritized_channel_list)):
+            target_channel = nth_channel_priority(i)
+            highest_match = [m for m in matches if m.channel == target_channel]
+            if len(highest_match) > 0:
+                return highest_match[0]
+
+    matched_dists = [get_highest(mtchs) for mtchs in matched_specs]
     dists_for_envs = tuple(DistForEnv(env=r.index[dist].preferred_env, dist=dist)
-                           for dist in dists_for_specs)
+                           for dist in matched_dists)
     return dists_for_envs
 
 

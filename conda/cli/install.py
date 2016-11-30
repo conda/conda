@@ -14,6 +14,7 @@ from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
 from conda.common.path import prefix_to_env_name, is_private_env
+from conda.models.channel import prioritize_channels
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
@@ -294,13 +295,15 @@ def install(args, parser, command='install'):
             actions = revert_actions(prefix, get_revision(args.revision), index)
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
+                _channel_priority_map = prioritize_channels(index_args['channel_urls'])
                 action_set = install_actions(prefix, index, specs,
                                           force=args.force,
                                           only_names=only_names,
                                           pinned=args.pinned,
                                           always_copy=context.always_copy,
                                           minimal_hint=args.alt_hint,
-                                          update_deps=context.update_dependencies)
+                                          update_deps=context.update_dependencies,
+                                          channel_priority_map=_channel_priority_map)
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
