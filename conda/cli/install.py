@@ -236,7 +236,6 @@ def install(args, parser, command='install'):
                       prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
-    add_defaults_to_specs(r, linked_dists, specs, update=isupdate)
 
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):

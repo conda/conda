@@ -12,7 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import os
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, OrderedDict
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
@@ -541,13 +541,15 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
     r = dists_for_prefix.r
 
     linked = linked_data(prefix)
-    # add_defaults_to_specs(r, linked, dists)
+    specs = [dst.name for dst in dists]
+    add_defaults_to_specs(r, linked, specs)
+    dists = specs
     must_have = {}
 
     installed = linked
     if prune:
         installed = []
-    pkgs = r.install([MatchSpec(dist.to_matchspec()) for dist in dists], installed,
+    pkgs = r.install([MatchSpec(dist) for dist in dists], installed,
                      update_deps=update_deps)
 
     for fn in pkgs:
@@ -642,28 +644,36 @@ def get_resolve_object(index, prefix):
     return r
 
 
+MatchedSpecs = namedtuple("MatchedSpecs", ("name", "dists"))
+
+
 def determine_all_envs(r, specs, channel_priority_map=None):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
     # Find all possible matches for each spec
-    matched_specs = tuple(r.find_matches(spec) for spec in specs if spec not in
+    matched_specs = tuple(MatchedSpecs(name=spec, dists=r.find_matches(spec)) for spec in specs if spec not in
                           (MatchSpec('conda'), MatchSpec('conda-env')))
 
     nth_channel_priority = lambda n: [chnl[0] for chnl in channel_priority_map.values() if
                                       chnl[1] == n][0]
-
     prioritized_channel_list = tuple(set((chnl, prrty) for chnl, prrty in itervalues(channel_priority_map)))
 
     def get_highest(matches):
         for i in range(0, len(prioritized_channel_list)):
             target_channel = nth_channel_priority(i)
-            highest_match = [m for m in matches if m.channel == target_channel]
+            highest_match = [m for m in matches.dists if m.channel == target_channel]
             if len(highest_match) > 0:
                 return highest_match[0]
+        raise PackageNotFoundError(matches.name, "package not found")
 
-    matched_dists = [get_highest(mtchs) for mtchs in matched_specs]
-    dists_for_envs = tuple(DistForEnv(env=r.index[dist].preferred_env, dist=Dist(dist.dist_name))
+    # Only match on channel priority of the channel priority map is supplied
+    if channel_priority_map is not None and channel_priority_map != OrderedDict():
+        matched_dists = [get_highest(mtchs) for mtchs in matched_specs]
+    else:
+        matched_dists = [mtchs[0] for mtchs in matched_specs]
+
+    dists_for_envs = tuple(DistForEnv(env=r.index[dist].preferred_env, dist=dist)
                            for dist in matched_dists)
     return dists_for_envs
 
