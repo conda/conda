@@ -7,11 +7,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
+import json
 import logging
 import sys
 from argparse import RawDescriptionHelpFormatter
+from collections import namedtuple
 from os.path import join
 
+from conda.models.dist import Dist
+from conda.resolve import MatchSpec
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
@@ -105,6 +109,17 @@ def configure_parser(sub_parsers, name='remove'):
     p.set_defaults(func=execute)
 
 
+def prefix_if_in_private_env(spec):
+    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
+    with open(path_to_private_envs, "r") as f:
+        private_envs_json = json.load(f)
+
+    # specs_match = lambda pkg: any(m for m in specs if m.match(Dist(pkg)))
+    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
+    prefix = prefixes[0] if len(prefixes) > 0 else None
+    return prefix
+
+
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
@@ -147,13 +162,23 @@ def execute(args, parser):
 
     else:
         specs = specs_from_args(args.package_names)
-        # import pdb; pdb.set_trace()
+
+        prefix_spec_map = {}
+        for spec in specs:
+            spec_prefix = prefix_if_in_private_env(spec)
+            spec_prefix = spec_prefix if spec_prefix is not None else prefix
+            if spec_prefix in prefix_spec_map.keys():
+                prefix_spec_map[spec_prefix].append(spec)
+            else:
+                prefix_spec_map[spec_prefix] = [spec]
+
         if (context.conda_in_root
                 and plan.is_root_prefix(prefix)
                 and names_in_specs(ROOT_NO_RM, specs)
                 and not args.force):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
+
         actions = plan.remove_actions(prefix, specs, index=index,
                                       force=args.force, pinned=args.pinned)
 

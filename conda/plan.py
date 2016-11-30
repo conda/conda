@@ -663,8 +663,8 @@ def determine_all_envs(r, specs, force=False, only_names=None, always_copy=False
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
-    # linked = r.installed
-    linked_dists = [Dist(d) for d in r.installed]
+    linked = linked_data(prefix)
+    linked_dists = [d for d in linked.keys()]
 
     if force:
         mss = list(map(MatchSpec, specs))
