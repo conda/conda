@@ -30,7 +30,7 @@ from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, Inst
 from .gateways.disk.create import try_hard_link
 from .gateways.disk.delete import rm_rf
 from .history import History
-from .models.channel import Channel
+from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .resolve import MatchSpec, Package, Resolve
 from .utils import human_bytes, md5_file, on_win
@@ -661,43 +661,41 @@ def get_resolve_object(index, prefix):
     return r
 
 
-MatchedSpecs = namedtuple("MatchedSpecs", ("name", "dists"))
+MatchedSpecs = namedtuple("MatchedSpecs", ("name", "pkg"))
 
 
 def determine_all_envs(r, specs, channel_priority_map=None):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
-    # Find all possible matches for each spec
-    # TODO: instead of getting a list of matched specs and then matching, iterate through the
-    #    specs and match one at a time
-    matched_specs = tuple(MatchedSpecs(name=spec, dists=r.find_matches(spec)) for spec in specs)
 
-    # for spec in specs:
-    #     matched_dists = r.find_matches(spec)
-    #
+    # Make sure there is a channel prioritu
+    if channel_priority_map is None:
+        channel_priority_map = prioritize_channels(context.channels)
 
-    nth_channel_priority = lambda n: [chnl[0] for chnl in channel_priority_map.values() if
+    # remove duplicates e.g. for channel names with multiple urls
+    prioritized_channel_list = set((chnl, prrty) for chnl, prrty in
+                                   itervalues(channel_priority_map))
+    nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
                                       chnl[1] == n][0]
-    prioritized_channel_list = tuple(set((chnl, prrty) for chnl, prrty in itervalues(channel_priority_map)))
 
-    def get_highest(matches):
+    def get_highest_priority_match(matches):
+        # This loop: match to the highest priority channel;
+        #   if no packages match priority 0, try the next channel
         for i in range(0, len(prioritized_channel_list)):
             target_channel = nth_channel_priority(i)
-            highest_match = [m for m in matches.dists if m.channel == target_channel]
+            highest_match = [m for m in matches if m.schannel == target_channel]
             if len(highest_match) > 0:
-                return highest_match[0]
+                newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[0]
+                return newest_pkg
         raise PackageNotFoundError(matches.name, "package not found")
 
-    # Only match on channel priority of the channel priority map is supplied
-    if channel_priority_map is not None and channel_priority_map != OrderedDict():
-        matched_dists = [get_highest(mtchs) for mtchs in matched_specs]
-    else:
-        matched_dists = [mtchs[0] for mtchs in matched_specs]
-
-    dists_for_envs = tuple(SpecForEnv(env=r.index[dist].preferred_env, spec=dist.name)
-                           for dist in matched_dists)
-    return dists_for_envs
+    spec_for_envs = []
+    for spec in specs:
+        matched_dists = r.get_pkgs(spec)
+        best_match = get_highest_priority_match(matched_dists)
+        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env, spec=best_match.name))
+    return spec_for_envs
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
