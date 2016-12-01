@@ -2,12 +2,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import contextlib
+import json
 import os
 import re
 import sys
 from functools import partial
-from os.path import abspath, basename
+from os.path import abspath, basename, join, isdir
 
+from conda import iteritems
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import NULL, ROOT_ENV_NAME
@@ -599,3 +601,28 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
+
+
+def prefix_if_in_private_env(spec):
+    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
+    if not isdir(path_to_private_envs):
+        return None
+    with open(path_to_private_envs, "r") as f:
+        private_envs_json = json.load(f)
+
+    # specs_match = lambda pkg: any(m for m in specs if m.match(Dist(pkg)))
+    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
+    prefix = prefixes[0] if len(prefixes) > 0 else None
+    return prefix
+
+
+def create_prefix_spec_map(specs, default_prefix):
+    prefix_spec_map = {}
+    for spec in specs:
+        spec_prefix = prefix_if_in_private_env(spec)
+        spec_prefix = spec_prefix if spec_prefix is not None else default_prefix
+        if spec_prefix in prefix_spec_map.keys():
+            prefix_spec_map[spec_prefix].append(spec)
+        else:
+            prefix_spec_map[spec_prefix] = [spec]
+    return prefix_spec_map

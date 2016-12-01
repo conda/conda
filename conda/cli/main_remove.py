@@ -22,7 +22,7 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes,
                      confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
-                     names_in_specs, specs_from_args, stdout_json)
+                     names_in_specs, specs_from_args, stdout_json, create_prefix_spec_map)
 from conda.base.constants import ROOT_NO_RM
 from conda.core.index import get_index
 from ..base.context import check_write, context
@@ -110,17 +110,6 @@ def configure_parser(sub_parsers, name='remove'):
     p.set_defaults(func=execute)
 
 
-def prefix_if_in_private_env(spec):
-    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
-    with open(path_to_private_envs, "r") as f:
-        private_envs_json = json.load(f)
-
-    # specs_match = lambda pkg: any(m for m in specs if m.match(Dist(pkg)))
-    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
-    prefix = prefixes[0] if len(prefixes) > 0 else None
-    return prefix
-
-
 def execute(args, parser):
     import conda.plan as plan
     import conda.instructions as inst
@@ -163,15 +152,7 @@ def execute(args, parser):
         action_set = actions,
     else:
         specs = specs_from_args(args.package_names)
-
-        prefix_spec_map = {}
-        for spec in specs:
-            spec_prefix = prefix_if_in_private_env(spec)
-            spec_prefix = spec_prefix if spec_prefix is not None else prefix
-            if spec_prefix in prefix_spec_map.keys():
-                prefix_spec_map[spec_prefix].append(spec)
-            else:
-                prefix_spec_map[spec_prefix] = [spec]
+        prefix_spec_map = create_prefix_spec_map(specs, prefix)
 
         if (context.conda_in_root
                 and plan.is_root_prefix(prefix)
