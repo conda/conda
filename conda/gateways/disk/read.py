@@ -9,7 +9,7 @@ from errno import ENOENT
 from itertools import chain
 from logging import getLogger
 from os import listdir, lstat, walk
-from os.path import exists, isdir, isfile, islink, join
+from os.path import exists, isdir, isfile, islink, join, basename
 
 from ..._vendor.auxlib.path import expand
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
@@ -174,44 +174,3 @@ def read_icondata(extracted_package_directory):
         return b64encode(data).decode(UTF8)
     else:
         return None
-
-
-
-class PrefixInventory(object):
-
-    def __init__(self, prefix):
-        self.prefix = prefix
-
-    # def inventory_prefix(self, prefix):
-    #     import os
-    #     prefix = maybe_right_pad(expand(prefix))
-    #     result = []
-    #     for root, dirs, files in walk(prefix, topdown=False):
-    #         # root = win_path_backout(ensure_text_type(root).replace(prefix, '', 1))
-    #         # print(root, dirs, files)
-    #         for dir in dirs:
-    #             path = join(root, dir)
-    #             result.append((path, os.lstat(path)))
-    #
-    #         for file in files:
-    #             path = join(root, file)
-    #             result.append((path, os.lstat(path)))
-
-
-def inventory_prefix(prefix):
-    import os
-    prefix = maybe_right_pad(expand(prefix))
-    result = []
-    for root, dirs, files in walk(prefix, topdown=False):
-        # root = win_path_backout(ensure_text_type(root).replace(prefix, '', 1))
-        # print(root, dirs, files)
-        for dir in dirs:
-            path = join(root, dir)
-            result.append((path, os.access(path)))
-
-        for file in files:
-            path = join(root, file)
-            result.append((path, os.access(path)))
-    import pdb; pdb.set_trace()
-
-inventory_prefix('/conda')

@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.base.constants import LinkType
-from conda.common.path import win_path_ok, get_python_path, pyc_path
-from conda.core.linked_data import set_linked_data, delete_linked_data
-from conda.exceptions import PaddingError
-from conda.gateways.disk.create import create_link, make_menu, compile_pyc, write_conda_meta_record
-from conda.gateways.disk.delete import rm_rf, maybe_rmdir_if_empty
-from conda.gateways.disk.read import exists
-from conda.gateways.disk.update import rename, update_prefix, _PaddingError
-from conda.models.record import Record
-from conda.utils import on_win
+import json
+
 from logging import getLogger
+from os.path import join
+
+from ..base.constants import LinkType
+from ..common.path import win_path_ok, get_python_path, pyc_path
+from ..core.linked_data import set_linked_data, delete_linked_data
+from ..exceptions import PaddingError
+from ..gateways.disk.create import (create_link, make_menu, compile_pyc, write_conda_meta_record,
+                                    create_windows_entry_point_py, create_unix_entry_point)
+from ..gateways.disk.delete import rm_rf, maybe_rmdir_if_empty
+from ..gateways.disk.read import exists
+from ..gateways.disk.update import rename, update_prefix, _PaddingError
+from ..models.record import Record
+from ..utils import on_win
 
 log = getLogger(__name__)
 
@@ -72,11 +77,7 @@ class CreatePathAction(PathAction):
     #   the short/in-prefix version of that path must be returned by execute()
 
     def verify(self):
-        if getattr(self, 'link_type', None) == LinkType.directory:
-            return
-        if self.target_short_path in self.transaction_context['prefix_inventory']:
-            raise VerificationError()
-        self.transaction_context['prefix_inventory'].update(self.target_short_path)
+        pass
 
     def cleanup(self):
         # create actions typically won't need cleanup
@@ -94,7 +95,6 @@ class LinkPathAction(CreatePathAction):
         self.link_type = link_type
 
     def verify(self):
-        super(LinkPathAction, self).verify()
         if not self.link_type == LinkType.directory and not exists(self.source_full_path):
             raise VerificationError()
 
@@ -230,27 +230,25 @@ class RemovePathAction(PathAction):
 
 class UnlinkPathAction(RemovePathAction):
     def __init__(self, transaction_context, associated_package_info,
-                 target_prefix, target_short_path):
+                 target_prefix, target_short_path, link_type=LinkType.hardlink):
         super(UnlinkPathAction, self).__init__(transaction_context, associated_package_info,
                                                target_prefix, target_short_path)
-        path = join(target_prefix, target_short_path)
-        self.unlink_path = path
-        self.holding_path = path + '.c~'
-
-    def verify(self):
-        self.transaction_context['prefix_inventory'].pop(self.target_short_path, None)
-        # technically not verification; this is mutating state of the prefix_inventory
-        # however it's related to verification, because the functionality is used in other
-        #   verification methods
+        self.holding_path = self.target_full_path + '.c~'
+        self.link_type = link_type
 
     def execute(self):
-        rename(self.unlink_path, self.holding_path)
+        if self.link_type != LinkType.directory:
+            rename(self.target_full_path, self.holding_path)
 
     def reverse(self):
-        rename(self.holding_path, self.unlink_path)
+        if self.link_type != LinkType.directory:
+            rename(self.holding_path, self.target_full_path)
 
     def cleanup(self):
-        rm_rf(self.holding_path)
+        if self.link_type == LinkType.directory:
+            maybe_rmdir_if_empty(self.target_full_path)
+        else:
+            rm_rf(self.holding_path)
 
 
 class RemoveMenuAction(RemovePathAction):

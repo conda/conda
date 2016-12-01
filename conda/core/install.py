@@ -5,23 +5,25 @@ import os
 import re
 import sys
 import warnings
-from conda import CONDA_PACKAGE_ROOT
-from conda.compat import string_types
-from conda.core.path_actions import CompilePycAction, CreateCondaMetaAction, \
-    CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction, PrefixReplaceLinkAction
 from logging import getLogger
-from os.path import dirname, join
+from os.path import join
 from subprocess import CalledProcessError, check_call
 
+from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import explode_directories, get_all_directories, get_bin_directory_short_path, \
-    get_leaf_directories, parse_entry_point_def, win_path_ok
-from ..core.linked_data import (delete_linked_data, linked_data, load_meta)
-from ..gateways.disk.create import hardlink_supported, make_menu, softlink_supported
+from ..common.path import (get_all_directories, get_bin_directory_short_path,
+                           get_leaf_directories, parse_entry_point_def)
+from ..compat import string_types
+from ..core.linked_data import linked_data as get_linked_data
+from ..core.path_actions import (CompilePycAction, CreateCondaMetaAction,
+                                 CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
+                                 PrefixReplaceLinkAction, UnlinkPathAction, RemoveMenuAction,
+                                 RemoveCondaMetaAction)
+from ..gateways.disk.create import hardlink_supported, softlink_supported
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import isdir, isfile
+from ..gateways.disk.read import isfile
 from ..models.package_info import PathType
 from ..models.record import Link, Record
 from ..utils import on_win
@@ -140,11 +142,10 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
     def make_conda_meta_create_action(all_target_short_paths):
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        meta_record =  Record.from_objects(package_info.repodata_record,
-                                           package_info.index_json_record,
-                                           files=all_target_short_paths, link=link,
-                                           url=package_info.url)
-
+        meta_record = Record.from_objects(package_info.repodata_record,
+                                          package_info.index_json_record,
+                                          files=all_target_short_paths, link=link,
+                                          url=package_info.url)
         return CreateCondaMetaAction(transaction_context, package_info, target_prefix, meta_record)
 
     file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
@@ -175,29 +176,49 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         pyc_compile_actions = ()
 
 
-    all_target_short_paths = concat(file_link_actions, python_entry_point_actions, pyc_compile_actions)
+    all_target_short_paths = concatv(file_link_actions, python_entry_point_actions, pyc_compile_actions)
     meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
 
     return tuple(concatv(directory_create_actions, file_link_actions, python_entry_point_actions,
                          pyc_compile_actions,  menu_create_actions, meta_create_actions))
 
 
-def make_unlink_actions(transaction_context, pkg_info, target_prefix):
-    pass
+def make_unlink_actions(transaction_context, target_prefix, dist, linked_package_data):
+    unlink_path_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
+                                                 target_prefix, trgt)
+                                for trgt in linked_package_data.files)
+    if on_win:
+        remove_menu_actions = tuple(RemoveMenuAction(transaction_context, linked_package_data,
+                                                     target_prefix, trgt)
+                                    for trgt in linked_package_data.files
+                                    if bool(MENU_RE.match(trgt)))
+    else:
+        remove_menu_actions = ()
+
+    meta_short_path = '%s/%s' % ('conda-meta', dist.to_filename('.json'))
+    remove_conda_meta_actions = (RemoveCondaMetaAction(transaction_context, linked_package_data,
+                                                       target_prefix, meta_short_path),)
+
+    all_directories = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
+    directory_remove_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
+                                                      target_prefix, d, LinkType.directory)
+                                     for d in all_directories)
+
+    return tuple(concatv(remove_conda_meta_actions, remove_menu_actions, unlink_path_actions,
+                         directory_remove_actions))
 
 
 class UnlinkLinkTransaction(object):
 
-    def __init__(self, target_prefix, unlink_dists, link_dists):
+    def __init__(self, target_prefix, unlink_dists, link_packages_info):
         # type: (str, Sequence[Dist], Sequence[PackageInfo]])
         # order of unlink_dists and link_dists will be preserved throughout
         #   should be given in dependency-sorted order
 
         # gather information from disk and caches
-        self.prefix_linked_data = linked_data(target_prefix)
-        self.prefix_inventory = inventory_prefix(target_prefix)
+        self.prefix_linked_data = get_linked_data(target_prefix)
         self.unlink_dists = unlink_dists
-        self.link_packages_info = link_dists
+        self.link_packages_info = link_packages_info
 
         link_types = [determine_link_type(extracted_package_dir, target_prefix) for dist in link_dists]
 
@@ -303,88 +324,6 @@ class UnlinkLinkTransaction(object):
         # #   - run assertions against file system
 
         # execute unlink and link directives
-
-
-    def _make_unlink_operations(self, dist):
-        linked_package_data = self.prefix_linked_data[dist]
-        package_files = linked_package_data.files
-        all_directories = sorted(get_all_directories(package_files), key=len, reverse=True)
-
-        def make_file_unlink_operation(path):
-            prefix_short_path = path
-            is_menu_file = bool(MENU_RE.match(path))
-            # using hardlink here, because treatment would be no different than softlink
-            return UnlinkOperation(prefix_short_path, is_menu_file, PathType.hardlink)
-
-        def make_dir_unlink_operation(path):
-            return UnlinkOperation(path, False, PathType.directory)
-
-        return tuple(concatv(
-            (make_file_unlink_operation(p) for p in package_files),
-            (make_dir_unlink_operation(d) for d in all_directories),
-        ))
-
-
-
-
-
-class PackageUninstaller(object):
-
-    def __init__(self, prefix, dist):
-        self.prefix = prefix
-        self.dist = dist
-        self.linked_data = None
-
-    def unlink(self):
-        """
-        Remove a package from the specified environment, it is an error if the
-        package does not exist in the prefix.
-        """
-        log.debug("unlinking package %s", self.dist)
-        run_script(self.prefix, self.dist, 'pre-unlink')
-
-        # file system reads
-        self.linked_data = linked_data(self.prefix)
-        meta = load_meta(self.prefix, self.dist)
-
-        # computations
-        self._make_unlink_operations()
-        # files = meta['files']
-
-
-        dirs_with_removals = set()
-
-        for f in meta['files']:
-            if on_win and bool(MENU_RE.match(f)):
-                # Always try to run this - it should not throw errors where menus do not exist
-                # note that it will probably remove the file though; rm_rf shouldn't care
-                make_menu(self.prefix, win_path_ok(f), remove=True)
-
-            dirs_with_removals.add(dirname(f))
-            rm_rf(join(self.prefix, win_path_ok(f)))
-
-        # remove the meta-file last
-        #   TODO: why last?  Won't that leave things more broken than removing it first?
-        #   maybe should rename the file with an extra extension, then remove it once the
-        #   operation is complete
-        delete_linked_data(self.prefix, self.dist, delete=True)
-
-        dirs_with_removals.add('conda-meta')  # in case there is nothing left
-        directory_removal_candidates = (join(self.prefix, win_path_ok(d)) for d in
-                                        sorted(explode_directories(dirs_with_removals),
-                                               reverse=True))
-
-        # remove empty directories; don't crash if we can't
-        for d in directory_removal_candidates:
-            if isdir(d) and not listdir(d):
-                try:
-                    rm_rf(d)
-                except (IOError, OSError) as e:
-                    log.debug("Failed to remove '%s'. %r", d, e)
-
-        alt_files_path = join(self.prefix, 'conda-meta', self.dist.to_filename('.files'))
-        if isfile(alt_files_path):
-            rm_rf(alt_files_path)
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
