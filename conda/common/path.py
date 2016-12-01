@@ -32,9 +32,11 @@ def get_leaf_directories(files):
     # give this function a list of files, and it will hand back a list of leaf directories to
     #   pass to os.makedirs()
     directories = get_all_directories(files)
-    leaves = []
+    if not directories:
+        return ()
 
-    def _process(x, y):
+    leaves = []
+    def _process(x, y):  # NOQA
         if not tokenized_startswith(y, x):
             leaves.append(x)
         return y
@@ -48,9 +50,11 @@ def get_leaf_directories(files):
     return tuple('/'.join(leaf) for leaf in leaves)
 
 
-def explode_directories(child_directories):
+def explode_directories(child_directories, already_split=False):
     # get all directories including parents
-    return set(concat(accumulate(join, directory.split('/')) for directory in child_directories))
+    # use already_split=True for the result of get_all_directories()
+    maybe_split = lambda x: x if already_split else x.split('/')
+    return set(concat(accumulate(join, maybe_split(directory)) for directory in child_directories))
 
 
 def pyc_path(path, python_major_minor_version):

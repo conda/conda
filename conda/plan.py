@@ -11,7 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
@@ -26,7 +26,6 @@ from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, Inst
 from .gateways.disk.create import try_hard_link
 from .gateways.disk.delete import rm_rf
 from .history import History
-from .instructions import OP_ORDER
 from .models.channel import Channel
 from .models.dist import Dist
 from .resolve import MatchSpec, Package, Resolve
@@ -269,27 +268,34 @@ def add_checks(actions):
     Returns:
         the actions dict with the appropriate checks added
     """
-    if inst.FETCH in actions:
-        actions.setdefault(inst.CHECK_FETCH, [True])
-    if inst.EXTRACT in actions:
-        actions.setdefault(inst.CHECK_EXTRACT, [True])
+    pass
+    # if inst.FETCH in actions:
+    #     actions.setdefault(inst.CHECK_FETCH, [True])
+    # if inst.EXTRACT in actions:
+    #     actions.setdefault(inst.CHECK_EXTRACT, [True])
 
 
 def plan_from_actions(actions):
-    op_order = actions['op_order']
+    if 'op_order' in actions and actions['op_order']:
+        op_order = actions['op_order']
+    else:
+        op_order = inst.action_codes
 
     assert inst.PREFIX in actions and actions[inst.PREFIX]
     res = [('PREFIX', '%s' % actions[inst.PREFIX])]
 
-    unlink_dists = tuple(Dist(d) for d in actions.pop(inst.UNLINK, ()))
-
-    # NOTE: this throws away requested link type; it should be figured out somewhere else
-    link_dists = tuple(Dist(linkarg.split(' ')[0]) for linkarg in actions.pop(inst.LINK, ()))
-    # this isn't what I want here though
-    # give me a PackageInfo object
-
-    # TODO: there could be multiple of these
-    trans = UnlinkLinkTransaction(actions[inst.PREFIX], unlink_dists, link_dists)
+    if on_win:
+        # Always link/unlink menuinst first on windows in case a subsequent
+        # package tries to import it to create/remove a shortcut
+        for op in (inst.UNLINK, inst.FETCH, inst.EXTRACT, inst.LINK):
+            if op in actions:
+                pkgs = []
+                for pkg in actions[op]:
+                    if 'menuinst' in text_type(pkg):
+                        res.append((op, pkg))
+                    else:
+                        pkgs.append(pkg)
+                actions[op] = pkgs
 
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
@@ -312,8 +318,6 @@ def plan_from_actions(actions):
     return res
 
 
-LinkPackageAction = namedtuple('LinkPackageAction', ('target_prefix', 'dist', 'extracted_package_dir'))
-
 # force_linked_actions has now been folded into this function, and is enabled by
 # supplying an index and setting force=True
 def ensure_linked_actions(dists, prefix, index=None, force=False,
@@ -321,7 +325,9 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = OP_ORDER
+    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
+                           inst.RM_EXTRACTED, inst.EXTRACT,
+                           inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
 
     for dist in dists:
         fetched_in = is_fetched(dist)
@@ -363,40 +369,37 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
         fetched_dist = extracted_in or fetched_in[:-8]
         fetched_dir = dirname(fetched_dist)
 
-        # # TODO: skip this part; it should be determined later
-        # try:
-        #     # Determine what kind of linking is necessary
-        #     if not extracted_in:
-        #         # If not already extracted, create some dummy
-        #         # data to test with
-        #         rm_rf(fetched_dist)
-        #         ppath = join(fetched_dist, 'info')
-        #         os.makedirs(ppath)
-        #         index_json = join(ppath, 'index.json')
-        #         with open(index_json, 'w'):
-        #             pass
-        #     if context.always_copy or always_copy:
-        #         lt = LinkType.copy
-        #     elif context.always_softlink:
-        #         lt = LinkType.softlink
-        #     elif try_hard_link(fetched_dir, prefix, dist):
-        #         lt = LinkType.hardlink
-        #     elif context.allow_softlinks and not on_win:
-        #         lt = LinkType.softlink
-        #     else:
-        #         lt = LinkType.copy
-        #
-        #     actions[inst.LINK].append('%s %d' % (dist, lt))
-        #
-        # except (OSError, IOError):
-        #     actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
-        # finally:
-        #     if not extracted_in:
-        #         # Remove the dummy data
-        #         try:
-        #             rm_rf(fetched_dist)
-        #         except (OSError, IOError):
-        #             pass
+        try:
+            # Determine what kind of linking is necessary
+            if not extracted_in:
+                # If not already extracted, create some dummy
+                # data to test with
+                rm_rf(fetched_dist)
+                ppath = join(fetched_dist, 'info')
+                os.makedirs(ppath)
+                index_json = join(ppath, 'index.json')
+                with open(index_json, 'w'):
+                    pass
+            if context.always_copy or always_copy:
+                lt = LinkType.copy
+            elif try_hard_link(fetched_dir, prefix, dist):
+                lt = LinkType.hardlink
+            elif context.allow_softlinks and not on_win:
+                lt = LinkType.softlink
+            else:
+                lt = LinkType.copy
+
+            actions[inst.LINK].append('%s %d' % (dist, lt))
+
+        except (OSError, IOError):
+            actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
+        finally:
+            if not extracted_in:
+                # Remove the dummy data
+                try:
+                    rm_rf(fetched_dist)
+                except (OSError, IOError):
+                    pass
 
     return actions
 

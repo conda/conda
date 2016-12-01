@@ -6,10 +6,11 @@ import shlex
 from base64 import b64encode
 from collections import namedtuple
 from conda._vendor.auxlib.ish import dals
+from conda.models.channel import Channel
 from errno import ENOENT
 from itertools import chain
 from logging import getLogger
-from os import listdir, lstat
+from os import listdir
 from os.path import exists, isdir, isfile, islink, join
 
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
@@ -47,7 +48,22 @@ def yield_lines(path):
             raise
 
 
-def collect_all_info_for_package(extracted_package_directory):
+# # attributes external to the package tarball
+# extracted_package_dir = StringField()
+# channel = ComposableField(Channel)
+# repodata_record = ComposableField(Record)
+# url = StringField()
+#
+# # attributes within the package tarball
+# paths_version = IntegerField()
+# paths = ListField(PathInfo)
+# index_json_record = ComposableField(Record)
+# icondata = StringField(required=False, nullable=True)
+# noarch = ComposableField(NoarchInfo, required=False,
+#                          nullable=True)  # TODO: this isn't noarch anymore; package_metadata.json  # NOQA
+
+
+def collect_all_info_for_package(record, extracted_package_directory):
     info_dir = join(extracted_package_directory, 'info')
 
     files_path = join(extracted_package_directory, 'info', 'files')
@@ -66,10 +82,15 @@ def collect_all_info_for_package(extracted_package_directory):
         index_json_record = read_index_json(extracted_package_directory)
         noarch = read_noarch(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)
-        st_dev = lstat(extracted_package_directory).st_dev
-        return PackageInfo(package_full_path=extracted_package_directory, package_st_dev=st_dev,
-                           paths=paths, index_json_record=index_json_record, noarch=noarch,
-                           icondata=icondata, paths_version=1)
+        return PackageInfo(extracted_package_dir=extracted_package_directory,
+                           channel=Channel(record.schannel or record.channel),
+                           repodata_record=record,
+                           url=record.url,
+                           paths_version=1,
+                           paths=paths,
+                           index_json_record=index_json_record,
+                           icondata=icondata,
+                           noarch=noarch)
     else:
         files = tuple(ln for ln in (line.strip() for line in yield_lines(files_path)) if ln)
 
@@ -93,10 +114,15 @@ def collect_all_info_for_package(extracted_package_directory):
         index_json_record = read_index_json(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)
         noarch = read_noarch(extracted_package_directory)
-        st_dev = lstat(extracted_package_directory).st_dev
-        return PackageInfo(package_full_path=extracted_package_directory, package_st_dev=st_dev,
-                           paths=path_info_files, index_json_record=index_json_record,
-                           icondata=icondata, noarch=noarch, paths_version=0)
+        return PackageInfo(extracted_package_dir=extracted_package_directory,
+                           channel=Channel(record.schannel or record.channel),
+                           repodata_record=record,
+                           url=record.url,
+                           paths_version=0,
+                           paths=path_info_files,
+                           index_json_record=index_json_record,
+                           icondata=icondata,
+                           noarch=noarch)
 
 
 def read_noarch(extracted_package_directory):

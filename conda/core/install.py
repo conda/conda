@@ -84,7 +84,7 @@ def make_lateral_link_action(source_path_info, extracted_package_dir, target_pre
 
 def get_python_noarch_target_path(source_short_path):
     if source_short_path.startswith('site-packages/'):
-        sp_dir = '%(target_site_packages_short_path)s'
+        sp_dir = '{target_site_packages_short_path}'
         # string interpolation done when necessary in the action
         return source_short_path.replace('site-packages', sp_dir, 1)
     elif source_short_path.startswith('python-scripts/'):
@@ -100,8 +100,8 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
     def make_directory_link_action(directory_short_path):
         # no side effects in this function!
-        return LinkPathAction(None, None, target_prefix, directory_short_path, LinkType.directory,
-                              None, None)
+        return LinkPathAction(transaction_context, package_info, None, None,
+                              target_prefix, directory_short_path, LinkType.directory)
 
     def make_file_link_action(source_path_info):
 
@@ -164,7 +164,7 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     else:
         menu_create_actions = ()
 
-    if package_info.noarch.type == 'python':
+    if package_info.noarch and package_info.noarch.type == 'python':
         python_entry_point_actions = tuple(concatv(
             (make_entry_point_action(ep_def) for ep_def in package_info.noarch.entry_points),
             (make_entry_point_windows_executable_action(ep_def)
@@ -201,16 +201,15 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
     else:
         remove_menu_actions = ()
 
-    meta_short_path = '%s/%s' % ('conda-meta', linked_package_data.dist.to_filename('.json'))
+    meta_short_path = '%s/%s' % ('conda-meta', Dist(linked_package_data).to_filename('.json'))
     remove_conda_meta_actions = (RemoveCondaMetaAction(transaction_context, linked_package_data,
                                                        target_prefix, meta_short_path),)
 
-    all_directories = explode_directories(get_all_directories(axn.target_short_path
-                                                              for axn in unlink_path_actions))
+    _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
+    all_directories = sorted(explode_directories(_all_d, already_split=True))
     directory_remove_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
-
     return tuple(concatv(remove_conda_meta_actions, remove_menu_actions, unlink_path_actions,
                          directory_remove_actions))
 
@@ -241,19 +240,20 @@ class UnlinkLinkTransaction(object):
         # make all the path actions
         # no side effects allowed when instantiating these action objects
         transaction_context = dict()
-        self.unlink_actions = tuple((lnkd_pkg_data, make_unlink_actions(transaction_context,
-                                                                        self.target_prefix,
-                                                                        lnkd_pkg_data))
-                                    for lnkd_pkg_data in self.linked_packages_data_to_unlink)
-        self.link_actions = tuple((pkg_info, make_link_actions(transaction_context, pkg_info,
-                                                               self.target_prefix, lt))
-                                  for pkg_info, lt in zip(self.packages_info_to_link, link_types))
+        unlink_actions = tuple((lnkd_pkg_data, make_unlink_actions(transaction_context,
+                                                                   self.target_prefix,
+                                                                   lnkd_pkg_data))
+                               for lnkd_pkg_data in self.linked_packages_data_to_unlink)
+        link_actions = tuple((pkg_info, make_link_actions(transaction_context, pkg_info,
+                                                          self.target_prefix, lt))
+                             for pkg_info, lt in zip(self.packages_info_to_link, link_types))
         self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
-                                 concatv(self.unlink_actions, self.link_actions))
+                                 concatv(unlink_actions, link_actions))
+        self.num_unlink_pkgs = len(unlink_actions)
 
         # we won't definitively know some environment information until here
         #   e.g. python version and site-packages location
-        python_version = self.get_python_version()
+        python_version = self.get_python_version(self.target_prefix, unlink_actions, link_actions)
         transaction_context['target_python_version'] = python_version
         sp = get_python_site_packages_short_path(python_version)
         transaction_context['target_site_packages_short_path'] = sp
@@ -273,8 +273,27 @@ class UnlinkLinkTransaction(object):
 
         try:
             for pkg_indx, (pkg_data, actions) in enumerate(self.all_actions):
+                dist = Dist(pkg_data)
+                is_unlink = pkg_indx <= self.num_unlink_pkgs
+                if is_unlink:
+                    log.info("unlinking package: %s\n"
+                             "  prefix=%s\n",
+                             dist, self.target_prefix)
+
+                else:
+                    log.info("linking package: %s\n"
+                             "  prefix=%s\n"
+                             "  source=%s\n",
+                             dist, self.target_prefix, pkg_data.extracted_package_dir)
+
+                run_script(self.target_prefix, Dist(pkg_data),
+                           'pre-unlink' if is_unlink else 'pre-link')
+
                 for axn_idx, action in enumerate(actions):
-                    self._execute_action(action)
+                    action.execute()
+
+                run_script(self.target_prefix, Dist(pkg_data),
+                           'post-unlink' if is_unlink else 'post-link')
 
         except Exception as e:
             log.error("Something bad happened, but it's okay because I'm going to roll back now.")
@@ -291,28 +310,20 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def _execute_action(action):
-        if isinstance(action, CreatePathAction):
-            run_script(action.target_prefix, Dist(action.package_info), 'pre-link')
-        else:
-            assert isinstance(action, RemovePathAction)
-            run_script(action.target_prefix, Dist(action.linked_package_data), 'pre-unlink')
 
         action.execute()
 
-        if isinstance(action, CreatePathAction):
-            run_script(action.target_prefix, Dist(action.package_info), 'post-link')
-        else:
-            run_script(action.target_prefix, Dist(action.linked_package_data), 'post-unlink')
 
     @staticmethod
     def _reverse_actions(actions, reverse_from_idx=None):
-        reverse_from_idx = reverse_from_idx or len(actions) + 1
+        reverse_from_idx = reverse_from_idx or len(actions)
         for axn_idx in reversed(range(reverse_from_idx)):
             actions[axn_idx].reverse()
 
-    def get_python_version(self):
+    @staticmethod
+    def get_python_version(target_prefix, unlink_actions, link_actions):
         # is python being linked? we're done
-        linking_this_python = next((per_pkg_actions for per_pkg_actions in self.link_actions
+        linking_this_python = next((per_pkg_actions for per_pkg_actions in link_actions
                                     if per_pkg_actions[0].index_json_record.name == 'python'),
                                    None)
         if linking_this_python:
@@ -321,9 +332,9 @@ class UnlinkLinkTransaction(object):
             return get_major_minor_version(full_version)
 
         # is python already linked and not being unlinked? that's ok too
-        linked_python_version = get_python_version_for_prefix(self.target_prefix)
+        linked_python_version = get_python_version_for_prefix(target_prefix)
         if linked_python_version:
-            find_python = (per_pkg_actions for per_pkg_actions in self.unlink_actions
+            find_python = (per_pkg_actions for per_pkg_actions in unlink_actions
                            if per_pkg_actions[0].name == 'python')
             unlinking_this_python = next(find_python, None)
             if unlinking_this_python is None:
@@ -336,14 +347,6 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
-    if action == 'pre-link':
-        warnings.warn(dals("""
-        Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
-        This is because pre-link scripts have the ability to change the package contents in the
-        package cache, and therefore modify the underlying files for already-created conda
-        environments.  Future versions of conda may deprecate and ignore pre-link scripts.
-        """ % dist))
-
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
             dist.dist_name,
             action,
@@ -368,6 +371,12 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env[str('PKG_BUILDNUM')] = build_number
     if action == 'pre-link':
         env[str('SOURCE_DIR')] = str(prefix)
+        warnings.warn(dals("""
+        Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
+        This is because pre-link scripts have the ability to change the package contents in the
+        package cache, and therefore modify the underlying files for already-created conda
+        environments.  Future versions of conda may deprecate and ignore pre-link scripts.
+        """ % dist))
     try:
         check_call(args, env=env)
     except CalledProcessError:

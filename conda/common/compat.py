@@ -14,6 +14,22 @@ from ..compat import *  # NOQA
 log = getLogger(__name__)
 
 
+class _StrSafeDict(dict):
+    def __missing__(self, key):
+        return '{' + key + '}'
+
+
+if PY3:
+    def interpolate_string(string, arg_dict, **extra_args):
+        return str.format_map(string, _StrSafeDict(arg_dict or {}, **extra_args))
+
+else:
+    import string as _string
+
+    def interpolate_string(string, arg_dict, **extra_args):
+        _string.Formatter().vformat(string, (), _StrSafeDict(arg_dict, **extra_args))
+
+
 def ensure_binary(value):
     return value.encode('utf-8') if hasattr(value, 'encode') else value
 

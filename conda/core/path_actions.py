@@ -4,12 +4,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 from abc import ABCMeta, abstractmethod
 from logging import getLogger
-from os.path import join
+from os.path import join, isfile, islink
 
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.constants import LinkType
 from ..common.path import get_python_path, pyc_path, win_path_ok
+from ..common.compat import interpolate_string, odict
 from ..core.linked_data import delete_linked_data, load_linked_data, set_linked_data
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
@@ -18,6 +19,7 @@ from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_
 from ..gateways.disk.delete import maybe_rmdir_if_empty, rm_rf
 from ..gateways.disk.read import exists
 from ..gateways.disk.update import _PaddingError, rename, update_prefix
+from ..models.dist import Dist
 from ..models.record import Record
 from ..utils import on_win
 
@@ -36,13 +38,17 @@ class PathAction(object):
     def target_prefix(self):
         # string interpolation for paths that aren't completely known until all actions have
         # been created.  e.g. location of site-packages directory
-        return self._target_prefix % self.transaction_context
+        if not self._target_prefix:
+            return None
+        return interpolate_string(self._target_prefix, self.transaction_context)
 
     @property
     def target_short_path(self):
         # string interpolation for paths that aren't completely known until all actions have
         # been created.  e.g. location of site-packages directory
-        return self._target_short_path % self.transaction_context
+        if not self._target_short_path:
+            return None
+        return interpolate_string(self._target_short_path, self.transaction_context)
 
     @property
     def target_full_path(self):
@@ -64,6 +70,13 @@ class PathAction(object):
     @abstractmethod
     def cleanup(self):
         raise NotImplementedError()
+
+    def __repr__(self):
+        attrs = ('source_prefix', 'source_short_path', 'target_prefix', 'target_short_path',
+                 'link_type', 'prefix_placeholder', 'file_mode')
+        args = ('%s=%s' % (attr, getattr(self, attr, None))
+                for attr in attrs if hasattr(self, attr))
+        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
 # ######################################################
@@ -89,11 +102,15 @@ class CreatePathAction(PathAction):
 
     @property
     def source_prefix(self):
-        return self._source_prefix % self.transaction_context
+        if not self._source_prefix:
+            return None
+        return interpolate_string(self._source_prefix, self.transaction_context)
 
     @property
     def source_short_path(self):
-        return self._source_short_path % self.transaction_context
+        if not self._source_short_path:
+            return None
+        return interpolate_string(self._source_short_path, self.transaction_context)
 
     @property
     def source_full_path(self):
@@ -113,16 +130,17 @@ class LinkPathAction(CreatePathAction):
 
     def verify(self):
         # TODO: consider checking hashsums
-        if not self.link_type == LinkType.directory and not exists(self.source_full_path):
+        if self.link_type != LinkType.directory and not exists(self.source_full_path):
             raise CondaVerificationError(dals("""
             The package for %s located at %s
-            appears to be corrupted. The file '%s'
+            appears to be corrupted. The path '%s'
             specified in the package manifest cannot be found.
             """ % (self.package_info.index_json_record.name,
                    self.package_info.extracted_package_dir,
                    self.source_short_path)))
 
     def execute(self):
+        log.debug("linking %s to %s", self.source_full_path, self.target_full_path)
         create_link(self.source_full_path, self.target_full_path, self.link_type)
 
     def reverse(self):
@@ -145,7 +163,6 @@ class PrefixReplaceLinkAction(LinkPathAction):
         self.file_mode = file_mode
 
     def verify(self):
-        super(PrefixReplaceLinkAction, self).verify()
         if not (self.prefix_placeholder or self.file_mode):
             raise CondaVerificationError(dals("""
             The package for %s located at %s
@@ -155,10 +172,23 @@ class PrefixReplaceLinkAction(LinkPathAction):
             """ % (self.package_info.index_json_record.name,
                    self.package_info.extracted_package_dir,
                    self.source_short_path, self.prefix_placeholder, self.file_mode)))
+        if not isfile(self.source_full_path):
+            raise CondaVerificationError(dals("""
+            The package for %s located at %s
+            appears to be corrupted. The path '%s'
+            specified in the package manifest is not a file.
+            """ % (self.package_info.index_json_record.name,
+                   self.package_info.extracted_package_dir,
+                   self.source_short_path)))
 
     def execute(self):
         super(PrefixReplaceLinkAction, self).execute()
+        if islink(self.source_full_path):
+            log.info("Ignoring prefix update for symlink with source path %s", self.source_full_path)
+            return
+
         try:
+            log.debug("rewriting prefixes in %s", self.target_full_path)
             update_prefix(self.target_full_path, self.target_prefix, self.prefix_placeholder,
                           self.file_mode)
         except _PaddingError:
@@ -177,6 +207,7 @@ class MakeMenuAction(CreatePathAction):
         pass
 
     def execute(self):
+        log.debug("making menu for %s", self.target_full_path)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def reverse(self):
@@ -196,6 +227,7 @@ class CompilePycAction(CreatePathAction):
         pass
 
     def execute(self):
+        log.debug("compiling", self.target_full_path)
         python_short_path = get_python_path(self.transaction_context['target_python_version'])
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
         compile_pyc(python_full_path, self.source_full_path)
@@ -222,6 +254,7 @@ class CreatePythonEntryPointAction(CreatePathAction):
         pass
 
     def execute(self):
+        log.debug("creating entry point %s", self.target_full_path)
         if on_win:
             create_windows_entry_point_py(self.target_full_path, self.module, self.func)
         else:
@@ -241,7 +274,7 @@ class CreatePythonEntryPointAction(CreatePathAction):
 class CreateCondaMetaAction(CreatePathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, meta_record):
-        target_short_path = 'conda-meta/' + package_info.dist.to_filename('.json')
+        target_short_path = 'conda-meta/' + package_info.repodata_record.fn
         super(CreateCondaMetaAction, self).__init__(transaction_context, package_info,
                                                     None, None, target_prefix, target_short_path)
         self.meta_record = meta_record
@@ -250,12 +283,14 @@ class CreateCondaMetaAction(CreatePathAction):
         pass
 
     def execute(self):
+        log.debug("creating conda-meta %s", self.target_full_path)
         write_conda_meta_record(self.target_prefix, self.meta_record)
-        set_linked_data(self.target_prefix, self.package_info.dist.dist_name,
+        set_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
                         self.meta_record)
 
     def reverse(self):
-        delete_linked_data(self.target_prefix, self.package_info.dist, delete=False)
+        delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
+                           delete=False)
         rm_rf(self.target_full_path)
 
 
@@ -286,6 +321,7 @@ class UnlinkPathAction(RemovePathAction):
         self.link_type = link_type
 
     def execute(self):
+        log.debug("renaming to %s", self.holding_path)
         if self.link_type != LinkType.directory:
             rename(self.target_full_path, self.holding_path)
 
@@ -308,6 +344,7 @@ class RemoveMenuAction(RemovePathAction):
                                                target_prefix, target_short_path)
 
     def execute(self):
+        log.debug("removing menu for %s ", self.target_prefix)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def reverse(self):
@@ -325,10 +362,13 @@ class RemoveCondaMetaAction(UnlinkPathAction):
 
     def execute(self):
         super(RemoveCondaMetaAction, self).execute()
-        delete_linked_data(self.target_prefix, self.linked_package_data.dist, delete=False)
+        delete_linked_data(self.target_prefix, Dist(self.linked_package_data),
+                           delete=False)
 
     def reverse(self):
         super(RemoveCondaMetaAction, self).reverse()
         with open(self.target_full_path, 'r') as fh:
             meta_record = Record(**json.loads(fh.read()))
-        load_linked_data(self.target_prefix, self.linked_package_data.dist.dist_name, meta_record)
+        load_linked_data(self.target_prefix,
+                         Dist(self.linked_package_data).dist_name,
+                         meta_record)

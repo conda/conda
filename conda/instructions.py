@@ -8,7 +8,7 @@ from os.path import isdir, isfile, islink, join
 
 from .base.constants import LinkType
 from .base.context import context
-from .core.install import PackageUninstaller, get_package_installer, UnlinkLinkTransaction
+from .core.install import UnlinkLinkTransaction
 from .core.linked_data import load_meta
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .exceptions import CondaFileIOError, CondaIOError
@@ -114,11 +114,11 @@ def UNLINKLINKTRANSACTION_CMD(state, arg):
     target_prefix = state['prefix']
 
     unlink_dists, link_dists = arg
-    linked_packages_data_to_unlink = tuple(state['index'][dist] for dist in unlink_dists)
+    linked_packages_data_to_unlink = tuple(load_meta(state['prefix'], dist) for dist in unlink_dists)
 
     pkg_dirs_to_link = tuple(is_extracted(dist) for dist in link_dists)
     assert all(pkg_dirs_to_link)
-    packages_info_to_link = tuple(collect_all_info_for_package(d) for d in pkg_dirs_to_link)
+    packages_info_to_link = tuple(collect_all_info_for_package(state['index'][dist] , pkg_dir) for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
 
     txn = UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
                                 packages_info_to_link)
@@ -319,8 +319,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     # pull out unlink and link commands for the transaction
     grouped_instructions = groupby(lambda x: x[0], plan)
-    unlink_dists = grouped_instructions.get(UNLINK, ())
-    link_dists = tuple(d.split(' ', 1)[0] for d in grouped_instructions.get(LINK, ()))
+    unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
+    link_dists = tuple(Dist(d[1].split(' ', 1)[0]) for d in grouped_instructions.get(LINK, ()))
     plan = filter(lambda x: x[0] not in (LINK, UNLINK, SYMLINK_CONDA), plan)
 
     state = {'i': None, 'prefix': context.root_dir, 'index': index}
@@ -344,3 +344,5 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             getLogger('progress.stop').info(None)
 
     # NOW CALL UNLINKLINKTRANSACTION
+    if unlink_dists or link_dists:
+        UNLINKLINKTRANSACTION_CMD(state, (unlink_dists, link_dists))
