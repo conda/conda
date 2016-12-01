@@ -465,35 +465,19 @@ def get_pinned_specs(prefix):
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 
-# Has one dist for each env
-DistForEnv = namedtuple('DistForEnv', ['env', 'dist'])
-# Has several dists for each prefix and the related r value
-DistsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'dists', 'r'])
-
-
-def match_to_original_specs(old_specs, prefix_with_dists_no_deps_has_resolve):
-    matches_any_spec = lambda dst: next(spc for spc in old_specs if spc.startswith(dst))
-    specs_for_prefix = []
-    for prefix_with_dists in prefix_with_dists_no_deps_has_resolve:
-        linked = linked_data(prefix_with_dists.prefix)
-        r = prefix_with_dists.r
-        new_matches = []
-        for d in prefix_with_dists.dists:
-            matched = matches_any_spec(d)
-            if matched:
-                new_matches.append(matched)
-        add_defaults_to_specs(r, linked, new_matches)
-        specs_for_prefix.append(DistsForPrefix(prefix=prefix_with_dists.prefix, r=r, dists=new_matches))
-    return specs_for_prefix
+# Has one spec (string) for each env
+SpecForEnv = namedtuple('DistForEnv', ['env', 'spec'])
+# Has several spec (strings) for each prefix and the related r value
+SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False,update_deps=True, prune=False, channel_priority_map=None):
-    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
-    #        bool, bool, bool) -> Dict[weird]
-    old_specs = specs
+                    pinned=True, minimal_hint=False,update_deps=True, prune=False,
+                    channel_priority_map=None):
+    # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
+    str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
-
     r = get_resolve_object(index.copy(), prefix)
 
     dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
@@ -502,13 +486,30 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     prefix_with_dists_no_deps_has_resolve = determine_dists_per_prefix(
         r, prefix, index, preferred_envs, dists_for_envs)
 
-    required_solves = match_to_original_specs(old_specs, prefix_with_dists_no_deps_has_resolve)
+    required_solves = match_to_original_specs(str_specs, prefix_with_dists_no_deps_has_resolve)
 
     actions = tuple(
         get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy, prune,
                               update_deps, pinned)
         for dists_by_prefix in required_solves)
     return actions
+
+
+def match_to_original_specs(str_specs, specs_for_prefix):
+    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+    matched_specs_for_prefix = []
+    for prefix_with_dists in specs_for_prefix:
+        linked = linked_data(prefix_with_dists.prefix)
+        r = prefix_with_dists.r
+        new_matches = []
+        for d in prefix_with_dists.specs:
+            matched = matches_any_spec(d)
+            if matched:
+                new_matches.append(matched)
+        add_defaults_to_specs(r, linked, new_matches)
+        matched_specs_for_prefix.append(SpecsForPrefix(
+            prefix=prefix_with_dists.prefix, r=r, specs=new_matches))
+    return matched_specs_for_prefix
 
 
 def not_requires_private_env(prefix, preferred_envs):
@@ -527,8 +528,8 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs)
     # if len(preferred_envs) == 2 and set([None, preferred_env]) preferred_env matches prefix
     #    solution is good
     if not_requires_private_env(prefix, preferred_envs):
-        dists = set(d.dist for d in dists_for_envs)
-        prefix_with_dists_no_deps_has_resolve = [DistsForPrefix(prefix=prefix, r=r, dists=dists)]
+        dists = set(d.spec for d in dists_for_envs)
+        prefix_with_dists_no_deps_has_resolve = [SpecsForPrefix(prefix=prefix, r=r, specs=dists)]
     else:
         # Ensure that conda is working in the root dir
         assert(context.prefix == context.root_dir)
@@ -543,10 +544,10 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs)
 
         prefix_with_dists_no_deps_has_resolve = []
         for env in preferred_envs:
-            dists = set(d.dist for d in dists_for_envs if d.env == env)
+            dists = set(d.spec for d in dists_for_envs if d.env == env)
             prefix_with_dists_no_deps_has_resolve.append(
-                DistsForPrefix(prefix=preferred_env_to_prefix(
-                    env, context.root_dir, context.envs_dirs), r=get_r(env), dists=dists)
+                SpecsForPrefix(prefix=preferred_env_to_prefix(
+                    env, context.root_dir, context.envs_dirs), r=get_r(env), specs=dists)
             )
     return prefix_with_dists_no_deps_has_resolve
 
@@ -555,12 +556,10 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
                           update_deps, pinned):
     root_only = ('conda', 'conda-env')
     prefix = dists_for_prefix.prefix
-    dists = dists_for_prefix.dists
+    dists = dists_for_prefix.specs
     r = dists_for_prefix.r
     specs = [MatchSpec(dist) for dist in dists]
     specs = augment_specs(prefix, specs, pinned)
-
-    import pdb; pdb.set_trace()
 
     linked = linked_data(prefix)
     must_have = {}
@@ -670,7 +669,13 @@ def determine_all_envs(r, specs, channel_priority_map=None):
     #        bool, bool, bool) -> Dict[weird]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
     # Find all possible matches for each spec
+    # TODO: instead of getting a list of matched specs and then matching, iterate through the
+    #    specs and match one at a time
     matched_specs = tuple(MatchedSpecs(name=spec, dists=r.find_matches(spec)) for spec in specs)
+
+    # for spec in specs:
+    #     matched_dists = r.find_matches(spec)
+    #
 
     nth_channel_priority = lambda n: [chnl[0] for chnl in channel_priority_map.values() if
                                       chnl[1] == n][0]
@@ -690,7 +695,7 @@ def determine_all_envs(r, specs, channel_priority_map=None):
     else:
         matched_dists = [mtchs[0] for mtchs in matched_specs]
 
-    dists_for_envs = tuple(DistForEnv(env=r.index[dist].preferred_env, dist=dist.name)
+    dists_for_envs = tuple(SpecForEnv(env=r.index[dist].preferred_env, spec=dist.name)
                            for dist in matched_dists)
     return dists_for_envs
 
