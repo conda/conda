@@ -11,7 +11,7 @@ import json
 import logging
 import os
 from difflib import get_close_matches
-from os.path import abspath, basename, exists, isdir, join
+from os.path import abspath, basename, exists, isdir, join, isfile
 
 from conda.common.path import prefix_to_env_name, is_private_env
 from conda.models.channel import prioritize_channels
@@ -123,7 +123,18 @@ def create_private_envs_meta(action_set, specs):
     def is_in_specs(pkg):
         return any(spec for spec in specs if pkg.startswith(spec))
 
-    private_envs_json = {}
+    path_to_conda_meta = join(context.root_prefix, "conda-meta")
+    path_to_private_envs = join(path_to_conda_meta, "private_envs")
+
+    if not isdir(path_to_conda_meta):
+        os.mkdir(path_to_conda_meta)
+
+    if isfile(path_to_private_envs):
+        with open(path_to_private_envs, "r") as f:
+            private_envs_json = json.load(f)
+    else:
+        private_envs_json = {}
+
     for actions in action_set:
         prefix = actions["PREFIX"]
         if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
@@ -131,11 +142,7 @@ def create_private_envs_meta(action_set, specs):
                 pkg = get_package_name(link)
                 if is_in_specs(pkg):
                     private_envs_json[pkg] = prefix
-    path_to_conda_meta = join(context.root_prefix, "conda-meta")
-    path_to_private_envs = join(path_to_conda_meta, "private_envs")
 
-    if not isdir(path_to_conda_meta):
-        os.mkdir(path_to_conda_meta)
     with open(path_to_private_envs, "w") as f:
         json.dump(private_envs_json, f)
 
@@ -167,7 +174,7 @@ def install(args, parser, command='install'):
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in linked_names:
+            if name not in linked_names and common.prefix_if_in_private_env(name) is None:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
 
@@ -245,6 +252,11 @@ def install(args, parser, command='install'):
         orig_packages = args.packages[:]
         installed_metadata = [is_linked(prefix, dist) for dist in linked_dists]
         for name in orig_packages:
+            private_env = common.prefix_if_in_private_env(name)
+            if private_env is not None:
+                linked_dists = install_linked(private_env)
+                installed_metadata = [is_linked(private_env, dist) for dist in linked_dists]
+
             vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
             channel_inst = [m['channel'] for m in installed_metadata if m['name'] == name]
