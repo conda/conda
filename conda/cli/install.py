@@ -126,13 +126,16 @@ def create_private_envs_meta(action_set, specs):
     private_envs_json = {}
     for actions in action_set:
         prefix = actions["PREFIX"]
-        if is_private_env(prefix_to_env_name(prefix)):
+        if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
             for link in actions["LINK"]:
                 pkg = get_package_name(link)
                 if is_in_specs(pkg):
                     private_envs_json[pkg] = prefix
+    path_to_conda_meta = join(context.root_prefix, "conda-meta")
+    path_to_private_envs = join(path_to_conda_meta, "private_envs")
 
-    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
+    if not isdir(path_to_conda_meta):
+        os.mkdir(path_to_conda_meta)
     with open(path_to_private_envs, "w") as f:
         json.dump(private_envs_json, f)
 
@@ -291,7 +294,7 @@ def install(args, parser, command='install'):
 
     try:
         if isinstall and args.revision:
-            actions = revert_actions(prefix, get_revision(args.revision), index)
+            action_set = [revert_actions(prefix, get_revision(args.revision), index)]
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])

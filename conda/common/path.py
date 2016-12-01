@@ -103,10 +103,10 @@ def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
         return join(envs_dirs[0], maybe_pad(preferred_env, '_'))
 
 
-def prefix_to_env_name(prefix):
-    split_env = prefix.split("/envs/")
-    if len(split_env) == 1:
+def prefix_to_env_name(prefix, root_prefix):
+    if prefix == root_prefix:
         return None
+    split_env = prefix.split("/")
     return split_env[-1]
 
 

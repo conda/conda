@@ -97,7 +97,7 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(inst.LINK, []):
-        d, lt, prefix = inst.split_linkarg(arg)
+        d, lt = inst.split_linkarg(arg)
         dist = Dist(d)
         rec = index[dist]
         pkg = rec['name']
@@ -511,7 +511,7 @@ def determine_all_envs(r, specs, channel_priority_map=None):
     assert all(isinstance(spec, MatchSpec) for spec in specs)
 
     # Make sure there is a channel prioritu
-    if channel_priority_map is None:
+    if channel_priority_map is None or len(channel_priority_map) == 0:
         channel_priority_map = prioritize_channels(context.channels)
 
     # remove duplicates e.g. for channel names with multiple urls
@@ -529,7 +529,7 @@ def determine_all_envs(r, specs, channel_priority_map=None):
             if len(highest_match) > 0:
                 newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[0]
                 return newest_pkg
-        raise PackageNotFoundError(matches.name, "package not found")
+        raise PackageNotFoundError(matches[0].name, "package not found")
 
     spec_for_envs = []
     for spec in specs:
@@ -633,11 +633,11 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
     elif any(s in must_have for s in root_only):
         # the solver scheduled an install of conda, but it wasn't in the
         # specs, so it must have been a dependency.
-        specs = [s for s in dists.to_matchspec() if r.depends_on(s, root_only)]
+        specs = [s for s in specs if r.depends_on(s, root_only)]
         if specs:
             raise InstallError("""\
 Error: the following specs depend on 'conda' and can only be installed
-into the root environment: %s""" % (' '.join(specs),))
+into the root environment: %s""" % (' '.join(spec.name for spec in specs),))
         linked = [r.package_name(s) for s in linked]
         linked = [s for s in linked if r.depends_on(s, root_only)]
         if linked:
