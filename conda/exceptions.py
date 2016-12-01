@@ -410,6 +410,12 @@ class CondaUpgradeError(CondaError):
         super(CondaUpgradeError, self).__init__(msg)
 
 
+class CondaVerificationError(CondaError):
+    def __init__(self, message):
+        msg = "Conda verification error: %s" % message
+        super(CondaVerificationError, self).__init__(msg)
+
+
 def print_conda_exception(exception):
     from conda.base.context import context
 

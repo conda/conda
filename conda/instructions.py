@@ -8,14 +8,19 @@ from os.path import isdir, isfile, islink, join
 
 from .base.constants import LinkType
 from .base.context import context
-from .core.install import PackageUninstaller, get_package_installer
+from .core.install import PackageUninstaller, get_package_installer, UnlinkLinkTransaction
 from .core.linked_data import load_meta
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .exceptions import CondaFileIOError, CondaIOError
 from .file_permissions import FilePermissions
-from .gateways.disk.read import yield_lines
+from .gateways.disk.read import yield_lines, collect_all_info_for_package
 from .models.dist import Dist
 from .utils import on_win
+
+try:
+    from cytoolz.itertoolz import groupby
+except ImportError:
+    from ._vendor.toolz.itertoolz import groupby  # NOQA
 
 
 log = getLogger(__name__)
@@ -25,19 +30,14 @@ CHECK_FETCH = 'CHECK_FETCH'
 FETCH = 'FETCH'
 CHECK_EXTRACT = 'CHECK_EXTRACT'
 EXTRACT = 'EXTRACT'
-MAKE_UNLINK_OPERTIONS = 'MAKE_UNLINK_OPERTIONS'
-MAKE_LINK_OPERATIONS = 'MAKE_LINK_OPERATIONS'
-CHECK_UNLINK = 'CHECK_UNLINK'
-CHECK_LINK = 'CHECK_LINK'
-UNLINK = 'UNLINK'
-LINK = 'LINK'
 RM_EXTRACTED = 'RM_EXTRACTED'
 RM_FETCHED = 'RM_FETCHED'
 PREFIX = 'PREFIX'
 PRINT = 'PRINT'
 PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
-UNLINKLINKTRANSACTION = 'UNLINKLINKTRANSACTION'
+UNLINK = 'UNLINK'
+LINK = 'LINK'
 
 progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
 action_codes = (
@@ -91,18 +91,18 @@ def split_linkarg(arg):
     return (parts[0], int(LinkType.hardlink if len(parts) < 2 else parts[1]))
 
 
-def LINK_CMD(state, arg):
-    dist, lt = split_linkarg(arg)
-    dist, lt = Dist(dist), LinkType(lt)
-    log.debug("=======> LINKING %s <=======", dist)
-    installer = get_package_installer(state['prefix'], state['index'], dist)
-    installer.link(lt)
-
-
-def UNLINK_CMD(state, arg):
-    log.debug("=======> UNLINKING %s <=======", arg)
-    dist = Dist(arg)
-    PackageUninstaller(state['prefix'], dist).unlink()
+# def LINK_CMD(state, arg):
+#     dist, lt = split_linkarg(arg)
+#     dist, lt = Dist(dist), LinkType(lt)
+#     log.debug("=======> LINKING %s <=======", dist)
+#     installer = get_package_installer(state['prefix'], state['index'], dist)
+#     installer.link(lt)
+#
+#
+# def UNLINK_CMD(state, arg):
+#     log.debug("=======> UNLINKING %s <=======", arg)
+#     dist = Dist(arg)
+#     PackageUninstaller(state['prefix'], dist).unlink()
 
 
 def SYMLINK_CONDA_CMD(state, arg):
@@ -111,8 +111,18 @@ def SYMLINK_CONDA_CMD(state, arg):
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):
-    assert isinstance(arg, UnlinkLinkTransaction)
-    arg.run()
+    target_prefix = state['prefix']
+
+    unlink_dists, link_dists = arg
+    linked_packages_data_to_unlink = tuple(state['index'][dist] for dist in unlink_dists)
+
+    pkg_dirs_to_link = tuple(is_extracted(dist) for dist in link_dists)
+    assert all(pkg_dirs_to_link)
+    packages_info_to_link = tuple(collect_all_info_for_package(d) for d in pkg_dirs_to_link)
+
+    txn = UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
+                                packages_info_to_link)
+    txn.execute()
 
 
 def get_package(plan, instruction):
@@ -129,14 +139,14 @@ def get_package(plan, instruction):
     return link_list
 
 
-def get_unlink_files(plan, prefix):
-    unlink_list = get_package(plan, UNLINK)
-    unlink_files = []
-    for dist in unlink_list:
-        meta = load_meta(prefix, dist)
-        if meta is not None:
-            unlink_files.extend(meta)
-    return unlink_files
+# def get_unlink_files(plan, prefix):
+#     unlink_list = get_package(plan, UNLINK)
+#     unlink_files = []
+#     for dist in unlink_list:
+#         meta = load_meta(prefix, dist)
+#         if meta is not None:
+#             unlink_files.extend(meta)
+#     return unlink_files
 
 
 def check_files_in_package(source_dir, files):
@@ -148,49 +158,49 @@ def check_files_in_package(source_dir, files):
             raise CondaFileIOError(source_file, "File %s does not exist in tarball" % f)
 
 
-def CHECK_LINK_CMD(state, plan):
-    """
-        check permission issue before link and unlink
-    :param state: the state of plan
-    :param plan: the plan from action
-    :return: the result of permission checking
-    """
-    link_list = get_package(plan, LINK)
-    prefix = state['prefix']
-    unlink_files = get_unlink_files(plan, prefix)
-    file_permissions = FilePermissions(prefix)
+# def CHECK_LINK_CMD(state, plan):
+#     """
+#         check permission issue before link and unlink
+#     :param state: the state of plan
+#     :param plan: the plan from action
+#     :return: the result of permission checking
+#     """
+#     link_list = get_package(plan, LINK)
+#     prefix = state['prefix']
+#     unlink_files = get_unlink_files(plan, prefix)
+#     file_permissions = FilePermissions(prefix)
+#
+#     for arg in link_list:
+#         dist, lt = split_linkarg(arg)
+#         source_dir = is_extracted(Dist(dist))
+#         assert source_dir is not None
+#         info_dir = join(source_dir, 'info')
+#         files = list(yield_lines(join(info_dir, 'files')))
+#         check_files_in_package(source_dir, files)
+#         file_permissions.check(files, unlink_files)
 
-    for arg in link_list:
-        dist, lt = split_linkarg(arg)
-        source_dir = is_extracted(Dist(dist))
-        assert source_dir is not None
-        info_dir = join(source_dir, 'info')
-        files = list(yield_lines(join(info_dir, 'files')))
-        check_files_in_package(source_dir, files)
-        file_permissions.check(files, unlink_files)
 
-
-def CHECK_UNLINK_CMD(state, plan):
-    """
-        check permission issue before link and unlink
-    :param state: the state of plan
-    :param plan: the plan from action
-    :return: the result of permission checking
-    """
-    unlink_list = get_package(plan, UNLINK)
-    prefix = state['prefix']
-    file_permissions = FilePermissions(prefix)
-
-    for dist in unlink_list:
-        meta = load_meta(prefix, dist)
-        for f in meta['files']:
-            dst = join(prefix, f)
-            # make sure the dst is something
-            if islink(dst) or isfile(dst) or isdir(dst):
-                if islink(dst):
-                    sym_path = os.path.normpath(join(os.path.dirname(dst), os.readlink(dst)))
-                    file_permissions.check_write_permission(sym_path)
-                file_permissions.check_write_permission(dst)
+# def CHECK_UNLINK_CMD(state, plan):
+#     """
+#         check permission issue before link and unlink
+#     :param state: the state of plan
+#     :param plan: the plan from action
+#     :return: the result of permission checking
+#     """
+#     unlink_list = get_package(plan, UNLINK)
+#     prefix = state['prefix']
+#     file_permissions = FilePermissions(prefix)
+#
+#     for dist in unlink_list:
+#         meta = load_meta(prefix, dist)
+#         for f in meta['files']:
+#             dst = join(prefix, f)
+#             # make sure the dst is something
+#             if islink(dst) or isfile(dst) or isdir(dst):
+#                 if islink(dst):
+#                     sym_path = os.path.normpath(join(os.path.dirname(dst), os.readlink(dst)))
+#                     file_permissions.check_write_permission(sym_path)
+#                 file_permissions.check_write_permission(dst)
 
 
 def get_free_space(dir_name):
@@ -272,12 +282,9 @@ commands = {
     EXTRACT: EXTRACT_CMD,
     RM_EXTRACTED: RM_EXTRACTED_CMD,
     RM_FETCHED: RM_FETCHED_CMD,
-    CHECK_LINK: CHECK_LINK_CMD,
-    LINK: LINK_CMD,
-    CHECK_UNLINK: CHECK_UNLINK_CMD,
-    UNLINK: UNLINK_CMD,
+    UNLINK: None,
+    LINK: None,
     SYMLINK_CONDA: SYMLINK_CONDA_CMD,
-    UNLINKLINKTRANSACTION: UNLINKLINKTRANSACTION_CMD,
 }
 
 
@@ -287,10 +294,6 @@ OP_ORDER = (CHECK_FETCH,
             CHECK_EXTRACT,
             RM_EXTRACTED,
             EXTRACT,
-            MAKE_UNLINK_OPERTIONS,
-            MAKE_LINK_OPERATIONS,
-            CHECK_UNLINK,
-            CHECK_LINK,
             UNLINK,
             LINK,
             )
@@ -314,6 +317,12 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     log.debug("executing plan %s", plan)
 
+    # pull out unlink and link commands for the transaction
+    grouped_instructions = groupby(lambda x: x[0], plan)
+    unlink_dists = grouped_instructions.get(UNLINK, ())
+    link_dists = tuple(d.split(' ', 1)[0] for d in grouped_instructions.get(LINK, ()))
+    plan = filter(lambda x: x[0] not in (LINK, UNLINK, SYMLINK_CONDA), plan)
+
     state = {'i': None, 'prefix': context.root_dir, 'index': index}
 
     for instruction, arg in plan:
@@ -333,3 +342,5 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
             state['i'] = None
             getLogger('progress.stop').info(None)
+
+    # NOW CALL UNLINKLINKTRANSACTION

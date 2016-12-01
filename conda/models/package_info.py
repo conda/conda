@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.models.channel import Channel
-from conda.models.dist import Dist
 from enum import Enum
 from logging import getLogger
 
@@ -62,11 +61,10 @@ class PackageInfo(Entity):
     channel = ComposableField(Channel)
     repodata_record = ComposableField(Record)
     url = StringField()
-    dist = ComposableField(Dist)
 
     # attributes within the package tarball
     paths_version = IntegerField()
     paths = ListField(PathInfo)
     index_json_record = ComposableField(Record)
     icondata = StringField(required=False, nullable=True)
-    noarch = ComposableField(NoarchInfo, required=False, nullable=True)  # TODO: this isn't noarch anymore; package_metadata.json
+    noarch = ComposableField(NoarchInfo, required=False, nullable=True)  # TODO: this isn't noarch anymore; package_metadata.json  # NOQA

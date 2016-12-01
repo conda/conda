@@ -5,15 +5,14 @@ import json
 import shlex
 from base64 import b64encode
 from collections import namedtuple
+from conda._vendor.auxlib.ish import dals
 from errno import ENOENT
 from itertools import chain
 from logging import getLogger
-from os import listdir, lstat, walk
-from os.path import exists, isdir, isfile, islink, join, basename
+from os import listdir, lstat
+from os.path import exists, isdir, isfile, islink, join
 
-from ..._vendor.auxlib.path import expand
 from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
-from ...common.path import maybe_right_pad
 from ...exceptions import CondaUpgradeError
 from ...models.package_info import PackageInfo, PathInfo, PathInfoV1, PathType
 from ...models.record import Record
@@ -58,9 +57,10 @@ def collect_all_info_for_package(extracted_package_directory):
         with open(file_json_path) as file_json:
             data = json.load(file_json)
         if data.get('paths_version') != 1:
-            raise CondaUpgradeError("""The current version of conda is too old to install this
-package. (This version only supports paths.json schema version 1.)  Please update conda to install
-this package.""")
+            raise CondaUpgradeError(dals("""
+            The current version of conda is too old to install this package. (This version
+            only supports paths.json schema version 1.)  Please update conda to install
+            this package."""))
 
         paths = (PathInfoV1(**f) for f in data['paths'])
         index_json_record = read_index_json(extracted_package_directory)

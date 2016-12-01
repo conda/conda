@@ -4,14 +4,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from functools import reduce
 from logging import getLogger
-from os.path import basename, dirname, join, splitext
+from os.path import basename, join, splitext
 
+from .compat import string_types
 from ..utils import on_win
 
 try:
-    from cytoolz.itertoolz import accumulate, concat
+    from cytoolz.itertoolz import accumulate, concat, take
 except ImportError:
-    from .._vendor.toolz.itertoolz import accumulate, concat
+    from .._vendor.toolz.itertoolz import accumulate, concat, take
 
 
 log = getLogger(__name__)
@@ -66,7 +67,8 @@ def pyc_path(path, python_major_minor_version):
 def missing_pyc_files(python_major_minor_version, files):
     # returns a tuple of tuples, with the inner tuple being the .py file and the missing .pyc file
     py_files = (f for f in files if f.endswith('.py'))
-    pyc_matches = ((py_file, pyc_path(py_file, python_major_minor_version)) for py_file in py_files)
+    pyc_matches = ((py_file, pyc_path(py_file, python_major_minor_version))
+                   for py_file in py_files)
     result = tuple(match for match in pyc_matches if match[1] not in files)
     return result
 
@@ -86,6 +88,29 @@ def get_python_path(version=None):
     return join("bin", "python%s" % version or '')
 
 
+def get_python_site_packages_short_path(python_version):
+    if on_win:
+        return 'Lib/site-packages'
+    else:
+        py_ver = get_major_minor_version(python_version)
+        return 'lib/python%s/site-packages' % py_ver
+
+
+def get_major_minor_version(string, with_dot=True):
+    # returns None if not found, otherwise two digits as a string
+    # should work for
+    #   - 3.5.2
+    #   - 27
+    #   - bin/python2.7
+    #   - lib/python34/site-packages/
+    # the last two are dangers because windows doesn't have version information there
+    assert isinstance(string, string_types)
+    digits = tuple(take(2, (c for c in string if c.isdigit())))
+    if len(digits) == 2:
+        return '.'.join(digits) if with_dot else ''.join(digits)
+    return None
+
+
 def get_bin_directory_short_path():
     return 'Scripts' if on_win else 'bin'
 
@@ -102,5 +127,5 @@ def win_path_backout(path):
     return path.replace('\\', '/') if on_win else path
 
 
-def maybe_right_pad(path):
+def right_pad_os_sep(path):
     return path if path.endswith(os.sep) else path + os.sep

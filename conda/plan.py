@@ -269,10 +269,6 @@ def add_checks(actions):
     Returns:
         the actions dict with the appropriate checks added
     """
-    if inst.LINK in actions:
-        actions.setdefault(inst.CHECK_LINK, [True])
-    if inst.UNLINK in actions:
-        actions.setdefault(inst.CHECK_UNLINK, [True])
     if inst.FETCH in actions:
         actions.setdefault(inst.CHECK_FETCH, [True])
     if inst.EXTRACT in actions:
@@ -280,10 +276,7 @@ def add_checks(actions):
 
 
 def plan_from_actions(actions):
-    if 'op_order' in actions and actions['op_order']:
-        op_order = actions['op_order']
-    else:
-        op_order = inst.action_codes
+    op_order = actions['op_order']
 
     assert inst.PREFIX in actions and actions[inst.PREFIX]
     res = [('PREFIX', '%s' % actions[inst.PREFIX])]
@@ -293,8 +286,7 @@ def plan_from_actions(actions):
     # NOTE: this throws away requested link type; it should be figured out somewhere else
     link_dists = tuple(Dist(linkarg.split(' ')[0]) for linkarg in actions.pop(inst.LINK, ()))
     # this isn't what I want here though
-    # I also need a full path to the extracted_package_dir for each dist
-    # better yet give me a PackageInfo object
+    # give me a PackageInfo object
 
     # TODO: there could be multiple of these
     trans = UnlinkLinkTransaction(actions[inst.PREFIX], unlink_dists, link_dists)

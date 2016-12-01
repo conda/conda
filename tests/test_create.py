@@ -22,13 +22,14 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
-from conda.common.path import get_bin_directory_short_path, missing_pyc_files
+from conda.common.path import get_bin_directory_short_path, missing_pyc_files, \
+    get_python_site_packages_short_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
-from conda.core.linked_data import get_python_version_for_prefix, get_site_packages_short_path, \
+from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
@@ -247,7 +248,7 @@ class IntegrationTests(TestCase):
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
-            sp_dir = get_site_packages_short_path(prefix)
+            sp_dir = get_python_site_packages_short_path(py_ver)
             pyc_test_pair = missing_pyc_files(py_ver, ("%s/flask/__init__.py" % sp_dir,))
             assert len(pyc_test_pair) == 1
             assert pyc_test_pair[0][0] == "%s/flask/__init__.py" % sp_dir

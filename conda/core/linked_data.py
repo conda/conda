@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
-from conda.utils import on_win
 from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
@@ -135,20 +134,13 @@ def set_linked_data(prefix, dist_name, record):
 
 
 def get_python_version_for_prefix(prefix):
-    # returns a string e.g. "2.7", "3.4", "3.5 or None
+    # returns a string e.g. "2.7", "3.4", "3.5" or None
     py_record_iter = (rcrd for rcrd in itervalues(linked_data(prefix)) if rcrd.name == 'python')
     record = next(py_record_iter, None)
     if record is None:
         return None
     next_record = next(py_record_iter, None)
     if next_record is not None:
-        raise RuntimeError("multiple python record found in prefix %s" % prefix)
+        raise RuntimeError("multiple python records found in prefix %s" % prefix)
     else:
         return record.version[:3]
-
-
-def get_site_packages_short_path(prefix):
-    if on_win:
-        return 'Lib/site-packages'
-    else:
-        return 'lib/python%s/site-packages' % get_python_version_for_prefix(prefix)

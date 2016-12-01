@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.common.path import missing_pyc_files
+from conda.common.path import missing_pyc_files, get_major_minor_version
 from logging import getLogger
 
 log = getLogger(__name__)
@@ -78,3 +78,17 @@ def test_missing_pyc_files_35():
         "lib/python2.7/site-packages/flask/__pycache__/debughelpers.cpython-35.pyc",
         "lib/python2.7/site-packages/flask/ext/__pycache__/__init__.cpython-35.pyc",
     )
+
+
+def test_get_major_minor_version_no_dot():
+    assert get_major_minor_version("3.5.2") == "3.5"
+    assert get_major_minor_version("27") == "2.7"
+    assert get_major_minor_version("bin/python2.7") == "2.7"
+    assert get_major_minor_version("lib/python34/site-packages/") == "3.4"
+    assert get_major_minor_version("python3") is None
+
+    assert get_major_minor_version("3.5.2", False) == "35"
+    assert get_major_minor_version("27", False) == "27"
+    assert get_major_minor_version("bin/python2.7", False) == "27"
+    assert get_major_minor_version("lib/python34/site-packages/", False) == "34"
+    assert get_major_minor_version("python3", False) is None
