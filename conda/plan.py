@@ -480,13 +480,16 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
 
+    # Determine how many envs need to be solved for
     dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
     preferred_envs = set(d.env for d in dists_for_envs)
 
-    prefix_with_dists_no_deps_has_resolve = determine_dists_per_prefix(
-        r, prefix, index, preferred_envs, dists_for_envs)
+    # Group specs by prefix
+    grouped_specs = determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs)
 
-    required_solves = match_to_original_specs(str_specs, prefix_with_dists_no_deps_has_resolve)
+    # Replace SpecsForPrefix specs with specs that were passed in in order to retain
+    #   version information
+    required_solves = match_to_original_specs(str_specs, grouped_specs)
 
     actions = tuple(
         get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy, prune,
@@ -495,21 +498,45 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     return actions
 
 
-def match_to_original_specs(str_specs, specs_for_prefix):
-    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
-    matched_specs_for_prefix = []
-    for prefix_with_dists in specs_for_prefix:
-        linked = linked_data(prefix_with_dists.prefix)
-        r = prefix_with_dists.r
-        new_matches = []
-        for d in prefix_with_dists.specs:
-            matched = matches_any_spec(d)
-            if matched:
-                new_matches.append(matched)
-        add_defaults_to_specs(r, linked, new_matches)
-        matched_specs_for_prefix.append(SpecsForPrefix(
-            prefix=prefix_with_dists.prefix, r=r, specs=new_matches))
-    return matched_specs_for_prefix
+def get_resolve_object(index, prefix):
+    # instantiate resolve object
+    supplement_index_with_prefix(index, prefix, {})
+    r = Resolve(index)
+    return r
+
+
+def determine_all_envs(r, specs, channel_priority_map=None):
+    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool) -> Dict[weird]
+    assert all(isinstance(spec, MatchSpec) for spec in specs)
+
+    # Make sure there is a channel prioritu
+    if channel_priority_map is None:
+        channel_priority_map = prioritize_channels(context.channels)
+
+    # remove duplicates e.g. for channel names with multiple urls
+    prioritized_channel_list = set((chnl, prrty) for chnl, prrty in
+                                   itervalues(channel_priority_map))
+    nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
+                                      chnl[1] == n][0]
+
+    def get_highest_priority_match(matches):
+        # This loop: match to the highest priority channel;
+        #   if no packages match priority 0, try the next channel
+        for i in range(0, len(prioritized_channel_list)):
+            target_channel = nth_channel_priority(i)
+            highest_match = [m for m in matches if m.schannel == target_channel]
+            if len(highest_match) > 0:
+                newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[0]
+                return newest_pkg
+        raise PackageNotFoundError(matches.name, "package not found")
+
+    spec_for_envs = []
+    for spec in specs:
+        matched_dists = r.get_pkgs(spec)
+        best_match = get_highest_priority_match(matched_dists)
+        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env, spec=best_match.name))
+    return spec_for_envs
 
 
 def not_requires_private_env(prefix, preferred_envs):
@@ -550,6 +577,23 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs)
                     env, context.root_dir, context.envs_dirs), r=get_r(env), specs=dists)
             )
     return prefix_with_dists_no_deps_has_resolve
+
+
+def match_to_original_specs(str_specs, specs_for_prefix):
+    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+    matched_specs_for_prefix = []
+    for prefix_with_dists in specs_for_prefix:
+        linked = linked_data(prefix_with_dists.prefix)
+        r = prefix_with_dists.r
+        new_matches = []
+        for d in prefix_with_dists.specs:
+            matched = matches_any_spec(d)
+            if matched:
+                new_matches.append(matched)
+        add_defaults_to_specs(r, linked, new_matches)
+        matched_specs_for_prefix.append(SpecsForPrefix(
+            prefix=prefix_with_dists.prefix, r=r, specs=new_matches))
+    return matched_specs_for_prefix
 
 
 def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
@@ -652,50 +696,6 @@ def augment_specs(prefix, specs, pinned=True):
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
     return specs
-
-
-def get_resolve_object(index, prefix):
-    # instantiate resolve object
-    supplement_index_with_prefix(index, prefix, {})
-    r = Resolve(index)
-    return r
-
-
-MatchedSpecs = namedtuple("MatchedSpecs", ("name", "pkg"))
-
-
-def determine_all_envs(r, specs, channel_priority_map=None):
-    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
-    #        bool, bool, bool) -> Dict[weird]
-    assert all(isinstance(spec, MatchSpec) for spec in specs)
-
-    # Make sure there is a channel prioritu
-    if channel_priority_map is None:
-        channel_priority_map = prioritize_channels(context.channels)
-
-    # remove duplicates e.g. for channel names with multiple urls
-    prioritized_channel_list = set((chnl, prrty) for chnl, prrty in
-                                   itervalues(channel_priority_map))
-    nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
-                                      chnl[1] == n][0]
-
-    def get_highest_priority_match(matches):
-        # This loop: match to the highest priority channel;
-        #   if no packages match priority 0, try the next channel
-        for i in range(0, len(prioritized_channel_list)):
-            target_channel = nth_channel_priority(i)
-            highest_match = [m for m in matches if m.schannel == target_channel]
-            if len(highest_match) > 0:
-                newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[0]
-                return newest_pkg
-        raise PackageNotFoundError(matches.name, "package not found")
-
-    spec_for_envs = []
-    for spec in specs:
-        matched_dists = r.get_pkgs(spec)
-        best_match = get_highest_priority_match(matched_dists)
-        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env, spec=best_match.name))
-    return spec_for_envs
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
