@@ -39,7 +39,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
 from json import loads as json_loads
-from logging import DEBUG, getLogger, INFO
+from logging import DEBUG, getLogger
 from os.path import basename, exists, isdir, isfile, join, relpath
 from requests import Session
 from requests.adapters import BaseAdapter
@@ -56,7 +56,7 @@ except ImportError:
     from mock import patch
 
 log = getLogger(__name__)
-TEST_LOG_LEVEL = INFO
+TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 

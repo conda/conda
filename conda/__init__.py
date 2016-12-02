@@ -6,6 +6,7 @@
 """OS-agnostic, system-level binary package manager."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import logging
 import os
 import sys
 from os.path import dirname
@@ -33,6 +34,15 @@ if os.getenv('CONDA_ROOT') is None:
 CONDA_PACKAGE_ROOT = dirname(__file__)
 
 initialize_logging()
+
+
+def trace(self, message, *args, **kwargs):
+    if self.isEnabledFor(TRACE_LOG_LEVEL):
+        self._log(TRACE_LOG_LEVEL, message, args, **kwargs)
+
+TRACE_LOG_LEVEL = 5
+logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
+logging.Logger.trace = trace
 
 
 class CondaError(Exception):

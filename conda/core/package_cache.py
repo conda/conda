@@ -271,7 +271,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
 
     url = info.get('url') or info['channel'] + '/' + fn
     url = maybe_add_auth(url, info.get('auth'))
-    log.debug("url=%r" % url)
+    log.trace("url=%r" % url)
 
     if dst_dir is None:
         dst_dir = find_new_location(Dist(fn))[0]
@@ -284,7 +284,7 @@ def fetch_pkg(info, dst_dir=None, session=None):
         fn2 = fn + '.sig'
         url = (info['channel'] if info['sig'] == '.' else
                info['sig'].rstrip('/')) + '/' + fn2
-        log.debug("signature url=%r" % url)
+        log.trace("signature url=%r" % url)
         download(url, join(dst_dir, fn2), session=session)
         try:
             if verify(path):
@@ -322,13 +322,13 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
         resp.raise_for_status()
     except requests.exceptions.HTTPError as e:
         msg = "HTTPError: %s: %s\n" % (e, url)
-        log.debug(msg)
+        log.trace(msg)
         raise CondaRuntimeError(msg)
 
     except requests.exceptions.ConnectionError as e:
         msg = "Connection error: %s: %s\n" % (e, url)
         stderrlog.info('Could not connect to %s\n' % url)
-        log.debug(msg)
+        log.trace(msg)
         raise CondaRuntimeError(msg)
 
     except IOError as e:
@@ -361,7 +361,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     except IOError as e:
         if e.errno == 104 and retries:  # Connection reset by pee
             # try again
-            log.debug("%s, trying again" % e)
+            log.trace("%s, trying again" % e)
             return download(url, dst_path, session=session, md5=md5,
                             urlstxt=urlstxt, retries=retries - 1)
         raise CondaRuntimeError("Could not open %r for writing (%s)." % (pp, e))
@@ -372,7 +372,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     if md5 and h.hexdigest() != md5:
         if retries:
             # try again
-            log.debug("MD5 sums mismatch for download: %s (%s != %s), "
+            log.trace("MD5 sums mismatch for download: %s (%s != %s), "
                       "trying again" % (url, h.hexdigest(), md5))
             return download(url, dst_path, session=session, md5=md5,
                             urlstxt=urlstxt, retries=retries - 1)

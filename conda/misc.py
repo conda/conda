@@ -199,6 +199,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                                    % (fn, md5, info['md5']))
 
     execute_actions(actions, index=index, verbose=verbose)
+    import pdb; pdb.set_trace()
     return actions
 
 
