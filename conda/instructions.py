@@ -320,7 +320,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     # pull out unlink and link commands for the transaction
     grouped_instructions = groupby(lambda x: x[0], plan)
     unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
-    link_dists = tuple(Dist(d[1].split(' ', 1)[0]) for d in grouped_instructions.get(LINK, ()))
+    link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
 
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:

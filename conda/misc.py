@@ -52,7 +52,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
-    linked = {dist.dist_name: dist for dist in install_linked(prefix)}
+    linked = {dist.name: dist for dist in install_linked(prefix)}
     index_args = index_args or {}
     index = index or {}
     verifies = []  # List[Tuple(filename, md5)]
@@ -132,52 +132,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name
-        name = dist.dist_name
+        name = dist.name
         if name in linked:
             actions[UNLINK].append(linked[name])
 
-        ######################################
-        # copied from conda/plan.py   TODO: refactor
-        ######################################
-
-        # check for link action
-        fetched_dist = dir_path or pkg_path[:-8]
-        fetched_dir = dirname(fetched_dist)
-        try:
-            # Determine what kind of linking is necessary
-            if not dir_path:
-                # If not already extracted, create some dummy
-                # data to test with
-                rm_rf(fetched_dist)
-                ppath = join(fetched_dist, 'info')
-                os.makedirs(ppath)
-                index_json = join(ppath, 'index.json')
-                with open(index_json, 'w'):
-                    pass
-            if context.always_copy:
-                lt = LinkType.copy
-            elif context.always_softlink:
-                lt = LinkType.softlink
-            elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hardlink
-            elif context.allow_softlinks and not on_win:
-                lt = LinkType.softlink
-            else:
-                lt = LinkType.copy
-            actions[LINK].append('%s %d' % (dist, lt))
-        except (OSError, IOError):
-            actions[LINK].append('%s %d' % (dist, LinkType.copy))
-        finally:
-            if not dir_path:
-                # Remove the dummy data
-                try:
-                    rm_rf(fetched_dist)
-                except (OSError, IOError):
-                    pass
-
-    ######################################
-    # ^^^^^^^^^^ copied from conda/plan.py
-    ######################################
+        # add link action
+        actions[LINK].append(dist)
 
     # Pull the repodata for channels we are using
     if channels:

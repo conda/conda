@@ -300,10 +300,10 @@ def plan_from_actions(actions):
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
         if op not in actions:
-            log.debug("action {0} not in actions".format(op))
+            log.trace("action {0} not in actions".format(op))
             continue
         if not actions[op]:
-            log.debug("action {0} has None value".format(op))
+            log.trace("action {0} has None value".format(op))
             continue
         if '_' not in op:
             res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
@@ -366,40 +366,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
         if not extracted_in:
             actions[inst.EXTRACT].append(dist)
 
-        fetched_dist = extracted_in or fetched_in[:-8]
-        fetched_dir = dirname(fetched_dist)
-
-        try:
-            # Determine what kind of linking is necessary
-            if not extracted_in:
-                # If not already extracted, create some dummy
-                # data to test with
-                rm_rf(fetched_dist)
-                ppath = join(fetched_dist, 'info')
-                os.makedirs(ppath)
-                index_json = join(ppath, 'index.json')
-                with open(index_json, 'w'):
-                    pass
-            if context.always_copy or always_copy:
-                lt = LinkType.copy
-            elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hardlink
-            elif context.allow_softlinks and not on_win:
-                lt = LinkType.softlink
-            else:
-                lt = LinkType.copy
-
-            actions[inst.LINK].append('%s %d' % (dist, lt))
-
-        except (OSError, IOError):
-            actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
-        finally:
-            if not extracted_in:
-                # Remove the dummy data
-                try:
-                    rm_rf(fetched_dist)
-                except (OSError, IOError):
-                    pass
+        actions[inst.LINK].append(dist)
 
     return actions
 

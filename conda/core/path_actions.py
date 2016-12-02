@@ -155,8 +155,8 @@ class PrefixReplaceLinkAction(LinkPathAction):
     def execute(self):
         super(PrefixReplaceLinkAction, self).execute()
         if islink(self.source_full_path):
-            log.info("ignoring prefix update for symlink with source path %s",
-                     self.source_full_path)
+            log.trace("ignoring prefix update for symlink with source path %s",
+                      self.source_full_path)
             return
 
         try:
