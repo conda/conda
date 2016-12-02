@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 from abc import ABCMeta, abstractmethod
 from logging import getLogger
-from os.path import isfile, islink, join
+from os.path import join
 
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
@@ -16,7 +16,7 @@ from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_
                                     create_windows_entry_point_py, make_menu,
                                     write_conda_meta_record)
 from ..gateways.disk.delete import maybe_rmdir_if_empty, rm_rf
-from ..gateways.disk.read import exists
+from ..gateways.disk.read import exists, isfile, islink
 from ..gateways.disk.update import _PaddingError, rename, update_prefix
 from ..models.dist import Dist
 from ..models.record import Record

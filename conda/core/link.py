@@ -1,33 +1,34 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import re
-import sys
-import warnings
 from conda.core.package_cache import is_extracted
 from conda.exceptions import CondaUpgradeError
 from conda.models.dist import Dist
 from logging import getLogger
+import os
 from os.path import join
+import re
 from subprocess import CalledProcessError, check_call
+import sys
+import warnings
 
 from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import explode_directories, get_all_directories, get_bin_directory_short_path, \
-    get_leaf_directories, get_major_minor_version, get_python_site_packages_short_path, \
-    parse_entry_point_def, pyc_path
+from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
+                           get_leaf_directories, get_major_minor_version,
+                           get_python_site_packages_short_path, parse_entry_point_def, pyc_path)
 from ..compat import string_types
-from ..core.linked_data import get_python_version_for_prefix, linked_data as get_linked_data, \
-    load_meta
-from ..core.path_actions import CompilePycAction, CreateCondaMetaAction, \
-    CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction, PrefixReplaceLinkAction, \
-    RemoveCondaMetaAction, RemoveMenuAction, UnlinkPathAction
+from ..core.linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
+                                load_meta)
+from ..core.path_actions import (CompilePycAction, CreateCondaMetaAction,
+                                 CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
+                                 PrefixReplaceLinkAction, RemoveCondaMetaAction, RemoveMenuAction,
+                                 UnlinkPathAction)
 from ..gateways.disk.create import hardlink_supported, softlink_supported
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import isfile, collect_all_info_for_package
+from ..gateways.disk.read import collect_all_info_for_package, isfile
 from ..models.package_info import PathType
 from ..models.record import Link, Record
 from ..utils import on_win

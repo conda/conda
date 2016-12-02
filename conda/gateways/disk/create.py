@@ -1,26 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
-import os
-import shutil
-import traceback
 from errno import EEXIST
 from io import open
+import json
 from logging import getLogger
+import os
 from os import W_OK, access, chmod, getpid, makedirs
 from os.path import basename, exists, isdir, isfile, islink, join
 from shlex import split as shlex_split
+import shutil
 from subprocess import PIPE, Popen
+import traceback
 
-from ... import CONDA_PACKAGE_ROOT, CondaError
+from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import LinkType, UTF8
 from ...base.context import context
-from ...common.io import cwd
-from ...common.path import (get_bin_directory_short_path, get_python_path, missing_pyc_files,
-                            parse_entry_point_def, win_path_ok)
+from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
 from ...gateways.disk.delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
@@ -327,7 +325,7 @@ def compile_pyc(python_exe_full_path, py_full_path):
 
     rc = process.returncode
     if rc != 0:
-        log.debug("$ %s\n"
+        log.error("$ %s\n"
                   "  stdout: %s\n"
                   "  stderr: %s\n"
                   "  rc: %d", command, stdout, stderr, rc)

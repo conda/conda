@@ -1,19 +1,17 @@
 from __future__ import absolute_import, division, print_function
 
-import ctypes
-import os
-import tarfile
 from conda.install import symlink_conda
+import ctypes
 from logging import getLogger
+import os
 from os.path import isdir, isfile, islink, join
+import tarfile
 
 from .base.constants import LinkType
 from .base.context import context
-from .core.install import UnlinkLinkTransaction
-from .core.linked_data import load_meta
+from .core.link import UnlinkLinkTransaction
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .exceptions import CondaFileIOError, CondaIOError
-from .gateways.disk.read import collect_all_info_for_package
 from .models.dist import Dist
 from .utils import on_win
 
