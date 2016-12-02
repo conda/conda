@@ -111,7 +111,7 @@ class LinkPathAction(CreatePathAction):
                    self.source_short_path)))
 
     def execute(self):
-        log.debug("linking %s => %s", self.source_full_path, self.target_full_path)
+        log.trace("linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(self.source_full_path, self.target_full_path, self.link_type)
 
     def reverse(self):
@@ -160,7 +160,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             return
 
         try:
-            log.debug("rewriting prefixes in %s", self.target_full_path)
+            log.trace("rewriting prefixes in %s", self.target_full_path)
             update_prefix(self.target_full_path, self.target_prefix, self.prefix_placeholder,
                           self.file_mode)
         except _PaddingError:
@@ -179,11 +179,11 @@ class MakeMenuAction(CreatePathAction):
         pass
 
     def execute(self):
-        log.debug("making menu for %s", self.target_full_path)
+        log.trace("making menu for %s", self.target_full_path)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def reverse(self):
-        log.debug("removing menu for %s", self.target_full_path)
+        log.trace("removing menu for %s", self.target_full_path)
         make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
@@ -199,7 +199,7 @@ class CompilePycAction(CreatePathAction):
         pass
 
     def execute(self):
-        log.debug("compiling %s", self.target_full_path)
+        log.trace("compiling %s", self.target_full_path)
         python_short_path = get_python_path(self.transaction_context['target_python_version'])
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
         compile_pyc(python_full_path, self.source_full_path)
@@ -222,7 +222,7 @@ class CreatePythonEntryPointAction(CreatePathAction):
         pass
 
     def execute(self):
-        log.debug("creating entry point %s", self.target_full_path)
+        log.trace("creating entry point %s", self.target_full_path)
         if on_win:
             create_windows_entry_point_py(self.target_full_path, self.module, self.func)
         else:
@@ -247,7 +247,7 @@ class CreateCondaMetaAction(CreatePathAction):
         pass
 
     def execute(self):
-        log.debug("creating conda-meta %s", self.target_full_path)
+        log.trace("creating conda-meta %s", self.target_full_path)
         write_conda_meta_record(self.target_prefix, self.meta_record)
         load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
                          self.meta_record)
@@ -288,12 +288,12 @@ class UnlinkPathAction(RemovePathAction):
 
     def execute(self):
         if self.link_type != LinkType.directory:
-            log.debug("renaming %s => %s", self.target_short_path, self.holding_short_path)
+            log.trace("renaming %s => %s", self.target_short_path, self.holding_short_path)
             rename(self.target_full_path, self.holding_full_path)
 
     def reverse(self):
         if self.link_type != LinkType.directory and exists(self.holding_full_path):
-            log.debug("reversing rename %s => %s", self.holding_short_path, self.target_short_path)
+            log.trace("reversing rename %s => %s", self.holding_short_path, self.target_short_path)
             rename(self.holding_full_path, self.target_full_path)
 
     def cleanup(self):
@@ -311,11 +311,11 @@ class RemoveMenuAction(RemovePathAction):
                                                target_prefix, target_short_path)
 
     def execute(self):
-        log.debug("removing menu for %s ", self.target_prefix)
+        log.trace("removing menu for %s ", self.target_prefix)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def reverse(self):
-        log.debug("re-creating menu for %s ", self.target_prefix)
+        log.trace("re-creating menu for %s ", self.target_prefix)
         make_menu(self.target_prefix, self.target_short_path, remove=True)
 
     def cleanup(self):
@@ -337,7 +337,7 @@ class RemoveCondaMetaAction(UnlinkPathAction):
         super(RemoveCondaMetaAction, self).reverse()
         with open(self.target_full_path, 'r') as fh:
             meta_record = Record(**json.loads(fh.read()))
-        log.debug("reloading cache entry %s", self.target_full_path)
+        log.trace("reloading cache entry %s", self.target_full_path)
         load_linked_data(self.target_prefix,
                          Dist(self.linked_package_data).dist_name,
                          meta_record)
