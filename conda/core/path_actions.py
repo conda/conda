@@ -111,7 +111,7 @@ class LinkPathAction(CreatePathAction):
                    self.source_short_path)))
 
     def execute(self):
-        log.debug("linking %s to %s", self.source_full_path, self.target_full_path)
+        log.debug("linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(self.source_full_path, self.target_full_path, self.link_type)
 
     def reverse(self):
@@ -183,6 +183,7 @@ class MakeMenuAction(CreatePathAction):
         make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def reverse(self):
+        log.debug("removing menu for %s", self.target_full_path)
         make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
@@ -280,23 +281,26 @@ class UnlinkPathAction(RemovePathAction):
                  link_type=LinkType.hardlink):
         super(UnlinkPathAction, self).__init__(transaction_context, linked_package_data,
                                                target_prefix, target_short_path)
-        self.holding_path = self.target_full_path + '.c~'
+        conda_temp_extension = '.c~'
+        self.holding_short_path = self.target_short_path + conda_temp_extension
+        self.holding_full_path = self.target_full_path + conda_temp_extension
         self.link_type = link_type
 
     def execute(self):
-        log.debug("renaming to %s", self.holding_path)
         if self.link_type != LinkType.directory:
-            rename(self.target_full_path, self.holding_path)
+            log.debug("renaming %s => %s", self.target_short_path, self.holding_short_path)
+            rename(self.target_full_path, self.holding_full_path)
 
     def reverse(self):
-        if self.link_type != LinkType.directory and exists(self.holding_path):
-            rename(self.holding_path, self.target_full_path)
+        if self.link_type != LinkType.directory and exists(self.holding_full_path):
+            log.debug("reversing rename %s => %s", self.holding_short_path, self.target_short_path)
+            rename(self.holding_full_path, self.target_full_path)
 
     def cleanup(self):
         if self.link_type == LinkType.directory:
             maybe_rmdir_if_empty(self.target_full_path)
         else:
-            rm_rf(self.holding_path)
+            rm_rf(self.holding_full_path)
 
 
 class RemoveMenuAction(RemovePathAction):
@@ -311,6 +315,7 @@ class RemoveMenuAction(RemovePathAction):
         make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def reverse(self):
+        log.debug("re-creating menu for %s ", self.target_prefix)
         make_menu(self.target_prefix, self.target_short_path, remove=True)
 
     def cleanup(self):
@@ -332,6 +337,7 @@ class RemoveCondaMetaAction(UnlinkPathAction):
         super(RemoveCondaMetaAction, self).reverse()
         with open(self.target_full_path, 'r') as fh:
             meta_record = Record(**json.loads(fh.read()))
+        log.debug("reloading cache entry %s", self.target_full_path)
         load_linked_data(self.target_prefix,
                          Dist(self.linked_package_data).dist_name,
                          meta_record)
