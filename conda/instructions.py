@@ -4,7 +4,7 @@ from conda.install import symlink_conda
 import ctypes
 from logging import getLogger
 import os
-from os.path import isdir, isfile, islink, join
+from os.path import isdir, isfile, islink, join, basename
 import tarfile
 
 from .base.constants import LinkType
@@ -110,6 +110,10 @@ def split_linkarg(arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
+    if basename(state['prefix']).startswith('_'):
+        log.info("Conda environment at %s"
+                 "start with '_'. Skipping symlinking conda.", state['prefix'])
+        return
     symlink_conda(state['prefix'], arg)
 
 
