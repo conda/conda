@@ -18,7 +18,7 @@ from ..base.context import context
 from ..common.path import (get_all_directories, get_bin_directory_short_path,
                            get_leaf_directories, parse_entry_point_def,
                            get_major_minor_version, get_python_site_packages_short_path,
-                           explode_directories)
+                           explode_directories, pyc_path)
 from ..compat import string_types
 from ..core.linked_data import linked_data as get_linked_data, get_python_version_for_prefix
 from ..core.path_actions import (CompilePycAction, CreateCondaMetaAction,
@@ -82,10 +82,9 @@ def make_lateral_link_action(source_path_info, extracted_package_dir, target_pre
                           prefix_placehoder, file_mode)
 
 
-def get_python_noarch_target_path(source_short_path):
+def get_python_noarch_target_path(source_short_path, target_site_packages_short_path):
     if source_short_path.startswith('site-packages/'):
-        sp_dir = '{target_site_packages_short_path}'
-        # string interpolation done when necessary in the action
+        sp_dir = target_site_packages_short_path
         return source_short_path.replace('site-packages', sp_dir, 1)
     elif source_short_path.startswith('python-scripts/'):
         bin_dir = get_bin_directory_short_path()
@@ -107,7 +106,8 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
         noarch = package_info.noarch
         if noarch and noarch.type == 'python':
-            target_short_path = get_python_noarch_target_path(source_path_info.path)
+            target_short_path = get_python_noarch_target_path(source_path_info.path,
+                                                              transaction_context['target_site_packages_short_path'])
         elif not noarch or noarch is True or (isinstance(noarch, string_types)
                                               and noarch == 'native'):
             target_short_path = source_path_info.path
@@ -132,23 +132,26 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     def make_entry_point_action(entry_point_def):
         command, module, func = parse_entry_point_def(entry_point_def)
         target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
-        CreatePythonEntryPointAction(transaction_context, package_info,
-                                     target_prefix, target_short_path, module, func)
+        if on_win:
+            target_short_path += "-script.py"
+        return CreatePythonEntryPointAction(transaction_context, package_info,
+                                            target_prefix, target_short_path, module, func)
 
     def make_entry_point_windows_executable_action(entry_point_def):
         source_directory = CONDA_PACKAGE_ROOT
         source_short_path = 'resources/cli-%d.exe' % context.bits
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
-        LinkPathAction(transaction_context, package_info, source_directory, source_short_path,
-                       target_prefix, target_short_path, requested_link_type)
+        return LinkPathAction(transaction_context, package_info, source_directory,
+                              source_short_path, target_prefix, target_short_path,
+                              requested_link_type)
 
     def make_conda_meta_create_action(all_target_short_paths):
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
         meta_record = Record.from_objects(package_info.repodata_record,
-                                          package_info.index_json_record,
-                                          files=all_target_short_paths, link=link,
-                                          url=package_info.url)
+                                              package_info.index_json_record,
+                                              files=all_target_short_paths, link=link,
+                                              url=package_info.url)
         return CreateCondaMetaAction(transaction_context, package_info, target_prefix, meta_record)
 
     file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
@@ -171,17 +174,19 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
              for ep_def in package_info.noarch.entry_points) if on_win else (),
         ))
 
-        py_files = (axn for axn in file_link_actions if axn.source_short_path.endswith('.py'))
+        py_files = (axn.target_short_path for axn in file_link_actions if axn.source_short_path.endswith('.py'))
+        py_ver = transaction_context['target_python_version']
         pyc_compile_actions = tuple(CompilePycAction(transaction_context, package_info,
-                                                     target_prefix, pf) for pf in py_files)
+                                                     target_prefix, pf, pyc_path(pf, py_ver))
+                                    for pf in py_files)
     else:
         python_entry_point_actions = ()
         pyc_compile_actions = ()
 
-    all_target_short_paths = (axn.target_short_path for axn in
-                              concatv(file_link_actions,
-                                      python_entry_point_actions,
-                                      pyc_compile_actions))
+    all_target_short_paths = tuple(axn.target_short_path for axn in
+                                   concatv(file_link_actions,
+                                           python_entry_point_actions,
+                                           pyc_compile_actions))
     meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
 
     return tuple(concatv(directory_create_actions, file_link_actions, python_entry_point_actions,
@@ -240,6 +245,14 @@ class UnlinkLinkTransaction(object):
         # make all the path actions
         # no side effects allowed when instantiating these action objects
         transaction_context = dict()
+        python_version = self.get_python_version(self.target_prefix,
+                                                 self.linked_packages_data_to_unlink,
+                                                 self.packages_info_to_link)
+        transaction_context['target_python_version'] = python_version
+        sp = get_python_site_packages_short_path(python_version)
+        transaction_context['target_site_packages_short_path'] = sp
+
+
         unlink_actions = tuple((lnkd_pkg_data, make_unlink_actions(transaction_context,
                                                                    self.target_prefix,
                                                                    lnkd_pkg_data))
@@ -250,13 +263,6 @@ class UnlinkLinkTransaction(object):
         self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
                                  concatv(unlink_actions, link_actions))
         self.num_unlink_pkgs = len(unlink_actions)
-
-        # we won't definitively know some environment information until here
-        #   e.g. python version and site-packages location
-        python_version = self.get_python_version(self.target_prefix, unlink_actions, link_actions)
-        transaction_context['target_python_version'] = python_version
-        sp = get_python_site_packages_short_path(python_version)
-        transaction_context['target_site_packages_short_path'] = sp
 
         self._prepared = True
 
@@ -302,7 +308,7 @@ class UnlinkLinkTransaction(object):
             self._reverse_actions(self.all_actions[failed_pkg_idx][1], failed_axn_idx)
             for pkg_indx in reversed(range(failed_pkg_idx)):
                 self._reverse_actions(self.all_actions[pkg_indx][1])
-
+            raise
         else:
             for pkg_indx, (pkg_data, actions) in enumerate(self.all_actions):
                 for axn_idx, action in enumerate(actions):
@@ -321,25 +327,27 @@ class UnlinkLinkTransaction(object):
             actions[axn_idx].reverse()
 
     @staticmethod
-    def get_python_version(target_prefix, unlink_actions, link_actions):
+    def get_python_version(target_prefix, linked_packages_data_to_unlink, packages_info_to_link):
         # is python being linked? we're done
-        linking_this_python = next((per_pkg_actions for per_pkg_actions in link_actions
-                                    if per_pkg_actions[0].index_json_record.name == 'python'),
+        linking_this_python = next((package_info for package_info in packages_info_to_link
+                                    if package_info.index_json_record.name == 'python'),
                                    None)
         if linking_this_python:
-            full_version = linking_this_python[0].index_json_record.version
+            full_version = linking_this_python.index_json_record.version
             assert full_version
             return get_major_minor_version(full_version)
 
         # is python already linked and not being unlinked? that's ok too
         linked_python_version = get_python_version_for_prefix(target_prefix)
         if linked_python_version:
-            find_python = (per_pkg_actions for per_pkg_actions in unlink_actions
-                           if per_pkg_actions[0].name == 'python')
+            find_python = (lnkd_pkg_data for lnkd_pkg_data in linked_packages_data_to_unlink
+                           if lnkd_pkg_data.name == 'python')
             unlinking_this_python = next(find_python, None)
             if unlinking_this_python is None:
                 # python is not being unlinked
                 return linked_python_version
+
+        return None
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

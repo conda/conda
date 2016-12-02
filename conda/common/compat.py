@@ -27,7 +27,7 @@ else:
     import string as _string
 
     def interpolate_string(string, arg_dict, **extra_args):
-        _string.Formatter().vformat(string, (), _StrSafeDict(arg_dict, **extra_args))
+        return _string.Formatter().vformat(string, (), _StrSafeDict(arg_dict, **extra_args))
 
 
 def ensure_binary(value):

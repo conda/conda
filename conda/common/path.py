@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from functools import reduce
 from logging import getLogger
-from os.path import basename, join, splitext
+from os.path import basename, join, splitext, split
 
 from .compat import string_types
 from ..utils import on_win
@@ -57,15 +57,15 @@ def explode_directories(child_directories, already_split=False):
     return set(concat(accumulate(join, maybe_split(directory)) for directory in child_directories))
 
 
-def pyc_path(path, python_major_minor_version):
+def pyc_path(py_path, python_major_minor_version):
     pyver_string = python_major_minor_version.replace('.', '')
     if pyver_string.startswith('2'):
-        return path + 'c'
+        return py_path + 'c'
     else:
-        py_file = basename(path)
+        directory, py_file = split(py_path)
         basename_root, extension = splitext(py_file)
-        pyc_file = "__pycache__/%s.cpython-%s.%sc" % (basename_root, pyver_string, extension)
-        return path.rreplace(py_file, pyc_file, 1)
+        pyc_file = "__pycache__/%s.cpython-%s%sc" % (basename_root, pyver_string, extension)
+        return "%s/%s" % (directory, pyc_file) if directory else pyc_file
 
 
 def missing_pyc_files(python_major_minor_version, files):
@@ -93,7 +93,9 @@ def get_python_path(version=None):
 
 
 def get_python_site_packages_short_path(python_version):
-    if on_win:
+    if python_version is None:
+        return None
+    elif on_win:
         return 'Lib/site-packages'
     else:
         py_ver = get_major_minor_version(python_version)

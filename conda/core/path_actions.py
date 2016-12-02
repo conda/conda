@@ -4,14 +4,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 from abc import ABCMeta, abstractmethod
 from logging import getLogger
-from os.path import join, isfile, islink
+from os.path import isfile, islink, join
 
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.constants import LinkType
-from ..common.path import get_python_path, pyc_path, win_path_ok
-from ..common.compat import interpolate_string, odict
-from ..core.linked_data import delete_linked_data, load_linked_data, set_linked_data
+from ..common.path import get_python_path, win_path_ok
+from ..core.linked_data import delete_linked_data, load_linked_data
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
                                     create_windows_entry_point_py, make_menu,
@@ -31,24 +30,8 @@ class PathAction(object):
 
     def __init__(self, transaction_context, target_prefix, target_short_path):
         self.transaction_context = transaction_context
-        self._target_prefix = target_prefix
-        self._target_short_path = target_short_path
-
-    @property
-    def target_prefix(self):
-        # string interpolation for paths that aren't completely known until all actions have
-        # been created.  e.g. location of site-packages directory
-        if not self._target_prefix:
-            return None
-        return interpolate_string(self._target_prefix, self.transaction_context)
-
-    @property
-    def target_short_path(self):
-        # string interpolation for paths that aren't completely known until all actions have
-        # been created.  e.g. location of site-packages directory
-        if not self._target_short_path:
-            return None
-        return interpolate_string(self._target_short_path, self.transaction_context)
+        self.target_prefix = target_prefix
+        self.target_short_path = target_short_path
 
     @property
     def target_full_path(self):
@@ -93,24 +76,12 @@ class CreatePathAction(PathAction):
         super(CreatePathAction, self).__init__(transaction_context,
                                                target_prefix, target_short_path)
         self.package_info = package_info
-        self._source_prefix = source_prefix
-        self._source_short_path = source_short_path
+        self.source_prefix = source_prefix
+        self.source_short_path = source_short_path
 
     def cleanup(self):
         # create actions typically won't need cleanup
         pass
-
-    @property
-    def source_prefix(self):
-        if not self._source_prefix:
-            return None
-        return interpolate_string(self._source_prefix, self.transaction_context)
-
-    @property
-    def source_short_path(self):
-        if not self._source_short_path:
-            return None
-        return interpolate_string(self._source_short_path, self.transaction_context)
 
     @property
     def source_full_path(self):
@@ -217,27 +188,22 @@ class MakeMenuAction(CreatePathAction):
 class CompilePycAction(CreatePathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix,
-                 source_short_path):
+                 source_short_path, target_short_path):
         super(CompilePycAction, self).__init__(transaction_context, package_info,
                                                target_prefix, source_short_path,
-                                               target_prefix, None)
-        # target_short_path is None here, set with a property below
+                                               target_prefix, target_short_path)
 
     def verify(self):
         pass
 
     def execute(self):
-        log.debug("compiling", self.target_full_path)
+        log.debug("compiling %s", self.target_full_path)
         python_short_path = get_python_path(self.transaction_context['target_python_version'])
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
         compile_pyc(python_full_path, self.source_full_path)
 
     def reverse(self):
         rm_rf(self.target_full_path)
-
-    @property
-    def target_short_path(self):
-        return pyc_path(self._target_short_path, self.transaction_context['python_version'])
 
 
 class CreatePythonEntryPointAction(CreatePathAction):
@@ -266,10 +232,6 @@ class CreatePythonEntryPointAction(CreatePathAction):
     def reverse(self):
         rm_rf(self.target_full_path)
 
-    @property
-    def target_short_path(self):
-        return self._target_short_path + '-script.py' if on_win else self._target_short_path
-
 
 class CreateCondaMetaAction(CreatePathAction):
 
@@ -285,8 +247,8 @@ class CreateCondaMetaAction(CreatePathAction):
     def execute(self):
         log.debug("creating conda-meta %s", self.target_full_path)
         write_conda_meta_record(self.target_prefix, self.meta_record)
-        set_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
-                        self.meta_record)
+        load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
+                         self.meta_record)
 
     def reverse(self):
         delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),

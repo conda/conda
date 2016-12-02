@@ -23,7 +23,7 @@ from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
 from conda.common.path import get_bin_directory_short_path, missing_pyc_files, \
-    get_python_site_packages_short_path
+    get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.compat import itervalues, text_type
@@ -254,11 +254,10 @@ class IntegrationTests(TestCase):
         with make_temp_env("-c scastellarin flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
-            pyc_test_pair = missing_pyc_files(py_ver, ("%s/flask/__init__.py" % sp_dir,))
-            assert len(pyc_test_pair) == 1
-            assert pyc_test_pair[0][0] == "%s/flask/__init__.py" % sp_dir
-            assert isfile(join(prefix, pyc_test_pair[0][0]))
-            assert isfile(join(prefix, pyc_test_pair[0][1]))
+            py_file = sp_dir + "/flask/__init__.py"
+            pyc_file = pyc_path(py_file, py_ver)
+            assert isfile(join(prefix, py_file))
+            assert isfile(join(prefix, pyc_file))
             exe_path = join(prefix, get_bin_directory_short_path(), 'flask')
             if on_win:
                 exe_path += ".exe"
@@ -266,8 +265,8 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.REMOVE, prefix, "flask")
 
-            assert not isfile(join(prefix, pyc_test_pair[0][0]))
-            assert not isfile(join(prefix, pyc_test_pair[0][1]))
+            assert not isfile(join(prefix, py_file))
+            assert not isfile(join(prefix, pyc_file))
             assert not isfile(exe_path)
 
     @pytest.mark.timeout(300)
