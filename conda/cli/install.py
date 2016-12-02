@@ -317,7 +317,8 @@ def install(args, parser, command='install'):
                                           always_copy=context.always_copy,
                                           minimal_hint=args.alt_hint,
                                           update_deps=context.update_dependencies,
-                                          channel_priority_map=_channel_priority_map)
+                                          channel_priority_map=_channel_priority_map,
+                                          is_update=isupdate)
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 

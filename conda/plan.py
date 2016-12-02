@@ -16,7 +16,8 @@ from collections import defaultdict, namedtuple, OrderedDict
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
-from conda.common.path import preferred_env_to_prefix, preferred_env_matches_prefix
+from conda.common.path import preferred_env_to_prefix, preferred_env_matches_prefix, is_private_env, \
+    prefix_to_env_name
 from conda.compat import itervalues
 from . import instructions as inst
 from .base.constants import DEFAULTS, LinkType
@@ -382,10 +383,10 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             else:
                 lt = LinkType.copy
 
-            actions[inst.LINK].append('%s %d %s' % (dist, lt, prefix))
+            actions[inst.LINK].append('%s %d' % (dist, lt))
 
         except (OSError, IOError):
-            actions[inst.LINK].append('%s %d %s' % (dist, LinkType.copy, prefix))
+            actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
         finally:
             if not extracted_in:
                 # Remove the dummy data
@@ -473,7 +474,7 @@ SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False,update_deps=True, prune=False,
-                    channel_priority_map=None):
+                    channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
     str_specs = specs
@@ -491,10 +492,39 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     #   version information
     required_solves = match_to_original_specs(str_specs, grouped_specs)
 
-    actions = tuple(
+    actions = [
         get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy, prune,
                               update_deps, pinned)
-        for dists_by_prefix in required_solves)
+        for dists_by_prefix in required_solves]
+
+    get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
+    # # Need to add unlink actions if updating a private env from root
+    # if in_root and len(required_solves) > 1:
+    #     linked_in_prefix = linked_data(context.root_prefix)
+    #     spec_in_root = lambda spc: any(mtch for mtch in linked_in_prefix.keys() if MatchSpec(spec).match(mtch))
+    #     for solved in required_solves:
+    #         if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
+    #             for spec in solved.specs:
+    #                 matched_in_root = spec_in_root(spec)
+    #                 if matched_in_root:
+    #                     aug_action = get_action_for_prefix(solved.prefix)
+    #                     add_unlink(aug_action, Dist(spec))
+
+    # Need to add unlink actions if updating a private env from root
+    if is_update and prefix == context.root_prefix:
+        linked_in_prefix = linked_data(context.root_prefix)
+        spec_in_root = lambda spc: any(
+            mtch for mtch in linked_in_prefix.keys() if MatchSpec(spec).match(mtch))
+        for solved in required_solves:
+            if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
+                for spec in solved.specs:
+                    matched_in_root = spec_in_root(spec)
+                    if matched_in_root:
+                        aug_action = get_action_for_prefix(context.root_prefix)
+                        if len(aug_action) > 1:
+                            add_unlink(aug_action[0], Dist(spec))
+                        else:
+                            actions.append(remove_actions(context.root_prefix, [spec], index))
     return actions
 
 
