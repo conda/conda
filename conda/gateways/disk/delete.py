@@ -27,7 +27,7 @@ def rm_rf(path, max_retries=5, trash=True):
     try:
         path = abspath(path)
         log.debug("rm_rf %s", path)
-        if isdir(path):
+        if isdir(path) and not islink(path):
             try:
                 # On Windows, always move to trash first.
                 if trash and on_win:

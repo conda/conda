@@ -7,7 +7,7 @@ from conda.base.context import context
 from conda.compat import text_type
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import on_win
-from os.path import join
+from os.path import join, isdir, islink, lexists, isfile
 
 
 def can_not_symlink():
@@ -38,7 +38,11 @@ def test_remove_dir(tmpdir):
     test_dir = "test"
     tmpdir.mkdir(test_dir)
     path = join(text_type(tmpdir), test_dir)
+    assert isdir(path)
+    assert not islink(path)
     assert rm_rf(path) is True
+    assert not isdir(path)
+    assert not lexists(path)
 
 
 @pytest.mark.skipif(can_not_symlink(), reason="symlink function not available")
@@ -47,7 +51,13 @@ def test_remove_link_to_file(tmpdir):
     src_file = join(text_type(tmpdir), "test_file")
     _write_file(src_file, "welcome to the ministry of silly walks")
     os.symlink(src_file, dst_link)
+    assert isfile(src_file)
+    assert not islink(src_file)
+    assert islink(dst_link)
     assert rm_rf(dst_link) is True
+    assert isfile(src_file)  # make sure the directory is still there
+    assert not isfile(dst_link)
+    assert not lexists(dst_link)
 
 
 @pytest.mark.skipif(can_not_symlink(), reason="symlink function not available")
@@ -56,4 +66,10 @@ def test_remove_link_to_dir(tmpdir):
     src_dir = join(text_type(tmpdir), "test_dir")
     tmpdir.mkdir("test_dir")
     os.symlink(src_dir, dst_link)
+    assert isdir(src_dir)
+    assert not islink(src_dir)
+    assert islink(dst_link)
     assert rm_rf(dst_link) is True
+    assert isdir(src_dir)  # make sure the directory is still there
+    assert not isdir(dst_link)
+    assert not lexists(dst_link)
