@@ -40,7 +40,7 @@ def rm_rf(path, max_retries=5, trash=True):
                 if islink(path) or isfile(path):
                     from ...core.linked_data import delete_prefix_from_linked_data
                     delete_prefix_from_linked_data(path)
-        if lexists(path):
+        elif lexists(path):
             try:
                 backoff_unlink(path)
                 return True
@@ -171,6 +171,7 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
 def maybe_rmdir_if_empty(dirpath, max_tries=MAX_TRIES):
     if isdir(dirpath) and not listdir(dirpath):
         try:
+            log.debug("Attempting to remove directory %s", dirpath)
             backoff_rmdir(dirpath, max_tries=max_tries)
         except (IOError, OSError) as e:
             log.debug("Failed to remove '%s'. %r", dirpath, e)
