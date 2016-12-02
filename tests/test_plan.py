@@ -915,7 +915,7 @@ class PlanFromActionsTests(unittest.TestCase):
         expected_plan = [
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
-            ('PROGRESS', '2'),
+            # ('PROGRESS', '2'),
             ('LINK', ipython),
             ('LINK', menuinst),
         ]
@@ -926,13 +926,12 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('LINK', menuinst),
                 ('PRINT', 'Linking packages ...'),
-                ('PROGRESS', '1'),
+                # ('PROGRESS', '1'),
                 ('LINK', ipython),
             ]
 
             # last_two = expected_plan[-2:]
             # expected_plan[-2:] = last_two[::-1]
-
         self.assertEqual(expected_plan, conda_plan)
 
 if __name__ == '__main__':
