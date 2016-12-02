@@ -10,6 +10,7 @@ from os.path import join
 import re
 from subprocess import CalledProcessError, check_call
 import sys
+import traceback
 import warnings
 
 from .. import CONDA_PACKAGE_ROOT
@@ -213,7 +214,7 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
                                                        target_prefix, meta_short_path),)
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
-    all_directories = sorted(explode_directories(_all_d, already_split=True))
+    all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
     directory_remove_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
@@ -294,16 +295,16 @@ class UnlinkLinkTransaction(object):
 
         try:
             for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
-                axn_idx = self._execute_actions(self.target_prefix, self.num_unlink_pkgs,
-                                                pkg_idx, pkg_data, actions)
+                for axn_idx, action in enumerate(actions):
+                    action.execute()
 
-        except Exception as e:
+        except:
             log.error("Something bad happened, but it's okay because I'm going to roll back now.")
-            log.exception(e)
+            log.debug(traceback.format_exc())
 
             failed_pkg_idx, failed_axn_idx = pkg_idx, axn_idx
-            reverse_actions = self.all_actions[failed_pkg_idx]
-            for pkg_idx, (pkg_data, actions) in reversed(enumerate(reverse_actions)):
+            reverse_actions = self.all_actions[:failed_pkg_idx+1]
+            for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
                 reverse_from_axn_idx = failed_axn_idx if pkg_idx == failed_pkg_idx else -1
                 self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
                                       pkg_idx, pkg_data, actions, reverse_from_axn_idx)
@@ -319,14 +320,14 @@ class UnlinkLinkTransaction(object):
         axn_idx = 0
         try:
             dist = Dist(pkg_data)
-            is_unlink = pkg_idx <= num_unlink_pkgs
+            is_unlink = pkg_idx <= num_unlink_pkgs - 1
             if is_unlink:
-                log.info("unlinking package: %s\n"
+                log.info("===> UNLINKING PACKAGE: %s <===\n"
                          "  prefix=%s\n",
                          dist, target_prefix)
 
             else:
-                log.info("linking package: %s\n"
+                log.info("===> LINKING PACKAGE: %s <===\n"
                          "  prefix=%s\n"
                          "  source=%s\n",
                          dist, target_prefix, pkg_data.extracted_package_dir)
@@ -345,14 +346,14 @@ class UnlinkLinkTransaction(object):
                          reverse_from_idx=-1):
         # reverse_from_idx = -1 means reverse all actions
         dist = Dist(pkg_data)
-        is_unlink = pkg_idx <= num_unlink_pkgs
+        is_unlink = pkg_idx <= num_unlink_pkgs - 1
         if is_unlink:
-            log.info("reversing package unlink: %s\n"
+            log.info("===> REVERSING PACKAGE UNLINK: %s <===\n"
                      "  prefix=%s\n",
                      dist, target_prefix)
 
         else:
-            log.info("reversing package link: %s\n"
+            log.info("===> REVERSING PACKAGE LINK: %s <===\n"
                      "  prefix=%s\n,",
                      dist, target_prefix)
 

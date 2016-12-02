@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EEXIST, ENOENT
 from logging import getLogger
-from os import listdir, makedirs, rename, unlink, walk
+from os import listdir, makedirs, rename, unlink, walk, removedirs
 from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from uuid import uuid4
@@ -168,10 +168,12 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
     _rmdir(dirpath)
 
 
-def maybe_rmdir_if_empty(dirpath, max_tries=MAX_TRIES):
-    if isdir(dirpath) and not listdir(dirpath):
-        try:
-            log.debug("Attempting to remove directory %s", dirpath)
-            backoff_rmdir(dirpath, max_tries=max_tries)
-        except (IOError, OSError) as e:
-            log.debug("Failed to remove '%s'. %r", dirpath, e)
+def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
+    if not isdir(dirpath):
+        return
+
+    try:
+        log.debug("Attempting to remove directory %s", dirpath)
+        exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
+    except (IOError, OSError):
+        pass

@@ -50,6 +50,11 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
@@ -249,6 +254,30 @@ class IntegrationTests(TestCase):
 
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
+
+    def test_transactional_rollback_simple(self):
+        from conda.core.path_actions import CreateCondaMetaAction
+        with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+            with make_temp_env() as prefix:
+                mock_method.side_effect = KeyError('Bang bang!!')
+                with pytest.raises(KeyError):
+                    run_command(Commands.INSTALL, prefix, 'openssl')
+                assert not package_is_installed(prefix, 'openssl')
+
+    def test_transactional_rollback_upgrade_downgrade(self):
+        with make_temp_env("python=3") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+
+            from conda.core.path_actions import CreateCondaMetaAction
+            with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+                mock_method.side_effect = KeyError('Bang bang!!')
+                with pytest.raises(KeyError):
+                    run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
+                assert_package_is_installed(prefix, 'flask-0.10.1')
 
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:

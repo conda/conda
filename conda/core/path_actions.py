@@ -15,7 +15,7 @@ from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
                                     create_windows_entry_point_py, make_menu,
                                     write_conda_meta_record)
-from ..gateways.disk.delete import maybe_rmdir_if_empty, rm_rf
+from ..gateways.disk.delete import try_rmdir_all_empty, rm_rf
 from ..gateways.disk.read import exists, isfile, islink
 from ..gateways.disk.update import _PaddingError, rename, update_prefix
 from ..models.dist import Dist
@@ -116,7 +116,7 @@ class LinkPathAction(CreatePathAction):
 
     def reverse(self):
         if self.link_type == LinkType.directory:
-            maybe_rmdir_if_empty(self.target_full_path)
+            try_rmdir_all_empty(self.target_full_path)
         else:
             rm_rf(self.target_full_path)
 
@@ -155,7 +155,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
     def execute(self):
         super(PrefixReplaceLinkAction, self).execute()
         if islink(self.source_full_path):
-            log.info("Ignoring prefix update for symlink with source path %s",
+            log.info("ignoring prefix update for symlink with source path %s",
                      self.source_full_path)
             return
 
@@ -238,7 +238,7 @@ class CreatePythonEntryPointAction(CreatePathAction):
 class CreateCondaMetaAction(CreatePathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, meta_record):
-        target_short_path = 'conda-meta/' + package_info.repodata_record.fn
+        target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         super(CreateCondaMetaAction, self).__init__(transaction_context, package_info,
                                                     None, None, target_prefix, target_short_path)
         self.meta_record = meta_record
@@ -298,7 +298,7 @@ class UnlinkPathAction(RemovePathAction):
 
     def cleanup(self):
         if self.link_type == LinkType.directory:
-            maybe_rmdir_if_empty(self.target_full_path)
+            try_rmdir_all_empty(self.target_full_path)
         else:
             rm_rf(self.holding_full_path)
 
