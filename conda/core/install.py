@@ -15,16 +15,14 @@ from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.constants import LinkType
 from ..base.context import context
-from ..common.path import (get_all_directories, get_bin_directory_short_path,
-                           get_leaf_directories, parse_entry_point_def,
-                           get_major_minor_version, get_python_site_packages_short_path,
-                           explode_directories, pyc_path)
+from ..common.path import explode_directories, get_all_directories, get_bin_directory_short_path, \
+    get_leaf_directories, get_major_minor_version, get_python_site_packages_short_path, \
+    parse_entry_point_def, pyc_path
 from ..compat import string_types
-from ..core.linked_data import linked_data as get_linked_data, get_python_version_for_prefix
-from ..core.path_actions import (CompilePycAction, CreateCondaMetaAction,
-                                 CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                                 PrefixReplaceLinkAction, UnlinkPathAction, RemoveMenuAction,
-                                 RemoveCondaMetaAction, RemovePathAction, CreatePathAction)
+from ..core.linked_data import get_python_version_for_prefix, linked_data as get_linked_data
+from ..core.path_actions import CompilePycAction, CreateCondaMetaAction, \
+    CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction, PrefixReplaceLinkAction, \
+    RemoveCondaMetaAction, RemoveMenuAction, UnlinkPathAction
 from ..gateways.disk.create import hardlink_supported, softlink_supported
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile
@@ -106,8 +104,8 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
         noarch = package_info.noarch
         if noarch and noarch.type == 'python':
-            target_short_path = get_python_noarch_target_path(source_path_info.path,
-                                                              transaction_context['target_site_packages_short_path'])
+            sp_dir = transaction_context['target_site_packages_short_path']
+            target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
         elif not noarch or noarch is True or (isinstance(noarch, string_types)
                                               and noarch == 'native'):
             target_short_path = source_path_info.path
@@ -149,9 +147,9 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     def make_conda_meta_create_action(all_target_short_paths):
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
         meta_record = Record.from_objects(package_info.repodata_record,
-                                              package_info.index_json_record,
-                                              files=all_target_short_paths, link=link,
-                                              url=package_info.url)
+                                          package_info.index_json_record,
+                                          files=all_target_short_paths, link=link,
+                                          url=package_info.url)
         return CreateCondaMetaAction(transaction_context, package_info, target_prefix, meta_record)
 
     file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
@@ -174,7 +172,8 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
              for ep_def in package_info.noarch.entry_points) if on_win else (),
         ))
 
-        py_files = (axn.target_short_path for axn in file_link_actions if axn.source_short_path.endswith('.py'))
+        py_files = (axn.target_short_path for axn in file_link_actions
+                    if axn.source_short_path.endswith('.py'))
         py_ver = transaction_context['target_python_version']
         pyc_compile_actions = tuple(CompilePycAction(transaction_context, package_info,
                                                      target_prefix, pf, pyc_path(pf, py_ver))
@@ -252,7 +251,6 @@ class UnlinkLinkTransaction(object):
         sp = get_python_site_packages_short_path(python_version)
         transaction_context['target_site_packages_short_path'] = sp
 
-
         unlink_actions = tuple((lnkd_pkg_data, make_unlink_actions(transaction_context,
                                                                    self.target_prefix,
                                                                    lnkd_pkg_data))
@@ -315,12 +313,6 @@ class UnlinkLinkTransaction(object):
                     action.cleanup()
 
     @staticmethod
-    def _execute_action(action):
-
-        action.execute()
-
-
-    @staticmethod
     def _reverse_actions(actions, reverse_from_idx=None):
         reverse_from_idx = reverse_from_idx or len(actions)
         for axn_idx in reversed(range(reverse_from_idx)):
@@ -328,12 +320,14 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def get_python_version(target_prefix, linked_packages_data_to_unlink, packages_info_to_link):
-        # is python being linked? we're done
-        linking_this_python = next((package_info for package_info in packages_info_to_link
-                                    if package_info.index_json_record.name == 'python'),
-                                   None)
-        if linking_this_python:
-            full_version = linking_this_python.index_json_record.version
+        # this method determines the python version that will be present at the
+        # end of the transaction
+        linking_new_python = next((package_info for package_info in packages_info_to_link
+                                   if package_info.index_json_record.name == 'python'),
+                                  None)
+        if linking_new_python:
+            # is python being linked? we're done
+            full_version = linking_new_python.index_json_record.version
             assert full_version
             return get_major_minor_version(full_version)
 
@@ -347,6 +341,7 @@ class UnlinkLinkTransaction(object):
                 # python is not being unlinked
                 return linked_python_version
 
+        # there won't be any python in the finished environment
         return None
 
 
@@ -356,9 +351,9 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     False on failure
     """
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
-            dist.dist_name,
-            action,
-            'bat' if on_win else 'sh'))
+        dist.dist_name,
+        action,
+        'bat' if on_win else 'sh'))
     if not isfile(path):
         return True
     if on_win:

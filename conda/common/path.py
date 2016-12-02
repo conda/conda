@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from functools import reduce
 from logging import getLogger
-from os.path import basename, join, splitext, split
+from os.path import join, split, splitext
 
 from .compat import string_types
 from ..utils import on_win

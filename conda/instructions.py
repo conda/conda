@@ -12,8 +12,7 @@ from .core.install import UnlinkLinkTransaction
 from .core.linked_data import load_meta
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .exceptions import CondaFileIOError, CondaIOError
-from .file_permissions import FilePermissions
-from .gateways.disk.read import yield_lines, collect_all_info_for_package
+from .gateways.disk.read import collect_all_info_for_package
 from .models.dist import Dist
 from .utils import on_win
 
@@ -114,11 +113,13 @@ def UNLINKLINKTRANSACTION_CMD(state, arg):
     target_prefix = state['prefix']
 
     unlink_dists, link_dists = arg
-    linked_packages_data_to_unlink = tuple(load_meta(state['prefix'], dist) for dist in unlink_dists)
+    linked_packages_data_to_unlink = tuple(load_meta(state['prefix'], dist)
+                                           for dist in unlink_dists)
 
     pkg_dirs_to_link = tuple(is_extracted(dist) for dist in link_dists)
     assert all(pkg_dirs_to_link)
-    packages_info_to_link = tuple(collect_all_info_for_package(state['index'][dist] , pkg_dir) for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
+    packages_info_to_link = tuple(collect_all_info_for_package(state['index'][dist], pkg_dir)
+                                  for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
 
     txn = UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
                                 packages_info_to_link)
