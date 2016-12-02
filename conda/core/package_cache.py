@@ -19,6 +19,7 @@ from ..gateways.disk import exp_backoff_fn
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel, offline_keep
 from ..models.dist import Dist
+from ..utils import chunked_read
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -345,7 +346,7 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=None)
     try:
         with open(pp, 'wb') as fo:
             index = 0
-            for chunk in resp.iter_content(2**14):
+            for chunk in chunked_read(resp.raw, 2**14):
                 index += len(chunk)
                 try:
                     fo.write(chunk)
