@@ -231,7 +231,7 @@ class UnlinkLinkTransaction(object):
 
         pkg_dirs_to_link = tuple(is_extracted(dist) for dist in link_dists)
         assert all(pkg_dirs_to_link)
-        packages_info_to_link = tuple(collect_all_info_for_package(index, pkg_dir)
+        packages_info_to_link = tuple(collect_all_info_for_package(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
 
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,

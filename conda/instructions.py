@@ -36,13 +36,17 @@ PROGRESS = 'PROGRESS'
 SYMLINK_CONDA = 'SYMLINK_CONDA'
 UNLINK = 'UNLINK'
 LINK = 'LINK'
+UNLINKLINKTRANSACTION = 'UNLINKLINKTRANSACTION'
 
-progress_cmds = set([EXTRACT, RM_EXTRACTED, LINK, UNLINK])
+progress_cmds = set([EXTRACT, RM_EXTRACTED])
 action_codes = (
+    CHECK_FETCH,
     FETCH,
+    CHECK_EXTRACT,
     EXTRACT,
     UNLINK,
     LINK,
+    SYMLINK_CONDA,
     RM_EXTRACTED,
     RM_FETCHED,
 )
@@ -274,6 +278,7 @@ commands = {
     UNLINK: None,
     LINK: None,
     SYMLINK_CONDA: SYMLINK_CONDA_CMD,
+    UNLINKLINKTRANSACTION: UNLINKLINKTRANSACTION_CMD,
 }
 
 
@@ -310,7 +315,11 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     grouped_instructions = groupby(lambda x: x[0], plan)
     unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
     link_dists = tuple(Dist(d[1].split(' ', 1)[0]) for d in grouped_instructions.get(LINK, ()))
-    plan = filter(lambda x: x[0] not in (LINK, UNLINK, SYMLINK_CONDA), plan)
+
+    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
+    if first_unlink_link_idx >= 0:
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
+        plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
 
     state = {'i': None, 'prefix': context.root_dir, 'index': index}
 
@@ -332,6 +341,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
             state['i'] = None
             getLogger('progress.stop').info(None)
 
-    # NOW CALL UNLINKLINKTRANSACTION
-    if unlink_dists or link_dists:
-        UNLINKLINKTRANSACTION_CMD(state, (unlink_dists, link_dists))
+    # # NOW CALL UNLINKLINKTRANSACTION
+    # if unlink_dists or link_dists:
+    #     UNLINKLINKTRANSACTION_CMD(state, )
