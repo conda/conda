@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import warnings
+from conda.core.package_cache import is_extracted
 from conda.exceptions import CondaUpgradeError
 from conda.models.dist import Dist
 from logging import getLogger
@@ -19,13 +20,14 @@ from ..common.path import explode_directories, get_all_directories, get_bin_dire
     get_leaf_directories, get_major_minor_version, get_python_site_packages_short_path, \
     parse_entry_point_def, pyc_path
 from ..compat import string_types
-from ..core.linked_data import get_python_version_for_prefix, linked_data as get_linked_data
+from ..core.linked_data import get_python_version_for_prefix, linked_data as get_linked_data, \
+    load_meta
 from ..core.path_actions import CompilePycAction, CreateCondaMetaAction, \
     CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction, PrefixReplaceLinkAction, \
     RemoveCondaMetaAction, RemoveMenuAction, UnlinkPathAction
 from ..gateways.disk.create import hardlink_supported, softlink_supported
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import isfile
+from ..gateways.disk.read import isfile, collect_all_info_for_package
 from ..models.package_info import PathType
 from ..models.record import Link, Record
 from ..utils import on_win
@@ -220,6 +222,20 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
 
 class UnlinkLinkTransaction(object):
 
+    @classmethod
+    def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists):
+        # This constructor method helps to patch into the 'plan' framework
+        linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
+                                               for dist in unlink_dists)
+
+        pkg_dirs_to_link = tuple(is_extracted(dist) for dist in link_dists)
+        assert all(pkg_dirs_to_link)
+        packages_info_to_link = tuple(collect_all_info_for_package(index, pkg_dir)
+                                      for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
+
+        return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
+                                     packages_info_to_link)
+
     def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link):
         # type: (str, Sequence[Dist], Sequence[PackageInfo]])
         # order of unlink_dists and link_dists will be preserved throughout
@@ -276,47 +292,71 @@ class UnlinkLinkTransaction(object):
             self.verify()
 
         try:
-            for pkg_indx, (pkg_data, actions) in enumerate(self.all_actions):
-                dist = Dist(pkg_data)
-                is_unlink = pkg_indx <= self.num_unlink_pkgs
-                if is_unlink:
-                    log.info("unlinking package: %s\n"
-                             "  prefix=%s\n",
-                             dist, self.target_prefix)
-
-                else:
-                    log.info("linking package: %s\n"
-                             "  prefix=%s\n"
-                             "  source=%s\n",
-                             dist, self.target_prefix, pkg_data.extracted_package_dir)
-
-                run_script(self.target_prefix, Dist(pkg_data),
-                           'pre-unlink' if is_unlink else 'pre-link')
-
-                for axn_idx, action in enumerate(actions):
-                    action.execute()
-
-                run_script(self.target_prefix, Dist(pkg_data),
-                           'post-unlink' if is_unlink else 'post-link')
+            for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
+                axn_idx = self._execute_actions(self.target_prefix, self.num_unlink_pkgs,
+                                                pkg_idx, pkg_data, actions)
 
         except Exception as e:
             log.error("Something bad happened, but it's okay because I'm going to roll back now.")
             log.exception(e)
-            failed_pkg_idx, failed_axn_idx = pkg_indx, axn_idx
-            self._reverse_actions(self.all_actions[failed_pkg_idx][1], failed_axn_idx)
-            for pkg_indx in reversed(range(failed_pkg_idx)):
-                self._reverse_actions(self.all_actions[pkg_indx][1])
+
+            failed_pkg_idx, failed_axn_idx = pkg_idx, axn_idx
+            reverse_actions = self.all_actions[failed_pkg_idx]
+            for pkg_idx, (pkg_data, actions) in reversed(enumerate(reverse_actions)):
+                reverse_from_axn_idx = failed_axn_idx if pkg_idx == failed_pkg_idx else -1
+                self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
+                                      pkg_idx, pkg_data, actions, reverse_from_axn_idx)
             raise
+
         else:
-            for pkg_indx, (pkg_data, actions) in enumerate(self.all_actions):
+            for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
                 for axn_idx, action in enumerate(actions):
                     action.cleanup()
 
     @staticmethod
-    def _reverse_actions(actions, reverse_from_idx=None):
-        reverse_from_idx = reverse_from_idx or len(actions)
-        for axn_idx in reversed(range(reverse_from_idx)):
-            actions[axn_idx].reverse()
+    def _execute_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions):
+        axn_idx = 0
+        try:
+            dist = Dist(pkg_data)
+            is_unlink = pkg_idx <= num_unlink_pkgs
+            if is_unlink:
+                log.info("unlinking package: %s\n"
+                         "  prefix=%s\n",
+                         dist, target_prefix)
+
+            else:
+                log.info("linking package: %s\n"
+                         "  prefix=%s\n"
+                         "  source=%s\n",
+                         dist, target_prefix, pkg_data.extracted_package_dir)
+
+            run_script(target_prefix, Dist(pkg_data), 'pre-unlink' if is_unlink else 'pre-link')
+
+            for axn_idx, action in enumerate(actions):
+                action.execute()
+
+            run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
+        finally:
+            return axn_idx
+
+    @staticmethod
+    def _reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions,
+                         reverse_from_idx=-1):
+        # reverse_from_idx = -1 means reverse all actions
+        dist = Dist(pkg_data)
+        is_unlink = pkg_idx <= num_unlink_pkgs
+        if is_unlink:
+            log.info("reversing package unlink: %s\n"
+                     "  prefix=%s\n",
+                     dist, target_prefix)
+
+        else:
+            log.info("reversing package link: %s\n"
+                     "  prefix=%s\n,",
+                     dist, target_prefix)
+
+        for action in reversed(actions[:reverse_from_idx]):
+            action.reverse()
 
     @staticmethod
     def get_python_version(target_prefix, linked_packages_data_to_unlink, packages_info_to_link):

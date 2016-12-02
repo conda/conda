@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import ctypes
 import os
 import tarfile
+from conda.install import symlink_conda
 from logging import getLogger
 from os.path import isdir, isfile, islink, join
 
@@ -105,24 +106,13 @@ def split_linkarg(arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    log.debug("No longer symlinking conda. Passing for prefix %s", state['prefix'])
-    # symlink_conda(state['prefix'], arg)
+    symlink_conda(state['prefix'], arg)
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):
-    target_prefix = state['prefix']
-
     unlink_dists, link_dists = arg
-    linked_packages_data_to_unlink = tuple(load_meta(state['prefix'], dist)
-                                           for dist in unlink_dists)
-
-    pkg_dirs_to_link = tuple(is_extracted(dist) for dist in link_dists)
-    assert all(pkg_dirs_to_link)
-    packages_info_to_link = tuple(collect_all_info_for_package(state['index'][dist], pkg_dir)
-                                  for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
-
-    txn = UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
-                                packages_info_to_link)
+    txn = UnlinkLinkTransaction.create_from_dists(state['index'], state['prefix'],
+                                                  unlink_dists, link_dists)
     txn.execute()
 
 
