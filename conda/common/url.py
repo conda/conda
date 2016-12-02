@@ -71,10 +71,9 @@ def is_url(url):
     if not url:
         return False
     try:
-        p = urlparse(url)
-        return p.netloc is not None or p.scheme == "file"
+        return urlparse(url).scheme is not None
     except LocationParseError:
-        log.debug("Could not parse url ({0}).".format(url))
+        log.debug("Could not parse url '%s'", url)
         return False
 
 
