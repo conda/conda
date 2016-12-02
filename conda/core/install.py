@@ -1,32 +1,32 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import re
-import sys
-import warnings
 from collections import namedtuple
-from conda._vendor.auxlib.ish import dals
 from logging import getLogger
+import os
 from os import listdir
 from os.path import dirname, isdir, isfile, join
+import re
 from subprocess import CalledProcessError, check_call
+import sys
+import warnings
 
+from .linked_data import (delete_linked_data, get_python_version_for_prefix,
+                          get_site_packages_dir, load_meta, set_linked_data)
 from .package_cache import is_extracted, read_url
-from ..base.constants import LinkType
+from .portability import _PaddingError, update_prefix
+from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.path import (explode_directories, get_leaf_directories,
-                           get_bin_directory_short_path, win_path_ok)
-from ..core.linked_data import (delete_linked_data, get_python_version_for_prefix, load_meta,
-                                set_linked_data, get_site_packages_dir)
+from ..common.path import (explode_directories, get_bin_directory_short_path, get_leaf_directories,
+                           win_path_ok)
 from ..exceptions import CondaOSError, LinkError, PaddingError
 from ..gateways.disk.create import (compile_missing_pyc, create_entry_point, link as create_link,
                                     make_menu, mkdir_p, write_conda_meta_record)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, yield_lines
-from ..gateways.disk.update import _PaddingError, update_prefix
-from ..models.record import Link, Record
+from ..models.enums import LinkType
 from ..models.package_info import PathType
+from ..models.record import Link, Record
 from ..utils import on_win
 
 try:

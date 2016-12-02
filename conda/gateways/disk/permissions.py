@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EACCES, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
-from os import (chmod, lstat, walk)
+from os import chmod, lstat, walk
 from os.path import isdir, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 

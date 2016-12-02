@@ -3,7 +3,8 @@ from os.path import join
 import pytest
 import unittest
 
-from conda.base.constants import LinkType, FileMode
+from conda.base.constants import LinkType
+from conda.models.enums import FileMode, LinkType
 from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
                                 LinkOperation)
 from conda.models.dist import Dist
