@@ -9,6 +9,7 @@ import threading
 from conda.base.constants import UTF8
 from functools import partial
 from textwrap import dedent
+from io import DEFAULT_BUFFER_SIZE
 
 from .common.url import path_to_url
 
@@ -94,13 +95,27 @@ def gnu_get_libc_version():
     return result
 
 
+def chunked_read(stream, chunk_size=None):
+    """
+    Yield chunks of bytes from any object supporting read interface.
+    """
+    if not hasattr(stream, 'read'):
+        raise ValueError("{} is not a readable stream of bytes".format(type(stream)))
+    
+    if chunk_size is None:
+        chunk_size = DEFAULT_BUFFER_SIZE
+    
+    while 1:
+        chunk = stream.read(chunk_size)
+        if not chunk:
+            break
+        yield chunk
+    
+    
 def hashsum_file(path, mode='md5'):
     h = hashlib.new(mode)
     with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
+        for chunk in chunked_read(fi, 262144):   # process chunks of 256KB
             h.update(chunk)
     return h.hexdigest()
 
