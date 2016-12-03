@@ -89,10 +89,10 @@ def RM_FETCHED_CMD(state, arg):
     rm_fetched(dist)
 
 
-def split_linkarg(arg):
-    """Return tuple(dist, linktype)"""
-    parts = arg.split()
-    return (parts[0], int(LinkType.hardlink if len(parts) < 2 else parts[1]))
+# def split_linkarg(arg):
+#     """Return tuple(dist, linktype)"""
+#     parts = arg.split()
+#     return (parts[0], int(LinkType.hardlink if len(parts) < 2 else parts[1]))
 
 
 # def LINK_CMD(state, arg):

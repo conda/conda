@@ -93,14 +93,13 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(inst.LINK, []):
-        d, lt = inst.split_linkarg(arg)
-        dist = Dist(d)
+        dist = Dist(arg)
         rec = index[dist]
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
         records[pkg][1] = Package(dist.to_filename(), rec)
-        linktypes[pkg] = lt
+        linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
         dist = Dist(arg)
@@ -624,14 +623,10 @@ def revert_actions(prefix, revision=-1, index=None):
         add_unlink(actions, Dist(dist))
 
     # check whether it is a safe revision
-    from .instructions import split_linkarg, LINK, UNLINK, FETCH
+    from .instructions import LINK, UNLINK, FETCH
     from .exceptions import CondaRevisionError
     for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
-        if isinstance(arg, Dist):
-            dist = arg
-        else:
-            dist, lt = split_linkarg(arg)
-            dist = Dist(dist)
+        dist = Dist(arg)
         if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)

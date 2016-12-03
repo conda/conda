@@ -70,6 +70,8 @@ def url_to_s3_info(url):
 
 
 def is_url(url):
+    if not url:
+        return False
     try:
         return urlparse(url).scheme is not None
     except LocationParseError:
