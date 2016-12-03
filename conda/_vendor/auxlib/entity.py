@@ -878,12 +878,14 @@ class DictSafeMixin(object):
 class EntityEncoder(JSONEncoder):
     # json.dumps(obj, cls=SetEncoder)
     def default(self, obj):
-       if hasattr(obj, 'dump'):
-          return obj.dump()
-       elif hasattr(obj, '__json__'):
-          return obj.__json__()
-       elif hasattr(obj, 'to_json'):
-          return obj.to_json()
-       elif hasattr(obj, 'as_json'):
-          return obj.as_json()
-       return JSONEncoder.default(self, obj)
+        if hasattr(obj, 'dump'):
+            return obj.dump()
+        elif hasattr(obj, '__json__'):
+            return obj.__json__()
+        elif hasattr(obj, 'to_json'):
+            return obj.to_json()
+        elif hasattr(obj, 'as_json'):
+            return obj.as_json()
+        elif isinstance(obj, Enum):
+            return obj.value
+        return JSONEncoder.default(self, obj)

@@ -17,7 +17,7 @@ from os.path import exists, expanduser, join
 
 from .common import (add_parser_json, add_parser_offline, arg2spec, disp_features,
                      handle_envs_list, stdout_json)
-from ..compat import itervalues
+from ..common.compat import itervalues
 from ..config import rc_path, sys_rc_path, user_rc_path
 from ..models.channel import prioritize_channels
 from ..utils import on_win

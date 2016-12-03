@@ -4,13 +4,13 @@ installed Python packages, e.g. using "python setup.py install", or "pip".
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from io import open
 import os
+from os.path import isdir, isfile, join
 import re
 import sys
-from io import open
-from os.path import isdir, isfile, join
 
-from .compat import itervalues
+from .common.compat import itervalues
 from .core.linked_data import linked_data
 from .misc import rel_path
 from .models.dist import Dist

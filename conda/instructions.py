@@ -2,11 +2,11 @@ from __future__ import absolute_import, division, print_function
 
 from logging import getLogger
 
-from .base.constants import LinkType
 from .base.context import context
-from .core.install import get_package_installer, PackageUninstaller
+from .core.install import PackageUninstaller, get_package_installer
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched
 from .models.dist import Dist
+from .models.enums import LinkType
 
 
 log = getLogger(__name__)

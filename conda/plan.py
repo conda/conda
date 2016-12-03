@@ -9,25 +9,26 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import sys
 from collections import defaultdict
+from conda.gateways.disk.test import try_hard_link
 from logging import getLogger
+import os
 from os.path import abspath, basename, dirname, exists, join
+import sys
 
 from . import instructions as inst
-from .base.constants import DEFAULTS, LinkType
+from .base.constants import DEFAULTS
 from .base.context import context
 from .common.compat import text_type
 from .core.linked_data import is_linked
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
-from .gateways.disk.create import try_hard_link
 from .gateways.disk.delete import rm_rf
 from .history import History
 from .models.channel import Channel
 from .models.dist import Dist
+from .models.enums import LinkType
 from .resolve import MatchSpec, Package, Resolve
 from .utils import human_bytes, md5_file, on_win
 

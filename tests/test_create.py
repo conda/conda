@@ -25,7 +25,7 @@ from conda.common.io import captured, disable_logger, replace_log_streams, stder
 from conda.common.path import get_bin_directory_short_path, missing_pyc_files
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
-from conda.compat import itervalues, text_type
+from conda.common.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, get_site_packages_dir, \
@@ -487,7 +487,7 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 12, 1), reason="configs are borked")
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 1, 1), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
@@ -596,7 +596,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 12, 1), reason="deal with this later")
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 1, 1), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'

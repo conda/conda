@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
-import shlex
 from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from itertools import chain
+import json
 from logging import getLogger
 from os.path import isfile, islink, join
+import shlex
 
-from ...base.constants import FileMode, PREFIX_PLACEHOLDER, UTF8
-from ...models.package_info import PathType, PackageInfo, PathInfoV1, PathInfo
-from ...models.record import Record
+from ...base.constants import PREFIX_PLACEHOLDER, UTF8
 from ...exceptions import CondaUpgradeError
+from ...models.enums import FileMode
+from ...models.package_info import PackageInfo, PathInfo, PathInfoV1, PathType
+from ...models.record import Record
 
 log = getLogger(__name__)
 

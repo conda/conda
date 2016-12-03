@@ -6,7 +6,7 @@ import re
 import sys
 from os.path import isdir, abspath
 
-from conda import text_type
+from ..common.compat import text_type
 from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError,
                           TooManyArgumentsError, TooFewArgumentsError)
 from ..utils import on_win

@@ -4,7 +4,7 @@ from conda.cli import common
 from conda import plan
 from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
 from conda.api import get_index
-from conda.compat import text_type
+from conda.common.compat import text_type
 
 
 def install(prefix, specs, args, env, prune=False):

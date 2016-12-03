@@ -6,7 +6,7 @@ import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
 from conda.common.io import captured
-from conda.compat import text_type
+from conda.common.compat import text_type
 from conda.exceptions import CondaValueError
 
 from tests.helpers import capture_json_with_argv, assert_in, run_inprocess_conda_command
