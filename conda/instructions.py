@@ -4,10 +4,9 @@ from conda.install import symlink_conda
 import ctypes
 from logging import getLogger
 import os
-from os.path import isdir, isfile, islink, join, basename
+from os.path import basename, isdir, isfile, islink, join
 import tarfile
 
-from .base.constants import LinkType
 from .base.context import context
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, rm_fetched

@@ -40,6 +40,7 @@ def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
         self._log(TRACE, message, args, **kwargs)
 
+
 TRACE = 5  # TRACE LOG LEVEL
 logging.addLevelName(TRACE, "TRACE")
 logging.Logger.trace = trace

@@ -3,15 +3,15 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict
 import os
+from os.path import (abspath, curdir, dirname, exists, expanduser, isdir, isfile, islink, join,
+                     relpath)
 import re
 import shutil
 import sys
-from collections import defaultdict
-from os.path import (abspath, curdir, dirname, exists, expanduser, isdir, isfile, islink, join,
-                     relpath)
 
-from .base.constants import DEFAULTS, LinkType
+from .base.constants import DEFAULTS
 from .base.context import context
 from .common.url import is_url, path_to_url
 from .compat import iteritems, itervalues
@@ -20,7 +20,6 @@ from .core.linked_data import is_linked, linked as install_linked, linked_data
 from .core.package_cache import cached_url, find_new_location, is_extracted, is_fetched
 from .exceptions import (CondaFileNotFoundError, CondaRuntimeError, MD5MismatchError,
                          PackageNotFoundError, ParseError)
-from .gateways.disk.create import try_hard_link
 from .gateways.disk.delete import rm_rf
 from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel

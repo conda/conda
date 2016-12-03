@@ -9,11 +9,10 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import sys
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename, dirname, exists, join
+from os.path import abspath, basename, exists, join
+import sys
 
 from . import instructions as inst
 from .base.constants import DEFAULTS, LinkType
@@ -23,8 +22,6 @@ from .core.linked_data import is_linked
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
-from .gateways.disk.create import try_hard_link
-from .gateways.disk.delete import rm_rf
 from .history import History
 from .models.channel import Channel
 from .models.dist import Dist
@@ -99,7 +96,7 @@ def display_actions(actions, index, show_channel_urls=None):
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
         records[pkg][1] = Package(dist.to_filename(), rec)
-        linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()
+        linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
         dist = Dist(arg)
