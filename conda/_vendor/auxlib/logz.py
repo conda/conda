@@ -113,11 +113,11 @@ def stringify(obj):
     def requests_models_Response_builder(builder, response_object):
         builder.append("< {0} {1} {2}".format(response_object.url.split(':', 1)[0].upper(),
                                               response_object.status_code, response_object.reason))
-        builder.extend("> {0}: {1}".format(key, value)
+        builder.extend("< {0}: {1}".format(key, value)
                        for key, value in sorted(response_object.headers.items(),
                                                 key=response_header_sort_key))
         elapsed = text_type(response_object.elapsed).split(':', 1)[-1]
-        builder.append('> Elapsed: {0}'.format(elapsed))
+        builder.append('< Elapsed: {0}'.format(elapsed))
         builder.append('')
         content_type = response_object.headers.get('Content-Type')
         if content_type == 'application/json':

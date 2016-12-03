@@ -62,7 +62,7 @@ def replace_long_shebang(mode, data):
                 data = data.replace(whole_shebang, new_shebang.encode(UTF8))
     else:
         # TODO: binary shebangs exist; figure this out in the future if text works well
-        log.debug("TODO: binary shebangs exist; figure this out in the future if text works well")
+        pass
     return data
 
 

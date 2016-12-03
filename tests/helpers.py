@@ -8,11 +8,11 @@ import sys
 import os
 import re
 import json
-from conda import initialize_logging
 from shlex import split
 
 from conda.base.context import reset_context
 from conda.common.io import captured, argv
+from conda.gateways.logging import initialize_logging
 from conda import cli
 
 try:

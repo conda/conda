@@ -37,26 +37,6 @@ def solve(specs):
     return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
-class TestMisc(unittest.TestCase):
-
-    def test_split_linkarg(self):
-        for arg, res in [
-            ('w3-1.2-0', ('w3-1.2-0', 1)),
-            ('w3-1.2-0 1', ('w3-1.2-0', 1)),
-            ('w3-1.2-0 1 True', ('w3-1.2-0', 1))]:
-            self.assertEqual(inst.split_linkarg(arg), res)
-
-
-@pytest.mark.parametrize("args", [
-    (),
-    ("one", ),
-    ("one", "two", "three", ),
-])
-def test_add_unlink_takes_two_arguments(args):
-    with pytest.raises(TypeError):
-        plan.add_unlink(*args)
-
-
 class add_unlink_TestCase(unittest.TestCase):
     def generate_random_dist(self):
         return "foobar-%s-0" % random.randint(100, 200)
@@ -451,6 +431,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 """
 
 
+@pytest.mark.xfail(strict=True, reason="Not reporting link type until refactoring display_actions "
+                                       "after txn.verify()")
 def test_display_actions_link_type():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())

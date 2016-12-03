@@ -41,7 +41,7 @@ def captured():
     finally:
         c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
-        log.info("stderr and stdout yielded back")
+        log.info("stderr and stdout yielding back")
 
 
 @contextmanager

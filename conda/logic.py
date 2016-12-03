@@ -375,7 +375,7 @@ class Clauses(object):
         nterms = len(equation)
         if nterms and equation[-1][0] > hi:
             nprune = sum(c > hi for c, a in equation)
-            log.debug('Eliminating %d/%d terms for bound violation' % (nprune, nterms))
+            log.trace('Eliminating %d/%d terms for bound violation' % (nprune, nterms))
             nterms -= nprune
         else:
             nprune = 0
@@ -501,10 +501,10 @@ class Clauses(object):
         try0 = 0
         for peak in ((True, False) if maxval > 1 else (False,)):
             if peak:
-                log.debug('Beginning peak minimization')
+                log.trace('Beginning peak minimization')
                 objval = peak_val
             else:
-                log.debug('Beginning sum minimization')
+                log.trace('Beginning sum minimization')
                 objval = sum_val
 
             odict = {a: c for c, a in objective}
@@ -518,7 +518,7 @@ class Clauses(object):
             if trymax and not peak:
                 try0 = hi - 1
 
-            log.debug("Initial range (%d,%d)" % (lo, hi))
+            log.trace("Initial range (%d,%d)" % (lo, hi))
             while True:
                 if try0 is None:
                     mid = (lo+hi) // 2
@@ -531,12 +531,12 @@ class Clauses(object):
                         self.Require(self.Any, temp)
                 else:
                     self.Require(self.LinearBound, objective, lo, mid, False)
-                log.debug('Bisection attempt: (%d,%d), (%d+%d) clauses' %
+                log.trace('Bisection attempt: (%d,%d), (%d+%d) clauses' %
                           (lo, mid, nz, len(self.clauses)-nz))
                 newsol = self.sat()
                 if newsol is None:
                     lo = mid + 1
-                    log.debug("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                    log.trace("Bisection failure, new range=(%d,%d)" % (lo, hi))
                     # If this was a failure of the first test after peak minimization,
                     # then it means that the peak minimizer is "tight" and we don't need
                     # any further constraints.
@@ -545,7 +545,7 @@ class Clauses(object):
                     bestsol = newsol
                     bestval = objval(newsol, odict)
                     hi = bestval
-                    log.debug("Bisection success, new range=(%d,%d)" % (lo, hi))
+                    log.trace("Bisection success, new range=(%d,%d)" % (lo, hi))
                     if done:
                         break
                 self.m = m_orig
