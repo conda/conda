@@ -78,7 +78,7 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     fkey = prefix + dist_name
 
     dist = Dist(fkey)
-    log.debug('adding cached package %s\n'
+    log.trace('adding cached package %s\n'
               '  url: %s\n'
               '  xpkg: %s\n'
               '  xdir: %s', dist, url, xpkg, xdir)
