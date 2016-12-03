@@ -54,7 +54,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     linked = {dist.name: dist for dist in install_linked(prefix)}
     index_args = index_args or {}
     index = index or {}
-    verifies = []  # List[Tuple(filename, md5)]
+    verifies = []  # List[Tuple(dist, md5)]
     channels = set()
     for spec in specs:
         if spec == '@EXPLICIT':
@@ -99,7 +99,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 'name': dist.quad[0],
                 'version': dist.quad[1],
             })
-            verifies.append((fn, md5))
+            verifies.append((dist, md5))
 
         pkg_path = is_fetched(dist)
         dir_path = is_extracted(dist)
@@ -129,7 +129,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 if not is_local:
                     if dist not in index or index[dist].get('not_fetched'):
                         channels.add(schannel)
-                    verifies.append((dist.to_filename(), md5))
+                    verifies.append((dist, md5))
                 actions[FETCH].append(dist)
             actions[EXTRACT].append(dist)
 
@@ -150,15 +150,15 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         index.update(get_index(**index_args))
 
     # Finish the MD5 verification
-    for fn, md5 in verifies:
-        info = index.get(Dist(fn))
+    for dist, md5 in verifies:
+        info = index.get(dist)
         if info is None:
-            raise PackageNotFoundError(fn, "no package '%s' in index" % fn)
+            raise PackageNotFoundError(dist, "no package '%s' in index" % dist)
         if md5 and 'md5' not in info:
-            sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
+            sys.stderr.write('Warning: cannot lookup MD5 of: %s' % dist)
         if md5 and info['md5'] != md5:
             raise MD5MismatchError('MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
-                                   % (fn, md5, info['md5']))
+                                   % (dist, md5, info['md5']))
     execute_actions(actions, index=index, verbose=verbose)
     return actions
 
