@@ -34,6 +34,8 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         if data == original_data:
             raise CancelOperation()
 
+        return data
+
     update_file_as_binary(realpath(path), _update_prefix)
 
 
