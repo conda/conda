@@ -10,7 +10,7 @@ NOTE:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from conda.gateways.disk.disk_test import try_hard_link
+from conda.gateways.disk.test import try_hard_link
 from logging import getLogger
 import os
 from os.path import abspath, basename, dirname, exists, join

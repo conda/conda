@@ -8,7 +8,7 @@ from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 from os import chdir, getcwd
 
 from .._vendor.auxlib.logz import NullHandler
-from ..compat import StringIO
+from .compat import StringIO
 
 log = getLogger(__name__)
 

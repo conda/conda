@@ -1,29 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.base.context import context
+from conda.common.compat import text_type
+from conda.core.package_cache import download
+from conda.core.portability import _PaddingError, binary_replace, update_prefix
+from conda.gateways.disk.delete import move_path_to_trash
+from conda.gateways.disk.read import read_no_link, yield_lines
+from conda.models.enums import FileMode
+from conda.utils import on_win
+from os import chdir, getcwd, makedirs
+from os.path import exists, join, relpath
 import pytest
 import random
 import shutil
-import stat
 import subprocess
 import sys
 import tempfile
 import unittest
-from conda import install
-from conda.models.enums import FileMode
-from conda.base.context import context
-from conda.gateways.disk.delete import move_path_to_trash
-from conda.common.compat import text_type
-from conda.core.package_cache import download
-from conda.gateways.disk.read import yield_lines, read_no_link
-from conda.gateways.disk.update import _PaddingError, update_prefix
-from conda.core.portability import binary_replace, _PaddingError, update_prefix
-from conda.utils import on_win
-from contextlib import contextmanager
-from os import chdir, getcwd, makedirs
-from os.path import dirname, exists, join, relpath
 
-from .decorators import skip_if_no_mock
 from .helpers import mock
 
 patch = mock.patch if mock else None
