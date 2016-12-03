@@ -35,19 +35,17 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         if data == original_data:
             raise CancelOperation()
 
-        if len(data) != len(original_data):
-            message = ("Attempt failed to replace data of length '%(new_data_length)d' with "
-                       "data of length '%(original_data_length)d'.\n"
+        if mode == FileMode.binary and len(data) != len(original_data):
+            message = ("Refusing to replace data of length '%(new_data_length)d' with "
+                       "data of length '%(original_data_length)d' for binary file.\n"
                        "  path: %(path)s\n"
                        "  new prefix: %(new_prefix)s\n"
                        "  placeholder: %(placeholder)s\n"
-                       "  file mode: %(mode)s\n"
                        % {'new_data_length': len(data),
                           'original_data_length': len(original_data),
                           'path': path,
                           'new_prefix': new_prefix,
                           'placeholder': placeholder,
-                          'mode': mode,
                           })
             raise CondaRuntimeError(message)
 
