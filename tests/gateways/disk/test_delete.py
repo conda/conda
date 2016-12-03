@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import pytest
 from conda.base.context import context
-from conda.compat import text_type
+from conda.common.compat import text_type
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import on_win
 from os.path import join

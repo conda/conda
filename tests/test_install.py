@@ -13,7 +13,7 @@ from conda import install
 from conda.models.enums import FileMode
 from conda.base.context import context
 from conda.gateways.disk.delete import move_path_to_trash
-from conda.compat import text_type
+from conda.common.compat import text_type
 from conda.core.package_cache import download
 from conda.gateways.disk.read import yield_lines, read_no_link
 from conda.gateways.disk.update import _PaddingError, update_prefix

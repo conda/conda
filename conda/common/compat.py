@@ -133,7 +133,7 @@ def with_metaclass(Type, skip_attrs=set(('__dict__', '__weakref__'))):
     """
 
     def _clone_with_metaclass(Class):
-        attrs = dict((key, value) for key, value in items(vars(Class))
+        attrs = dict((key, value) for key, value in iteritems(vars(Class))
                      if key not in skip_attrs)
         return Type(Class.__name__, Class.__bases__, attrs)
 
