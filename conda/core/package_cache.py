@@ -264,7 +264,6 @@ def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
-
     session = session or CondaSession()
 
     fn = info['fn']

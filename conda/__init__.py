@@ -37,11 +37,11 @@ initialize_logging()
 
 
 def trace(self, message, *args, **kwargs):
-    if self.isEnabledFor(TRACE_LOG_LEVEL):
-        self._log(TRACE_LOG_LEVEL, message, args, **kwargs)
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, message, args, **kwargs)
 
-TRACE_LOG_LEVEL = 5
-logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
+TRACE = 5  # TRACE LOG LEVEL
+logging.addLevelName(TRACE, "TRACE")
 logging.Logger.trace = trace
 
 
