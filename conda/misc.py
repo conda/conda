@@ -97,7 +97,11 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
         # Don't re-fetch unless there is an MD5 mismatch
         # Also remove explicit tarballs from cache, unless the path *is* to the cache
-        if pkg_path and not is_cache and (is_local or md5 and md5_file(pkg_path) != md5):
+        # If no md5 is included in the --explicit url, we need to re-fetch
+        if (pkg_path
+                and not is_cache
+                and (is_local or not md5 or (md5 and md5_file(pkg_path) != md5))
+                and not context.offline):
             # This removes any extracted copies as well
             actions[RM_FETCHED].append(dist)
             pkg_path = dir_path = None
