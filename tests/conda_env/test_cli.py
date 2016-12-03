@@ -224,7 +224,7 @@ class NewIntegrationTest(unittest.TestCase):
 
     def setUp(self):
         if env_is_created(test_env_name_2):
-            run_conda_command(Commands.ENV_REMOVE, test_env_name_2)
+            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
 
     def tearDown(self):
