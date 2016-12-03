@@ -7,6 +7,7 @@ import re
 import struct
 
 from ..base.constants import PREFIX_PLACEHOLDER, UTF8
+from ..exceptions import CondaRuntimeError
 from ..gateways.disk.update import CancelOperation, update_file_as_binary
 from ..models.enums import FileMode
 from ..utils import on_win
@@ -33,6 +34,22 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
 
         if data == original_data:
             raise CancelOperation()
+
+        if len(data) != len(original_data):
+            message = ("Attempt failed to replace data of length '%(new_data_length)d' with "
+                       "data of length '%(original_data_length)d'.\n"
+                       "  path: %(path)s\n"
+                       "  new prefix: %(new_prefix)s\n"
+                       "  placeholder: %(placeholder)s\n"
+                       "  file mode: %(mode)s\n"
+                       % {'new_data_length': len(data),
+                          'original_data_length': len(original_data),
+                          'path': path,
+                          'new_prefix': new_prefix,
+                          'placeholder': placeholder,
+                          'mode': mode,
+                          })
+            raise CondaRuntimeError(message)
 
         return data
 
