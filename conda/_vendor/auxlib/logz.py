@@ -101,7 +101,7 @@ def stringify(obj):
             builder.append(body)
 
     def requests_models_PreparedRequest_builder(builder, request_object):
-        builder.append("> {0} {1} {2}".format(request_object.method, request_object.path_url,
+        builder.append(">>{0} {1} {2}".format(request_object.method, request_object.path_url,
                                               request_object.url.split(':', 1)[0].upper()))
         builder.extend("> {0}: {1}".format(key, value)
                        for key, value in sorted(request_object.headers.items(),
@@ -111,7 +111,7 @@ def stringify(obj):
             builder.append(request_object.body)
 
     def requests_models_Response_builder(builder, response_object):
-        builder.append("< {0} {1} {2}".format(response_object.url.split(':', 1)[0].upper(),
+        builder.append("<<{0} {1} {2}".format(response_object.url.split(':', 1)[0].upper(),
                                               response_object.status_code, response_object.reason))
         builder.extend("< {0}: {1}".format(key, value)
                        for key, value in sorted(response_object.headers.items(),
