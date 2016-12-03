@@ -316,11 +316,15 @@ def create_link(src, dst, link_type=LinkType.hardlink):
 #     pyc_files = tuple(f[1] for f in py_pyc_files)
 #     return pyc_files
 
+def _split_on_unix(command):
+    # I guess windows doesn't like shlex.split
+    return command if on_win else shlex_split(command)
+
 
 def compile_pyc(python_exe_full_path, py_full_path):
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
     log.trace(command)
-    process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
+    process = Popen(_split_on_unix(command), stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
 
     rc = process.returncode
