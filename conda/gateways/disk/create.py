@@ -269,7 +269,7 @@ def create_link(src, dst, link_type=LinkType.hardlink):
         mkdir_p(dst)
         return
 
-    if exists(dst):
+    if exists(dst):  # TODO: should this be lexists() ?
         if context.force:
             log.info("file exists, but clobbering: %r" % dst)
             rm_rf(dst)
@@ -319,7 +319,7 @@ def create_link(src, dst, link_type=LinkType.hardlink):
 
 def compile_pyc(python_exe_full_path, py_full_path):
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
-    log.debug(command)
+    log.trace(command)
     process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
 
