@@ -15,9 +15,9 @@ from .models.dist import Dist
 from .utils import on_win
 
 try:
-    from cytoolz.itertoolz import groupby
+    from cytoolz.itertoolz import concatv, drop, groupby
 except ImportError:
-    from ._vendor.toolz.itertoolz import groupby  # NOQA
+    from ._vendor.toolz.itertoolz import concatv, drop, groupby  # NOQA
 
 
 log = getLogger(__name__)
@@ -298,6 +298,39 @@ OP_ORDER = (CHECK_FETCH,
             )
 
 
+def handle_menuinst(unlink_dists, link_dists):
+    if not on_win:
+        return unlink_dists, link_dists
+
+    # Always link/unlink menuinst first/last on windows in case a subsequent
+    # package tries to import it to create/remove a shortcut
+
+    # unlink
+    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
+    if menuinst_idx is not None:
+        unlink_dists = concatv((drop(menuinst_idx, unlink_dists), unlink_dists[menuinst_idx],))
+
+    # link
+    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
+    if menuinst_idx is not None:
+        link_dists = concatv((link_dists[menuinst_idx],), drop(menuinst_idx, link_dists))
+
+    return unlink_dists, link_dists
+
+
+
+def inject_UNLINKLINKTRANSACTION(plan):
+    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
+    if first_unlink_link_idx >= 0:
+        grouped_instructions = groupby(lambda x: x[0], plan)
+        unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
+        link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
+        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
+        plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
+    return plan
+
+
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
     """Execute the instructions in the plan
 
@@ -315,16 +348,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         setup_verbose_handlers()
 
     log.debug("executing plan %s", plan)
-
-    # pull out unlink and link commands for the transaction
-    grouped_instructions = groupby(lambda x: x[0], plan)
-    unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
-    link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
-
-    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
-    if first_unlink_link_idx >= 0:
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
-        plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
+    plan = inject_UNLINKLINKTRANSACTION(plan)
 
     state = {'i': None, 'prefix': context.root_dir, 'index': index}
 

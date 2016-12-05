@@ -281,19 +281,6 @@ def plan_from_actions(actions):
     assert inst.PREFIX in actions and actions[inst.PREFIX]
     res = [('PREFIX', '%s' % actions[inst.PREFIX])]
 
-    if on_win:
-        # Always link/unlink menuinst first on windows in case a subsequent
-        # package tries to import it to create/remove a shortcut
-        for op in (inst.UNLINK, inst.FETCH, inst.EXTRACT, inst.LINK):
-            if op in actions:
-                pkgs = []
-                for pkg in actions[op]:
-                    if 'menuinst' in text_type(pkg):
-                        res.append((op, pkg))
-                    else:
-                        pkgs.append(pkg)
-                actions[op] = pkgs
-
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
         if op not in actions:
