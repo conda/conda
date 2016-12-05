@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from logging import getLogger
+from os import rename
+import re
+
 from . import exp_backoff_fn
+
+log = getLogger(__name__)
+
+rename = rename
+
+SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
 
 
 class CancelOperation(Exception):

@@ -36,7 +36,6 @@ def urlunparse(data):
 def path_to_url(path):
     path = abspath(expanduser(path))
     url = urljoin('file:', pathname2url(path))
-    log.debug("%s converted to %s", path, url)
     return url
 
 
@@ -71,11 +70,12 @@ def url_to_s3_info(url):
 
 
 def is_url(url):
+    if not url:
+        return False
     try:
-        p = urlparse(url)
-        return p.netloc is not None or p.scheme == "file"
+        return urlparse(url).scheme is not None
     except LocationParseError:
-        log.debug("Could not parse url ({0}).".format(url))
+        log.trace("Could not parse url '%s'", url)
         return False
 
 

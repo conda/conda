@@ -3,9 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import W_OK, access, getpid, makedirs
-from os.path import isdir, isfile, islink, join
+from os.path import isdir, isfile, islink, join, exists, basename
 
-from .create import link
+from .create import create_link
 from .delete import backoff_unlink, rm_rf
 from ...models.dist import Dist
 from ...models.enums import LinkType
@@ -55,7 +55,7 @@ def try_hard_link(pkgs_dir, prefix, dist):
     try:
         if not isdir(prefix):
             makedirs(prefix)
-        link(src, dst, LinkType.hardlink)
+        create_link(src, dst, LinkType.hardlink)
         # Some file systems (at least BeeGFS) do not support hard-links
         # between files in different directories. Depending on the
         # file system configuration, a symbolic link may be created
@@ -66,3 +66,38 @@ def try_hard_link(pkgs_dir, prefix, dist):
         return False
     finally:
         rm_rf(dst)
+
+
+def hardlink_supported(source_file, dest_dir):
+    # Some file systems (e.g. BeeGFS) do not support hard-links
+    # between files in different directories. Depending on the
+    # file system configuration, a symbolic link may be created
+    # instead. If a symbolic link is created instead of a hard link,
+    # return False.
+    test_file = join(dest_dir, '.tmp.' + basename(source_file))
+    assert isfile(source_file), source_file
+    assert isdir(dest_dir), dest_dir
+    assert not exists(test_file), test_file
+    try:
+        create_link(source_file, test_file, LinkType.hardlink)
+        return not islink(test_file)
+    except (IOError, OSError):
+        return False
+    finally:
+        rm_rf(test_file)
+
+
+def softlink_supported(source_file, dest_dir):
+    # On Windows, softlink creation is restricted to Administrative users by default. It can
+    # optionally be enabled for non-admin users through explicit registry modification.
+    test_path = join(dest_dir, '.tmp.' + basename(source_file))
+    assert isfile(source_file), source_file
+    assert isdir(dest_dir), dest_dir
+    assert not exists(test_path), test_path
+    try:
+        create_link(source_file, test_path, LinkType.softlink)
+        return islink(test_path)
+    except (IOError, OSError):
+        return False
+    finally:
+        rm_rf(test_path)

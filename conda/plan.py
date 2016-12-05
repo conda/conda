@@ -10,27 +10,23 @@ NOTE:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from conda.gateways.disk.test import try_hard_link
 from logging import getLogger
-import os
-from os.path import abspath, basename, dirname, exists, join
+from os.path import abspath, basename, exists, join
 import sys
 
 from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
-from .common.compat import text_type
 from .core.linked_data import is_linked
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
-from .gateways.disk.delete import rm_rf
 from .history import History
 from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
 from .resolve import MatchSpec, Package, Resolve
-from .utils import human_bytes, md5_file, on_win
+from .utils import human_bytes, md5_file
 
 log = getLogger(__name__)
 
@@ -94,14 +90,13 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(inst.LINK, []):
-        d, lt = inst.split_linkarg(arg)
-        dist = Dist(d)
+        dist = Dist(arg)
         rec = index[dist]
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
         records[pkg][1] = Package(dist.to_filename(), rec)
-        linktypes[pkg] = lt
+        linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(inst.UNLINK, []):
         dist = Dist(arg)
@@ -119,9 +114,6 @@ def display_actions(actions, index, show_channel_urls=None):
         packages[pkg][0] = rec['version'] + '-' + rec['build']
         records[pkg][0] = Package(dist.to_filename(), rec)
         features[pkg][0] = rec.get('features', '')
-
-    #                     Put a minimum length here---.    .--For the :
-    #                                                 v    v
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
@@ -257,6 +249,25 @@ def add_unlink(actions, dist):
     actions[inst.UNLINK].append(dist)
 
 
+def add_checks(actions):
+    """
+    Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
+    has a LINK action, add a CHECK_LINK, which will check if permissions are
+    suitable for linking.
+
+    Args:
+        actions: a defaultdict(list) of actions that are to be performed, e.g. inst.FETCH
+
+    Returns:
+        the actions dict with the appropriate checks added
+    """
+    pass
+    # if inst.FETCH in actions:
+    #     actions.setdefault(inst.CHECK_FETCH, [True])
+    # if inst.EXTRACT in actions:
+    #     actions.setdefault(inst.CHECK_EXTRACT, [True])
+
+
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
@@ -266,27 +277,13 @@ def plan_from_actions(actions):
     assert inst.PREFIX in actions and actions[inst.PREFIX]
     res = [('PREFIX', '%s' % actions[inst.PREFIX])]
 
-    if on_win:
-        # Always link/unlink menuinst first on windows in case a subsequent
-        # package tries to import it to create/remove a shortcut
-
-        for op in (inst.UNLINK, inst.FETCH, inst.EXTRACT, inst.LINK):
-            if op in actions:
-                pkgs = []
-                for pkg in actions[op]:
-                    if 'menuinst' in text_type(pkg):
-                        res.append((op, pkg))
-                    else:
-                        pkgs.append(pkg)
-                actions[op] = pkgs
-
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
         if op not in actions:
-            log.debug("action {0} not in actions".format(op))
+            log.trace("action {0} not in actions".format(op))
             continue
         if not actions[op]:
-            log.debug("action {0} has None value".format(op))
+            log.trace("action {0} has None value".format(op))
             continue
         if '_' not in op:
             res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
@@ -308,8 +305,10 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
+                           inst.RM_EXTRACTED, inst.EXTRACT,
+                           inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+
     for dist in dists:
         fetched_in = is_fetched(dist)
         extracted_in = is_extracted(dist)
@@ -347,42 +346,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
         if not extracted_in:
             actions[inst.EXTRACT].append(dist)
 
-        fetched_dist = extracted_in or fetched_in[:-8]
-        fetched_dir = dirname(fetched_dist)
-
-        try:
-            # Determine what kind of linking is necessary
-            if not extracted_in:
-                # If not already extracted, create some dummy
-                # data to test with
-                rm_rf(fetched_dist)
-                ppath = join(fetched_dist, 'info')
-                os.makedirs(ppath)
-                index_json = join(ppath, 'index.json')
-                with open(index_json, 'w'):
-                    pass
-            if context.always_copy or always_copy:
-                lt = LinkType.copy
-            elif context.always_softlink:
-                lt = LinkType.softlink
-            elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hardlink
-            elif context.allow_softlinks and not on_win:
-                lt = LinkType.softlink
-            else:
-                lt = LinkType.copy
-
-            actions[inst.LINK].append('%s %d' % (dist, lt))
-
-        except (OSError, IOError):
-            actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
-        finally:
-            if not extracted_in:
-                # Remove the dummy data
-                try:
-                    rm_rf(fetched_dist)
-                except (OSError, IOError):
-                    pass
+        actions[inst.LINK].append(dist)
 
     return actions
 
@@ -543,6 +507,9 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         if replace_existing or prune_it:
             add_unlink(actions, dist)
 
+    if not force:
+        add_checks(actions)
+
     return actions
 
 
@@ -584,6 +551,8 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                                   "would require removing 'conda' dependencies")
         add_unlink(actions, old_dist)
 
+    add_checks(actions)
+
     return actions
 
 
@@ -610,6 +579,8 @@ def remove_features_actions(prefix, index, features):
     if to_link:
         dists = (Dist(d) for d in to_link)
         actions.update(ensure_linked_actions(dists, prefix))
+
+    add_checks(actions)
     return actions
 
 
@@ -633,17 +604,15 @@ def revert_actions(prefix, revision=-1, index=None):
         add_unlink(actions, Dist(dist))
 
     # check whether it is a safe revision
-    from .instructions import split_linkarg, LINK, UNLINK, FETCH
+    from .instructions import LINK, UNLINK, FETCH
     from .exceptions import CondaRevisionError
     for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
-        if isinstance(arg, Dist):
-            dist = arg
-        else:
-            dist, lt = split_linkarg(arg)
-            dist = Dist(dist)
+        dist = Dist(arg)
         if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
+
+    add_checks(actions)
 
     return actions
 

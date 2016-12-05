@@ -46,21 +46,21 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     """
     package_cache()
     if '/' in url:
-        dist = url.rsplit('/', 1)[-1]
+        dist_name = url.rsplit('/', 1)[-1]
     else:
-        dist = url
+        dist_name = url
         url = None
-    if dist.endswith('.tar.bz2'):
-        fname = dist
-        dist = dist[:-8]
+    if dist_name.endswith('.tar.bz2'):
+        fname = dist_name
+        dist_name = dist_name[:-8]
     else:
-        fname = dist + '.tar.bz2'
+        fname = dist_name + '.tar.bz2'
     xpkg = join(pdir, fname)
     if not overwrite and xpkg in fname_table_:
         return
     if not isfile(xpkg):
         xpkg = None
-    xdir = join(pdir, dist)
+    xdir = join(pdir, dist_name)
     if not (isdir(xdir) and
             isfile(join(xdir, 'info', 'files')) and
             isfile(join(xdir, 'info', 'index.json'))):
@@ -75,9 +75,13 @@ def add_cached_package(pdir, url, overwrite=False, urlstxt=False):
     prefix = '' if schannel == DEFAULTS else schannel + '::'
     xkey = xpkg or (xdir + '.tar.bz2')
     fname_table_[xkey] = fname_table_[path_to_url(xkey)] = prefix
-    fkey = prefix + dist
+    fkey = prefix + dist_name
 
     dist = Dist(fkey)
+    log.trace('adding cached package %s\n'
+              '  url: %s\n'
+              '  xpkg: %s\n'
+              '  xdir: %s', dist, url, xpkg, xdir)
 
     rec = package_cache_.get(dist)
     if rec is None:
@@ -182,10 +186,12 @@ def rm_fetched(dist):
         del fname_table_[fname]
         del fname_table_[path_to_url(fname)]
         rm_rf(fname)
+        log.debug('removing fetched package %s', fname)
         if exists(fname):
             log.warn("File not removed during RM_FETCHED instruction: %s", fname)
     for fname in rec['dirs']:
         rm_rf(fname)
+        log.debug('removing extracted directory %s', fname)
         if exists(fname):
             log.warn("Directory not removed during RM_FETCHED instruction: %s", fname)
     del package_cache_[dist]
@@ -217,6 +223,7 @@ def rm_extracted(dist):
     if rec is None:
         return
     for fname in rec['dirs']:
+        log.debug('removing extracted directory %s', fname)
         rm_rf(fname)
         if exists(fname):
             log.warn("Directory not removed during RM_EXTRACTED instruction: %s", fname)
@@ -238,6 +245,9 @@ def extract(dist):
     pkgs_dir = dirname(fname)
     path = fname[:-8]
     temp_path = path + '.tmp'
+    log.debug("extracting %s\n"
+              "  from %s\n"
+              "  to %s", dist, fname, path)
     rm_rf(temp_path)
     with tarfile.open(fname) as t:
         t.extractall(path=temp_path)
@@ -264,19 +274,19 @@ def fetch_pkg(info, dst_dir=None, session=None):
     '''
     fetch a package given by `info` and store it into `dst_dir`
     '''
-
     session = session or CondaSession()
 
     fn = info['fn']
 
     url = info.get('url') or info['channel'] + '/' + fn
     url = maybe_add_auth(url, info.get('auth'))
-    log.debug("url=%r" % url)
 
     if dst_dir is None:
         dst_dir = find_new_location(Dist(fn))[0]
     path = join(dst_dir, fn)
 
+    log.debug("fetching url %s\n"
+              "  to location %s", url, path)
     download(url, path, session=session, md5=info['md5'], urlstxt=True)
     if info.get('sig'):
         from ..signature import verify

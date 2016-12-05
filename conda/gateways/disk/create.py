@@ -14,14 +14,12 @@ from subprocess import PIPE, Popen
 import traceback
 
 from .delete import rm_rf
-from ... import CONDA_PACKAGE_ROOT, CondaError
+from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import UTF8
 from ...base.context import context
-from ...common.io import cwd
-from ...common.path import (get_bin_directory_short_path, get_python_path, missing_pyc_files,
-                            parse_entry_point_def, win_path_ok)
+from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
 from ...models.dist import Dist
 from ...models.enums import LinkType
@@ -40,29 +38,68 @@ if __name__ == '__main__':
 """)
 
 
-def create_entry_point(entry_point_def, prefix):
-    # returns a list of file paths created
-    command, module, func = parse_entry_point_def(entry_point_def)
-    ep_path = "%s/%s" % (get_bin_directory_short_path(), command)
-
+def create_unix_entry_point(target_full_path, python_full_path, module, func):
     pyscript = entry_point_template % {'module': module, 'func': func}
+    with open(target_full_path, 'w') as fo:
+        fo.write('#!%s\n' % python_full_path)
+        fo.write(pyscript)
+    chmod(target_full_path, 0o755)
 
-    if on_win:
-        # create -script.py
-        with open(join(prefix, ep_path + '-script.py'), 'w') as fo:
-            fo.write(pyscript)
 
-        # link cli-XX.exe
-        link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
-             join(prefix, win_path_ok(ep_path + '.exe')))
-        return [ep_path + '-script.py', ep_path + '.exe']
-    else:
-        # create py file
-        with open(join(prefix, ep_path), 'w') as fo:
-            fo.write('#!%s\n' % join(prefix, get_bin_directory_short_path(), 'python'))
-            fo.write(pyscript)
-        chmod(join(prefix, ep_path), 0o755)
-        return [ep_path]
+def create_windows_entry_point_py(target_full_path, module, func):
+    pyscript = entry_point_template % {'module': module, 'func': func}
+    with open(target_full_path, 'w') as fo:
+        fo.write(pyscript)
+
+
+# def create_windows_entry_point_exe(target_full_path, link_type):
+#     exe_source = join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits)
+#     create_link(exe_source, target_full_path + '.exe', link_type=link_type)
+#
+#
+# def create_entry_point(target_full_path, python_full_path, module, func, link_type):
+#     pyscript = entry_point_template % {'module': module, 'func': func}
+#
+#     if on_win:
+#         # create -script.py
+#         with open(target_full_path + '-script.py', 'w') as fo:
+#             fo.write(pyscript)
+#
+#         # link cli-XX.exe
+#         create_link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
+#                     target_full_path + '.exe')
+#         return [ep_path + '-script.py', ep_path + '.exe']
+#     else:
+#         with open(target_full_path, 'w') as fo:
+#             fo.write('#!%s\n' % python_full_path)
+#             fo.write(pyscript)
+#         chmod(target_full_path, 0o755)
+#         return [target_full_path]
+
+
+# def create_entry_point_old(entry_point_def, prefix):
+#     # returns a list of file paths created
+#     command, module, func = parse_entry_point_def(entry_point_def)
+#     ep_path = "%s/%s" % (get_bin_directory_short_path(), command)
+#
+#     pyscript = entry_point_template % {'module': module, 'func': func}
+#
+#     if on_win:
+#         # create -script.py
+#         with open(join(prefix, ep_path + '-script.py'), 'w') as fo:
+#             fo.write(pyscript)
+#
+#         # link cli-XX.exe
+#         create_link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
+#                     join(prefix, win_path_ok(ep_path + '.exe')))
+#         return [ep_path + '-script.py', ep_path + '.exe']
+#     else:
+#         # create py file
+#         with open(join(prefix, ep_path), 'w') as fo:
+#             fo.write('#!%s\n' % join(prefix, get_bin_directory_short_path(), 'python'))
+#             fo.write(pyscript)
+#         chmod(join(prefix, ep_path), 0o755)
+#         return [ep_path]
 
 
 def write_conda_meta_record(prefix, record):
@@ -138,8 +175,14 @@ if on_win:
             raise CondaOSError('win32 soft link failed')
 
 
-def link(src, dst, link_type=LinkType.hardlink):
-    if exists(dst):
+def create_link(src, dst, link_type=LinkType.hardlink):
+    if link_type == LinkType.directory:
+        # A directory is technically not a link.  So link_type is a misnomer.
+        #   Naming is hard.
+        mkdir_p(dst)
+        return
+
+    if exists(dst):  # TODO: should this be lexists() ?
         if context.force:
             log.info("file exists, but clobbering: %r" % dst)
             rm_rf(dst)
@@ -165,23 +208,42 @@ def link(src, dst, link_type=LinkType.hardlink):
         raise CondaError("Did not expect linktype=%r" % link_type)
 
 
-def compile_missing_pyc(prefix, python_major_minor_version, files):
-    py_pyc_files = missing_pyc_files(python_major_minor_version, files)
-    python_exe = get_python_path()
+# def compile_missing_pyc(prefix, python_major_minor_version, files):
+#     py_pyc_files = missing_pyc_files(python_major_minor_version, files)
+#     python_exe = get_python_path()
+#
+#     with cwd(prefix):
+#         py_files = (f[0] for f in py_pyc_files)
+#         command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
+#         log.debug(command)
+#         process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
+#         stdout, stderr = process.communicate()
+#
+#     rc = process.returncode
+#     if rc != 0:
+#         log.debug("%s $  %s\n"
+#                   "  stdout: %s\n"
+#                   "  stderr: %s\n"
+#                   "  rc: %d", prefix, command, stdout, stderr, rc)
+#         raise RuntimeError()
+#     pyc_files = tuple(f[1] for f in py_pyc_files)
+#     return pyc_files
 
-    with cwd(prefix):
-        py_files = (f[0] for f in py_pyc_files)
-        command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
-        log.debug(command)
-        process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+def _split_on_unix(command):
+    # I guess windows doesn't like shlex.split
+    return command if on_win else shlex_split(command)
+
+
+def compile_pyc(python_exe_full_path, py_full_path):
+    command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
+    log.trace(command)
+    process = Popen(_split_on_unix(command), stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
 
     rc = process.returncode
     if rc != 0:
-        log.debug("%s $  %s\n"
+        log.error("$ %s\n"
                   "  stdout: %s\n"
                   "  stderr: %s\n"
-                  "  rc: %d", prefix, command, stdout, stderr, rc)
+                  "  rc: %d", command, stdout, stderr, rc)
         raise RuntimeError()
-    pyc_files = tuple(f[1] for f in py_pyc_files)
-    return pyc_files

@@ -4,10 +4,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import re
 from logging import getLogger
 
+from .package_info import PackageInfo
+from .record import Record
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
 from ..base.constants import DEFAULTS
 from ..common.compat import ensure_text_type, text_type, with_metaclass
-from ..models.record import Record
 
 log = getLogger(__name__)
 
@@ -23,6 +24,9 @@ class DistType(EntityType):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             elif isinstance(value, Record):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
+            elif isinstance(value, PackageInfo):
+                return Dist.from_string(value.repodata_record.fn,
+                                        channel_override=value.channel.canonical_name)
             else:
                 return Dist.from_string(value)
         else:

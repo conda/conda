@@ -3,11 +3,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from base64 import b64encode
 from collections import namedtuple
+from conda._vendor.auxlib.ish import dals
+from conda.models.channel import Channel
 from errno import ENOENT
 from itertools import chain
 import json
 from logging import getLogger
-from os.path import isfile, islink, join
+from os import listdir
+from os.path import exists, isdir, isfile, islink, join
 import shlex
 
 from ...base.constants import PREFIX_PLACEHOLDER, UTF8
@@ -17,6 +20,9 @@ from ...models.package_info import PackageInfo, PathInfo, PathInfoV1, PathType
 from ...models.record import Record
 
 log = getLogger(__name__)
+
+listdir = listdir
+exists, isdir, isfile, islink = exists, isdir, isfile, islink
 
 
 def yield_lines(path):
@@ -43,7 +49,22 @@ def yield_lines(path):
             raise
 
 
-def collect_all_info_for_package(extracted_package_directory):
+# # attributes external to the package tarball
+# extracted_package_dir = StringField()
+# channel = ComposableField(Channel)
+# repodata_record = ComposableField(Record)
+# url = StringField()
+#
+# # attributes within the package tarball
+# paths_version = IntegerField()
+# paths = ListField(PathInfo)
+# index_json_record = ComposableField(Record)
+# icondata = StringField(required=False, nullable=True)
+# noarch = ComposableField(NoarchInfo, required=False,
+#                          nullable=True)  # TODO: this isn't noarch anymore; package_metadata.json  # NOQA
+
+
+def collect_all_info_for_package(record, extracted_package_directory):
     info_dir = join(extracted_package_directory, 'info')
 
     files_path = join(extracted_package_directory, 'info', 'files')
@@ -53,16 +74,24 @@ def collect_all_info_for_package(extracted_package_directory):
         with open(file_json_path) as file_json:
             data = json.load(file_json)
         if data.get('paths_version') != 1:
-            raise CondaUpgradeError("""The current version of conda is too old to install this
-package. (This version only supports paths.json schema version 1.)  Please update conda to install
-this package.""")
+            raise CondaUpgradeError(dals("""
+            The current version of conda is too old to install this package. (This version
+            only supports paths.json schema version 1.)  Please update conda to install
+            this package."""))
 
         paths = (PathInfoV1(**f) for f in data['paths'])
         index_json_record = read_index_json(extracted_package_directory)
         noarch = read_noarch(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)
-        return PackageInfo(paths=paths, index_json_record=index_json_record, noarch=noarch,
-                           icondata=icondata, paths_version=1)
+        return PackageInfo(extracted_package_dir=extracted_package_directory,
+                           channel=Channel(record.schannel or record.channel),
+                           repodata_record=record,
+                           url=record.url,
+                           paths_version=1,
+                           paths=paths,
+                           index_json_record=index_json_record,
+                           icondata=icondata,
+                           noarch=noarch)
     else:
         files = tuple(ln for ln in (line.strip() for line in yield_lines(files_path)) if ln)
 
@@ -86,9 +115,15 @@ this package.""")
         index_json_record = read_index_json(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)
         noarch = read_noarch(extracted_package_directory)
-
-        return PackageInfo(paths=path_info_files, index_json_record=index_json_record,
-                           icondata=icondata, noarch=noarch, paths_version=0)
+        return PackageInfo(extracted_package_dir=extracted_package_directory,
+                           channel=Channel(record.schannel or record.channel),
+                           repodata_record=record,
+                           url=record.url,
+                           paths_version=0,
+                           paths=path_info_files,
+                           index_json_record=index_json_record,
+                           icondata=icondata,
+                           noarch=noarch)
 
 
 def read_noarch(extracted_package_directory):

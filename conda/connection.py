@@ -64,7 +64,6 @@ class CondaSession(Session):
 
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop('retries', RETRIES)
-
         super(CondaSession, self).__init__(*args, **kwargs)
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?

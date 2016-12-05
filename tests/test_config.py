@@ -382,8 +382,8 @@ channels:
         stdout, stderr = run_conda_command('config', '--file', rc, '--remove',
                                            'channels', 'defaults')
         assert stdout == ''
-        assert stderr == "CondaKeyError: Error with key 'channels': 'defaults' is not in the 'channels'\
- key of the config file"
+        assert "CondaKeyError: Error with key 'channels': 'defaults' is not in the 'channels' " \
+               "key of the config file" in stderr
 
     # Test creating a new file with --set
     with make_temp_condarc() as rc:
@@ -614,14 +614,14 @@ def test_config_command_remove_force():
         stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--remove', 'channels', 'test', '--force')
         assert stdout == ''
-        assert stderr == """\
-CondaKeyError: Error with key 'channels': 'test' is not in the 'channels' key of the config file"""
+        assert "CondaKeyError: Error with key 'channels': 'test' is not in the 'channels' " \
+               "key of the config file" in stderr
 
         stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--remove', 'disallow', 'python', '--force')
         assert stdout == ''
-        assert stderr == """\
-CondaKeyError: Error with key 'disallow': key 'disallow' is not in the config file"""
+        assert "CondaKeyError: Error with key 'disallow': key 'disallow' " \
+               "is not in the config file" in stderr
 
         stdout, stderr = run_conda_command('config', '--file', rc,
                                            '--remove-key', 'always_yes', '--force')
@@ -632,8 +632,8 @@ CondaKeyError: Error with key 'disallow': key 'disallow' is not in the config fi
                                            '--remove-key', 'always_yes', '--force')
 
         assert stdout == ''
-        assert stderr == """\
-CondaKeyError: Error with key 'always_yes': key 'always_yes' is not in the config file"""
+        assert "CondaKeyError: Error with key 'always_yes': key 'always_yes' " \
+               "is not in the config file" in stderr
 
 
 # FIXME Break into multiple tests
