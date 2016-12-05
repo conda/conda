@@ -1,24 +1,25 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
 from abc import ABCMeta, abstractmethod
+import json
 from logging import getLogger
 from os.path import join
 
+from .linked_data import delete_linked_data, load_linked_data
+from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..base.constants import LinkType
 from ..common.path import get_python_path, win_path_ok
-from ..core.linked_data import delete_linked_data, load_linked_data
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
                                     create_windows_entry_point_py, make_menu,
                                     write_conda_meta_record)
-from ..gateways.disk.delete import try_rmdir_all_empty, rm_rf
+from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import exists, isfile, islink
-from ..gateways.disk.update import _PaddingError, rename, update_prefix
+from ..gateways.disk.update import rename
 from ..models.dist import Dist
+from ..models.enums import LinkType
 from ..models.record import Record
 from ..utils import on_win
 
