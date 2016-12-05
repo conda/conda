@@ -90,17 +90,15 @@ def win_path_double_escape(path):
     return path.replace('\\', '\\\\') if on_win else path
 
 
-def maybe_pad(name, pad="_"):
-    new_name = name if name.startswith(pad) else "%s%s" % (pad, name)
-    new_name = new_name if name.endswith(pad) else "%s%s" % (new_name, pad)
-    return new_name
+def ensure_pad(name, pad="_"):
+    return "%s%s%s" % (pad, name.strip(pad), pad)
 
 
 def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
     if preferred_env is None:
         return root_dir
     else:
-        return join(envs_dirs[0], maybe_pad(preferred_env, '_'))
+        return join(envs_dirs[0], ensure_pad(preferred_env, '_'))
 
 
 def prefix_to_env_name(prefix, root_prefix):
@@ -118,7 +116,7 @@ def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     if prefix_dir != join(root_dir, 'envs'):
         return False
     prefix_name = basename(prefix)
-    padded_preferred_env = maybe_pad(preferred_env)
+    padded_preferred_env = ensure_pad(preferred_env)
     return prefix_name == padded_preferred_env
 
 
