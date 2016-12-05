@@ -110,7 +110,7 @@ def RM_FETCHED_CMD(state, arg):
 
 def SYMLINK_CONDA_CMD(state, arg):
     if basename(state['prefix']).startswith('_'):
-        log.info("Conda environment at %s"
+        log.info("Conda environment at %s "
                  "start with '_'. Skipping symlinking conda.", state['prefix'])
         return
     symlink_conda(state['prefix'], arg)
@@ -308,12 +308,14 @@ def handle_menuinst(unlink_dists, link_dists):
     # unlink
     menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        unlink_dists = concatv((drop(menuinst_idx, unlink_dists), unlink_dists[menuinst_idx],))
+        unlink_dists = tuple(concatv((drop(menuinst_idx, unlink_dists),
+                                      unlink_dists[menuinst_idx],)))
 
     # link
     menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        link_dists = concatv((link_dists[menuinst_idx],), drop(menuinst_idx, link_dists))
+        link_dists = tuple(concatv((link_dists[menuinst_idx],),
+                                   drop(menuinst_idx, link_dists)))
 
     return unlink_dists, link_dists
 
