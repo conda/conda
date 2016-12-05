@@ -15,9 +15,9 @@ from .models.dist import Dist
 from .utils import on_win
 
 try:
-    from cytoolz.itertoolz import concatv, drop, groupby
+    from cytoolz.itertoolz import concatv, groupby
 except ImportError:
-    from ._vendor.toolz.itertoolz import concatv, drop, groupby  # NOQA
+    from ._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 
 log = getLogger(__name__)
@@ -88,26 +88,6 @@ def RM_FETCHED_CMD(state, arg):
     rm_fetched(dist)
 
 
-# def split_linkarg(arg):
-#     """Return tuple(dist, linktype)"""
-#     parts = arg.split()
-#     return (parts[0], int(LinkType.hardlink if len(parts) < 2 else parts[1]))
-
-
-# def LINK_CMD(state, arg):
-#     dist, lt = split_linkarg(arg)
-#     dist, lt = Dist(dist), LinkType(lt)
-#     log.debug("=======> LINKING %s <=======", dist)
-#     installer = get_package_installer(state['prefix'], state['index'], dist)
-#     installer.link(lt)
-#
-#
-# def UNLINK_CMD(state, arg):
-#     log.debug("=======> UNLINKING %s <=======", arg)
-#     dist = Dist(arg)
-#     PackageUninstaller(state['prefix'], dist).unlink()
-
-
 def SYMLINK_CONDA_CMD(state, arg):
     if basename(state['prefix']).startswith('_'):
         log.info("Conda environment at %s "
@@ -137,16 +117,6 @@ def get_package(plan, instruction):
     return link_list
 
 
-# def get_unlink_files(plan, prefix):
-#     unlink_list = get_package(plan, UNLINK)
-#     unlink_files = []
-#     for dist in unlink_list:
-#         meta = load_meta(prefix, dist)
-#         if meta is not None:
-#             unlink_files.extend(meta)
-#     return unlink_files
-
-
 def check_files_in_package(source_dir, files):
     for f in files:
         source_file = join(source_dir, f)
@@ -154,51 +124,6 @@ def check_files_in_package(source_dir, files):
             return True
         else:
             raise CondaFileIOError(source_file, "File %s does not exist in tarball" % f)
-
-
-# def CHECK_LINK_CMD(state, plan):
-#     """
-#         check permission issue before link and unlink
-#     :param state: the state of plan
-#     :param plan: the plan from action
-#     :return: the result of permission checking
-#     """
-#     link_list = get_package(plan, LINK)
-#     prefix = state['prefix']
-#     unlink_files = get_unlink_files(plan, prefix)
-#     file_permissions = FilePermissions(prefix)
-#
-#     for arg in link_list:
-#         dist, lt = split_linkarg(arg)
-#         source_dir = is_extracted(Dist(dist))
-#         assert source_dir is not None
-#         info_dir = join(source_dir, 'info')
-#         files = list(yield_lines(join(info_dir, 'files')))
-#         check_files_in_package(source_dir, files)
-#         file_permissions.check(files, unlink_files)
-
-
-# def CHECK_UNLINK_CMD(state, plan):
-#     """
-#         check permission issue before link and unlink
-#     :param state: the state of plan
-#     :param plan: the plan from action
-#     :return: the result of permission checking
-#     """
-#     unlink_list = get_package(plan, UNLINK)
-#     prefix = state['prefix']
-#     file_permissions = FilePermissions(prefix)
-#
-#     for dist in unlink_list:
-#         meta = load_meta(prefix, dist)
-#         for f in meta['files']:
-#             dst = join(prefix, f)
-#             # make sure the dst is something
-#             if islink(dst) or isfile(dst) or isdir(dst):
-#                 if islink(dst):
-#                     sym_path = os.path.normpath(join(os.path.dirname(dst), os.readlink(dst)))
-#                     file_permissions.check_write_permission(sym_path)
-#                 file_permissions.check_write_permission(dst)
 
 
 def get_free_space(dir_name):

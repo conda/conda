@@ -115,9 +115,6 @@ def display_actions(actions, index, show_channel_urls=None):
         records[pkg][0] = Package(dist.to_filename(), rec)
         features[pkg][0] = rec.get('features', '')
 
-    #                     Put a minimum length here---.    .--For the :
-    #                                                 v    v
-
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
     # New packages are actually listed in the left-hand column,
