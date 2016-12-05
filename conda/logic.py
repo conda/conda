@@ -27,11 +27,11 @@ through the Require and Prevent functions.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from itertools import chain, combinations
 import logging
 import pycosat
-from itertools import chain, combinations
 
-from .compat import iteritems
+from .common.compat import iteritems
 from .exceptions import CondaValueError
 
 dotlog = logging.getLogger('dotupdate')

@@ -1,6 +1,6 @@
 from conda.models.channel import Channel
 from conda.models.package_info import PackageInfo, PathInfo, PathType, NoarchInfo
-from conda.base.constants import FileMode
+from conda.models.enums import FileMode
 from conda.models.record import Record
 from unittest import TestCase
 

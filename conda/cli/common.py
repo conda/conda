@@ -2,16 +2,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import contextlib
+from functools import partial
 import os
+from os.path import abspath, basename
 import re
 import sys
-from functools import partial
-from os.path import abspath, basename
 
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import NULL, ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
+from ..common.constants import NULL
 from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DryRunExit)
 from ..resolve import MatchSpec

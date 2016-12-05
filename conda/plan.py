@@ -15,7 +15,7 @@ from os.path import abspath, basename, exists, join
 import sys
 
 from . import instructions as inst
-from .base.constants import DEFAULTS, LinkType
+from .base.constants import DEFAULTS
 from .base.context import context
 from .common.compat import text_type
 from .core.linked_data import is_linked
@@ -25,6 +25,7 @@ from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, Inst
 from .history import History
 from .models.channel import Channel
 from .models.dist import Dist
+from .models.enums import LinkType
 from .resolve import MatchSpec, Package, Resolve
 from .utils import human_bytes, md5_file, on_win
 

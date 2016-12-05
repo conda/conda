@@ -7,11 +7,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-import sys
 from os.path import dirname
+import sys
 
 from ._vendor.auxlib.packaging import get_version
-from .compat import iteritems, text_type
+from .common.compat import iteritems, text_type
 
 __all__ = [
     "__name__", "__version__", "__author__",

@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import sys
 from collections import Sequence
 from itertools import chain
 from logging import getLogger
+import os
 from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
+import sys
 
-from .constants import DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME, SEARCH_PATH, conda
-from .._vendor.auxlib.compat import NoneType, string_types
+from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
+                        SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..common.compat import iteritems, odict
+from ..common.compat import NoneType, iteritems, odict, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
@@ -221,7 +221,7 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from ..gateways.disk.create import try_write
+        from conda.gateways.disk.test import try_write
         return try_write(self.root_dir)
 
     @property
@@ -340,7 +340,7 @@ def conda_in_private_env():
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
-    context.__init__(search_path, conda, argparse_args)
+    context.__init__(search_path, APP_NAME, argparse_args)
     from ..models.channel import Channel
     Channel._reset_state()
     return context
@@ -487,7 +487,7 @@ def inroot_notwritable(prefix):
 
 
 try:
-    context = Context(SEARCH_PATH, conda, None)
+    context = Context(SEARCH_PATH, APP_NAME, None)
 except LoadError as e:
     print(e, file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit

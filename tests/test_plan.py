@@ -1,5 +1,5 @@
 import os
-from conda.base.constants import LinkType
+from conda.models.enums import LinkType
 from conda.models.dist import Dist
 from conda.models.record import Record
 

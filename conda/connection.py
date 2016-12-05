@@ -6,10 +6,10 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import platform
 from conda.gateways.adapters.localfs import LocalFSAdapter
 from conda.gateways.adapters.s3 import S3Adapter
 from logging import getLogger
+import platform
 from requests import Session, __version__ as REQUESTS_VERSION
 from requests.adapters import HTTPAdapter
 from requests.auth import AuthBase, _basic_auth_str
@@ -19,9 +19,9 @@ from requests.utils import get_auth_from_url, get_netrc_auth
 from . import __version__ as VERSION
 from ._vendor.auxlib.ish import dals
 from .base.context import context
+from .common.compat import iteritems
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
                          split_anaconda_token, urlparse)
-from .compat import iteritems
 from .exceptions import ProxyError
 from .gateways.adapters.ftp import FTPAdapter
 from .gateways.anaconda_client import read_binstar_tokens

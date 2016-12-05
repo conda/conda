@@ -26,7 +26,7 @@ from conda.common.path import get_bin_directory_short_path, missing_pyc_files, \
     get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
-from conda.compat import itervalues, text_type
+from conda.common.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \

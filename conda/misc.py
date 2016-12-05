@@ -13,17 +13,19 @@ import sys
 
 from .base.constants import DEFAULTS
 from .base.context import context
+from .common.compat import iteritems, itervalues
 from .common.url import is_url, path_to_url
-from .compat import iteritems, itervalues
 from .core.index import get_index
 from .core.linked_data import is_linked, linked as install_linked, linked_data
 from .core.package_cache import cached_url, find_new_location, is_extracted, is_fetched
 from .exceptions import (CondaFileNotFoundError, CondaRuntimeError, MD5MismatchError,
                          PackageNotFoundError, ParseError)
 from .gateways.disk.delete import rm_rf
+from .gateways.disk.test import try_hard_link
 from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel
 from .models.dist import Dist
+from .models.enums import LinkType
 from .models.record import Record
 from .plan import execute_actions
 from .resolve import MatchSpec, Resolve

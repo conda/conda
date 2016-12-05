@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from .common import add_parser_install, add_parser_json
 from .install import install
-from ..base.constants import NULL
+from ..common.constants import NULL
 from ..gateways.disk.delete import delete_trash
 from ..utils import on_win
 

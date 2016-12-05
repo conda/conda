@@ -423,6 +423,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         environments.  Future versions of conda may deprecate and ignore pre-link scripts.
         """ % dist))
     try:
+        log.debug("for %s at %s, executing script: $ %s", dist, env_prefix, ' '.join(args))
         check_call(args, env=env)
     except CalledProcessError:
         return False

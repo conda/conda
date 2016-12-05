@@ -8,4 +8,3 @@ The *only* allowed imports of conda code in ``conda.common`` modules are imports
 If objects are needed from other parts of conda, they should be passed directly as arguments to
 functions and methods.
 """
-from __future__ import absolute_import, division, print_function

@@ -5,10 +5,10 @@ from conda.models.channel import Channel
 from enum import Enum
 from logging import getLogger
 
+from .enums import FileMode
 from .record import Record
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
                                      IntegerField, ListField, StringField)
-from ..base.constants import FileMode
 from ..common.compat import string_types
 
 log = getLogger(__name__)
