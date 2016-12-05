@@ -261,11 +261,10 @@ def add_checks(actions):
     Returns:
         the actions dict with the appropriate checks added
     """
-    pass
-    # if inst.FETCH in actions:
-    #     actions.setdefault(inst.CHECK_FETCH, [True])
-    # if inst.EXTRACT in actions:
-    #     actions.setdefault(inst.CHECK_EXTRACT, [True])
+    if inst.FETCH in actions:
+        actions.setdefault(inst.CHECK_FETCH, [True])
+    if inst.EXTRACT in actions:
+        actions.setdefault(inst.CHECK_EXTRACT, [True])
 
 
 def plan_from_actions(actions):
