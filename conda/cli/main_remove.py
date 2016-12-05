@@ -130,7 +130,7 @@ def execute(args, parser):
         index = linked_data(prefix)
         index = {dist: info for dist, info in iteritems(index)}
     else:
-        index = get_index(channel_priority_map=channel_urls,
+        index = get_index(channel_urls=channel_urls,
                           prepend=not args.override_channels,
                           use_local=args.use_local,
                           use_cache=args.use_index_cache,

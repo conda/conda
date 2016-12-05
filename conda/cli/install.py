@@ -243,7 +243,7 @@ def install(args, parser, command='install'):
             print(print_activate(args.name if args.name else prefix))
         return
 
-    index = get_index(channel_priority_map=index_args['channel_urls'],
+    index = get_index(channel_urls=index_args['channel_urls'],
                       prepend=index_args['prepend'], platform=None,
                       use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                       unknown=index_args['unknown'], prefix=prefix)

@@ -66,7 +66,7 @@ def supplement_index_with_prefix(index, prefix, channel_priority_map):
             index[key] = Record.from_objects(info, priority=priority)
 
 
-def get_index(channel_priority_map=(), prepend=True, platform=None,
+def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=False, prefix=False):
     """
     Return the index of packages available on the channels
@@ -76,10 +76,10 @@ def get_index(channel_priority_map=(), prepend=True, platform=None,
     If prefix is supplied, then the packages installed in that prefix are added.
     """
     if use_local:
-        channel_priority_map = ['local'] + list(channel_priority_map)
+        channel_urls = ['local'] + list(channel_urls)
     if prepend:
-        channel_priority_map += context.channels
-    channel_priority_map = prioritize_channels(channel_priority_map, platform=platform)
+        channel_urls += context.channels
+    channel_priority_map = prioritize_channels(channel_urls, platform=platform)
     index = fetch_index(channel_priority_map, use_cache=use_cache, unknown=unknown)
 
     if prefix:

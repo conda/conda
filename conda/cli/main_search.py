@@ -168,7 +168,7 @@ def execute_search(args, parser):
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
     channel_urls = args.channel or ()
-    index = get_index(channel_priority_map=channel_urls, prepend=not args.override_channels,
+    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels,
                       platform=args.platform, use_local=args.use_local,
                       use_cache=args.use_index_cache, prefix=None,
                       unknown=args.unknown)
