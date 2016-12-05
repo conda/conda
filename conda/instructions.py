@@ -308,14 +308,20 @@ def handle_menuinst(unlink_dists, link_dists):
     # unlink
     menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        unlink_dists = tuple(concatv((drop(menuinst_idx, unlink_dists),
-                                      unlink_dists[menuinst_idx],)))
+        unlink_dists = tuple(concatv(
+            unlink_dists[:menuinst_idx],
+            unlink_dists[menuinst_idx+1:],
+            unlink_dists[menuinst_idx:menuinst_idx+1],
+        ))
 
     # link
     menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
     if menuinst_idx is not None:
-        link_dists = tuple(concatv((link_dists[menuinst_idx],),
-                                   drop(menuinst_idx, link_dists)))
+        link_dists = tuple(concatv(
+            link_dists[menuinst_idx:menuinst_idx+1],
+            link_dists[:menuinst_idx],
+            link_dists[menuinst_idx+1:],
+        ))
 
     return unlink_dists, link_dists
 
