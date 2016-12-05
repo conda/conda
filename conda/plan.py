@@ -30,7 +30,7 @@ from .core.index import supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
-                         RemoveError)
+                         RemoveError, PackageNotFoundError)
 from .gateways.disk.delete import rm_rf
 from .history import History
 from .models.channel import Channel, prioritize_channels
@@ -482,9 +482,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
+    linked_in_root = linked_data(context.root_prefix)
 
     # Determine how many envs need to be solved for
-    dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+    dists_for_envs = determine_all_envs(r, specs, linked_in_root, channel_priority_map=channel_priority_map)
     preferred_envs = set(d.env for d in dists_for_envs)
 
     # Group specs by prefix
@@ -545,7 +546,7 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def determine_all_envs(r, specs, channel_priority_map=None):
+def determine_all_envs(r, specs, linked_in_root, channel_priority_map=None):
     # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool) -> Dict[weird]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
@@ -573,9 +574,11 @@ def determine_all_envs(r, specs, channel_priority_map=None):
 
     spec_for_envs = []
     for spec in specs:
-        matched_dists = r.get_pkgs(spec)
-        best_match = get_highest_priority_match(matched_dists)
-        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env, spec=best_match.name))
+        if not any(linked_dist for linked_dist in linked_in_root if
+                   linked_dist.dist_name.startswith(spec.name)):
+            matched_dists = r.get_pkgs(spec)
+            best_match = get_highest_priority_match(matched_dists)
+            spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env, spec=best_match.name))
     return spec_for_envs
 
 
