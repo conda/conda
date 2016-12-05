@@ -21,7 +21,7 @@ import sys
 from conda.cli.common import prefix_if_in_private_env
 from conda.common.path import preferred_env_to_prefix, preferred_env_matches_prefix, is_private_env, \
     prefix_to_env_name
-from conda.compat import itervalues
+from .common.compat import itervalues
 from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
@@ -31,7 +31,6 @@ from .core.linked_data import is_linked, linked_data
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
-from .gateways.disk.create import try_hard_link
 from .gateways.disk.delete import rm_rf
 from .history import History
 from .models.channel import Channel, prioritize_channels
