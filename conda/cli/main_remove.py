@@ -7,22 +7,20 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
-import json
 import logging
 import sys
 from argparse import RawDescriptionHelpFormatter
-from collections import namedtuple
 from os.path import join
 
 from conda.common.path import is_private_env, prefix_to_env_name
-from conda.models.dist import Dist
-from conda.resolve import MatchSpec
+from conda.resolve import Resolve
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes,
                      confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
-                     names_in_specs, specs_from_args, stdout_json, create_prefix_spec_map)
+                     names_in_specs, specs_from_args, stdout_json,
+                     create_prefix_spec_map_with_deps)
 from conda.base.constants import ROOT_NO_RM
 from conda.core.index import get_index
 from ..base.context import check_write, context
@@ -152,7 +150,8 @@ def execute(args, parser):
         action_set = actions,
     else:
         specs = specs_from_args(args.package_names)
-        prefix_spec_map = create_prefix_spec_map(specs, prefix)
+        r = Resolve(index)
+        prefix_spec_map = create_prefix_spec_map_with_deps(r, specs, prefix)
 
         if (context.conda_in_root
                 and plan.is_root_prefix(prefix)
@@ -218,9 +217,8 @@ def execute(args, parser):
                         raise
 
         target_prefix = actions["PREFIX"]
-        if is_private_env(prefix_to_env_name(target_prefix, context.root_prefix)):
-            # TODO: prune uninstall to remove dependencies
-            #  Then remove the env if it is empty
+        if (is_private_env(prefix_to_env_name(target_prefix, context.root_prefix)) and
+            linked_data(target_prefix) == {}):
             rm_rf(target_prefix)
 
     if args.all:

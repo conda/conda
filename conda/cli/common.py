@@ -10,6 +10,8 @@ from functools import partial
 from os.path import abspath, basename, join, isfile
 
 from conda import iteritems
+from conda.common.path import is_private_env, prefix_to_env_name
+from conda.install import linked_data
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import ROOT_ENV_NAME
@@ -621,13 +623,19 @@ def prefix_if_in_private_env(spec):
     return prefix
 
 
-def create_prefix_spec_map(specs, default_prefix):
+def create_prefix_spec_map_with_deps(r, specs, default_prefix):
     prefix_spec_map = {}
     for spec in specs:
         spec_prefix = prefix_if_in_private_env(spec)
         spec_prefix = spec_prefix if spec_prefix is not None else default_prefix
         if spec_prefix in prefix_spec_map.keys():
-            prefix_spec_map[spec_prefix].append(spec)
+            prefix_spec_map[spec_prefix].add(spec)
         else:
-            prefix_spec_map[spec_prefix] = [spec]
+            prefix_spec_map[spec_prefix] = {spec}
+
+        if is_private_env(prefix_to_env_name(spec_prefix, context.root_prefix)):
+            linked = linked_data(spec_prefix)
+            for linked_spec in linked:
+                if not linked_spec.name.startswith(spec) and r.depends_on(spec, linked_spec):
+                    prefix_spec_map[spec_prefix].add(linked_spec.name)
     return prefix_spec_map
