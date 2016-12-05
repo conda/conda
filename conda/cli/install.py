@@ -130,8 +130,11 @@ def create_private_envs_meta(action_set, specs):
         os.mkdir(path_to_conda_meta)
 
     if isfile(path_to_private_envs):
-        with open(path_to_private_envs, "r") as f:
-            private_envs_json = json.load(f)
+        try:
+            with open(path_to_private_envs, "r") as f:
+                private_envs_json = json.load(f)
+        except json.decoder.JSONDecodeError:
+            private_envs_json = {}
     else:
         private_envs_json = {}
 

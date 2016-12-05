@@ -16,6 +16,7 @@ from collections import defaultdict, namedtuple, OrderedDict
 from logging import getLogger
 from os.path import abspath, basename, dirname, exists, join
 
+from conda.cli.common import prefix_if_in_private_env
 from conda.common.path import preferred_env_to_prefix, preferred_env_matches_prefix, is_private_env, \
     prefix_to_env_name
 from conda.compat import itervalues
@@ -312,8 +313,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+
     for dist in dists:
         fetched_in = is_fetched(dist)
         extracted_in = is_extracted(dist)
@@ -498,17 +498,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         for dists_by_prefix in required_solves]
 
     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
-    # # Need to add unlink actions if updating a private env from root
-    # if in_root and len(required_solves) > 1:
-    #     linked_in_prefix = linked_data(context.root_prefix)
-    #     spec_in_root = lambda spc: any(mtch for mtch in linked_in_prefix.keys() if MatchSpec(spec).match(mtch))
-    #     for solved in required_solves:
-    #         if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
-    #             for spec in solved.specs:
-    #                 matched_in_root = spec_in_root(spec)
-    #                 if matched_in_root:
-    #                     aug_action = get_action_for_prefix(solved.prefix)
-    #                     add_unlink(aug_action, Dist(spec))
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
@@ -516,6 +505,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         spec_in_root = lambda spc: any(
             mtch for mtch in linked_in_prefix.keys() if MatchSpec(spec).match(mtch))
         for solved in required_solves:
+            # If the solved
             if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
                 for spec in solved.specs:
                     matched_in_root = spec_in_root(spec)
@@ -525,6 +515,17 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                             add_unlink(aug_action[0], Dist(spec))
                         else:
                             actions.append(remove_actions(context.root_prefix, [spec], index))
+            elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
+                for spec in solved.specs:
+                    spec_in_private_env = prefix_if_in_private_env(spec)
+                    if spec_in_private_env:
+                        # remove pkg from private env and install in root
+                        aug_action = get_action_for_prefix(spec_in_private_env)
+                        if len(aug_action) > 1:
+                            add_unlink(aug_action[0], Dist(spec))
+                        else:
+                            actions.append(remove_spec_action_from_prefix(spec_in_private_env,
+                                                                          spec))
     return actions
 
 
@@ -775,10 +776,11 @@ def remove_features_actions(prefix, index, features):
 
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    _linked = [d + '.tar.bz2' for d in linked]
+    _linked = [d.dist_name + '.tar.bz2' for d in linked]
     to_link = []
+
     for dist in sorted(linked):
-        fn = dist + '.tar.bz2'
+        fn = dist.dist_name + '.tar.bz2'
         if fn not in index:
             continue
         if r.track_features(fn).intersection(features):
@@ -792,6 +794,19 @@ def remove_features_actions(prefix, index, features):
     if to_link:
         dists = (Dist(d) for d in to_link)
         actions.update(ensure_linked_actions(dists, prefix))
+    return actions
+
+
+def remove_spec_action_from_prefix(prefix, spec):
+    linked = linked_data(prefix)
+    actions = defaultdict(list)
+    actions[inst.PREFIX] = prefix
+    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
+                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+
+    for dist in sorted(linked):
+        if dist.dist_name.startswith(spec):
+            add_unlink(actions, dist)
     return actions
 
 
