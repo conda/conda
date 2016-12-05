@@ -154,16 +154,16 @@ def execute(args, parser):
         prefix_spec_map = create_prefix_spec_map_with_deps(r, specs, prefix)
 
         if (context.conda_in_root
-                and plan.is_root_prefix(prefix)
-                and names_in_specs(ROOT_NO_RM, specs)
-                and not args.force):
+            and plan.is_root_prefix(prefix)
+            and names_in_specs(ROOT_NO_RM, specs)
+            and not args.force):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
         actions = []
         for prfx, spcs in iteritems(prefix_spec_map):
             index = linked_data(prfx)
             index = {dist: info for dist, info in iteritems(index)}
-            actions.append(plan.remove_actions(prfx, spcs, index=index, force=args.force,
+            actions.append(plan.remove_actions(prfx, list(spcs), index=index, force=args.force,
                                                pinned=args.pinned))
         action_set = tuple(actions)
 
@@ -182,7 +182,7 @@ def execute(args, parser):
                 })
             return
         raise PackageNotFoundError('', 'no packages found to remove from '
-                                   'environment: %s' % prefix)
+                                       'environment: %s' % prefix)
     for action in action_set:
         if not context.json:
             print()
@@ -218,7 +218,7 @@ def execute(args, parser):
 
         target_prefix = actions["PREFIX"]
         if (is_private_env(prefix_to_env_name(target_prefix, context.root_prefix)) and
-            linked_data(target_prefix) == {}):
+                    linked_data(target_prefix) == {}):
             rm_rf(target_prefix)
 
     if args.all:

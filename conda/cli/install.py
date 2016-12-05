@@ -29,8 +29,8 @@ from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFound
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
-from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
-                    install_actions, is_root_prefix, nothing_to_do, revert_actions)
+from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions,
+                    is_root_prefix, nothing_to_do, revert_actions)
 from ..resolve import Resolve
 from ..utils import on_win
 
@@ -243,10 +243,10 @@ def install(args, parser, command='install'):
             print(print_activate(args.name if args.name else prefix))
         return
 
-    index = get_index(channel_priority_map=index_args['channel_urls'], prepend=index_args['prepend'],
-                      platform=None, use_local=index_args['use_local'],
-                      use_cache=index_args['use_cache'], unknown=index_args['unknown'],
-                      prefix=prefix)
+    index = get_index(channel_priority_map=index_args['channel_urls'],
+                      prepend=index_args['prepend'], platform=None,
+                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
+                      unknown=index_args['unknown'], prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
 
@@ -313,15 +313,11 @@ def install(args, parser, command='install'):
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                action_set = install_actions(prefix, index, specs,
-                                          force=args.force,
-                                          only_names=only_names,
-                                          pinned=args.pinned,
-                                          always_copy=context.always_copy,
-                                          minimal_hint=args.alt_hint,
-                                          update_deps=context.update_dependencies,
-                                          channel_priority_map=_channel_priority_map,
-                                          is_update=isupdate)
+                action_set = install_actions(
+                    prefix, index, specs, force=args.force, only_names=only_names,
+                    pinned=args.pinned, always_copy=context.always_copy,
+                    minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
+                    channel_priority_map=_channel_priority_map, is_update=isupdate)
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 

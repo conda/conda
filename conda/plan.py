@@ -19,8 +19,8 @@ from os.path import abspath, basename, dirname, exists, join
 import sys
 
 from conda.cli.common import prefix_if_in_private_env
-from conda.common.path import preferred_env_to_prefix, preferred_env_matches_prefix, is_private_env, \
-    prefix_to_env_name
+from conda.common.path import (preferred_env_to_prefix, preferred_env_matches_prefix,
+                               is_private_env, prefix_to_env_name)
 from .common.compat import itervalues
 from . import instructions as inst
 from .base.constants import DEFAULTS
@@ -315,6 +315,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
+    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
+                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
 
     for dist in dists:
         fetched_in = is_fetched(dist)
@@ -475,7 +477,7 @@ SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False,update_deps=True, prune=False,
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
@@ -485,7 +487,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     linked_in_root = linked_data(context.root_prefix)
 
     # Determine how many envs need to be solved for
-    dists_for_envs = determine_all_envs(r, specs, linked_in_root, channel_priority_map=channel_priority_map)
+    dists_for_envs = determine_all_envs(r, specs, linked_in_root,
+                                        channel_priority_map=channel_priority_map)
     preferred_envs = set(d.env for d in dists_for_envs)
 
     # Group specs by prefix
@@ -499,8 +502,6 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy, prune,
                               update_deps, pinned)
         for dists_by_prefix in required_solves]
-
-    get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
@@ -578,7 +579,8 @@ def determine_all_envs(r, specs, linked_in_root, channel_priority_map=None):
                    linked_dist.dist_name.startswith(spec.name)):
             matched_dists = r.get_pkgs(spec)
             best_match = get_highest_priority_match(matched_dists)
-            spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env, spec=best_match.name))
+            spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
+                                            spec=best_match.name))
     return spec_for_envs
 
 
