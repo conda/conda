@@ -501,32 +501,39 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
-        linked_in_prefix = linked_data(context.root_prefix)
-        spec_in_root = lambda spc: any(
-            mtch for mtch in linked_in_prefix.keys() if MatchSpec(spec).match(mtch))
-        for solved in required_solves:
-            # If the solved
-            if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
-                for spec in solved.specs:
-                    matched_in_root = spec_in_root(spec)
-                    if matched_in_root:
-                        aug_action = get_action_for_prefix(context.root_prefix)
-                        if len(aug_action) > 1:
-                            add_unlink(aug_action[0], Dist(spec))
-                        else:
-                            actions.append(remove_actions(context.root_prefix, [spec], index))
-            elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
-                for spec in solved.specs:
-                    spec_in_private_env = prefix_if_in_private_env(spec)
-                    if spec_in_private_env:
-                        # remove pkg from private env and install in root
-                        aug_action = get_action_for_prefix(spec_in_private_env)
-                        if len(aug_action) > 1:
-                            add_unlink(aug_action[0], Dist(spec))
-                        else:
-                            actions.append(remove_spec_action_from_prefix(spec_in_private_env,
-                                                                          spec))
+        add_unlink_options_for_update(actions, required_solves, index)
+
     return actions
+
+
+def add_unlink_options_for_update(actions, required_solves, index):
+    # type: (Dict[weird], List[SpecsForPrefix], List[weird]) -> ()
+    get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
+    linked_in_prefix = linked_data(context.root_prefix)
+    spec_in_root = lambda spc: any(
+        mtch for mtch in linked_in_prefix.keys() if MatchSpec(spec).match(mtch))
+    for solved in required_solves:
+        # If the solved
+        if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
+            for spec in solved.specs:
+                matched_in_root = spec_in_root(spec)
+                if matched_in_root:
+                    aug_action = get_action_for_prefix(context.root_prefix)
+                    if len(aug_action) > 1:
+                        add_unlink(aug_action[0], Dist(spec))
+                    else:
+                        actions.append(remove_actions(context.root_prefix, [spec], index))
+        elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
+            for spec in solved.specs:
+                spec_in_private_env = prefix_if_in_private_env(spec)
+                if spec_in_private_env:
+                    # remove pkg from private env and install in root
+                    aug_action = get_action_for_prefix(spec_in_private_env)
+                    if len(aug_action) > 1:
+                        add_unlink(aug_action[0], Dist(spec))
+                    else:
+                        actions.append(remove_spec_action_from_prefix(spec_in_private_env,
+                                                                      spec))
 
 
 def get_resolve_object(index, prefix):
