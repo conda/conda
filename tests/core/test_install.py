@@ -1,15 +1,10 @@
-from os.path import join
-
-import pytest
-import unittest
-
-from conda.base.constants import LinkType, FileMode
-from conda.core.install import (PackageInstaller, PackageUninstaller, NoarchPythonPackageInstaller,
-                                LinkOperation)
+from conda.core.install import LinkOperation, NoarchPythonPackageInstaller, PackageInstaller
 from conda.models.dist import Dist
-from conda.models.package_info import PathInfo, PackageInfo, NoarchInfo, PathType
+from conda.models.enums import FileMode, LinkType
+from conda.models.package_info import PackageInfo, PathInfo, PathType
 from conda.models.record import Link, Record
 from conda.utils import on_win
+import unittest
 
 try:
     from unittest.mock import patch, Mock

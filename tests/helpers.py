@@ -8,7 +8,7 @@ import sys
 import os
 import re
 import json
-from conda import initialize_logging
+from conda.gateways import initialize_logging
 from shlex import split
 
 from conda.base.context import reset_context
@@ -25,7 +25,7 @@ except ImportError:
 
 from contextlib import contextmanager
 
-from conda.compat import StringIO, iteritems
+from conda.common.compat import StringIO, iteritems
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):

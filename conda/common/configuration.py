@@ -23,8 +23,18 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import join, basename
+from os.path import basename, join
 from stat import S_IFDIR, S_IFMT, S_IFREG
+
+from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, string_types,
+                     text_type, with_metaclass)
+from .constants import EMPTY_MAP, NULL
+from .yaml import yaml_load
+from .. import CondaError, CondaMultiError
+from .._vendor.auxlib.collection import AttrDict, first, frozendict, last
+from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
+from .._vendor.auxlib.path import expand
+from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
 
 try:
     from cytoolz.dicttoolz import merge
@@ -40,19 +50,6 @@ try:
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
     from ruamel.yaml.scanner import ScannerError
-
-from .. import CondaError, CondaMultiError
-from .._vendor.auxlib.collection import first, frozendict, last, AttrDict
-from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
-from .._vendor.auxlib.path import expand
-from .._vendor.auxlib.type_coercion import typify_data_structure, TypeCoercionError
-from ..base.constants import EMPTY_MAP, NULL
-from .compat import (isiterable, iteritems, odict, primitive_types, text_type,
-                     with_metaclass, string_types, itervalues)
-from .yaml import yaml_load
-
-__all__ = ["Configuration", "PrimitiveParameter",
-           "SequenceParameter", "MapParameter"]
 
 log = getLogger(__name__)
 

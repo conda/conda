@@ -9,7 +9,6 @@ from .test_create import (make_temp_env, assert_package_is_installed,
 
 class PriorityTest(TestCase):
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/conda-forge/setuptools-feedstock/issues/43")
     def test_channel_order_channel_priority_true(self):
         with make_temp_env("python=3 pycosat==0.6.1") as prefix:
             assert_package_is_installed(prefix, 'python')

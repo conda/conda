@@ -7,13 +7,14 @@ import os
 import re
 import sys
 from functools import partial
-from os.path import abspath, basename, join, isdir, isfile
+from os.path import abspath, basename, join, isfile
 
 from conda import iteritems
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import NULL, ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
+from ..common.constants import NULL
 from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DryRunExit)
 from ..resolve import MatchSpec
