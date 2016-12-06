@@ -206,7 +206,6 @@ OP_ORDER = (CHECK_FETCH,
             )
 
 
-
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
     """Execute the instructions in the plan
 
