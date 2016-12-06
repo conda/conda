@@ -7,7 +7,7 @@ import json
 from logging import getLogger
 import os
 from os import chmod, makedirs
-from os.path import basename, exists, isdir, islink, join
+from os.path import basename, exists, isdir, islink, join, isfile
 from shlex import split as shlex_split
 import shutil
 from subprocess import PIPE, Popen
@@ -18,7 +18,7 @@ from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.context import context
-from ...common.path import win_path_ok
+from ...common.path import win_path_ok, is_private_env, prefix_to_env_name
 from ...exceptions import ClobberError, CondaOSError
 from ...models.dist import Dist
 from ...models.enums import LinkType
@@ -34,6 +34,14 @@ if __name__ == '__main__':
     from sys import exit
     from %(module)s import %(func)s
     exit(%(func)s())
+""")
+
+private_pkg_entry_point_template = dals("""
+import os
+import sys
+if __name__ == '__main__':
+    exec_path = os.path.join("%(private_env_path)s", "%(exec_short_path)s")
+    os.execv(exec_path, sys.argv)
 """)
 
 
@@ -246,3 +254,45 @@ def compile_pyc(python_exe_full_path, py_full_path):
                   "  stderr: %s\n"
                   "  rc: %d", command, stdout, stderr, rc)
         raise RuntimeError()
+
+
+def create_private_envs_meta(action_set, specs):
+    # type: (Sequence[Dict[weird]], Sequence[str]) -> ()
+    def is_in_specs(pkg):
+        return any(spec for spec in specs if pkg.startswith(spec))
+
+    path_to_conda_meta = join(context.root_prefix, "conda-meta")
+    path_to_private_envs = join(path_to_conda_meta, "private_envs")
+
+    if not isdir(path_to_conda_meta):
+        os.mkdir(path_to_conda_meta)
+
+    if isfile(path_to_private_envs):
+        try:
+            with open(path_to_private_envs, "r") as f:
+                private_envs_json = json.load(f)
+        except json.decoder.JSONDecodeError:
+            private_envs_json = {}
+    else:
+        private_envs_json = {}
+
+    for actions in action_set:
+        prefix = actions["PREFIX"]
+        if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
+            for link in actions["LINK"]:
+                pkg = link.name
+                if is_in_specs(pkg):
+                    private_envs_json[pkg] = prefix
+
+    with open(path_to_private_envs, "w") as f:
+        json.dump(private_envs_json, f)
+
+
+def create_private_pkg_entry_point(app_name, python_full_path, private_env_prefix, exec_short_path):
+    entry_point = private_pkg_entry_point_template % {"private_env_path": private_env_prefix,
+                                                      "exec_short_path": exec_short_path}
+    entry_point_path = join(context.root_dir, "bin", app_name)
+    with open(entry_point_path, "w") as fo:
+        fo.write('#!%s\n' % python_full_path)
+        fo.write(entry_point)
+    chmod(entry_point_path, 0o755)

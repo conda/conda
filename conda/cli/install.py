@@ -13,7 +13,8 @@ import os
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join, isfile
 
-from conda.common.path import prefix_to_env_name, is_private_env
+from conda.common.path import prefix_to_env_name, is_private_env, get_python_path, win_path_ok
+from conda.gateways.disk.create import create_private_envs_meta, create_private_pkg_entry_point
 from conda.models.channel import prioritize_channels
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -112,42 +113,6 @@ def get_revision(arg, json=False):
         return int(arg)
     except ValueError:
         CondaValueError("expected revision number, not: '%s'" % arg, json)
-
-
-def create_private_envs_meta(action_set, specs):
-    # type: (Sequence[Dict[weird]], Sequence[str]) -> ()
-    def get_package_name(link_op_code):
-        parts = link_op_code.split(' ', 2)
-        return parts[0].split("::")[-1]
-
-    def is_in_specs(pkg):
-        return any(spec for spec in specs if pkg.startswith(spec))
-
-    path_to_conda_meta = join(context.root_prefix, "conda-meta")
-    path_to_private_envs = join(path_to_conda_meta, "private_envs")
-
-    if not isdir(path_to_conda_meta):
-        os.mkdir(path_to_conda_meta)
-
-    if isfile(path_to_private_envs):
-        try:
-            with open(path_to_private_envs, "r") as f:
-                private_envs_json = json.load(f)
-        except json.decoder.JSONDecodeError:
-            private_envs_json = {}
-    else:
-        private_envs_json = {}
-
-    for actions in action_set:
-        prefix = actions["PREFIX"]
-        if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
-            for link in actions["LINK"]:
-                pkg = link.name
-                if is_in_specs(pkg):
-                    private_envs_json[pkg] = prefix
-
-    with open(path_to_private_envs, "w") as f:
-        json.dump(private_envs_json, f)
 
 
 def install(args, parser, command='install'):
@@ -416,6 +381,15 @@ def install(args, parser, command='install'):
 
         if command in {'install', 'update'}:
             check_write(command, prefix)
+
+        if actions.get("APP_ENTRY_POINT") is not None:
+            python_short_path = get_python_path(context.default_python)
+            python_full_path = join(context.root_dir, win_path_ok(python_short_path))
+            for app in actions.get("APP_ENTRY_POINT"):
+                exec_short_path = os.path.join("bin", app)
+                create_private_pkg_entry_point(
+                    app, python_full_path, actions["PREFIX"], exec_short_path)
+
 
         # if not context.json:
         #     common.confirm_yn(args)

@@ -669,6 +669,9 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
     if not force:
         add_checks(actions)
 
+    if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
+        actions["APP_ENTRY_POINT"] = dists_for_prefix.specs
+
     return actions
 
 
@@ -778,8 +781,9 @@ def remove_spec_action_from_prefix(prefix, spec):
     linked = linked_data(prefix)
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
+                           inst.RM_EXTRACTED, inst.EXTRACT,
+                           inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
 
     for dist in sorted(linked):
         if dist.dist_name.startswith(spec):
