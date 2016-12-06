@@ -906,10 +906,10 @@ class PlanFromActionsTests(unittest.TestCase):
             # menuinst should be linked first
             expected_plan = [
                 ('PREFIX', 'aprefix'),
-                ('LINK', menuinst),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
                 ('LINK', ipython),
+                ('LINK', menuinst),
             ]
 
             # last_two = expected_plan[-2:]
