@@ -206,7 +206,6 @@ if ( $lastexitcode -ne 0 ) {
     Remove-Variable IS_ENV_CONDA_VERBOSE
     exit 1
 }
-Remove-Variable WHAT_SHELL_AM_I
 # END CHECK ENV AND DEACTIVATE OLD ENV                                    #
 ###########################################################################
 
@@ -231,20 +230,11 @@ Remove-Variable _CONDA_BIN
 # the shortest representation of how conda recognizes your env            #
 # can be an env name, or a full path (if the string contains \ it's a     #
 # path)                                                                   #
-if ( ${CONDA_ENVNAME} -match '\\' ) {
-    # $d=Split-Path -Path "${CONDA_ENVNAME}"
-    # $d=Resolve-Path "${d}"
-    # $f=Split-Path -Leaf "${CONDA_ENVNAME}"
-    # $env:CONDA_DEFAULT_ENV="${d}\${f}"
-    # Remove-Variable d
-    # Remove-Variable f
-    $env:CONDA_DEFAULT_ENV=Resolve-Path "${CONDA_ENVNAME}"
-} else {
-    $env:CONDA_DEFAULT_ENV="${CONDA_ENVNAME}"
-}
+$env:CONDA_DEFAULT_ENV=conda "..trimmedenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
 if ( "${IS_ENV_CONDA_ENVNAME}" -eq "${TRUE}" ) { $env:CONDA_ENVNAME="${CONDA_ENVNAME}" }
 Remove-Variable CONDA_ENVNAME
 Remove-Variable IS_ENV_CONDA_ENVNAME
+Remove-Variable WHAT_SHELL_AM_I
 # END CONDA_DEFAULT_ENV                                                   #
 ###########################################################################
 

@@ -6,7 +6,7 @@ import re
 import sys
 import functools
 from textwrap import dedent
-from os.path import isdir, abspath
+from os.path import (isdir, abspath, basename, dirname)
 
 from conda import text_type
 from ..exceptions import (CondaHelp, CondaValueError, CondaEnvironmentError,
@@ -160,6 +160,22 @@ def prefix_from_arg(arg, shelldict):
     return prefix
 
 
+def shortpath_from_arg(arg, shelldict):
+    # prefix comes back as platform-native path
+    prefix = prefix_from_arg(arg, shelldict=shelldict)
+
+    from conda.base.constants import ROOT_ENV_NAME
+    if arg.lower() == ROOT_ENV_NAME.lower():
+        return ROOT_ENV_NAME
+
+    from conda.base.context import context
+    prefix_dirname = dirname(prefix)
+    prefix_basename = basename(prefix)
+    if prefix_dirname in context.envs_dirs:
+        return prefix_basename
+
+    return prefix
+
 def binpath_from_arg(arg, shelldict):
     # prefix comes back as platform-native path
     prefix = prefix_from_arg(arg, shelldict=shelldict)
@@ -207,11 +223,26 @@ def main():
     if received >= 2:
         mode = sys.argv[1].strip()
     if received >= 3:
-        shell = sys.argv[2].strip()
+        third = sys.argv[2].strip()
     if received >= 4:
-        env = sys.argv[3].strip()
+        fourth = sys.argv[3].strip()
 
     if '-h' in sys.argv or '--help' in sys.argv:
+        # conda <MODE> <SHELL> <-h|--help> [UNKNOWN ...]
+
+        # don't count conda and <MODE>
+        received -= 2
+        expected = 2
+        if received >= expected:
+            offset = sys.argv[2:]
+            opt_msg = ("..checkenv expected two or more arguments: SHELL and "
+                "ENV and (optionally) UNKNOWS")
+            if received < expected:
+                raise TooFewArgumentsError(expected, received, opt_msg)
+            if received > expected:
+                raise TooManyArgumentsError(expected, received, offset, opt_msg)
+        shell = third
+
         # all unknown values will be listed after the -h/--help flag
         try:
             i = sys.argv.index("-h")
@@ -221,22 +252,23 @@ def main():
 
         help(mode, shell, unknown)
         # note: will never return from the help method
-
-    if mode == '..activate':
+    elif mode == '..activate':
         # conda ..activate <SHELL> <ENV>
+        shell = third
+        env = fourth
 
         # don't count conda and ..activate
         received -= 2
-        if received != 2:
-            expected = 2
+        expected = 2
+        if received != expected:
             offset = sys.argv[2:]
             opt_msg = "..activate expected exactly two arguments: SHELL and ENV"
-            if received < 2:
+            if received < expected:
                 raise TooFewArgumentsError(expected, received, opt_msg)
-            if received > 2:
+            if received > expected:
                 raise TooManyArgumentsError(expected, received, offset, opt_msg)
 
-        binpath = binpath_from_arg(sys.argv[3], shelldict=shells[shell])
+        binpath = binpath_from_arg(env, shelldict=shells[shell])
 
         # prepend our new entries onto the existing path and make sure that
         # the separator is native
@@ -249,16 +281,18 @@ def main():
     elif mode == '..checkenv':
         # conda ..checkenv <SHELL> <ENV>
 
-        # dont't count conda and ..checkenv
+        # don't count conda and ..checkenv
         received -= 2
-        if received != 2:
-            expected = 2
+        expected = 2
+        if received != expected:
             offset = sys.argv[2:]
             opt_msg = "..checkenv expected exactly two arguments: SHELL and ENV"
-            if received < 2:
+            if received < expected:
                 raise TooFewArgumentsError(expected, received, opt_msg)
-            if received > 2:
+            if received > expected:
                 raise TooManyArgumentsError(expected, received, offset, opt_msg)
+        shell = third
+        env = fourth
 
         if env.lower() == ROOT_ENV_NAME.lower():
             # no need to check root env and try to install a symlink there
@@ -284,10 +318,40 @@ def main():
             raise
         sys.exit(0)
         # raise CondaSystemExit
+    elif mode == '..trimmedenv':
+        # conda ..trimmedenv <SHELL> <ENV>
+
+        # don't count conda and ..trimmedenv
+        received -= 2
+        expected = 2
+        if received != expected:
+            offset = sys.argv[2:]
+            opt_msg = ("..trimmedenv expected exactly two arguments: SHELL "
+                "and ENV")
+            if received < expected:
+                raise TooFewArgumentsError(expected, received, opt_msg)
+            if received > expected:
+                raise TooManyArgumentsError(expected, received, offset, opt_msg)
+        shell = third
+        env = fourth
+
+        path = shortpath_from_arg(env, shelldict=shells[shell])
     elif mode == '..changeps1':
+        # conda ..changeps1
+
+        # don't count conda and ..changeps1
+        received -= 2
+        expected = 0
+        if received != expected:
+            offset = sys.argv[2:]
+            opt_msg = "..changeps1 expected exactly zero arguments"
+            if received < expected:
+                raise TooFewArgumentsError(expected, received, opt_msg)
+            if received > expected:
+                raise TooManyArgumentsError(expected, received, offset, opt_msg)
+
         from conda.base.context import context
         path = int(context.changeps1)
-
     else:
         # This means there is a bug in main.py
         raise CondaValueError("unexpected command")
