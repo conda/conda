@@ -317,7 +317,8 @@ def inject_UNLINKLINKTRANSACTION(plan):
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
-        plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
+        # plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
+        # don't filter LINK and UNLINK, just don't do anything with them
     return plan
 
 
