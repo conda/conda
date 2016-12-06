@@ -10,11 +10,12 @@ from .linked_data import delete_linked_data, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..common.path import get_python_path, win_path_ok
+from ..common.path import get_python_path, win_path_ok, preferred_env_to_prefix
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
                                     create_windows_entry_point_py, make_menu,
-                                    write_conda_meta_record, create_private_pkg_entry_point)
+                                    write_conda_meta_record, create_private_pkg_entry_point,
+                                    create_private_envs_meta, remove_private_envs_meta)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import exists, isfile, islink
 from ..gateways.disk.update import rename
@@ -284,6 +285,25 @@ class CreateCondaMetaAction(CreatePathAction):
         rm_rf(self.target_full_path)
 
 
+class CreatePrivateEnvMetaAction(CreatePathAction):
+    def __init__(self, transaction_context, package_info, target_prefix):
+        target_short_path = 'conda-meta/private_envs'
+        super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
+                                                         None, None, target_prefix,
+                                                         target_short_path)
+
+    def verify(self):
+        pass
+
+    def execute(self):
+        log.trace("creating entry in conda-meta/private_envs for %s",
+                  self.package_info.repodata_record.name)
+        create_private_envs_meta(self.package_info.repodata_record.name, self.target_prefix)
+
+    def reverse(self):
+        remove_private_envs_meta(self.package_info.repodata_record.name)
+
+
 # ######################################################
 #  Removal Actions
 # ######################################################
@@ -367,3 +387,19 @@ class RemoveCondaMetaAction(UnlinkPathAction):
         load_linked_data(self.target_prefix,
                          Dist(self.linked_package_data).dist_name,
                          meta_record)
+
+
+class RemovePrivateEnvMetaAction(UnlinkPathAction):
+    def __init__(self, transaction_context, linked_package_data, target_prefix):
+        target_short_path = "conda-meta/private_encs"
+        super(RemovePrivateEnvMetaAction, self).__init__(transaction_context, linked_package_data,
+                                                         target_prefix, target_short_path)
+
+    def verify(self):
+        pass
+
+    def execute(self):
+        remove_private_envs_meta(self.linked_package_data.name)
+
+    def reverse(self):
+        create_private_envs_meta(self.linked_package_data.name, self.target_prefix)

@@ -256,36 +256,44 @@ def compile_pyc(python_exe_full_path, py_full_path):
         raise RuntimeError()
 
 
-def create_private_envs_meta(action_set, specs):
-    # type: (Sequence[Dict[weird]], Sequence[str]) -> ()
-    def is_in_specs(pkg):
-        return any(spec for spec in specs if pkg.startswith(spec))
+def get_json_content(path_to_json):
+    if isfile(path_to_json):
+        try:
+            with open(path_to_json, "r") as f:
+                json_content = json.load(f)
+        except json.decoder.JSONDecodeError:
+            json_content = {}
+    else:
+        json_content = {}
+    return json_content
 
+
+def create_private_envs_meta(pkg, prefix):
+    # type: (str, str -> ()
     path_to_conda_meta = join(context.root_prefix, "conda-meta")
     path_to_private_envs = join(path_to_conda_meta, "private_envs")
 
     if not isdir(path_to_conda_meta):
         os.mkdir(path_to_conda_meta)
 
-    if isfile(path_to_private_envs):
-        try:
-            with open(path_to_private_envs, "r") as f:
-                private_envs_json = json.load(f)
-        except json.decoder.JSONDecodeError:
-            private_envs_json = {}
-    else:
-        private_envs_json = {}
-
-    for actions in action_set:
-        prefix = actions["PREFIX"]
-        if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
-            for link in actions["LINK"]:
-                pkg = link.name
-                if is_in_specs(pkg):
-                    private_envs_json[pkg] = prefix
-
+    private_envs_json = get_json_content(path_to_private_envs)
+    private_envs_json[pkg] = prefix
     with open(path_to_private_envs, "w") as f:
         json.dump(private_envs_json, f)
+
+
+def remove_private_envs_meta(pkg):
+    path_to_conda_meta = join(context.root_prefix, "conda-meta")
+    path_to_private_envs = join(path_to_conda_meta, "private_envs")
+
+    private_envs_json = get_json_content(path_to_private_envs)
+    if pkg in private_envs_json.keys():
+        private_envs_json.pop(pkg)
+    if private_envs_json == {}:
+        rm_rf(path_to_private_envs)
+    else:
+        with open(path_to_private_envs, "w") as f:
+            json.dump(private_envs_json, f)
 
 
 def create_private_pkg_entry_point(target_path, python_full_path, private_env_prefix,

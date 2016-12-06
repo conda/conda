@@ -16,7 +16,8 @@ from .package_cache import is_extracted
 from .path_actions import (CompilePycAction, CreateCondaMetaAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            PrefixReplaceLinkAction, RemoveCondaMetaAction, RemoveMenuAction,
-                           UnlinkPathAction, CreateApplicationEntryPointAction)
+                           UnlinkPathAction, CreateApplicationEntryPointAction,
+                           CreatePrivateEnvMetaAction, RemovePrivateEnvMetaAction)
 from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
@@ -198,8 +199,12 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
                                                        context.root_prefix, context.envs_dirs)
         application_entry_point_action = (make_application_entry_point_action(
             preferred_env_prefix, package_info.repodata_record.name),)
+
+        private_envs_meta_action = tuple([CreatePrivateEnvMetaAction(transaction_context,
+                                                                     package_info, target_prefix)])
     else:
         application_entry_point_action = ()
+        private_envs_meta_action = ()
 
     all_target_short_paths = tuple(axn.target_short_path for axn in
                                    concatv(file_link_actions,
@@ -209,7 +214,7 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
     return tuple(concatv(directory_create_actions, file_link_actions, python_entry_point_actions,
                          pyc_compile_actions,  menu_create_actions, meta_create_actions,
-                         application_entry_point_action))
+                         application_entry_point_action, private_envs_meta_action))
 
 
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
@@ -242,9 +247,13 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
                                                         context.root_prefix,
                                                         app_entry_point_short_path)
         unlink_path_actions = unlink_path_actions + tuple([unlink_app_entry_point])
+        private_envs_meta_action = tuple([RemovePrivateEnvMetaAction(
+            transaction_context, linked_package_data, target_prefix)])
+    else:
+        private_envs_meta_action = ()
 
     return tuple(concatv(remove_conda_meta_actions, remove_menu_actions, unlink_path_actions,
-                         directory_remove_actions))
+                         directory_remove_actions, private_envs_meta_action))
 
 
 class UnlinkLinkTransaction(object):

@@ -160,6 +160,7 @@ def is_private_env(env):
         return True
     return False
 
+
 def win_path_backout(path):
     return path.replace('\\', '/') if on_win else path
 

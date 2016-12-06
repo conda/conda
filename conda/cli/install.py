@@ -369,8 +369,6 @@ def install(args, parser, command='install'):
         common.stdout_json_success(actions=action_set, dry_run=True)
         raise DryRunExit()
 
-    create_private_envs_meta(action_set, specs)
-
     for actions in action_set:
         if newenv:
             # needed in the case of creating an empty env
