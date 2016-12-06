@@ -85,7 +85,7 @@ def get_python_path(version=None):
         return "python.exe"
     if version and '.' not in version:
         version = '.'.join(version)
-    return join("bin", "python%s" % version or '')
+    return join("bin", "python%s" % (version or ''))
 
 
 def get_python_site_packages_short_path(python_version):

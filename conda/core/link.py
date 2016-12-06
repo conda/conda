@@ -142,8 +142,9 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
     def make_application_entry_point_action(private_env_prefix, app):
         target_short_path = "%s/%s" % (get_bin_directory_short_path(), app)
-        return CreateApplicationEntryPointAction(transaction_context, package_info, target_prefix,
-                                          target_short_path, private_env_prefix, app)
+        return CreateApplicationEntryPointAction(transaction_context, package_info,
+                                                 context.root_prefix, target_short_path,
+                                                 private_env_prefix, app, context.root_prefix)
 
     def make_entry_point_windows_executable_action(entry_point_def):
         source_directory = CONDA_PACKAGE_ROOT
@@ -233,6 +234,15 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
     directory_remove_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
+
+    if (hasattr(linked_package_data, "preferred_env") and
+                linked_package_data.preferred_env is not None):
+        app_entry_point_short_path = os.path.join("bin", linked_package_data.name)
+        unlink_app_entry_point = UnlinkPathAction(transaction_context, linked_package_data,
+                                                        context.root_prefix,
+                                                        app_entry_point_short_path)
+        unlink_path_actions = unlink_path_actions + tuple([unlink_app_entry_point])
+
     return tuple(concatv(remove_conda_meta_actions, remove_menu_actions, unlink_path_actions,
                          directory_remove_actions))
 

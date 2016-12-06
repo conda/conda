@@ -13,7 +13,6 @@ import os
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join, isfile
 
-from conda.common.path import prefix_to_env_name, is_private_env, get_python_path, win_path_ok
 from conda.gateways.disk.create import create_private_envs_meta, create_private_pkg_entry_point
 from conda.models.channel import prioritize_channels
 from .._vendor.auxlib.ish import dals
