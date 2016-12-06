@@ -898,8 +898,7 @@ class PlanFromActionsTests(unittest.TestCase):
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
             # ('PROGRESS', '2'),
-            ('LINK', ipython),
-            ('LINK', menuinst),
+            ('UNLINKLINKTRANSACTION', ((), (Dist(ipython), Dist(menuinst)))),
         ]
 
         if on_win:
@@ -908,8 +907,7 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
-                ('LINK', ipython),
-                ('LINK', menuinst),
+                ('UNLINKLINKTRANSACTION', ((), (Dist(menuinst), Dist(ipython)))),
             ]
 
             # last_two = expected_plan[-2:]

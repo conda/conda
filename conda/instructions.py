@@ -2,7 +2,9 @@ from __future__ import absolute_import, division, print_function
 
 from conda.install import symlink_conda
 import ctypes
+from functools import reduce
 from logging import getLogger
+from operator import add
 import os
 from os.path import basename, isdir, isfile, islink, join
 import tarfile
@@ -13,11 +15,6 @@ from .core.package_cache import extract, fetch_pkg, is_extracted, rm_extracted, 
 from .exceptions import CondaFileIOError, CondaIOError
 from .models.dist import Dist
 from .utils import on_win
-
-try:
-    from cytoolz.itertoolz import concatv, groupby
-except ImportError:
-    from ._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 
 log = getLogger(__name__)
@@ -37,8 +34,8 @@ UNLINK = 'UNLINK'
 LINK = 'LINK'
 UNLINKLINKTRANSACTION = 'UNLINKLINKTRANSACTION'
 
-progress_cmds = set([EXTRACT, RM_EXTRACTED])
-action_codes = (
+PROGRESS_COMMANDS = set([EXTRACT, RM_EXTRACTED])
+ACTION_CODES = (
     CHECK_FETCH,
     FETCH,
     CHECK_EXTRACT,
@@ -103,20 +100,6 @@ def UNLINKLINKTRANSACTION_CMD(state, arg):
     txn.execute()
 
 
-def get_package(plan, instruction):
-    """
-        get the package list based on command
-    :param plan: the plan for action
-    :param instruction : the command
-    :return:
-    """
-    link_list = []
-    for inst, arg in plan:
-        if inst == instruction:
-            link_list.append(arg)
-    return link_list
-
-
 def check_files_in_package(source_dir, files):
     for f in files:
         source_file = join(source_dir, f)
@@ -154,40 +137,40 @@ def check_size(path, size):
         raise CondaIOError("Not enough space in {}".format(path))
 
 
-def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
+def CHECK_FETCH_CMD(state, fetch_dists):
     """
         Check whether there is enough space for download packages
     :param state: the state of plan
     :param plan: the plan for the action
     :return:
     """
-    arg_list = get_package(plan, FETCH)
-    size = 0
-    for arg in arg_list:
-        if 'size' in state['index'][arg]:
-            size += state['index'][arg]['size']
+    if not fetch_dists:
+        return
 
     prefix = state['prefix']
-    assert os.path.isdir(prefix)
+    index = state['index']
+    assert isdir(prefix)
+    size = reduce(add, (index[dist].get('size', 0) for dist in fetch_dists), 0)
     check_size(prefix, size)
 
 
-def CHECK_EXTRACT_SPACE_CMD(state, plan):
+def CHECK_EXTRACT_CMD(state, extract_dists):
     """
         check whether there is enough space for extract packages
     :param plan: the plan for the action
     :param state : the state of plan
     :return:
     """
-    arg_list = get_package(plan, EXTRACT)
-    size = 0
-    for arg in arg_list:
-        from .install import package_cache
-        rec = package_cache()[arg]
-        fname = rec['files'][0]
-        with tarfile.open(fname) as t:
-            for m in t.getmembers():
-                size += m.size
+    if not extract_dists:
+        return
+
+    def extracted_size(dist):
+        from .core.package_cache import package_cache
+        dist_tarball = package_cache()[dist]['files'][0]
+        with tarfile.open(dist_tarball) as tar_bz2:
+            return reduce(add, (m.size for m in tar_bz2.getmembers()), 0)
+
+    size = reduce(add, (extracted_size(dist)for dist in extract_dists), 0)
 
     prefix = state['prefix']
     assert isdir(prefix)
@@ -198,10 +181,10 @@ def CHECK_EXTRACT_SPACE_CMD(state, plan):
 commands = {
     PREFIX: PREFIX_CMD,
     PRINT: PRINT_CMD,
-    CHECK_FETCH: CHECK_DOWNLOAD_SPACE_CMD,
+    CHECK_FETCH: CHECK_FETCH_CMD,
     FETCH: FETCH_CMD,
     PROGRESS: PROGRESS_CMD,
-    CHECK_EXTRACT: CHECK_EXTRACT_SPACE_CMD,
+    CHECK_EXTRACT: CHECK_EXTRACT_CMD,
     EXTRACT: EXTRACT_CMD,
     RM_EXTRACTED: RM_EXTRACTED_CMD,
     RM_FETCHED: RM_FETCHED_CMD,
@@ -223,46 +206,6 @@ OP_ORDER = (CHECK_FETCH,
             )
 
 
-def handle_menuinst(unlink_dists, link_dists):
-    if not on_win:
-        return unlink_dists, link_dists
-
-    # Always link/unlink menuinst first/last on windows in case a subsequent
-    # package tries to import it to create/remove a shortcut
-
-    # unlink
-    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
-
-    # link
-    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
-
-    return unlink_dists, link_dists
-
-
-def inject_UNLINKLINKTRANSACTION(plan):
-    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
-    if first_unlink_link_idx >= 0:
-        grouped_instructions = groupby(lambda x: x[0], plan)
-        unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
-        link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
-        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
-        plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
-    return plan
-
-
 def execute_instructions(plan, index=None, verbose=False, _commands=None):
     """Execute the instructions in the plan
 
@@ -280,7 +223,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
         setup_verbose_handlers()
 
     log.debug("executing plan %s", plan)
-    plan = inject_UNLINKLINKTRANSACTION(plan)
 
     state = {'i': None, 'prefix': context.root_dir, 'index': index}
 
@@ -288,7 +230,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         log.debug(' %s(%r)', instruction, arg)
 
-        if state['i'] is not None and instruction in progress_cmds:
+        if state['i'] is not None and instruction in PROGRESS_COMMANDS:
             state['i'] += 1
             getLogger('progress.update').info((Dist(arg).dist_name,
                                                state['i'] - 1))
@@ -296,7 +238,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
         cmd(state, arg)
 
-        if (state['i'] is not None and instruction in progress_cmds and
+        if (state['i'] is not None and instruction in PROGRESS_COMMANDS and
                 state['maxval'] == state['i']):
 
             state['i'] = None
