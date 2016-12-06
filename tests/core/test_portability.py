@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.core.portability import SHEBANG_REGEX
+from conda.core.portability import SHEBANG_REGEX, replace_long_shebang
+from conda.models.enums import FileMode
 from logging import getLogger
 import re
 from unittest import TestCase
@@ -48,4 +49,30 @@ class ReplaceShebangTests(TestCase):
 
 
     def test_replace_long_shebang(self):
-        pass
+        content_line = b"content line " * 5
+
+        # # simple shebang no replacement
+        # shebang = b"#!/simple/shebang/escaped\\ space --and --flags -x"
+        # data = b'\n'.join((shebang, content_line, content_line, content_line))
+        # new_data = replace_long_shebang(FileMode.text, data)
+        # assert data == new_data
+
+        # long shebang with truncation
+        #   executable name is 'escaped space'
+        shebang = b"#!/" + b"shebang/" * 20 + b"python" + b" --and --flags -x"
+        assert len(shebang) > 127
+        data = b'\n'.join((shebang, content_line, content_line, content_line))
+        new_data = replace_long_shebang(FileMode.text, data)
+        new_shebang = b"#!/usr/bin/env python --and --flags -x"
+        new_expected_data = b'\n'.join((new_shebang, content_line, content_line, content_line))
+        assert new_expected_data == new_data
+
+        # long shebang with truncation
+        #   executable name is 'escaped space'
+        shebang = b"#!/" + b"shebang/" * 20 + b"escaped\\ space" + b" --and --flags -x"
+        assert len(shebang) > 127
+        data = b'\n'.join((shebang, content_line, content_line, content_line))
+        new_data = replace_long_shebang(FileMode.text, data)
+        new_shebang = b"#!/usr/bin/env escaped\\ space --and --flags -x"
+        new_expected_data = b'\n'.join((new_shebang, content_line, content_line, content_line))
+        assert new_expected_data == new_data

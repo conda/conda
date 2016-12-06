@@ -163,7 +163,7 @@ def replace_pyzzer_entry_point_shebang(all_data, placeholder, new_prefix):
 def replace_long_shebang(mode, data):
     # this function only changes a shebang line if it exists and is greater than 127 characters
     if mode == FileMode.text:
-        shebang_match = re.match(SHEBANG_REGEX, data)
+        shebang_match = re.match(SHEBANG_REGEX, data, re.MULTILINE)
         if shebang_match:
             whole_shebang, executable, options = shebang_match.groups()
             if len(whole_shebang) > 127:
