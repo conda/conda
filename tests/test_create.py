@@ -563,13 +563,16 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        from menuinst.win32 import dirs as win_locations
+        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         with make_temp_env(prefix=prefix):
             stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut",
                                          "--no-shortcuts")
-            # This test is sufficient, because it effectively verifies that the code
-            #  path was not visited.
             assert ("Environment name starts with underscore '_'.  Skipping menu installation."
                     not in stderr)
+            assert not isfile(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
@@ -626,7 +629,6 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 1, 1), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
@@ -642,7 +644,7 @@ class IntegrationTests(TestCase):
         run_command(Commands.CONFIG, prefix, "--set shortcuts false")
         stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
         json_obj = json_loads(stdout)
-        # assert json_obj['rc_path'] == join(prefix, 'condarc')
+        assert json_obj['rc_path'] == join(prefix, 'condarc')
         assert json_obj['get']['shortcuts'] is False
 
         try:

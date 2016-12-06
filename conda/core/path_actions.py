@@ -313,11 +313,11 @@ class RemoveMenuAction(RemovePathAction):
 
     def execute(self):
         log.trace("removing menu for %s ", self.target_prefix)
-        make_menu(self.target_prefix, self.target_short_path, remove=False)
+        make_menu(self.target_prefix, self.target_short_path, remove=True)
 
     def reverse(self):
         log.trace("re-creating menu for %s ", self.target_prefix)
-        make_menu(self.target_prefix, self.target_short_path, remove=True)
+        make_menu(self.target_prefix, self.target_short_path, remove=False)
 
     def cleanup(self):
         pass

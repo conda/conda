@@ -161,7 +161,7 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
     directory_create_actions = tuple(make_directory_link_action(d) for d in leaf_directories)
 
-    if on_win:
+    if on_win and context.shortcuts:
         menu_create_actions = tuple(MakeMenuAction(transaction_context, package_info,
                                                    target_prefix, spi.path)
                                     for spi in package_info.paths
