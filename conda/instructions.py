@@ -2,7 +2,9 @@ from __future__ import absolute_import, division, print_function
 
 from conda.install import symlink_conda
 import ctypes
+from functools import reduce
 from logging import getLogger
+from operator import add
 import os
 from os.path import basename, isdir, isfile, islink, join
 import tarfile
@@ -103,20 +105,6 @@ def UNLINKLINKTRANSACTION_CMD(state, arg):
     txn.execute()
 
 
-def get_package(plan, instruction):
-    """
-        get the package list based on command
-    :param plan: the plan for action
-    :param instruction : the command
-    :return:
-    """
-    link_list = []
-    for inst, arg in plan:
-        if inst == instruction:
-            link_list.append(arg)
-    return link_list
-
-
 def check_files_in_package(source_dir, files):
     for f in files:
         source_file = join(source_dir, f)
@@ -161,14 +149,15 @@ def CHECK_DOWNLOAD_SPACE_CMD(state, plan):
     :param plan: the plan for the action
     :return:
     """
-    arg_list = get_package(plan, FETCH)
-    size = 0
-    for arg in arg_list:
-        if 'size' in state['index'][arg]:
-            size += state['index'][arg]['size']
+    _, link_dists = next((p[1] for p in plan if p[0] == UNLINKLINKTRANSACTION),
+                                    (None, None))
+    if link_dists is None:
+        return
 
     prefix = state['prefix']
-    assert os.path.isdir(prefix)
+    index = state['index']
+    assert isdir(prefix)
+    size = reduce(add, (index[dist].get('size', 0) for dist in link_dists), 0)
     check_size(prefix, size)
 
 
@@ -179,15 +168,18 @@ def CHECK_EXTRACT_SPACE_CMD(state, plan):
     :param state : the state of plan
     :return:
     """
-    arg_list = get_package(plan, EXTRACT)
-    size = 0
-    for arg in arg_list:
-        from .install import package_cache
-        rec = package_cache()[arg]
-        fname = rec['files'][0]
-        with tarfile.open(fname) as t:
-            for m in t.getmembers():
-                size += m.size
+    _, link_dists = next((p[1] for p in plan if p[0] == UNLINKLINKTRANSACTION),
+                                    (None, None))
+    if link_dists is None:
+        return
+
+    def extracted_size(dist):
+        from .core.package_cache import package_cache
+        dist_tarball = package_cache()[dist]['files'][0]
+        with tarfile.open(dist_tarball) as tar_bz2:
+            return reduce(add, (m.size for m in tar_bz2.getmembers()), 0)
+
+    size = reduce(add, (extracted_size(dist)for dist in link_dists), 0)
 
     prefix = state['prefix']
     assert isdir(prefix)
