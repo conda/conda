@@ -169,7 +169,7 @@ def add_parser_json(p):
     p.add_argument(
         "--verbose", "-v",
         action=NullCountAction,
-        help="Use once for info, twice for debug.",
+        help="Use once for info, twice for debug, three times for trace.",
         dest="verbosity",
         default=NULL,
     )

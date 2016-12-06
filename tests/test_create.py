@@ -22,13 +22,14 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
-from conda.common.path import get_bin_directory_short_path, missing_pyc_files
+from conda.common.path import get_bin_directory_short_path, missing_pyc_files, \
+    get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.common.compat import itervalues, text_type
 from conda.connection import LocalFSAdapter
 from conda.core.index import create_cache_dir
-from conda.core.linked_data import get_python_version_for_prefix, get_site_packages_dir, \
+from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
@@ -49,7 +50,13 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 log = getLogger(__name__)
+TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 
@@ -131,7 +138,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 def make_temp_env(*packages, **kwargs):
     prefix = kwargs.pop('prefix', None) or make_temp_prefix()
     assert isdir(prefix), prefix
-    with stderr_log_level(DEBUG, 'conda'), stderr_log_level(DEBUG, 'requests'):
+    with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with disable_logger('fetch'), disable_logger('dotupdate'):
             try:
                 # try to clear any config that's been set by other tests
@@ -210,6 +217,11 @@ def get_conda_list_tuple(prefix, package_name):
 
 class IntegrationTests(TestCase):
 
+    def test_install_python2(self):
+        with make_temp_env("python=2") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'python-2')
+
     @pytest.mark.timeout(900)
     def test_create_install_update_remove(self):
         with make_temp_env("python=3") as prefix:
@@ -244,15 +256,38 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
+    def test_transactional_rollback_simple(self):
+        from conda.core.path_actions import CreateCondaMetaAction
+        with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+            with make_temp_env() as prefix:
+                mock_method.side_effect = KeyError('Bang bang!!')
+                with pytest.raises(KeyError):
+                    run_command(Commands.INSTALL, prefix, 'openssl')
+                assert not package_is_installed(prefix, 'openssl')
+
+    def test_transactional_rollback_upgrade_downgrade(self):
+        with make_temp_env("python=3") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+
+            from conda.core.path_actions import CreateCondaMetaAction
+            with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+                mock_method.side_effect = KeyError('Bang bang!!')
+                with pytest.raises(KeyError):
+                    run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
+                assert_package_is_installed(prefix, 'flask-0.10.1')
+
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
-            sp_dir = get_site_packages_dir(prefix)
-            pyc_test_pair = missing_pyc_files(py_ver, ("%s/flask/__init__.py" % sp_dir,))
-            assert len(pyc_test_pair) == 1
-            assert pyc_test_pair[0][0] == "%s/flask/__init__.py" % sp_dir
-            assert isfile(join(prefix, pyc_test_pair[0][0]))
-            assert isfile(join(prefix, pyc_test_pair[0][1]))
+            sp_dir = get_python_site_packages_short_path(py_ver)
+            py_file = sp_dir + "/flask/__init__.py"
+            pyc_file = pyc_path(py_file, py_ver)
+            assert isfile(join(prefix, py_file))
+            assert isfile(join(prefix, pyc_file))
             exe_path = join(prefix, get_bin_directory_short_path(), 'flask')
             if on_win:
                 exe_path += ".exe"
@@ -260,8 +295,8 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.REMOVE, prefix, "flask")
 
-            assert not isfile(join(prefix, pyc_test_pair[0][0]))
-            assert not isfile(join(prefix, pyc_test_pair[0][1]))
+            assert not isfile(join(prefix, py_file))
+            assert not isfile(join(prefix, pyc_file))
             assert not isfile(exe_path)
 
     @pytest.mark.timeout(300)
@@ -401,11 +436,6 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
-    def test_install_python2(self):
-        with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'python-2')
-
     @pytest.mark.timeout(300)
     def test_remove_all(self):
         with make_temp_env("python=2") as prefix:
@@ -488,11 +518,17 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 1, 1), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python") as prefix:
+
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
+            json_obj = json_loads(stdout)
+            assert 'defaults' not in json_obj['channels']
+
             assert_package_is_installed(prefix, 'python')
             assert 'r' not in context.channels
 
@@ -504,10 +540,9 @@ class IntegrationTests(TestCase):
 
             # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
-            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
-            assert json_obj['rc_path'] == join(prefix, 'condarc')
-            assert json_obj['get']['channels']
+            assert 'r' in json_obj['channels']
 
             # assert conda search can now find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
@@ -535,13 +570,16 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        from menuinst.win32 import dirs as win_locations
+        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         with make_temp_env(prefix=prefix):
             stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut",
                                          "--no-shortcuts")
-            # This test is sufficient, because it effectively verifies that the code
-            #  path was not visited.
             assert ("Environment name starts with underscore '_'.  Skipping menu installation."
                     not in stderr)
+            assert not isfile(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
@@ -598,7 +636,6 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 1, 1), reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
@@ -614,7 +651,7 @@ class IntegrationTests(TestCase):
         run_command(Commands.CONFIG, prefix, "--set shortcuts false")
         stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
         json_obj = json_loads(stdout)
-        # assert json_obj['rc_path'] == join(prefix, 'condarc')
+        assert json_obj['rc_path'] == join(prefix, 'condarc')
         assert json_obj['get']['shortcuts'] is False
 
         try:

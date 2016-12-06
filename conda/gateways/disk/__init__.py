@@ -27,13 +27,13 @@ def exp_backoff_fn(fn, *args, **kwargs):
         try:
             result = fn(*args, **kwargs)
         except (OSError, IOError) as e:
-            log.debug(repr(e))
+            log.trace(repr(e))
             if e.errno in (EPERM, EACCES):
                 if n == max_tries-1:
                     raise
                 sleep_time = ((2 ** n) + random.random()) * 0.1
                 caller_frame = sys._getframe(1)
-                log.debug("retrying %s/%s %s() in %g sec",
+                log.trace("retrying %s/%s %s() in %g sec",
                           basename(caller_frame.f_code.co_filename),
                           caller_frame.f_lineno, fn.__name__,
                           sleep_time)

@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import partial
+import logging
+from logging import CRITICAL, DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
-from functools import partial
-from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger, CRITICAL
 
+from .. import CondaError
 from .._vendor.auxlib.logz import NullHandler
 from ..common.io import attach_stderr_handler
 
-log = getLogger(__name__)
+TRACE = 5  # TRACE LOG LEVEL
+VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
 
 class TokenURLFilter(Filter):
@@ -79,14 +82,18 @@ def set_all_logger_level(level=DEBUG):
 
 
 def set_verbosity(verbosity_level):
-    if verbosity_level == 0:
-        return
-    elif verbosity_level == 1:
-        set_all_logger_level(INFO)
-        return
-    elif verbosity_level == 2:
-        set_all_logger_level(DEBUG)
-        return
-    else:
-        from conda import CondaError
-        raise CondaError("Invalid verbosity level: %s", verbosity_level)
+    try:
+        set_all_logger_level(verbosity_level)
+    except IndexError:
+        raise CondaError("Invalid verbosity level: %(verbosity_level)s",
+                         verbosity_level=verbosity_level)
+
+
+def trace(self, message, *args, **kwargs):
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, message, args, **kwargs)
+
+
+logging.addLevelName(TRACE, "TRACE")
+logging.Logger.trace = trace
+initialize_logging()

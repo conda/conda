@@ -21,11 +21,9 @@ from .core.package_cache import cached_url, find_new_location, is_extracted, is_
 from .exceptions import (CondaFileNotFoundError, CondaRuntimeError, MD5MismatchError,
                          PackageNotFoundError, ParseError)
 from .gateways.disk.delete import rm_rf
-from .gateways.disk.test import try_hard_link
 from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
 from .models.channel import Channel
 from .models.dist import Dist
-from .models.enums import LinkType
 from .models.record import Record
 from .plan import execute_actions
 from .resolve import MatchSpec, Resolve
@@ -53,10 +51,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
-    linked = {dist.dist_name: dist for dist in install_linked(prefix)}
+    linked = {dist.name: dist for dist in install_linked(prefix)}
     index_args = index_args or {}
     index = index or {}
-    verifies = []  # List[Tuple(filename, md5)]
+    verifies = []  # List[Tuple(dist, md5)]
     channels = set()
     for spec in specs:
         if spec == '@EXPLICIT':
@@ -100,16 +98,19 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 'build_number': dist.build_number,
                 'name': dist.quad[0],
                 'version': dist.quad[1],
-
             })
-            verifies.append((fn, md5))
+            verifies.append((dist, md5))
 
         pkg_path = is_fetched(dist)
         dir_path = is_extracted(dist)
 
         # Don't re-fetch unless there is an MD5 mismatch
         # Also remove explicit tarballs from cache, unless the path *is* to the cache
-        if pkg_path and not is_cache and (is_local or md5 and md5_file(pkg_path) != md5):
+        # If no md5 is included in the --explicit url, we need to re-fetch
+        if (pkg_path
+                and not is_cache
+                and (is_local or not md5 or (md5 and md5_file(pkg_path) != md5))
+                and not context.offline):
             # This removes any extracted copies as well
             actions[RM_FETCHED].append(dist)
             pkg_path = dir_path = None
@@ -128,57 +129,17 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 if not is_local:
                     if dist not in index or index[dist].get('not_fetched'):
                         channels.add(schannel)
-                    verifies.append((dist.to_filename(), md5))
+                    verifies.append((dist, md5))
                 actions[FETCH].append(dist)
             actions[EXTRACT].append(dist)
 
         # unlink any installed package with that name
-        name = dist.dist_name
+        name = dist.name
         if name in linked:
             actions[UNLINK].append(linked[name])
 
-        ######################################
-        # copied from conda/plan.py   TODO: refactor
-        ######################################
-
-        # check for link action
-        fetched_dist = dir_path or pkg_path[:-8]
-        fetched_dir = dirname(fetched_dist)
-        try:
-            # Determine what kind of linking is necessary
-            if not dir_path:
-                # If not already extracted, create some dummy
-                # data to test with
-                rm_rf(fetched_dist)
-                ppath = join(fetched_dist, 'info')
-                os.makedirs(ppath)
-                index_json = join(ppath, 'index.json')
-                with open(index_json, 'w'):
-                    pass
-            if context.always_copy:
-                lt = LinkType.copy
-            elif context.always_softlink:
-                lt = LinkType.softlink
-            elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hardlink
-            elif context.allow_softlinks and not on_win:
-                lt = LinkType.softlink
-            else:
-                lt = LinkType.copy
-            actions[LINK].append('%s %d' % (dist, lt))
-        except (OSError, IOError):
-            actions[LINK].append('%s %d' % (dist, LinkType.copy))
-        finally:
-            if not dir_path:
-                # Remove the dummy data
-                try:
-                    rm_rf(fetched_dist)
-                except (OSError, IOError):
-                    pass
-
-    ######################################
-    # ^^^^^^^^^^ copied from conda/plan.py
-    ######################################
+        # add link action
+        actions[LINK].append(dist)
 
     # Pull the repodata for channels we are using
     if channels:
@@ -189,16 +150,15 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         index.update(get_index(**index_args))
 
     # Finish the MD5 verification
-    for fn, md5 in verifies:
-        info = index.get(Dist(fn))
+    for dist, md5 in verifies:
+        info = index.get(dist)
         if info is None:
-            raise PackageNotFoundError(fn, "no package '%s' in index" % fn)
+            raise PackageNotFoundError(dist, "no package '%s' in index" % dist)
         if md5 and 'md5' not in info:
-            sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
+            sys.stderr.write('Warning: cannot lookup MD5 of: %s' % dist)
         if md5 and info['md5'] != md5:
             raise MD5MismatchError('MD5 mismatch for: %s\n   spec: %s\n   repo: %s'
-                                   % (fn, md5, info['md5']))
-
+                                   % (dist, md5, info['md5']))
     execute_actions(actions, index=index, verbose=verbose)
     return actions
 
