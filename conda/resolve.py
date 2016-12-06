@@ -238,7 +238,6 @@ class Resolve(object):
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
 
-
     @property
     def installed(self):
         # type: () -> Set[Dist]

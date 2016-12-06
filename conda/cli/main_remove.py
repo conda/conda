@@ -218,7 +218,7 @@ def execute(args, parser):
 
         target_prefix = actions["PREFIX"]
         if (is_private_env(prefix_to_env_name(target_prefix, context.root_prefix)) and
-                    linked_data(target_prefix) == {}):
+                linked_data(target_prefix) == {}):
             rm_rf(target_prefix)
 
     if args.all:

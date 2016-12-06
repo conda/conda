@@ -142,7 +142,7 @@ def create_private_envs_meta(action_set, specs):
         prefix = actions["PREFIX"]
         if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
             for link in actions["LINK"]:
-                pkg = get_package_name(link)
+                pkg = link.name
                 if is_in_specs(pkg):
                     private_envs_json[pkg] = prefix
 

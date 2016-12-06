@@ -9,8 +9,7 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from logging import getLogger
 from os.path import abspath, basename, exists, join
 import sys
@@ -23,7 +22,6 @@ from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
 from .core.index import supplement_index_with_prefix
-from .gateways.disk.delete import rm_rf
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
