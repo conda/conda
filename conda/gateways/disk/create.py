@@ -17,7 +17,6 @@ from .delete import rm_rf
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
-from ...base.constants import UTF8
 from ...base.context import context
 from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
@@ -111,7 +110,7 @@ def write_conda_meta_record(prefix, record):
     with open(join(meta_dir, dist.to_filename('.json')), 'w') as fo:
         json_str = json.dumps(record, indent=2, sort_keys=True, cls=EntityEncoder)
         if hasattr(json_str, 'decode'):
-            json_str = json_str.decode(UTF8)
+            json_str = json_str.decode('utf-8')
         fo.write(json_str)
 
 

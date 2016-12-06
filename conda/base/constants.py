@@ -65,7 +65,6 @@ DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'root'
 
-UTF8 = 'UTF-8'
 ROOT_NO_RM = (
     'python',
     'pycosat',

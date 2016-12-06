@@ -13,7 +13,7 @@ from os import listdir
 from os.path import exists, isdir, isfile, islink, join
 import shlex
 
-from ...base.constants import PREFIX_PLACEHOLDER, UTF8
+from ...base.constants import PREFIX_PLACEHOLDER
 from ...exceptions import CondaUpgradeError
 from ...models.enums import FileMode
 from ...models.package_info import PackageInfo, PathInfo, PathInfoV1, PathType
@@ -198,6 +198,6 @@ def read_icondata(extracted_package_directory):
     if isfile(icon_file_path):
         with open(icon_file_path, 'rb') as f:
             data = f.read()
-        return b64encode(data).decode(UTF8)
+        return b64encode(data).decode('utf-8')
     else:
         return None

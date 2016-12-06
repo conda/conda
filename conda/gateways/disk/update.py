@@ -18,9 +18,10 @@ class CancelOperation(Exception):
     pass
 
 
-def update_file_as_binary(file_full_path, callback):
+def update_file_in_place_as_binary(file_full_path, callback):
     # callback should be a callable that takes one positional argument, which is the
-    # content of the file before updating
+    #   content of the file before updating
+    # this method updates the file in-place, without releasing the file lock
     fh = None
     try:
         fh = exp_backoff_fn(open, file_full_path, 'rb+')
