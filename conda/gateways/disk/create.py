@@ -40,7 +40,7 @@ private_pkg_entry_point_template = dals("""
 import os
 import sys
 if __name__ == '__main__':
-    exec_path = os.path.join("%(private_env_path)s", "%(exec_short_path)s")
+    exec_path = os.path.join("%(private_env_path)s", "bin", "%(app_name)s")
     os.execv(exec_path, sys.argv)
 """)
 
@@ -288,11 +288,11 @@ def create_private_envs_meta(action_set, specs):
         json.dump(private_envs_json, f)
 
 
-def create_private_pkg_entry_point(app_name, python_full_path, private_env_prefix, exec_short_path):
+def create_private_pkg_entry_point(target_path, python_full_path, private_env_prefix,
+                                   app_name):
     entry_point = private_pkg_entry_point_template % {"private_env_path": private_env_prefix,
-                                                      "exec_short_path": exec_short_path}
-    entry_point_path = join(context.root_dir, "bin", app_name)
-    with open(entry_point_path, "w") as fo:
+                                                      "app_name": app_name}
+    with open(target_path, "w") as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(entry_point)
-    chmod(entry_point_path, 0o755)
+    chmod(target_path, 0o755)

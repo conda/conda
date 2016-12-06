@@ -382,15 +382,6 @@ def install(args, parser, command='install'):
         if command in {'install', 'update'}:
             check_write(command, prefix)
 
-        if actions.get("APP_ENTRY_POINT") is not None:
-            python_short_path = get_python_path(context.default_python)
-            python_full_path = join(context.root_dir, win_path_ok(python_short_path))
-            for app in actions.get("APP_ENTRY_POINT"):
-                exec_short_path = os.path.join("bin", app)
-                create_private_pkg_entry_point(
-                    app, python_full_path, actions["PREFIX"], exec_short_path)
-
-
         # if not context.json:
         #     common.confirm_yn(args)
         # elif args.dry_run:

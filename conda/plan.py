@@ -669,9 +669,6 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
     if not force:
         add_checks(actions)
 
-    if is_private_env(prefix_to_env_name(prefix, context.root_prefix)):
-        actions["APP_ENTRY_POINT"] = dists_for_prefix.specs
-
     return actions
 
 

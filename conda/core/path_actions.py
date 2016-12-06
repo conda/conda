@@ -14,7 +14,7 @@ from ..common.path import get_python_path, win_path_ok
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
                                     create_windows_entry_point_py, make_menu,
-                                    write_conda_meta_record)
+                                    write_conda_meta_record, create_private_pkg_entry_point)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import exists, isfile, islink
 from ..gateways.disk.update import rename
@@ -231,6 +231,30 @@ class CreatePythonEntryPointAction(CreatePathAction):
             python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
             create_unix_entry_point(self.target_full_path, python_full_path,
                                     self.module, self.func)
+
+    def reverse(self):
+        rm_rf(self.target_full_path)
+
+
+class CreateApplicationEntryPointAction(CreatePathAction):
+
+    def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
+                 private_env_prefix, app_name):
+        super(CreateApplicationEntryPointAction, self).__init__(transaction_context, package_info,
+                                                           None, None,
+                                                           target_prefix, target_short_path)
+        self.private_env_prefix = private_env_prefix
+        self.app_name = app_name
+
+    def verify(self):
+        pass
+
+    def execute(self):
+        log.trace("creating entry point %s", self.target_full_path)
+        python_short_path = get_python_path(self.transaction_context['target_python_version'])
+        python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
+        create_private_pkg_entry_point(self.target_full_path, python_full_path,
+                                       self.private_env_prefix, self.app_name)
 
     def reverse(self):
         rm_rf(self.target_full_path)
