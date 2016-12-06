@@ -517,11 +517,17 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 1, 1), reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python") as prefix:
+
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
+            json_obj = json_loads(stdout)
+            assert 'defaults' not in json_obj['channels']
+
             assert_package_is_installed(prefix, 'python')
             assert 'r' not in context.channels
 
@@ -532,10 +538,9 @@ class IntegrationTests(TestCase):
 
             # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
-            stdout, stderr = run_command(Commands.CONFIG, prefix, "--get", "--json")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
-            assert json_obj['rc_path'] == join(prefix, 'condarc')
-            assert json_obj['get']['channels']
+            assert 'r' in json_obj['channels']
 
             # assert conda search can now find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
