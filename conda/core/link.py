@@ -200,8 +200,8 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         application_entry_point_action = (make_application_entry_point_action(
             preferred_env_prefix, package_info.repodata_record.name),)
 
-        private_envs_meta_action = tuple([CreatePrivateEnvMetaAction(transaction_context,
-                                                                     package_info, target_prefix)])
+        private_envs_meta_action = CreatePrivateEnvMetaAction(transaction_context,
+                                                              package_info, target_prefix),
     else:
         application_entry_point_action = ()
         private_envs_meta_action = ()
@@ -213,8 +213,8 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
 
     return tuple(concatv(directory_create_actions, file_link_actions, python_entry_point_actions,
-                         pyc_compile_actions,  menu_create_actions, meta_create_actions,
-                         application_entry_point_action, private_envs_meta_action))
+                         pyc_compile_actions,  menu_create_actions, application_entry_point_action,
+                         private_envs_meta_action, meta_create_actions))
 
 
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
@@ -240,15 +240,14 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
 
-    if (hasattr(linked_package_data, "preferred_env") and
-                linked_package_data.preferred_env is not None):
-        app_entry_point_short_path = os.path.join("bin", linked_package_data.name)
+    if linked_package_data.preferred_env is not None:
+        app_entry_point_short_path = os.path.join(get_bin_directory_short_path(),
+                                                  linked_package_data.name)
         unlink_app_entry_point = UnlinkPathAction(transaction_context, linked_package_data,
-                                                        context.root_prefix,
-                                                        app_entry_point_short_path)
-        unlink_path_actions = unlink_path_actions + tuple([unlink_app_entry_point])
-        private_envs_meta_action = tuple([RemovePrivateEnvMetaAction(
-            transaction_context, linked_package_data, target_prefix)])
+                                                  context.root_prefix, app_entry_point_short_path),
+        unlink_path_actions = unlink_path_actions + unlink_app_entry_point
+        private_envs_meta_action = RemovePrivateEnvMetaAction(
+            transaction_context, linked_package_data, target_prefix),
     else:
         private_envs_meta_action = ()
 

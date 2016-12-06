@@ -10,6 +10,7 @@ import errno
 import json
 import logging
 import os
+import re
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join, isfile
 
@@ -350,10 +351,10 @@ def install(args, parser, command='install'):
             from .main_list import print_packages
 
             if not context.json:
-                regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
+                spec_regex = r'^(%s)$' % re.escape('|'.join(s.split()[0] for s in ospecs))
                 print('\n# All requested packages already installed.')
                 for action in action_set:
-                    print_packages(action["PREFIX"], regex)
+                    print_packages(action["PREFIX"], spec_regex)
             else:
                 common.stdout_json_success(
                     message='All requested packages already installed.')

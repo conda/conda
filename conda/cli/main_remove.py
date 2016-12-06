@@ -139,7 +139,7 @@ def execute(args, parser):
     if args.features:
         features = set(args.package_names)
         actions = plan.remove_features_actions(prefix, index, features)
-        action_set = actions,
+        action_groups = actions,
     elif args.all:
         if plan.is_root_prefix(prefix):
             raise CondaEnvironmentError('cannot remove root environment,\n'
@@ -147,7 +147,7 @@ def execute(args, parser):
         actions = {inst.PREFIX: prefix}
         for dist in sorted(iterkeys(index)):
             plan.add_unlink(actions, dist)
-        action_set = actions,
+        action_groups = actions,
     else:
         specs = specs_from_args(args.package_names)
         r = Resolve(index)
@@ -165,10 +165,10 @@ def execute(args, parser):
             index = {dist: info for dist, info in iteritems(index)}
             actions.append(plan.remove_actions(prfx, list(spcs), index=index, force=args.force,
                                                pinned=args.pinned))
-        action_set = tuple(actions)
+        action_groups = tuple(actions)
 
     delete_trash()
-    if any(plan.nothing_to_do(actions) for actions in action_set):
+    if any(plan.nothing_to_do(actions) for actions in action_groups):
         if args.all:
             print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
             if not context.json:
@@ -178,12 +178,12 @@ def execute(args, parser):
             if context.json:
                 stdout_json({
                     'success': True,
-                    'actions': action_set
+                    'actions': action_groups
                 })
             return
         raise PackageNotFoundError('', 'no packages found to remove from '
                                        'environment: %s' % prefix)
-    for action in action_set:
+    for action in action_groups:
         if not context.json:
             print()
             print("Package plan for package removal in environment %s:" % action["PREFIX"])
@@ -193,14 +193,14 @@ def execute(args, parser):
             stdout_json({
                 'success': True,
                 'dry_run': True,
-                'actions': action_set
+                'actions': action_groups
             })
             return
 
     if not context.json:
         confirm_yn(args)
 
-    for actions in action_set:
+    for actions in action_groups:
         if context.json and not context.quiet:
             with json_progress_bars():
                 plan.execute_actions(actions, index, verbose=not context.quiet)

@@ -13,6 +13,8 @@ import shutil
 from subprocess import PIPE, Popen
 import traceback
 
+from conda.base.constants import PRIVATE_ENVS
+from conda.gateways.disk.permissions import make_executable
 from .delete import rm_rf
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
@@ -40,8 +42,7 @@ private_pkg_entry_point_template = dals("""
 import os
 import sys
 if __name__ == '__main__':
-    exec_path = os.path.join("%(private_env_path)s", "bin", "%(app_name)s")
-    os.execv(exec_path, sys.argv)
+    os.execv(%(source_full_path)s, sys.argv)
 """)
 
 
@@ -269,38 +270,32 @@ def get_json_content(path_to_json):
 
 
 def create_private_envs_meta(pkg, prefix):
-    # type: (str, str -> ()
+    # type: (str, str -> ())
     path_to_conda_meta = join(context.root_prefix, "conda-meta")
-    path_to_private_envs = join(path_to_conda_meta, "private_envs")
 
     if not isdir(path_to_conda_meta):
-        os.mkdir(path_to_conda_meta)
+        mkdir_p(path_to_conda_meta)
 
-    private_envs_json = get_json_content(path_to_private_envs)
+    private_envs_json = get_json_content(PRIVATE_ENVS)
     private_envs_json[pkg] = prefix
-    with open(path_to_private_envs, "w") as f:
+    with open(PRIVATE_ENVS, "w") as f:
         json.dump(private_envs_json, f)
 
 
 def remove_private_envs_meta(pkg):
-    path_to_conda_meta = join(context.root_prefix, "conda-meta")
-    path_to_private_envs = join(path_to_conda_meta, "private_envs")
-
-    private_envs_json = get_json_content(path_to_private_envs)
+    private_envs_json = get_json_content(PRIVATE_ENVS)
     if pkg in private_envs_json.keys():
         private_envs_json.pop(pkg)
     if private_envs_json == {}:
-        rm_rf(path_to_private_envs)
+        rm_rf(PRIVATE_ENVS)
     else:
-        with open(path_to_private_envs, "w") as f:
+        with open(PRIVATE_ENVS, "w") as f:
             json.dump(private_envs_json, f)
 
 
-def create_private_pkg_entry_point(target_path, python_full_path, private_env_prefix,
-                                   app_name):
-    entry_point = private_pkg_entry_point_template % {"private_env_path": private_env_prefix,
-                                                      "app_name": app_name}
+def create_private_pkg_entry_point(target_path, python_full_path, source_full_path):
+    entry_point = private_pkg_entry_point_template % {"source_full_path": source_full_path}
     with open(target_path, "w") as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(entry_point)
-    chmod(target_path, 0o755)
+    make_executable(target_path)

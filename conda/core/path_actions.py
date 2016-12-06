@@ -10,7 +10,8 @@ from .linked_data import delete_linked_data, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..common.path import get_python_path, win_path_ok, preferred_env_to_prefix
+from ..common.path import get_python_path, win_path_ok, preferred_env_to_prefix, \
+    get_bin_directory_short_path
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
                                     create_windows_entry_point_py, make_menu,
@@ -224,7 +225,7 @@ class CreatePythonEntryPointAction(CreatePathAction):
         pass
 
     def execute(self):
-        log.trace("creating entry point %s", self.target_full_path)
+        log.trace("creating python entry point %s", self.target_full_path)
         if on_win:
             create_windows_entry_point_py(self.target_full_path, self.module, self.func)
         else:
@@ -252,11 +253,12 @@ class CreateApplicationEntryPointAction(CreatePathAction):
         pass
 
     def execute(self):
-        log.trace("creating entry point %s", self.target_full_path)
+        log.trace("creating application entry point %s", self.target_full_path)
         python_short_path = get_python_path(self.transaction_context['target_python_version'])
         python_full_path = join(self.root_preifx, win_path_ok(python_short_path))
-        create_private_pkg_entry_point(self.target_full_path, python_full_path,
-                                       self.private_env_prefix, self.app_name)
+        source_full_path = join(self.private_env_prefix, get_bin_directory_short_path(),
+                                self.app_name)
+        create_private_pkg_entry_point(self.target_full_path, python_full_path, source_full_path)
 
     def reverse(self):
         rm_rf(self.target_full_path)
