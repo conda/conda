@@ -25,7 +25,7 @@ def test_expected_operation_order():
         instructions.RM_EXTRACTED,
         instructions.RM_FETCHED,
     )
-    assert expected == instructions.action_codes
+    assert expected == instructions.ACTION_CODES
 
 
 class LoggingTestHandler(Handler):

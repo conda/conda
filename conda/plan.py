@@ -14,7 +14,6 @@ from logging import getLogger
 from os.path import abspath, basename, exists, join
 import sys
 
-from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
 from .core.linked_data import is_linked
@@ -22,11 +21,19 @@ from .core.package_cache import find_new_location, is_extracted, is_fetched
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
 from .history import History
+from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
+                           PRINT, PROGRESS, PROGRESS_COMMANDS, RM_EXTRACTED, RM_FETCHED,
+                           SYMLINK_CONDA, UNLINK, UNLINKLINKTRANSACTION, execute_instructions)
 from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
 from .resolve import MatchSpec, Package, Resolve
-from .utils import human_bytes, md5_file
+from .utils import human_bytes, md5_file, on_win
+
+try:
+    from cytoolz.itertoolz import concatv, groupby
+except ImportError:
+    from ._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -63,11 +70,11 @@ def display_actions(actions, index, show_channel_urls=None):
             return ''
         return s
 
-    if actions.get(inst.FETCH):
+    if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
 
         disp_lst = []
-        for dist in actions[inst.FETCH]:
+        for dist in actions[FETCH]:
             dist = Dist(dist)
             info = index[dist]
             extra = '%15s' % human_bytes(info['size'])
@@ -77,8 +84,8 @@ def display_actions(actions, index, show_channel_urls=None):
             disp_lst.append((dist, extra))
         print_dists(disp_lst)
 
-        if index and len(actions[inst.FETCH]) > 1:
-            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[inst.FETCH])
+        if index and len(actions[FETCH]) > 1:
+            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -89,7 +96,7 @@ def display_actions(actions, index, show_channel_urls=None):
     records = defaultdict(lambda: list((None, None)))
     linktypes = {}
 
-    for arg in actions.get(inst.LINK, []):
+    for arg in actions.get(LINK, []):
         dist = Dist(arg)
         rec = index[dist]
         pkg = rec['name']
@@ -98,7 +105,7 @@ def display_actions(actions, index, show_channel_urls=None):
         records[pkg][1] = Package(dist.to_filename(), rec)
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = rec.get('features', '')
-    for arg in actions.get(inst.UNLINK, []):
+    for arg in actions.get(UNLINK, []):
         dist = Dist(arg)
         rec = index.get(dist)
         if rec is None:
@@ -228,7 +235,7 @@ def display_actions(actions, index, show_channel_urls=None):
         for pkg in sorted(downgraded):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
-    if empty and actions.get(inst.SYMLINK_CONDA):
+    if empty and actions.get(SYMLINK_CONDA):
         print("\nThe following empty environments will be CREATED:\n")
         print(actions['PREFIX'])
 
@@ -236,7 +243,7 @@ def display_actions(actions, index, show_channel_urls=None):
 
 
 def nothing_to_do(actions):
-    for op in inst.action_codes:
+    for op in ACTION_CODES:
         if actions.get(op):
             return False
     return True
@@ -244,9 +251,9 @@ def nothing_to_do(actions):
 
 def add_unlink(actions, dist):
     assert isinstance(dist, Dist)
-    if inst.UNLINK not in actions:
-        actions[inst.UNLINK] = []
-    actions[inst.UNLINK].append(dist)
+    if UNLINK not in actions:
+        actions[UNLINK] = []
+    actions[UNLINK].append(dist)
 
 
 def add_checks(actions):
@@ -256,25 +263,84 @@ def add_checks(actions):
     suitable for linking.
 
     Args:
-        actions: a defaultdict(list) of actions that are to be performed, e.g. inst.FETCH
+        actions: a defaultdict(list) of actions that are to be performed, e.g. FETCH
 
     Returns:
         the actions dict with the appropriate checks added
     """
-    if inst.FETCH in actions:
-        actions.setdefault(inst.CHECK_FETCH, [True])
-    if inst.EXTRACT in actions:
-        actions.setdefault(inst.CHECK_EXTRACT, [True])
+    if FETCH in actions:
+        actions.setdefault(CHECK_FETCH, [True])
+    if EXTRACT in actions:
+        actions.setdefault(CHECK_EXTRACT, [True])
+
+
+def handle_menuinst(unlink_dists, link_dists):
+    if not on_win:
+        return unlink_dists, link_dists
+
+    # Always link/unlink menuinst first/last on windows in case a subsequent
+    # package tries to import it to create/remove a shortcut
+
+    # unlink
+    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
+    if menuinst_idx is not None:
+        unlink_dists = tuple(concatv(
+            unlink_dists[:menuinst_idx],
+            unlink_dists[menuinst_idx+1:],
+            unlink_dists[menuinst_idx:menuinst_idx+1],
+        ))
+
+    # link
+    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
+    if menuinst_idx is not None:
+        link_dists = tuple(concatv(
+            link_dists[menuinst_idx:menuinst_idx+1],
+            link_dists[:menuinst_idx],
+            link_dists[menuinst_idx+1:],
+        ))
+
+    return unlink_dists, link_dists
+
+
+def inject_UNLINKLINKTRANSACTION(plan):
+    # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
+    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
+    if first_unlink_link_idx >= 0:
+        grouped_instructions = groupby(lambda x: x[0], plan)
+        unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
+        link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
+        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
+        plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
+    return plan
+
+
+def inject_CHECK_FETCH(plan):
+    # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
+    first_fetch_idx = next((q for q, p in enumerate(plan) if p[0] == FETCH), -1)
+    if first_fetch_idx >= 0:
+        fetch_dists = tuple(Dist(p[1]) for p in plan if p[0] == FETCH)
+        plan.insert(first_fetch_idx, (CHECK_FETCH, fetch_dists))
+    return plan
+
+
+def inject_CHECK_EXTRACT(plan):
+    # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
+    first_extract_idx = next((q for q, p in enumerate(plan) if p[0] == EXTRACT), -1)
+    if first_extract_idx >= 0:
+        extract_dists = tuple(Dist(p[1]) for p in plan if p[0] == EXTRACT)
+        plan.insert(first_extract_idx, (CHECK_EXTRACT, extract_dists))
+    return plan
 
 
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
     else:
-        op_order = inst.action_codes
+        op_order = ACTION_CODES
 
-    assert inst.PREFIX in actions and actions[inst.PREFIX]
-    res = [('PREFIX', '%s' % actions[inst.PREFIX])]
+    assert PREFIX in actions and actions[PREFIX]
+    plan = [('PREFIX', '%s' % actions[PREFIX])]
 
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
@@ -285,16 +351,20 @@ def plan_from_actions(actions):
             log.trace("action {0} has None value".format(op))
             continue
         if '_' not in op:
-            res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
+            plan.append((PRINT, '%sing packages ...' % op.capitalize()))
         elif op.startswith('RM_'):
-            res.append((inst.PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
-        if op in inst.progress_cmds:
-            res.append((inst.PROGRESS, '%d' % len(actions[op])))
+            plan.append((PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
+        if op in PROGRESS_COMMANDS:
+            plan.append((PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
             log.debug("appending value {0} for action {1}".format(arg, op))
-            res.append((op, arg))
+            plan.append((op, arg))
 
-    return res
+    plan = inject_CHECK_FETCH(plan)
+    plan = inject_CHECK_EXTRACT(plan)
+    plan = inject_UNLINKLINKTRANSACTION(plan)
+
+    return plan
 
 
 # force_linked_actions has now been folded into this function, and is enabled by
@@ -303,10 +373,10 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
-    actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
-                           inst.RM_EXTRACTED, inst.EXTRACT,
-                           inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+    actions[PREFIX] = prefix
+    actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
+                           RM_EXTRACTED, EXTRACT,
+                           UNLINK, LINK, SYMLINK_CONDA)
 
     for dist in dists:
         fetched_in = is_fetched(dist)
@@ -318,7 +388,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             try:
                 if md5_file(fetched_in) != index[dist]['md5']:
                     # RM_FETCHED now removes the extracted data too
-                    actions[inst.RM_FETCHED].append(dist)
+                    actions[RM_FETCHED].append(dist)
                     # Re-fetch, re-extract, re-link
                     fetched_in = extracted_in = None
                     force = True
@@ -330,7 +400,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
 
         if extracted_in and force:
             # Always re-extract in the force case
-            actions[inst.RM_EXTRACTED].append(dist)
+            actions[RM_EXTRACTED].append(dist)
             extracted_in = None
 
         # Otherwise we need to extract, and possibly fetch
@@ -339,13 +409,13 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             fetched_in, conflict = find_new_location(dist)
             fetched_in = join(fetched_in, dist.to_filename())
             if conflict is not None:
-                actions[inst.RM_FETCHED].append(Dist(conflict))
-            actions[inst.FETCH].append(dist)
+                actions[RM_FETCHED].append(Dist(conflict))
+            actions[FETCH].append(dist)
 
         if not extracted_in:
-            actions[inst.EXTRACT].append(dist)
+            actions[EXTRACT].append(dist)
 
-        actions[inst.LINK].append(dist)
+        actions[LINK].append(dist)
 
     return actions
 
@@ -495,8 +565,8 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         index=index if force else None,
         force=force, always_copy=always_copy)
 
-    if actions[inst.LINK]:
-        actions[inst.SYMLINK_CONDA] = [context.root_dir]
+    if actions[LINK]:
+        actions[SYMLINK_CONDA] = [context.root_dir]
 
     for dist in sorted(linked):
         dist = Dist(dist)
@@ -505,9 +575,6 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         prune_it = prune and dist not in smh
         if replace_existing or prune_it:
             add_unlink(actions, dist)
-
-    if not force:
-        add_checks(actions)
 
     return actions
 
@@ -550,8 +617,6 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                                   "would require removing 'conda' dependencies")
         add_unlink(actions, old_dist)
 
-    add_checks(actions)
-
     return actions
 
 
@@ -560,7 +625,7 @@ def remove_features_actions(prefix, index, features):
     linked = r.installed
 
     actions = defaultdict(list)
-    actions[inst.PREFIX] = prefix
+    actions[PREFIX] = prefix
     _linked = [d + '.tar.bz2' for d in linked]
     to_link = []
     for dist in sorted(linked):
@@ -579,7 +644,6 @@ def remove_features_actions(prefix, index, features):
         dists = (Dist(d) for d in to_link)
         actions.update(ensure_linked_actions(dists, prefix))
 
-    add_checks(actions)
     return actions
 
 
@@ -611,8 +675,6 @@ def revert_actions(prefix, revision=-1, index=None):
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
-    add_checks(actions)
-
     return actions
 
 
@@ -620,8 +682,8 @@ def revert_actions(prefix, revision=-1, index=None):
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    with History(actions[inst.PREFIX]):
-        inst.execute_instructions(plan, index, verbose)
+    with History(actions[PREFIX]):
+        execute_instructions(plan, index, verbose)
 
 
 def update_old_plan(old_plan):
@@ -647,7 +709,7 @@ def execute_plan(old_plan, index=None, verbose=False):
     Deprecated: This should `conda.instructions.execute_instructions` instead
     """
     plan = update_old_plan(old_plan)
-    inst.execute_instructions(plan, index, verbose)
+    execute_instructions(plan, index, verbose)
 
 
 if __name__ == '__main__':
