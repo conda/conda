@@ -236,7 +236,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
                                                state['i'] - 1))
         cmd = _commands[instruction]
 
-        cmd(state, arg)
+        if callable(cmd):
+            cmd(state, arg)
 
         if (state['i'] is not None and instruction in PROGRESS_COMMANDS and
                 state['maxval'] == state['i']):
