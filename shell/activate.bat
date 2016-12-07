@@ -305,13 +305,7 @@
 @REM # the shortest representation of how conda recognizes your env      #
 @REM # can be an env name, or a full path [if the string contains \ it's #
 @REM # a path]                                                           #
-@IF /I NOT "%CONDA_ENVNAME:\=%"=="%CONDA_ENVNAME%" (
-	@FOR /F "delims=" %%i IN ("%CONDA_ENVNAME%") DO @SET "d=%%~dpi"
-	@FOR /F "delims=" %%i IN ("%CONDA_ENVNAME%") DO @SET "f=%%~ni"
-	@SET "CONDA_DEFAULT_ENV=!d!!f!"
-) ELSE (
-	@SET "CONDA_DEFAULT_ENV=%CONDA_ENVNAME%"
-)
+@FOR /F "delims=" %%i IN ('@CALL "conda" "..trimmedenv" "%WHAT_SHELL_AM_I%" "%CONDA_ENVNAME%"') DO @SET "CONDA_DEFAULT_ENV=%%i"
 @REM # END CONDA_DEFAULT_ENV                                             #
 @REM #####################################################################
 

@@ -262,7 +262,6 @@ if ( $status != 0 ) then
     unset FALSE
     exit 1
 endif
-unset WHAT_SHELL_AM_I
 # END CHECK ENV AND DEACTIVATE OLD ENV                                    #
 ###########################################################################
 
@@ -307,20 +306,12 @@ unset _CONDA_BIN
 # the shortest representation of how conda recognizes your env            #
 # can be an env name, or a full path (if the string contains / it's a     #
 # path)                                                                   #
-if ( `echo "${CONDA_ENVNAME}" | awk '{exit(match($0,/.*\/.*/) != 0)}'` ) then
-    set d=`dirname "${CONDA_ENVNAME}"`
-    set d=`cd "${d}" && pwd`
-    set f=`basename "${CONDA_ENVNAME}"`
-    setenv CONDA_DEFAULT_ENV "${d}/${f}"
-    unset d
-    unset f
-else
-    setenv CONDA_DEFAULT_ENV "${CONDA_ENVNAME}"
-endif
+set CONDA_DEFAULT_ENV=`conda "..trimmedenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}" | sed 's| |\ |g'`
 if ( "${IS_ENV_CONDA_ENVNAME}" == "${FALSE}" ) then
     unset CONDA_ENVNAME
 endif
 unset IS_ENV_CONDA_ENVNAME
+unset WHAT_SHELL_AM_I
 # END CONDA_DEFAULT_ENV                                                   #
 ###########################################################################
 
