@@ -7,14 +7,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
-import json
 import logging
 import os
 import re
 from difflib import get_close_matches
-from os.path import abspath, basename, exists, isdir, join, isfile
+from os.path import abspath, basename, exists, isdir, join
 
-from conda.gateways.disk.create import create_private_envs_meta, create_private_pkg_entry_point
 from conda.models.channel import prioritize_channels
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME

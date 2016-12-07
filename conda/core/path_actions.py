@@ -10,8 +10,7 @@ from .linked_data import delete_linked_data, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..common.path import get_python_path, win_path_ok, preferred_env_to_prefix, \
-    get_bin_directory_short_path
+from ..common.path import get_python_path, win_path_ok, get_bin_directory_short_path
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
                                     create_windows_entry_point_py, make_menu,
@@ -243,8 +242,8 @@ class CreateApplicationEntryPointAction(CreatePathAction):
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
                  private_env_prefix, app_name, root_prefix):
         super(CreateApplicationEntryPointAction, self).__init__(transaction_context, package_info,
-                                                           None, None,
-                                                           target_prefix, target_short_path)
+                                                                None, None, target_prefix,
+                                                                target_short_path)
         self.private_env_prefix = private_env_prefix
         self.app_name = app_name
         self.root_preifx = root_prefix

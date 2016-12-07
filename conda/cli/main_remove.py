@@ -153,10 +153,8 @@ def execute(args, parser):
         r = Resolve(index)
         prefix_spec_map = create_prefix_spec_map_with_deps(r, specs, prefix)
 
-        if (context.conda_in_root
-            and plan.is_root_prefix(prefix)
-            and names_in_specs(ROOT_NO_RM, specs)
-            and not args.force):
+        if (context.conda_in_root and plan.is_root_prefix(prefix) and names_in_specs(
+                ROOT_NO_RM, specs) and not args.force):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
         actions = []

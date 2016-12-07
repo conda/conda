@@ -20,7 +20,7 @@ from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.context import context
-from ...common.path import win_path_ok, is_private_env, prefix_to_env_name
+from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
 from ...models.dist import Dist
 from ...models.enums import LinkType
