@@ -75,3 +75,4 @@ class Record(DictSafeMixin, ImmutableEntity):
     link = ComposableField(Link, required=False)
 
     with_features_depends = MapField(required=False)
+    preferred_env = StringField(default=None, required=False, nullable=True)

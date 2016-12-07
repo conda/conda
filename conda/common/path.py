@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 import os
-from os.path import join, split, splitext
+from os.path import join, split, splitext, dirname, basename
 
 from .compat import string_types
 from ..utils import on_win
@@ -85,7 +85,7 @@ def get_python_path(version=None):
         return "python.exe"
     if version and '.' not in version:
         version = '.'.join(version)
-    return join("bin", "python%s" % version or '')
+    return join("bin", "python%s" % (version or ''))
 
 
 def get_python_site_packages_short_path(python_version):
@@ -123,6 +123,42 @@ def win_path_ok(path):
 
 def win_path_double_escape(path):
     return path.replace('\\', '\\\\') if on_win else path
+
+
+def ensure_pad(name, pad="_"):
+    return "%s%s%s" % (pad, name.strip(pad), pad)
+
+
+def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
+    if preferred_env is None:
+        return root_dir
+    else:
+        return join(envs_dirs[0], ensure_pad(preferred_env, '_'))
+
+
+def prefix_to_env_name(prefix, root_prefix):
+    if prefix == root_prefix:
+        return None
+    split_env = prefix.split("/")
+    return split_env[-1]
+
+
+def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
+    # type (str, str) -> bool
+    if preferred_env is None:
+        return True
+    prefix_dir = dirname(prefix)
+    if prefix_dir != join(root_dir, 'envs'):
+        return False
+    prefix_name = basename(prefix)
+    padded_preferred_env = ensure_pad(preferred_env)
+    return prefix_name == padded_preferred_env
+
+
+def is_private_env(env):
+    if env is not None and env.startswith("_") and env.endswith("_"):
+        return True
+    return False
 
 
 def win_path_backout(path):

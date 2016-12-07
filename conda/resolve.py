@@ -208,7 +208,7 @@ class Resolve(object):
     def __init__(self, index, sort=False, processed=False):
         assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, Record)
         assert all(assertion(d, r) for d, r in iteritems(index))
-        self.index = index = {dist: record for dist, record in iteritems(index)}
+        self.index = index = index.copy()
         if not processed:
             for dist, info in iteritems(index.copy()):
                 if dist.with_features_depends:
@@ -223,16 +223,13 @@ class Resolve(object):
 
         groups = {}
         trackers = {}
-        installed = set()
+
         for dist, info in iteritems(index):
             groups.setdefault(info['name'], []).append(dist)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(dist)
-            if 'link' in info and not dist.with_features_depends:
-                installed.add(dist)
 
         self.groups = groups  # Dict[package_name, List[Dist]]
-        self.installed = installed  # Set[Dist]
         self.trackers = trackers  # Dict[track_feature, List[Dist]]
         self.find_matches_ = {}  # Dict[MatchSpec, List[Dist]]
         self.ms_depends_ = {}  # Dict[Dist, List[MatchSpec]]
@@ -240,6 +237,15 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
+
+    @property
+    def installed(self):
+        # type: () -> Set[Dist]
+        installed = set()
+        for dist, info in iteritems(self.index):
+            if 'link' in info and not dist.with_features_depends:
+                installed.add(dist)
+        return installed
 
     def add_feature(self, feature_name, group=True):
         feature_dist = Dist(feature_name + '@')
@@ -880,6 +886,7 @@ class Resolve(object):
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
+        # type: (List[str], Option[?], bool, bool) -> List[Dist]
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall)
         self.restore_bad(pkgs, preserve)
@@ -912,6 +919,7 @@ class Resolve(object):
         return pkgs
 
     def solve(self, specs, returnall=False):
+        # type: (List[str], bool) -> List[Dist]
         try:
             stdoutlog.info("Solving package specifications: ")
             log.debug("Solving for %s", specs)

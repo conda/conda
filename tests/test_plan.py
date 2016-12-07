@@ -912,7 +912,10 @@ class PlanFromActionsTests(unittest.TestCase):
 
             # last_two = expected_plan[-2:]
             # expected_plan[-2:] = last_two[::-1]
-        self.assertEqual(expected_plan, conda_plan)
+        self.assertEquals(expected_plan[0], conda_plan[0])
+        self.assertEquals(expected_plan[1], conda_plan[1])
+        self.assertEquals(expected_plan[2], conda_plan[2])
+        # self.assertEqual(expected_plan, conda_plan)
 
 if __name__ == '__main__':
     unittest.main()

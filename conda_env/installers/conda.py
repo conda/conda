@@ -5,6 +5,7 @@ from conda import plan
 from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
 from conda.api import get_index
 from conda.common.compat import text_type
+from conda.models.channel import prioritize_channels
 
 
 def install(prefix, specs, args, env, prune=False):
@@ -26,15 +27,18 @@ def install(prefix, specs, args, env, prune=False):
     index = get_index(channel_urls=channel_urls,
                       prepend='nodefaults' not in env.channels,
                       prefix=prefix)
-    actions = plan.install_actions(prefix, index, specs, prune=prune)
+    _channel_priority_map = prioritize_channels(channel_urls)
+    action_set = plan.install_actions(prefix, index, specs, prune=prune,
+                                      channel_priority_map=_channel_priority_map)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
-        try:
-            plan.execute_actions(actions, index, verbose=not args.quiet)
-        except RuntimeError as e:
-            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked: %s' % text_type(e))
-            else:
-                raise CondaRuntimeError('RuntimeError: %s' % e)
-        except SystemExit as e:
-            raise CondaSystemExit('Exiting', e)
+        for actions in action_set:
+            try:
+                plan.execute_actions(actions, index, verbose=not args.quiet)
+            except RuntimeError as e:
+                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                    raise LockError('Already locked: %s' % text_type(e))
+                else:
+                    raise CondaRuntimeError('RuntimeError: %s' % e)
+            except SystemExit as e:
+                raise CondaSystemExit('Exiting', e)

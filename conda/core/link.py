@@ -16,14 +16,16 @@ from .package_cache import is_extracted
 from .path_actions import (CompilePycAction, CreateCondaMetaAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            PrefixReplaceLinkAction, RemoveCondaMetaAction, RemoveMenuAction,
-                           UnlinkPathAction)
+                           UnlinkPathAction, CreateApplicationEntryPointAction,
+                           CreatePrivateEnvMetaAction, RemovePrivateEnvMetaAction)
 from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import string_types
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_leaf_directories, get_major_minor_version,
-                           get_python_site_packages_short_path, parse_entry_point_def, pyc_path)
+                           get_python_site_packages_short_path, parse_entry_point_def, pyc_path,
+                           preferred_env_to_prefix)
 from ..exceptions import CondaUpgradeError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, isfile
@@ -139,6 +141,12 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         return CreatePythonEntryPointAction(transaction_context, package_info,
                                             target_prefix, target_short_path, module, func)
 
+    def make_application_entry_point_action(private_env_prefix, app):
+        target_short_path = "%s/%s" % (get_bin_directory_short_path(), app)
+        return CreateApplicationEntryPointAction(transaction_context, package_info,
+                                                 context.root_prefix, target_short_path,
+                                                 private_env_prefix, app, context.root_prefix)
+
     def make_entry_point_windows_executable_action(entry_point_def):
         source_directory = CONDA_PACKAGE_ROOT
         source_short_path = 'resources/cli-%d.exe' % context.bits
@@ -186,6 +194,18 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         python_entry_point_actions = ()
         pyc_compile_actions = ()
 
+    if package_info.repodata_record.preferred_env is not None:
+        preferred_env_prefix = preferred_env_to_prefix(package_info.repodata_record.preferred_env,
+                                                       context.root_prefix, context.envs_dirs)
+        application_entry_point_action = (make_application_entry_point_action(
+            preferred_env_prefix, package_info.repodata_record.name),)
+
+        private_envs_meta_action = CreatePrivateEnvMetaAction(transaction_context,
+                                                              package_info, target_prefix),
+    else:
+        application_entry_point_action = ()
+        private_envs_meta_action = ()
+
     all_target_short_paths = tuple(axn.target_short_path for axn in
                                    concatv(file_link_actions,
                                            python_entry_point_actions,
@@ -193,7 +213,8 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
 
     return tuple(concatv(directory_create_actions, file_link_actions, python_entry_point_actions,
-                         pyc_compile_actions,  menu_create_actions, meta_create_actions))
+                         pyc_compile_actions,  menu_create_actions, application_entry_point_action,
+                         private_envs_meta_action, meta_create_actions))
 
 
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
@@ -218,8 +239,20 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
     directory_remove_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
+
+    if linked_package_data.preferred_env is not None:
+        app_entry_point_short_path = os.path.join(get_bin_directory_short_path(),
+                                                  linked_package_data.name)
+        unlink_app_entry_point = UnlinkPathAction(transaction_context, linked_package_data,
+                                                  context.root_prefix, app_entry_point_short_path),
+        unlink_path_actions = unlink_path_actions + unlink_app_entry_point
+        private_envs_meta_action = RemovePrivateEnvMetaAction(
+            transaction_context, linked_package_data, target_prefix),
+    else:
+        private_envs_meta_action = ()
+
     return tuple(concatv(remove_conda_meta_actions, remove_menu_actions, unlink_path_actions,
-                         directory_remove_actions))
+                         directory_remove_actions, private_envs_meta_action))
 
 
 class UnlinkLinkTransaction(object):

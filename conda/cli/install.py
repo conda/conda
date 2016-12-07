@@ -9,9 +9,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import errno
 import logging
 import os
+import re
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
+from conda.models.channel import prioritize_channels
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
@@ -26,8 +28,8 @@ from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFound
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
-from ..plan import (add_defaults_to_specs, display_actions, execute_actions, get_pinned_specs,
-                    install_actions, is_root_prefix, nothing_to_do, revert_actions)
+from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions,
+                    is_root_prefix, nothing_to_do, revert_actions)
 from ..resolve import Resolve
 from ..utils import on_win
 
@@ -138,7 +140,7 @@ def install(args, parser, command='install'):
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in linked_names:
+            if name not in linked_names and common.prefix_if_in_private_env(name) is None:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
 
@@ -204,19 +206,23 @@ def install(args, parser, command='install'):
             print(print_activate(args.name if args.name else prefix))
         return
 
-    index = get_index(channel_urls=index_args['channel_urls'], prepend=index_args['prepend'],
-                      platform=None, use_local=index_args['use_local'],
-                      use_cache=index_args['use_cache'], unknown=index_args['unknown'],
-                      prefix=prefix)
+    index = get_index(channel_urls=index_args['channel_urls'],
+                      prepend=index_args['prepend'], platform=None,
+                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
+                      unknown=index_args['unknown'], prefix=prefix)
     r = Resolve(index)
     ospecs = list(specs)
-    add_defaults_to_specs(r, linked_dists, specs, update=isupdate)
 
     # Don't update packages that are already up-to-date
     if isupdate and not (args.all or args.force):
         orig_packages = args.packages[:]
         installed_metadata = [is_linked(prefix, dist) for dist in linked_dists]
         for name in orig_packages:
+            private_env = common.prefix_if_in_private_env(name)
+            if private_env is not None:
+                linked_dists = install_linked(private_env)
+                installed_metadata = [is_linked(private_env, dist) for dist in linked_dists]
+
             vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
             build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
             channel_inst = [m['channel'] for m in installed_metadata if m['name'] == name]
@@ -266,16 +272,15 @@ def install(args, parser, command='install'):
 
     try:
         if isinstall and args.revision:
-            actions = revert_actions(prefix, get_revision(args.revision), index)
+            action_set = [revert_actions(prefix, get_revision(args.revision), index)]
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
-                actions = install_actions(prefix, index, specs,
-                                          force=args.force,
-                                          only_names=only_names,
-                                          pinned=args.pinned,
-                                          always_copy=context.always_copy,
-                                          minimal_hint=args.alt_hint,
-                                          update_deps=context.update_dependencies)
+                _channel_priority_map = prioritize_channels(index_args['channel_urls'])
+                action_set = install_actions(
+                    prefix, index, specs, force=args.force, only_names=only_names,
+                    pinned=args.pinned, always_copy=context.always_copy,
+                    minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
+                    channel_priority_map=_channel_priority_map, is_update=isupdate)
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
@@ -339,63 +344,72 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
 
-    if nothing_to_do(actions) and not newenv:
-        from .main_list import print_packages
-
-        if not context.json:
-            regex = '^(%s)$' % '|'.join(s.split()[0] for s in ospecs)
-            print('\n# All requested packages already installed.')
-            print_packages(prefix, regex)
-        else:
-            common.stdout_json_success(
-                message='All requested packages already installed.')
-        return
-    elif newenv:
-        # needed in the case of creating an empty env
-        from ..instructions import LINK, UNLINK, SYMLINK_CONDA
-        if not actions[LINK] and not actions[UNLINK]:
-            actions[SYMLINK_CONDA] = [context.root_dir]
-
     if not context.json:
-        print()
-        print("Package plan for installation in environment %s:" % prefix)
-        display_actions(actions, index, show_channel_urls=context.show_channel_urls)
+        if any(nothing_to_do(actions) for actions in action_set) and not newenv:
+            from .main_list import print_packages
 
-    if command in {'install', 'update'}:
-        check_write(command, prefix)
+            if not context.json:
+                spec_regex = r'^(%s)$' % re.escape('|'.join(s.split()[0] for s in ospecs))
+                print('\n# All requested packages already installed.')
+                for action in action_set:
+                    print_packages(action["PREFIX"], spec_regex)
+            else:
+                common.stdout_json_success(
+                    message='All requested packages already installed.')
+            return
 
-    if not context.json:
+        for actions in action_set:
+            print()
+            print("Package plan for installation in environment %s:" % actions["PREFIX"])
+            display_actions(actions, index, show_channel_urls=context.show_channel_urls)
         common.confirm_yn(args)
+
     elif args.dry_run:
-        common.stdout_json_success(actions=actions, dry_run=True)
+        common.stdout_json_success(actions=action_set, dry_run=True)
         raise DryRunExit()
 
-    with common.json_progress_bars(json=context.json and not context.quiet):
-        try:
-            execute_actions(actions, index, verbose=not context.quiet)
-            if not (command == 'update' and args.all):
-                try:
-                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                        f.write('# %s specs: %s\n' % (command, ','.join(specs)))
-                except IOError as e:
-                    if e.errno == errno.EACCES:
-                        log.debug("Can't write the history file")
-                    else:
-                        raise CondaIOError("Can't write the history file", e)
+    for actions in action_set:
+        if newenv:
+            # needed in the case of creating an empty env
+            from ..instructions import LINK, UNLINK, SYMLINK_CONDA
+            if not actions[LINK] and not actions[UNLINK]:
+                actions[SYMLINK_CONDA] = [context.root_dir]
 
-        except RuntimeError as e:
-            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked: %s' % text_type(e))
-            else:
-                raise CondaRuntimeError('RuntimeError: %s' % e)
-        except SystemExit as e:
-            raise CondaSystemExit('Exiting', e)
+        if command in {'install', 'update'}:
+            check_write(command, prefix)
 
-    if newenv:
-        append_env(prefix)
-        touch_nonadmin(prefix)
-        if not context.json:
-            print(print_activate(args.name if args.name else prefix))
+        # if not context.json:
+        #     common.confirm_yn(args)
+        # elif args.dry_run:
+        #     common.stdout_json_success(actions=actions, dry_run=True)
+        #     raise DryRunExit()
 
-    if context.json:
-        common.stdout_json_success(actions=actions)
+        with common.json_progress_bars(json=context.json and not context.quiet):
+            try:
+                execute_actions(actions, index, verbose=not context.quiet)
+                if not (command == 'update' and args.all):
+                    try:
+                        with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                            f.write('# %s specs: %s\n' % (command, ','.join(specs)))
+                    except IOError as e:
+                        if e.errno == errno.EACCES:
+                            log.debug("Can't write the history file")
+                        else:
+                            raise CondaIOError("Can't write the history file", e)
+
+            except RuntimeError as e:
+                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                    raise LockError('Already locked: %s' % text_type(e))
+                else:
+                    raise CondaRuntimeError('RuntimeError: %s' % e)
+            except SystemExit as e:
+                raise CondaSystemExit('Exiting', e)
+
+        if newenv:
+            append_env(prefix)
+            touch_nonadmin(prefix)
+            if not context.json:
+                print(print_activate(args.name if args.name else prefix))
+
+        if context.json:
+            common.stdout_json_success(actions=actions)

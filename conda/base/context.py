@@ -69,7 +69,7 @@ class Context(Configuration):
     use_pip = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
 
-    _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
+    _root_dir = PrimitiveParameter("", aliases=('root_dir',))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
@@ -217,7 +217,7 @@ class Context(Configuration):
     def root_dir(self):
         # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
         # because it is more consistent with other names
-        return abspath(expanduser(self._root_dir))
+        return self.root_prefix
 
     @property
     def root_writable(self):
@@ -276,7 +276,10 @@ class Context(Configuration):
 
     @property
     def root_prefix(self):
-        return abspath(join(sys.prefix, '..', '..')) if conda_in_private_env() else sys.prefix
+        if self._root_dir:
+            return abspath(expanduser(self._root_dir))
+        else:
+            return abspath(join(sys.prefix, '..', '..')) if conda_in_private_env() else sys.prefix
 
     @property
     def conda_prefix(self):
@@ -294,6 +297,11 @@ class Context(Configuration):
         return tuple(Channel(scheme=scheme, auth=auth, location=location, token=token)
                      for location, scheme, auth, token in
                      (split_scheme_auth_token(c) for c in self._migrated_channel_aliases))
+
+    @property
+    def prefix_specified(self):
+        return (self._argparse_args.get("prefix") is not None and
+                self._argparse_args.get("name") is not None)
 
     @memoizedproperty
     def default_channels(self):
@@ -335,8 +343,8 @@ class Context(Configuration):
 
 
 def conda_in_private_env():
-    # conda is located in its own private environment named '_conda'
-    return basename(sys.prefix) == '_conda' and basename(dirname(sys.prefix)) == 'envs'
+    # conda is located in its own private environment named '_conda_'
+    return basename(sys.prefix) == '_conda_' and basename(dirname(sys.prefix)) == 'envs'
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
