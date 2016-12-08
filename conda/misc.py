@@ -17,7 +17,7 @@ from .common.compat import iteritems, itervalues
 from .common.url import is_url, path_to_url
 from .core.index import get_index
 from .core.linked_data import is_linked, linked as install_linked, linked_data
-from .core.package_cache import cached_url, find_new_location, is_extracted, is_fetched
+# from .core.package_cache import cached_url, find_new_location, is_extracted, is_fetched
 from .exceptions import (CondaFileNotFoundError, CondaRuntimeError, MD5MismatchError,
                          PackageNotFoundError, ParseError)
 from .gateways.disk.delete import rm_rf
@@ -76,6 +76,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # is_local: if the tarball is stored locally (file://)
         # is_cache: if the tarball is sitting in our cache
         is_local = not is_url(url) or url.startswith('file://')
+        import pdb; pdb.set_trace()
         url_prefix = cached_url(url) if is_local else None
         is_cache = url_prefix is not None
         if is_cache:

@@ -22,6 +22,7 @@ log = getLogger(__name__)
 # Therefore, we have implemented a full internal cache of this
 # data to eliminate redundant file reads.
 linked_data_ = {}
+# type: Dict[Dist, Record]
 
 
 def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
