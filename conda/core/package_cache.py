@@ -286,10 +286,6 @@ def rm_extracted(dist):
     raise NotImplementedError()
 
 
-def extract(package_tarball_full_path):
-    raise NotImplementedError()
-
-
 def extract(dist):
     """
     Extract a package, i.e. make a package available for linkage. We assume

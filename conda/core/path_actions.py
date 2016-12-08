@@ -315,7 +315,8 @@ class CreatePrivateEnvMetaAction(CreatePrefixPathAction):
     def execute(self):
         log.trace("creating entry in conda-meta/private_envs for %s",
                   self.package_info.repodata_record.name)
-        create_private_envs_meta(self.package_info.repodata_record.name, self.target_prefix)
+        create_private_envs_meta(self.package_info.repodata_record.name, context.root_prefix,
+                                 self.target_prefix)
 
     def reverse(self):
         remove_private_envs_meta(self.package_info.repodata_record.name)
@@ -419,7 +420,8 @@ class RemovePrivateEnvMetaAction(UnlinkPathAction):
         remove_private_envs_meta(self.linked_package_data.name)
 
     def reverse(self):
-        create_private_envs_meta(self.linked_package_data.name, self.target_prefix)
+        create_private_envs_meta(self.linked_package_data.name, context.root_prefix,
+                                 self.target_prefix)
 
 
 # ######################################################
@@ -455,8 +457,8 @@ class CacheUrlAction(PathAction):
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(url_to_path(self.url), self.target_full_path)
                 source_package_cache = PackageCache(dirname(source_path))
-                url_for_package = source_package_cache.urls_data.get_url(self.target_package_basename)
-                target_package_cache.urls_data.add_url(url_for_package)
+                actual_url = source_package_cache.urls_data.get_url(self.target_package_basename)
+                target_package_cache.urls_data.add_url(actual_url)
             else:
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy)

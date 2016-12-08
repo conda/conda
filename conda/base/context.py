@@ -221,7 +221,7 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from conda.gateways.disk.test import try_write
+        from ..gateways.disk.test import try_write
         return try_write(self.root_dir)
 
     @property

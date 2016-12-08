@@ -15,13 +15,12 @@ import sys
 import tarfile
 import traceback
 
-from conda.base.constants import PRIVATE_ENVS
-from conda.gateways.disk.permissions import make_executable
 from .delete import rm_rf
+from .permissions import make_executable
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
-from ...base.context import context
+from ...base.constants import PRIVATE_ENVS
 from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
 from ...models.dist import Dist
@@ -243,15 +242,15 @@ def get_json_content(path_to_json):
     return json_content
 
 
-def create_private_envs_meta(pkg, prefix):
-    # type: (str, str -> ())
-    path_to_conda_meta = join(context.root_prefix, "conda-meta")
+def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
+    # type: (str, str, str) -> ()
+    path_to_conda_meta = join(root_prefix, "conda-meta")
 
     if not isdir(path_to_conda_meta):
         mkdir_p(path_to_conda_meta)
 
     private_envs_json = get_json_content(PRIVATE_ENVS)
-    private_envs_json[pkg] = prefix
+    private_envs_json[pkg] = private_env_prefix
     with open(PRIVATE_ENVS, "w") as f:
         json.dump(private_envs_json, f)
 

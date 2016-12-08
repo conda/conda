@@ -20,7 +20,7 @@ from .base.context import context
 from .cli.common import prefix_if_in_private_env
 from .common.compat import itervalues
 from .common.path import (is_private_env, preferred_env_matches_prefix,
-                               preferred_env_to_prefix, prefix_to_env_name)
+                          preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
 from .core.linked_data import linked_data
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,

@@ -65,7 +65,8 @@ def download(url, target_full_path, md5sum):
 
             content_length = int(resp.headers.get('Content-Length'))
 
-            getLogger('fetch.start').info((target_full_path.rsplit('/', 1)[1][:14], content_length))
+            getLogger('fetch.start').info((target_full_path.rsplit('/', 1)[1][:14],
+                                           content_length))
 
             digest_builder = hashlib.new('md5')
             try:
@@ -95,7 +96,8 @@ def download(url, target_full_path, md5sum):
                       downloaded bytes: %(downloaded_bytes)d
                     """)
                     raise CondaError(message, url=url, target_path=target_full_path,
-                                     content_length=content_length, downloaded_bytes = streamed_bytes)
+                                     content_length=content_length,
+                                     downloaded_bytes=streamed_bytes)
 
             except (IOError, OSError) as e:
                 if e.errno == 104:
