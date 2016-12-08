@@ -934,17 +934,25 @@ def generate_mocked_package(preferred_env, name, schannel, version):
 
 
 def generate_mocked_resolve(matched_pkgs, index):
-    mock_resolve = namedtuple("Resolve", ["get_pkgs", "index"])
+    mock_resolve = namedtuple("Resolve", ["get_pkgs", "index", "explicit"])
 
     def get_pkgs(spec):
         return matched_pkgs[spec.name]
 
-    return mock_resolve(get_pkgs=get_pkgs, index=index)
+    def get_explicit(spec):
+        return True
+
+    return mock_resolve(get_pkgs=get_pkgs, index=index, explicit=get_explicit)
 
 
 def generate_mocked_record(dist_name):
     mocked_record = namedtuple("Record", ["dist_name"])
     return mocked_record(dist_name=dist_name)
+
+
+def generate_mocked_context(prefix, root_dir, envs_dirs):
+    mocked_context = namedtuple("Context", ["prefix", "root_dir", "envs_dirs"])
+    return mocked_context(prefix=prefix, root_dir=root_dir, envs_dirs=envs_dirs)
 
 
 class TestDetermineAllEnvs(unittest.TestCase):
@@ -1020,6 +1028,80 @@ class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
         dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test2"),
                          plan.SpecForEnv(env=None, spec="test3")]
         plan.ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, self.linked_in_root)
+
+
+# Includes testing for determine_dists_per_prefix and match_to_original_specs
+class TestGroupDistsForPrefix(unittest.TestCase):
+    def setUp(self):
+        pkgs = {
+            "test-spec": [generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [generate_mocked_package(None, "test-spec2", "defaults", "1")],
+            "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
+        }
+        self.index = {
+            Dist(dist_name="test-spec", channel="defaults"):
+                generate_mocked_package(None, "test-spec", "default", "1"),
+            Dist(dist_name="test-spec", channel="rando_chnl"):
+                generate_mocked_package("ranenv", "test-spec", "default", "5"),
+            Dist(dist_name="test-spec2", channel="defaults"):
+                generate_mocked_package("test1", "test-spec2", "default", "1")
+        }
+        self.res = generate_mocked_resolve(pkgs, self.index)
+        self.specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
+        self.context = generate_mocked_context(
+            "some/prefix", "some/prefix", ["some/prefix/envs", "some/prefix/envs/_pre_"])
+
+    def test_not_requires_private_env(self):
+        with patch.object(plan, "not_requires_private_env") as not_requires:
+            not_requires.return_value = True
+            dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
+                              plan.SpecForEnv(env=None, spec="test-spec2")]
+            specs_for_prefix = plan.determine_dists_per_prefix(
+                self.res, "some/envs/prefix", self.index, "prefix", dists_for_envs, self.context)
+        expected_output = [plan.SpecsForPrefix(
+            prefix="some/envs/prefix", r=self.res, specs={"test-spec", "test-spec2"})]
+        self.assertEquals(specs_for_prefix, expected_output)
+
+    @patch.object(plan, "not_requires_private_env", return_value=False)
+    def test_determine_dists_per_prefix(self, not_requires):
+        with patch.object(plan, "get_resolve_object") as gen_resolve_object_mock:
+            gen_resolve_object_mock.return_value = generate_mocked_resolve(None, self.index)
+            dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
+                              plan.SpecForEnv(env=None, spec="test-spec2"),
+                              plan.SpecForEnv(env="ranenv", spec="test")]
+            specs_for_prefix = plan.determine_dists_per_prefix(
+                self.res, "some/prefix", self.index, ["ranenv", None], dists_for_envs, self.context)
+            expected_output = [
+                plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
+                                    r=gen_resolve_object_mock(),
+                                    specs={"test"}),
+                plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
+                                    specs={"test-spec", "test-spec2"})
+            ]
+        self.assertEquals(expected_output, specs_for_prefix)
+
+    def test_match_to_original_specs(self):
+        str_specs = ["test 1.2.0", "test-spec 1.1*", "test-spec2 <4.3"]
+        test_r = generate_mocked_resolve(None, self.index)
+        grouped_specs = [
+            plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
+                                r=test_r,
+                                specs={"test"}),
+            plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
+                                specs={"test-spec", "test-spec2"})]
+        matched = plan.match_to_original_specs(str_specs, grouped_specs)
+        expected_output = [
+            plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
+                                r=test_r,
+                                specs=["test 1.2.0"]),
+            plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
+                                specs=["test-spec2 <4.3", "test-spec 1.1*"])]
+
+        self.assertEquals(matched, expected_output)
+
 
 if __name__ == '__main__':
     unittest.main()

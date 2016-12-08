@@ -463,7 +463,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     # Group specs by prefix
     grouped_specs = determine_dists_per_prefix(r, prefix, index, preferred_envs,
-                                               dists_for_envs)
+                                               dists_for_envs, context)
 
     # Replace SpecsForPrefix specs with specs that were passed in in order to retain
     #   version information
@@ -575,7 +575,10 @@ def not_requires_private_env(prefix, preferred_envs):
     return False
 
 
-def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs):
+def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs, context):
+    # type: (Resolve, string, List[(Dist, Record)], Set[String], List[SpecForEnv]) ->
+    #   (List[pecsForPrefix])
+
     # if len(preferred_envs) == 1 and preferred_env matches prefix
     #    solution is good
     # if len(preferred_envs) == 1 and preferred_env is None
@@ -614,13 +617,13 @@ def match_to_original_specs(str_specs, specs_for_prefix):
         linked = linked_data(prefix_with_dists.prefix)
         r = prefix_with_dists.r
         new_matches = []
-        for d in prefix_with_dists.specs:
-            matched = matches_any_spec(d)
+        for spec in prefix_with_dists.specs:
+            matched = matches_any_spec(spec)
             if matched:
                 new_matches.append(matched)
         add_defaults_to_specs(r, linked, new_matches)
         matched_specs_for_prefix.append(SpecsForPrefix(
-            prefix=prefix_with_dists.prefix, r=r, specs=new_matches))
+            prefix=prefix_with_dists.prefix, r=prefix_with_dists.r, specs=new_matches))
     return matched_specs_for_prefix
 
 
