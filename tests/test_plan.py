@@ -1,5 +1,6 @@
 import os
 
+from conda.exceptions import PackageNotFoundError
 from conda.models.channel import prioritize_channels
 from conda.models.enums import LinkType
 from conda.models.dist import Dist
@@ -920,66 +921,63 @@ class PlanFromActionsTests(unittest.TestCase):
         # self.assertEqual(expected_plan, conda_plan)
 
 
-class TestInstallActions(unittest.TestCase):
-    def generate_mocked_package(self, preferred_env, name, schannel, version):
-        MockPackage = namedtuple("Package", ["preferred_env", "name", "schannel", "version", "fn"])
-        return MockPackage(preferred_env=preferred_env, name=name, schannel=schannel,
-                           version=version, fn=name)
+def generate_mocked_package(preferred_env, name, schannel, version):
+    mock_package = namedtuple("Package", ["preferred_env", "name", "schannel", "version", "fn"])
+    return mock_package(preferred_env=preferred_env, name=name, schannel=schannel,
+                       version=version, fn=name)
 
-    def generate_mocked_resolve(self, matched_pkgs, index=None):
-        MockResolve = namedtuple("Resolve", ["get_pkgs", "index"])
 
-        def get_pkgs(spec):
-            return matched_pkgs[spec.name]
+def generate_mocked_resolve(matched_pkgs, index):
+    mock_resolve = namedtuple("Resolve", ["get_pkgs", "index"])
 
-        if index is None:
-            index = {
-                Dist(dist_name="test-spec", channel="defaults"):
-                    self.generate_mocked_package(None, "test-spec", "default", "1"),
-                Dist(dist_name="test-spec", channel="rando_chnl"):
-                    self.generate_mocked_package("ranenv", "test-spec", "default", "5"),
-                Dist(dist_name="test-spec2", channel="defaults"):
-                    self.generate_mocked_package("test1", "test-spec2", "default", "1")
-            }
+    def get_pkgs(spec):
+        return matched_pkgs[spec.name]
 
-        return MockResolve(get_pkgs=get_pkgs, index=index)
+    return mock_resolve(get_pkgs=get_pkgs, index=index)
 
-    def generate_channel_priority_map(self, channels):
-        return prioritize_channels(channels)
+
+class TestDetermineAllEnvs(unittest.TestCase):
+    def setUp(self):
+        pkgs = {
+            "test-spec": [generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [generate_mocked_package(None, "test-spec2", "defaults", "1")],
+            "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
+        }
+        index = {
+            Dist(dist_name="test-spec", channel="defaults"):
+                generate_mocked_package(None, "test-spec", "default", "1"),
+            Dist(dist_name="test-spec", channel="rando_chnl"):
+                generate_mocked_package("ranenv", "test-spec", "default", "5"),
+            Dist(dist_name="test-spec2", channel="defaults"):
+                generate_mocked_package("test1", "test-spec2", "default", "1")
+        }
+        self.res = generate_mocked_resolve(pkgs, index)
+        self.specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
 
     def test_determine_all_envs(self):
-        pkgs = {
-            "test-spec": [self.generate_mocked_package("test1", "test-spec", "defaults", "1"),
-                          self.generate_mocked_package(None, "test-spec", "defaults", "3"),
-                          self.generate_mocked_package(None, "test-spec", "defaults", "2"),
-                          self.generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
-            "test-spec2": [self.generate_mocked_package(None, "test-spec2", "defaults", "1")]
-        }
-        res = self.generate_mocked_resolve(pkgs)
-        specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
-        specs_for_envs = plan.determine_all_envs(res, specs)
-
+        specs_for_envs = plan.determine_all_envs(self.res, self.specs)
         expected_output = [plan.SpecForEnv(env=None, spec="test-spec"),
                            plan.SpecForEnv(env="test1", spec="test-spec2")]
         self.assertEquals(specs_for_envs, expected_output)
 
-    def test_determin_all_envs_with_channel_priority(self):
-        pkgs = {
-            "test-spec": [self.generate_mocked_package("test1", "test-spec", "defaults", "1"),
-                          self.generate_mocked_package(None, "test-spec", "defaults", "3"),
-                          self.generate_mocked_package(None, "test-spec", "defaults", "2"),
-                          self.generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
-            "test-spec2": [self.generate_mocked_package(None, "test-spec2", "defaults", "1")]
-        }
-        res = self.generate_mocked_resolve(pkgs)
-        specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
-        prioritized_channel_map = self.generate_channel_priority_map(
-            tuple(["rando_chnl", "defaults"]))
+    def test_determine_all_envs_with_channel_priority(self):
+        prioritized_channel_map = prioritize_channels(tuple(["rando_chnl", "defaults"]))
         specs_for_envs_w_channel_priority = plan.determine_all_envs(
-            res, specs, prioritized_channel_map)
+            self.res, self.specs, prioritized_channel_map)
         expected_output = [plan.SpecForEnv(env="ranenv", spec="test-spec"),
                            plan.SpecForEnv(env="test1", spec="test-spec2")]
         self.assertEquals(specs_for_envs_w_channel_priority, expected_output)
+
+    def test_determine_all_envs_no_package(self):
+        specs = [MatchSpec("no-exist")]
+        with pytest.raises(PackageNotFoundError) as err:
+            plan.determine_all_envs(self.res, specs)
+            import pdb; pdb.set_trace()
+            assert "no-exist package not found" in str(err)
+
 
 if __name__ == '__main__':
     unittest.main()
