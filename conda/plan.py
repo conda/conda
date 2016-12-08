@@ -14,6 +14,7 @@ from logging import getLogger
 from os.path import abspath, basename, exists, join
 import sys
 
+from conda.cli import common
 from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
@@ -553,9 +554,10 @@ def determine_all_envs(r, specs, channel_priority_map=None):
 
 
 def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root):
+    # type: List[DistForEnv], List[(Dist, Record)] -> ()
     for dist_env in dists_for_envs:
         # If trying to install a package in root that is already in a private env
-        if dist_env.env is None and prefix_if_in_private_env(dist_env.spec) is not None:
+        if dist_env.env is None and common.prefix_if_in_private_env(dist_env.spec) is not None:
             raise InstallError("Package %s is already installed in a private env %s" %
                                (dist_env.spec, dist_env.env))
         # If trying to install a package in a private env that is already in root

@@ -1,6 +1,7 @@
 import os
 
-from conda.exceptions import PackageNotFoundError
+from conda.cli import common
+from conda.exceptions import PackageNotFoundError, InstallError
 from conda.models.channel import prioritize_channels
 from conda.models.enums import LinkType
 from conda.models.dist import Dist
@@ -30,6 +31,11 @@ from conda import CondaError
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = {Dist(k): Record(**v) for k, v in iteritems(json.load(fi))}
@@ -936,6 +942,11 @@ def generate_mocked_resolve(matched_pkgs, index):
     return mock_resolve(get_pkgs=get_pkgs, index=index)
 
 
+def generate_mocked_record(dist_name):
+    mocked_record = namedtuple("Record", ["dist_name"])
+    return mocked_record(dist_name=dist_name)
+
+
 class TestDetermineAllEnvs(unittest.TestCase):
     def setUp(self):
         pkgs = {
@@ -978,6 +989,37 @@ class TestDetermineAllEnvs(unittest.TestCase):
             import pdb; pdb.set_trace()
             assert "no-exist package not found" in str(err)
 
+
+class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
+    def setUp(self):
+        self.linked_in_root = {
+            Dist("test1"): generate_mocked_record("test1")
+        }
+
+    def test_try_install_duplicate_package_in_root(self):
+        dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test1"),
+                          plan.SpecForEnv(env=None, spec="something")]
+        with pytest.raises(InstallError) as err:
+            plan.ensure_packge_not_duplicated_in_private_env_root(
+                dists_for_envs, self.linked_in_root)
+            assert "Package test1 is already installed" in str(err)
+            assert "Can't install in private environment _env_" in str(err)
+
+    def test_try_install_duplicate_package_in_private_env(self):
+        dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test2"),
+                          plan.SpecForEnv(env=None, spec="test3")]
+        with patch.object(common, "prefix_if_in_private_env") as mock_prefix:
+            mock_prefix.return_value = "some/prefix"
+            with pytest.raises(InstallError) as err:
+                plan.ensure_packge_not_duplicated_in_private_env_root(
+                    dists_for_envs, self.linked_in_root)
+                assert "Package test3 is already installed" in str(err)
+                assert "private_env some/prefix" in str(err)
+
+    def test_try_install_no_duplicate(self):
+        dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test2"),
+                         plan.SpecForEnv(env=None, spec="test3")]
+        plan.ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, self.linked_in_root)
 
 if __name__ == '__main__':
     unittest.main()
