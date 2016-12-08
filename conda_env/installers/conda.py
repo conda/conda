@@ -5,6 +5,7 @@ from conda import plan
 from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
 from conda.api import get_index
 from conda.common.compat import text_type
+from conda.models.channel import prioritize_channels
 
 
 def install(prefix, specs, args, env, prune=False):
@@ -26,7 +27,9 @@ def install(prefix, specs, args, env, prune=False):
     index = get_index(channel_urls=channel_urls,
                       prepend='nodefaults' not in env.channels,
                       prefix=prefix)
-    action_set = plan.install_actions(prefix, index, specs, prune=prune)
+    _channel_priority_map = prioritize_channels(channel_urls)
+    action_set = plan.install_actions(prefix, index, specs, prune=prune,
+                                      channel_priority_map=_channel_priority_map)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         for actions in action_set:

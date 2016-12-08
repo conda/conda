@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 from errno import EACCES, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
@@ -53,3 +54,8 @@ def recursive_make_writable(path, max_tries=MAX_TRIES):
                         raise
     else:
         exp_backoff_fn(make_writable, path, max_tries=max_tries)
+
+
+def make_executable(path):
+    st = os.stat(path)
+    os.chmod(path, st.st_mode | S_IEXEC)
