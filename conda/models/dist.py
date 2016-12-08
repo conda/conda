@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import re
 from logging import getLogger
+import re
 
+from .channel import Channel
 from .package_info import PackageInfo
 from .record import Record
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
@@ -27,6 +28,9 @@ class DistType(EntityType):
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)
+            elif isinstance(value, Channel):
+                return Dist.from_string(value.package_filename,
+                                        channel_override=value.canonical_name)
             else:
                 return Dist.from_string(value)
         else:

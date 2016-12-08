@@ -60,8 +60,6 @@ if glibc_ver:
 
 class CondaSession(Session):
 
-    timeout = None
-
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop('retries', RETRIES)
         super(CondaSession, self).__init__(*args, **kwargs)

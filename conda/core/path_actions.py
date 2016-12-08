@@ -1,24 +1,30 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 import json
 from logging import getLogger
-from os.path import join
+from os.path import dirname, join
 
 from .linked_data import delete_linked_data, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..common.path import get_python_path, win_path_ok, preferred_env_to_prefix
+from ..base.context import context
+from ..common.compat import iteritems
+from ..common.path import get_python_path, win_path_ok
+from ..common.url import url_to_path
 from ..exceptions import CondaVerificationError, PaddingError
-from ..gateways.disk.create import (compile_pyc, create_link, create_unix_entry_point,
-                                    create_windows_entry_point_py, make_menu,
-                                    write_conda_meta_record, create_private_pkg_entry_point,
-                                    create_private_envs_meta, remove_private_envs_meta)
+from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
+                                    create_private_envs_meta, create_private_pkg_entry_point,
+                                    create_unix_entry_point, create_windows_entry_point_py,
+                                    extract_tarball, make_menu, remove_private_envs_meta,
+                                    write_conda_meta_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import exists, isfile, islink
-from ..gateways.disk.update import rename
+from ..gateways.disk.update import backoff_rename
+from ..gateways.download import download
+from ..models.channel import Channel
 from ..models.dist import Dist
 from ..models.enums import LinkType
 from ..models.record import Record
@@ -27,18 +33,13 @@ from ..utils import on_win
 log = getLogger(__name__)
 
 
+REPR_IGNORE_KWARGS = (
+    'transaction_context',
+    'package_info',
+)
+
 @with_metaclass(ABCMeta)
 class PathAction(object):
-
-    def __init__(self, transaction_context, target_prefix, target_short_path):
-        self.transaction_context = transaction_context
-        self.target_prefix = target_prefix
-        self.target_short_path = target_short_path
-
-    @property
-    def target_full_path(self):
-        trgt, shrt_pth = self.target_prefix, self.target_short_path
-        return join(trgt, win_path_ok(shrt_pth)) if trgt and shrt_pth else None
 
     @abstractmethod
     def verify(self):
@@ -56,27 +57,42 @@ class PathAction(object):
     def cleanup(self):
         raise NotImplementedError()
 
+    @abstractproperty
+    def target_full_path(self):
+        raise NotImplementedError()
+
     def __repr__(self):
-        attrs = ('source_prefix', 'source_short_path', 'target_prefix', 'target_short_path',
-                 'link_type', 'prefix_placeholder', 'file_mode')
-        args = ('%s=%s' % (attr, getattr(self, attr, None))
-                for attr in attrs if hasattr(self, attr))
+        args = ('%s=%s' % (key, value) for key, value in iteritems(vars(self))
+                if key not in REPR_IGNORE_KWARGS)
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
+class PrefixPathAction(PathAction):
+
+    def __init__(self, transaction_context, target_prefix, target_short_path):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+        self.target_short_path = target_short_path
+
+    @property
+    def target_full_path(self):
+        trgt, shrt_pth = self.target_prefix, self.target_short_path
+        return join(trgt, win_path_ok(shrt_pth)) if trgt and shrt_pth else None
+
+
 # ######################################################
-#  Creation Actions
+#  Prefix Creation Actions
 # ######################################################
 
 @with_metaclass(ABCMeta)
-class CreatePathAction(PathAction):
+class CreatePrefixPathAction(PrefixPathAction):
     # All CreatePathAction subclasses must create a SINGLE new path
     #   the short/in-prefix version of that path must be returned by execute()
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
                  target_prefix, target_short_path):
-        super(CreatePathAction, self).__init__(transaction_context,
-                                               target_prefix, target_short_path)
+        super(CreatePrefixPathAction, self).__init__(transaction_context,
+                                                     target_prefix, target_short_path)
         self.package_info = package_info
         self.source_prefix = source_prefix
         self.source_short_path = source_short_path
@@ -91,7 +107,7 @@ class CreatePathAction(PathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
-class LinkPathAction(CreatePathAction):
+class LinkPathAction(CreatePrefixPathAction):
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
@@ -170,7 +186,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
                                len(self.prefix_placeholder))
 
 
-class MakeMenuAction(CreatePathAction):
+class MakeMenuAction(CreatePrefixPathAction):
 
     def __init__(self, transaction_context, package_info,
                  target_prefix, target_short_path):
@@ -189,7 +205,7 @@ class MakeMenuAction(CreatePathAction):
         make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
-class CompilePycAction(CreatePathAction):
+class CompilePycAction(CreatePrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix,
                  source_short_path, target_short_path):
@@ -210,7 +226,7 @@ class CompilePycAction(CreatePathAction):
         rm_rf(self.target_full_path)
 
 
-class CreatePythonEntryPointAction(CreatePathAction):
+class CreatePythonEntryPointAction(CreatePrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
                  module, func):
@@ -237,7 +253,7 @@ class CreatePythonEntryPointAction(CreatePathAction):
         rm_rf(self.target_full_path)
 
 
-class CreateApplicationEntryPointAction(CreatePathAction):
+class CreateApplicationEntryPointAction(CreatePrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
                  private_env_prefix, app_name, root_prefix):
@@ -262,7 +278,7 @@ class CreateApplicationEntryPointAction(CreatePathAction):
         rm_rf(self.target_full_path)
 
 
-class CreateCondaMetaAction(CreatePathAction):
+class CreateCondaMetaAction(CreatePrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, meta_record):
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
@@ -285,7 +301,7 @@ class CreateCondaMetaAction(CreatePathAction):
         rm_rf(self.target_full_path)
 
 
-class CreatePrivateEnvMetaAction(CreatePathAction):
+class CreatePrivateEnvMetaAction(CreatePrefixPathAction):
     def __init__(self, transaction_context, package_info, target_prefix):
         target_short_path = 'conda-meta/private_envs'
         super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
@@ -305,15 +321,15 @@ class CreatePrivateEnvMetaAction(CreatePathAction):
 
 
 # ######################################################
-#  Removal Actions
+#  Prefix Removal Actions
 # ######################################################
 
 @with_metaclass(ABCMeta)
-class RemovePathAction(PathAction):
+class RemovePrefixPathAction(PrefixPathAction):
 
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path):
-        super(RemovePathAction, self).__init__(transaction_context,
-                                               target_prefix, target_short_path)
+        super(RemovePrefixPathAction, self).__init__(transaction_context,
+                                                     target_prefix, target_short_path)
         self.linked_package_data = linked_package_data
 
     def verify(self):
@@ -322,7 +338,7 @@ class RemovePathAction(PathAction):
         pass
 
 
-class UnlinkPathAction(RemovePathAction):
+class UnlinkPathAction(RemovePrefixPathAction):
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path,
                  link_type=LinkType.hardlink):
         super(UnlinkPathAction, self).__init__(transaction_context, linked_package_data,
@@ -335,12 +351,12 @@ class UnlinkPathAction(RemovePathAction):
     def execute(self):
         if self.link_type != LinkType.directory:
             log.trace("renaming %s => %s", self.target_short_path, self.holding_short_path)
-            rename(self.target_full_path, self.holding_full_path)
+            backoff_rename(self.target_full_path, self.holding_full_path)
 
     def reverse(self):
         if self.link_type != LinkType.directory and exists(self.holding_full_path):
             log.trace("reversing rename %s => %s", self.holding_short_path, self.target_short_path)
-            rename(self.holding_full_path, self.target_full_path)
+            backoff_rename(self.holding_full_path, self.target_full_path)
 
     def cleanup(self):
         if self.link_type == LinkType.directory:
@@ -349,7 +365,7 @@ class UnlinkPathAction(RemovePathAction):
             rm_rf(self.holding_full_path)
 
 
-class RemoveMenuAction(RemovePathAction):
+class RemoveMenuAction(RemovePrefixPathAction):
 
     def __init__(self, transaction_context, linked_package_data,
                  target_prefix, target_short_path):
@@ -403,3 +419,95 @@ class RemovePrivateEnvMetaAction(UnlinkPathAction):
 
     def reverse(self):
         create_private_envs_meta(self.linked_package_data.name, self.target_prefix)
+
+
+# ######################################################
+#  Fetch / Extract Actions
+# ######################################################
+
+
+class CacheUrlAction(PathAction):
+
+    def __init__(self, url, target_cache_directory, target_package_basename, md5sum=None):
+        self.url = url
+        self.target_cache_directory = target_cache_directory
+        self.target_package_basename = target_package_basename
+        self.md5sum = md5sum
+        self.hold_path = self.target_full_path + '.c~'
+        self._appended_urls_txt = False
+
+    def verify(self):
+        assert '::' not in self.url
+
+    def execute(self):
+        # I hate inline imports, but I guess it's ok since we're importing from the conda.core
+        # The alternative is passing the PackageCache class to CacheUrlAction __init__
+        from .package_cache import PackageCache
+        target_package_cache = PackageCache(self.target_cache_directory)
+
+        if exists(self.target_full_path):
+            backoff_rename(self.target_full_path, self.hold_path)
+
+        if self.url.startswith('file:/'):
+            source_path = url_to_path(self.url)
+            if dirname(source_path) in context.pkgs_dirs:
+                # if url points to another package cache, link to the writable cache
+                create_hard_link_or_copy(url_to_path(self.url), self.target_full_path)
+                source_package_cache = PackageCache(dirname(source_path))
+                url_for_package = source_package_cache.urls_data.get_url(self.target_package_basename)
+                target_package_cache.urls_data.add_url(url_for_package)
+            else:
+                # copy the tarball to the writable cache
+                create_link(source_path, self.target_full_path, link_type=LinkType.copy)
+                target_package_cache.urls_data.add_url(self.url)
+        else:
+            download(self.url, self.target_full_path, self.md5sum)
+            target_package_cache.urls_data.add_url(self.url)
+
+    def reverse(self):
+        if exists(self.hold_path):
+            backoff_rename(self.hold_path, self.target_full_path)
+
+    def cleanup(self):
+        rm_rf(self.hold_path)
+
+    @property
+    def target_full_path(self):
+        return join(self.target_cache_directory, self.target_package_basename)
+
+
+class ExtractPackageAction(PathAction):
+
+    def __init__(self, source_full_path, target_full_path):
+        self.source_full_path = source_full_path
+        self._target_full_path = target_full_path
+        self.hold_path = self.target_full_path + '.c~'
+
+    def verify(self):
+        pass
+
+    def execute(self):
+        # I hate inline imports, but I guess it's ok since we're importing from the conda.core
+        # The alternative is passing the the classes to ExtractPackageAction __init__
+        from .package_cache import PackageCache, PackageCacheEntry
+
+        if exists(self.target_full_path):
+            backoff_rename(self.target_full_path, self.hold_path)
+        extract_tarball(self.source_full_path, self.target_full_path)
+
+        target_package_cache = PackageCache(dirname(self.target_full_path))
+
+        channel = Channel(target_package_cache.urls_data.get_url(self.target_full_path))
+        package_cache_entry = PackageCacheEntry.make_legacy(self.target_full_path, channel)
+        target_package_cache[Dist(channel)] = package_cache_entry
+
+    def reverse(self):
+        if exists(self.hold_path):
+            backoff_rename(self.hold_path, self.target_full_path)
+
+    def cleanup(self):
+        rm_rf(self.hold_path)
+
+    @property
+    def target_full_path(self):
+        return self._target_full_path

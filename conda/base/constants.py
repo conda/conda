@@ -76,3 +76,5 @@ ROOT_NO_RM = (
 
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
+
+CONDA_TARBALL_EXTENSION = '.tar.bz2'

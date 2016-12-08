@@ -6,11 +6,13 @@ from io import open
 import json
 from logging import getLogger
 import os
-from os import chmod, makedirs
-from os.path import basename, exists, isdir, islink, join, isfile
+from os import chmod, getuid, makedirs
+from os.path import basename, exists, isdir, isfile, islink, join
 from shlex import split as shlex_split
 import shutil
 from subprocess import PIPE, Popen
+import sys
+import tarfile
 import traceback
 
 from .delete import rm_rf
@@ -18,7 +20,7 @@ from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.context import context
-from ...common.path import win_path_ok, is_private_env, prefix_to_env_name
+from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
 from ...models.dist import Dist
 from ...models.enums import LinkType
@@ -59,54 +61,23 @@ def create_windows_entry_point_py(target_full_path, module, func):
         fo.write(pyscript)
 
 
-# def create_windows_entry_point_exe(target_full_path, link_type):
-#     exe_source = join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits)
-#     create_link(exe_source, target_full_path + '.exe', link_type=link_type)
-#
-#
-# def create_entry_point(target_full_path, python_full_path, module, func, link_type):
-#     pyscript = entry_point_template % {'module': module, 'func': func}
-#
-#     if on_win:
-#         # create -script.py
-#         with open(target_full_path + '-script.py', 'w') as fo:
-#             fo.write(pyscript)
-#
-#         # link cli-XX.exe
-#         create_link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
-#                     target_full_path + '.exe')
-#         return [ep_path + '-script.py', ep_path + '.exe']
-#     else:
-#         with open(target_full_path, 'w') as fo:
-#             fo.write('#!%s\n' % python_full_path)
-#             fo.write(pyscript)
-#         chmod(target_full_path, 0o755)
-#         return [target_full_path]
+def extract_tarball(tarball_full_path, destination_directory=None):
+    if destination_directory is None:
+        destination_directory = tarball_full_path[:-8]
+    log.debug("extracting %s\n  to %s", tarball_full_path, destination_directory)
 
+    assert not exists(destination_directory), destination_directory
 
-# def create_entry_point_old(entry_point_def, prefix):
-#     # returns a list of file paths created
-#     command, module, func = parse_entry_point_def(entry_point_def)
-#     ep_path = "%s/%s" % (get_bin_directory_short_path(), command)
-#
-#     pyscript = entry_point_template % {'module': module, 'func': func}
-#
-#     if on_win:
-#         # create -script.py
-#         with open(join(prefix, ep_path + '-script.py'), 'w') as fo:
-#             fo.write(pyscript)
-#
-#         # link cli-XX.exe
-#         create_link(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits),
-#                     join(prefix, win_path_ok(ep_path + '.exe')))
-#         return [ep_path + '-script.py', ep_path + '.exe']
-#     else:
-#         # create py file
-#         with open(join(prefix, ep_path), 'w') as fo:
-#             fo.write('#!%s\n' % join(prefix, get_bin_directory_short_path(), 'python'))
-#             fo.write(pyscript)
-#         chmod(join(prefix, ep_path), 0o755)
-#         return [ep_path]
+    with tarfile.open(tarball_full_path) as t:
+        t.extractall(path=destination_directory)
+    if sys.platform.startswith('linux') and getuid() == 0:
+        # When extracting as root, tarfile will by restore ownership
+        # of extracted files.  However, we want root to be the owner
+        # (our implementation of --no-same-owner).
+        for root, dirs, files in os.walk(destination_directory):
+            for fn in files:
+                p = join(root, fn)
+                os.lchown(p, 0, 0)
 
 
 def write_conda_meta_record(prefix, record):
@@ -182,6 +153,29 @@ if on_win:
             raise CondaOSError('win32 soft link failed')
 
 
+def create_hard_link_or_copy(src, dst):
+    if islink(src):
+        message = dals("""
+        Cannot hard link a soft link
+          source: %(source_path)s
+          destination: %(destination_path)s
+        """ % {
+            'source_path': src,
+            'destination_path': dst,
+        })
+        raise CondaOSError(message)
+
+    try:
+        log.trace("creating hard link %s => %s", src, dst)
+        if on_win:
+            win_hard_link(src, dst)
+        else:
+            os.link(src, dst)
+    except (IOError, OSError):
+        log.info('hard link failed, so copying %s => %s', src, dst)
+        shutil.copy2(src, dst)
+
+
 def create_link(src, dst, link_type=LinkType.hardlink):
     if link_type == LinkType.directory:
         # A directory is technically not a link.  So link_type is a misnomer.
@@ -195,6 +189,7 @@ def create_link(src, dst, link_type=LinkType.hardlink):
             rm_rf(dst)
         else:
             raise ClobberError(dst, src, link_type)
+
     if link_type == LinkType.hardlink:
         if on_win:
             win_hard_link(src, dst)
@@ -214,27 +209,6 @@ def create_link(src, dst, link_type=LinkType.hardlink):
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
 
-
-# def compile_missing_pyc(prefix, python_major_minor_version, files):
-#     py_pyc_files = missing_pyc_files(python_major_minor_version, files)
-#     python_exe = get_python_path()
-#
-#     with cwd(prefix):
-#         py_files = (f[0] for f in py_pyc_files)
-#         command = "%s -Wi -m py_compile %s" % (python_exe, ' '.join(py_files))
-#         log.debug(command)
-#         process = Popen(shlex_split(command), stdout=PIPE, stderr=PIPE)
-#         stdout, stderr = process.communicate()
-#
-#     rc = process.returncode
-#     if rc != 0:
-#         log.debug("%s $  %s\n"
-#                   "  stdout: %s\n"
-#                   "  stderr: %s\n"
-#                   "  rc: %d", prefix, command, stdout, stderr, rc)
-#         raise RuntimeError()
-#     pyc_files = tuple(f[1] for f in py_pyc_files)
-#     return pyc_files
 
 def _split_on_unix(command):
     # I guess windows doesn't like shlex.split
