@@ -33,6 +33,7 @@ from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.logging import TRACE
 from conda.models.record import Record
 from conda.utils import on_win
 from contextlib import contextmanager
@@ -56,7 +57,7 @@ except ImportError:
     from mock import patch
 
 log = getLogger(__name__)
-TEST_LOG_LEVEL = DEBUG
+TEST_LOG_LEVEL = TRACE
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 
@@ -121,14 +122,15 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     args = p.parse_args(split(command_line))
     context._add_argparse_args(args)
-    print("executing command >>>", command_line)
-    with captured() as c, replace_log_streams():
-        if use_exception_handler:
-            conda_exception_handler(args.func, args, p)
-        else:
-            args.func(args, p)
+    print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
+    with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
+        with captured() as c, replace_log_streams():
+            if use_exception_handler:
+                conda_exception_handler(args.func, args, p)
+            else:
+                args.func(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout)
+    print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:
         reload_config(prefix)
     return c.stdout, c.stderr
@@ -138,15 +140,14 @@ def run_command(command, prefix, *arguments, **kwargs):
 def make_temp_env(*packages, **kwargs):
     prefix = kwargs.pop('prefix', None) or make_temp_prefix()
     assert isdir(prefix), prefix
-    with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with disable_logger('fetch'), disable_logger('dotupdate'):
-            try:
-                # try to clear any config that's been set by other tests
-                reset_context([os.path.join(prefix+os.sep, 'condarc')])
-                run_command(Commands.CREATE, prefix, *packages)
-                yield prefix
-            finally:
-                rmtree(prefix, ignore_errors=True)
+    with disable_logger('fetch'), disable_logger('dotupdate'):
+        try:
+            # try to clear any config that's been set by other tests
+            reset_context([os.path.join(prefix+os.sep, 'condarc')])
+            run_command(Commands.CREATE, prefix, *packages)
+            yield prefix
+        finally:
+            rmtree(prefix, ignore_errors=True)
 
 
 def reload_config(prefix):

@@ -130,7 +130,8 @@ class LinkPathAction(CreatePrefixPathAction):
 
     def execute(self):
         log.trace("linking %s => %s", self.source_full_path, self.target_full_path)
-        create_link(self.source_full_path, self.target_full_path, self.link_type)
+        create_link(self.source_full_path, self.target_full_path, self.link_type,
+                    force=context.force)
 
     def reverse(self):
         if self.link_type == LinkType.directory:
@@ -461,7 +462,8 @@ class CacheUrlAction(PathAction):
                 target_package_cache.urls_data.add_url(actual_url)
             else:
                 # copy the tarball to the writable cache
-                create_link(source_path, self.target_full_path, link_type=LinkType.copy)
+                create_link(source_path, self.target_full_path, link_type=LinkType.copy,
+                            force=context.force)
                 target_package_cache.urls_data.add_url(self.url)
         else:
             download(self.url, self.target_full_path, self.md5sum)

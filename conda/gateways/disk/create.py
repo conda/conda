@@ -176,7 +176,7 @@ def create_hard_link_or_copy(src, dst):
         shutil.copy2(src, dst)
 
 
-def create_link(src, dst, link_type=LinkType.hardlink):
+def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.directory:
         # A directory is technically not a link.  So link_type is a misnomer.
         #   Naming is hard.
@@ -184,7 +184,7 @@ def create_link(src, dst, link_type=LinkType.hardlink):
         return
 
     if exists(dst):  # TODO: should this be lexists() ?
-        if context.force:
+        if force:
             log.info("file exists, but clobbering: %r" % dst)
             rm_rf(dst)
         else:

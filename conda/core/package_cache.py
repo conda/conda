@@ -156,7 +156,7 @@ class PackageCache(object):
                          if pc_entry.is_extracted),
                         None)
         if pc_entry is None:
-            raise CondaError("No package '%s' found in cache directories.")
+            raise CondaError("No package '%s' found in cache directories." % dist)
         return pc_entry
 
     def __getitem__(self, dist):
