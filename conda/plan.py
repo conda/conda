@@ -454,29 +454,22 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
 
-    # Determine how many envs need to be solved for
-    if context.root_prefix == prefix:
-        linked_in_root = linked_data(context.root_prefix)
-        dists_for_envs = determine_all_envs(r, specs, linked_in_root,
-                                            channel_priority_map=channel_priority_map)
-        preferred_envs = set(d.env for d in dists_for_envs)
+    linked_in_root = linked_data(context.root_prefix)
 
-        # Group specs by prefix
-        grouped_specs = determine_dists_per_prefix(r, prefix, index, preferred_envs,
-                                                   dists_for_envs)
+    dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+    preferred_envs = set(d.env for d in dists_for_envs)
 
-        # Replace SpecsForPrefix specs with specs that were passed in in order to retain
-        #   version information
-        required_solves = match_to_original_specs(str_specs, grouped_specs)
+    # Group specs by prefix
+    grouped_specs = determine_dists_per_prefix(r, prefix, index, preferred_envs,
+                                               dists_for_envs)
 
-        actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
-                                         always_copy, prune, update_deps, pinned)
-                   for dists_by_prefix in required_solves]
+    # Replace SpecsForPrefix specs with specs that were passed in in order to retain
+    #   version information
+    required_solves = match_to_original_specs(str_specs, grouped_specs)
 
-    else:
-        dists_by_prefix = SpecsForPrefix(prefix=prefix, specs=specs, r=r)
-        actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force, always_copy,
-                                         prune, update_deps, pinned)]
+    actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+                                     always_copy, prune, update_deps, pinned)
+               for dists_by_prefix in required_solves]
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
@@ -522,9 +515,8 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def determine_all_envs(r, specs, linked_in_root, channel_priority_map=None):
-    # type: (str, Dict[Dist, Record], List[MatchSpec], bool, Option[List[str]], bool, bool, bool,
-    #        bool, bool, bool) -> Dict[weird]
+def determine_all_envs(r, specs, channel_priority_map=None):
+    # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
 
     # Make sure there is a channel priority
@@ -550,12 +542,10 @@ def determine_all_envs(r, specs, linked_in_root, channel_priority_map=None):
 
     spec_for_envs = []
     for spec in specs:
-        if not any(linked_dist for linked_dist in linked_in_root if
-                   linked_dist.dist_name.startswith(spec.name)):
-            matched_dists = r.get_pkgs(spec)
-            best_match = get_highest_priority_match(matched_dists)
-            spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
-                                            spec=best_match.name))
+        matched_dists = r.get_pkgs(spec)
+        best_match = get_highest_priority_match(matched_dists)
+        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
+                                        spec=best_match.name))
     return spec_for_envs
 
 
@@ -671,7 +661,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
     smh = r.dependency_sort(must_have)
     actions = ensure_linked_actions(
         smh, prefix,
-        index=index,
+        index=r.index,
         force=force, always_copy=always_copy)
 
     if actions[LINK]:
