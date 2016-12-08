@@ -1,4 +1,6 @@
 import os
+
+from conda.models.channel import prioritize_channels
 from conda.models.enums import LinkType
 from conda.models.dist import Dist
 from conda.models.record import Record
@@ -9,7 +11,7 @@ import json
 import random
 import unittest
 from os.path import dirname, join
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 import pytest
 
@@ -17,7 +19,7 @@ from conda.base.context import context, reset_context
 import conda.plan as plan
 import conda.instructions as inst
 from conda.plan import display_actions
-from conda.resolve import Resolve
+from conda.resolve import Resolve, MatchSpec
 from conda.utils import on_win
 from conda.common.compat import iteritems
 
@@ -916,6 +918,68 @@ class PlanFromActionsTests(unittest.TestCase):
         self.assertEquals(expected_plan[1], conda_plan[1])
         self.assertEquals(expected_plan[2], conda_plan[2])
         # self.assertEqual(expected_plan, conda_plan)
+
+
+class TestInstallActions(unittest.TestCase):
+    def generate_mocked_package(self, preferred_env, name, schannel, version):
+        MockPackage = namedtuple("Package", ["preferred_env", "name", "schannel", "version", "fn"])
+        return MockPackage(preferred_env=preferred_env, name=name, schannel=schannel,
+                           version=version, fn=name)
+
+    def generate_mocked_resolve(self, matched_pkgs, index=None):
+        MockResolve = namedtuple("Resolve", ["get_pkgs", "index"])
+
+        def get_pkgs(spec):
+            return matched_pkgs[spec.name]
+
+        if index is None:
+            index = {
+                Dist(dist_name="test-spec", channel="defaults"):
+                    self.generate_mocked_package(None, "test-spec", "default", "1"),
+                Dist(dist_name="test-spec", channel="rando_chnl"):
+                    self.generate_mocked_package("ranenv", "test-spec", "default", "5"),
+                Dist(dist_name="test-spec2", channel="defaults"):
+                    self.generate_mocked_package("test1", "test-spec2", "default", "1")
+            }
+
+        return MockResolve(get_pkgs=get_pkgs, index=index)
+
+    def generate_channel_priority_map(self, channels):
+        return prioritize_channels(channels)
+
+    def test_determine_all_envs(self):
+        pkgs = {
+            "test-spec": [self.generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          self.generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          self.generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          self.generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [self.generate_mocked_package(None, "test-spec2", "defaults", "1")]
+        }
+        res = self.generate_mocked_resolve(pkgs)
+        specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
+        specs_for_envs = plan.determine_all_envs(res, specs)
+
+        expected_output = [plan.SpecForEnv(env=None, spec="test-spec"),
+                           plan.SpecForEnv(env="test1", spec="test-spec2")]
+        self.assertEquals(specs_for_envs, expected_output)
+
+    def test_determin_all_envs_with_channel_priority(self):
+        pkgs = {
+            "test-spec": [self.generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          self.generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          self.generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          self.generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [self.generate_mocked_package(None, "test-spec2", "defaults", "1")]
+        }
+        res = self.generate_mocked_resolve(pkgs)
+        specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
+        prioritized_channel_map = self.generate_channel_priority_map(
+            tuple(["rando_chnl", "defaults"]))
+        specs_for_envs_w_channel_priority = plan.determine_all_envs(
+            res, specs, prioritized_channel_map)
+        expected_output = [plan.SpecForEnv(env="ranenv", spec="test-spec"),
+                           plan.SpecForEnv(env="test1", spec="test-spec2")]
+        self.assertEquals(specs_for_envs_w_channel_priority, expected_output)
 
 if __name__ == '__main__':
     unittest.main()
