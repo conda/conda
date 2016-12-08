@@ -457,6 +457,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     linked_in_root = linked_data(context.root_prefix)
 
     dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
     preferred_envs = set(d.env for d in dists_for_envs)
 
     # Group specs by prefix
@@ -547,6 +548,19 @@ def determine_all_envs(r, specs, channel_priority_map=None):
         spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
                                         spec=best_match.name))
     return spec_for_envs
+
+
+def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root):
+    for dist_env in dists_for_envs:
+        # If trying to install a package in root that is already in a private env
+        if dist_env.env is None and prefix_if_in_private_env(dist_env.spec) is not None:
+            raise InstallError("Package %s is already installed in a private env %s" %
+                               (dist_env.spec, dist_env.env))
+        # If trying to install a package in a private env that is already in root
+        if (is_private_env(dist_env.env) and
+                any(dist for dist in linked_in_root if dist.dist_name.startswith(dist_env.spec))):
+            raise InstallError("Package %s is already installed in root. Can't install in private"
+                               " environment %s" % (dist_env.spec, dist_env.env))
 
 
 def not_requires_private_env(prefix, preferred_envs):
