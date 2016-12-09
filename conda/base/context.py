@@ -22,9 +22,9 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token, urlpa
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 try:
-    from cytoolz.itertoolz import concat, concatv
+    from cytoolz.itertoolz import concat, concatv, unique
 except ImportError:
-    from .._vendor.toolz.itertoolz import concat, concatv
+    from .._vendor.toolz.itertoolz import concat, concatv, unique
 
 log = getLogger(__name__)
 
@@ -134,6 +134,15 @@ class Context(Configuration):
         return errors
 
     @property
+    def conda_build_local_paths(self):
+        return tuple(unique(path_to_url(expand(d)) for d in (
+            self._croot,
+            self.bld_path,
+            self.conda_build.get('root-dir'),
+            join(self.root_prefix, 'conda-bld'), '~/conda-bld'
+        ) if d and isdir(d)))
+
+    @property
     def croot(self):
         """This is where source caches and work folders live"""
         if self._croot:
@@ -143,7 +152,7 @@ class Context(Configuration):
         elif 'root-dir' in self.conda_build:
             return abspath(expanduser(self.conda_build['root-dir']))
         elif self.root_writable:
-            return join(self.root_dir, 'conda-bld')
+            return join(self.root_prefix, 'conda-bld')
         else:
             return abspath(expanduser('~/conda-bld'))
 
@@ -326,7 +335,7 @@ class Context(Configuration):
         from ..models.channel import Channel
         default_custom_multichannels = {
             'defaults': self.default_channels,
-            'local': (self.local_build_root_channel,),
+            'local': self.conda_build_local_paths,
         }
         all_channels = default_custom_multichannels, self._custom_multichannels
         return odict((name, tuple(Channel(v) for v in c))
