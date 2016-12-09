@@ -466,7 +466,6 @@ class CacheUrlAction(PathAction):
                 if actual_url:
                     target_package_cache.urls_data.add_url()
             else:
-                import pdb; pdb.set_trace()
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
