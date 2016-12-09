@@ -313,14 +313,12 @@ class Context(Configuration):
         return (self._argparse_args.get("prefix") is not None and
                 self._argparse_args.get("name") is not None)
 
-    # @memoizedproperty
-    # def default_channels(self):
-    #     # the format for 'default_channels' is a list of strings that either
-    #     #   - start with a scheme
-    #     #   - are meant to be prepended with channel_alias
-    #     from ..models.channel import Channel
-    #     return tuple(Channel.make_simple_channel(self.channel_alias, v)
-    #                  for v in self._default_channels)
+    @memoizedproperty
+    def default_channels(self):
+        # the format for 'default_channels' is a list of strings that either
+        #   - start with a scheme
+        #   - are meant to be prepended with channel_alias
+        return self.custom_multichannels['defaults']
 
     # @memoizedproperty
     # def local_build_root_channel(self):
@@ -330,20 +328,6 @@ class Context(Configuration):
     #     if not location:
     #         location = '/'
     #     return Channel(scheme=url_parts.scheme, location=location, name=name)
-
-    # @memoizedproperty
-    # def reserved_multichannels(self):
-    #     from ..models.channel import Channel
-    #     reserved_multichannel_urls = odict(
-    #         defaults=self._default_channels,
-    #         local=tuple(path_to_url(p) for p in self.conda_build_local_paths),
-    #     )
-    #     reserved_multichannels = odict(
-    #         (name, channels)
-    #         for name, urls in iteritems(reserved_multichannel_urls)
-    #         for channels in (Channel.make_simple_channel(self.channel_alias, url) for url in urls)
-    #     )
-    #     return reserved_multichannels
 
     @memoizedproperty
     def custom_multichannels(self):

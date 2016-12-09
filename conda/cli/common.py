@@ -620,6 +620,7 @@ def get_private_envs_json():
 
 def prefix_if_in_private_env(spec):
     private_envs_json = get_private_envs_json()
+    import pdb; pdb.set_trace()
     prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if
                      pkg.startswith(spec))
     prefix = prefixes[0] if len(prefixes) > 0 else None
