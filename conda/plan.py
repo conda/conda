@@ -14,6 +14,7 @@ from logging import getLogger
 from os.path import abspath, basename, exists, join
 import sys
 
+from conda import core
 from conda.cli import common
 from . import instructions as inst
 from .base.constants import DEFAULTS
@@ -367,6 +368,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
                            RM_EXTRACTED, EXTRACT,
                            UNLINK, LINK, SYMLINK_CONDA)
+
     for dist in dists:
         if not force and is_linked(prefix, dist):
             continue

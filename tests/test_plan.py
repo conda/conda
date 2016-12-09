@@ -1,9 +1,9 @@
 import os
 
 from conda.cli import common
+from conda.core import linked_data
 from conda.exceptions import PackageNotFoundError, InstallError
 from conda.models.channel import prioritize_channels
-from conda.models.enums import LinkType
 from conda.models.dist import Dist
 from conda.models.record import Record
 
@@ -933,16 +933,29 @@ def generate_mocked_package(preferred_env, name, schannel, version):
                        version=version, fn=name)
 
 
-def generate_mocked_resolve(matched_pkgs, index):
-    mock_resolve = namedtuple("Resolve", ["get_pkgs", "index", "explicit"])
+def generate_mocked_resolve(matched_pkgs, index, install=None):
+    mock_resolve = namedtuple("Resolve", ["get_pkgs", "index", "explicit", "install",
+                                          "package_name", "dependency_sort"])
 
     def get_pkgs(spec):
+        # Here, spec should be a MatchSpec
         return matched_pkgs[spec.name]
 
     def get_explicit(spec):
         return True
 
-    return mock_resolve(get_pkgs=get_pkgs, index=index, explicit=get_explicit)
+    def get_install(spec, installed, update_deps=None):
+        return install
+
+    def get_package_name(dist):
+        return dist.name
+
+    def get_dependency_sort(specs):
+        return tuple(spec for spec in specs.values())
+
+    return mock_resolve(get_pkgs=get_pkgs, index=index, explicit=get_explicit,
+                        install=get_install, package_name=get_package_name,
+                        dependency_sort=get_dependency_sort)
 
 
 def generate_mocked_record(dist_name):
@@ -994,7 +1007,6 @@ class TestDetermineAllEnvs(unittest.TestCase):
         specs = [MatchSpec("no-exist")]
         with pytest.raises(PackageNotFoundError) as err:
             plan.determine_all_envs(self.res, specs)
-            import pdb; pdb.set_trace()
             assert "no-exist package not found" in str(err)
 
 
@@ -1101,6 +1113,117 @@ class TestGroupDistsForPrefix(unittest.TestCase):
                                 specs=["test-spec2 <4.3", "test-spec 1.1*"])]
 
         self.assertEquals(matched, expected_output)
+
+
+class TestGetActionsForDist(unittest.TestCase):
+    def setUp(self):
+        self.pkgs = {
+            "test-spec": [generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [generate_mocked_package(None, "test-spec2", "defaults", "1")],
+            "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
+        }
+        self.index = {
+            Dist(dist_name="test-spec", channel="defaults"):
+                generate_mocked_package(None, "test-spec", "default", "1"),
+            Dist(dist_name="test-spec", channel="rando_chnl"):
+                generate_mocked_package("ranenv", "test-spec", "default", "5"),
+            Dist(dist_name="test-spec2", channel="defaults"):
+                generate_mocked_package(None, "test-spec2", "default", "1"),
+            Dist(dist_name="test", channel="defaults"):
+                generate_mocked_package("ranenv", "test", "default", "1.2.0")
+        }
+        self.res = generate_mocked_resolve(self.pkgs, self.index)
+
+    @patch("conda.core.linked_data.load_meta", return_value=True)
+    def test_ensure_linked_actions_all_linked(self, load_meta):
+        dists = [Dist("test"), Dist("test-spec"), Dist("test-spec2")]
+        prefix = "some/prefix"
+
+        link_actions = plan.ensure_linked_actions(dists, prefix)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = prefix
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        self.assertEquals(link_actions, expected_output)
+
+    @patch("conda.core.linked_data.load_meta", return_value=False)
+    def test_ensure_linked_actions_no_linked(self, load_meta):
+        dists = [Dist("test"), Dist("test-spec"), Dist("test-spec2")]
+        prefix = "some/prefix"
+
+        link_actions = plan.ensure_linked_actions(dists, prefix)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = prefix
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("test"), Dist("test-spec"), Dist("test-spec2")]
+        self.assertEquals(link_actions, expected_output)
+
+    def test_get_actions_for_dist(self):
+        install = [Dist("test-1.2.0")]
+        r = generate_mocked_resolve(self.pkgs, self.index, install)
+        dists_for_prefix = plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_", r=r,
+                                               specs=["test 1.2.0"])
+        actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
+                                             False, True, True)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = "some/prefix/envs/_ranenv_"
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("test-1.2.0")]
+        expected_output["SYMLINK_CONDA"] = [context.root_dir]
+
+        self.assertEquals(actions, expected_output)
+
+    def test_get_actions_multiple_dists(self):
+        install = [Dist("testspec2-4.3.0"), Dist("testspecs-1.1.1")]
+        r = generate_mocked_resolve(self.pkgs, self.index, install)
+        dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
+                                               specs=["testspec2 <4.3", "testspecs 1.1*"])
+        actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
+                                             False, True, True)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = "root/prefix"
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("testspec2-4.3.0"), Dist("testspecs-1.1.1")]
+        expected_output["SYMLINK_CONDA"] = [context.root_dir]
+
+        self.assertEquals(actions, expected_output)
+
+    @patch("conda.core.linked_data.load_linked_data", return_value=[Dist("testspec1-0.9.1")])
+    def test_get_actions_multiple_dists_and_unlink(self, load_linked_data):
+        install = [Dist("testspec2-4.3.0"), Dist("testspec1-1.1.1")]
+        r = generate_mocked_resolve(self.pkgs, self.index, install)
+        dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
+                                               specs=["testspec2 <4.3", "testspec1 1.1*"])
+
+        with patch("conda.core.linked_data.linked_data_", {"root/prefix": {Dist("testspec1-0.9.1"): True}}):
+            actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
+                                             False, True, True)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = "root/prefix"
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("testspec2-4.3.0"), Dist("testspec1-1.1.1")]
+        expected_output["UNLINK"] = [Dist("testspec1-0.9.1")]
+
+        expected_output["SYMLINK_CONDA"] = [context.root_dir]
+        # import pdb; pdb.set_trace()
+        self.assertEquals(actions, expected_output)
 
 
 if __name__ == '__main__':
