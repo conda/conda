@@ -3,9 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from base64 import b64encode
 from collections import namedtuple
-from conda._vendor.auxlib.ish import dals
-from conda.models.channel import Channel
 from errno import ENOENT
+from functools import partial
+import hashlib
 from itertools import chain
 import json
 from logging import getLogger
@@ -13,8 +13,10 @@ from os import listdir
 from os.path import exists, isdir, isfile, islink, join
 import shlex
 
+from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...exceptions import CondaUpgradeError
+from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
+from ...models.channel import Channel
 from ...models.enums import FileMode
 from ...models.package_info import PackageInfo, PathInfo, PathInfoV1, PathType
 from ...models.record import Record
@@ -201,3 +203,14 @@ def read_icondata(extracted_package_directory):
         return b64encode(data).decode('utf-8')
     else:
         return None
+
+
+def compute_md5sum(file_full_path):
+    if not isfile(file_full_path):
+        raise CondaFileNotFoundError(file_full_path)
+
+    hash_md5 = hashlib.md5()
+    with open(file_full_path, "rb") as fh:
+        for chunk in iter(partial(fh.read, 4096), b''):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()

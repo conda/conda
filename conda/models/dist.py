@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 import re
 
+from conda.common.constants import NULL
 from .channel import Channel
 from .package_info import PackageInfo
 from .record import Record
@@ -105,7 +106,7 @@ class Dist(Entity):
         return ' '.join(self.quad[:3])
 
     @classmethod
-    def from_string(cls, string, channel_override=None):
+    def from_string(cls, string, channel_override=NULL):
         string = text_type(string)
 
         if string.endswith('@'):
@@ -119,7 +120,7 @@ class Dist(Entity):
 
         if original_dist.endswith('.tar.bz2'):
             original_dist = original_dist[:-8]
-        if channel_override:
+        if channel_override != NULL:
             channel = channel_override
         elif channel is None:
             channel = DEFAULTS

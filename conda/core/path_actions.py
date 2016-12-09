@@ -41,6 +41,8 @@ REPR_IGNORE_KWARGS = (
 @with_metaclass(ABCMeta)
 class PathAction(object):
 
+    _verified = False
+
     @abstractmethod
     def verify(self):
         raise NotImplementedError()
@@ -61,12 +63,17 @@ class PathAction(object):
     def target_full_path(self):
         raise NotImplementedError()
 
+    @property
+    def verified(self):
+        return self._verified
+
     def __repr__(self):
-        args = ('%s=%s' % (key, value) for key, value in iteritems(vars(self))
+        args = ('%s=%r' % (key, value) for key, value in iteritems(vars(self))
                 if key not in REPR_IGNORE_KWARGS)
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
+@with_metaclass(ABCMeta)
 class PrefixPathAction(PathAction):
 
     def __init__(self, transaction_context, target_prefix, target_short_path):
@@ -96,6 +103,9 @@ class CreatePrefixPathAction(PrefixPathAction):
         self.package_info = package_info
         self.source_prefix = source_prefix
         self.source_short_path = source_short_path
+
+    def verify(self):
+        self._verified = True
 
     def cleanup(self):
         # create actions typically won't need cleanup
@@ -127,6 +137,7 @@ class LinkPathAction(CreatePrefixPathAction):
             """ % (self.package_info.index_json_record.name,
                    self.package_info.extracted_package_dir,
                    self.source_short_path)))
+        self._verified = True
 
     def execute(self):
         log.trace("linking %s => %s", self.source_full_path, self.target_full_path)
@@ -170,6 +181,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             """ % (self.package_info.index_json_record.name,
                    self.package_info.extracted_package_dir,
                    self.source_short_path)))
+        self._verified = True
 
     def execute(self):
         super(PrefixReplaceLinkAction, self).execute()
@@ -194,9 +206,6 @@ class MakeMenuAction(CreatePrefixPathAction):
         super(MakeMenuAction, self).__init__(transaction_context, package_info,
                                              None, None, target_prefix, target_short_path)
 
-    def verify(self):
-        pass
-
     def execute(self):
         log.trace("making menu for %s", self.target_full_path)
         make_menu(self.target_prefix, self.target_short_path, remove=False)
@@ -213,9 +222,6 @@ class CompilePycAction(CreatePrefixPathAction):
         super(CompilePycAction, self).__init__(transaction_context, package_info,
                                                target_prefix, source_short_path,
                                                target_prefix, target_short_path)
-
-    def verify(self):
-        pass
 
     def execute(self):
         log.trace("compiling %s", self.target_full_path)
@@ -236,9 +242,6 @@ class CreatePythonEntryPointAction(CreatePrefixPathAction):
                                                            target_prefix, target_short_path)
         self.module = module
         self.func = func
-
-    def verify(self):
-        pass
 
     def execute(self):
         log.trace("creating python entry point %s", self.target_full_path)
@@ -265,9 +268,6 @@ class CreateApplicationEntryPointAction(CreatePrefixPathAction):
         self.app_name = app_name
         self.root_preifx = root_prefix
 
-    def verify(self):
-        pass
-
     def execute(self):
         log.trace("creating application entry point %s", self.target_full_path)
         python_short_path = get_python_path(self.transaction_context['target_python_version'])
@@ -288,9 +288,6 @@ class CreateCondaMetaAction(CreatePrefixPathAction):
                                                     None, None, target_prefix, target_short_path)
         self.meta_record = meta_record
 
-    def verify(self):
-        pass
-
     def execute(self):
         log.trace("creating conda-meta %s", self.target_full_path)
         write_conda_meta_record(self.target_prefix, self.meta_record)
@@ -310,16 +307,16 @@ class CreatePrivateEnvMetaAction(CreatePrefixPathAction):
                                                          None, None, target_prefix,
                                                          target_short_path)
 
-    def verify(self):
-        pass
-
     def execute(self):
-        log.trace("creating entry in conda-meta/private_envs for %s",
-                  self.package_info.repodata_record.name)
+        log.trace("creating private env entry for '%s' in %s",
+                  self.package_info.repodata_record.name, self.target_full_path)
+        # TODO: need to capture old env entry if it was there, so that it can be reversed
         create_private_envs_meta(self.package_info.repodata_record.name, context.root_prefix,
                                  self.target_prefix)
 
     def reverse(self):
+        log.trace("reversing private env entry for '%s' in %s",
+                  self.package_info.repodata_record.name, self.target_full_path)
         remove_private_envs_meta(self.package_info.repodata_record.name)
 
 
@@ -338,7 +335,7 @@ class RemovePrefixPathAction(PrefixPathAction):
     def verify(self):
         # inability to remove will trigger a rollback
         # can't definitely know if path can be removed until it's attempted and failed
-        pass
+        self._verified = True
 
 
 class UnlinkPathAction(RemovePrefixPathAction):
@@ -410,17 +407,18 @@ class RemoveCondaMetaAction(UnlinkPathAction):
 
 class RemovePrivateEnvMetaAction(UnlinkPathAction):
     def __init__(self, transaction_context, linked_package_data, target_prefix):
-        target_short_path = "conda-meta/private_encs"
+        target_short_path = "conda-meta/private_envs"
         super(RemovePrivateEnvMetaAction, self).__init__(transaction_context, linked_package_data,
                                                          target_prefix, target_short_path)
 
-    def verify(self):
-        pass
-
     def execute(self):
+        log.trace("removing private env '%s' from %s", self.linked_package_data.name,
+                  self.target_full_path)
         remove_private_envs_meta(self.linked_package_data.name)
 
     def reverse(self):
+        log.trace("adding back private env '%s' from %s", self.linked_package_data.name,
+                  self.target_full_path)
         create_private_envs_meta(self.linked_package_data.name, context.root_prefix,
                                  self.target_prefix)
 
@@ -432,35 +430,43 @@ class RemovePrivateEnvMetaAction(UnlinkPathAction):
 
 class CacheUrlAction(PathAction):
 
-    def __init__(self, url, target_cache_directory, target_package_basename, md5sum=None):
+    def __init__(self, url, target_pkgs_dir, target_package_basename, md5sum=None):
         self.url = url
-        self.target_cache_directory = target_cache_directory
+        self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
         self.hold_path = self.target_full_path + '.c~'
-        self._appended_urls_txt = False
 
     def verify(self):
         assert '::' not in self.url
+        self._verified = True
 
     def execute(self):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the PackageCache class to CacheUrlAction __init__
         from .package_cache import PackageCache
-        target_package_cache = PackageCache(self.target_cache_directory)
+        target_package_cache = PackageCache(self.target_pkgs_dir)
 
+        log.trace("caching url %s => %s", self.url, self.target_full_path)
+
+        if exists(self.hold_path):
+            rm_rf(self.hold_path)
         if exists(self.target_full_path):
             backoff_rename(self.target_full_path, self.hold_path)
 
         if self.url.startswith('file:/'):
             source_path = url_to_path(self.url)
-            if dirname(source_path) in context.pkgs_dirs:
+            if source_path == self.target_full_path:
+                self.reverse()
+            elif dirname(source_path) in context.pkgs_dirs:
                 # if url points to another package cache, link to the writable cache
-                create_hard_link_or_copy(url_to_path(self.url), self.target_full_path)
+                create_hard_link_or_copy(source_path, self.target_full_path)
                 source_package_cache = PackageCache(dirname(source_path))
                 actual_url = source_package_cache.urls_data.get_url(self.target_package_basename)
-                target_package_cache.urls_data.add_url(actual_url)
+                if actual_url:
+                    target_package_cache.urls_data.add_url()
             else:
+                import pdb; pdb.set_trace()
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
@@ -471,6 +477,8 @@ class CacheUrlAction(PathAction):
 
     def reverse(self):
         if exists(self.hold_path):
+            log.trace("moving %s => %s", self.hold_path, self.target_full_path)
+            rm_rf(self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path)
 
     def cleanup(self):
@@ -478,36 +486,42 @@ class CacheUrlAction(PathAction):
 
     @property
     def target_full_path(self):
-        return join(self.target_cache_directory, self.target_package_basename)
+        return join(self.target_pkgs_dir, self.target_package_basename)
 
 
 class ExtractPackageAction(PathAction):
 
-    def __init__(self, source_full_path, target_full_path):
+    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_package_dir):
         self.source_full_path = source_full_path
-        self._target_full_path = target_full_path
+        self.target_pkgs_dir = target_pkgs_dir
+        self.target_extracted_package_dir = target_extracted_package_dir
         self.hold_path = self.target_full_path + '.c~'
 
     def verify(self):
-        pass
+        self._verified = True
 
     def execute(self):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache import PackageCache, PackageCacheEntry
+        log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
+        if exists(self.hold_path):
+            rm_rf(self.hold_path)
         if exists(self.target_full_path):
             backoff_rename(self.target_full_path, self.hold_path)
         extract_tarball(self.source_full_path, self.target_full_path)
 
-        target_package_cache = PackageCache(dirname(self.target_full_path))
+        target_package_cache = PackageCache(self.target_pkgs_dir)
 
-        channel = Channel(target_package_cache.urls_data.get_url(self.target_full_path))
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_full_path, channel)
-        target_package_cache[Dist(channel)] = package_cache_entry
+        channel = Channel(target_package_cache.urls_data.get_url(self.source_full_path))
+        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, channel)
+        target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
         if exists(self.hold_path):
+            log.trace("moving %s => %s", self.hold_path, self.target_full_path)
+            rm_rf(self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path)
 
     def cleanup(self):
@@ -515,4 +529,4 @@ class ExtractPackageAction(PathAction):
 
     @property
     def target_full_path(self):
-        return self._target_full_path
+        return self.target_extracted_package_dir

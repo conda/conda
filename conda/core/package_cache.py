@@ -3,15 +3,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import listdir
-from os.path import basename, isdir, isfile, islink, join
+from os.path import basename, isdir, isfile, islink, join, exists, dirname
 
+from conda._vendor.auxlib.decorators import memoizemethod
+from conda._vendor.auxlib.path import expand
+from conda.exceptions import CondaFileNotFoundError
+from conda.gateways.disk.read import compute_md5sum
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError
 from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, with_metaclass
-from ..common.url import join_url, path_to_url
+from ..common.compat import iteritems, iterkeys, with_metaclass, itervalues
+from ..common.url import join_url, path_to_url, url_to_path
 from ..gateways.disk.test import try_write
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -93,11 +97,24 @@ class PackageCacheEntry(object):
         return basename(self.package_tarball_full_path)
 
     def tarball_matches_md5(self, md5sum):
-        return self.is_fetched and md5_file(self.package_tarball_full_path) == md5sum
+        return self.md5sum == md5sum
 
     @property
     def package_cache_writable(self):
         return PackageCache(self.pkgs_dir).is_writable
+
+    def md5sum(self):
+        return self.is_fetched and self._calculate_md5sum()
+
+    @memoizemethod
+    def _calculate_md5sum(self):
+        assert self.is_fetched
+        return md5_file(self.package_tarball_full_path)
+
+    def __repr__(self):
+        args = ('%s=%r' % (key, getattr(self, key))
+                for key in ('dist', 'package_tarball_full_path'))
+        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
 class PackageCacheType(type):
@@ -144,10 +161,11 @@ class PackageCache(object):
 
     @classmethod
     def get_matching_entries(cls, dist):
-        return tuple(pc_entry
-                     for pc_entry in (cls(pkgs_dir).get(dist)
-                                      for pkgs_dir in context.pkgs_dirs)
-                     if pc_entry)
+        matches = tuple(pc_entry
+                        for pc_entry in (cls(pkgs_dir).get(dist)
+                                         for pkgs_dir in context.pkgs_dirs)
+                        if pc_entry)
+        return matches
 
     @classmethod
     def get_entry_to_link(cls, dist):
@@ -158,6 +176,34 @@ class PackageCache(object):
         if pc_entry is None:
             raise CondaError("No package '%s' found in cache directories." % dist)
         return pc_entry
+
+    @classmethod
+    def tarball_file_in_cache(cls, tarball_path):
+        tarball_full_path, md5sum = cls.clean_tarball_path_and_get_md5sum(tarball_path)
+        pc_entry = first(PackageCache(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
+                                                                           md5sum)
+                         for pkgs_dir in context.pkgs_dirs)
+        return pc_entry
+
+    def tarball_file_in_this_cache(self, tarball_path, md5sum=None):
+        tarball_full_path, md5sum = self.clean_tarball_path_and_get_md5sum(tarball_path,
+                                                                           md5sum=md5sum)
+        tarball_basename = basename(tarball_full_path)
+        pc_entry = first((pc_entry for pc_entry in itervalues(self)),
+                         key=lambda pce: pce.tarball_basename == tarball_basename
+                                         and pce.tarball_matches_md5(md5sum))  # NOQA
+        return pc_entry
+
+    @staticmethod
+    def clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
+        if tarball_path.startswith('file:/'):
+            tarball_path = url_to_path(tarball_path)
+        tarball_full_path = expand(tarball_path)
+
+        if isfile(tarball_full_path) and md5sum is None:
+            md5sum = compute_md5sum(tarball_full_path)
+
+        return tarball_full_path, md5sum
 
     def __getitem__(self, dist):
         return self._packages_map[dist]
@@ -178,10 +224,21 @@ class PackageCache(object):
         return iterkeys(self._packages_map)
 
     def iteritems(self):
-        return iteritems(self._packages_map)
+        return iter(self.items())
 
     def items(self):
-        return self.iteritems()
+        return self._packages_map.items()
+
+    def itervalues(self):
+        return iter(self.values())
+
+    def values(self):
+        return self._packages_map.values()
+
+    def __repr__(self):
+        args = ('%s=%r' % (key, getattr(self, key)) for key in ('pkgs_dir',))
+        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+
 
     def __init__(self, pkgs_dir):
         self._packages_map = {}
@@ -301,8 +358,37 @@ def extract(dist):
 
 class ProgressiveFetchExtract(object):
 
+    # @classmethod
+    # def add_local_tarball(cls, tarball_local_url):
+    #     # see if we can figure out the original channel where the tarball came from
+    #     source_tarball_full_path = compute_md5sum(url_to_path(tarball_local_url))
+    #     pc_entry = PackageCache.tarball_file_in_cache(source_tarball_full_path)
+    #
+    #     writable_cache = PackageCache.first_writable(context.pkgs_dirs)
+    #     cache_axn = CacheUrlAction(
+    #         url=tarball_local_url,
+    #         target_pkgs_dir=writable_cache.pkgs_dir,
+    #         target_package_basename=tarball_local_url.rsplit('/', 1)[-1],
+    #     )
+    #     extract_axn = ExtractPackageAction(
+    #         source_full_path=cache_axn.target_full_path,
+    #         target_pkgs_dir=dirname(cache_axn.target_full_path),
+    #         target_extracted_package_dir=cache_axn.target_full_path[:-len(CONDA_TARBALL_EXTENSION)],
+    #     )
+    #     for axn in (cache_axn, extract_axn):
+    #         ProgressiveFetchExtract._execute_action(axn)
+    #
+    #     package_cache_entry = PackageCache.tarball_file_in_cache(tarball_local_url)
+    #     try:
+    #         assert package_cache_entry
+    #     except:
+    #         import pdb; pdb.set_trace()
+    #     return package_cache_entry
+
     @staticmethod
     def make_actions_for_dist(dist, record):
+        if not record:
+            import pdb; pdb.set_trace()
         # returns a cache_action and extract_action
 
         package_cache_entries = PackageCache.get_matching_entries(dist)
@@ -318,7 +404,7 @@ class ProgressiveFetchExtract(object):
         if first_extracted_pc_entry is not None:
             return None, None
 
-        # look for a downloaded tarball with an md5 match
+        # look for a downloaded tarball with an md5 match within the caches
         # if we can find a tarball on disk, extract it in place if that cache directory
         #   is writable
         # I'm struggling right now on whether we should use create_hard_link_or_copy() for
@@ -340,9 +426,11 @@ class ProgressiveFetchExtract(object):
         if first_writable_pc_entry is not None:
             # we found a tarball, and it's in a writable package cache
             # extract the tarball in place
+            pc_entry = first_writable_pc_entry
             extract_axn = ExtractPackageAction(
-                source_full_path=first_writable_pc_entry.package_tarball_full_path,
-                target_full_path=first_writable_pc_entry.extracted_package_dir,
+                source_full_path=pc_entry.package_tarball_full_path,
+                target_pkgs_dir=dirname(pc_entry.pkgs_dir),
+                target_extracted_package_dir=pc_entry.extracted_package_dir,
             )
             return None, extract_axn
 
@@ -354,13 +442,14 @@ class ProgressiveFetchExtract(object):
             target_cache_directory = PackageCache.first_writable()
             cache_axn = CacheUrlAction(
                 url=path_to_url(pc_entry.package_tarball_full_path),
-                target_cache_directory=target_cache_directory,
+                target_pkgs_dir=target_cache_directory,
                 target_package_basename=dist.to_filename(),
                 md5sum=record['md5'],
             )
             extract_axn = ExtractPackageAction(
                 source_full_path=cache_axn.target_full_path,
-                target_full_path=pc_entry.extracted_package_dir,
+                target_pkgs_dir=dirname(pc_entry.pkgs_dir),
+                target_extracted_package_dir=pc_entry.extracted_package_dir,
             )
             return cache_axn, extract_axn
 
@@ -368,18 +457,18 @@ class ProgressiveFetchExtract(object):
         # there is no matching package_cache_entry
         # we need to fetch, and then extract
         url = record.get('url') or join_url(record.channel, record.fn)
-        channel = Channel(url)
         target_cache_directory = PackageCache.first_writable().cache_directory
 
         cache_axn = CacheUrlAction(
-            url=channel.url(),
-            target_cache_directory=target_cache_directory,
+            url=url,
+            target_pkgs_dir=target_cache_directory,
             target_package_basename=dist.to_filename(),
             md5sum=record['md5'],
         )
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
-            target_full_path=cache_axn.target_full_path[:-len(CONDA_TARBALL_EXTENSION)],
+            target_pkgs_dir=dirname(cache_axn.target_full_path),
+            target_extracted_package_dir=cache_axn.target_full_path[:-len(CONDA_TARBALL_EXTENSION)],
         )
         return cache_axn, extract_axn
 
@@ -388,37 +477,28 @@ class ProgressiveFetchExtract(object):
         self.link_dists = link_dists
 
         self._prepared = False
-        self._verified = False
 
     def prepare(self):
         if self._prepared:
             return
-
         cache_actions, extract_actions = zip(*(self.make_actions_for_dist(dist, self.index[dist])
                                              for dist in self.link_dists))
         self.cache_actions = tuple(ca for ca in cache_actions if ca)
         self.extract_actions = tuple(ea for ea in extract_actions if ea)
         self._prepared = True
 
-    def verify(self):
+    def execute(self):
         if not self._prepared:
             self.prepare()
-        for axn in concatv(self.cache_actions, self.extract_actions):
-            axn.verify()
-        self._verified = True
-
-    def execute(self):
-        if not self._verified:
-            self.verify()
 
         for action in concatv(self.cache_actions, self.extract_actions):
-            try:
-                self._execute_action(action)
-            finally:
-                action.cleanup()
+            self._execute_action(action)
 
     @staticmethod
     def _execute_action(action):
+        if not action.verified:
+            action.verify()
+
         max_tries = 3
         exceptions = []
         for q in range(max_tries):
@@ -428,7 +508,9 @@ class ProgressiveFetchExtract(object):
                 action.reverse()
                 exceptions.append(e)
             else:
+                action.cleanup()
                 return
+
         # TODO: this exception stuff here needs work
         raise CondaError('\n'.join(exceptions))
 
