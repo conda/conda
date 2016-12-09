@@ -23,7 +23,7 @@ from .common.compat import itervalues
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
-from .core.linked_data import linked_data
+from .core.linked_data import linked_data, is_linked
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          PackageNotFoundError, RemoveError)
 from .history import History
@@ -368,6 +368,8 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                            RM_EXTRACTED, EXTRACT,
                            UNLINK, LINK, SYMLINK_CONDA)
     for dist in dists:
+        if not force and is_linked(prefix, dist):
+            continue
         actions[LINK].append(dist)
     return actions
 
