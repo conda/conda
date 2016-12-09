@@ -355,7 +355,7 @@ class Channel(object):
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
     def __str__(self):
-        return self.base_url
+        return self.base_url or ""
 
     def __repr__(self):
         return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "
