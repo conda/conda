@@ -394,10 +394,15 @@ class ProgressiveFetchExtract(object):
         if self._prepared:
             return
 
-        cache_actions, extract_actions = zip(*(self.make_actions_for_dist(dist, self.index[dist])
-                                             for dist in self.link_dists))
-        self.cache_actions = tuple(ca for ca in cache_actions if ca)
-        self.extract_actions = tuple(ea for ea in extract_actions if ea)
+        zipped_actions = tuple(self.make_actions_for_dist(dist, self.index[dist])
+                          for dist in self.link_dists)
+        if len(zipped_actions) > 0:
+            cache_actions, extract_actions = zip(*zipped_actions)
+            self.cache_actions = tuple(ca for ca in cache_actions if ca)
+            self.extract_actions = tuple(ea for ea in extract_actions if ea)
+        else:
+            self.cache_actions = ()
+            self.extract_actions = ()
         self._prepared = True
 
     def verify(self):
