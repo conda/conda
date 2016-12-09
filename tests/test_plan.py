@@ -1209,7 +1209,8 @@ class TestGetActionsForDist(unittest.TestCase):
         dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
                                                specs=["testspec2 <4.3", "testspec1 1.1*"])
 
-        with patch("conda.core.linked_data.linked_data_", {"root/prefix": {Dist("testspec1-0.9.1"): True}}):
+        test_link_data = {"root/prefix": {Dist("testspec1-0.9.1"): True}}
+        with patch("conda.core.linked_data.linked_data_", test_link_data):
             actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
                                              False, True, True)
 
@@ -1222,9 +1223,95 @@ class TestGetActionsForDist(unittest.TestCase):
         expected_output["UNLINK"] = [Dist("testspec1-0.9.1")]
 
         expected_output["SYMLINK_CONDA"] = [context.root_dir]
-        # import pdb; pdb.set_trace()
         self.assertEquals(actions, expected_output)
 
+
+def generate_remove_action(prefix, unlink):
+    action = defaultdict(list)
+    action["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT', 'RM_EXTRACTED',
+                          'EXTRACT', 'UNLINK', 'LINK', 'SYMLINK_CONDA')
+    action["PREFIX"] = prefix
+    action["UNLINK"] = unlink
+    return action
+
+
+class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
+    def setUp(self):
+        self.index = {
+            Dist(dist_name="test1", channel="defaults"):
+                generate_mocked_package(None, "test1", "default", "1.0.1"),
+            Dist(dist_name="test1", channel="rando_chnl"):
+                generate_mocked_package("env", "test1", "default", "2.1.4"),
+            Dist(dist_name="test2", channel="defaults"):
+                generate_mocked_package("env", "test2", "default", "1.1.1"),
+            Dist(dist_name="test3", channel="defaults"):
+                generate_mocked_package(None, "test3", "default", "1.2.0"),
+            Dist(dist_name="test4", channel="defaults"):
+                generate_mocked_package(None, "test4", "default", "1.2.1")
+        }
+        self.res = generate_mocked_resolve(None, self.index)
+
+    @patch("conda.plan.remove_actions", return_value=generate_remove_action(
+        "root/prefix", [Dist("test1-2.1.4")]))
+    def test_update_in_private_env_add_remove_action(self, remove_actions):
+        required_solves = [plan.SpecsForPrefix(prefix="root/prefix/envs/_env_",
+                                               specs=["test1", "test2"], r=self.res),
+                           plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3"],
+                                               r=self.res)]
+
+        action = defaultdict(list)
+        action["PREFIX"] = "root/prefix/envs/_env_"
+        action["LINK"] = [Dist("test1-2.1.4"), Dist("test2-1.1.1")]
+        actions = [action]
+
+        test_link_data = {context.root_prefix: {Dist("test1-2.1.4"): True}}
+        with patch("conda.core.linked_data.linked_data_", test_link_data):
+            plan.add_unlink_options_for_update(actions, required_solves, self.index)
+
+        expected_output = [action, generate_remove_action("root/prefix", [Dist("test1-2.1.4")])]
+        self.assertEquals(actions, expected_output)
+
+    @patch("conda.plan.remove_actions", return_value=generate_remove_action(
+        "root/prefix", [Dist("test1-2.1.4")]))
+    def test_update_in_private_env_append_unlink(self, remove_actions):
+        required_solves = [plan.SpecsForPrefix(prefix="root/prefix/envs/_env_",
+                                               specs=["test1", "test2"], r=self.res),
+                           plan.SpecsForPrefix(prefix=context.root_prefix, specs=["whatevs"],
+                                               r=self.res)]
+
+        action = defaultdict(list)
+        action["PREFIX"] = "root/prefix/envs/_env_"
+        action["LINK"] = [Dist("test1-2.1.4"), Dist("test2-1.1.1")]
+        action_root = defaultdict(list)
+        action_root["PREFIX"] = context.root_prefix
+        action_root["LINK"] = [Dist("whatevs")]
+        actions = [action, action_root]
+
+        test_link_data = {context.root_prefix: {Dist("test1-2.1.4"): True}}
+        with patch("conda.core.linked_data.linked_data_", test_link_data):
+            plan.add_unlink_options_for_update(actions, required_solves, self.index)
+
+        aug_action_root = defaultdict(list)
+        aug_action_root["PREFIX"] = context.root_prefix
+        aug_action_root["LINK"] = [Dist("whatevs")]
+        aug_action_root["UNLINK"] = [Dist("test1-2.1.4")]
+        expected_output = [action, aug_action_root]
+        self.assertEquals(actions, expected_output)
+
+    @patch("conda.cli.common.get_private_envs_json", return_value=
+        {"test3-1.2.0": "some/prefix/envs/_env_", "test4-2.1.0": "some/prefix/envs/_env_"})
+    def test_update_in_root_env(self, prefix_if_in_private_env):
+        required_solves = [plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3", "test4"],
+                                               r=self.res)]
+
+        action = defaultdict(list)
+        action["PREFIX"] = "root/prefix"
+        action["LINK"] = [Dist("test3-1.2.0"), Dist("test4-1.2.1")]
+        actions = [action]
+        plan.add_unlink_options_for_update(actions, required_solves, self.index)
+        expected_output = [action, generate_remove_action(
+            "some/prefix/envs/_env_", [Dist("test3-1.2.0"), Dist("test4-2.1.0")])]
+        self.assertEquals(actions, expected_output)
 
 if __name__ == '__main__':
     unittest.main()

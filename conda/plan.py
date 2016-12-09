@@ -19,7 +19,7 @@ from conda.cli import common
 from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
-from .cli.common import prefix_if_in_private_env
+from .cli.common import prefix_if_in_private_env, pkg_if_in_private_env
 from .common.compat import itervalues
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
@@ -488,30 +488,31 @@ def add_unlink_options_for_update(actions, required_solves, index):
     # type: (Dict[weird], List[SpecsForPrefix], List[weird]) -> ()
     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
     linked_in_prefix = linked_data(context.root_prefix)
-    spec_in_root = lambda spc: any(
-        mtch for mtch in linked_in_prefix.keys() if MatchSpec(spec).match(mtch))
+    spec_in_root = lambda spc: tuple(
+        mtch for mtch in linked_in_prefix.keys() if MatchSpec(spc).match(mtch))
     for solved in required_solves:
-        # If the solved
+        # If the solved prefix is private
         if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
             for spec in solved.specs:
                 matched_in_root = spec_in_root(spec)
                 if matched_in_root:
                     aug_action = get_action_for_prefix(context.root_prefix)
-                    if len(aug_action) > 1:
-                        add_unlink(aug_action[0], Dist(spec))
+                    if len(aug_action) > 0:
+                        add_unlink(aug_action[0], matched_in_root[0])
                     else:
-                        actions.append(remove_actions(context.root_prefix, [spec], index))
+                        actions.append(remove_actions(context.root_prefix, matched_in_root, index))
+        # If the solved prefix is root
         elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
             for spec in solved.specs:
                 spec_in_private_env = prefix_if_in_private_env(spec)
                 if spec_in_private_env:
                     # remove pkg from private env and install in root
                     aug_action = get_action_for_prefix(spec_in_private_env)
-                    if len(aug_action) > 1:
-                        add_unlink(aug_action[0], Dist(spec))
+                    if len(aug_action) > 0:
+                        add_unlink(aug_action[0], Dist(pkg_if_in_private_env(spec)))
                     else:
-                        actions.append(remove_spec_action_from_prefix(spec_in_private_env,
-                                                                      spec))
+                        actions.append(remove_spec_action_from_prefix(
+                            spec_in_private_env, Dist(pkg_if_in_private_env(spec))))
 
 
 def get_resolve_object(index, prefix):
@@ -802,17 +803,14 @@ def remove_features_actions(prefix, index, features):
     return actions
 
 
-def remove_spec_action_from_prefix(prefix, spec):
-    linked = linked_data(prefix)
+def remove_spec_action_from_prefix(prefix, dist):
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
     actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
                            inst.RM_EXTRACTED, inst.EXTRACT,
                            inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
 
-    for dist in sorted(linked):
-        if dist.dist_name.startswith(spec):
-            add_unlink(actions, dist)
+    add_unlink(actions, dist)
     return actions
 
 

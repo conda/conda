@@ -311,8 +311,9 @@ class CreatePrivateEnvMetaAction(CreatePrefixPathAction):
         log.trace("creating private env entry for '%s' in %s",
                   self.package_info.repodata_record.name, self.target_full_path)
         # TODO: need to capture old env entry if it was there, so that it can be reversed
-        create_private_envs_meta(self.package_info.repodata_record.name, context.root_prefix,
-                                 self.target_prefix)
+        name = "%s-%s" % (self.package_info.repodata_record.name,
+                          self.package_info.repodata_record.version)
+        create_private_envs_meta(name, context.root_prefix, self.target_prefix)
 
     def reverse(self):
         log.trace("reversing private env entry for '%s' in %s",
@@ -419,8 +420,9 @@ class RemovePrivateEnvMetaAction(UnlinkPathAction):
     def reverse(self):
         log.trace("adding back private env '%s' from %s", self.linked_package_data.name,
                   self.target_full_path)
-        create_private_envs_meta(self.linked_package_data.name, context.root_prefix,
-                                 self.target_prefix)
+        name = "%s-%s" % (self.package_info.repodata_record.name,
+                          self.package_info.repodata_record.version)
+        create_private_envs_meta(name, context.root_prefix, self.target_prefix)
 
 
 # ######################################################
