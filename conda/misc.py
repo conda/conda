@@ -91,7 +91,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         return url, md5sum
 
     def url_details_to_dist_record(url, md5sum):
-        dist = Dist(Channel(url))
+        dist = Dist(url)
         if dist in index:
             record = index[dist]
             # TODO: we should be able to query across channels for no-channel dist + md5sum matches
@@ -130,6 +130,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
     # unlink any installed packages with same package name
     unlink_dists = tuple(linked[dist.name] for dist in link_dists if dist.name in linked)
+    import pdb; pdb.set_trace()
 
     for unlink_dist in unlink_dists:
         actions[UNLINK].append(unlink_dist)

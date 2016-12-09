@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
+
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
@@ -445,8 +447,9 @@ class CustomConfigChannelTests(TestCase):
         ]
 
     def test_local_channel(self):
+        Channel._reset_state()
         channel = Channel('local')
-        assert channel._channels[0].name == 'conda-bld'
+        assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
         assert channel.channel_name == "local"
         assert channel.platform is None
         assert channel.package_filename is None
@@ -454,9 +457,10 @@ class CustomConfigChannelTests(TestCase):
         assert channel.token is None
         assert channel.scheme is None
         assert channel.canonical_name == "local"
+        local_channel_first_subchannel = channel._channels[0].name
 
-        channel = Channel('conda-bld')
-        assert channel.channel_name == "conda-bld"
+        channel = Channel(local_channel_first_subchannel)
+        assert channel.channel_name == local_channel_first_subchannel
         assert channel.platform is None
         assert channel.package_filename is None
         assert channel.auth is None

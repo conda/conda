@@ -4,16 +4,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
-from os.path import dirname
 from requests.packages.urllib3.util import Url
 
-from conda.common.path import win_path_ok
 from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import iteritems, odict, with_metaclass
-from ..common.url import (has_scheme, is_url, is_windows_path, join_url, on_win, path_to_url,
-                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse,
-                          url_to_path, split_platform)
+from ..common.path import is_windows_path
+from ..common.url import (has_scheme, is_url, join_url, on_win, path_to_url,
+                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
 
 try:
     from cytoolz.functoolz import excepts
@@ -159,8 +157,7 @@ class ChannelType(type):
             elif value in Channel._cache_:
                 return Channel._cache_[value]
             else:
-                c = Channel.from_value(value)
-                Channel._cache_[value] = c
+                c = Channel._cache_[value] = Channel.from_value(value)
                 return c
         else:
             return super(ChannelType, cls).__call__(*args, **kwargs)

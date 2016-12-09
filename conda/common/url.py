@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import re
-import socket
-import sys
 from getpass import getpass
 from logging import getLogger
 from os.path import abspath, expanduser
+import re
+import socket
+import sys
+
+from conda.common.path import split_filename
 
 try:
     # Python 3
@@ -183,7 +185,16 @@ def split_platform(url):
     return cleaned_url.rstrip('/'), platform
 
 
-def split_package_filename(url):
+def has_platform(url):
+    from ..base.constants import PLATFORM_DIRECTORIES
+    url_no_package_name, _ = split_filename(url)
+    if not url_no_package_name:
+        return None
+    maybe_a_platform = url_no_package_name.rsplit('/', 1)[-1]
+    return maybe_a_platform in PLATFORM_DIRECTORIES and maybe_a_platform or None
+
+
+def _split_package_filename(url):
     cleaned_url, package_filename = (url.rsplit('/', 1) if url.endswith(('.tar.bz2', '.json'))
                                      else (url, None))
     return cleaned_url, package_filename
@@ -203,7 +214,7 @@ def split_conda_url_easy_parts(url):
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(cleaned_url)
-    cleaned_url, package_filename = split_package_filename(cleaned_url)
+    cleaned_url, package_filename = split_filename(cleaned_url)
 
     # TODO: split out namespace using regex
 
@@ -211,10 +222,6 @@ def split_conda_url_easy_parts(url):
 
     return (url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host,
             url_parts.port, url_parts.path, url_parts.query)
-
-
-def is_windows_path(value):
-    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
 
 
 @memoize

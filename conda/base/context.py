@@ -14,7 +14,7 @@ from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..common.compat import NoneType, iteritems, odict, string_types
+from ..common.compat import NoneType, iteritems, odict, string_types, itervalues
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
@@ -139,7 +139,8 @@ class Context(Configuration):
             self._croot,
             self.bld_path,
             self.conda_build.get('root-dir'),
-            join(self.root_prefix, 'conda-bld'), '~/conda-bld'
+            join(self.root_prefix, 'conda-bld'),
+            '~/conda-bld',
         ) if d and isdir(d)))
 
     @property
@@ -312,43 +313,77 @@ class Context(Configuration):
         return (self._argparse_args.get("prefix") is not None and
                 self._argparse_args.get("name") is not None)
 
-    @memoizedproperty
-    def default_channels(self):
-        # the format for 'default_channels' is a list of strings that either
-        #   - start with a scheme
-        #   - are meant to be prepended with channel_alias
-        from ..models.channel import Channel
-        return tuple(Channel.make_simple_channel(self.channel_alias, v)
-                     for v in self._default_channels)
+    # @memoizedproperty
+    # def default_channels(self):
+    #     # the format for 'default_channels' is a list of strings that either
+    #     #   - start with a scheme
+    #     #   - are meant to be prepended with channel_alias
+    #     from ..models.channel import Channel
+    #     return tuple(Channel.make_simple_channel(self.channel_alias, v)
+    #                  for v in self._default_channels)
 
-    @memoizedproperty
-    def local_build_root_channel(self):
-        from ..models.channel import Channel
-        url_parts = urlparse(path_to_url(self.local_build_root))
-        location, name = url_parts.path.rsplit('/', 1)
-        if not location:
-            location = '/'
-        return Channel(scheme=url_parts.scheme, location=location, name=name)
+    # @memoizedproperty
+    # def local_build_root_channel(self):
+    #     from ..models.channel import Channel
+    #     url_parts = urlparse(path_to_url(self.local_build_root))
+    #     location, name = url_parts.path.rsplit('/', 1)
+    #     if not location:
+    #         location = '/'
+    #     return Channel(scheme=url_parts.scheme, location=location, name=name)
+
+    # @memoizedproperty
+    # def reserved_multichannels(self):
+    #     from ..models.channel import Channel
+    #     reserved_multichannel_urls = odict(
+    #         defaults=self._default_channels,
+    #         local=tuple(path_to_url(p) for p in self.conda_build_local_paths),
+    #     )
+    #     reserved_multichannels = odict(
+    #         (name, channels)
+    #         for name, urls in iteritems(reserved_multichannel_urls)
+    #         for channels in (Channel.make_simple_channel(self.channel_alias, url) for url in urls)
+    #     )
+    #     return reserved_multichannels
 
     @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
-        default_custom_multichannels = {
-            'defaults': self.default_channels,
-            'local': self.conda_build_local_paths,
-        }
-        all_channels = default_custom_multichannels, self._custom_multichannels
-        return odict((name, tuple(Channel(v) for v in c))
-                     for name, c in concat(map(iteritems, all_channels)))
+
+        reserved_multichannel_urls = odict((
+            ('defaults', self._default_channels),
+            ('local', tuple(path_to_url(p) for p in self.conda_build_local_paths)),
+        ))
+        reserved_multichannels = odict(
+            (name, tuple(
+                Channel.make_simple_channel(self.channel_alias, url) for url in urls)
+             ) for name, urls in iteritems(reserved_multichannel_urls)
+        )
+        custom_multichannels = odict(
+            (name, tuple(
+                Channel.make_simple_channel(self.channel_alias, url) for url in urls)
+             ) for name, urls in iteritems(self._custom_multichannels)
+        )
+        all_multichannels = odict(
+            (name, channels)
+            for name, channels in concat(map(iteritems, (
+                custom_multichannels,
+                reserved_multichannels,  # reserved comes last, so reserved overrides custom
+            )))
+        )
+        return all_multichannels
 
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
         custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
                            for name, url in iteritems(self._custom_channels))
-        all_sources = self.default_channels, (self.local_build_root_channel,), custom_channels
-        all_channels = (ch for ch in concat(all_sources))
-        return odict((x.name, x) for x in all_channels)
+        channels_from_multichannels = concat(channel for channel
+                                             in itervalues(self.custom_multichannels))
+        all_channels = odict((x.name, x) for x in (ch for ch in concatv(
+            channels_from_multichannels,
+            custom_channels,
+        )))
+        return all_channels
 
 
 def conda_in_private_env():

@@ -4,14 +4,22 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from functools import reduce
 import os
 from os.path import join, split, splitext, dirname, basename
+import re
 
-from .compat import string_types
-from ..utils import on_win
+from .compat import on_win, string_types
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
 except ImportError:
     from .._vendor.toolz.itertoolz import accumulate, concat, take
+
+
+def is_path(value):
+    return value.startswith(('./', '..', '~', '/')) or is_windows_path(value)
+
+
+def is_windows_path(value):
+    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
 
 
 def tokenized_startswith(test_iterable, startswith_iterable):
@@ -167,3 +175,8 @@ def win_path_backout(path):
 
 def right_pad_os_sep(path):
     return path if path.endswith(os.sep) else path + os.sep
+
+
+def split_filename(path_or_url):
+    dn, fn = split(path_or_url)
+    return (dn or None, fn) if '.' in fn else (path_or_url, None)
