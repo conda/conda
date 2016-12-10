@@ -9,17 +9,17 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
 from collections import defaultdict, namedtuple
 from logging import getLogger
 from os.path import abspath, basename, exists, join
-import sys
 
 from . import instructions as inst
 from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
 from .cli import common
 from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
-from .common.compat import itervalues
+from .common.compat import itervalues, odict
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
@@ -641,7 +641,7 @@ def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_cop
     specs = augment_specs(prefix, specs, pinned)
 
     linked = linked_data(prefix)
-    must_have = {}
+    must_have = odict()
 
     installed = linked
     if prune:

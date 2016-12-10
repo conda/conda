@@ -1,4 +1,5 @@
 import os
+from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.cli import common
 from conda.core import linked_data
@@ -907,6 +908,7 @@ class PlanFromActionsTests(unittest.TestCase):
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
             # ('PROGRESS', '2'),
+            ('PROGRESSIVEFETCHEXTRACT', (Dist(ipython), Dist(menuinst))),
             ('UNLINKLINKTRANSACTION', ((), (Dist(ipython), Dist(menuinst)))),
         ]
 
@@ -916,6 +918,7 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
+                ('PROGRESSIVEFETCHEXTRACT', (Dist(menuinst), Dist(ipython))),
                 ('UNLINKLINKTRANSACTION', ((), (Dist(menuinst), Dist(ipython)))),
             ]
 
@@ -924,7 +927,6 @@ class PlanFromActionsTests(unittest.TestCase):
         assert expected_plan[0] == conda_plan[0]
         assert expected_plan[1] == conda_plan[1]
         assert expected_plan[2] == conda_plan[2]
-        # self.assertEqual(expected_plan, conda_plan)
 
 
 def generate_mocked_package(preferred_env, name, schannel, version):
@@ -1101,18 +1103,19 @@ class TestGroupDistsForPrefix(unittest.TestCase):
         grouped_specs = [
             plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
                                 r=test_r,
-                                specs={"test"}),
+                                specs=IndexedSet(("test",))),
             plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
-                                specs={"test-spec", "test-spec2"})]
+                                specs=IndexedSet(("test-spec", "test-spec2")))]
         matched = plan.match_to_original_specs(str_specs, grouped_specs)
         expected_output = [
             plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
                                 r=test_r,
                                 specs=["test 1.2.0"]),
             plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
-                                specs=["test-spec2 <4.3", "test-spec 1.1*"])]
+                                specs=["test-spec 1.1*", "test-spec2 <4.3"])]
 
-        self.assertEquals(matched, expected_output)
+        assert len(matched) == len(expected_output)
+        assert matched == expected_output
 
 
 class TestGetActionsForDist(unittest.TestCase):
@@ -1167,7 +1170,7 @@ class TestGetActionsForDist(unittest.TestCase):
         self.assertEquals(link_actions, expected_output)
 
     def test_get_actions_for_dist(self):
-        install = [Dist("test-1.2.0")]
+        install = [Dist("test-1.2.0-py36_7")]
         r = generate_mocked_resolve(self.pkgs, self.index, install)
         dists_for_prefix = plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_", r=r,
                                                specs=["test 1.2.0"])
@@ -1179,7 +1182,7 @@ class TestGetActionsForDist(unittest.TestCase):
         expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
                                        'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
                                        'SYMLINK_CONDA')
-        expected_output["LINK"] = [Dist("test-1.2.0")]
+        expected_output["LINK"] = [Dist("test-1.2.0-py36_7")]
         expected_output["SYMLINK_CONDA"] = [context.root_dir]
 
         self.assertEquals(actions, expected_output)
@@ -1223,6 +1226,7 @@ class TestGetActionsForDist(unittest.TestCase):
         expected_output["UNLINK"] = [Dist("testspec1-0.9.1-py27_2")]
 
         expected_output["SYMLINK_CONDA"] = [context.root_dir]
+        assert expected_output["LINK"] == actions["LINK"]
         assert actions == expected_output
 
 
