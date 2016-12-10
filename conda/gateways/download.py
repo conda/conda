@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import hashlib
 from logging import getLogger
-from os.path import exists
+from os.path import exists, basename
 from threading import Lock
 import warnings
 
@@ -65,8 +65,7 @@ def download(url, target_full_path, md5sum):
 
             content_length = int(resp.headers.get('Content-Length'))
 
-            getLogger('fetch.start').info((target_full_path.rsplit('/', 1)[1][:14],
-                                           content_length))
+            getLogger('fetch.start').info((basename(target_full_path[:14]), content_length))
 
             digest_builder = hashlib.new('md5')
             try:

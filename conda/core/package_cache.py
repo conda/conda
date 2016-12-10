@@ -4,9 +4,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, islink, join
+from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
-from .. import CondaError
+from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.path import expand
@@ -458,6 +459,7 @@ class ProgressiveFetchExtract(object):
             try:
                 action.execute()
             except Exception as e:
+                log.debug(format_exc())
                 action.reverse()
                 exceptions.append(CondaError(repr(e)))
             else:
@@ -465,7 +467,7 @@ class ProgressiveFetchExtract(object):
                 return
 
         # TODO: this exception stuff here needs work
-        raise CondaError(exceptions)
+        raise CondaMultiError(exceptions)
 
 
 # ##############################
@@ -479,13 +481,6 @@ def rm_fetched(dist):
     """
     # in conda/exports.py and conda_build/conda_interface.py, but not actually
     #   used in conda-build
-    raise NotImplementedError()
-
-
-def extracted():
-    """
-    return the (set) of canonical names of all extracted packages
-    """
     raise NotImplementedError()
 
 
