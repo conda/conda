@@ -15,7 +15,7 @@ from os.path import abspath, basename, exists, join
 import sys
 
 from . import instructions as inst
-from .base.constants import DEFAULTS
+from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
 from .cli import common
 from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
@@ -69,7 +69,7 @@ def display_actions(actions, index, show_channel_urls=None):
             return Channel(rec['url']).canonical_name
         if rec.get('channel'):
             return Channel(rec['channel']).canonical_name
-        return '<unknown>'
+        return UNKNOWN_CHANNEL
 
     def channel_filt(s):
         if show_channel_urls is False:
@@ -122,7 +122,7 @@ def display_actions(actions, index, show_channel_urls=None):
                        version=version,
                        build=build,
                        channel=None,
-                       schannel='<unknown>',
+                       schannel=UNKNOWN_CHANNEL,
                        build_number=int(build) if build.isdigit() else 0)
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)

@@ -6,7 +6,8 @@ from logging import getLogger
 
 from requests.packages.urllib3.util import Url
 
-from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY
+from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY,
+                              UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import iteritems, odict, with_metaclass
 from ..common.path import is_windows_path
@@ -208,7 +209,7 @@ class Channel(object):
     @staticmethod
     def from_value(value):
         if value is None:
-            return Channel(name="<unknown>")
+            return Channel(name=UNKNOWN_CHANNEL)
         if hasattr(value, 'decode'):
             value = value.decode('utf-8')
         if has_scheme(value):
@@ -318,14 +319,8 @@ class Channel(object):
             return ["%s://%s" % (self.scheme, b) for b in bases]
 
     def url(self, with_credentials=False):
-        if self.canonical_name == '<unknown>':
+        if self.canonical_name == UNKNOWN_CHANNEL:
             return None
-        # if self.scheme == 'file' and self.package_filename:
-        #     channel_from_package_cache = self.get_channel_from_package_cache(self)
-        #     if channel_from_package_cache.canonical_name == '<unknown>':
-        #         return None
-        #     else:
-        #         return channel_from_package_cache.url(with_credentials)
 
         base = [self.location]
         if with_credentials and self.token:

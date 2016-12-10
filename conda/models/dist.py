@@ -10,7 +10,7 @@ from .package_info import PackageInfo
 from .record import Record
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS
+from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..common.constants import NULL
@@ -188,7 +188,7 @@ class Dist(Entity):
             url_no_tarball = url.rsplit('/', 1)[0]
             platform = has_platform(url_no_tarball)
             base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
-            channel = Channel(base_url).canonical_name if platform else '<unknown>'
+            channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 
         return cls(channel, dist_details.dist_name, base_url=base_url, platform=platform)
 

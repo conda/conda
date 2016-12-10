@@ -6,6 +6,7 @@ from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 
+from ..base.constants import UNKNOWN_CHANNEL
 from ..common.compat import itervalues
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel
@@ -49,7 +50,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     channel = rec.get('channel')
     if channel:
         channel = channel.rstrip('/')
-        if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
+        if not url or (url.startswith('file:') and channel[0] != UNKNOWN_CHANNEL):
             url = rec['url'] = channel + '/' + fn
     channel, schannel = Channel(url).url_channel_wtf
 

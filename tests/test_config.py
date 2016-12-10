@@ -90,8 +90,8 @@ class TestConfig(unittest.TestCase):
     #                    reason="refactor to work with Channel entity")
     def test_normalize_urls(self):
         context = reset_context([join(dirname(__file__), 'condarc')])
-        current_platform = context.subdir
         assert DEFAULT_CHANNEL_ALIAS == 'https://conda.anaconda.org'
+        match_me = Channel('https://your.repo/')
         assert context.channel_alias == Channel('https://your.repo/')
         # assert binstar.channel_prefix(False) == 'https://your.repo/'
         # assert binstar.binstar_domain == 'https://mybinstar.com/'

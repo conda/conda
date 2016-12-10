@@ -5,15 +5,15 @@ from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, islink, join
 
-from conda.common.path import url_to_path
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.path import expand
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import iterkeys, itervalues, with_metaclass, iteritems
+from ..common.compat import iteritems, iterkeys, itervalues, with_metaclass
+from ..common.path import url_to_path
 from ..common.url import join_url, path_to_url
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.disk.test import try_write
@@ -248,7 +248,7 @@ class PackageCache(object):
     def _add_entry(self, pkgs_dir, package_filename):
         dist = first(self.urls_data, lambda x: x.endswith(package_filename), apply=Dist)
         if not dist:
-            dist = Dist.from_string(package_filename, channel_override='<unknown>')
+            dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
         pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
         self._packages_map[pc_entry.dist] = pc_entry
 
