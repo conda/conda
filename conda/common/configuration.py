@@ -725,7 +725,8 @@ class Configuration(object):
 
     def _set_env_vars(self, app_name):
         self._app_name = app_name
-        self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
+        if app_name:
+            self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
         self._cache_ = dict()
         return self
 
