@@ -459,6 +459,7 @@ class ProgressiveFetchExtract(object):
             try:
                 action.execute()
             except Exception as e:
+                log.debug("Error in action %s", action)
                 log.debug(format_exc())
                 action.reverse()
                 exceptions.append(CondaError(repr(e)))

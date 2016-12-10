@@ -451,17 +451,17 @@ class CacheUrlAction(PathAction):
 
         if exists(self.hold_path):
             rm_rf(self.hold_path)
+
         if exists(self.target_full_path):
-            backoff_rename(self.target_full_path, self.hold_path)
+            if self.url.startswith('file:/') and self.url == path_to_url(self.target_full_path):
+                # the source and destination are the same file, so we're done
+                return
+            else:
+                backoff_rename(self.target_full_path, self.hold_path)
 
         if self.url.startswith('file:/'):
             source_path = url_to_path(self.url)
-            if source_path == self.target_full_path:
-                # the source and destination are the same; just reverse the backoff_rename
-                #   from above, and we're done
-                assert exists(self.hold_path), self.hold_path
-                self.reverse()
-            elif dirname(source_path) in context.pkgs_dirs:
+            if dirname(source_path) in context.pkgs_dirs:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)
                 source_package_cache = PackageCache(dirname(source_path))

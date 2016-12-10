@@ -366,6 +366,7 @@ class IntegrationTests(TestCase):
 
             flask_fname = flask_data['fn']
             tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+            assert isfile(tar_old_path)
 
             # regression test for #2886 (part 1 of 2)
             # install tarball from package cache, default channel

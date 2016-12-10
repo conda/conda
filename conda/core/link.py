@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from traceback import format_exc
+
 from logging import getLogger
 import os
 from os.path import join
 import re
 from subprocess import CalledProcessError, check_call
 import sys
-import traceback
 import warnings
 
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
@@ -332,7 +333,8 @@ class UnlinkLinkTransaction(object):
 
         except:
             log.error("Something bad happened, but it's okay because I'm going to roll back now.")
-            log.debug(traceback.format_exc())
+            log.debug("Error in action %r", action)
+            log.debug(format_exc())
 
             failed_pkg_idx, failed_axn_idx = pkg_idx, axn_idx
             reverse_actions = self.all_actions[:failed_pkg_idx+1]
