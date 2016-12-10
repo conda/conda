@@ -297,7 +297,7 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0', 'sqlite-3.7.13-0', 'tk-8.5.13-0', 'zlib-1.2.7-0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -660,7 +660,7 @@ def test_display_actions_features():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_0', 'cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -669,11 +669,11 @@ def test_display_actions_features():
 The following NEW packages will be INSTALLED:
 
     cython: 0.19-py33_0  \n\
-    numpy:  1.7.1-py33_p0 [mkl]
+    numpy:  1.7.1-py33_0 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_0', 'cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -682,11 +682,11 @@ The following NEW packages will be INSTALLED:
 The following packages will be REMOVED:
 
     cython: 0.19-py33_0  \n\
-    numpy:  1.7.1-py33_p0 [mkl]
+    numpy:  1.7.1-py33_0 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_0'], 'LINK': ['numpy-1.7.0-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -694,7 +694,7 @@ The following packages will be REMOVED:
     assert c.stdout == """
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]
+    numpy: 1.7.1-py33_0 [mkl] --> 1.7.0-py33_0 [mkl]
 
 """
 
@@ -894,9 +894,8 @@ class PlanFromActionsTests(unittest.TestCase):
     py_ver = ''.join(str(x) for x in sys.version_info[:2])
 
     def test_plan_link_menuinst(self):
-
-        menuinst = 'menuinst'
-        ipython = 'ipython'
+        menuinst = Dist('menuinst-1.4.2-py27_0')
+        ipython = Dist('ipython-5.1.0-py27_1')
         actions = {
             'PREFIX': 'aprefix',
             'LINK': [ipython, menuinst],
@@ -908,8 +907,8 @@ class PlanFromActionsTests(unittest.TestCase):
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
             # ('PROGRESS', '2'),
-            ('PROGRESSIVEFETCHEXTRACT', (Dist(ipython), Dist(menuinst))),
-            ('UNLINKLINKTRANSACTION', ((), (Dist(ipython), Dist(menuinst)))),
+            ('PROGRESSIVEFETCHEXTRACT', (ipython, menuinst)),
+            ('UNLINKLINKTRANSACTION', ((), (ipython), menuinst)),
         ]
 
         if on_win:
@@ -918,8 +917,8 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
-                ('PROGRESSIVEFETCHEXTRACT', (Dist(menuinst), Dist(ipython))),
-                ('UNLINKLINKTRANSACTION', ((), (Dist(menuinst), Dist(ipython)))),
+                ('PROGRESSIVEFETCHEXTRACT', (menuinst, ipython)),
+                ('UNLINKLINKTRANSACTION', ((), (menuinst, ipython))),
             ]
 
             # last_two = expected_plan[-2:]
@@ -1256,7 +1255,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
         self.res = generate_mocked_resolve(None, self.index)
 
     @patch("conda.plan.remove_actions", return_value=generate_remove_action(
-        "root/prefix", [Dist("test1-2.1.4")]))
+        "root/prefix", [Dist("test1-2.1.4-1")]))
     def test_update_in_private_env_add_remove_action(self, remove_actions):
         required_solves = [plan.SpecsForPrefix(prefix="root/prefix/envs/_env_",
                                                specs=["test1", "test2"], r=self.res),
@@ -1265,18 +1264,18 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
 
         action = defaultdict(list)
         action["PREFIX"] = "root/prefix/envs/_env_"
-        action["LINK"] = [Dist("test1-2.1.4"), Dist("test2-1.1.1")]
+        action["LINK"] = [Dist("test1-2.1.4-1"), Dist("test2-1.1.1-8")]
         actions = [action]
 
-        test_link_data = {context.root_prefix: {Dist("test1-2.1.4"): True}}
+        test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
         with patch("conda.core.linked_data.linked_data_", test_link_data):
             plan.add_unlink_options_for_update(actions, required_solves, self.index)
 
-        expected_output = [action, generate_remove_action("root/prefix", [Dist("test1-2.1.4")])]
+        expected_output = [action, generate_remove_action("root/prefix", [Dist("test1-2.1.4-1")])]
         self.assertEquals(actions, expected_output)
 
     @patch("conda.plan.remove_actions", return_value=generate_remove_action(
-        "root/prefix", [Dist("test1-2.1.4")]))
+        "root/prefix", [Dist("test1-2.1.4-1")]))
     def test_update_in_private_env_append_unlink(self, remove_actions):
         required_solves = [plan.SpecsForPrefix(prefix="root/prefix/envs/_env_",
                                                specs=["test1", "test2"], r=self.res),
@@ -1285,25 +1284,25 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
 
         action = defaultdict(list)
         action["PREFIX"] = "root/prefix/envs/_env_"
-        action["LINK"] = [Dist("test1-2.1.4"), Dist("test2-1.1.1")]
+        action["LINK"] = [Dist("test1-2.1.4-1"), Dist("test2-1.1.1-8")]
         action_root = defaultdict(list)
         action_root["PREFIX"] = context.root_prefix
         action_root["LINK"] = [Dist("whatevs")]
         actions = [action, action_root]
 
-        test_link_data = {context.root_prefix: {Dist("test1-2.1.4"): True}}
+        test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
         with patch("conda.core.linked_data.linked_data_", test_link_data):
             plan.add_unlink_options_for_update(actions, required_solves, self.index)
 
         aug_action_root = defaultdict(list)
         aug_action_root["PREFIX"] = context.root_prefix
         aug_action_root["LINK"] = [Dist("whatevs")]
-        aug_action_root["UNLINK"] = [Dist("test1-2.1.4")]
+        aug_action_root["UNLINK"] = [Dist("test1-2.1.4-1")]
         expected_output = [action, aug_action_root]
         self.assertEquals(actions, expected_output)
 
     @patch("conda.cli.common.get_private_envs_json", return_value=
-        {"test3-1.2.0": "some/prefix/envs/_env_", "test4-2.1.0": "some/prefix/envs/_env_"})
+        {"test3-1.2.0": "some/prefix/envs/_env_", "test4-2.1.0-22": "some/prefix/envs/_env_"})
     def test_update_in_root_env(self, prefix_if_in_private_env):
         required_solves = [plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3", "test4"],
                                                r=self.res)]
@@ -1314,7 +1313,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
         actions = [action]
         plan.add_unlink_options_for_update(actions, required_solves, self.index)
         expected_output = [action, generate_remove_action(
-            "some/prefix/envs/_env_", [Dist("test3-1.2.0"), Dist("test4-2.1.0")])]
+            "some/prefix/envs/_env_", [Dist("test3-1.2.0"), Dist("test4-2.1.0-22")])]
         self.assertEquals(actions, expected_output)
 
 if __name__ == '__main__':

@@ -140,6 +140,9 @@ class Dist(Entity):
         elif channel is None:
             channel = DEFAULTS
 
+        # enforce dist format
+        cls.parse_dist_name(original_dist)
+
         return cls(channel=channel, dist_name=original_dist, with_features_depends=w_f_d)
 
     @staticmethod
@@ -159,13 +162,11 @@ class Dist(Entity):
                 dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
 
             parts = dist_name.rsplit('-', 2)
-            if len(parts) != 3:
-                raise CondaError("dist_name is not a valid conda package: %s" % original_string)
 
             name = parts[0]
             version = parts[1]
-            build_string = parts[2]
-            build_number = int(build_string.rsplit('_')[-1])
+            build_string = parts[2] if len(parts) >= 3 else ''
+            build_number = int(build_string.rsplit('_')[-1]) if build_string else 0
 
             return DistDetails(name, version, build_string, build_number, dist_name)
 
