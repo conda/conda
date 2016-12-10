@@ -698,7 +698,12 @@ class Configuration(object):
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         self.raw_data = odict()
         self._cache_ = dict()
+        self._reset_callbacks = set()  # TODO: make this a boltons ordered set
         self._validation_errors = defaultdict(list)
+
+        if not hasattr(self, '_app_name') and app_name is not None:
+            # we only set app_name once; we never change it
+            self._app_name = app_name
 
         self._set_search_path(search_path)
         self._set_env_vars(app_name)
@@ -723,11 +728,14 @@ class Configuration(object):
 
         return self
 
-    def _set_env_vars(self, app_name):
-        self._app_name = app_name
-        if app_name:
-            self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
-        self._cache_ = dict()
+    def _set_env_vars(self, app_name=None):
+        if not hasattr(self, '_app_name') and app_name is not None:
+            # we only set app_name once; we never change it
+            self._app_name = app_name
+        if self._app_name:
+            erp = EnvRawParameter
+            self.raw_data[erp.source] = erp.make_raw_parameters(self._app_name)
+        self._reset_cache()
         return self
 
     def _set_argparse_args(self, argparse_args):
@@ -749,13 +757,22 @@ class Configuration(object):
 
         source = ArgParseRawParameter.source
         self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
-        self._cache_ = dict()
+        self._reset_cache()
         return self
 
     def _set_raw_data(self, raw_data):
         self.raw_data.update(raw_data)
-        self._cache_ = dict()
+        self._reset_cache()
         return self
+
+    def _reset_cache(self):
+        self._cache_ = dict()
+        for callback in self._reset_callbacks:
+            callback()
+        return self
+
+    def register_reset_callaback(self, callback):
+        self._reset_callbacks.add(callback)
 
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__

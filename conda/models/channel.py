@@ -435,3 +435,6 @@ def prioritize_channels(channels, with_credentials=True, platform=None):
 
 def offline_keep(url):
     return not context.offline or not is_url(url) or url.startswith('file:/')
+
+
+context.register_reset_callaback(Channel._reset_state)
