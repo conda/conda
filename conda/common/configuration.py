@@ -723,7 +723,7 @@ class Configuration(object):
 
         if raw_data_held_contents:
             # this should only be triggered on re-initialization / reset
-            self._set_env_vars(self._app_name)
+            self._set_env_vars(getattr(self, '_app_name', None))
             self._set_argparse_args(self._argparse_args)
 
         return self
@@ -732,7 +732,7 @@ class Configuration(object):
         if not hasattr(self, '_app_name') and app_name is not None:
             # we only set app_name once; we never change it
             self._app_name = app_name
-        if self._app_name:
+        if getattr(self, '_app_name', None):
             erp = EnvRawParameter
             self.raw_data[erp.source] = erp.make_raw_parameters(self._app_name)
         self._reset_cache()
