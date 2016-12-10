@@ -3,6 +3,7 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 import sys
 if 'develop' in sys.argv:
@@ -14,15 +15,15 @@ if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
-if os.environ.get('CONDA_DEFAULT_ENV'):
-    # Try to prevent accidentally installing conda into a non-root conda environment
-    sys.exit("""
-You appear to be in a non-root conda environment. Conda is only supported in
-the root environment. Deactivate and try again.  If you believe this message
-is in error, run CONDA_DEFAULT_ENV='' python setup.py.
-""")
+print("""
+WARNING: Your current install method for conda only supports conda
+as a python library.  You are not installing a conda executable command
+or activate/deactivate commands.  If your intention is to install conda
+as a standalone application, currently supported install methods include
+the Anaconda installer and the miniconda installer.
+""", file=sys.stderr)
 
-# When executing the setup.py, we need to be able to import ourselves, this
+# When executing setup.py, we need to be able to import ourselves, this
 # means that we need to add the src directory to the sys.path.
 here = os.path.abspath(os.path.dirname(__file__))
 src_dir = os.path.join(here, "conda")
@@ -33,14 +34,6 @@ from conda._vendor.auxlib import packaging  # NOQA
 
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
-
-scripts = ['shell/activate',
-           'shell/deactivate',
-           ]
-if sys.platform == 'win32':
-    # Powershell scripts should go here
-    scripts.extend(['shell/activate.bat',
-                    'shell/deactivate.bat'])
 
 install_requires = [
     'pycosat >=0.6.1',
@@ -79,13 +72,6 @@ setup(
         'build_py': packaging.BuildPyCommand,
         'sdist': packaging.SDistCommand,
     },
-    install_requires=[],
-    entry_points={
-        'console_scripts': [
-            "conda = conda.cli.main:main",
-            "conda-env = conda_env.cli.main:main"
-        ],
-    },
-    scripts=scripts,
+    install_requires=install_requires,
     zip_safe=False,
 )
