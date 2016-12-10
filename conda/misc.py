@@ -114,7 +114,8 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         return dist, record
 
     parsed_urls = (spec_to_parsed_url(spec) for spec in specs)
-    link_index = odict(url_details_to_dist_record(url, md5sum) for url, md5sum in parsed_urls if url)
+    link_index = odict(url_details_to_dist_record(url, md5sum)
+                       for url, md5sum in parsed_urls if url)
     link_dists = tuple(iterkeys(link_index))
 
     # merge new link_index into index
