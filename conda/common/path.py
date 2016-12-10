@@ -13,7 +13,7 @@ try:
     from urllib.parse import unquote  # NOQA
 except ImportError:
     # Python 2
-    from urllib import unquot  # NOQA
+    from urllib import unquote  # NOQA
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
