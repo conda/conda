@@ -459,13 +459,13 @@ class ProgressiveFetchExtract(object):
                 action.execute()
             except Exception as e:
                 action.reverse()
-                exceptions.append(e)
+                exceptions.append(CondaError(repr(e)))
             else:
                 action.cleanup()
                 return
 
         # TODO: this exception stuff here needs work
-        raise CondaError('\n'.join(exceptions))
+        raise CondaError(exceptions)
 
 
 # ##############################
