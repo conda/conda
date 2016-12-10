@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from functools import partial
 import logging
-from logging import CRITICAL, DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
+from functools import partial
+from logging import CRITICAL, DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 
 from .. import CondaError
+from .._vendor.auxlib.decorators import memoize
 from .._vendor.auxlib.logz import NullHandler
 from ..common.io import attach_stderr_handler
 
@@ -34,6 +35,7 @@ class TokenURLFilter(Filter):
         return True
 
 
+@memoize
 def initialize_logging():
     initialize_root_logger()
     initialize_conda_logger()

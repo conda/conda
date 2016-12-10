@@ -10,7 +10,9 @@ from ..cli.main import generate_parser
 from ..common.compat import on_win
 from ..common.io import captured, replace_log_streams
 from ..exceptions import conda_exception_handler
+from ..gateways import initialize_logging
 
+initialize_logging()
 log = getLogger(__name__)
 
 
