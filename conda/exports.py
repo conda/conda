@@ -7,9 +7,8 @@ from warnings import warn
 
 log = getLogger(__name__)
 
-from . import compat, plan
-compat = compat
-plan = plan
+from . import compat, plan  # NOQA
+compat, plan = compat, plan
 
 from .api import get_index  # NOQA
 get_index = get_index

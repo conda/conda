@@ -200,8 +200,6 @@ class Dist(Entity):
                 if self.platform
                 else join_url(self.base_url, filename))
 
-
-
     def __key__(self):
         return self.channel, self.dist_name, self.with_features_depends
 

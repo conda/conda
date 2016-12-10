@@ -14,11 +14,11 @@ from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..common.compat import NoneType, iteritems, odict, string_types, itervalues
+from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
-from ..common.url import has_scheme, path_to_url, split_scheme_auth_token, urlparse
+from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 try:
@@ -319,15 +319,6 @@ class Context(Configuration):
         #   - start with a scheme
         #   - are meant to be prepended with channel_alias
         return self.custom_multichannels['defaults']
-
-    # @memoizedproperty
-    # def local_build_root_channel(self):
-    #     from ..models.channel import Channel
-    #     url_parts = urlparse(path_to_url(self.local_build_root))
-    #     location, name = url_parts.path.rsplit('/', 1)
-    #     if not location:
-    #         location = '/'
-    #     return Channel(scheme=url_parts.scheme, location=location, name=name)
 
     @memoizedproperty
     def custom_multichannels(self):

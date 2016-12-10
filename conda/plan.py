@@ -14,17 +14,16 @@ from logging import getLogger
 from os.path import abspath, basename, exists, join
 import sys
 
-from conda import core
-from conda.cli import common
 from . import instructions as inst
 from .base.constants import DEFAULTS
 from .base.context import context
-from .cli.common import prefix_if_in_private_env, pkg_if_in_private_env
+from .cli import common
+from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
 from .common.compat import itervalues
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
-from .core.linked_data import linked_data, is_linked
+from .core.linked_data import is_linked, linked_data
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          PackageNotFoundError, RemoveError)
 from .history import History

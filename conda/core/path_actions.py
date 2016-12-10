@@ -6,15 +6,14 @@ import json
 from logging import getLogger
 from os.path import dirname, join
 
-from conda.common.url import path_to_url
 from .linked_data import delete_linked_data, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems
-from ..common.path import get_bin_directory_short_path, get_python_path, win_path_ok
-from conda.common.path import url_to_path
+from ..common.path import get_bin_directory_short_path, get_python_path, url_to_path, win_path_ok
+from ..common.url import path_to_url
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
                                     create_private_envs_meta, create_private_pkg_entry_point,
@@ -22,10 +21,9 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     extract_tarball, make_menu, remove_private_envs_meta,
                                     write_conda_meta_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import exists, isfile, islink, compute_md5sum
+from ..gateways.disk.read import compute_md5sum, exists, isfile, islink
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
-from ..models.channel import Channel
 from ..models.dist import Dist
 from ..models.enums import LinkType
 from ..models.record import Record

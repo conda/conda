@@ -205,7 +205,6 @@ class PackageCache(object):
 
         raise CondaError("No package '%s' found in cache directories." % dist)
 
-
     def scan_for_dist_no_channel(self, dist):
         # type: (Dist) -> PackageCacheEntry
         return next((pc_entry for this_dist, pc_entry in iteritems(self)
@@ -409,10 +408,11 @@ class ProgressiveFetchExtract(object):
             target_package_basename=dist.to_filename(),
             md5sum=record['md5'],
         )
+        target_extracted_package_dir = cache_axn.target_full_path[:-len(CONDA_TARBALL_EXTENSION)]
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=dirname(cache_axn.target_full_path),
-            target_extracted_package_dir=cache_axn.target_full_path[:-len(CONDA_TARBALL_EXTENSION)],
+            target_extracted_package_dir=target_extracted_package_dir,
         )
         return cache_axn, extract_axn
 
