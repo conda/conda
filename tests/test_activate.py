@@ -610,7 +610,7 @@ def test_activate_does_not_leak_echo_setting(shell):
         assert_equals(stdout, u'ECHO is on.', stderr)
 
 
-@pytest.mark.xfail(reason="subprocess with python 2.7 is broken with unicode")
+@pytest.mark.xfail(reason="subprocess with python 2.7 is broken with unicode", strict=True)
 @pytest.mark.installed
 def test_activate_non_ascii_char_in_path(shell):
     shell_vars = _format_vars(shell)
