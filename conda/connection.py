@@ -74,7 +74,6 @@ class EnforceUnusedAdapter(BaseAdapter):
 class CondaSession(Session):
 
     def __init__(self, *args, **kwargs):
-        retries = kwargs.pop('retries', RETRIES)
         super(CondaSession, self).__init__(*args, **kwargs)
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
@@ -92,11 +91,9 @@ class CondaSession(Session):
 
         else:
             # Configure retries
-            if retries:
-                http_adapter = HTTPAdapter(max_retries=retries)
-                self.mount("http://", http_adapter)
-                self.mount("https://", http_adapter)
-
+            http_adapter = HTTPAdapter(max_retries=context.remote_max_retries)
+            self.mount("http://", http_adapter)
+            self.mount("https://", http_adapter)
             self.mount("ftp://", FTPAdapter())
             self.mount("s3://", S3Adapter())
 

@@ -74,18 +74,19 @@ class Context(Configuration):
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
 
-    # connection details
+    # remote connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
     client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
     client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
     proxy_servers = MapParameter(string_types)
+    remote_connect_timeout_secs = PrimitiveParameter(9.15)
+    remote_read_timeout_secs = PrimitiveParameter(60.)
+    remote_max_retries = PrimitiveParameter(3)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
-    http_connect_timeout_secs = PrimitiveParameter(6.1)
-    http_read_timeout_secs = PrimitiveParameter(60.)
 
     # channels
     channels = SequenceParameter(string_types, default=('defaults',))

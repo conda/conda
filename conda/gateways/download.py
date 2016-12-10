@@ -58,7 +58,7 @@ def download(url, target_full_path, md5sum):
         disable_ssl_verify_warning()
 
     try:
-        timeout = context.http_connect_timeout_secs, context.http_read_timeout_secs
+        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         with SingleThreadCondaSession() as session:
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
             resp.raise_for_status()
