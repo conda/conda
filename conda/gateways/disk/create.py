@@ -6,7 +6,7 @@ from io import open
 import json
 from logging import getLogger
 import os
-from os import chmod, getuid, makedirs
+from os import chmod, makedirs
 from os.path import basename, exists, isdir, isfile, islink, join
 from shlex import split as shlex_split
 import shutil
@@ -70,7 +70,7 @@ def extract_tarball(tarball_full_path, destination_directory=None):
 
     with tarfile.open(tarball_full_path) as t:
         t.extractall(path=destination_directory)
-    if sys.platform.startswith('linux') and getuid() == 0:
+    if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership
         # of extracted files.  However, we want root to be the owner
         # (our implementation of --no-same-owner).
