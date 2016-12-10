@@ -3,19 +3,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import listdir
-from os.path import basename, isdir, isfile, islink, join, exists, dirname
+from os.path import basename, dirname, isdir, isfile, islink, join
 
-from conda._vendor.auxlib.decorators import memoizemethod
-from conda._vendor.auxlib.path import expand
-from conda.exceptions import CondaFileNotFoundError
-from conda.gateways.disk.read import compute_md5sum
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError
 from .._vendor.auxlib.collection import first
+from .._vendor.auxlib.decorators import memoizemethod
+from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, with_metaclass, itervalues
+from ..common.compat import iterkeys, itervalues, with_metaclass
 from ..common.url import join_url, path_to_url, url_to_path
+from ..gateways.disk.read import compute_md5sum
 from ..gateways.disk.test import try_write
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -160,6 +159,12 @@ class PackageCache(object):
         return _first_writable
 
     @classmethod
+    def get_all_extracted_entries(cls):
+        package_caches = (PackageCache(pd) for pd in context.pkgs_dirs)
+        return tuple(pc_entry for pc_entry in concat(map(itervalues, package_caches))
+                     if pc_entry.is_extracted)
+
+    @classmethod
     def get_matching_entries(cls, dist):
         matches = tuple(pc_entry
                         for pc_entry in (cls(pkgs_dir).get(dist)
@@ -242,6 +247,8 @@ class PackageCache(object):
 
     def __init__(self, pkgs_dir):
         self._packages_map = {}
+        # type: Dict[Dist, PackageCacheEntry]
+
         self._is_writable = None  # caching object for is_writable property
 
         self.pkgs_dir = pkgs_dir
@@ -284,71 +291,6 @@ class PackageCache(object):
                                     else base_name + CONDA_TARBALL_EXTENSION)
         except ValueError:
             pass
-
-
-def package_cache():
-    log.warn('package_cache() is a no-op and deprecated')
-    return {}
-
-
-def cached_url(url):
-    raise NotImplementedError()
-
-
-def find_new_location(dist):
-    """
-    Determines the download location for the given package, and the name
-    of a package, if any, that must be removed to make room. If the
-    given package is already in the cache, it returns its current location,
-    under the assumption that it will be overwritten. If the conflict
-    value is None, that means there is no other package with that same
-    name present in the cache (e.g., no collision).
-    """
-    raise NotImplementedError()
-
-
-def is_fetched(dist):
-    """
-    Returns the full path of the fetched package, or None if it is not in the cache.
-    """
-    raise NotImplementedError()
-
-
-def rm_fetched(dist):
-    """
-    Checks to see if the requested package is in the cache; and if so, it removes both
-    the package itself and its extracted contents.
-    """
-    raise NotImplementedError()
-
-
-def extracted():
-    """
-    return the (set of canonical names) of all extracted packages
-    """
-
-
-def is_extracted(dist):
-    """
-    returns the full path of the extracted data for the requested package,
-    or None if that package is not extracted.
-    """
-    raise NotImplementedError()
-
-
-def rm_extracted(dist):
-    """
-    Removes any extracted versions of the given package found in the cache.
-    """
-    raise NotImplementedError()
-
-
-def extract(dist):
-    """
-    Extract a package, i.e. make a package available for linkage. We assume
-    that the compressed package is located in the packages directory.
-    """
-    raise NotImplementedError()
 
 
 # ##############################
@@ -524,10 +466,24 @@ class ProgressiveFetchExtract(object):
         raise CondaError('\n'.join(exceptions))
 
 
-def fetch_pkg(info, package_tarball_full_path, session=None):
-    '''
-    fetch a package given by `info` and store it into `dst_dir`
-    '''
+# ##############################
+# backward compatibility
+# ##############################
+
+def rm_fetched(dist):
+    """
+    Checks to see if the requested package is in the cache; and if so, it removes both
+    the package itself and its extracted contents.
+    """
+    # in conda/exports.py and conda_build/conda_interface.py, but not actually
+    #   used in conda-build
+    raise NotImplementedError()
+
+
+def extracted():
+    """
+    return the (set) of canonical names of all extracted packages
+    """
     raise NotImplementedError()
 
 

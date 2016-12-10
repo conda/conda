@@ -2,7 +2,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import partial
+from logging import getLogger
 from warnings import warn
+
+log = getLogger(__name__)
 
 from . import compat, plan
 compat = compat
@@ -32,11 +35,11 @@ handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
 from .core.index import fetch_index  # NOQA
 fetch_index = fetch_index
-from .core.package_cache import download, rm_fetched, package_cache  # NOQA
-download, rm_fetched, package_cache = download, rm_fetched, package_cache
+from .core.package_cache import download, rm_fetched  # NOQA
+download, rm_fetched = download, rm_fetched
 
-from .install import prefix_placeholder, rm_rf, symlink_conda  # NOQA
-prefix_placeholder, rm_rf, symlink_conda = prefix_placeholder, rm_rf, symlink_conda
+from .install import package_cache, prefix_placeholder, rm_rf, symlink_conda  # NOQA
+package_cache, prefix_placeholder, rm_rf, symlink_conda = package_cache, prefix_placeholder, rm_rf, symlink_conda  # NOQA
 
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
