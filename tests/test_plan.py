@@ -921,9 +921,9 @@ class PlanFromActionsTests(unittest.TestCase):
 
             # last_two = expected_plan[-2:]
             # expected_plan[-2:] = last_two[::-1]
-        self.assertEquals(expected_plan[0], conda_plan[0])
-        self.assertEquals(expected_plan[1], conda_plan[1])
-        self.assertEquals(expected_plan[2], conda_plan[2])
+        assert expected_plan[0] == conda_plan[0]
+        assert expected_plan[1] == conda_plan[1]
+        assert expected_plan[2] == conda_plan[2]
         # self.assertEqual(expected_plan, conda_plan)
 
 
@@ -1185,7 +1185,7 @@ class TestGetActionsForDist(unittest.TestCase):
         self.assertEquals(actions, expected_output)
 
     def test_get_actions_multiple_dists(self):
-        install = [Dist("testspec2-4.3.0"), Dist("testspecs-1.1.1")]
+        install = [Dist("testspec2-4.3.0-1"), Dist("testspecs-1.1.1-4")]
         r = generate_mocked_resolve(self.pkgs, self.index, install)
         dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
                                                specs=["testspec2 <4.3", "testspecs 1.1*"])
@@ -1197,19 +1197,19 @@ class TestGetActionsForDist(unittest.TestCase):
         expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
                                        'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
                                        'SYMLINK_CONDA')
-        expected_output["LINK"] = [Dist("testspec2-4.3.0"), Dist("testspecs-1.1.1")]
+        expected_output["LINK"] = [Dist("testspec2-4.3.0-1"), Dist("testspecs-1.1.1-4")]
         expected_output["SYMLINK_CONDA"] = [context.root_dir]
 
-        self.assertEquals(actions, expected_output)
+        assert actions == expected_output
 
-    @patch("conda.core.linked_data.load_linked_data", return_value=[Dist("testspec1-0.9.1")])
+    @patch("conda.core.linked_data.load_linked_data", return_value=[Dist("testspec1-0.9.1-py27_2")])
     def test_get_actions_multiple_dists_and_unlink(self, load_linked_data):
-        install = [Dist("testspec2-4.3.0"), Dist("testspec1-1.1.1")]
+        install = [Dist("testspec2-4.3.0-2"), Dist("testspec1-1.1.1-py27_0")]
         r = generate_mocked_resolve(self.pkgs, self.index, install)
         dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
                                                specs=["testspec2 <4.3", "testspec1 1.1*"])
 
-        test_link_data = {"root/prefix": {Dist("testspec1-0.9.1"): True}}
+        test_link_data = {"root/prefix": {Dist("testspec1-0.9.1-py27_2"): True}}
         with patch("conda.core.linked_data.linked_data_", test_link_data):
             actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
                                              False, True, True)
@@ -1219,11 +1219,11 @@ class TestGetActionsForDist(unittest.TestCase):
         expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
                                        'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
                                        'SYMLINK_CONDA')
-        expected_output["LINK"] = [Dist("testspec2-4.3.0"), Dist("testspec1-1.1.1")]
-        expected_output["UNLINK"] = [Dist("testspec1-0.9.1")]
+        expected_output["LINK"] = [Dist("testspec2-4.3.0-2"), Dist("testspec1-1.1.1-py27_0")]
+        expected_output["UNLINK"] = [Dist("testspec1-0.9.1-py27_2")]
 
         expected_output["SYMLINK_CONDA"] = [context.root_dir]
-        self.assertEquals(actions, expected_output)
+        assert actions == expected_output
 
 
 def generate_remove_action(prefix, unlink):

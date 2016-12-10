@@ -45,6 +45,8 @@ class TestTmpDownload(unittest.TestCase):
         with TmpDownload(msg) as result:
             assert result == msg
 
+        assert False, 'configure timeout values here to be short, but leave default timeout values long'
+
 
 class TestDownload(unittest.TestCase):
 

@@ -490,4 +490,5 @@ def extracted():
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
-    raise NotImplementedError()
+    from ..gateways.download import download as gateway_download
+    gateway_download(url, dst_path, md5)

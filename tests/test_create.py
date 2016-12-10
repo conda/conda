@@ -58,7 +58,8 @@ except ImportError:
     from mock import patch
 
 log = getLogger(__name__)
-TEST_LOG_LEVEL = TRACE
+TRACE, DEBUG = TRACE, DEBUG  # these are so the imports aren't cleared, but it's easy to switch back and forth
+TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 
