@@ -9,6 +9,7 @@ import requests
 import sys
 from conda import CondaError, plan
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
 from conda.cli.main import generate_parser
@@ -27,7 +28,7 @@ from conda.common.path import get_bin_directory_short_path, missing_pyc_files, \
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.common.compat import itervalues, text_type
-from conda.connection import LocalFSAdapter
+from conda.connection import LocalFSAdapter, CondaSession
 from conda.core.index import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
@@ -153,42 +154,6 @@ def make_temp_env(*packages, **kwargs):
 def reload_config(prefix):
     prefix_condarc = join(prefix+os.sep, 'condarc')
     reset_context([prefix_condarc])
-
-
-class EnforceUnusedAdapter(BaseAdapter):
-
-    def send(self, request, *args, **kwargs):
-        raise RuntimeError("EnforceUnusedAdapter called with url {0}".format(request.url))
-
-
-class OfflineCondaSession(Session):
-
-    timeout = None
-
-    def __init__(self, *args, **kwargs):
-        super(OfflineCondaSession, self).__init__()
-        unused_adapter = EnforceUnusedAdapter()
-        self.mount("http://", unused_adapter)
-        self.mount("https://", unused_adapter)
-        self.mount("ftp://", unused_adapter)
-        self.mount("s3://", unused_adapter)
-
-        # Enable file:// urls
-        self.mount("file://", LocalFSAdapter())
-
-
-@contextmanager
-def enforce_offline():
-    class NadaCondaSession(object):
-        def __init__(self, *args, **kwargs):
-            pass
-    import conda.connection
-    saved_conda_session = conda.connection.CondaSession
-    try:
-        conda.connection.CondaSession = OfflineCondaSession
-        yield
-    finally:
-        conda.connection.CondaSession = saved_conda_session
 
 
 def package_is_installed(prefix, package, exact=False):
@@ -514,10 +479,10 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
-            with enforce_offline():
-                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-                    assert_package_is_installed(clone_prefix, 'flask-0.10.1')
-                    assert_package_is_installed(clone_prefix, 'python')
+            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                assert context.offline
+                assert_package_is_installed(clone_prefix, 'flask-0.10.1')
+                assert_package_is_installed(clone_prefix, 'python')
 
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
@@ -554,11 +519,11 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'rpy2')
             run_command(Commands.LIST, prefix)
 
-            with enforce_offline():
-                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-                    assert_package_is_installed(clone_prefix, 'python')
-                    assert_package_is_installed(clone_prefix, 'rpy2')
-                    assert isfile(join(clone_prefix, 'condarc'))  # untracked file
+            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                assert context.offline
+                assert_package_is_installed(clone_prefix, 'python')
+                assert_package_is_installed(clone_prefix, 'rpy2')
+                assert isfile(join(clone_prefix, 'condarc'))  # untracked file
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):

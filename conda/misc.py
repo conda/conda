@@ -126,11 +126,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     # merge new link_index into index
     for dist, record in iteritems(link_index):
         _fetched_record = index.get(dist)
-        index[dist] = _fetched_record.update(record.dump()) if _fetched_record else record
+        index[dist] = Record.from_objects(record, _fetched_record) if _fetched_record else record
 
     # unlink any installed packages with same package name
     unlink_dists = tuple(linked[dist.name] for dist in link_dists if dist.name in linked)
-    import pdb; pdb.set_trace()
 
     for unlink_dist in unlink_dists:
         actions[UNLINK].append(unlink_dist)

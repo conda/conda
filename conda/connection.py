@@ -11,7 +11,7 @@ from conda.gateways.adapters.s3 import S3Adapter
 from logging import getLogger
 import platform
 from requests import Session, __version__ as REQUESTS_VERSION
-from requests.adapters import HTTPAdapter
+from requests.adapters import HTTPAdapter, BaseAdapter
 from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
 from requests.utils import get_auth_from_url, get_netrc_auth
@@ -58,6 +58,19 @@ if glibc_ver:
     user_agent += " glibc/{}".format(glibc_ver)
 
 
+class EnforceUnusedAdapter(BaseAdapter):
+
+    def send(self, request, *args, **kwargs):
+        message = dals("""
+        EnforceUnusedAdapter called with url %s
+        This command is using a remote connection in offline mode.
+        """ % request.url)
+        raise RuntimeError(message)
+
+    def close(self):
+        raise NotImplementedError()
+
+
 class CondaSession(Session):
 
     def __init__(self, *args, **kwargs):
@@ -70,20 +83,24 @@ class CondaSession(Session):
         if proxies:
             self.proxies = proxies
 
-        # Configure retries
-        if retries:
-            http_adapter = HTTPAdapter(max_retries=retries)
-            self.mount("http://", http_adapter)
-            self.mount("https://", http_adapter)
+        if context.offline:
+            unused_adapter = EnforceUnusedAdapter()
+            self.mount("http://", unused_adapter)
+            self.mount("https://", unused_adapter)
+            self.mount("ftp://", unused_adapter)
+            self.mount("s3://", unused_adapter)
 
-        # Enable file:// urls
+        else:
+            # Configure retries
+            if retries:
+                http_adapter = HTTPAdapter(max_retries=retries)
+                self.mount("http://", http_adapter)
+                self.mount("https://", http_adapter)
+
+            self.mount("ftp://", FTPAdapter())
+            self.mount("s3://", S3Adapter())
+
         self.mount("file://", LocalFSAdapter())
-
-        # Enable ftp:// urls
-        self.mount("ftp://", FTPAdapter())
-
-        # Enable s3:// urls
-        self.mount("s3://", S3Adapter())
 
         self.headers['User-Agent'] = user_agent
 
