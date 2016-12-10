@@ -8,7 +8,8 @@ from tempfile import mktemp
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import reset_context
-from conda.exceptions import CondaRuntimeError, CondaHTTPError
+from conda.common.io import env_var
+from conda.exceptions import CondaHTTPError
 from conda.fetch import TmpDownload
 from conda.core.index import fetch_repodata
 from conda.core.package_cache import download
@@ -16,58 +17,40 @@ from conda.core.package_cache import download
 
 class TestConnectionWithShortTimeouts(TestCase):
 
-    def setUp(self):
-        self.saved_connect_timeout = os.environ.get('CONDA_REMOTE_CONNECT_TIMEOUT_SECS')
-        self.saved_read_timeout = os.environ.get('CONDA_REMOTE_READ_TIMEOUT_SECS')
-        self.saved_remote_max_retries = os.environ.get('CONDA_REMOTE_MAX_RETRIES')
-        os.environ['CONDA_REMOTE_CONNECT_TIMEOUT_SECS'] = '1'
-        os.environ['CONDA_REMOTE_READ_TIMEOUT_SECS'] = '1'
-        os.environ['CONDA_REMOTE_MAX_RETRIES'] = '1'
-        reset_context()
-
-    def tearDown(self):
-        if self.saved_connect_timeout:
-            os.environ['CONDA_REMOTE_CONNECT_TIMEOUT_SECS'] = self.saved_connect_timeout
-        else:
-            del os.environ['CONDA_REMOTE_CONNECT_TIMEOUT_SECS']
-
-        if self.saved_read_timeout:
-            os.environ['CONDA_REMOTE_READ_TIMEOUT_SECS'] = self.saved_read_timeout
-        else:
-            del os.environ['CONDA_REMOTE_READ_TIMEOUT_SECS']
-
-        if self.saved_remote_max_retries:
-            os.environ['CONDA_REMOTE_MAX_RETRIES'] = self.saved_remote_max_retries
-        else:
-            del os.environ['CONDA_REMOTE_MAX_RETRIES']
-
-        reset_context()
-
     @pytest.mark.timeout(6)
     def test_download_connectionerror(self):
-        with pytest.raises(CondaHTTPError) as execinfo:
-            url = "http://240.0.0.0/"
-            msg = "Connection error:"
-            download(url, mktemp())
-            assert msg in str(execinfo)
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
+                    with pytest.raises(CondaHTTPError) as execinfo:
+                        url = "http://240.0.0.0/"
+                        msg = "Connection error:"
+                        download(url, mktemp())
+                        assert msg in str(execinfo)
 
     @pytest.mark.timeout(6)
     def test_fetchrepodate_connectionerror(self):
-        with pytest.raises(CondaHTTPError) as execinfo:
-            url = "http://240.0.0.0/"
-            msg = "Connection error:"
-            fetch_repodata(url)
-            assert msg in str(execinfo)
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
+                    with pytest.raises(CondaHTTPError) as execinfo:
+                        url = "http://240.0.0.0/"
+                        msg = "Connection error:"
+                        fetch_repodata(url)
+                        assert msg in str(execinfo)
 
     def test_tmpDownload(self):
-        url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
-        with TmpDownload(url) as dst:
-            assert exists(dst)
-            assert isfile(dst)
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
+                    url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
+                    with TmpDownload(url) as dst:
+                        assert exists(dst)
+                        assert isfile(dst)
 
-        msg = "Rock and Roll Never Die"
-        with TmpDownload(msg) as result:
-            assert result == msg
+                    msg = "Rock and Roll Never Die"
+                    with TmpDownload(msg) as result:
+                        assert result == msg
 
 
 class TestFetchRepoData(TestCase):

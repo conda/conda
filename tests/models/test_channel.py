@@ -119,7 +119,7 @@ class AnacondaServerChannelTests(TestCase):
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
-        context._add_raw_data(rd)
+        context._set_raw_data(rd)
         Channel._reset_state()
 
         cls.platform = context.subdir
@@ -244,7 +244,7 @@ class CustomConfigChannelTests(TestCase):
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
-        context._add_raw_data(rd)
+        context._set_raw_data(rd)
         Channel._reset_state()
 
         cls.platform = context.subdir
@@ -540,7 +540,7 @@ class ChannelAuthTokenPriorityTests(TestCase):
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
-        context._add_raw_data(rd)
+        context._set_raw_data(rd)
         Channel._reset_state()
 
         cls.platform = context.subdir

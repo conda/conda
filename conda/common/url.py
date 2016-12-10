@@ -8,6 +8,8 @@ import re
 import socket
 import sys
 
+from conda._vendor.auxlib.ish import dals
+from conda.exceptions import CondaValueError
 from .path import split_filename
 
 try:
@@ -36,6 +38,12 @@ def urlunparse(data):
 
 @memoize
 def path_to_url(path):
+    if not path:
+        message = dals("""
+        Empty argument to `path_to_url()` not allowed.
+        path cannot be '%r'
+        """ % path)
+        raise CondaValueError(message)
     if path.startswith('file:/'):
         return path
     path = abspath(expanduser(path))

@@ -126,7 +126,7 @@ def _main():
     sub_parsers.completer = completer
     args = p.parse_args()
 
-    context._add_argparse_args(args)
+    context._set_argparse_args(args)
 
     if getattr(args, 'json', False):
         # # Silence logging info to avoid interfering with JSON output

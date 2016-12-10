@@ -258,7 +258,7 @@ def memoizedproperty(func):
     inner_attname = '__%s' % func.__name__
 
     def new_fget(self):
-        if not hasattr(self, '_cache'):
+        if not hasattr(self, '_cache_'):
             self._cache_ = dict()
         cache = self._cache_
         if inner_attname not in cache:

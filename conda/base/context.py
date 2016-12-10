@@ -134,15 +134,22 @@ class Context(Configuration):
             errors.append(error)
         return errors
 
-    @property
+    @memoizedproperty
     def conda_build_local_paths(self):
-        return tuple(unique(path_to_url(expand(d)) for d in (
-            self._croot,
-            self.bld_path,
-            self.conda_build.get('root-dir'),
-            join(self.root_prefix, 'conda-bld'),
-            '~/conda-bld',
-        ) if d and isdir(d)))
+        # does file system reads to make sure paths actually exist
+        return tuple(unique(full_path for full_path in (
+            expand(d) for d in (
+                self._croot,
+                self.bld_path,
+                self.conda_build.get('root-dir'),
+                join(self.root_prefix, 'conda-bld'),
+                '~/conda-bld',
+            ) if d
+        ) if isdir(full_path)))
+
+    @property
+    def conda_build_local_urls(self):
+        return tuple(path_to_url(p) for p in self.conda_build_local_paths)
 
     @property
     def croot(self):
@@ -327,7 +334,7 @@ class Context(Configuration):
 
         reserved_multichannel_urls = odict((
             ('defaults', self._default_channels),
-            ('local', tuple(path_to_url(p) for p in self.conda_build_local_paths)),
+            ('local', self.conda_build_local_urls),
         ))
         reserved_multichannels = odict(
             (name, tuple(

@@ -123,7 +123,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     command_line = "{0} {1}".format(command, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
-    context._add_argparse_args(args)
+    context._set_argparse_args(args)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with captured() as c, replace_log_streams():
