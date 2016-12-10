@@ -21,7 +21,7 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
 from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import string_types
+from ..common.compat import string_types, on_win
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_leaf_directories, get_major_minor_version,
                            get_python_site_packages_short_path, parse_entry_point_def,
@@ -34,7 +34,6 @@ from ..models.dist import Dist
 from ..models.enums import LinkType
 from ..models.package_info import PathType
 from ..models.record import Link, Record
-from ..utils import on_win
 
 try:
     from cytoolz.itertoolz import concat, concatv

@@ -3,31 +3,29 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
 import os
-from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink, join,
-                     relpath)
 import re
 import shutil
 import sys
+from collections import defaultdict
+from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink, join,
+                     relpath)
 
-from conda._vendor.auxlib.path import expand
-from conda.common.compat import odict
-from conda.common.path import url_to_path
-from conda.gateways.disk.read import compute_md5sum
+from ._vendor.auxlib.path import expand
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues
+from .common.compat import iteritems, iterkeys, itervalues, odict, on_win
+from .common.path import url_to_path
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
 from .core.linked_data import is_linked, linked as install_linked, linked_data
 from .exceptions import (CondaRuntimeError, ParseError)
 from .gateways.disk.delete import rm_rf
+from .gateways.disk.read import compute_md5sum
 from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
 from .models.dist import Dist
 from .models.record import Record
 from .plan import execute_actions
 from .resolve import MatchSpec, Resolve
-from .utils import on_win
 
 
 def conda_installed_files(prefix, exclude_self_build=False):

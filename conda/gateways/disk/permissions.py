@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
 from errno import EACCES, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
 from os import chmod, lstat, walk
-from os.path import isdir, join
-from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
+from os.path import isdir, isfile, join
+from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from . import MAX_TRIES, exp_backoff_fn
 from ...common.compat import lchmod
@@ -57,5 +56,9 @@ def recursive_make_writable(path, max_tries=MAX_TRIES):
 
 
 def make_executable(path):
-    st = os.stat(path)
-    os.chmod(path, st.st_mode | S_IEXEC)
+    if isfile(path):
+        mode = lstat(path).st_mode
+        log.trace('chmod +x %s', path)
+        lchmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
+    else:
+        log.error("Cannot make path '%s' executable", path)

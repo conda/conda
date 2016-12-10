@@ -11,7 +11,7 @@ from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems
+from ..common.compat import iteritems, on_win
 from ..common.path import get_bin_directory_short_path, get_python_path, url_to_path, win_path_ok
 from ..common.url import path_to_url
 from ..exceptions import CondaVerificationError, PaddingError
@@ -27,7 +27,6 @@ from ..gateways.download import download
 from ..models.dist import Dist
 from ..models.enums import LinkType
 from ..models.record import Record
-from ..utils import on_win
 
 log = getLogger(__name__)
 

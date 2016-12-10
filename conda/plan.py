@@ -19,7 +19,7 @@ from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
 from .cli import common
 from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
-from .common.compat import itervalues, odict
+from .common.compat import itervalues, odict, on_win
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
@@ -36,7 +36,7 @@ from .models.dist import Dist
 from .models.enums import LinkType
 from .models.package import Package
 from .resolve import MatchSpec, Resolve
-from .utils import human_bytes, on_win
+from .utils import human_bytes
 
 try:
     from cytoolz.itertoolz import concatv, groupby

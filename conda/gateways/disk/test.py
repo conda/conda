@@ -3,13 +3,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import W_OK, access, getpid, makedirs
-from os.path import isdir, isfile, islink, join, exists, basename
+from os.path import basename, exists, isdir, isfile, islink, join
 
 from .create import create_link
 from .delete import backoff_unlink, rm_rf
+from ...common.compat import on_win
 from ...models.dist import Dist
 from ...models.enums import LinkType
-from ...utils import on_win
 
 log = getLogger(__name__)
 

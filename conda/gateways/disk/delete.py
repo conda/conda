@@ -11,8 +11,7 @@ from uuid import uuid4
 from . import MAX_TRIES, exp_backoff_fn
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import text_type
-from ...utils import on_win
+from ...common.compat import text_type, on_win
 
 log = getLogger(__name__)
 

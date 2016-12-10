@@ -7,7 +7,7 @@ from logging import getLogger
 from os.path import basename
 from time import sleep
 
-from ...utils import on_win
+from ...common.compat import on_win
 
 log = getLogger(__name__)
 

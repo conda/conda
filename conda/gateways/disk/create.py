@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EEXIST
-from io import open
 import json
-from logging import getLogger
 import os
-from os import chmod, makedirs
-from os.path import basename, exists, isdir, isfile, islink, join
-from shlex import split as shlex_split
 import shutil
-from subprocess import PIPE, Popen
 import sys
 import tarfile
 import traceback
+from errno import EEXIST
+from io import open
+from logging import getLogger
+from os import makedirs
+from os.path import basename, exists, isdir, isfile, islink, join
+from shlex import split as shlex_split
+from subprocess import PIPE, Popen
 
 from .delete import rm_rf
 from .permissions import make_executable
@@ -21,11 +21,11 @@ from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PRIVATE_ENVS
+from ...common.compat import on_win
 from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
 from ...models.dist import Dist
 from ...models.enums import LinkType
-from ...utils import on_win
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
@@ -52,7 +52,7 @@ def create_unix_entry_point(target_full_path, python_full_path, module, func):
     with open(target_full_path, 'w') as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(pyscript)
-    chmod(target_full_path, 0o755)
+    make_executable(target_full_path)
 
 
 def create_windows_entry_point_py(target_full_path, module, func):
