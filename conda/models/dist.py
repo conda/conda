@@ -105,7 +105,7 @@ class Dist(Entity):
 
     @property
     def is_channel(self):
-        return bool(self.platform)
+        return bool(self.base_url and self.platform)
 
     def to_filename(self, extension='.tar.bz2'):
         if self.is_feature_package:

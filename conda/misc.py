@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 import os
-from os.path import (abspath, curdir, dirname, exists, expanduser, isdir, isfile, islink, join,
+from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink, join,
                      relpath)
 import re
 import shutil
@@ -13,27 +13,21 @@ import sys
 
 from conda._vendor.auxlib.path import expand
 from conda.common.compat import odict
-from conda.core.link import UnlinkLinkTransaction
-from conda.core.package_cache import PackageCache, ProgressiveFetchExtract
-from conda.core.path_actions import CacheUrlAction, ExtractPackageAction
+from conda.common.path import url_to_path
 from conda.gateways.disk.read import compute_md5sum
-from .base.constants import DEFAULTS, CONDA_TARBALL_EXTENSION
 from .base.context import context
-from .common.compat import iteritems, itervalues, iterkeys
-from .common.url import is_url, path_to_url, url_to_path, join_url
+from .common.compat import iteritems, iterkeys, itervalues
+from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
 from .core.linked_data import is_linked, linked as install_linked, linked_data
-# from .core.package_cache import cached_url, find_new_location, is_extracted, is_fetched
-from .exceptions import (CondaFileNotFoundError, CondaRuntimeError, MD5MismatchError,
-                         PackageNotFoundError, ParseError)
+from .exceptions import (CondaRuntimeError, ParseError)
 from .gateways.disk.delete import rm_rf
 from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
-from .models.channel import Channel
 from .models.dist import Dist
 from .models.record import Record
 from .plan import execute_actions
 from .resolve import MatchSpec, Resolve
-from .utils import md5_file, on_win
+from .utils import on_win
 
 
 def conda_installed_files(prefix, exclude_self_build=False):

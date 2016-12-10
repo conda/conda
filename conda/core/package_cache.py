@@ -5,15 +5,16 @@ from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, islink, join
 
+from conda.common.path import url_to_path
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.path import expand
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS
+from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import iterkeys, itervalues, with_metaclass
-from ..common.url import join_url, path_to_url, url_to_path
+from ..common.compat import iterkeys, itervalues, with_metaclass, iteritems
+from ..common.url import join_url, path_to_url
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.disk.test import try_write
 from ..models.channel import Channel
@@ -21,9 +22,9 @@ from ..models.dist import Dist
 from ..utils import md5_file
 
 try:
-    from cytoolz.itertoolz import concat, concatv, remove
+    from cytoolz.itertoolz import concat, concatv, groupby, remove
 except ImportError:
-    from .._vendor.toolz.itertoolz import concat, concatv, remove  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby, remove  # NOQA
 
 
 log = getLogger(__name__)
@@ -68,20 +69,19 @@ class UrlsData(object):
 class PackageCacheEntry(object):
 
     @classmethod
-    def make_legacy(cls, pkgs_dir, channel):
-        # the channel object here should be created using a full url to the tarball
-        channel = Channel(channel)
-        extracted_package_dir = join(pkgs_dir, Dist(channel).dist_name)
+    def make_legacy(cls, pkgs_dir, dist):
+        # the dist object here should be created using a full url to the tarball
+        extracted_package_dir = join(pkgs_dir, dist.dist_name)
         package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
-        return cls(pkgs_dir, channel, package_tarball_full_path, extracted_package_dir)
+        return cls(pkgs_dir, dist, package_tarball_full_path, extracted_package_dir)
 
-    def __init__(self, pkgs_dir, channel, package_tarball_full_path, extracted_package_dir):
+    def __init__(self, pkgs_dir, dist, package_tarball_full_path, extracted_package_dir):
         # the channel object here should be created using a full url to the tarball
         self.pkgs_dir = pkgs_dir
-        self.channel = channel
+        self.dist = dist
         self.package_tarball_full_path = package_tarball_full_path
         self.extracted_package_dir = extracted_package_dir
-        self.dist = Dist(channel)
+        self.channel = Channel(dist.to_url()) if dist.is_channel else Channel(None)
 
     @property
     def is_fetched(self):
@@ -104,6 +104,9 @@ class PackageCacheEntry(object):
 
     def md5sum(self):
         return self.is_fetched and self._calculate_md5sum()
+
+    def get_urls_txt_value(self):
+        return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
 
     @memoizemethod
     def _calculate_md5sum(self):
@@ -139,12 +142,19 @@ class PackageCacheType(type):
 class PackageCache(object):
     _cache_ = {}
 
-    @property
-    def is_writable(self):
-        # lazy and cached
-        if self._is_writable is None:
-            self._is_writable = try_write(self.pkgs_dir)
-        return self._is_writable
+    def __init__(self, pkgs_dir):
+        self._packages_map = {}
+        # type: Dict[Dist, PackageCacheEntry]
+
+        self._is_writable = None  # caching object for is_writable property
+
+        self.pkgs_dir = pkgs_dir
+        self.urls_data = UrlsData(pkgs_dir)
+        self._init_dir()
+
+    # ##########################################################################################
+    # these class methods reach across all package cache directories (usually context.pkgs_dirs)
+    # ##########################################################################################
 
     @classmethod
     def first_writable(cls, pkgs_dirs=None):
@@ -178,29 +188,95 @@ class PackageCache(object):
                          for pc_entry in cls.get_matching_entries(dist)
                          if pc_entry.is_extracted),
                         None)
-        if pc_entry is None:
-            raise CondaError("No package '%s' found in cache directories." % dist)
-        return pc_entry
+        if pc_entry is not None:
+            return pc_entry
+
+        # this can happen with `conda install path/to/package.tar.bz2`
+        #   because dist has channel '<unknown>'
+        # if ProgressiveFetchExtract did it's job correctly, what we're looking for
+        #   should be the matching dist_name in the first writable package cache
+        # we'll search all caches for a match, but search writable caches first
+        grouped_caches = groupby(lambda x: x.is_writable,
+                                 (PackageCache(pd) for pd in context.pkgs_dirs))
+        caches = concatv(grouped_caches.get(True, ()), grouped_caches.get(False, ()))
+        pc_entry = next((cache.scan_for_dist_no_channel(dist) for cache in caches if cache), None)
+        if pc_entry is not None:
+            return pc_entry
+
+        raise CondaError("No package '%s' found in cache directories." % dist)
+
+
+    def scan_for_dist_no_channel(self, dist):
+        # type: (Dist) -> PackageCacheEntry
+        return next((pc_entry for this_dist, pc_entry in iteritems(self)
+                     if this_dist.dist_name == dist.dist_name),
+                    None)
 
     @classmethod
-    def tarball_file_in_cache(cls, tarball_path):
-        tarball_full_path, md5sum = cls.clean_tarball_path_and_get_md5sum(tarball_path)
+    def tarball_file_in_cache(cls, tarball_path, md5sum=None):
+        tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
         pc_entry = first(PackageCache(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
                                                                            md5sum)
                          for pkgs_dir in context.pkgs_dirs)
         return pc_entry
 
     def tarball_file_in_this_cache(self, tarball_path, md5sum=None):
-        tarball_full_path, md5sum = self.clean_tarball_path_and_get_md5sum(tarball_path,
-                                                                           md5sum=md5sum)
+        tarball_full_path, md5sum = self._clean_tarball_path_and_get_md5sum(tarball_path,
+                                                                            md5sum=md5sum)
         tarball_basename = basename(tarball_full_path)
         pc_entry = first((pc_entry for pc_entry in itervalues(self)),
                          key=lambda pce: pce.tarball_basename == tarball_basename
                                          and pce.tarball_matches_md5(md5sum))  # NOQA
         return pc_entry
 
+    def _init_dir(self):
+        pkgs_dir = self.pkgs_dir
+        pkgs_dir_contents = listdir(pkgs_dir)
+        while pkgs_dir_contents:
+            base_name = pkgs_dir_contents.pop(0)
+            full_path = join(pkgs_dir, base_name)
+            if islink(full_path):
+                continue
+            elif isdir(full_path) and isfile(join(full_path, 'info', 'index.json')):
+                package_filename = base_name + CONDA_TARBALL_EXTENSION
+                self._add_entry(pkgs_dir, package_filename)
+                self._remove_match(pkgs_dir_contents, base_name)
+            elif isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION):
+                package_filename = base_name
+                self._add_entry(pkgs_dir, package_filename)
+                self._remove_match(pkgs_dir_contents, base_name)
+
+    def _add_entry(self, pkgs_dir, package_filename):
+        dist = first(self.urls_data, lambda x: x.endswith(package_filename), apply=Dist)
+        if not dist:
+            dist = Dist.from_string(package_filename, channel_override='<unknown>')
+        pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
+        self._packages_map[pc_entry.dist] = pc_entry
+
+    @property
+    def cache_directory(self):
+        return self.pkgs_dir
+
+    @property
+    def is_writable(self):
+        # lazy and cached
+        if self._is_writable is None:
+            self._is_writable = try_write(self.pkgs_dir)
+        return self._is_writable
+
     @staticmethod
-    def clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
+    def _remove_match(pkg_dir_contents, base_name):
+        # pop and return the matching tarball or directory to base_name
+        #   if not match, return None
+        try:
+            pkg_dir_contents.remove(base_name[:-len(CONDA_TARBALL_EXTENSION)]
+                                    if base_name.endswith(CONDA_TARBALL_EXTENSION)
+                                    else base_name + CONDA_TARBALL_EXTENSION)
+        except ValueError:
+            pass
+
+    @staticmethod
+    def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
         if tarball_path.startswith('file:/'):
             tarball_path = url_to_path(tarball_path)
         tarball_full_path = expand(tarball_path)
@@ -214,6 +290,9 @@ class PackageCache(object):
         return self._packages_map[dist]
 
     def __setitem__(self, dist, package_cache_entry):
+        # TODO: should this method also write to urls.txt?
+        # I'm not sure. Currently, additions to urls.txt are decoupled from additions to package
+        #   cache via CacheUrlAction and ExtractPackageAction
         self._packages_map[dist] = package_cache_entry
 
     def __delitem__(self, dist):
@@ -245,92 +324,15 @@ class PackageCache(object):
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
 
-    def __init__(self, pkgs_dir):
-        self._packages_map = {}
-        # type: Dict[Dist, PackageCacheEntry]
-
-        self._is_writable = None  # caching object for is_writable property
-
-        self.pkgs_dir = pkgs_dir
-        self.urls_data = UrlsData(pkgs_dir)
-        self._init_dir()
-
-    @property
-    def cache_directory(self):
-        return self.pkgs_dir
-
-    def _init_dir(self):
-        pkgs_dir = self.pkgs_dir
-        pkgs_dir_contents = listdir(pkgs_dir)
-        while pkgs_dir_contents:
-            base_name = pkgs_dir_contents.pop(0)
-            full_path = join(pkgs_dir, base_name)
-            if islink(full_path):
-                continue
-            elif isdir(full_path) and isfile(join(full_path, 'info', 'index.json')):
-                package_filename = base_name + CONDA_TARBALL_EXTENSION
-                self._add_entry(pkgs_dir, package_filename)
-                self._remove_match(pkgs_dir_contents, base_name)
-            elif isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION):
-                package_filename = base_name
-                self._add_entry(pkgs_dir, package_filename)
-                self._remove_match(pkgs_dir_contents, base_name)
-
-    def _add_entry(self, pkgs_dir, package_filename):
-        channel = first(self.urls_data, lambda x: x.endswith(package_filename), DEFAULTS, Channel)
-        pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, channel)
-        self._packages_map[pc_entry.dist] = pc_entry
-
-    @staticmethod
-    def _remove_match(pkg_dir_contents, base_name):
-        # pop and return the matching tarball or directory to base_name
-        #   if not match, return None
-        try:
-            pkg_dir_contents.remove(base_name[:-len(CONDA_TARBALL_EXTENSION)]
-                                    if base_name.endswith(CONDA_TARBALL_EXTENSION)
-                                    else base_name + CONDA_TARBALL_EXTENSION)
-        except ValueError:
-            pass
-
-
 # ##############################
 # downloading
 # ##############################
 
-
 class ProgressiveFetchExtract(object):
-
-    # @classmethod
-    # def add_local_tarball(cls, tarball_local_url):
-    #     # see if we can figure out the original channel where the tarball came from
-    #     source_tarball_full_path = compute_md5sum(url_to_path(tarball_local_url))
-    #     pc_entry = PackageCache.tarball_file_in_cache(source_tarball_full_path)
-    #
-    #     writable_cache = PackageCache.first_writable(context.pkgs_dirs)
-    #     cache_axn = CacheUrlAction(
-    #         url=tarball_local_url,
-    #         target_pkgs_dir=writable_cache.pkgs_dir,
-    #         target_package_basename=tarball_local_url.rsplit('/', 1)[-1],
-    #     )
-    #     extract_axn = ExtractPackageAction(
-    #         source_full_path=cache_axn.target_full_path,
-    #         target_pkgs_dir=dirname(cache_axn.target_full_path),
-    #         target_extracted_package_dir=cache_axn.target_full_path[:-len(CONDA_TARBALL_EXTENSION)],
-    #     )
-    #     for axn in (cache_axn, extract_axn):
-    #         ProgressiveFetchExtract._execute_action(axn)
-    #
-    #     package_cache_entry = PackageCache.tarball_file_in_cache(tarball_local_url)
-    #     try:
-    #         assert package_cache_entry
-    #     except:
-    #         import pdb; pdb.set_trace()
-    #     return package_cache_entry
 
     @staticmethod
     def make_actions_for_dist(dist, record):
-        if not record:
-            import pdb; pdb.set_trace()
+        assert record is not None, dist
         # returns a cache_action and extract_action
 
         package_cache_entries = PackageCache.get_matching_entries(dist)

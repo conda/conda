@@ -3,10 +3,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 import os
-from os.path import join, split, splitext, dirname, basename
+from os.path import basename, dirname, join, split, splitext
 import re
 
 from .compat import on_win, string_types
+
+try:
+    # Python 3
+    from urllib.parse import unquote  # NOQA
+except ImportError:
+    # Python 2
+    from urllib import unquot  # NOQA
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
@@ -20,6 +27,21 @@ def is_path(value):
 
 def is_windows_path(value):
     return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
+
+
+def url_to_path(url):
+    """Convert a file:// URL to a path."""
+    if is_path(url):
+        return url
+    assert url.startswith('file:'), "You can only turn file: urls into filenames (not %r)" % url
+    path = url[len('file:'):].lstrip('/')
+    path = unquote(path)
+    if re.match('^([a-z])[:|]', path, re.I):
+        path = path[0] + ':' + path[2:]
+    elif not path.startswith(r'\\'):
+        # if not a Windows UNC path
+        path = '/' + path
+    return path
 
 
 def tokenized_startswith(test_iterable, startswith_iterable):

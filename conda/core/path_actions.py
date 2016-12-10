@@ -6,6 +6,7 @@ import json
 from logging import getLogger
 from os.path import dirname, join
 
+from conda.common.url import path_to_url
 from .linked_data import delete_linked_data, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
@@ -13,7 +14,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems
 from ..common.path import get_bin_directory_short_path, get_python_path, win_path_ok
-from ..common.url import url_to_path
+from conda.common.path import url_to_path
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
                                     create_private_envs_meta, create_private_pkg_entry_point,
@@ -21,7 +22,7 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     extract_tarball, make_menu, remove_private_envs_meta,
                                     write_conda_meta_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import exists, isfile, islink
+from ..gateways.disk.read import exists, isfile, islink, compute_md5sum
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.channel import Channel
@@ -459,19 +460,41 @@ class CacheUrlAction(PathAction):
         if self.url.startswith('file:/'):
             source_path = url_to_path(self.url)
             if source_path == self.target_full_path:
+                # the source and destination are the same; just reverse the backoff_rename
+                #   from above, and we're done
+                assert exists(self.hold_path), self.hold_path
                 self.reverse()
             elif dirname(source_path) in context.pkgs_dirs:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)
                 source_package_cache = PackageCache(dirname(source_path))
-                actual_url = source_package_cache.urls_data.get_url(self.target_package_basename)
-                if actual_url:
-                    target_package_cache.urls_data.add_url()
+
+                # the package is already in a cache, so it came from a remote url somewhere;
+                #   make sure that remote url is the most recent url in the
+                #   writable cache urls.txt
+                origin_url = source_package_cache.urls_data.get_url(self.target_package_basename)
+                if origin_url and Dist(origin_url).is_channel:
+                    target_package_cache.urls_data.add_url(origin_url)
             else:
+                # so our tarball source isn't a package cache, but that doesn't mean it's not
+                #   in another package cache somewhere
+                # let's try to find the actual, remote source url by matching md5sums, and then
+                #   record that url as the remote source url in urls.txt
+                # we do the search part of this operation before the create_link so that we
+                #   don't md5sum-match the file created by 'create_link'
+                source_md5sum = compute_md5sum(source_path)
+                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum)
+                origin_url = pc_entry.get_urls_txt_value() if pc_entry else None
+
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
-                target_package_cache.urls_data.add_url(self.url)
+
+                if origin_url and Dist(origin_url).is_channel:
+                    target_package_cache.urls_data.add_url(origin_url)
+                else:
+                    target_package_cache.urls_data.add_url(self.url)
+
         else:
             download(self.url, self.target_full_path, self.md5sum)
             target_package_cache.urls_data.add_url(self.url)
@@ -515,8 +538,9 @@ class ExtractPackageAction(PathAction):
 
         target_package_cache = PackageCache(self.target_pkgs_dir)
 
-        channel = Channel(target_package_cache.urls_data.get_url(self.source_full_path))
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, channel)
+        recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
+        dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
+        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, dist)
         target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):

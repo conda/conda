@@ -8,7 +8,7 @@ import re
 import socket
 import sys
 
-from conda.common.path import split_filename
+from .path import split_filename
 
 try:
     # Python 3
@@ -41,19 +41,6 @@ def path_to_url(path):
     path = abspath(expanduser(path))
     url = urljoin('file:', pathname2url(path))
     return url
-
-
-def url_to_path(url):  # NOQA
-    """Convert a file:// URL to a path."""
-    assert url.startswith('file:'), "You can only turn file: urls into filenames (not %r)" % url
-    path = url[len('file:'):].lstrip('/')
-    path = unquote(path)
-    if re.match('^([a-z])[:|]', path, re.I):
-        path = path[0] + ':' + path[2:]
-    elif not path.startswith(r'\\'):
-        # if not a Windows UNC path
-        path = '/' + path
-    return path
 
 
 @memoize
