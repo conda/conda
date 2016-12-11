@@ -43,8 +43,6 @@ except ImportError:
 
 log = getLogger(__name__)
 
-MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
-
 
 def determine_link_type(extracted_package_dir, target_prefix):
     source_test_file = join(extracted_package_dir, 'info', 'index.json')
@@ -74,16 +72,16 @@ def get_prefix_replace(path_info, requested_link_type):
     return link_type, prefix_placehoder, file_mode
 
 
-def make_lateral_link_action(source_path_info, extracted_package_dir, target_prefix,
-                             requested_link_type):
-    # no side effects in this function!
-    # a lateral link has the same 'short path' in both the package directory and the target prefix
-    short_path = source_path_info.path
-    link_type, prefix_placehoder, file_mode = get_prefix_replace(source_path_info,
-                                                                 requested_link_type)
-    return LinkPathAction(extracted_package_dir, short_path,
-                          target_prefix, short_path, link_type,
-                          prefix_placehoder, file_mode)
+# def make_lateral_link_action(source_path_info, extracted_package_dir, target_prefix,
+#                              requested_link_type):
+#     # no side effects in this function!
+#     # a lateral link has the same 'short path' in both the package directory and the target prefix
+#     short_path = source_path_info.path
+#     link_type, prefix_placehoder, file_mode = get_prefix_replace(source_path_info,
+#                                                                  requested_link_type)
+#     return LinkPathAction(extracted_package_dir, short_path,
+#                           target_prefix, short_path, link_type,
+#                           prefix_placehoder, file_mode)
 
 
 def get_python_noarch_target_path(source_short_path, target_site_packages_short_path):
@@ -150,25 +148,21 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         return CreateLinkedPackageRecordAction(transaction_context, package_info, target_prefix,
                                                meta_record)
 
+    basic_triplet = transaction_context, package_info, target_prefix
+
     file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
 
     leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
     directory_create_actions = tuple(make_directory_link_action(d) for d in leaf_directories)
 
-    if on_win and context.shortcuts:
-        menu_create_actions = tuple(MakeMenuAction(transaction_context, package_info,
-                                                   target_prefix, spi.path)
-                                    for spi in package_info.paths
-                                    if bool(MENU_RE.match(spi.path)))
-    else:
-        menu_create_actions = ()
+    create_menu_actions = MakeMenuAction.create_actions(*basic_triplet)
 
     if package_info.noarch and package_info.noarch.type == 'python':
         python_entry_point_actions = tuple(concatv(
             (CreatePythonEntryPointAction.create_action(
                 transaction_context, package_info, target_prefix, ep_def)
              for ep_def in package_info.noarch.entry_points),
-            (LinkPathAction.create_python_entry_point_windows_executable_action(
+            (LinkPathAction.create_python_entry_point_windows_exe_action(
                 transaction_context, package_info, target_prefix, requested_link_type, ep_def)
              for ep_def in package_info.noarch.entry_points) if on_win else (),
         ))
@@ -206,9 +200,16 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
                                            pyc_compile_actions))
     meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
 
-    return tuple(concatv(directory_create_actions, file_link_actions, python_entry_point_actions,
-                         pyc_compile_actions,  menu_create_actions, application_entry_point_actions,
-                         private_envs_meta_action, meta_create_actions))
+    return tuple(concatv(
+        directory_create_actions,
+        file_link_actions,
+        python_entry_point_actions,
+        pyc_compile_actions,
+        create_menu_actions,
+        application_entry_point_actions,
+        private_envs_meta_action,
+        meta_create_actions,
+    ))
 
 
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
@@ -216,13 +217,10 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
     unlink_path_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
                                                  target_prefix, trgt)
                                 for trgt in linked_package_data.files)
-    if on_win:
-        remove_menu_actions = tuple(RemoveMenuAction(transaction_context, linked_package_data,
-                                                     target_prefix, trgt)
-                                    for trgt in linked_package_data.files
-                                    if bool(MENU_RE.match(trgt)))
-    else:
-        remove_menu_actions = ()
+
+    remove_menu_actions = RemoveMenuAction.create_actions(transaction_context,
+                                                          linked_package_data,
+                                                          target_prefix)
 
     meta_short_path = '%s/%s' % ('conda-meta', Dist(linked_package_data).to_filename('.json'))
     remove_conda_meta_actions = (RemoveLinkedPackageRecordAction(transaction_context,
@@ -246,8 +244,13 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
     else:
         private_envs_meta_action = ()
 
-    return tuple(concatv(remove_conda_meta_actions, remove_menu_actions, unlink_path_actions,
-                         directory_remove_actions, private_envs_meta_action))
+    return tuple(concatv(
+        remove_conda_meta_actions,
+        remove_menu_actions,
+        unlink_path_actions,
+        directory_remove_actions,
+        private_envs_meta_action,
+    ))
 
 
 class UnlinkLinkTransaction(object):

@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+import re
+
 import json
+from abc import ABCMeta, abstractmethod, abstractproperty
 from conda import CONDA_PACKAGE_ROOT
 from logging import getLogger
 from os.path import dirname, join
 
-from .linked_data import delete_linked_data, load_linked_data, get_python_version_for_prefix
+from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems, on_win
-from ..common.path import get_bin_directory_short_path, get_python_short_path, url_to_path, win_path_ok, \
-    parse_entry_point_def
+from ..common.path import (get_bin_directory_short_path, get_python_short_path,
+                           parse_entry_point_def, url_to_path, win_path_ok)
 from ..common.url import path_to_url
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
@@ -89,7 +91,7 @@ class PrefixPathAction(PathAction):
 
 
 # ######################################################
-#  Prefix Creation Actions
+#  Creation of Paths within a Prefix
 # ######################################################
 
 @with_metaclass(ABCMeta)
@@ -121,9 +123,9 @@ class CreateInPrefixPathAction(PrefixPathAction):
 class LinkPathAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_python_entry_point_windows_executable_action(cls, transaction_context, package_info,
-                                                            target_prefix, requested_link_type,
-                                                            entry_point_def):
+    def create_python_entry_point_windows_exe_action(cls, transaction_context, package_info,
+                                                     target_prefix, requested_link_type,
+                                                     entry_point_def):
         source_directory = CONDA_PACKAGE_ROOT
         source_short_path = 'resources/cli-%d.exe' % context.bits
         command, _, _ = parse_entry_point_def(entry_point_def)
@@ -216,6 +218,15 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
 
 class MakeMenuAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix):
+        if on_win and context.shortcuts:
+            MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+            return tuple(cls(transaction_context, package_info, target_prefix, spi.path)
+                         for spi in package_info.paths if bool(MENU_RE.match(spi.path)))
+        else:
+            return ()
 
     def __init__(self, transaction_context, package_info,
                  target_prefix, target_short_path):
@@ -381,7 +392,7 @@ class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
 
 
 # ######################################################
-#  Prefix Removal Actions
+#  Removal of Paths within a Prefix
 # ######################################################
 
 @with_metaclass(ABCMeta)
@@ -426,6 +437,15 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
 
 
 class RemoveMenuAction(RemoveFromPrefixPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, linked_package_data, target_prefix):
+        if on_win:
+            MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
+            return tuple(cls(transaction_context, linked_package_data, target_prefix, trgt)
+                         for trgt in linked_package_data.files if bool(MENU_RE.match(trgt)))
+        else:
+            return ()
 
     def __init__(self, transaction_context, linked_package_data,
                  target_prefix, target_short_path):
