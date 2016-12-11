@@ -10,6 +10,8 @@
 * support new info/paths.json file (#3927, #3943)
 * noarch python packages (#3712)
 * imporoved solver hint detection, simplified filtering (#3597)
+* progressive fetch and extract transactions (#4021)
+* add cli.python_api module (#4028)
 
 ### Deprecations/Breaking Changes
 * the 'r' channel is now part of defaults (#3677)
@@ -17,6 +19,7 @@
 * no longer symlinking conda for activated envs (#3712)
 
 ### Improvements
+* the 'r' channel is now part of defaults (#3677)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
 * add multikey configuration validation (#3432)
@@ -63,6 +66,7 @@
 * move CrossPlatformStLink and make available as export (#3887)
 * make Record immutable (#3965)
 * project housekeeping (#3994)
+* rennovation of package cache code (#4021)
 
 
 ## 4.2.13 (unreleased)
