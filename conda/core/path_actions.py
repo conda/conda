@@ -510,13 +510,17 @@ class CacheUrlAction(PathAction):
     def target_full_path(self):
         return join(self.target_pkgs_dir, self.target_package_basename)
 
+    def __str__(self):
+        return 'CacheUrlAction<url=%r, target_full_path=%r>' % (self.url, self.target_full_path)
+
+
 
 class ExtractPackageAction(PathAction):
 
-    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_package_dir):
+    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
-        self.target_extracted_package_dir = target_extracted_package_dir
+        self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + '.c~'
 
     def verify(self):
@@ -552,4 +556,9 @@ class ExtractPackageAction(PathAction):
 
     @property
     def target_full_path(self):
-        return self.target_extracted_package_dir
+        return join(self.target_pkgs_dir, self.target_extracted_dirname)
+
+    def __str__(self):
+        return ('ExtractPackageAction<source_full_path=%r, target_full_path=%r>'
+                % (self.source_full_path, self.target_full_path))
+

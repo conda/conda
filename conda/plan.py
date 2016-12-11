@@ -13,10 +13,11 @@ import sys
 from collections import defaultdict, namedtuple
 from conda.core.link import UnlinkLinkTransaction
 from conda.core.package_cache import ProgressiveFetchExtract
+from conda.gateways.disk.create import mkdir_p
 from logging import getLogger
-from os.path import abspath, basename, exists, join
+from os.path import abspath, basename, exists, join, isdir
 
-from . import instructions as inst
+from . import instructions as inst, CondaError
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
@@ -322,13 +323,19 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
 
+        if link_dists:
+            if not isdir(prefix):
+                try:
+                    mkdir_p(prefix)
+                except (IOError, OSError) as e:
+                    log.debug(repr(e))
+                    raise CondaError("Unable to create prefix directory '%s'.\n"
+                                     "Check that you have sufficient permissions." % prefix)
+
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists)
-        txn.prepare()
-
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, txn))
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
 
         # plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link

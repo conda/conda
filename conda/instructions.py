@@ -13,6 +13,7 @@ from .common.compat import on_win
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
+from .gateways.disk.create import mkdir_p
 from .install import symlink_conda
 from .models.dist import Dist
 
@@ -50,8 +51,9 @@ ACTION_CODES = (
 )
 
 
-def PREFIX_CMD(state, arg):
-    state['prefix'] = arg
+def PREFIX_CMD(state, prefix):
+    state['prefix'] = prefix
+
 
 
 def PRINT_CMD(state, arg):
@@ -83,11 +85,13 @@ def PROGRESS_CMD(state, arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    if basename(state['prefix']).startswith('_'):
-        log.info("Conda environment at %s "
-                 "start with '_'. Skipping symlinking conda.", state['prefix'])
+    prefix = state['prefix']
+    if basename(state['prefix']).startswith('_') or prefix in (context.root_prefix,
+                                                               context.conda_prefix):
+        log.debug("Conda environment at %s "
+                  "start with '_'. Skipping symlinking conda.", state['prefix'])
         return
-    symlink_conda(state['prefix'], arg)
+    symlink_conda(prefix, arg)
 
 
 def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
@@ -95,9 +99,12 @@ def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
     progressive_fetch_extract.execute()
 
 
-def UNLINKLINKTRANSACTION_CMD(state, unlink_link_transaction):
-    assert isinstance(unlink_link_transaction, UnlinkLinkTransaction)
-    unlink_link_transaction.execute()
+def UNLINKLINKTRANSACTION_CMD(state, arg):
+    unlink_dists, link_dists = arg
+    index = state['index']
+    prefix = state['prefix']
+    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists)
+    txn.execute()
 
 
 def check_files_in_package(source_dir, files):
