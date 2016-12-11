@@ -1,3 +1,10 @@
+## 4.2.14 (unreleased)
+
+### Bug Fixes
+* fix location of temporary hard links of index.json (#3975)
+* fix potential errors in multi-channel export and offline clone (#3995)
+
+
 ## 4.1.13 (unreleased)
 
 ### Deprecations/Breaking Changes
