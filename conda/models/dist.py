@@ -166,8 +166,10 @@ class Dist(Entity):
             name = parts[0]
             version = parts[1]
             build_string = parts[2] if len(parts) >= 3 else ''
-            build_number_as_string = build_string.rsplit('_')[-1] if build_string else '0'
-            build_number = int(''.join(filter(lambda x: x.isdigit(), build_number_as_string)))
+            build_number_as_string = ''.join(filter(lambda x: x.isdigit(),
+                                                    (build_string.rsplit('_')[-1]
+                                                     if build_string else '0')))
+            build_number = int(build_number_as_string) if build_number_as_string else 0
 
             return DistDetails(name, version, build_string, build_number, dist_name)
 
