@@ -901,7 +901,8 @@ class PlanFromActionsTests(unittest.TestCase):
             'LINK': [ipython, menuinst],
         }
 
-        conda_plan = plan.plan_from_actions(actions)
+        conda_plan = plan.plan_from_actions(actions, {})
+        assert False, 'this test needs updated'
 
         expected_plan = [
             ('PREFIX', 'aprefix'),

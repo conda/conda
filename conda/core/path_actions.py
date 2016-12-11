@@ -34,6 +34,7 @@ log = getLogger(__name__)
 REPR_IGNORE_KWARGS = (
     'transaction_context',
     'package_info',
+    'hold_path',
 )
 
 @with_metaclass(ABCMeta)

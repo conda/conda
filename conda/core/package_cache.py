@@ -13,7 +13,7 @@ from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, itervalues, with_metaclass
+from ..common.compat import iteritems, iterkeys, itervalues, with_metaclass, text_type
 from ..common.path import url_to_path
 from ..common.url import join_url, path_to_url
 from ..gateways.disk.read import compute_md5sum
@@ -421,6 +421,9 @@ class ProgressiveFetchExtract(object):
         self.index = index
         self.link_dists = link_dists
 
+        log.debug("instantiating ProgressiveFetchExtract with\n"
+                  "  %s\n", '\n  '.join(text_type(dist) for dist in link_dists))
+
         self.cache_actions = ()
         self.extract_actions = ()
 
@@ -438,6 +441,14 @@ class ProgressiveFetchExtract(object):
             self.extract_actions = tuple(ea for ea in extract_actions if ea)
         else:
             self.cache_actions = self.extract_actions = ()
+
+        log.debug("prepared package cache actions:\n"
+                  "  cache_actions:\n"
+                  "    %s\n"
+                  "  extract_actions:\n"
+                  "    %s\n",
+                  '\n    '.join(text_type(ca) for ca in self.cache_actions),
+                  '\n    '.join(text_type(ea) for ea in self.extract_actions))
 
         self._prepared = True
 

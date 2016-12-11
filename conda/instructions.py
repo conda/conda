@@ -90,15 +90,14 @@ def SYMLINK_CONDA_CMD(state, arg):
     symlink_conda(state['prefix'], arg)
 
 
-def PROGRESSIVEFETCHEXTRACT_CMD(state, link_dists):
-    ProgressiveFetchExtract(state['index'], link_dists).execute()
+def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
+    assert isinstance(progressive_fetch_extract, ProgressiveFetchExtract)
+    progressive_fetch_extract.execute()
 
 
-def UNLINKLINKTRANSACTION_CMD(state, arg):
-    unlink_dists, link_dists = arg
-    txn = UnlinkLinkTransaction.create_from_dists(state['index'], state['prefix'],
-                                                  unlink_dists, link_dists)
-    txn.execute()
+def UNLINKLINKTRANSACTION_CMD(state, unlink_link_transaction):
+    assert isinstance(unlink_link_transaction, UnlinkLinkTransaction)
+    unlink_link_transaction.execute()
 
 
 def check_files_in_package(source_dir, files):

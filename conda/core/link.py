@@ -22,7 +22,7 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
 from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import string_types, on_win
+from ..common.compat import string_types, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_leaf_directories, get_major_minor_version,
                            get_python_site_packages_short_path, parse_entry_point_def,
@@ -262,6 +262,16 @@ class UnlinkLinkTransaction(object):
         # This constructor method helps to patch into the 'plan' framework
         linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
                                                for dist in unlink_dists)
+
+        log.debug("instantiating UnlinkLinkTransaction with\n"
+                  "  target_prefix: %s\n"
+                  "  unlink_dists:\n"
+                  "    %s\n"
+                  "  link_dists:\n"
+                  "    %s\n",
+                  target_prefix,
+                  '\n    '.join(text_type(d) for d in unlink_dists),
+                  '\n    '.join(text_type(d) for d in link_dists))
 
         pkg_dirs_to_link = tuple(PackageCache[dist].extracted_package_dir for dist in link_dists)
         assert all(pkg_dirs_to_link)

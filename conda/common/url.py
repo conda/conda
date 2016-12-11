@@ -74,7 +74,6 @@ def is_url(url):
     try:
         return urlparse(url).scheme is not None
     except LocationParseError:
-        log.trace("Could not parse url '%s'", url)
         return False
 
 
