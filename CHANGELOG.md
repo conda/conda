@@ -1,22 +1,34 @@
 ## 4.3.0 (unreleased)
 
+# TODO before release
+* confirm correct support for paths.json file
+
+### New Features
+* transactional link/unlink operations (#3833)
+* private conda environment (#3988)
+* remove *all* file locks (#3862)
+* support new info/paths.json file (#3927, #3943)
+* noarch python packages (#3712)
+* imporoved solver hint detection, simplified filtering (#3597)
+
 ### Deprecations/Breaking Changes
 * the 'r' channel is now part of defaults (#3677)
 * remove dead install_tar function (#3641)
 * no longer symlinking conda for activated envs (#3712)
 
 ### Improvements
-* noarch python packages (#3712)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
-* imporoved solver hint detection, simplified filtering (#3597)
 * add multikey configuration validation (#3432)
 * some Fish autocompletions (#2519)
 * reduce priority for packages removed from the index (#3703)
 * add user-agent, uid, gid to conda info (#3671)
 * make http timeouts configurable (#3832)
 * add a pkgs_dirs config parameter (#3691)
-* Add an 'always_softlink' option (#3870, #3876)
+* add an 'always_softlink' option (#3870, #3876)
+* pre-checks for diskspace, etc for fetch and extract #(4007)
+* address #3879 don't print activate message when quiet config is enabled (#3886)
+* add elapsed time to HTTP errors (#3942)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
@@ -29,6 +41,10 @@
 * fix invalid yml example (#3849)
 * add arm platforms back to subdirs (#3852)
 * fix #3771 better error message for assertion errors (#3802)
+* fix #3999 spaces in shebang replacement (#4008)
+* config --show-sources shouldn't show force by default (#3891)
+* fix #3881 don't install conda-env in clones of root (#3899)
+* conda-build dist compatibility (#3909)
 
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
@@ -42,6 +58,11 @@
 * disable coverage on s3 and ftp requests adapaters (#3696, #3701)
 * github repo hygiene (#3705, #3706)
 * major install refactor (#3712)
+* remove test timebombs (#4012)
+* LinkType refactor (#3882)
+* move CrossPlatformStLink and make available as export (#3887)
+* make Record immutable (#3965)
+* project housekeeping (#3994)
 
 
 ## 4.2.13 (unreleased)
