@@ -118,7 +118,7 @@ def test_permission_file():
         Make sure no exception raised
     """
     import tempfile
-    from conda.compat import text_type
+    from conda.common.compat import text_type
     with tempfile.NamedTemporaryFile(mode='r') as f:
         if not isinstance(f.name, text_type):
             return

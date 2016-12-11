@@ -1,28 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.base.context import context
+from conda.common.compat import text_type
+from conda.core.package_cache import download
+from conda.core.portability import _PaddingError, binary_replace, update_prefix
+from conda.gateways.disk.delete import move_path_to_trash
+from conda.gateways.disk.read import read_no_link, yield_lines
+from conda.models.enums import FileMode
+from conda.utils import on_win
+from os import chdir, getcwd, makedirs
+from os.path import exists, join, relpath
 import pytest
 import random
 import shutil
-import stat
 import subprocess
 import sys
 import tempfile
 import unittest
-from conda import install
-from conda.base.constants import FileMode
-from conda.base.context import context
-from conda.gateways.disk.delete import move_path_to_trash
-from conda.compat import text_type
-from conda.core.package_cache import download
-from conda.gateways.disk.read import yield_lines, read_no_link
-from conda.gateways.disk.update import binary_replace, _PaddingError, update_prefix
-from conda.utils import on_win
-from contextlib import contextmanager
-from os import chdir, getcwd, makedirs
-from os.path import dirname, exists, join, relpath
 
-from .decorators import skip_if_no_mock
 from .helpers import mock
 
 patch = mock.patch if mock else None
@@ -34,42 +30,42 @@ def generate_random_path():
 
 class TestBinaryReplace(unittest.TestCase):
 
-    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_simple(self):
         self.assertEqual(
             binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbb'),
             b'xxxbbbbbxyz\x00zz')
 
-    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_shorter(self):
         self.assertEqual(
             binary_replace(b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbb'),
             b'xxxbbbbxyz\x00\x00zz')
 
-    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_too_long(self):
         self.assertRaises(_PaddingError, binary_replace,
                           b'xxxaaaaaxyz\x00zz', b'aaaaa', b'bbbbbbbb')
 
-    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_no_extra(self):
         self.assertEqual(binary_replace(b'aaaaa\x00', b'aaaaa', b'bbbbb'),
                          b'bbbbb\x00')
 
-    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_two(self):
         self.assertEqual(
             binary_replace(b'aaaaa\x001234aaaaacc\x00\x00', b'aaaaa',
                            b'bbbbb'),
             b'bbbbb\x001234bbbbbcc\x00\x00')
 
-    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_spaces(self):
         self.assertEqual(
             binary_replace(b' aaaa \x00', b'aaaa', b'bbbb'),
             b' bbbb \x00')
 
-    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped")
+    @pytest.mark.xfail(on_win, reason="binary replacement on windows skipped", strict=True)
     def test_multiple(self):
         self.assertEqual(
             binary_replace(b'aaaacaaaa\x00', b'aaaa', b'bbbb'),

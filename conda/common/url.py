@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import re
-import socket
-import sys
 from getpass import getpass
 from logging import getLogger
 from os.path import abspath, expanduser
+import re
+import socket
+import sys
+
+from conda._vendor.auxlib.ish import dals
+from conda.exceptions import CondaValueError
+from .path import split_filename
 
 try:
     # Python 3
@@ -34,23 +38,17 @@ def urlunparse(data):
 
 @memoize
 def path_to_url(path):
+    if not path:
+        message = dals("""
+        Empty argument to `path_to_url()` not allowed.
+        path cannot be '%r'
+        """ % path)
+        raise CondaValueError(message)
+    if path.startswith('file:/'):
+        return path
     path = abspath(expanduser(path))
     url = urljoin('file:', pathname2url(path))
-    log.debug("%s converted to %s", path, url)
     return url
-
-
-def url_to_path(url):  # NOQA
-    """Convert a file:// URL to a path."""
-    assert url.startswith('file:'), "You can only turn file: urls into filenames (not %r)" % url
-    path = url[len('file:'):].lstrip('/')
-    path = unquote(path)
-    if re.match('^([a-z])[:|]', path, re.I):
-        path = path[0] + ':' + path[2:]
-    elif not path.startswith(r'\\'):
-        # if not a Windows UNC path
-        path = '/' + path
-    return path
 
 
 @memoize
@@ -71,11 +69,12 @@ def url_to_s3_info(url):
 
 
 def is_url(url):
+    if not url:
+        return False
     try:
-        p = urlparse(url)
-        return p.netloc is not None or p.scheme == "file"
+        return urlparse(url).scheme is not None
     except LocationParseError:
-        log.debug("Could not parse url ({0}).".format(url))
+        log.trace("Could not parse url '%s'", url)
         return False
 
 
@@ -173,7 +172,7 @@ def split_platform(url):
         (u'https://1.2.3.4/t/tk-123/path', u'osx-64')
 
     """
-    from conda.base.constants import PLATFORM_DIRECTORIES
+    from ..base.constants import PLATFORM_DIRECTORIES
     _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in PLATFORM_DIRECTORIES)
     _platform_match = re.search(_platform_match_regex, url, re.IGNORECASE)
     platform = _platform_match.groups()[0] if _platform_match else None
@@ -181,7 +180,16 @@ def split_platform(url):
     return cleaned_url.rstrip('/'), platform
 
 
-def split_package_filename(url):
+def has_platform(url):
+    from ..base.constants import PLATFORM_DIRECTORIES
+    url_no_package_name, _ = split_filename(url)
+    if not url_no_package_name:
+        return None
+    maybe_a_platform = url_no_package_name.rsplit('/', 1)[-1]
+    return maybe_a_platform in PLATFORM_DIRECTORIES and maybe_a_platform or None
+
+
+def _split_package_filename(url):
     cleaned_url, package_filename = (url.rsplit('/', 1) if url.endswith(('.tar.bz2', '.json'))
                                      else (url, None))
     return cleaned_url, package_filename
@@ -201,7 +209,7 @@ def split_conda_url_easy_parts(url):
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
     cleaned_url, platform = split_platform(cleaned_url)
-    cleaned_url, package_filename = split_package_filename(cleaned_url)
+    cleaned_url, package_filename = _split_package_filename(cleaned_url)
 
     # TODO: split out namespace using regex
 
@@ -209,10 +217,6 @@ def split_conda_url_easy_parts(url):
 
     return (url_parts.scheme, url_parts.auth, token, platform, package_filename, url_parts.host,
             url_parts.port, url_parts.path, url_parts.query)
-
-
-def is_windows_path(value):
-    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
 
 
 @memoize

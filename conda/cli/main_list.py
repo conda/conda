@@ -6,17 +6,17 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
-import re
 from argparse import RawDescriptionHelpFormatter
-from conda.base.constants import DEFAULTS
-from conda.core.linked_data import is_linked, linked, linked_data
+import logging
 from os.path import isdir, isfile
+import re
 
 from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
+from ..base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import text_type
+from ..core.linked_data import is_linked, linked, linked_data
 from ..egg_info import get_egg_info
 from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
 
@@ -185,7 +185,7 @@ def print_explicit(prefix, add_md5=False):
     print("@EXPLICIT")
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
         url = meta.get('url')
-        if not url or url.startswith('<unknown>'):
+        if not url or url.startswith(UNKNOWN_CHANNEL):
             print('# no URL for: %s' % meta['fn'])
             continue
         md5 = meta.get('md5')

@@ -1,17 +1,17 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
+import functools
 import os
 import re
 import sys
-import functools
+from os.path import abspath, isdir
 from textwrap import dedent
-from os.path import isdir, abspath
 
-from conda import text_type
-from ..exceptions import (CondaHelp, CondaValueError, CondaEnvironmentError,
-                          TooManyArgumentsError, TooFewArgumentsError)
-from ..utils import on_win, shells
+from ..common.compat import on_win, text_type
+from ..exceptions import (CondaEnvironmentError, CondaHelp, CondaValueError, TooFewArgumentsError,
+                          TooManyArgumentsError)
+from ..utils import shells
 
 # help dialog texts
 WIN_ACTIVATE = dedent("""\

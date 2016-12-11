@@ -1,17 +1,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from itertools import chain
 import logging
 import re
-from itertools import chain
 
 from .base.constants import DEFAULTS, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .compat import iteritems, iterkeys, itervalues, string_types
+from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
 from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
-from .models.channel import Channel
 from .models.dist import Dist
+from .models.package import Package
 from .models.record import Record
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
@@ -140,75 +140,12 @@ class MatchSpec(object):
         return res
 
 
-class Package(object):
-    """
-    The only purpose of this class is to provide package objects which
-    are sortable.
-    """
-    def __init__(self, fn, info):
-        if isinstance(fn, Dist):
-            self.fn = fn.to_filename()
-            self.dist = fn
-        else:
-            self.fn = fn
-            self.dist = Dist(fn)
-        self.name = info.get('name')
-        self.version = info.get('version')
-        self.build = info.get('build')
-        self.build_number = info.get('build_number')
-        self.channel = info.get('channel')
-        self.schannel = info.get('schannel')
-        self.priority = info.get('priority', None)
-        if self.schannel is None:
-            self.schannel = Channel(self.channel).canonical_name
-        try:
-            self.norm_version = normalized_version(self.version)
-        except ValueError:
-            stderrlog.error("\nThe following stack trace is in reference to "
-                            "package:\n\n\t%s\n\n" % fn)
-            raise
-        self.info = info
-
-    def _asdict(self):
-        result = self.info.dump()
-        result['fn'] = self.fn
-        result['norm_version'] = str(self.norm_version)
-        return result
-
-    def __lt__(self, other):
-        if self.name != other.name:
-            raise TypeError('cannot compare packages with different '
-                            'names: %r %r' % (self.fn, other.fn))
-        return ((self.norm_version, self.build_number, self.build) <
-                (other.norm_version, other.build_number, other.build))
-
-    def __eq__(self, other):
-        if not isinstance(other, Package):
-            return False
-        if self.name != other.name:
-            return False
-        return ((self.norm_version, self.build_number, self.build) ==
-                (other.norm_version, other.build_number, other.build))
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __gt__(self, other):
-        return other < self
-
-    def __le__(self, other):
-        return not (other < self)
-
-    def __ge__(self, other):
-        return not (self < other)
-
-
 class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False):
         assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, Record)
         assert all(assertion(d, r) for d, r in iteritems(index))
-        self.index = index = {dist: record for dist, record in iteritems(index)}
+        self.index = index = index.copy()
         if not processed:
             for dist, info in iteritems(index.copy()):
                 if dist.with_features_depends:
@@ -223,16 +160,13 @@ class Resolve(object):
 
         groups = {}
         trackers = {}
-        installed = set()
+
         for dist, info in iteritems(index):
             groups.setdefault(info['name'], []).append(dist)
             for feat in info.get('track_features', '').split():
                 trackers.setdefault(feat, []).append(dist)
-            if 'link' in info and not dist.with_features_depends:
-                installed.add(dist)
 
         self.groups = groups  # Dict[package_name, List[Dist]]
-        self.installed = installed  # Set[Dist]
         self.trackers = trackers  # Dict[track_feature, List[Dist]]
         self.find_matches_ = {}  # Dict[MatchSpec, List[Dist]]
         self.ms_depends_ = {}  # Dict[Dist, List[MatchSpec]]
@@ -240,6 +174,15 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
+
+    @property
+    def installed(self):
+        # type: () -> Set[Dist]
+        installed = set()
+        for dist, info in iteritems(self.index):
+            if 'link' in info and not dist.with_features_depends:
+                installed.add(dist)
+        return installed
 
     def add_feature(self, feature_name, group=True):
         feature_dist = Dist(feature_name + '@')
@@ -880,6 +823,7 @@ class Resolve(object):
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
+        # type: (List[str], Option[?], bool, bool) -> List[Dist]
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall)
         self.restore_bad(pkgs, preserve)
@@ -912,6 +856,7 @@ class Resolve(object):
         return pkgs
 
     def solve(self, specs, returnall=False):
+        # type: (List[str], bool) -> List[Dist]
         try:
             stdoutlog.info("Solving package specifications: ")
             log.debug("Solving for %s", specs)

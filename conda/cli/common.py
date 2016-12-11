@@ -2,16 +2,21 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import contextlib
+import json
 import os
 import re
 import sys
 from functools import partial
-from os.path import abspath, basename
+from os.path import abspath, basename, join, isfile
 
+from conda import iteritems
+from conda.common.path import is_private_env, prefix_to_env_name
+from conda.install import linked_data
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import NULL, ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
+from ..common.constants import NULL
 from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DryRunExit)
 from ..resolve import MatchSpec
@@ -164,7 +169,7 @@ def add_parser_json(p):
     p.add_argument(
         "--verbose", "-v",
         action=NullCountAction,
-        help="Use once for info, twice for debug.",
+        help="Use once for info, twice for debug, three times for trace.",
         dest="verbosity",
         default=NULL,
     )
@@ -599,3 +604,50 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
+
+
+def get_private_envs_json():
+    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
+    if not isfile(path_to_private_envs):
+        return None
+    try:
+        with open(path_to_private_envs, "r") as f:
+            private_envs_json = json.load(f)
+    except json.decoder.JSONDecodeError:
+        private_envs_json = {}
+    return private_envs_json
+
+
+def prefix_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    if not private_envs_json:
+        return None
+    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if
+                     pkg.startswith(spec))
+    prefix = prefixes[0] if len(prefixes) > 0 else None
+    return prefix
+
+
+def pkg_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    pkgs = tuple(pkg for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
+    pkg = pkgs[0] if len(pkgs) > 0 else None
+    return pkg
+
+
+def create_prefix_spec_map_with_deps(r, specs, default_prefix):
+    prefix_spec_map = {}
+    for spec in specs:
+        spec_prefix = prefix_if_in_private_env(spec)
+        spec_prefix = spec_prefix if spec_prefix is not None else default_prefix
+        if spec_prefix in prefix_spec_map.keys():
+            prefix_spec_map[spec_prefix].add(spec)
+        else:
+            prefix_spec_map[spec_prefix] = {spec}
+
+        if is_private_env(prefix_to_env_name(spec_prefix, context.root_prefix)):
+            linked = linked_data(spec_prefix)
+            for linked_spec in linked:
+                if not linked_spec.name.startswith(spec) and r.depends_on(spec, linked_spec):
+                    prefix_spec_map[spec_prefix].add(linked_spec.name)
+    return prefix_spec_map

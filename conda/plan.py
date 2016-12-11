@@ -9,27 +9,40 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
 import sys
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from logging import getLogger
-from os.path import abspath, basename, dirname, exists, join
+from os.path import abspath, basename, exists, join
 
 from . import instructions as inst
-from .base.constants import DEFAULTS, LinkType
+from ._vendor.boltons.setutils import IndexedSet
+from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import text_type
-from .core.linked_data import is_linked
-from .core.package_cache import find_new_location, is_extracted, is_fetched
+from .cli import common
+from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
+from .common.compat import itervalues, odict, on_win
+from .common.path import (is_private_env, preferred_env_matches_prefix,
+                          preferred_env_to_prefix, prefix_to_env_name)
+from .core.index import supplement_index_with_prefix
+from .core.linked_data import is_linked, linked_data
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
-                         RemoveError)
-from .gateways.disk.create import try_hard_link
-from .gateways.disk.delete import rm_rf
+                         PackageNotFoundError, RemoveError)
 from .history import History
-from .models.channel import Channel
+from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
+                           PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
+                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK,
+                           UNLINKLINKTRANSACTION, execute_instructions)
+from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
-from .resolve import MatchSpec, Package, Resolve
-from .utils import human_bytes, md5_file, on_win
+from .models.enums import LinkType
+from .models.package import Package
+from .resolve import MatchSpec, Resolve
+from .utils import human_bytes
+
+try:
+    from cytoolz.itertoolz import concatv, groupby
+except ImportError:
+    from ._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -57,7 +70,7 @@ def display_actions(actions, index, show_channel_urls=None):
             return Channel(rec['url']).canonical_name
         if rec.get('channel'):
             return Channel(rec['channel']).canonical_name
-        return '<unknown>'
+        return UNKNOWN_CHANNEL
 
     def channel_filt(s):
         if show_channel_urls is False:
@@ -66,11 +79,11 @@ def display_actions(actions, index, show_channel_urls=None):
             return ''
         return s
 
-    if actions.get(inst.FETCH):
+    if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
 
         disp_lst = []
-        for dist in actions[inst.FETCH]:
+        for dist in actions[FETCH]:
             dist = Dist(dist)
             info = index[dist]
             extra = '%15s' % human_bytes(info['size'])
@@ -80,8 +93,8 @@ def display_actions(actions, index, show_channel_urls=None):
             disp_lst.append((dist, extra))
         print_dists(disp_lst)
 
-        if index and len(actions[inst.FETCH]) > 1:
-            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[inst.FETCH])
+        if index and len(actions[FETCH]) > 1:
+            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -92,17 +105,16 @@ def display_actions(actions, index, show_channel_urls=None):
     records = defaultdict(lambda: list((None, None)))
     linktypes = {}
 
-    for arg in actions.get(inst.LINK, []):
-        d, lt = inst.split_linkarg(arg)
-        dist = Dist(d)
+    for arg in actions.get(LINK, []):
+        dist = Dist(arg)
         rec = index[dist]
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
         records[pkg][1] = Package(dist.to_filename(), rec)
-        linktypes[pkg] = lt
+        linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = rec.get('features', '')
-    for arg in actions.get(inst.UNLINK, []):
+    for arg in actions.get(UNLINK, []):
         dist = Dist(arg)
         rec = index.get(dist)
         if rec is None:
@@ -111,16 +123,13 @@ def display_actions(actions, index, show_channel_urls=None):
                        version=version,
                        build=build,
                        channel=None,
-                       schannel='<unknown>',
+                       schannel=UNKNOWN_CHANNEL,
                        build_number=int(build) if build.isdigit() else 0)
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
         records[pkg][0] = Package(dist.to_filename(), rec)
         features[pkg][0] = rec.get('features', '')
-
-    #                     Put a minimum length here---.    .--For the :
-    #                                                 v    v
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
@@ -235,7 +244,7 @@ def display_actions(actions, index, show_channel_urls=None):
         for pkg in sorted(downgraded):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
-    if empty and actions.get(inst.SYMLINK_CONDA):
+    if empty and actions.get(SYMLINK_CONDA):
         print("\nThe following empty environments will be CREATED:\n")
         print(actions['PREFIX'])
 
@@ -243,7 +252,7 @@ def display_actions(actions, index, show_channel_urls=None):
 
 
 def nothing_to_do(actions):
-    for op in inst.action_codes:
+    for op in ACTION_CODES:
         if actions.get(op):
             return False
     return True
@@ -251,53 +260,102 @@ def nothing_to_do(actions):
 
 def add_unlink(actions, dist):
     assert isinstance(dist, Dist)
-    if inst.UNLINK not in actions:
-        actions[inst.UNLINK] = []
-    actions[inst.UNLINK].append(dist)
+    if UNLINK not in actions:
+        actions[UNLINK] = []
+    actions[UNLINK].append(dist)
+
+
+def add_checks(actions):
+    """
+    Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
+    has a LINK action, add a CHECK_LINK, which will check if permissions are
+    suitable for linking.
+
+    Args:
+        actions: a defaultdict(list) of actions that are to be performed, e.g. FETCH
+
+    Returns:
+        the actions dict with the appropriate checks added
+    """
+    if FETCH in actions:
+        actions.setdefault(CHECK_FETCH, [True])
+    if EXTRACT in actions:
+        actions.setdefault(CHECK_EXTRACT, [True])
+
+
+def handle_menuinst(unlink_dists, link_dists):
+    if not on_win:
+        return unlink_dists, link_dists
+
+    # Always link/unlink menuinst first/last on windows in case a subsequent
+    # package tries to import it to create/remove a shortcut
+
+    # unlink
+    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
+    if menuinst_idx is not None:
+        unlink_dists = tuple(concatv(
+            unlink_dists[:menuinst_idx],
+            unlink_dists[menuinst_idx+1:],
+            unlink_dists[menuinst_idx:menuinst_idx+1],
+        ))
+
+    # link
+    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
+    if menuinst_idx is not None:
+        link_dists = tuple(concatv(
+            link_dists[menuinst_idx:menuinst_idx+1],
+            link_dists[:menuinst_idx],
+            link_dists[menuinst_idx+1:],
+        ))
+
+    return unlink_dists, link_dists
+
+
+def inject_UNLINKLINKTRANSACTION(plan):
+    # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
+    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
+    if first_unlink_link_idx >= 0:
+        grouped_instructions = groupby(lambda x: x[0], plan)
+        unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
+        link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
+        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
+        plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, link_dists))
+        # plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
+        # don't filter LINK and UNLINK, just don't do anything with them
+    return plan
 
 
 def plan_from_actions(actions):
     if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
     else:
-        op_order = inst.action_codes
+        op_order = ACTION_CODES
 
-    assert inst.PREFIX in actions and actions[inst.PREFIX]
-    res = [('PREFIX', '%s' % actions[inst.PREFIX])]
-
-    if on_win:
-        # Always link/unlink menuinst first on windows in case a subsequent
-        # package tries to import it to create/remove a shortcut
-
-        for op in (inst.UNLINK, inst.FETCH, inst.EXTRACT, inst.LINK):
-            if op in actions:
-                pkgs = []
-                for pkg in actions[op]:
-                    if 'menuinst' in text_type(pkg):
-                        res.append((op, pkg))
-                    else:
-                        pkgs.append(pkg)
-                actions[op] = pkgs
+    assert PREFIX in actions and actions[PREFIX]
+    plan = [('PREFIX', '%s' % actions[PREFIX])]
 
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
         if op not in actions:
-            log.debug("action {0} not in actions".format(op))
+            log.trace("action {0} not in actions".format(op))
             continue
         if not actions[op]:
-            log.debug("action {0} has None value".format(op))
+            log.trace("action {0} has None value".format(op))
             continue
         if '_' not in op:
-            res.append((inst.PRINT, '%sing packages ...' % op.capitalize()))
+            plan.append((PRINT, '%sing packages ...' % op.capitalize()))
         elif op.startswith('RM_'):
-            res.append((inst.PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
-        if op in inst.progress_cmds:
-            res.append((inst.PROGRESS, '%d' % len(actions[op])))
+            plan.append((PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
+        if op in PROGRESS_COMMANDS:
+            plan.append((PROGRESS, '%d' % len(actions[op])))
         for arg in actions[op]:
             log.debug("appending value {0} for action {1}".format(arg, op))
-            res.append((op, arg))
+            plan.append((op, arg))
 
-    return res
+    plan = inject_UNLINKLINKTRANSACTION(plan)
+
+    return plan
 
 
 # force_linked_actions has now been folded into this function, and is enabled by
@@ -306,83 +364,15 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):
     assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
-    actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.RM_FETCHED, inst.FETCH, inst.RM_EXTRACTED,
-                           inst.EXTRACT, inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+    actions[PREFIX] = prefix
+    actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
+                           RM_EXTRACTED, EXTRACT,
+                           UNLINK, LINK, SYMLINK_CONDA)
+
     for dist in dists:
-        fetched_in = is_fetched(dist)
-        extracted_in = is_extracted(dist)
-
-        if fetched_in and index is not None:
-            # Test the MD5, and possibly re-fetch
-            fn = dist.to_filename()
-            try:
-                if md5_file(fetched_in) != index[dist]['md5']:
-                    # RM_FETCHED now removes the extracted data too
-                    actions[inst.RM_FETCHED].append(dist)
-                    # Re-fetch, re-extract, re-link
-                    fetched_in = extracted_in = None
-                    force = True
-            except KeyError:
-                sys.stderr.write('Warning: cannot lookup MD5 of: %s' % fn)
-
         if not force and is_linked(prefix, dist):
             continue
-
-        if extracted_in and force:
-            # Always re-extract in the force case
-            actions[inst.RM_EXTRACTED].append(dist)
-            extracted_in = None
-
-        # Otherwise we need to extract, and possibly fetch
-        if not extracted_in and not fetched_in:
-            # If there is a cache conflict, clean it up
-            fetched_in, conflict = find_new_location(dist)
-            fetched_in = join(fetched_in, dist.to_filename())
-            if conflict is not None:
-                actions[inst.RM_FETCHED].append(Dist(conflict))
-            actions[inst.FETCH].append(dist)
-
-        if not extracted_in:
-            actions[inst.EXTRACT].append(dist)
-
-        fetched_dist = extracted_in or fetched_in[:-8]
-        fetched_dir = dirname(fetched_dist)
-
-        try:
-            # Determine what kind of linking is necessary
-            if not extracted_in:
-                # If not already extracted, create some dummy
-                # data to test with
-                rm_rf(fetched_dist)
-                ppath = join(fetched_dist, 'info')
-                os.makedirs(ppath)
-                index_json = join(ppath, 'index.json')
-                with open(index_json, 'w'):
-                    pass
-            if context.always_copy or always_copy:
-                lt = LinkType.copy
-            elif context.always_softlink:
-                lt = LinkType.softlink
-            elif try_hard_link(fetched_dir, prefix, dist):
-                lt = LinkType.hardlink
-            elif context.allow_softlinks and not on_win:
-                lt = LinkType.softlink
-            else:
-                lt = LinkType.copy
-
-            actions[inst.LINK].append('%s %d' % (dist, lt))
-
-        except (OSError, IOError):
-            actions[inst.LINK].append('%s %d' % (dist, LinkType.copy))
-        finally:
-            if not extracted_in:
-                # Remove the dummy data
-                try:
-                    rm_rf(fetched_dist)
-                except (OSError, IOError):
-                    pass
-
+        actions[LINK].append(dist)
     return actions
 
 # -------------------------------------------------------------------
@@ -454,35 +444,207 @@ def get_pinned_specs(prefix):
         return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
 
 
+# Has one spec (string) for each env
+SpecForEnv = namedtuple('DistForEnv', ['env', 'spec'])
+# Has several spec (strings) for each prefix and the related r value
+SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
+
+
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False):
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                    channel_priority_map=None, is_update=False):
+    # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
+    str_specs = specs
+    specs = [MatchSpec(spec) for spec in specs]
+    r = get_resolve_object(index.copy(), prefix)
+
+    linked_in_root = linked_data(context.root_prefix)
+
+    dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
+    preferred_envs = set(d.env for d in dists_for_envs)
+
+    # Group specs by prefix
+    grouped_specs = determine_dists_per_prefix(r, prefix, index, preferred_envs,
+                                               dists_for_envs, context)
+
+    # Replace SpecsForPrefix specs with specs that were passed in in order to retain
+    #   version information
+    required_solves = match_to_original_specs(str_specs, grouped_specs)
+
+    actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+                                     always_copy, prune, update_deps, pinned)
+               for dists_by_prefix in required_solves]
+
+    # Need to add unlink actions if updating a private env from root
+    if is_update and prefix == context.root_prefix:
+        add_unlink_options_for_update(actions, required_solves, index)
+
+    return actions
+
+
+def add_unlink_options_for_update(actions, required_solves, index):
+    # type: (Dict[weird], List[SpecsForPrefix], List[weird]) -> ()
+    get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
+    linked_in_prefix = linked_data(context.root_prefix)
+    spec_in_root = lambda spc: tuple(
+        mtch for mtch in linked_in_prefix.keys() if MatchSpec(spc).match(mtch))
+    for solved in required_solves:
+        # If the solved prefix is private
+        if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
+            for spec in solved.specs:
+                matched_in_root = spec_in_root(spec)
+                if matched_in_root:
+                    aug_action = get_action_for_prefix(context.root_prefix)
+                    if len(aug_action) > 0:
+                        add_unlink(aug_action[0], matched_in_root[0])
+                    else:
+                        actions.append(remove_actions(context.root_prefix, matched_in_root, index))
+        # If the solved prefix is root
+        elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
+            for spec in solved.specs:
+                spec_in_private_env = prefix_if_in_private_env(spec)
+                if spec_in_private_env:
+                    # remove pkg from private env and install in root
+                    aug_action = get_action_for_prefix(spec_in_private_env)
+                    if len(aug_action) > 0:
+                        add_unlink(aug_action[0], Dist(pkg_if_in_private_env(spec)))
+                    else:
+                        actions.append(remove_spec_action_from_prefix(
+                            spec_in_private_env, Dist(pkg_if_in_private_env(spec))))
+
+
+def get_resolve_object(index, prefix):
+    # instantiate resolve object
+    supplement_index_with_prefix(index, prefix, {})
     r = Resolve(index)
-    linked = r.installed
+    return r
 
-    if pinned:
-        pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
-        specs += pinned_specs
 
-    # Only add a conda spec if conda and conda-env are not in the specs.
-    # Also skip this step if we're offline.
+def get_highest_priority_match(matches, prioritized_channel_list):
+    nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
+                                      chnl[1] == n][0]
+
+    # This loop: match to the highest priority channel;
+    #   if no packages match priority 0, try the next channel
+    for i in range(0, len(prioritized_channel_list)):
+        target_channel = nth_channel_priority(i)
+        highest_match = [m for m in matches if m.schannel == target_channel]
+        if len(highest_match) > 0:
+            newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[-1]
+            return newest_pkg
+    raise PackageNotFoundError(matches[0].name, "package not found")
+
+
+def determine_all_envs(r, specs, channel_priority_map=None):
+    # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
+    assert all(isinstance(spec, MatchSpec) for spec in specs)
+
+    # Make sure there is a channel priority
+    if channel_priority_map is None or len(channel_priority_map) == 0:
+        channel_priority_map = prioritize_channels(context.channels)
+
+    # remove duplicates e.g. for channel names with multiple urls
+    prioritized_channel_list = set((chnl, prrty) for chnl, prrty in
+                                   itervalues(channel_priority_map))
+
+    spec_for_envs = []
+    for spec in specs:
+        matched_dists = r.get_pkgs(spec)
+        best_match = get_highest_priority_match(matched_dists, prioritized_channel_list)
+        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
+                                        spec=best_match.name))
+    return spec_for_envs
+
+
+def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root):
+    # type: List[DistForEnv], List[(Dist, Record)] -> ()
+    for dist_env in dists_for_envs:
+        # If trying to install a package in root that is already in a private env
+        if dist_env.env is None and common.prefix_if_in_private_env(dist_env.spec) is not None:
+            raise InstallError("Package %s is already installed in a private env %s" %
+                               (dist_env.spec, dist_env.env))
+        # If trying to install a package in a private env that is already in root
+        if (is_private_env(dist_env.env) and
+                any(dist for dist in linked_in_root if dist.dist_name.startswith(dist_env.spec))):
+            raise InstallError("Package %s is already installed in root. Can't install in private"
+                               " environment %s" % (dist_env.spec, dist_env.env))
+
+
+def not_requires_private_env(prefix, preferred_envs):
+    if (context.prefix_specified is True or not context.prefix == context.root_dir or
+            all(preferred_env_matches_prefix(preferred_env, prefix, context.root_dir) for
+                preferred_env in preferred_envs)):
+        return True
+    return False
+
+
+def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs, context):
+    # type: (Resolve, string, List[(Dist, Record)], Set[String], List[SpecForEnv]) ->
+    #   (List[pecsForPrefix])
+
+    # if len(preferred_envs) == 1 and preferred_env matches prefix
+    #    solution is good
+    # if len(preferred_envs) == 1 and preferred_env is None
+    #    solution is good
+    # if len(preferred_envs) == 2 and set([None, preferred_env]) preferred_env matches prefix
+    #    solution is good
+    if not_requires_private_env(prefix, preferred_envs):
+        dists = set(d.spec for d in dists_for_envs)
+        prefix_with_dists_no_deps_has_resolve = [SpecsForPrefix(prefix=prefix, r=r, specs=dists)]
+    else:
+        # Ensure that conda is working in the root dir
+        assert(context.prefix == context.root_dir)
+
+        def get_r(preferred_env):
+            # don't make r for the prefix where we already have it created
+            if preferred_env_matches_prefix(preferred_env, prefix, context.root_dir):
+                return r
+            else:
+                return get_resolve_object(index.copy(), preferred_env_to_prefix(
+                    preferred_env, context.root_dir, context.envs_dirs))
+
+        prefix_with_dists_no_deps_has_resolve = []
+        for env in preferred_envs:
+            dists = IndexedSet(d.spec for d in dists_for_envs if d.env == env)
+            prefix_with_dists_no_deps_has_resolve.append(
+                SpecsForPrefix(
+                    prefix=preferred_env_to_prefix(env, context.root_dir, context.envs_dirs),
+                    r=get_r(env),
+                    specs=dists)
+            )
+    return prefix_with_dists_no_deps_has_resolve
+
+
+def match_to_original_specs(str_specs, specs_for_prefix):
+    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+    matched_specs_for_prefix = []
+    for prefix_with_dists in specs_for_prefix:
+        linked = linked_data(prefix_with_dists.prefix)
+        r = prefix_with_dists.r
+        new_matches = []
+        for spec in prefix_with_dists.specs:
+            matched = matches_any_spec(spec)
+            if matched:
+                new_matches.append(matched)
+        add_defaults_to_specs(r, linked, new_matches)
+        matched_specs_for_prefix.append(SpecsForPrefix(
+            prefix=prefix_with_dists.prefix, r=prefix_with_dists.r, specs=new_matches))
+    return matched_specs_for_prefix
+
+
+def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+                          update_deps, pinned):
     root_only = ('conda', 'conda-env')
-    mss = [MatchSpec(s) for s in specs if s.startswith(root_only)]
-    mss = [ms for ms in mss if ms.name in root_only]
-    if is_root_prefix(prefix):
-        if context.auto_update_conda and not context.offline and not mss:
-            specs.append('conda')
-            specs.append('conda-env')
-    elif basename(prefix).startswith('_'):
-        # anything (including conda) can be installed into environments
-        # starting with '_', mainly to allow conda-build to build conda
-        pass
-    elif mss:
-        raise InstallError("Error: 'conda' can only be installed into the root environment")
+    prefix = dists_for_prefix.prefix
+    dists = dists_for_prefix.specs
+    r = dists_for_prefix.r
+    specs = [MatchSpec(dist) for dist in dists]
+    specs = augment_specs(prefix, specs, pinned)
 
-    must_have = {}
-    if context.track_features:
-        specs.extend(x + '@' for x in context.track_features)
+    linked = linked_data(prefix)
+    must_have = odict()
 
     installed = linked
     if prune:
@@ -513,7 +675,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         if specs:
             raise InstallError("""\
 Error: the following specs depend on 'conda' and can only be installed
-into the root environment: %s""" % (' '.join(specs),))
+into the root environment: %s""" % (' '.join(spec.name for spec in specs),))
         linked = [r.package_name(s) for s in linked]
         linked = [s for s in linked if r.depends_on(s, root_only)]
         if linked:
@@ -525,14 +687,13 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
                            "root environment")
 
     smh = r.dependency_sort(must_have)
-
     actions = ensure_linked_actions(
         smh, prefix,
-        index=index if force else None,
+        index=r.index,
         force=force, always_copy=always_copy)
 
-    if actions[inst.LINK]:
-        actions[inst.SYMLINK_CONDA] = [context.root_dir]
+    if actions[LINK]:
+        actions[SYMLINK_CONDA] = [context.root_dir]
 
     for dist in sorted(linked):
         dist = Dist(dist)
@@ -545,10 +706,40 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
     return actions
 
 
+def augment_specs(prefix, specs, pinned=True):
+    # get conda-meta/pinned
+    if pinned:
+        pinned_specs = get_pinned_specs(prefix)
+        log.debug("Pinned specs=%s" % pinned_specs)
+        specs += [MatchSpec(spec) for spec in pinned_specs]
+
+    # support aggressive auto-update conda
+    #   Only add a conda spec if conda and conda-env are not in the specs.
+    #   Also skip this step if we're offline.
+    root_only = ('conda', 'conda-env')
+    mss = [MatchSpec(s) for s in specs if s.name.startswith(root_only)]
+    mss = [ms for ms in mss if ms.name in root_only]
+    if is_root_prefix(prefix):
+        if context.auto_update_conda and not context.offline and not mss:
+            specs.append(MatchSpec('conda'))
+            specs.append(MatchSpec('conda-env'))
+    elif basename(prefix).startswith('_'):
+        # anything (including conda) can be installed into environments
+        # starting with '_', mainly to allow conda-build to build conda
+        pass
+    elif mss:
+        raise InstallError("Error: 'conda' can only be installed into the root environment")
+
+    # support track_features config parameter
+    if context.track_features:
+        specs.extend(x + '@' for x in context.track_features)
+    return specs
+
+
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
-    # linked = r.installed
-    linked_dists = [Dist(d) for d in r.installed]
+    linked = linked_data(prefix)
+    linked_dists = [d for d in linked.keys()]
 
     if force:
         mss = list(map(MatchSpec, specs))
@@ -591,11 +782,12 @@ def remove_features_actions(prefix, index, features):
     linked = r.installed
 
     actions = defaultdict(list)
-    actions[inst.PREFIX] = prefix
+    actions[PREFIX] = prefix
     _linked = [d + '.tar.bz2' for d in linked]
     to_link = []
+
     for dist in sorted(linked):
-        fn = dist + '.tar.bz2'
+        fn = dist.dist_name + '.tar.bz2'
         if fn not in index:
             continue
         if r.track_features(fn).intersection(features):
@@ -609,6 +801,18 @@ def remove_features_actions(prefix, index, features):
     if to_link:
         dists = (Dist(d) for d in to_link)
         actions.update(ensure_linked_actions(dists, prefix))
+
+    return actions
+
+
+def remove_spec_action_from_prefix(prefix, dist):
+    actions = defaultdict(list)
+    actions[inst.PREFIX] = prefix
+    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
+                           inst.RM_EXTRACTED, inst.EXTRACT,
+                           inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+
+    add_unlink(actions, dist)
     return actions
 
 
@@ -632,14 +836,10 @@ def revert_actions(prefix, revision=-1, index=None):
         add_unlink(actions, Dist(dist))
 
     # check whether it is a safe revision
-    from .instructions import split_linkarg, LINK, UNLINK, FETCH
+    from .instructions import LINK, UNLINK, FETCH
     from .exceptions import CondaRevisionError
     for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
-        if isinstance(arg, Dist):
-            dist = arg
-        else:
-            dist, lt = split_linkarg(arg)
-            dist = Dist(dist)
+        dist = Dist(arg)
         if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
@@ -651,8 +851,8 @@ def revert_actions(prefix, revision=-1, index=None):
 
 def execute_actions(actions, index=None, verbose=False):
     plan = plan_from_actions(actions)
-    with History(actions[inst.PREFIX]):
-        inst.execute_instructions(plan, index, verbose)
+    with History(actions[PREFIX]):
+        execute_instructions(plan, index, verbose)
 
 
 def update_old_plan(old_plan):
@@ -678,7 +878,7 @@ def execute_plan(old_plan, index=None, verbose=False):
     Deprecated: This should `conda.instructions.execute_instructions` instead
     """
     plan = update_old_plan(old_plan)
-    inst.execute_instructions(plan, index, verbose)
+    execute_instructions(plan, index, verbose)
 
 
 if __name__ == '__main__':

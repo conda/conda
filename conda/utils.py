@@ -6,15 +6,13 @@ import logging
 import re
 import sys
 import threading
-from conda.base.constants import UTF8
 from functools import partial
 from textwrap import dedent
 
+from .common.compat import on_win
 from .common.url import path_to_url
 
 log = logging.getLogger(__name__)
-
-on_win = bool(sys.platform == "win32")
 
 
 class memoized(object):
@@ -90,7 +88,7 @@ def gnu_get_libc_version():
 
     result = f()
     if hasattr(result, 'decode'):
-        result = result.decode(UTF8)
+        result = result.decode('utf-8')
     return result
 
 

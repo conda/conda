@@ -1,17 +1,59 @@
+import os
+from unittest import TestCase
+
 import pytest
 import responses
-import unittest
 from os.path import exists, isfile
 from tempfile import mktemp
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
-from conda.exceptions import CondaRuntimeError, CondaHTTPError
+from conda.base.context import reset_context
+from conda.common.io import env_var
+from conda.exceptions import CondaHTTPError
 from conda.fetch import TmpDownload
 from conda.core.index import fetch_repodata
 from conda.core.package_cache import download
 
 
-class TestFetchRepoData(unittest.TestCase):
+class TestConnectionWithShortTimeouts(TestCase):
+
+    @pytest.mark.timeout(6)
+    def test_download_connectionerror(self):
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
+                    with pytest.raises(CondaHTTPError) as execinfo:
+                        url = "http://240.0.0.0/"
+                        msg = "Connection error:"
+                        download(url, mktemp())
+                        assert msg in str(execinfo)
+
+    @pytest.mark.timeout(6)
+    def test_fetchrepodate_connectionerror(self):
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
+                    with pytest.raises(CondaHTTPError) as execinfo:
+                        url = "http://240.0.0.0/"
+                        msg = "Connection error:"
+                        fetch_repodata(url)
+                        assert msg in str(execinfo)
+
+    def test_tmpDownload(self):
+        with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
+            with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
+                with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
+                    url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
+                    with TmpDownload(url) as dst:
+                        assert exists(dst)
+                        assert isfile(dst)
+
+                    msg = "Rock and Roll Never Die"
+                    with TmpDownload(msg) as result:
+                        assert result == msg
+
+
+class TestFetchRepoData(TestCase):
     # @responses.activate
     # def test_fetchrepodata_httperror(self):
     #     with pytest.raises(CondaHTTPError) as execinfo:
@@ -24,40 +66,14 @@ class TestFetchRepoData(unittest.TestCase):
     #
     #         fetch_repodata(url)
     #         assert msg in str(execinfo), str(execinfo)
-
-    def test_fetchrepodate_connectionerror(self):
-        with pytest.raises(CondaHTTPError) as execinfo:
-            url = "http://240.0.0.0/"
-            msg = "Connection error:"
-            fetch_repodata(url)
-            assert msg in str(execinfo)
+    pass
 
 
-class TestTmpDownload(unittest.TestCase):
-
-    def test_tmpDownload(self):
-        url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
-        with TmpDownload(url) as dst:
-            assert exists(dst)
-            assert isfile(dst)
-
-        msg = "Rock and Roll Never Die"
-        with TmpDownload(msg) as result:
-            assert result == msg
-
-
-class TestDownload(unittest.TestCase):
-
-    def test_download_connectionerror(self):
-        with pytest.raises(CondaRuntimeError) as execinfo:
-            url = "http://240.0.0.0/"
-            msg = "Connection error:"
-            download(url, mktemp())
-            assert msg in str(execinfo)
+class TestDownload(TestCase):
 
     @responses.activate
     def test_download_httperror(self):
-        with pytest.raises(CondaRuntimeError) as execinfo:
+        with pytest.raises(CondaHTTPError) as execinfo:
             url = DEFAULT_CHANNEL_ALIAS
             msg = "HTTPError:"
             responses.add(responses.GET, url, body='{"error": "not found"}', status=404,

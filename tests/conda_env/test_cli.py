@@ -80,7 +80,7 @@ def run_env_command(command, prefix, *arguments):
         command_line = " --help "
 
     args = p.parse_args(split(command_line))
-    context._add_argparse_args(args)
+    context._set_argparse_args(args)
 
     with captured() as c:
         args.func(args, p)
@@ -118,7 +118,7 @@ def run_conda_command(command, prefix, *arguments):
         command_line = "{0} -y -q -n {1} {2}".format(command, prefix, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
-    context._add_argparse_args(args)
+    context._set_argparse_args(args)
     with captured() as c:
         args.func(args, p)
 
@@ -224,7 +224,7 @@ class NewIntegrationTest(unittest.TestCase):
 
     def setUp(self):
         if env_is_created(test_env_name_2):
-            run_conda_command(Commands.ENV_REMOVE, test_env_name_2)
+            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
 
     def tearDown(self):

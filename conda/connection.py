@@ -6,12 +6,12 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import platform
 from conda.gateways.adapters.localfs import LocalFSAdapter
 from conda.gateways.adapters.s3 import S3Adapter
 from logging import getLogger
+import platform
 from requests import Session, __version__ as REQUESTS_VERSION
-from requests.adapters import HTTPAdapter
+from requests.adapters import HTTPAdapter, BaseAdapter
 from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
 from requests.utils import get_auth_from_url, get_netrc_auth
@@ -19,9 +19,9 @@ from requests.utils import get_auth_from_url, get_netrc_auth
 from . import __version__ as VERSION
 from ._vendor.auxlib.ish import dals
 from .base.context import context
+from .common.compat import iteritems
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
                          split_anaconda_token, urlparse)
-from .compat import iteritems
 from .exceptions import ProxyError
 from .gateways.adapters.ftp import FTPAdapter
 from .gateways.anaconda_client import read_binstar_tokens
@@ -58,13 +58,22 @@ if glibc_ver:
     user_agent += " glibc/{}".format(glibc_ver)
 
 
+class EnforceUnusedAdapter(BaseAdapter):
+
+    def send(self, request, *args, **kwargs):
+        message = dals("""
+        EnforceUnusedAdapter called with url %s
+        This command is using a remote connection in offline mode.
+        """ % request.url)
+        raise RuntimeError(message)
+
+    def close(self):
+        raise NotImplementedError()
+
+
 class CondaSession(Session):
 
-    timeout = None
-
     def __init__(self, *args, **kwargs):
-        retries = kwargs.pop('retries', RETRIES)
-
         super(CondaSession, self).__init__(*args, **kwargs)
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
@@ -73,20 +82,22 @@ class CondaSession(Session):
         if proxies:
             self.proxies = proxies
 
-        # Configure retries
-        if retries:
-            http_adapter = HTTPAdapter(max_retries=retries)
+        if context.offline:
+            unused_adapter = EnforceUnusedAdapter()
+            self.mount("http://", unused_adapter)
+            self.mount("https://", unused_adapter)
+            self.mount("ftp://", unused_adapter)
+            self.mount("s3://", unused_adapter)
+
+        else:
+            # Configure retries
+            http_adapter = HTTPAdapter(max_retries=context.remote_max_retries)
             self.mount("http://", http_adapter)
             self.mount("https://", http_adapter)
+            self.mount("ftp://", FTPAdapter())
+            self.mount("s3://", S3Adapter())
 
-        # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
-
-        # Enable ftp:// urls
-        self.mount("ftp://", FTPAdapter())
-
-        # Enable s3:// urls
-        self.mount("s3://", S3Adapter())
 
         self.headers['User-Agent'] = user_agent
 

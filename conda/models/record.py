@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from logging import getLogger
-
+from .enums import Arch, LinkType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, ImmutableEntity, IntegerField, ListField,
                                      MapField, StringField)
-from ..base.constants import Arch, LinkType, Platform
 from ..common.compat import string_types
-
-log = getLogger(__name__)
 
 
 class LinkTypeField(EnumField):
@@ -79,3 +75,4 @@ class Record(DictSafeMixin, ImmutableEntity):
     link = ComposableField(Link, required=False)
 
     with_features_depends = MapField(required=False)
+    preferred_env = StringField(default=None, required=False, nullable=True)

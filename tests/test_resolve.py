@@ -9,7 +9,8 @@ from conda.common.compat import iteritems, text_type
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
 from conda.models.record import Record
-from conda.resolve import MatchSpec, Package, Resolve
+from conda.resolve import MatchSpec, Resolve
+from conda.models.package import Package
 from os.path import dirname, join
 
 import pytest

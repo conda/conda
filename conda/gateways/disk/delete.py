@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EEXIST, ENOENT
 from logging import getLogger
-from os import listdir, makedirs, rename, unlink, walk
+from os import listdir, makedirs, rename, unlink, walk, removedirs
 from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from uuid import uuid4
@@ -11,8 +11,7 @@ from uuid import uuid4
 from . import MAX_TRIES, exp_backoff_fn
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import text_type
-from ...utils import on_win
+from ...common.compat import text_type, on_win
 
 log = getLogger(__name__)
 
@@ -26,8 +25,8 @@ def rm_rf(path, max_retries=5, trash=True):
     """
     try:
         path = abspath(path)
-        log.debug("rm_rf %s", path)
-        if isdir(path):
+        log.trace("rm_rf %s", path)
+        if isdir(path) and not islink(path):
             try:
                 # On Windows, always move to trash first.
                 if trash and on_win:
@@ -40,7 +39,7 @@ def rm_rf(path, max_retries=5, trash=True):
                 if islink(path) or isfile(path):
                     from ...core.linked_data import delete_prefix_from_linked_data
                     delete_prefix_from_linked_data(path)
-        if lexists(path):
+        elif lexists(path):
             try:
                 backoff_unlink(path)
                 return True
@@ -53,7 +52,7 @@ def rm_rf(path, max_retries=5, trash=True):
                 log.info("Failed to remove %s.", path)
 
         else:
-            log.debug("rm_rf failed. Not a link, file, or directory: %s", path)
+            log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
         return True
     finally:
         if lexists(path):
@@ -65,9 +64,9 @@ def delete_trash(prefix=None):
     for pkg_dir in context.pkgs_dirs:
         trash_dir = join(pkg_dir, '.trash')
         if not lexists(trash_dir):
-            log.debug("Trash directory %s doesn't exist. Moving on.", trash_dir)
+            log.trace("Trash directory %s doesn't exist. Moving on.", trash_dir)
             continue
-        log.debug("removing trash for %s", trash_dir)
+        log.trace("removing trash for %s", trash_dir)
         for p in listdir(trash_dir):
             path = join(trash_dir, p)
             try:
@@ -110,9 +109,9 @@ def move_path_to_trash(path, preclean=True):
         try:
             rename(path, trash_file)
         except (IOError, OSError) as e:
-            log.debug("Could not move %s to %s.\n%r", path, trash_file, e)
+            log.trace("Could not move %s to %s.\n%r", path, trash_file, e)
         else:
-            log.debug("Moved to trash: %s", path)
+            log.trace("Moved to trash: %s", path)
             from ...core.linked_data import delete_prefix_from_linked_data
             delete_prefix_from_linked_data(path)
             return True
@@ -155,7 +154,7 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
             exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
         except (IOError, OSError) as e:
             if e.errno == ENOENT:
-                log.debug("no such file or directory: %s", path)
+                log.trace("no such file or directory: %s", path)
             else:
                 raise
 
@@ -166,3 +165,14 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
             _rmdir(join(root, dir))
 
     _rmdir(dirpath)
+
+
+def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
+    if not isdir(dirpath):
+        return
+
+    try:
+        log.trace("Attempting to remove directory %s", dirpath)
+        exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
+    except (IOError, OSError):
+        pass

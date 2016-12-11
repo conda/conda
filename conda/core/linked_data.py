@@ -2,12 +2,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
-from conda.utils import on_win
 from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 
-from ..common.compat import itervalues
+from ..base.constants import UNKNOWN_CHANNEL
+from ..common.compat import itervalues, odict
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -23,6 +23,7 @@ log = getLogger(__name__)
 # Therefore, we have implemented a full internal cache of this
 # data to eliminate redundant file reads.
 linked_data_ = {}
+# type: Dict[Dist, Record]
 
 
 def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
@@ -49,7 +50,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     channel = rec.get('channel')
     if channel:
         channel = channel.rstrip('/')
-        if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
+        if not url or (url.startswith('file:') and channel[0] != UNKNOWN_CHANNEL):
             url = rec['url'] = channel + '/' + fn
     channel, schannel = Channel(url).url_channel_wtf
 
@@ -103,7 +104,7 @@ def linked_data(prefix, ignore_channels=False):
     # Manually memoized so it can be updated
     recs = linked_data_.get(prefix)
     if recs is None:
-        recs = linked_data_[prefix] = {}
+        recs = linked_data_[prefix] = odict()
         meta_dir = join(prefix, 'conda-meta')
         if isdir(meta_dir):
             for fn in listdir(meta_dir):
@@ -135,20 +136,13 @@ def set_linked_data(prefix, dist_name, record):
 
 
 def get_python_version_for_prefix(prefix):
-    # returns a string e.g. "2.7", "3.4", "3.5 or None
+    # returns a string e.g. "2.7", "3.4", "3.5" or None
     py_record_iter = (rcrd for rcrd in itervalues(linked_data(prefix)) if rcrd.name == 'python')
     record = next(py_record_iter, None)
     if record is None:
         return None
     next_record = next(py_record_iter, None)
     if next_record is not None:
-        raise RuntimeError("multiple python record found in prefix %s" % prefix)
+        raise RuntimeError("multiple python records found in prefix %s" % prefix)
     else:
         return record.version[:3]
-
-
-def get_site_packages_dir(prefix):
-    if on_win:
-        return 'Lib/site-packages'
-    else:
-        return 'lib/python%s/site-packages' % get_python_version_for_prefix(prefix)

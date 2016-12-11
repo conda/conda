@@ -6,23 +6,42 @@
 
 ## 4.3.0 (unreleased)
 
+# TODO before release
+* confirm correct support for paths.json file
+
+### New Features
+* **Unlink and Link Packages in a Single Transaction**: (#3833)
+* **Generic- and Python-Type Noarch/Universal Packages**: (#3712)
+* progressive fetch and extract transactions (#4021)
+* add cli.python_api module (#4028)
+* multi-user package caches (#4021)
+
 ### Deprecations/Breaking Changes
 * the 'r' channel is now part of defaults (#3677)
 * remove dead install_tar function (#3641)
 * no longer symlinking conda for activated envs (#3712)
+* remove *all* file locks (#3862)
 
 ### Improvements
-* noarch python packages (#3712)
+* remove *all* file locks (#3862)
+* create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
+* allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
+* the 'r' channel is now part of defaults (#3677)
+* private environment support for conda (#3988)
+* support new info/paths.json file (#3927, #3943)
+* improved solver hint detection, simplified filtering (#3597)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
-* imporoved solver hint detection, simplified filtering (#3597)
 * add multikey configuration validation (#3432)
 * some Fish autocompletions (#2519)
 * reduce priority for packages removed from the index (#3703)
 * add user-agent, uid, gid to conda info (#3671)
 * make http timeouts configurable (#3832)
 * add a pkgs_dirs config parameter (#3691)
-* Add an 'always_softlink' option (#3870, #3876)
+* add an 'always_softlink' option (#3870, #3876)
+* pre-checks for diskspace, etc for fetch and extract #(4007)
+* address #3879 don't print activate message when quiet config is enabled (#3886)
+* add elapsed time to HTTP errors (#3942)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
@@ -35,6 +54,10 @@
 * fix invalid yml example (#3849)
 * add arm platforms back to subdirs (#3852)
 * fix #3771 better error message for assertion errors (#3802)
+* fix #3999 spaces in shebang replacement (#4008)
+* config --show-sources shouldn't show force by default (#3891)
+* fix #3881 don't install conda-env in clones of root (#3899)
+* conda-build dist compatibility (#3909)
 
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
@@ -48,17 +71,18 @@
 * disable coverage on s3 and ftp requests adapaters (#3696, #3701)
 * github repo hygiene (#3705, #3706)
 * major install refactor (#3712)
+* remove test timebombs (#4012)
+* LinkType refactor (#3882)
+* move CrossPlatformStLink and make available as export (#3887)
+* make Record immutable (#3965)
+* project housekeeping (#3994)
 
 
-## 4.2.13 (unreleased)
+## 4.2.14 (unreleased)
 
-### Improvements
-* double/extend http timeouts (#3831)
-* let descriptive http errors cover more http exceptions (#3834)
-* backport some conda-build configuration (#3875)
-
-### Non-User-Facing Changes
-* flake8 E116, E121, & E123 enabled (#3883)
+### Bug Fixes
+* fix location of temporary hard links of index.json (#3975)
+* fix potential errors in multi-channel export and offline clone (#3995)
 
 
 ## 4.1.13 (unreleased)
@@ -72,8 +96,9 @@
 * improve handling of local dependency information (#2107)
 
 ### Bug Fixes
-* fix the api->conda substitution (#3456)
 * fix conda/install.py single-file behavior (#3854)
+* fix the api->conda substitution (#3456)
+* fix silent directory removal (#3730)
 
 
 ## 3.19.4 (unreleased)
@@ -83,13 +108,34 @@
 * error and exit for install of packages that require conda minimum version 4.3 (#3726)
 
 ### Improvements
-* improve handling of local dependency information (#2107)
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
+* improve handling of local dependency information (#2107)
 
 ### Bug Fixes
 * fix conda/install.py single-file behavior (#3854)
 * fix the api->conda substitution (#3456)
 * fix silent directory removal (#3730)
+
+
+## 4.2.13 (2016-11-22)
+
+### Deprecations/Breaking Changes
+* show warning message for pre-link scripts (#3727)
+* error and exit for install of packages that require conda minimum version 4.3 (#3726)
+
+### Improvements
+* double/extend http timeouts (#3831)
+* let descriptive http errors cover more http exceptions (#3834)
+* backport some conda-build configuration (#3875)
+
+### Bug Fixes
+* fix conda/install.py single-file behavior (#3854)
+* fix the api->conda substitution (#3456)
+* fix silent directory removal (#3730)
+* fix #3910 null check for is_url (#3931)
+
+### Non-User-Facing Changes
+* flake8 E116, E121, & E123 enabled (#3883)
 
 
 ## 4.2.12 (2016-11-02)
@@ -136,13 +182,6 @@
 ### Non-User-Facing Changes
 * backport conda.exports module to 4.2.x (#3654)
 * travis-ci OSX fix (#3615 via #3657)
-
-
-## 4.1.13 (unreleased)
-
-### Non-User-Facing Changes
-* use install.rm_rf for TemporaryDirectory cleanup (#3425)
-* fix the api->conda substitution (#3456)
 
 
 ## 4.2.9 (2016-09-27)

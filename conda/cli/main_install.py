@@ -8,8 +8,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from .common import add_parser_install, add_parser_json
 from .install import install
+from ..common.compat import on_win
 from ..gateways.disk.delete import delete_trash
-from ..utils import on_win
 
 help = "Installs a list of packages into a specified conda environment."
 descr = help + """
