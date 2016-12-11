@@ -13,24 +13,25 @@ from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, on_win
-from ..common.path import (get_bin_directory_short_path, get_python_short_path,
+from ..common.compat import iteritems, on_win, string_types
+from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
+                           get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
                            win_path_ok)
 from ..common.url import path_to_url
-from ..exceptions import CondaVerificationError, PaddingError
+from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
                                     create_private_envs_meta, create_private_pkg_entry_point,
                                     create_unix_python_entry_point,
                                     create_windows_python_entry_point, extract_tarball,
-                                    make_menu, remove_private_envs_meta, write_conda_meta_record)
+                                    make_menu, remove_private_envs_meta, write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import compute_md5sum, exists, is_exe, isfile, islink
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.dist import Dist
-from ..models.enums import LinkType
-from ..models.record import Record
+from ..models.enums import LinkType, PathType
+from ..models.record import Link, Record
 
 try:
     from cytoolz.itertoolz import concatv
@@ -126,6 +127,61 @@ class CreateInPrefixPathAction(PrefixPathAction):
 
 
 class LinkPathAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
+                                 requested_link_type):
+        def make_file_link_action(source_path_info):
+            noarch = package_info.noarch
+            if noarch and noarch.type == 'python':
+                sp_dir = transaction_context['target_site_packages_short_path']
+                target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
+            elif not noarch or noarch is True or (isinstance(noarch, string_types)
+                                                  and noarch == 'native'):
+                target_short_path = source_path_info.path
+            else:
+                raise CondaUpgradeError(dals("""
+                The current version of conda is too old to install this package.
+                Please update conda."""))
+
+            def get_prefix_replace(path_info, requested_link_type):
+                if path_info.prefix_placeholder:
+                    link_type = LinkType.copy
+                    prefix_placehoder = path_info.prefix_placeholder
+                    file_mode = path_info.file_mode
+                elif path_info.no_link or path_info.path_type == PathType.softlink:
+                    link_type = LinkType.copy
+                    prefix_placehoder, file_mode = '', None
+                else:
+                    link_type = requested_link_type
+                    prefix_placehoder, file_mode = '', None
+
+                return link_type, prefix_placehoder, file_mode
+
+            link_type, placeholder, fmode = get_prefix_replace(source_path_info,
+                                                               requested_link_type)
+
+            if placeholder:
+                return PrefixReplaceLinkAction(transaction_context, package_info,
+                                               package_info.extracted_package_dir,
+                                               source_path_info.path,
+                                               target_prefix, target_short_path,
+                                               placeholder, fmode)
+            else:
+                return LinkPathAction(transaction_context, package_info,
+                                      package_info.extracted_package_dir, source_path_info.path,
+                                      target_prefix, target_short_path, link_type)
+        return tuple(make_file_link_action(spi) for spi in package_info.paths)
+
+    @classmethod
+    def create_directory_actions(cls, transaction_context, package_info, target_prefix,
+                                 requested_link_type, file_link_actions):
+        leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
+        return tuple(
+            cls(transaction_context, package_info, None, None,
+                target_prefix, directory_short_path, LinkType.directory)
+            for directory_short_path in leaf_directories
+        )
 
     @classmethod
     def create_python_entry_point_windows_exe_action(cls, transaction_context, package_info,
@@ -388,12 +444,28 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
 class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
-    def __init__(self, transaction_context, package_info, target_prefix, meta_record):
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       all_target_short_paths):
+        # 'all_target_short_paths' is especially significant here, because it is the record
+        #   of the paths that will be removed when the package is unlinked
+
+        link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
+        linked_package_record = Record.from_objects(package_info.repodata_record,
+                                          package_info.index_json_record,
+                                          files=all_target_short_paths, link=link,
+                                          url=package_info.url)
+
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
+        return cls(transaction_context, package_info, target_prefix, target_short_path,
+                   linked_package_record),
+
+    def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
+                 linked_package_record):
         super(CreateLinkedPackageRecordAction, self).__init__(transaction_context, package_info,
                                                               None, None, target_prefix,
                                                               target_short_path)
-        self.meta_record = meta_record
+        self.linked_package_record = linked_package_record
         self._record_written_to_disk = False
         self._linked_data_loaded = False
 
@@ -403,11 +475,11 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
 
-        write_conda_meta_record(self.target_prefix, self.meta_record)
+        write_linked_package_record(self.target_prefix, self.linked_package_record)
         self._record_written_to_disk = True
 
         load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
-                         self.meta_record)
+                         self.linked_package_record)
         self._linked_data_loaded = True
 
     def reverse(self):

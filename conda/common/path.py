@@ -202,3 +202,14 @@ def right_pad_os_sep(path):
 def split_filename(path_or_url):
     dn, fn = split(path_or_url)
     return (dn or None, fn) if '.' in fn else (path_or_url, None)
+
+
+def get_python_noarch_target_path(source_short_path, target_site_packages_short_path):
+    if source_short_path.startswith('site-packages/'):
+        sp_dir = target_site_packages_short_path
+        return source_short_path.replace('site-packages', sp_dir, 1)
+    elif source_short_path.startswith('python-scripts/'):
+        bin_dir = get_bin_directory_short_path()
+        return source_short_path.replace('python-scripts', bin_dir, 1)
+    else:
+        return source_short_path

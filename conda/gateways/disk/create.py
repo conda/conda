@@ -99,7 +99,7 @@ def extract_tarball(tarball_full_path, destination_directory=None):
                 os.lchown(p, 0, 0)
 
 
-def write_conda_meta_record(prefix, record):
+def write_linked_package_record(prefix, record):
     # write into <env>/conda-meta/<dist>.json
     meta_dir = join(prefix, 'conda-meta')
     if not isdir(meta_dir):
