@@ -91,14 +91,14 @@ class PrefixPathAction(PathAction):
 # ######################################################
 
 @with_metaclass(ABCMeta)
-class CreatePrefixPathAction(PrefixPathAction):
+class CreateInPrefixPathAction(PrefixPathAction):
     # All CreatePathAction subclasses must create a SINGLE new path
     #   the short/in-prefix version of that path must be returned by execute()
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
                  target_prefix, target_short_path):
-        super(CreatePrefixPathAction, self).__init__(transaction_context,
-                                                     target_prefix, target_short_path)
+        super(CreateInPrefixPathAction, self).__init__(transaction_context,
+                                                       target_prefix, target_short_path)
         self.package_info = package_info
         self.source_prefix = source_prefix
         self.source_short_path = source_short_path
@@ -116,7 +116,7 @@ class CreatePrefixPathAction(PrefixPathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
-class LinkPathAction(CreatePrefixPathAction):
+class LinkPathAction(CreateInPrefixPathAction):
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
@@ -201,7 +201,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
                                len(self.prefix_placeholder))
 
 
-class MakeMenuAction(CreatePrefixPathAction):
+class MakeMenuAction(CreateInPrefixPathAction):
 
     def __init__(self, transaction_context, package_info,
                  target_prefix, target_short_path):
@@ -220,7 +220,7 @@ class MakeMenuAction(CreatePrefixPathAction):
             make_menu(self.target_prefix, self.target_short_path, remove=True)
 
 
-class CompilePycAction(CreatePrefixPathAction):
+class CompilePycAction(CreateInPrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix,
                  source_short_path, target_short_path):
@@ -241,7 +241,7 @@ class CompilePycAction(CreatePrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreatePythonEntryPointAction(CreatePrefixPathAction):
+class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
                  module, func):
@@ -268,7 +268,16 @@ class CreatePythonEntryPointAction(CreatePrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreateApplicationEntryPointAction(CreatePrefixPathAction):
+class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_action(cls, transaction_context, package_info, private_env_prefix, executable_basename):
+        application_short_path = "%s/%s" % (get_bin_directory_short_path(), executable_basename)
+        return cls(transaction_context, package_info,
+                   source_prefix=private_env_prefix,
+                   source_short_path=application_short_path,
+                   target_prefix=context.root_prefix,
+                   target_short_path=application_short_path)
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
                  target_prefix, target_short_path):
@@ -292,7 +301,7 @@ class CreateApplicationEntryPointAction(CreatePrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreateLinkedPackageRecordAction(CreatePrefixPathAction):
+class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, meta_record):
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
@@ -324,7 +333,7 @@ class CreateLinkedPackageRecordAction(CreatePrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreatePrivateEnvMetaAction(CreatePrefixPathAction):
+class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
     def __init__(self, transaction_context, package_info, target_prefix):
         target_short_path = 'conda-meta/private_envs'
         super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
@@ -353,11 +362,11 @@ class CreatePrivateEnvMetaAction(CreatePrefixPathAction):
 # ######################################################
 
 @with_metaclass(ABCMeta)
-class RemovePrefixPathAction(PrefixPathAction):
+class RemoveFromPrefixPathAction(PrefixPathAction):
 
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path):
-        super(RemovePrefixPathAction, self).__init__(transaction_context,
-                                                     target_prefix, target_short_path)
+        super(RemoveFromPrefixPathAction, self).__init__(transaction_context,
+                                                         target_prefix, target_short_path)
         self.linked_package_data = linked_package_data
 
     def verify(self):
@@ -366,7 +375,7 @@ class RemovePrefixPathAction(PrefixPathAction):
         self._verified = True
 
 
-class UnlinkPathAction(RemovePrefixPathAction):
+class UnlinkPathAction(RemoveFromPrefixPathAction):
     def __init__(self, transaction_context, linked_package_data, target_prefix, target_short_path,
                  link_type=LinkType.hardlink):
         super(UnlinkPathAction, self).__init__(transaction_context, linked_package_data,
@@ -393,7 +402,7 @@ class UnlinkPathAction(RemovePrefixPathAction):
             rm_rf(self.holding_full_path)
 
 
-class RemoveMenuAction(RemovePrefixPathAction):
+class RemoveMenuAction(RemoveFromPrefixPathAction):
 
     def __init__(self, transaction_context, linked_package_data,
                  target_prefix, target_short_path):
