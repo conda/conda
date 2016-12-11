@@ -133,23 +133,6 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
                                   package_info.extracted_package_dir, source_path_info.path,
                                   target_prefix, target_short_path, link_type)
 
-    def make_python_entry_point_action(entry_point_def):
-        command, module, func = parse_entry_point_def(entry_point_def)
-        target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
-        if on_win:
-            target_short_path += "-script.py"
-        return CreatePythonEntryPointAction(transaction_context, package_info,
-                                            target_prefix, target_short_path, module, func)
-
-    def make_python_entry_point_windows_executable_action(entry_point_def):
-        source_directory = CONDA_PACKAGE_ROOT
-        source_short_path = 'resources/cli-%d.exe' % context.bits
-        command, _, _ = parse_entry_point_def(entry_point_def)
-        target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
-        return LinkPathAction(transaction_context, package_info, source_directory,
-                              source_short_path, target_prefix, target_short_path,
-                              requested_link_type)
-
     def make_application_entry_point_action(private_env_prefix, executable_basename):
         application_short_path = "%s/%s" % (get_bin_directory_short_path(), executable_basename)
         return CreateApplicationEntryPointAction(transaction_context, package_info,
@@ -182,9 +165,11 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
     if package_info.noarch and package_info.noarch.type == 'python':
         python_entry_point_actions = tuple(concatv(
-            (make_python_entry_point_action(ep_def)
+            (CreatePythonEntryPointAction.create_action(
+                transaction_context, package_info, target_prefix, ep_def)
              for ep_def in package_info.noarch.entry_points),
-            (make_python_entry_point_windows_executable_action(ep_def)
+            (LinkPathAction.create_python_entry_point_windows_executable_action(
+                transaction_context, package_info, target_prefix, requested_link_type, ep_def)
              for ep_def in package_info.noarch.entry_points) if on_win else (),
         ))
 

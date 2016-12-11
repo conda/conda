@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 import json
+from conda import CONDA_PACKAGE_ROOT
 from logging import getLogger
 from os.path import dirname, join
 
@@ -12,7 +13,8 @@ from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems, on_win
-from ..common.path import get_bin_directory_short_path, get_python_short_path, url_to_path, win_path_ok
+from ..common.path import get_bin_directory_short_path, get_python_short_path, url_to_path, win_path_ok, \
+    parse_entry_point_def
 from ..common.url import path_to_url
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
@@ -117,6 +119,18 @@ class CreateInPrefixPathAction(PrefixPathAction):
 
 
 class LinkPathAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_python_entry_point_windows_executable_action(cls, transaction_context, package_info,
+                                                            target_prefix, requested_link_type,
+                                                            entry_point_def):
+        source_directory = CONDA_PACKAGE_ROOT
+        source_short_path = 'resources/cli-%d.exe' % context.bits
+        command, _, _ = parse_entry_point_def(entry_point_def)
+        target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
+        return cls(transaction_context, package_info, source_directory,
+                              source_short_path, target_prefix, target_short_path,
+                              requested_link_type)
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
@@ -242,6 +256,15 @@ class CompilePycAction(CreateInPrefixPathAction):
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_action(cls, transaction_context, package_info, target_prefix, entry_point_def):
+        command, module, func = parse_entry_point_def(entry_point_def)
+        target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+        if on_win:
+            target_short_path += "-script.py"
+        return cls(transaction_context, package_info, target_prefix, target_short_path,
+                   module, func)
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
                  module, func):
