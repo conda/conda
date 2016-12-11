@@ -148,34 +148,18 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         return CreateLinkedPackageRecordAction(transaction_context, package_info, target_prefix,
                                                meta_record)
 
-    basic_triplet = transaction_context, package_info, target_prefix
+    required_quad = transaction_context, package_info, target_prefix, requested_link_type
 
     file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
 
     leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
     directory_create_actions = tuple(make_directory_link_action(d) for d in leaf_directories)
 
-    create_menu_actions = MakeMenuAction.create_actions(*basic_triplet)
+    create_menu_actions = MakeMenuAction.create_actions(*required_quad)
 
-    if package_info.noarch and package_info.noarch.type == 'python':
-        python_entry_point_actions = tuple(concatv(
-            (CreatePythonEntryPointAction.create_action(
-                transaction_context, package_info, target_prefix, ep_def)
-             for ep_def in package_info.noarch.entry_points),
-            (LinkPathAction.create_python_entry_point_windows_exe_action(
-                transaction_context, package_info, target_prefix, requested_link_type, ep_def)
-             for ep_def in package_info.noarch.entry_points) if on_win else (),
-        ))
-
-        py_files = (axn.target_short_path for axn in file_link_actions
-                    if axn.source_short_path.endswith('.py'))
-        py_ver = transaction_context['target_python_version']
-        pyc_compile_actions = tuple(CompilePycAction(transaction_context, package_info,
-                                                     target_prefix, pf, pyc_path(pf, py_ver))
-                                    for pf in py_files)
-    else:
-        python_entry_point_actions = ()
-        pyc_compile_actions = ()
+    python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
+    compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
+                                                          file_link_actions=file_link_actions)
 
     if package_info.repodata_record.preferred_env is not None:
         # TODO: check that all four private env criteria are met
@@ -197,14 +181,14 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     all_target_short_paths = tuple(axn.target_short_path for axn in
                                    concatv(file_link_actions,
                                            python_entry_point_actions,
-                                           pyc_compile_actions))
+                                           compile_pyc_actions))
     meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
 
     return tuple(concatv(
         directory_create_actions,
         file_link_actions,
         python_entry_point_actions,
-        pyc_compile_actions,
+        compile_pyc_actions,
         create_menu_actions,
         application_entry_point_actions,
         private_envs_meta_action,

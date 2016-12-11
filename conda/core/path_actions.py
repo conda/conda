@@ -16,7 +16,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems, on_win
 from ..common.path import (get_bin_directory_short_path, get_python_short_path,
-                           parse_entry_point_def, url_to_path, win_path_ok)
+                           parse_entry_point_def, url_to_path, win_path_ok, pyc_path)
 from ..common.url import path_to_url
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
@@ -220,7 +220,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
 class MakeMenuAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix):
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
         if on_win and context.shortcuts:
             MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
             return tuple(cls(transaction_context, package_info, target_prefix, spi.path)
@@ -247,6 +247,30 @@ class MakeMenuAction(CreateInPrefixPathAction):
 
 class CompilePycAction(CreateInPrefixPathAction):
 
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       file_link_actions):
+        if package_info.noarch and package_info.noarch.type == 'python':
+            # python_entry_point_actions = tuple(concatv(
+            #     (CreatePythonEntryPointAction.create_action(
+            #         transaction_context, package_info, target_prefix, ep_def)
+            #      for ep_def in package_info.noarch.entry_points),
+            #     (LinkPathAction.create_python_entry_point_windows_exe_action(
+            #         transaction_context, package_info, target_prefix, requested_link_type, ep_def)
+            #      for ep_def in package_info.noarch.entry_points) if on_win else (),
+            # ))
+
+            py_files = (axn.target_short_path for axn in file_link_actions
+                        if axn.source_short_path.endswith('.py'))
+            py_ver = transaction_context['target_python_version']
+            return tuple(cls(transaction_context, package_info, target_prefix,
+                             pf, pyc_path(pf, py_ver))
+                         for pf in py_files)
+
+        else:
+            # python_entry_point_actions = ()
+            return ()
+
     def __init__(self, transaction_context, package_info, target_prefix,
                  source_short_path, target_short_path):
         super(CompilePycAction, self).__init__(transaction_context, package_info,
@@ -269,13 +293,30 @@ class CompilePycAction(CreateInPrefixPathAction):
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_action(cls, transaction_context, package_info, target_prefix, entry_point_def):
-        command, module, func = parse_entry_point_def(entry_point_def)
-        target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
-        if on_win:
-            target_short_path += "-script.py"
-        return cls(transaction_context, package_info, target_prefix, target_short_path,
-                   module, func)
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+        def this_triplet(entry_point_def):
+            command, module, func = parse_entry_point_def(entry_point_def)
+            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+            if on_win:
+                target_short_path += "-script.py"
+            return target_short_path, module, func
+
+        if package_info.noarch and package_info.noarch.type == 'python':
+            actions = tuple(cls(transaction_context, package_info, target_prefix,
+                                *this_triplet(ep_def))
+                            for ep_def in package_info.noarch.entry_points)
+
+            if on_win:
+                actions += tuple(
+                    LinkPathAction.create_python_entry_point_windows_exe_action(
+                        transaction_context, package_info, target_prefix,
+                        requested_link_type, ep_def
+                    ) for ep_def in package_info.noarch.entry_points
+                )
+
+            return actions
+        else:
+            return ()
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
                  module, func):
