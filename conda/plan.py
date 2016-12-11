@@ -11,13 +11,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 from collections import defaultdict, namedtuple
-from conda.core.link import UnlinkLinkTransaction
-from conda.core.package_cache import ProgressiveFetchExtract
-from conda.gateways.disk.create import mkdir_p
 from logging import getLogger
-from os.path import abspath, basename, exists, join, isdir
+from os.path import abspath, basename, exists, isdir, join
 
-from . import instructions as inst, CondaError
+from . import CondaError, instructions as inst
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
@@ -28,8 +25,10 @@ from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
+from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          PackageNotFoundError, RemoveError)
+from .gateways.disk.create import mkdir_p
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -323,6 +322,7 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
 
+        # make sure prefix directory exists
         if link_dists:
             if not isdir(prefix):
                 try:
@@ -332,6 +332,7 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
                     raise CondaError("Unable to create prefix directory '%s'.\n"
                                      "Check that you have sufficient permissions." % prefix)
 
+        # TODO: ideally we'd move these two lines before both the y/n confirmation and the --dry-run exit  # NOQA
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 

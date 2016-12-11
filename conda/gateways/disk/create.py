@@ -116,6 +116,7 @@ def make_menu(prefix, file_path, remove=False):
 
 def mkdir_p(path):
     try:
+        log.trace('making directory %s', path)
         makedirs(path)
         return path
     except OSError as e:
