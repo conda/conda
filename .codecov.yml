@@ -4,7 +4,7 @@ coverage:
   range: 60...100
 
 ignore:
-  - conda-env/.*
+  - conda_env/.*
   - conda/_vendor/.*
   - conda/gateways/adapters/ftp.py
   - conda/gateways/adapters/s3.py

@@ -50,6 +50,7 @@ travis_bootstrap_conda() {
 
     conda info --all
     conda list
+    rvm get head
 }
 
 travis_bootstrap_conda
