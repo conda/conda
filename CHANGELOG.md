@@ -4,25 +4,26 @@
 * confirm correct support for paths.json file
 
 ### New Features
-* transactional link/unlink operations (#3833)
-* create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
-* private environment support for conda (#3988)
-* remove *all* file locks (#3862)
-* support new info/paths.json file (#3927, #3943)
-* noarch python packages (#3712)
-* imporoved solver hint detection, simplified filtering (#3597)
+* **Unlink and Link Packages in a Single Transaction**: (#3833)
+* **Generic- and Python-Type Noarch/Universal Packages**: (#3712)
 * progressive fetch and extract transactions (#4021)
-* multi-user package caches (#4021)
 * add cli.python_api module (#4028)
-* allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
+* multi-user package caches (#4021)
 
 ### Deprecations/Breaking Changes
 * the 'r' channel is now part of defaults (#3677)
 * remove dead install_tar function (#3641)
 * no longer symlinking conda for activated envs (#3712)
+* remove *all* file locks (#3862)
 
 ### Improvements
+* remove *all* file locks (#3862)
+* create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
+* allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
 * the 'r' channel is now part of defaults (#3677)
+* private environment support for conda (#3988)
+* support new info/paths.json file (#3927, #3943)
+* improved solver hint detection, simplified filtering (#3597)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
 * add multikey configuration validation (#3432)
