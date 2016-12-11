@@ -26,6 +26,7 @@ def try_write(dir_path, heavy=False):
         bool
 
     """
+    log.trace('checking user write access for %s', dir_path)
     if not isdir(dir_path):
         return False
     if on_win or heavy:
@@ -44,36 +45,13 @@ def try_write(dir_path, heavy=False):
         return access(dir_path, W_OK)
 
 
-def try_hard_link(pkgs_dir, prefix, dist):
-    # TODO: Usage of this function is bad all around it looks like
-
-    dist = Dist(dist)
-    src = join(pkgs_dir, dist.dist_name, 'info', 'index.json')
-    dst = join(prefix, '.tmp-%s' % dist.dist_name)
-    assert isfile(src), src
-    assert not isfile(dst), dst
-    try:
-        if not isdir(prefix):
-            makedirs(prefix)
-        create_link(src, dst, LinkType.hardlink, force=True)
-        # Some file systems (at least BeeGFS) do not support hard-links
-        # between files in different directories. Depending on the
-        # file system configuration, a symbolic link may be created
-        # instead. If a symbolic link is created instead of a hard link,
-        # return False.
-        return not islink(dst)
-    except OSError:
-        return False
-    finally:
-        rm_rf(dst)
-
-
 def hardlink_supported(source_file, dest_dir):
     # Some file systems (e.g. BeeGFS) do not support hard-links
     # between files in different directories. Depending on the
     # file system configuration, a symbolic link may be created
     # instead. If a symbolic link is created instead of a hard link,
     # return False.
+    log.trace("checking hard link capability for %s => %s", source_file, dest_dir)
     test_file = join(dest_dir, '.tmp.' + basename(source_file))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
@@ -90,6 +68,7 @@ def hardlink_supported(source_file, dest_dir):
 def softlink_supported(source_file, dest_dir):
     # On Windows, softlink creation is restricted to Administrative users by default. It can
     # optionally be enabled for non-admin users through explicit registry modification.
+    log.trace("checking soft link capability for %s => %s", source_file, dest_dir)
     test_path = join(dest_dir, '.tmp.' + basename(source_file))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
