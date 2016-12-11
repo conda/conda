@@ -11,11 +11,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 from collections import defaultdict, namedtuple
-from conda._vendor.boltons.setutils import IndexedSet
 from logging import getLogger
 from os.path import abspath, basename, exists, join
 
 from . import instructions as inst
+from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
 from .cli import common
