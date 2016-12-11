@@ -7,10 +7,10 @@ import re
 import struct
 
 from ..base.constants import PREFIX_PLACEHOLDER
+from ..common.compat import on_win
 from ..exceptions import CondaRuntimeError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
-from ..utils import on_win
 
 log = getLogger(__name__)
 

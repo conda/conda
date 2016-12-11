@@ -1,31 +1,32 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from traceback import format_exc
+
 from logging import getLogger
 import os
 from os.path import join
 import re
 from subprocess import CalledProcessError, check_call
 import sys
-import traceback
 import warnings
 
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
-from .package_cache import is_extracted
-from .path_actions import (CompilePycAction, CreateCondaMetaAction,
+from .package_cache import PackageCache
+from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
+                           CreateCondaMetaAction, CreatePrivateEnvMetaAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            PrefixReplaceLinkAction, RemoveCondaMetaAction, RemoveMenuAction,
-                           UnlinkPathAction, CreateApplicationEntryPointAction,
-                           CreatePrivateEnvMetaAction, RemovePrivateEnvMetaAction)
+                           RemovePrivateEnvMetaAction, UnlinkPathAction)
 from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import string_types
+from ..common.compat import string_types, on_win
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_leaf_directories, get_major_minor_version,
-                           get_python_site_packages_short_path, parse_entry_point_def, pyc_path,
-                           preferred_env_to_prefix)
+                           get_python_site_packages_short_path, parse_entry_point_def,
+                           preferred_env_to_prefix, pyc_path)
 from ..exceptions import CondaUpgradeError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import collect_all_info_for_package, isfile
@@ -34,7 +35,6 @@ from ..models.dist import Dist
 from ..models.enums import LinkType
 from ..models.package_info import PathType
 from ..models.record import Link, Record
-from ..utils import on_win
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -263,7 +263,7 @@ class UnlinkLinkTransaction(object):
         linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
                                                for dist in unlink_dists)
 
-        pkg_dirs_to_link = tuple(is_extracted(dist) for dist in link_dists)
+        pkg_dirs_to_link = tuple(PackageCache[dist].extracted_package_dir for dist in link_dists)
         assert all(pkg_dirs_to_link)
         packages_info_to_link = tuple(collect_all_info_for_package(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
@@ -333,7 +333,8 @@ class UnlinkLinkTransaction(object):
 
         except:
             log.error("Something bad happened, but it's okay because I'm going to roll back now.")
-            log.debug(traceback.format_exc())
+            log.debug("Error in action %r", action)
+            log.debug(format_exc())
 
             failed_pkg_idx, failed_axn_idx = pkg_idx, axn_idx
             reverse_actions = self.all_actions[:failed_pkg_idx+1]

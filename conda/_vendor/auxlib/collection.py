@@ -42,7 +42,7 @@ def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
         seq (iterable):
         key (callable): test for each element of iterable
         default: returned when all elements fail test
-        apply (callable): applied to element before return
+        apply (callable): applied to element before return, but not to default value
 
     Returns: first element in seq that passes key, mutated with optional apply
 
@@ -65,7 +65,7 @@ def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):
         4
 
     """
-    return next((apply(x) for x in seq if key(x)), default)
+    return next((apply(x) for x in seq if key(x)), default() if callable(default) else default)
 
 
 def firstitem(map, key=lambda k, v: bool(k), default=None, apply=lambda k, v: (k, v)):

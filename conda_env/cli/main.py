@@ -68,7 +68,7 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
-    context._add_argparse_args(args)
+    context._set_argparse_args(args)
     if getattr(args, 'json', False):
         # # Silence logging info to avoid interfering with JSON output
         # for logger in Logger.manager.loggerDict:

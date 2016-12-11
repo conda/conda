@@ -6,10 +6,9 @@ import re
 import sys
 from os.path import isdir, abspath
 
-from ..common.compat import text_type
+from ..common.compat import text_type, on_win
 from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError,
                           TooManyArgumentsError, TooFewArgumentsError)
-from ..utils import on_win
 
 
 def help(command, shell):

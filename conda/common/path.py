@@ -3,15 +3,45 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 import os
-from os.path import join, split, splitext, dirname, basename
+from os.path import basename, dirname, join, split, splitext
+import re
 
-from .compat import string_types
-from ..utils import on_win
+from .compat import on_win, string_types
+
+try:
+    # Python 3
+    from urllib.parse import unquote  # NOQA
+except ImportError:
+    # Python 2
+    from urllib import unquote  # NOQA
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
 except ImportError:
     from .._vendor.toolz.itertoolz import accumulate, concat, take
+
+
+def is_path(value):
+    return value.startswith(('./', '..', '~', '/')) or is_windows_path(value)
+
+
+def is_windows_path(value):
+    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
+
+
+def url_to_path(url):
+    """Convert a file:// URL to a path."""
+    if is_path(url):
+        return url
+    assert url.startswith('file:'), "You can only turn file: urls into filenames (not %r)" % url
+    path = url[len('file:'):].lstrip('/')
+    path = unquote(path)
+    if re.match('^([a-z])[:|]', path, re.I):
+        path = path[0] + ':' + path[2:]
+    elif not path.startswith(r'\\'):
+        # if not a Windows UNC path
+        path = '/' + path
+    return path
 
 
 def tokenized_startswith(test_iterable, startswith_iterable):
@@ -125,6 +155,10 @@ def win_path_double_escape(path):
     return path.replace('\\', '\\\\') if on_win else path
 
 
+def win_path_backout(path):
+    return path.replace('\\', '/') if on_win else path
+
+
 def ensure_pad(name, pad="_"):
     return "%s%s%s" % (pad, name.strip(pad), pad)
 
@@ -133,7 +167,7 @@ def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
     if preferred_env is None:
         return root_dir
     else:
-        return join(envs_dirs[0], ensure_pad(preferred_env, '_'))
+        return '/'.join((envs_dirs[0], ensure_pad(preferred_env, '_')))
 
 
 def prefix_to_env_name(prefix, root_prefix):
@@ -161,9 +195,10 @@ def is_private_env(env):
     return False
 
 
-def win_path_backout(path):
-    return path.replace('\\', '/') if on_win else path
-
-
 def right_pad_os_sep(path):
     return path if path.endswith(os.sep) else path + os.sep
+
+
+def split_filename(path_or_url):
+    dn, fn = split(path_or_url)
+    return (dn or None, fn) if '.' in fn else (path_or_url, None)

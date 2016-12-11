@@ -8,9 +8,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from .common import add_parser_install, add_parser_json
 from .install import install
+from ..common.compat import on_win
 from ..common.constants import NULL
 from ..gateways.disk.delete import delete_trash
-from ..utils import on_win
 
 help = "Create a new conda environment from a list of specified packages. "
 descr = (help +

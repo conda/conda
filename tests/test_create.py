@@ -9,6 +9,7 @@ import requests
 import sys
 from conda import CondaError, plan
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
 from conda.cli.main import generate_parser
@@ -27,12 +28,13 @@ from conda.common.path import get_bin_directory_short_path, missing_pyc_files, \
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
 from conda.common.compat import itervalues, text_type
-from conda.connection import LocalFSAdapter
+from conda.connection import LocalFSAdapter, CondaSession
 from conda.core.index import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.logging import TRACE
 from conda.models.record import Record
 from conda.utils import on_win
 from contextlib import contextmanager
@@ -56,6 +58,7 @@ except ImportError:
     from mock import patch
 
 log = getLogger(__name__)
+TRACE, DEBUG = TRACE, DEBUG  # these are so the imports aren't cleared, but it's easy to switch back and forth
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
@@ -120,15 +123,16 @@ def run_command(command, prefix, *arguments, **kwargs):
     command_line = "{0} {1}".format(command, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
-    context._add_argparse_args(args)
-    print("executing command >>>", command_line)
-    with captured() as c, replace_log_streams():
-        if use_exception_handler:
-            conda_exception_handler(args.func, args, p)
-        else:
-            args.func(args, p)
+    context._set_argparse_args(args)
+    print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
+    with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
+        with captured() as c, replace_log_streams():
+            if use_exception_handler:
+                conda_exception_handler(args.func, args, p)
+            else:
+                args.func(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout)
+    print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:
         reload_config(prefix)
     return c.stdout, c.stderr
@@ -138,56 +142,19 @@ def run_command(command, prefix, *arguments, **kwargs):
 def make_temp_env(*packages, **kwargs):
     prefix = kwargs.pop('prefix', None) or make_temp_prefix()
     assert isdir(prefix), prefix
-    with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with disable_logger('fetch'), disable_logger('dotupdate'):
-            try:
-                # try to clear any config that's been set by other tests
-                reset_context([os.path.join(prefix+os.sep, 'condarc')])
-                run_command(Commands.CREATE, prefix, *packages)
-                yield prefix
-            finally:
-                rmtree(prefix, ignore_errors=True)
+    with disable_logger('fetch'), disable_logger('dotupdate'):
+        try:
+            # try to clear any config that's been set by other tests
+            reset_context([os.path.join(prefix+os.sep, 'condarc')])
+            run_command(Commands.CREATE, prefix, *packages)
+            yield prefix
+        finally:
+            rmtree(prefix, ignore_errors=True)
 
 
 def reload_config(prefix):
     prefix_condarc = join(prefix+os.sep, 'condarc')
     reset_context([prefix_condarc])
-
-
-class EnforceUnusedAdapter(BaseAdapter):
-
-    def send(self, request, *args, **kwargs):
-        raise RuntimeError("EnforceUnusedAdapter called with url {0}".format(request.url))
-
-
-class OfflineCondaSession(Session):
-
-    timeout = None
-
-    def __init__(self, *args, **kwargs):
-        super(OfflineCondaSession, self).__init__()
-        unused_adapter = EnforceUnusedAdapter()
-        self.mount("http://", unused_adapter)
-        self.mount("https://", unused_adapter)
-        self.mount("ftp://", unused_adapter)
-        self.mount("s3://", unused_adapter)
-
-        # Enable file:// urls
-        self.mount("file://", LocalFSAdapter())
-
-
-@contextmanager
-def enforce_offline():
-    class NadaCondaSession(object):
-        def __init__(self, *args, **kwargs):
-            pass
-    import conda.connection
-    saved_conda_session = conda.connection.CondaSession
-    try:
-        conda.connection.CondaSession = OfflineCondaSession
-        yield
-    finally:
-        conda.connection.CondaSession = saved_conda_session
 
 
 def package_is_installed(prefix, package, exact=False):
@@ -399,6 +366,7 @@ class IntegrationTests(TestCase):
 
             flask_fname = flask_data['fn']
             tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+            assert isfile(tar_old_path)
 
             # regression test for #2886 (part 1 of 2)
             # install tarball from package cache, default channel
@@ -513,10 +481,10 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
-            with enforce_offline():
-                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-                    assert_package_is_installed(clone_prefix, 'flask-0.10.1')
-                    assert_package_is_installed(clone_prefix, 'python')
+            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                assert context.offline
+                assert_package_is_installed(clone_prefix, 'flask-0.10.1')
+                assert_package_is_installed(clone_prefix, 'python')
 
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
@@ -553,11 +521,11 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'rpy2')
             run_command(Commands.LIST, prefix)
 
-            with enforce_offline():
-                with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
-                    assert_package_is_installed(clone_prefix, 'python')
-                    assert_package_is_installed(clone_prefix, 'rpy2')
-                    assert isfile(join(clone_prefix, 'condarc'))  # untracked file
+            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+                assert context.offline
+                assert_package_is_installed(clone_prefix, 'python')
+                assert_package_is_installed(clone_prefix, 'rpy2')
+                assert isfile(join(clone_prefix, 'condarc'))  # untracked file
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):

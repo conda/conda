@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import re
+from collections import namedtuple
 from logging import getLogger
+import re
 
+from .channel import Channel
 from .package_info import PackageInfo
 from .record import Record
+from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
-from ..base.constants import DEFAULTS
+from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS, UNKNOWN_CHANNEL
+from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
+from ..common.constants import NULL
+from ..common.url import has_platform, is_url, join_url
 
 log = getLogger(__name__)
+DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
+                                         'dist_name'))
 
 
 class DistType(EntityType):
@@ -27,6 +35,8 @@ class DistType(EntityType):
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)
+            elif isinstance(value, Channel):
+                return Dist.from_url(value.url())
             else:
                 return Dist.from_string(value)
         else:
@@ -39,10 +49,14 @@ class Dist(Entity):
     channel = StringField(required=False, nullable=True, immutable=True)
     dist_name = StringField(immutable=True)
     with_features_depends = StringField(required=False, nullable=True, immutable=True)
+    base_url = StringField(required=False, nullable=True, immutable=True)
+    platform = StringField(required=False, nullable=True, immutable=True)
 
-    def __init__(self, channel, dist_name=None, with_features_depends=None):
+    def __init__(self, channel, dist_name=None, with_features_depends=None,
+                 base_url=None, platform=None):
         super(Dist, self).__init__(channel=channel, dist_name=dist_name,
-                                   with_features_depends=with_features_depends)
+                                   with_features_depends=with_features_depends,
+                                   base_url=base_url, platform=platform)
 
     @property
     def full_name(self):
@@ -50,15 +64,15 @@ class Dist(Entity):
 
     @property
     def name(self):
-        return self.quad[0]
+        return self.parse_dist_name(self.dist_name).name
 
     @property
     def version(self):
-        return self.quad[1]
+        return self.parse_dist_name(self.dist_name).version
 
     @property
     def build_string(self):
-        return self.quad[2]
+        return self.parse_dist_name(self.dist_name).build_string
 
     @property
     def build(self):
@@ -66,9 +80,7 @@ class Dist(Entity):
 
     @property
     def build_number(self):
-        n = ensure_text_type(self.quad[2].rsplit('_')[-1])
-        n = int(n) if n.isdigit() else 0
-        return int(n)
+        return self.parse_dist_name(self.dist_name).build_number
 
     @property
     def pair(self):
@@ -91,6 +103,10 @@ class Dist(Entity):
     def is_feature_package(self):
         return self.dist_name.endswith('@')
 
+    @property
+    def is_channel(self):
+        return bool(self.base_url and self.platform)
+
     def to_filename(self, extension='.tar.bz2'):
         if self.is_feature_package:
             return self.dist_name
@@ -101,8 +117,11 @@ class Dist(Entity):
         return ' '.join(self.quad[:3])
 
     @classmethod
-    def from_string(cls, string, channel_override=None):
+    def from_string(cls, string, channel_override=NULL):
         string = text_type(string)
+
+        if is_url(string) and channel_override == NULL:
+            return cls.from_url(string)
 
         if string.endswith('@'):
             return cls(channel='@', dist_name=string, with_features_depends=None)
@@ -113,17 +132,80 @@ class Dist(Entity):
                      )
         channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
 
-        if original_dist.endswith('.tar.bz2'):
-            original_dist = original_dist[:-8]
-        if channel_override:
+        if original_dist.endswith(CONDA_TARBALL_EXTENSION):
+            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION)]
+
+        if channel_override != NULL:
             channel = channel_override
         elif channel is None:
             channel = DEFAULTS
 
+        # enforce dist format
+        cls.parse_dist_name(original_dist)
+
         return cls(channel=channel, dist_name=original_dist, with_features_depends=w_f_d)
 
+    @staticmethod
+    def parse_dist_name(string):
+        original_string = string
+        try:
+            string = ensure_text_type(string)
+
+            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
+                                 if string.endswith(CONDA_TARBALL_EXTENSION)
+                                 else string)
+
+            # remove any directory or channel information
+            if '::' in no_tar_bz2_string:
+                dist_name = no_tar_bz2_string.rsplit('::', 1)[-1]
+            else:
+                dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
+
+            parts = dist_name.rsplit('-', 2)
+
+            name = parts[0]
+            version = parts[1]
+            build_string = parts[2] if len(parts) >= 3 else ''
+            build_number_as_string = ''.join(filter(lambda x: x.isdigit(),
+                                                    (build_string.rsplit('_')[-1]
+                                                     if build_string else '0')))
+            build_number = int(build_number_as_string) if build_number_as_string else 0
+
+            return DistDetails(name, version, build_string, build_number, dist_name)
+
+        except:
+            raise CondaError("dist_name is not a valid conda package: %s" % original_string)
+
+    @classmethod
+    def from_url(cls, url):
+        assert is_url(url), url
+        if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
+            raise CondaError("url '%s' is not a conda package" % url)
+
+        dist_details = cls.parse_dist_name(url)
+        if '::' in url:
+            url_no_tarball = url.rsplit('::', 1)[0]
+            platform = context.subdir
+            base_url = url_no_tarball.split('::')[0]
+            channel = text_type(Channel(base_url))
+        else:
+            url_no_tarball = url.rsplit('/', 1)[0]
+            platform = has_platform(url_no_tarball)
+            base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
+            channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
+
+        return cls(channel, dist_details.dist_name, base_url=base_url, platform=platform)
+
+    def to_url(self):
+        if not self.base_url:
+            return None
+        filename = self.dist_name + CONDA_TARBALL_EXTENSION
+        return (join_url(self.base_url, self.platform, filename)
+                if self.platform
+                else join_url(self.base_url, filename))
+
     def __key__(self):
-        return (self.channel, self.dist_name, self.with_features_depends)
+        return self.channel, self.dist_name, self.with_features_depends
 
     def __lt__(self, other):
         assert isinstance(other, self.__class__)

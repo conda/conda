@@ -1,5 +1,10 @@
 import os
-from conda.models.enums import LinkType
+from conda._vendor.boltons.setutils import IndexedSet
+
+from conda.cli import common
+from conda.core import linked_data
+from conda.exceptions import PackageNotFoundError, InstallError
+from conda.models.channel import prioritize_channels
 from conda.models.dist import Dist
 from conda.models.record import Record
 
@@ -9,7 +14,7 @@ import json
 import random
 import unittest
 from os.path import dirname, join
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 import pytest
 
@@ -17,7 +22,7 @@ from conda.base.context import context, reset_context
 import conda.plan as plan
 import conda.instructions as inst
 from conda.plan import display_actions
-from conda.resolve import Resolve
+from conda.resolve import Resolve, MatchSpec
 from conda.utils import on_win
 from conda.common.compat import iteritems
 
@@ -27,6 +32,11 @@ from conda import CondaError
 
 from .decorators import skip_if_no_mock
 from .helpers import mock
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = {Dist(k): Record(**v) for k, v in iteritems(json.load(fi))}
@@ -287,7 +297,7 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0', 'sqlite-3.7.13-0', 'tk-8.5.13-0', 'zlib-1.2.7-0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -884,9 +894,8 @@ class PlanFromActionsTests(unittest.TestCase):
     py_ver = ''.join(str(x) for x in sys.version_info[:2])
 
     def test_plan_link_menuinst(self):
-
-        menuinst = 'menuinst'
-        ipython = 'ipython'
+        menuinst = Dist('menuinst-1.4.2-py27_0')
+        ipython = Dist('ipython-5.1.0-py27_1')
         actions = {
             'PREFIX': 'aprefix',
             'LINK': [ipython, menuinst],
@@ -898,7 +907,8 @@ class PlanFromActionsTests(unittest.TestCase):
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
             # ('PROGRESS', '2'),
-            ('UNLINKLINKTRANSACTION', ((), (Dist(ipython), Dist(menuinst)))),
+            ('PROGRESSIVEFETCHEXTRACT', (ipython, menuinst)),
+            ('UNLINKLINKTRANSACTION', ((), (ipython), menuinst)),
         ]
 
         if on_win:
@@ -907,15 +917,404 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
-                ('UNLINKLINKTRANSACTION', ((), (Dist(menuinst), Dist(ipython)))),
+                ('PROGRESSIVEFETCHEXTRACT', (menuinst, ipython)),
+                ('UNLINKLINKTRANSACTION', ((), (menuinst, ipython))),
             ]
 
             # last_two = expected_plan[-2:]
             # expected_plan[-2:] = last_two[::-1]
-        self.assertEquals(expected_plan[0], conda_plan[0])
-        self.assertEquals(expected_plan[1], conda_plan[1])
-        self.assertEquals(expected_plan[2], conda_plan[2])
-        # self.assertEqual(expected_plan, conda_plan)
+        assert expected_plan[0] == conda_plan[0]
+        assert expected_plan[1] == conda_plan[1]
+        assert expected_plan[2] == conda_plan[2]
+
+
+def generate_mocked_package(preferred_env, name, schannel, version):
+    mock_package = namedtuple("Package", ["preferred_env", "name", "schannel", "version", "fn"])
+    return mock_package(preferred_env=preferred_env, name=name, schannel=schannel,
+                       version=version, fn=name)
+
+
+def generate_mocked_resolve(matched_pkgs, index, install=None):
+    mock_resolve = namedtuple("Resolve", ["get_pkgs", "index", "explicit", "install",
+                                          "package_name", "dependency_sort"])
+
+    def get_pkgs(spec):
+        # Here, spec should be a MatchSpec
+        return matched_pkgs[spec.name]
+
+    def get_explicit(spec):
+        return True
+
+    def get_install(spec, installed, update_deps=None):
+        return install
+
+    def get_package_name(dist):
+        return dist.name
+
+    def get_dependency_sort(specs):
+        return tuple(spec for spec in specs.values())
+
+    return mock_resolve(get_pkgs=get_pkgs, index=index, explicit=get_explicit,
+                        install=get_install, package_name=get_package_name,
+                        dependency_sort=get_dependency_sort)
+
+
+def generate_mocked_record(dist_name):
+    mocked_record = namedtuple("Record", ["dist_name"])
+    return mocked_record(dist_name=dist_name)
+
+
+def generate_mocked_context(prefix, root_dir, envs_dirs):
+    mocked_context = namedtuple("Context", ["prefix", "root_dir", "envs_dirs"])
+    return mocked_context(prefix=prefix, root_dir=root_dir, envs_dirs=envs_dirs)
+
+
+class TestDetermineAllEnvs(unittest.TestCase):
+    def setUp(self):
+        pkgs = {
+            "test-spec": [generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [generate_mocked_package(None, "test-spec2", "defaults", "1")],
+            "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
+        }
+        index = {
+            Dist(dist_name="test-spec", channel="defaults"):
+                generate_mocked_package(None, "test-spec", "default", "1"),
+            Dist(dist_name="test-spec", channel="rando_chnl"):
+                generate_mocked_package("ranenv", "test-spec", "default", "5"),
+            Dist(dist_name="test-spec2", channel="defaults"):
+                generate_mocked_package("test1", "test-spec2", "default", "1")
+        }
+        self.res = generate_mocked_resolve(pkgs, index)
+        self.specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
+
+    def test_determine_all_envs(self):
+        specs_for_envs = plan.determine_all_envs(self.res, self.specs)
+        expected_output = [plan.SpecForEnv(env=None, spec="test-spec"),
+                           plan.SpecForEnv(env="test1", spec="test-spec2")]
+        self.assertEquals(specs_for_envs, expected_output)
+
+    def test_determine_all_envs_with_channel_priority(self):
+        prioritized_channel_map = prioritize_channels(tuple(["rando_chnl", "defaults"]))
+        specs_for_envs_w_channel_priority = plan.determine_all_envs(
+            self.res, self.specs, prioritized_channel_map)
+        expected_output = [plan.SpecForEnv(env="ranenv", spec="test-spec"),
+                           plan.SpecForEnv(env="test1", spec="test-spec2")]
+        self.assertEquals(specs_for_envs_w_channel_priority, expected_output)
+
+    def test_determine_all_envs_no_package(self):
+        specs = [MatchSpec("no-exist")]
+        with pytest.raises(PackageNotFoundError) as err:
+            plan.determine_all_envs(self.res, specs)
+            assert "no-exist package not found" in str(err)
+
+
+class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
+    def setUp(self):
+        self.linked_in_root = {
+            Dist("test1-1.2.3-bs_7"): generate_mocked_record("test1-1.2.3-bs_7")
+        }
+
+    def test_try_install_duplicate_package_in_root(self):
+        dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test1"),
+                          plan.SpecForEnv(env=None, spec="something")]
+        with pytest.raises(InstallError) as err:
+            plan.ensure_packge_not_duplicated_in_private_env_root(
+                dists_for_envs, self.linked_in_root)
+            assert "Package test1 is already installed" in str(err)
+            assert "Can't install in private environment _env_" in str(err)
+
+    def test_try_install_duplicate_package_in_private_env(self):
+        dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test2"),
+                          plan.SpecForEnv(env=None, spec="test3")]
+        with patch.object(common, "prefix_if_in_private_env") as mock_prefix:
+            mock_prefix.return_value = "some/prefix"
+            with pytest.raises(InstallError) as err:
+                plan.ensure_packge_not_duplicated_in_private_env_root(
+                    dists_for_envs, self.linked_in_root)
+                assert "Package test3 is already installed" in str(err)
+                assert "private_env some/prefix" in str(err)
+
+    def test_try_install_no_duplicate(self):
+        dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test2"),
+                         plan.SpecForEnv(env=None, spec="test3")]
+        plan.ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, self.linked_in_root)
+
+
+# Includes testing for determine_dists_per_prefix and match_to_original_specs
+class TestGroupDistsForPrefix(unittest.TestCase):
+    def setUp(self):
+        pkgs = {
+            "test-spec": [generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [generate_mocked_package(None, "test-spec2", "defaults", "1")],
+            "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
+        }
+        self.index = {
+            Dist(dist_name="test-spec", channel="defaults"):
+                generate_mocked_package(None, "test-spec", "default", "1"),
+            Dist(dist_name="test-spec", channel="rando_chnl"):
+                generate_mocked_package("ranenv", "test-spec", "default", "5"),
+            Dist(dist_name="test-spec2", channel="defaults"):
+                generate_mocked_package("test1", "test-spec2", "default", "1")
+        }
+        self.res = generate_mocked_resolve(pkgs, self.index)
+        self.specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
+        self.context = generate_mocked_context(
+            "some/prefix", "some/prefix", ["some/prefix/envs", "some/prefix/envs/_pre_"])
+
+    def test_not_requires_private_env(self):
+        with patch.object(plan, "not_requires_private_env") as not_requires:
+            not_requires.return_value = True
+            dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
+                              plan.SpecForEnv(env=None, spec="test-spec2")]
+            specs_for_prefix = plan.determine_dists_per_prefix(
+                self.res, "some/envs/prefix", self.index, "prefix", dists_for_envs, self.context)
+        expected_output = [plan.SpecsForPrefix(
+            prefix="some/envs/prefix", r=self.res, specs={"test-spec", "test-spec2"})]
+        self.assertEquals(specs_for_prefix, expected_output)
+
+    @patch.object(plan, "not_requires_private_env", return_value=False)
+    def test_determine_dists_per_prefix(self, not_requires):
+        with patch.object(plan, "get_resolve_object") as gen_resolve_object_mock:
+            gen_resolve_object_mock.return_value = generate_mocked_resolve(None, self.index)
+            dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
+                              plan.SpecForEnv(env=None, spec="test-spec2"),
+                              plan.SpecForEnv(env="ranenv", spec="test")]
+            specs_for_prefix = plan.determine_dists_per_prefix(
+                self.res, "some/prefix", self.index, ["ranenv", None], dists_for_envs, self.context)
+            expected_output = [
+                plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
+                                    r=gen_resolve_object_mock(),
+                                    specs={"test"}),
+                plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
+                                    specs=IndexedSet(("test-spec", "test-spec2")))
+            ]
+        self.assertEquals(expected_output, specs_for_prefix)
+
+    def test_match_to_original_specs(self):
+        str_specs = ["test 1.2.0", "test-spec 1.1*", "test-spec2 <4.3"]
+        test_r = generate_mocked_resolve(None, self.index)
+        grouped_specs = [
+            plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
+                                r=test_r,
+                                specs=IndexedSet(("test",))),
+            plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
+                                specs=IndexedSet(("test-spec", "test-spec2")))]
+        matched = plan.match_to_original_specs(str_specs, grouped_specs)
+        expected_output = [
+            plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
+                                r=test_r,
+                                specs=["test 1.2.0"]),
+            plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
+                                specs=["test-spec 1.1*", "test-spec2 <4.3"])]
+
+        assert len(matched) == len(expected_output)
+        assert matched == expected_output
+
+
+class TestGetActionsForDist(unittest.TestCase):
+    def setUp(self):
+        self.pkgs = {
+            "test-spec": [generate_mocked_package("test1", "test-spec", "defaults", "1"),
+                          generate_mocked_package(None, "test-spec", "defaults", "3"),
+                          generate_mocked_package(None, "test-spec", "defaults", "2"),
+                          generate_mocked_package("ranenv", "test-spec", "rando_chnl", "5")],
+            "test-spec2": [generate_mocked_package(None, "test-spec2", "defaults", "1")],
+            "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
+        }
+        self.index = {
+            Dist(dist_name="test-spec", channel="defaults"):
+                generate_mocked_package(None, "test-spec", "default", "1"),
+            Dist(dist_name="test-spec", channel="rando_chnl"):
+                generate_mocked_package("ranenv", "test-spec", "default", "5"),
+            Dist(dist_name="test-spec2", channel="defaults"):
+                generate_mocked_package(None, "test-spec2", "default", "1"),
+            Dist(dist_name="test", channel="defaults"):
+                generate_mocked_package("ranenv", "test", "default", "1.2.0")
+        }
+        self.res = generate_mocked_resolve(self.pkgs, self.index)
+
+    @patch("conda.core.linked_data.load_meta", return_value=True)
+    def test_ensure_linked_actions_all_linked(self, load_meta):
+        dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
+        prefix = "some/prefix"
+
+        link_actions = plan.ensure_linked_actions(dists, prefix)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = prefix
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        self.assertEquals(link_actions, expected_output)
+
+    @patch("conda.core.linked_data.load_meta", return_value=False)
+    def test_ensure_linked_actions_no_linked(self, load_meta):
+        dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
+        prefix = "some/prefix"
+
+        link_actions = plan.ensure_linked_actions(dists, prefix)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = prefix
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
+        self.assertEquals(link_actions, expected_output)
+
+    def test_get_actions_for_dist(self):
+        install = [Dist("test-1.2.0-py36_7")]
+        r = generate_mocked_resolve(self.pkgs, self.index, install)
+        dists_for_prefix = plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_", r=r,
+                                               specs=["test 1.2.0"])
+        actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
+                                             False, True, True)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = "some/prefix/envs/_ranenv_"
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("test-1.2.0-py36_7")]
+        expected_output["SYMLINK_CONDA"] = [context.root_dir]
+
+        self.assertEquals(actions, expected_output)
+
+    def test_get_actions_multiple_dists(self):
+        install = [Dist("testspec2-4.3.0-1"), Dist("testspecs-1.1.1-4")]
+        r = generate_mocked_resolve(self.pkgs, self.index, install)
+        dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
+                                               specs=["testspec2 <4.3", "testspecs 1.1*"])
+        actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
+                                             False, True, True)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = "root/prefix"
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("testspec2-4.3.0-1"), Dist("testspecs-1.1.1-4")]
+        expected_output["SYMLINK_CONDA"] = [context.root_dir]
+
+        assert actions == expected_output
+
+    @patch("conda.core.linked_data.load_linked_data", return_value=[Dist("testspec1-0.9.1-py27_2")])
+    def test_get_actions_multiple_dists_and_unlink(self, load_linked_data):
+        install = [Dist("testspec2-4.3.0-2"), Dist("testspec1-1.1.1-py27_0")]
+        r = generate_mocked_resolve(self.pkgs, self.index, install)
+        dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
+                                               specs=["testspec2 <4.3", "testspec1 1.1*"])
+
+        test_link_data = {"root/prefix": {Dist("testspec1-0.9.1-py27_2"): True}}
+        with patch("conda.core.linked_data.linked_data_", test_link_data):
+            actions = plan.get_actions_for_dists(dists_for_prefix, None, self.index, None, False,
+                                             False, True, True)
+
+        expected_output = defaultdict(list)
+        expected_output["PREFIX"] = "root/prefix"
+        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+                                       'SYMLINK_CONDA')
+        expected_output["LINK"] = [Dist("testspec2-4.3.0-2"), Dist("testspec1-1.1.1-py27_0")]
+        expected_output["UNLINK"] = [Dist("testspec1-0.9.1-py27_2")]
+
+        expected_output["SYMLINK_CONDA"] = [context.root_dir]
+        assert expected_output["LINK"] == actions["LINK"]
+        assert actions == expected_output
+
+
+def generate_remove_action(prefix, unlink):
+    action = defaultdict(list)
+    action["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT', 'RM_EXTRACTED',
+                          'EXTRACT', 'UNLINK', 'LINK', 'SYMLINK_CONDA')
+    action["PREFIX"] = prefix
+    action["UNLINK"] = unlink
+    return action
+
+
+class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
+    def setUp(self):
+        self.index = {
+            Dist(dist_name="test1", channel="defaults"):
+                generate_mocked_package(None, "test1", "default", "1.0.1"),
+            Dist(dist_name="test1", channel="rando_chnl"):
+                generate_mocked_package("env", "test1", "default", "2.1.4"),
+            Dist(dist_name="test2", channel="defaults"):
+                generate_mocked_package("env", "test2", "default", "1.1.1"),
+            Dist(dist_name="test3", channel="defaults"):
+                generate_mocked_package(None, "test3", "default", "1.2.0"),
+            Dist(dist_name="test4", channel="defaults"):
+                generate_mocked_package(None, "test4", "default", "1.2.1")
+        }
+        self.res = generate_mocked_resolve(None, self.index)
+
+    @patch("conda.plan.remove_actions", return_value=generate_remove_action(
+        "root/prefix", [Dist("test1-2.1.4-1")]))
+    def test_update_in_private_env_add_remove_action(self, remove_actions):
+        required_solves = [plan.SpecsForPrefix(prefix="root/prefix/envs/_env_",
+                                               specs=["test1", "test2"], r=self.res),
+                           plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3"],
+                                               r=self.res)]
+
+        action = defaultdict(list)
+        action["PREFIX"] = "root/prefix/envs/_env_"
+        action["LINK"] = [Dist("test1-2.1.4-1"), Dist("test2-1.1.1-8")]
+        actions = [action]
+
+        test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
+        with patch("conda.core.linked_data.linked_data_", test_link_data):
+            plan.add_unlink_options_for_update(actions, required_solves, self.index)
+
+        expected_output = [action, generate_remove_action("root/prefix", [Dist("test1-2.1.4-1")])]
+        self.assertEquals(actions, expected_output)
+
+    @patch("conda.plan.remove_actions", return_value=generate_remove_action(
+        "root/prefix", [Dist("test1-2.1.4-1")]))
+    def test_update_in_private_env_append_unlink(self, remove_actions):
+        required_solves = [plan.SpecsForPrefix(prefix="root/prefix/envs/_env_",
+                                               specs=["test1", "test2"], r=self.res),
+                           plan.SpecsForPrefix(prefix=context.root_prefix, specs=["whatevs"],
+                                               r=self.res)]
+
+        action = defaultdict(list)
+        action["PREFIX"] = "root/prefix/envs/_env_"
+        action["LINK"] = [Dist("test1-2.1.4-1"), Dist("test2-1.1.1-8")]
+        action_root = defaultdict(list)
+        action_root["PREFIX"] = context.root_prefix
+        action_root["LINK"] = [Dist("whatevs-54-54")]
+        actions = [action, action_root]
+
+        test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
+        with patch("conda.core.linked_data.linked_data_", test_link_data):
+            plan.add_unlink_options_for_update(actions, required_solves, self.index)
+
+        aug_action_root = defaultdict(list)
+        aug_action_root["PREFIX"] = context.root_prefix
+        aug_action_root["LINK"] = [Dist("whatevs-54-54")]
+        aug_action_root["UNLINK"] = [Dist("test1-2.1.4-1")]
+        expected_output = [action, aug_action_root]
+        self.assertEquals(actions, expected_output)
+
+    @patch("conda.cli.common.get_private_envs_json", return_value=
+        {"test3-1.2.0": "some/prefix/envs/_env_", "test4-2.1.0-22": "some/prefix/envs/_env_"})
+    def test_update_in_root_env(self, prefix_if_in_private_env):
+        required_solves = [plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3", "test4"],
+                                               r=self.res)]
+
+        action = defaultdict(list)
+        action["PREFIX"] = "root/prefix"
+        action["LINK"] = [Dist("test3-1.2.0"), Dist("test4-1.2.1")]
+        actions = [action]
+        plan.add_unlink_options_for_update(actions, required_solves, self.index)
+        expected_output = [action, generate_remove_action(
+            "some/prefix/envs/_env_", [Dist("test3-1.2.0"), Dist("test4-2.1.0-22")])]
+        self.assertEquals(actions, expected_output)
 
 if __name__ == '__main__':
     unittest.main()

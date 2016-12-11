@@ -3,12 +3,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from itertools import chain
 from logging import getLogger
+
 from requests.packages.urllib3.util import Url
 
-from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY
+from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY,
+                              UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import iteritems, odict, with_metaclass
-from ..common.url import (has_scheme, is_url, is_windows_path, join_url, on_win, path_to_url,
+from ..common.path import is_windows_path
+from ..common.url import (has_scheme, is_url, join_url, on_win, path_to_url,
                           split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
 
 try:
@@ -24,14 +27,6 @@ log = getLogger(__name__)
 # backward compatibility for conda-build
 def get_conda_build_local_url():
     return context.local_build_root,
-
-
-"""
-scheme <> auth <> location <> token <> channel <> subchannel <> platform <> package_filename
-
-channel <> subchannel <> namespace <> package_name
-
-"""
 
 
 def tokenized_startswith(test_iterable, startswith_iterable):
@@ -163,8 +158,7 @@ class ChannelType(type):
             elif value in Channel._cache_:
                 return Channel._cache_[value]
             else:
-                c = Channel.from_value(value)
-                Channel._cache_[value] = c
+                c = Channel._cache_[value] = Channel.from_value(value)
                 return c
         else:
             return super(ChannelType, cls).__call__(*args, **kwargs)
@@ -172,6 +166,14 @@ class ChannelType(type):
 
 @with_metaclass(ChannelType)
 class Channel(object):
+    """
+    Channel:
+    scheme <> auth <> location <> token <> channel <> subchannel <> platform <> package_filename
+
+    Package Spec:
+    channel <> subchannel <> namespace <> package_name
+
+    """
     _cache_ = dict()
 
     @staticmethod
@@ -207,7 +209,7 @@ class Channel(object):
     @staticmethod
     def from_value(value):
         if value is None:
-            return Channel(name="<unknown>")
+            return Channel(name=UNKNOWN_CHANNEL)
         if hasattr(value, 'decode'):
             value = value.decode('utf-8')
         if has_scheme(value):
@@ -262,9 +264,42 @@ class Channel(object):
                for c in concatv((context.channel_alias,), context.migrated_channel_aliases)):
             return self.name
 
+        # if self.scheme == 'file' and self.package_filename:
+        #     # at this point, the url isn't included in any known local channel names
+        #     return self.get_channel_from_package_cache(self).canonical_name
+
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
-        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+        if self.scheme:
+            return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+        else:
+            return join_url(self.location, self.name).lstrip('/')
+
+    # @staticmethod
+    # def get_channel_from_package_cache(channel):
+    #     assert channel.scheme == 'file', channel.scheme
+    #     assert channel.platform is None, channel.platform
+    #     assert channel.package_filename
+    #
+    #     local_file_dir = join_url(channel.location, channel.name)
+    #
+    #     if win_path_ok(local_file_dir) in context.pkgs_dirs:
+    #         from ..core.package_cache import PackageCache
+    #         package_cache = PackageCache(local_file_dir)
+    #         recorded_url = package_cache.urls_data.get_url(channel.package_filename)
+    #         if recorded_url.startswith('file:/'):
+    #             # make sure path actually is a channel
+    #             _, platform = split_platform(recorded_url)
+    #             if platform:
+    #                 return Channel(recorded_url)
+    #             else:
+    #                 return Channel(None)
+    #         else:
+    #             return Channel(recorded_url)
+    #     else:
+    #         # we can't use the channel name 'local' because that's already taken by conda-build
+    #         #   maybe the path really doesn't have a channel name
+    #         return Channel(None)
 
     def urls(self, with_credentials=False, platform=None):
         base = [self.location]
@@ -284,6 +319,9 @@ class Channel(object):
             return ["%s://%s" % (self.scheme, b) for b in bases]
 
     def url(self, with_credentials=False):
+        if self.canonical_name == UNKNOWN_CHANNEL:
+            return None
+
         base = [self.location]
         if with_credentials and self.token:
             base.extend(['t', self.token])
@@ -304,14 +342,16 @@ class Channel(object):
 
     @property
     def base_url(self):
+        if self.canonical_name is None:
+            return None
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
     def __str__(self):
-        return self.base_url
+        return self.base_url or ""
 
     def __repr__(self):
-        return ("Channel(scheme=%s, auth=%s, location=%s, token=%s, name=%s, platform=%s, "
-                "package_filename=%s)" % (self.scheme,
+        return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "
+                "package_filename=%r)" % (self.scheme,
                                           self.auth and "%s:<PASSWORD>" % self.auth.split(':')[0],
                                           self.location,
                                           self.token and "<TOKEN>",
@@ -395,3 +435,6 @@ def prioritize_channels(channels, with_credentials=True, platform=None):
 
 def offline_keep(url):
     return not context.offline or not is_url(url) or url.startswith('file:/')
+
+
+context.register_reset_callaback(Channel._reset_state)

@@ -19,7 +19,7 @@ from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
 from ..cli import common
 from ..cli.find_commands import find_executable
-from ..common.compat import text_type
+from ..common.compat import text_type, on_win
 from ..core.index import get_index
 from ..core.linked_data import is_linked, linked as install_linked
 from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFoundError,
@@ -31,7 +31,6 @@ from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions,
                     is_root_prefix, nothing_to_do, revert_actions)
 from ..resolve import Resolve
-from ..utils import on_win
 
 log = logging.getLogger(__name__)
 

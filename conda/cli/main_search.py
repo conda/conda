@@ -16,7 +16,8 @@ from ..common.compat import text_type
 from ..exceptions import CommandArgumentError, PackageNotFoundError
 from ..misc import make_icon_url
 from ..models.dist import Dist
-from ..resolve import NoPackagesFoundError, Package
+from ..resolve import NoPackagesFoundError
+from conda.models.package import Package
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -155,11 +156,11 @@ def execute_search(args, parser):
 
     prefix = context.prefix_w_legacy_search
 
-    import conda.core.linked_data
-    import conda.core.package_cache
+    from ..core.linked_data import linked as linked_data
+    from ..core.package_cache import PackageCache
 
-    linked = conda.core.linked_data.linked(prefix)
-    extracted = conda.core.package_cache.extracted()
+    linked = linked_data(prefix)
+    extracted = set(pc_entry.dist.name for pc_entry in PackageCache.get_all_extracted_entries())
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''

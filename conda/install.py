@@ -29,14 +29,13 @@ from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
 
 from .base.constants import PREFIX_PLACEHOLDER
+from .common.compat import on_win
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
-from .utils import on_win
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.linked_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
-from .core.package_cache import package_cache, rm_fetched  # NOQA
-rm_fetched, package_cache = rm_fetched, package_cache
-
+from .core.package_cache import rm_fetched  # NOQA
+rm_fetched = rm_fetched
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
@@ -44,6 +43,12 @@ stdoutlog = logging.getLogger('stdoutlog')
 
 # backwards compatibility for conda-build
 prefix_placeholder = PREFIX_PLACEHOLDER
+
+
+# backwards compatibility for conda-build
+def package_cache():
+    log.warn('package_cache() is a no-op and deprecated')
+    return {}
 
 
 if on_win:

@@ -1,18 +1,39 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
-import sys
 from contextlib import contextmanager
+import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
+import os
 from os import chdir, getcwd
+import sys
 
-from .._vendor.auxlib.logz import NullHandler
 from .compat import StringIO
+from .._vendor.auxlib.logz import NullHandler
 
 log = getLogger(__name__)
 
 _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+
+
+@contextmanager
+def env_var(name, value, callback=None):
+    # NOTE: will likely want to call reset_context() when using this function, so pass
+    #       it as callback
+    name, value = str(name), str(value)
+    saved_env_var = os.environ.get(name)
+    try:
+        os.environ[name] = value
+        if callback:
+            callback()
+        yield
+    finally:
+        if saved_env_var:
+            os.environ[name] = saved_env_var
+        else:
+            del os.environ[name]
+        if callback:
+            callback()
 
 
 @contextmanager

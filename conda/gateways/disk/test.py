@@ -3,13 +3,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import W_OK, access, getpid, makedirs
-from os.path import isdir, isfile, islink, join, exists, basename
+from os.path import basename, exists, isdir, isfile, islink, join
 
 from .create import create_link
 from .delete import backoff_unlink, rm_rf
+from ...common.compat import on_win
 from ...models.dist import Dist
 from ...models.enums import LinkType
-from ...utils import on_win
 
 log = getLogger(__name__)
 
@@ -55,7 +55,7 @@ def try_hard_link(pkgs_dir, prefix, dist):
     try:
         if not isdir(prefix):
             makedirs(prefix)
-        create_link(src, dst, LinkType.hardlink)
+        create_link(src, dst, LinkType.hardlink, force=True)
         # Some file systems (at least BeeGFS) do not support hard-links
         # between files in different directories. Depending on the
         # file system configuration, a symbolic link may be created
@@ -79,7 +79,7 @@ def hardlink_supported(source_file, dest_dir):
     assert isdir(dest_dir), dest_dir
     assert not exists(test_file), test_file
     try:
-        create_link(source_file, test_file, LinkType.hardlink)
+        create_link(source_file, test_file, LinkType.hardlink, force=True)
         return not islink(test_file)
     except (IOError, OSError):
         return False
@@ -95,7 +95,7 @@ def softlink_supported(source_file, dest_dir):
     assert isdir(dest_dir), dest_dir
     assert not exists(test_path), test_path
     try:
-        create_link(source_file, test_path, LinkType.softlink)
+        create_link(source_file, test_path, LinkType.softlink, force=True)
         return islink(test_path)
     except (IOError, OSError):
         return False

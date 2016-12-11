@@ -606,7 +606,7 @@ def handle_envs_list(acc, output=True):
         print()
 
 
-def prefix_if_in_private_env(spec):
+def get_private_envs_json():
     path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
     if not isfile(path_to_private_envs):
         return None
@@ -615,12 +615,24 @@ def prefix_if_in_private_env(spec):
             private_envs_json = json.load(f)
     except json.decoder.JSONDecodeError:
         private_envs_json = {}
+    return private_envs_json
 
-    # specs_match = lambda pkg: any(m for m in specs if m.match(Dist(pkg)))
+
+def prefix_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    if not private_envs_json:
+        return None
     prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if
                      pkg.startswith(spec))
     prefix = prefixes[0] if len(prefixes) > 0 else None
     return prefix
+
+
+def pkg_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    pkgs = tuple(pkg for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
+    pkg = pkgs[0] if len(pkgs) > 0 else None
+    return pkg
 
 
 def create_prefix_spec_map_with_deps(r, specs, default_prefix):

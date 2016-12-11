@@ -6,7 +6,8 @@ from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 
-from ..common.compat import itervalues
+from ..base.constants import UNKNOWN_CHANNEL
+from ..common.compat import itervalues, odict
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -22,6 +23,7 @@ log = getLogger(__name__)
 # Therefore, we have implemented a full internal cache of this
 # data to eliminate redundant file reads.
 linked_data_ = {}
+# type: Dict[Dist, Record]
 
 
 def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
@@ -48,7 +50,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     channel = rec.get('channel')
     if channel:
         channel = channel.rstrip('/')
-        if not url or (url.startswith('file:') and channel[0] != '<unknown>'):
+        if not url or (url.startswith('file:') and channel[0] != UNKNOWN_CHANNEL):
             url = rec['url'] = channel + '/' + fn
     channel, schannel = Channel(url).url_channel_wtf
 
@@ -102,7 +104,7 @@ def linked_data(prefix, ignore_channels=False):
     # Manually memoized so it can be updated
     recs = linked_data_.get(prefix)
     if recs is None:
-        recs = linked_data_[prefix] = {}
+        recs = linked_data_[prefix] = odict()
         meta_dir = join(prefix, 'conda-meta')
         if isdir(meta_dir):
             for fn in listdir(meta_dir):

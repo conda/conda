@@ -8,11 +8,10 @@ import sys
 import threading
 from functools import partial
 
+from .common.compat import on_win
 from .common.url import path_to_url
 
 log = logging.getLogger(__name__)
-
-on_win = bool(sys.platform == "win32")
 
 
 class memoized(object):

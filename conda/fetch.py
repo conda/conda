@@ -42,7 +42,6 @@ class TmpDownload(object):
                 setup_handlers()
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
-            from conda.core.package_cache import download
             download(self.url, dst)
             return dst
 

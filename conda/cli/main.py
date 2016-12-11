@@ -82,9 +82,9 @@ def generate_parser():
 
 def _main():
     from ..base.context import context
+    from ..common.compat import on_win
     from ..gateways.logging import set_all_logger_level, set_verbosity
     from ..exceptions import CommandNotFoundError
-    from ..utils import on_win
 
     log.debug("conda.cli.main called with %s", sys.argv)
     if len(sys.argv) > 1:
@@ -126,7 +126,7 @@ def _main():
     sub_parsers.completer = completer
     args = p.parse_args()
 
-    context._add_argparse_args(args)
+    context._set_argparse_args(args)
 
     if getattr(args, 'json', False):
         # # Silence logging info to avoid interfering with JSON output
