@@ -72,7 +72,7 @@ def run_command(command, *arguments, **kwargs):
         app_name=APP_NAME,
         argparse_args=args,
     )
-    log.debug("executing command >>> %s", command_line)
+    log.debug("executing command >>>  conda %s", command_line)
     with captured() as c, replace_log_streams():
         if use_exception_handler:
             return_code = conda_exception_handler(args.func, args, p)
