@@ -25,13 +25,13 @@ from ...common.compat import on_win
 from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
 from ...models.dist import Dist
-from ...models.enums import LinkType
+from ...models.enums import LinkType, PathType
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
 
 
-entry_point_template = dals("""
+python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-
 if __name__ == '__main__':
     from sys import exit
@@ -39,26 +39,45 @@ if __name__ == '__main__':
     exit(%(func)s())
 """)
 
-private_pkg_entry_point_template = dals("""
-import os
-import sys
+application_entry_point_template = dals("""
+# -*- coding: utf-8 -*-
 if __name__ == '__main__':
+    import os
+    import sys
     os.execv(%(source_full_path)s, sys.argv)
 """)
 
 
-def create_unix_entry_point(target_full_path, python_full_path, module, func):
-    pyscript = entry_point_template % {'module': module, 'func': func}
+def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
+    if exists(target_full_path):
+        raise ClobberError(
+            destination_path=target_full_path,
+            source_path=None,
+            path_type=PathType.unix_python_entry_point,
+        )
+
+    pyscript = python_entry_point_template % {'module': module, 'func': func}
     with open(target_full_path, 'w') as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(pyscript)
     make_executable(target_full_path)
 
+    return target_full_path
 
-def create_windows_entry_point_py(target_full_path, module, func):
-    pyscript = entry_point_template % {'module': module, 'func': func}
+
+def create_windows_python_entry_point(target_full_path, module, func):
+    if exists(target_full_path):
+        raise ClobberError(
+            destination_path=target_full_path,
+            source_path=None,
+            path_type=PathType.windows_python_entry_point,
+        )
+
+    pyscript = python_entry_point_template % {'module': module, 'func': func}
     with open(target_full_path, 'w') as fo:
         fo.write(pyscript)
+
+    return target_full_path
 
 
 def extract_tarball(tarball_full_path, destination_directory=None):
@@ -86,7 +105,14 @@ def write_conda_meta_record(prefix, record):
     if not isdir(meta_dir):
         makedirs(meta_dir)
     dist = Dist(record)
-    with open(join(meta_dir, dist.to_filename('.json')), 'w') as fo:
+    conda_meta_full_path = join(meta_dir, dist.to_filename('.json'))
+    if exists(conda_meta_full_path):
+        raise ClobberError(
+            destination_path=conda_meta_full_path,
+            source_path=None,
+            path_type=PathType.linked_package_record,
+        )
+    with open(conda_meta_full_path, 'w') as fo:
         json_str = json.dumps(record, indent=2, sort_keys=True, cls=EntityEncoder)
         if hasattr(json_str, 'decode'):
             json_str = json_str.decode('utf-8')
@@ -217,7 +243,10 @@ def _split_on_unix(command):
     return command if on_win else shlex_split(command)
 
 
-def compile_pyc(python_exe_full_path, py_full_path):
+def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
+    if exists(pyc_full_path):
+        raise ClobberError(pyc_full_path, py_full_path, PathType.pyc_file)
+
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
     log.trace(command)
     process = Popen(_split_on_unix(command), stdout=PIPE, stderr=PIPE)
@@ -230,6 +259,18 @@ def compile_pyc(python_exe_full_path, py_full_path):
                   "  stderr: %s\n"
                   "  rc: %d", command, stdout, stderr, rc)
         raise RuntimeError()
+
+    if not isfile(pyc_full_path):
+        message = dals("""
+        pyc file failed to compile successfully
+          python_exe_full_path: %(python_exe_full_path)s\n
+          py_full_path: %(py_full_path)s\n
+          pyc_full_path: %(pyc_full_path)s\n
+        """)
+        raise CondaError(message, python_exe_full_path=python_exe_full_path,
+                         py_full_path=py_full_path, pyc_full_path=pyc_full_path)
+
+    return pyc_full_path
 
 
 def get_json_content(path_to_json):
@@ -268,9 +309,16 @@ def remove_private_envs_meta(pkg):
             json.dump(private_envs_json, f)
 
 
-def create_private_pkg_entry_point(target_path, python_full_path, source_full_path):
-    entry_point = private_pkg_entry_point_template % {"source_full_path": source_full_path}
-    with open(target_path, "w") as fo:
+def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
+    if exists(target_full_path):
+        raise ClobberError(
+            destination_path=target_full_path,
+            source_path=None,
+            path_type=PathType.unix_python_entry_point,
+        )
+
+    entry_point = application_entry_point_template % {"source_full_path": source_full_path}
+    with open(target_full_path, "w") as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(entry_point)
-    make_executable(target_path)
+    make_executable(target_full_path)

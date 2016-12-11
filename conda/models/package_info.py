@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from conda.models.channel import Channel
-from enum import Enum
+from conda.models.enums import PathType
 from logging import getLogger
 
 from .enums import FileMode
@@ -17,22 +17,6 @@ log = getLogger(__name__)
 class NoarchInfo(Entity):
     type = StringField()
     entry_points = ListField(string_types, required=False)
-
-
-class PathType(Enum):
-    """
-    Refers to if the file in question is hard linked or soft linked. Originally designed to be used
-    in paths.json
-    """
-    hardlink = 'hardlink'
-    softlink = 'softlink'
-    directory = 'directory'
-
-    def __int__(self):
-        return self.value
-
-    def __str__(self):
-        return self.name
 
 
 class PathInfo(Entity):

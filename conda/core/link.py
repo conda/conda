@@ -15,9 +15,9 @@ from .linked_data import (get_python_version_for_prefix, linked_data as get_link
                           load_meta)
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
-                           CreateCondaMetaAction, CreatePrivateEnvMetaAction,
+                           CreateLinkedPackageRecordAction, CreatePrivateEnvMetaAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           PrefixReplaceLinkAction, RemoveCondaMetaAction, RemoveMenuAction,
+                           PrefixReplaceLinkAction, RemoveLinkedPackageRecordAction, RemoveMenuAction,
                            RemovePrivateEnvMetaAction, UnlinkPathAction)
 from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
@@ -33,7 +33,7 @@ from ..gateways.disk.read import collect_all_info_for_package, isfile
 from ..gateways.disk.test import hardlink_supported, softlink_supported
 from ..models.dist import Dist
 from ..models.enums import LinkType
-from ..models.package_info import PathType
+from conda.models.enums import PathType
 from ..models.record import Link, Record
 
 try:
@@ -133,7 +133,7 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
                                   package_info.extracted_package_dir, source_path_info.path,
                                   target_prefix, target_short_path, link_type)
 
-    def make_entry_point_action(entry_point_def):
+    def make_python_entry_point_action(entry_point_def):
         command, module, func = parse_entry_point_def(entry_point_def)
         target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
         if on_win:
@@ -141,13 +141,7 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         return CreatePythonEntryPointAction(transaction_context, package_info,
                                             target_prefix, target_short_path, module, func)
 
-    def make_application_entry_point_action(private_env_prefix, app):
-        target_short_path = "%s/%s" % (get_bin_directory_short_path(), app)
-        return CreateApplicationEntryPointAction(transaction_context, package_info,
-                                                 context.root_prefix, target_short_path,
-                                                 private_env_prefix, app, context.root_prefix)
-
-    def make_entry_point_windows_executable_action(entry_point_def):
+    def make_python_entry_point_windows_executable_action(entry_point_def):
         source_directory = CONDA_PACKAGE_ROOT
         source_short_path = 'resources/cli-%d.exe' % context.bits
         command, _, _ = parse_entry_point_def(entry_point_def)
@@ -156,13 +150,22 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
                               source_short_path, target_prefix, target_short_path,
                               requested_link_type)
 
+    def make_application_entry_point_action(private_env_prefix, executable_basename):
+        application_short_path = "%s/%s" % (get_bin_directory_short_path(), executable_basename)
+        return CreateApplicationEntryPointAction(transaction_context, package_info,
+                                                 source_prefix=private_env_prefix,
+                                                 source_short_path=application_short_path,
+                                                 target_prefix=context.root_prefix,
+                                                 target_short_path=application_short_path)
+
     def make_conda_meta_create_action(all_target_short_paths):
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
         meta_record = Record.from_objects(package_info.repodata_record,
                                           package_info.index_json_record,
                                           files=all_target_short_paths, link=link,
                                           url=package_info.url)
-        return CreateCondaMetaAction(transaction_context, package_info, target_prefix, meta_record)
+        return CreateLinkedPackageRecordAction(transaction_context, package_info, target_prefix,
+                                               meta_record)
 
     file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
 
@@ -179,8 +182,9 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
 
     if package_info.noarch and package_info.noarch.type == 'python':
         python_entry_point_actions = tuple(concatv(
-            (make_entry_point_action(ep_def) for ep_def in package_info.noarch.entry_points),
-            (make_entry_point_windows_executable_action(ep_def)
+            (make_python_entry_point_action(ep_def)
+             for ep_def in package_info.noarch.entry_points),
+            (make_python_entry_point_windows_executable_action(ep_def)
              for ep_def in package_info.noarch.entry_points) if on_win else (),
         ))
 
@@ -231,8 +235,9 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
         remove_menu_actions = ()
 
     meta_short_path = '%s/%s' % ('conda-meta', Dist(linked_package_data).to_filename('.json'))
-    remove_conda_meta_actions = (RemoveCondaMetaAction(transaction_context, linked_package_data,
-                                                       target_prefix, meta_short_path),)
+    remove_conda_meta_actions = (RemoveLinkedPackageRecordAction(transaction_context,
+                                                                 linked_package_data,
+                                                                 target_prefix, meta_short_path),)
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
     all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
@@ -282,7 +287,7 @@ class UnlinkLinkTransaction(object):
                                      packages_info_to_link)
 
     def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link):
-        # type: (str, Sequence[Dist], Sequence[PackageInfo]])
+        # type: (str, Sequence[Dist], Sequence[PackageInfo]) -> NoneType
         # order of unlink_dists and link_dists will be preserved throughout
         #   should be given in dependency-sorted order
 

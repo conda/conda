@@ -224,8 +224,8 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'constructor')
 
     def test_transactional_rollback_simple(self):
-        from conda.core.path_actions import CreateCondaMetaAction
-        with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+        from conda.core.path_actions import CreateLinkedPackageRecordAction
+        with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
             with make_temp_env() as prefix:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(KeyError):
@@ -240,8 +240,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
             assert_package_is_installed(prefix, 'flask-0.10.1')
 
-            from conda.core.path_actions import CreateCondaMetaAction
-            with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+            from conda.core.path_actions import CreateLinkedPackageRecordAction
+            with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(KeyError):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')

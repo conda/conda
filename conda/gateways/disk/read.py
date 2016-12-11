@@ -18,7 +18,8 @@ from ...base.constants import PREFIX_PLACEHOLDER
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode
-from ...models.package_info import PackageInfo, PathInfo, PathInfoV1, PathType
+from ...models.package_info import PackageInfo, PathInfo, PathInfoV1
+from conda.models.enums import PathType
 from ...models.record import Record
 
 log = getLogger(__name__)

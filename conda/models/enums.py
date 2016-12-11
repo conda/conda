@@ -63,3 +63,22 @@ class LinkType(Enum):
 
     def __str__(self):
         return self.name
+
+
+class PathType(Enum):
+    """
+    Refers to if the file in question is hard linked or soft linked. Originally designed to be used
+    in paths.json
+    """
+    hardlink = 'hardlink'
+    softlink = 'softlink'
+    directory = 'directory'
+
+    # these additional types should not be included by conda-build in packages
+    linked_package_record = 'linked_package_record'  # a package's .json file in conda-meta
+    pyc_file = 'pyc_file'
+    unix_python_entry_point = 'unix_python_entry_point'
+    windows_python_entry_point = 'windows_python_entry_point'
+
+    def __str__(self):
+        return self.name

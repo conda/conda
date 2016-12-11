@@ -110,12 +110,12 @@ def parse_entry_point_def(ep_definition):
     return command, module, func
 
 
-def get_python_path(version=None):
+def get_python_short_path(python_version=None):
     if on_win:
         return "python.exe"
-    if version and '.' not in version:
-        version = '.'.join(version)
-    return join("bin", "python%s" % (version or ''))
+    if python_version and '.' not in python_version:
+        python_version = '.'.join(python_version)
+    return join("bin", "python%s" % (python_version or ''))
 
 
 def get_python_site_packages_short_path(python_version):
