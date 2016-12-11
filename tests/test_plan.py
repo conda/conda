@@ -1092,7 +1092,7 @@ class TestGroupDistsForPrefix(unittest.TestCase):
                                     r=gen_resolve_object_mock(),
                                     specs={"test"}),
                 plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
-                                    specs={"test-spec", "test-spec2"})
+                                    specs=IndexedSet(("test-spec", "test-spec2")))
             ]
         self.assertEquals(expected_output, specs_for_prefix)
 
