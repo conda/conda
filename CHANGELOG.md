@@ -5,13 +5,16 @@
 
 ### New Features
 * transactional link/unlink operations (#3833)
-* private conda environment (#3988)
+* create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
+* private environment support for conda (#3988)
 * remove *all* file locks (#3862)
 * support new info/paths.json file (#3927, #3943)
 * noarch python packages (#3712)
 * imporoved solver hint detection, simplified filtering (#3597)
 * progressive fetch and extract transactions (#4021)
+* multi-user package caches (#4021)
 * add cli.python_api module (#4028)
+* allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
 
 ### Deprecations/Breaking Changes
 * the 'r' channel is now part of defaults (#3677)
@@ -66,7 +69,6 @@
 * move CrossPlatformStLink and make available as export (#3887)
 * make Record immutable (#3965)
 * project housekeeping (#3994)
-* rennovation of package cache code (#4021)
 
 
 ## 4.2.13 (unreleased)
