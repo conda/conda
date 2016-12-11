@@ -167,7 +167,7 @@ def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
     if preferred_env is None:
         return root_dir
     else:
-        return join(envs_dirs[0], ensure_pad(preferred_env, '_'))
+        return '/'.join((envs_dirs[0], ensure_pad(preferred_env, '_')))
 
 
 def prefix_to_env_name(prefix, root_prefix):

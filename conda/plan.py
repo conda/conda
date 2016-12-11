@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 from collections import defaultdict, namedtuple
+from conda._vendor.boltons.setutils import IndexedSet
 from logging import getLogger
 from os.path import abspath, basename, exists, join
 
@@ -606,10 +607,12 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
 
         prefix_with_dists_no_deps_has_resolve = []
         for env in preferred_envs:
-            dists = set(d.spec for d in dists_for_envs if d.env == env)
+            dists = IndexedSet(d.spec for d in dists_for_envs if d.env == env)
             prefix_with_dists_no_deps_has_resolve.append(
-                SpecsForPrefix(prefix=preferred_env_to_prefix(
-                    env, context.root_dir, context.envs_dirs), r=get_r(env), specs=dists)
+                SpecsForPrefix(
+                    prefix=preferred_env_to_prefix(env, context.root_dir, context.envs_dirs),
+                    r=get_r(env),
+                    specs=dists)
             )
     return prefix_with_dists_no_deps_has_resolve
 
