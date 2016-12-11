@@ -660,7 +660,7 @@ def test_display_actions_features():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -669,11 +669,11 @@ def test_display_actions_features():
 The following NEW packages will be INSTALLED:
 
     cython: 0.19-py33_0  \n\
-    numpy:  1.7.1-py33_0 [mkl]
+    numpy:  1.7.1-py33_p0 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -682,11 +682,11 @@ The following NEW packages will be INSTALLED:
 The following packages will be REMOVED:
 
     cython: 0.19-py33_0  \n\
-    numpy:  1.7.1-py33_0 [mkl]
+    numpy:  1.7.1-py33_p0 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_0'], 'LINK': ['numpy-1.7.0-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -694,7 +694,7 @@ The following packages will be REMOVED:
     assert c.stdout == """
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    numpy: 1.7.1-py33_0 [mkl] --> 1.7.0-py33_0 [mkl]
+    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]
 
 """
 
@@ -1014,7 +1014,7 @@ class TestDetermineAllEnvs(unittest.TestCase):
 class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
     def setUp(self):
         self.linked_in_root = {
-            Dist("test1"): generate_mocked_record("test1")
+            Dist("test1-1.2.3-bs_7"): generate_mocked_record("test1-1.2.3-bs_7")
         }
 
     def test_try_install_duplicate_package_in_root(self):
@@ -1141,7 +1141,7 @@ class TestGetActionsForDist(unittest.TestCase):
 
     @patch("conda.core.linked_data.load_meta", return_value=True)
     def test_ensure_linked_actions_all_linked(self, load_meta):
-        dists = [Dist("test"), Dist("test-spec"), Dist("test-spec2")]
+        dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
         prefix = "some/prefix"
 
         link_actions = plan.ensure_linked_actions(dists, prefix)
@@ -1155,7 +1155,7 @@ class TestGetActionsForDist(unittest.TestCase):
 
     @patch("conda.core.linked_data.load_meta", return_value=False)
     def test_ensure_linked_actions_no_linked(self, load_meta):
-        dists = [Dist("test"), Dist("test-spec"), Dist("test-spec2")]
+        dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
         prefix = "some/prefix"
 
         link_actions = plan.ensure_linked_actions(dists, prefix)
@@ -1165,7 +1165,7 @@ class TestGetActionsForDist(unittest.TestCase):
         expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
                                        'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
                                        'SYMLINK_CONDA')
-        expected_output["LINK"] = [Dist("test"), Dist("test-spec"), Dist("test-spec2")]
+        expected_output["LINK"] = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
         self.assertEquals(link_actions, expected_output)
 
     def test_get_actions_for_dist(self):
@@ -1287,7 +1287,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
         action["LINK"] = [Dist("test1-2.1.4-1"), Dist("test2-1.1.1-8")]
         action_root = defaultdict(list)
         action_root["PREFIX"] = context.root_prefix
-        action_root["LINK"] = [Dist("whatevs")]
+        action_root["LINK"] = [Dist("whatevs-54-54")]
         actions = [action, action_root]
 
         test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
@@ -1296,7 +1296,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
 
         aug_action_root = defaultdict(list)
         aug_action_root["PREFIX"] = context.root_prefix
-        aug_action_root["LINK"] = [Dist("whatevs")]
+        aug_action_root["LINK"] = [Dist("whatevs-54-54")]
         aug_action_root["UNLINK"] = [Dist("test1-2.1.4-1")]
         expected_output = [action, aug_action_root]
         self.assertEquals(actions, expected_output)
