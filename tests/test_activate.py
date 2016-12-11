@@ -620,6 +620,7 @@ def test_activate_non_ascii_char_in_path(shell):
         {printdefaultenv}.
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
+
         if shell == 'cmd.exe':
             assert_equals(stdout, u'', stderr)
         else:
