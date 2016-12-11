@@ -1,36 +1,41 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import re
-
 import json
+import re
 from abc import ABCMeta, abstractmethod, abstractproperty
-from conda import CONDA_PACKAGE_ROOT
 from logging import getLogger
 from os.path import dirname, join
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
+from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems, on_win
 from ..common.path import (get_bin_directory_short_path, get_python_short_path,
-                           parse_entry_point_def, url_to_path, win_path_ok, pyc_path)
+                           parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
+                           win_path_ok)
 from ..common.url import path_to_url
 from ..exceptions import CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
                                     create_private_envs_meta, create_private_pkg_entry_point,
-                                    create_unix_python_entry_point, create_windows_python_entry_point,
-                                    extract_tarball, make_menu, remove_private_envs_meta,
-                                    write_conda_meta_record)
+                                    create_unix_python_entry_point,
+                                    create_windows_python_entry_point, extract_tarball,
+                                    make_menu, remove_private_envs_meta, write_conda_meta_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import compute_md5sum, exists, isfile, islink
+from ..gateways.disk.read import compute_md5sum, exists, is_exe, isfile, islink
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.dist import Dist
 from ..models.enums import LinkType
 from ..models.record import Record
+
+try:
+    from cytoolz.itertoolz import concatv
+except ImportError:
+    from .._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -131,8 +136,8 @@ class LinkPathAction(CreateInPrefixPathAction):
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
         return cls(transaction_context, package_info, source_directory,
-                              source_short_path, target_prefix, target_short_path,
-                              requested_link_type)
+                   source_short_path, target_prefix, target_short_path,
+                   requested_link_type)
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
@@ -251,24 +256,13 @@ class CompilePycAction(CreateInPrefixPathAction):
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
                        file_link_actions):
         if package_info.noarch and package_info.noarch.type == 'python':
-            # python_entry_point_actions = tuple(concatv(
-            #     (CreatePythonEntryPointAction.create_action(
-            #         transaction_context, package_info, target_prefix, ep_def)
-            #      for ep_def in package_info.noarch.entry_points),
-            #     (LinkPathAction.create_python_entry_point_windows_exe_action(
-            #         transaction_context, package_info, target_prefix, requested_link_type, ep_def)
-            #      for ep_def in package_info.noarch.entry_points) if on_win else (),
-            # ))
-
+            py_ver = transaction_context['target_python_version']
             py_files = (axn.target_short_path for axn in file_link_actions
                         if axn.source_short_path.endswith('.py'))
-            py_ver = transaction_context['target_python_version']
             return tuple(cls(transaction_context, package_info, target_prefix,
                              pf, pyc_path(pf, py_ver))
                          for pf in py_files)
-
         else:
-            # python_entry_point_actions = ()
             return ()
 
     def __init__(self, transaction_context, package_info, target_prefix,
@@ -346,13 +340,29 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_action(cls, transaction_context, package_info, private_env_prefix, executable_basename):
-        application_short_path = "%s/%s" % (get_bin_directory_short_path(), executable_basename)
-        return cls(transaction_context, package_info,
-                   source_prefix=private_env_prefix,
-                   source_short_path=application_short_path,
-                   target_prefix=context.root_prefix,
-                   target_short_path=application_short_path)
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       file_link_actions, python_entry_point_actions):
+
+        if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
+            def package_executable_short_paths():
+                bin_dir = get_bin_directory_short_path()
+                for axn in concatv(file_link_actions, python_entry_point_actions):
+                    epd = package_info.extracted_package_dir
+                    tsp = axn.target_short_path
+                    if tsp.startswith(bin_dir) and is_exe(join(epd, win_path_ok(tsp))):
+                        yield tsp
+
+            private_env_prefix = preferred_env_to_prefix(
+                package_info.repodata_record.preferred_env,
+                context.root_prefix, context.envs_dirs
+            )
+            return tuple(
+                cls(transaction_context, package_info, private_env_prefix, executable_short_path,
+                    target_prefix, executable_short_path)
+                for executable_short_path in package_executable_short_paths()
+            )
+        else:
+            return ()
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
                  target_prefix, target_short_path):
@@ -409,11 +419,23 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
 
 class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
-    def __init__(self, transaction_context, package_info, target_prefix):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+        if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
+            return cls(transaction_context, package_info, target_prefix),
+        else:
+            return ()
+
+    def __init__(self, transaction_context, package_info, private_env_prefix):
+        # source is the private env (which is the target of the overall transaction)
+        # the target of this action is context.root_prefix/conda-meta/private_envs
+        source_prefix = private_env_prefix
         target_short_path = 'conda-meta/private_envs'
+        self.private_env_prefix = private_env_prefix
         super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
-                                                         None, None, target_prefix,
-                                                         target_short_path)
+                                                         source_prefix, None,
+                                                         context.root_prefix, target_short_path)
         self._execute_successful = False
 
     def execute(self):

@@ -3,13 +3,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from base64 import b64encode
 from collections import namedtuple
+from conda.common.compat import on_win
 from errno import ENOENT
 from functools import partial
 import hashlib
 from itertools import chain
 import json
 from logging import getLogger
-from os import listdir
+from os import listdir, access, X_OK
 from os.path import exists, isdir, isfile, islink, join
 import shlex
 
@@ -215,3 +216,7 @@ def compute_md5sum(file_full_path):
         for chunk in iter(partial(fh.read, 4096), b''):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
+
+
+def is_exe(path):
+    return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))

@@ -131,14 +131,6 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
                                   package_info.extracted_package_dir, source_path_info.path,
                                   target_prefix, target_short_path, link_type)
 
-    def make_application_entry_point_action(private_env_prefix, executable_basename):
-        application_short_path = "%s/%s" % (get_bin_directory_short_path(), executable_basename)
-        return CreateApplicationEntryPointAction(transaction_context, package_info,
-                                                 source_prefix=private_env_prefix,
-                                                 source_short_path=application_short_path,
-                                                 target_prefix=context.root_prefix,
-                                                 target_short_path=application_short_path)
-
     def make_conda_meta_create_action(all_target_short_paths):
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
         meta_record = Record.from_objects(package_info.repodata_record,
@@ -156,32 +148,21 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
     directory_create_actions = tuple(make_directory_link_action(d) for d in leaf_directories)
 
     create_menu_actions = MakeMenuAction.create_actions(*required_quad)
-
     python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
     compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
                                                           file_link_actions=file_link_actions)
+    application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
+        *required_quad,
+        file_link_actions=file_link_actions,
+        python_entry_point_actions=python_entry_point_actions,
+    )
+    private_envs_meta_actions = CreatePrivateEnvMetaAction(*required_quad)
 
-    if package_info.repodata_record.preferred_env is not None:
-        # TODO: check that all four private env criteria are met
-        # TODO: this needs to be done for all executables in package, not just appname
-        preferred_env_prefix = preferred_env_to_prefix(package_info.repodata_record.preferred_env,
-                                                       context.root_prefix, context.envs_dirs)
-        application_entry_point_actions = CreateApplicationEntryPointAction.create_action(
-            transaction_context, package_info,
-            private_env_prefix=preferred_env_prefix,
-            executable_basename=package_info.repodata_record.name,
-        ),
-
-        private_envs_meta_action = CreatePrivateEnvMetaAction(transaction_context,
-                                                              package_info, target_prefix),
-    else:
-        application_entry_point_actions = ()
-        private_envs_meta_action = ()
-
-    all_target_short_paths = tuple(axn.target_short_path for axn in
-                                   concatv(file_link_actions,
-                                           python_entry_point_actions,
-                                           compile_pyc_actions))
+    all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
+        file_link_actions,
+        python_entry_point_actions,
+        compile_pyc_actions,
+    ))
     meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
 
     return tuple(concatv(
@@ -191,7 +172,7 @@ def make_link_actions(transaction_context, package_info, target_prefix, requeste
         compile_pyc_actions,
         create_menu_actions,
         application_entry_point_actions,
-        private_envs_meta_action,
+        private_envs_meta_actions,
         meta_create_actions,
     ))
 
