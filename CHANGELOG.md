@@ -1,3 +1,9 @@
+## 4.4.0 (unreleased)
+
+### New Features
+* general support for all bourne- and c-based shells #3175
+
+
 ## 4.3.0 (unreleased)
 
 ### Deprecations/Breaking Changes
