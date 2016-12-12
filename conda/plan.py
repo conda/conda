@@ -559,7 +559,7 @@ def get_highest_priority_match(matches, prioritized_channel_list, index):
     # if a package can't be matched to a prioritized channel, it may still be able to be matched
     #   to something in index
     for m in matches:
-        in_index = is_in_index(m)
+        in_index = is_in_index(m.name)
         if in_index:
             return in_index
     raise PackageNotFoundError(matches[0].name, "package not found")
