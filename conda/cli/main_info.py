@@ -11,13 +11,13 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from conda.common.url import mask_anaconda_token
 from os import listdir
 from os.path import exists, expanduser, join
 
 from .common import (add_parser_json, add_parser_offline, arg2spec, disp_features,
                      handle_envs_list, stdout_json)
 from ..common.compat import itervalues, on_win
+from ..common.url import mask_anaconda_token
 from ..config import rc_path, sys_rc_path, user_rc_path
 from ..models.channel import prioritize_channels
 

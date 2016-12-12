@@ -1,40 +1,33 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from traceback import format_exc
-
-from logging import getLogger
 import os
-from os.path import join
-import re
-from subprocess import CalledProcessError, check_call
 import sys
 import warnings
+from logging import getLogger
+from os.path import join
+from subprocess import CalledProcessError, check_call
+from traceback import format_exc
 
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
-                           CreateCondaMetaAction, CreatePrivateEnvMetaAction,
+                           CreateLinkedPackageRecordAction, CreatePrivateEnvMetaAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           PrefixReplaceLinkAction, RemoveCondaMetaAction, RemoveMenuAction,
+                           RemoveLinkedPackageRecordAction, RemoveMenuAction,
                            RemovePrivateEnvMetaAction, UnlinkPathAction)
-from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import string_types, on_win
+from ..common.compat import on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
-                           get_leaf_directories, get_major_minor_version,
-                           get_python_site_packages_short_path, parse_entry_point_def,
-                           preferred_env_to_prefix, pyc_path)
-from ..exceptions import CondaUpgradeError
+                           get_major_minor_version,
+                           get_python_site_packages_short_path)
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import collect_all_info_for_package, isfile
+from ..gateways.disk.read import read_package_info, isfile
 from ..gateways.disk.test import hardlink_supported, softlink_supported
 from ..models.dist import Dist
 from ..models.enums import LinkType
-from ..models.package_info import PathType
-from ..models.record import Link, Record
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -42,8 +35,6 @@ except ImportError:
     from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
 
 log = getLogger(__name__)
-
-MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
 
 
 def determine_link_type(extracted_package_dir, target_prefix):
@@ -59,180 +50,20 @@ def determine_link_type(extracted_package_dir, target_prefix):
     return LinkType.copy
 
 
-def get_prefix_replace(path_info, requested_link_type):
-    if path_info.prefix_placeholder:
-        link_type = LinkType.copy
-        prefix_placehoder = path_info.prefix_placeholder
-        file_mode = path_info.file_mode
-    elif path_info.no_link or path_info.path_type == PathType.softlink:
-        link_type = LinkType.copy
-        prefix_placehoder, file_mode = '', None
-    else:
-        link_type = requested_link_type
-        prefix_placehoder, file_mode = '', None
-
-    return link_type, prefix_placehoder, file_mode
-
-
-def make_lateral_link_action(source_path_info, extracted_package_dir, target_prefix,
-                             requested_link_type):
-    # no side effects in this function!
-    # a lateral link has the same 'short path' in both the package directory and the target prefix
-    short_path = source_path_info.path
-    link_type, prefix_placehoder, file_mode = get_prefix_replace(source_path_info,
-                                                                 requested_link_type)
-    return LinkPathAction(extracted_package_dir, short_path,
-                          target_prefix, short_path, link_type,
-                          prefix_placehoder, file_mode)
-
-
-def get_python_noarch_target_path(source_short_path, target_site_packages_short_path):
-    if source_short_path.startswith('site-packages/'):
-        sp_dir = target_site_packages_short_path
-        return source_short_path.replace('site-packages', sp_dir, 1)
-    elif source_short_path.startswith('python-scripts/'):
-        bin_dir = get_bin_directory_short_path()
-        return source_short_path.replace('python-scripts', bin_dir, 1)
-    else:
-        return source_short_path
-
-
-def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type):
-    # no side effects in this function!
-    # TODO: clean up this monstrosity of a function
-
-    def make_directory_link_action(directory_short_path):
-        # no side effects in this function!
-        return LinkPathAction(transaction_context, package_info, None, None,
-                              target_prefix, directory_short_path, LinkType.directory)
-
-    def make_file_link_action(source_path_info):
-
-        noarch = package_info.noarch
-        if noarch and noarch.type == 'python':
-            sp_dir = transaction_context['target_site_packages_short_path']
-            target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
-        elif not noarch or noarch is True or (isinstance(noarch, string_types)
-                                              and noarch == 'native'):
-            target_short_path = source_path_info.path
-        else:
-            raise CondaUpgradeError(dals("""
-            The current version of conda is too old to install this package.
-            Please update conda."""))
-
-        link_type, placeholder, fmode = get_prefix_replace(source_path_info, requested_link_type)
-
-        if placeholder:
-            return PrefixReplaceLinkAction(transaction_context, package_info,
-                                           package_info.extracted_package_dir,
-                                           source_path_info.path,
-                                           target_prefix, target_short_path,
-                                           placeholder, fmode)
-        else:
-            return LinkPathAction(transaction_context, package_info,
-                                  package_info.extracted_package_dir, source_path_info.path,
-                                  target_prefix, target_short_path, link_type)
-
-    def make_entry_point_action(entry_point_def):
-        command, module, func = parse_entry_point_def(entry_point_def)
-        target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
-        if on_win:
-            target_short_path += "-script.py"
-        return CreatePythonEntryPointAction(transaction_context, package_info,
-                                            target_prefix, target_short_path, module, func)
-
-    def make_application_entry_point_action(private_env_prefix, app):
-        target_short_path = "%s/%s" % (get_bin_directory_short_path(), app)
-        return CreateApplicationEntryPointAction(transaction_context, package_info,
-                                                 context.root_prefix, target_short_path,
-                                                 private_env_prefix, app, context.root_prefix)
-
-    def make_entry_point_windows_executable_action(entry_point_def):
-        source_directory = CONDA_PACKAGE_ROOT
-        source_short_path = 'resources/cli-%d.exe' % context.bits
-        command, _, _ = parse_entry_point_def(entry_point_def)
-        target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
-        return LinkPathAction(transaction_context, package_info, source_directory,
-                              source_short_path, target_prefix, target_short_path,
-                              requested_link_type)
-
-    def make_conda_meta_create_action(all_target_short_paths):
-        link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        meta_record = Record.from_objects(package_info.repodata_record,
-                                          package_info.index_json_record,
-                                          files=all_target_short_paths, link=link,
-                                          url=package_info.url)
-        return CreateCondaMetaAction(transaction_context, package_info, target_prefix, meta_record)
-
-    file_link_actions = tuple(make_file_link_action(spi) for spi in package_info.paths)
-
-    leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
-    directory_create_actions = tuple(make_directory_link_action(d) for d in leaf_directories)
-
-    if on_win and context.shortcuts:
-        menu_create_actions = tuple(MakeMenuAction(transaction_context, package_info,
-                                                   target_prefix, spi.path)
-                                    for spi in package_info.paths
-                                    if bool(MENU_RE.match(spi.path)))
-    else:
-        menu_create_actions = ()
-
-    if package_info.noarch and package_info.noarch.type == 'python':
-        python_entry_point_actions = tuple(concatv(
-            (make_entry_point_action(ep_def) for ep_def in package_info.noarch.entry_points),
-            (make_entry_point_windows_executable_action(ep_def)
-             for ep_def in package_info.noarch.entry_points) if on_win else (),
-        ))
-
-        py_files = (axn.target_short_path for axn in file_link_actions
-                    if axn.source_short_path.endswith('.py'))
-        py_ver = transaction_context['target_python_version']
-        pyc_compile_actions = tuple(CompilePycAction(transaction_context, package_info,
-                                                     target_prefix, pf, pyc_path(pf, py_ver))
-                                    for pf in py_files)
-    else:
-        python_entry_point_actions = ()
-        pyc_compile_actions = ()
-
-    if package_info.repodata_record.preferred_env is not None:
-        preferred_env_prefix = preferred_env_to_prefix(package_info.repodata_record.preferred_env,
-                                                       context.root_prefix, context.envs_dirs)
-        application_entry_point_action = (make_application_entry_point_action(
-            preferred_env_prefix, package_info.repodata_record.name),)
-
-        private_envs_meta_action = CreatePrivateEnvMetaAction(transaction_context,
-                                                              package_info, target_prefix),
-    else:
-        application_entry_point_action = ()
-        private_envs_meta_action = ()
-
-    all_target_short_paths = tuple(axn.target_short_path for axn in
-                                   concatv(file_link_actions,
-                                           python_entry_point_actions,
-                                           pyc_compile_actions))
-    meta_create_actions = (make_conda_meta_create_action(all_target_short_paths),)
-
-    return tuple(concatv(directory_create_actions, file_link_actions, python_entry_point_actions,
-                         pyc_compile_actions,  menu_create_actions, application_entry_point_action,
-                         private_envs_meta_action, meta_create_actions))
-
-
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
     # no side effects in this function!
     unlink_path_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
                                                  target_prefix, trgt)
                                 for trgt in linked_package_data.files)
-    if on_win:
-        remove_menu_actions = tuple(RemoveMenuAction(transaction_context, linked_package_data,
-                                                     target_prefix, trgt)
-                                    for trgt in linked_package_data.files
-                                    if bool(MENU_RE.match(trgt)))
-    else:
-        remove_menu_actions = ()
+
+    remove_menu_actions = RemoveMenuAction.create_actions(transaction_context,
+                                                          linked_package_data,
+                                                          target_prefix)
 
     meta_short_path = '%s/%s' % ('conda-meta', Dist(linked_package_data).to_filename('.json'))
-    remove_conda_meta_actions = (RemoveCondaMetaAction(transaction_context, linked_package_data,
-                                                       target_prefix, meta_short_path),)
+    remove_conda_meta_actions = (RemoveLinkedPackageRecordAction(transaction_context,
+                                                                 linked_package_data,
+                                                                 target_prefix, meta_short_path),)
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
     all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
@@ -251,8 +82,13 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
     else:
         private_envs_meta_action = ()
 
-    return tuple(concatv(remove_conda_meta_actions, remove_menu_actions, unlink_path_actions,
-                         directory_remove_actions, private_envs_meta_action))
+    return tuple(concatv(
+        remove_conda_meta_actions,
+        remove_menu_actions,
+        unlink_path_actions,
+        directory_remove_actions,
+        private_envs_meta_action,
+    ))
 
 
 class UnlinkLinkTransaction(object):
@@ -263,16 +99,26 @@ class UnlinkLinkTransaction(object):
         linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
                                                for dist in unlink_dists)
 
+        log.debug("instantiating UnlinkLinkTransaction with\n"
+                  "  target_prefix: %s\n"
+                  "  unlink_dists:\n"
+                  "    %s\n"
+                  "  link_dists:\n"
+                  "    %s\n",
+                  target_prefix,
+                  '\n    '.join(text_type(d) for d in unlink_dists),
+                  '\n    '.join(text_type(d) for d in link_dists))
+
         pkg_dirs_to_link = tuple(PackageCache[dist].extracted_package_dir for dist in link_dists)
         assert all(pkg_dirs_to_link)
-        packages_info_to_link = tuple(collect_all_info_for_package(index[dist], pkg_dir)
+        packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
 
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
                                      packages_info_to_link)
 
     def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link):
-        # type: (str, Sequence[Dist], Sequence[PackageInfo]])
+        # type: (str, Sequence[Dist], Sequence[PackageInfo]) -> NoneType
         # order of unlink_dists and link_dists will be preserved throughout
         #   should be given in dependency-sorted order
 
@@ -306,8 +152,8 @@ class UnlinkLinkTransaction(object):
                                                                    self.target_prefix,
                                                                    lnkd_pkg_data))
                                for lnkd_pkg_data in self.linked_packages_data_to_unlink)
-        link_actions = tuple((pkg_info, make_link_actions(transaction_context, pkg_info,
-                                                          self.target_prefix, lt))
+        link_actions = tuple((pkg_info, self.make_link_actions(transaction_context, pkg_info,
+                                                               self.target_prefix, lt))
                              for pkg_info, lt in zip(self.packages_info_to_link, link_types))
         self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
                                  concatv(unlink_actions, link_actions))
@@ -419,6 +265,46 @@ class UnlinkLinkTransaction(object):
 
         # there won't be any python in the finished environment
         return None
+
+    @staticmethod
+    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type):
+        required_quad = transaction_context, package_info, target_prefix, requested_link_type
+
+        file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
+        create_directory_actions = LinkPathAction.create_directory_actions(
+            *required_quad, file_link_actions=file_link_actions
+        )
+        create_menu_actions = MakeMenuAction.create_actions(*required_quad)
+
+        python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
+        compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
+                                                              file_link_actions=file_link_actions)
+
+        application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
+            *required_quad
+        )
+        private_envs_meta_actions = CreatePrivateEnvMetaAction.create_actions(*required_quad)
+
+        all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
+            file_link_actions,
+            python_entry_point_actions,
+            compile_pyc_actions,
+            application_entry_point_actions,
+        ))
+        meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
+            *required_quad, all_target_short_paths=all_target_short_paths
+        )
+        # the ordering here is significant
+        return tuple(concatv(
+            create_directory_actions,
+            file_link_actions,
+            python_entry_point_actions,
+            compile_pyc_actions,
+            create_menu_actions,
+            application_entry_point_actions,
+            private_envs_meta_actions,
+            meta_create_actions,
+        ))
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

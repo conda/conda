@@ -237,7 +237,7 @@ Chapter X: The del and null Weeds
 """
 from __future__ import absolute_import, division, print_function
 
-from collections import Iterable
+from collections import Iterable, Sequence, Mapping
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum
@@ -246,9 +246,9 @@ from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
 
 from ._vendor.boltons.timeutils import isoparse
-from .collection import AttrDict
+from .collection import AttrDict, frozendict, make_immutable
 from .compat import (integer_types, iteritems, itervalues, odict, string_types, text_type,
-                     with_metaclass)
+                     with_metaclass, isiterable)
 from .exceptions import Raise, ValidationError
 from .ish import find_or_none
 from .logz import DumpEncoder
@@ -564,10 +564,10 @@ class ListField(Field):
     _type = tuple
 
     def __init__(self, element_type, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False):
         self._element_type = element_type
         super(ListField, self).__init__(default, required, validation,
-                                        in_dump, nullable, immutable)
+                                        in_dump, nullable, True)
 
     def box(self, instance, val):
         if val is None:
@@ -575,12 +575,16 @@ class ListField(Field):
         elif isinstance(val, string_types):
             raise ValidationError("Attempted to assign a string to ListField {0}"
                                   "".format(self.name))
-        elif isinstance(val, Iterable):
+        elif isiterable(val):
             et = self._element_type
             if isinstance(et, type) and issubclass(et, Entity):
                 return self._type(v if isinstance(v, et) else et(**v) for v in val)
             else:
-                return self._type(val)
+                val = make_immutable(val)
+                if not isinstance(val, Sequence):
+                    raise ValidationError(val, msg="Cannot assign a non-iterable value to "
+                                                   "{0}".format(self.name))
+                return val
         else:
             raise ValidationError(val, msg="Cannot assign a non-iterable value to "
                                            "{0}".format(self.name))
@@ -612,9 +616,26 @@ class MutableListField(ListField):
 
 
 class MapField(Field):
-    _type = dict
-    __eq__ = dict.__eq__
-    __hash__ = dict.__hash__
+    _type = frozendict
+
+    def __init__(self, default=None, required=True, validation=None,
+                 in_dump=True, nullable=False):
+        super(MapField, self).__init__(default, required, validation, in_dump, nullable, True)
+
+    def box(self, instance, val):
+        # TODO: really need to make this recursive to make any lists or maps immutable
+        if val is None:
+            return self._type()
+        elif isiterable(val):
+            val = make_immutable(val)
+            if not isinstance(val, Mapping):
+                raise ValidationError(val, msg="Cannot assign a non-iterable value to "
+                                               "{0}".format(self.name))
+            return val
+        else:
+            raise ValidationError(val, msg="Cannot assign a non-iterable value to "
+                                           "{0}".format(self.name))
+
 
 
 class ComposableField(Field):
@@ -672,11 +693,12 @@ class EntityType(type):
 
     def __init__(cls, name, bases, attr):
         super(EntityType, cls).__init__(name, bases, attr)
-        cls.__fields__ = odict(cls.__fields__) if hasattr(cls, '__fields__') else odict()
-        cls.__fields__.update(sorted(((name, field.set_name(name))
+        fields = odict(cls.__fields__) if hasattr(cls, '__fields__') else odict()
+        fields.update(sorted(((name, field.set_name(name))
                                       for name, field in iteritems(cls.__dict__)
                                       if isinstance(field, Field)),
                                      key=lambda item: item[1]._order_helper))
+        cls.__fields__ = frozendict(fields)
         if hasattr(cls, '__register__'):
             cls.__register__()
 
@@ -742,8 +764,9 @@ class Entity(object):
 
     def __repr__(self):
         def _valid(key):
-            if key.startswith('_'):
-                return False
+            # TODO: re-enable once aliases are implemented
+            # if key.startswith('_'):
+            #     return False
             try:
                 getattr(self, key)
                 return True

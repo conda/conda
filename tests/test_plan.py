@@ -3,10 +3,11 @@ from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.cli import common
 from conda.core import linked_data
+from conda.core.package_cache import ProgressiveFetchExtract
 from conda.exceptions import PackageNotFoundError, InstallError
 from conda.models.channel import prioritize_channels
 from conda.models.dist import Dist
-from conda.models.record import Record
+from conda.models.index_record import IndexRecord
 
 from contextlib import contextmanager
 import sys
@@ -39,7 +40,7 @@ except ImportError:
     from mock import patch
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(k): Record(**v) for k, v in iteritems(json.load(fi))}
+    index = {Dist(k): IndexRecord(**v) for k, v in iteritems(json.load(fi))}
     r = Resolve(index)
 
 
@@ -135,9 +136,9 @@ def test_display_actions():
     actions = defaultdict(list, {"FETCH": [Dist('sympy-0.7.2-py27_0'), Dist("numpy-1.7.1-py27_0")]})
     # The older test index doesn't have the size metadata
     d = Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')
-    index[d] = Record.from_objects(index[d], size=4374752)
+    index[d] = IndexRecord.from_objects(index[d], size=4374752)
     d = Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")
-    index[d] = Record.from_objects(index[d], size=5994338)
+    index[d] = IndexRecord.from_objects(index[d], size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
@@ -276,9 +277,9 @@ def test_display_actions_show_channel_urls():
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
     d = Dist('sympy-0.7.2-py27_0.tar.bz2')
-    index[d] = Record.from_objects(d, size=4374752)
+    index[d] = IndexRecord.from_objects(d, size=4374752)
     d = Dist('numpy-1.7.1-py27_0.tar.bz2')
-    index[d] = Record.from_objects(d, size=5994338)
+    index[d] = IndexRecord.from_objects(d, size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
@@ -412,9 +413,9 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
     d = Dist('cython-0.19.1-py33_0.tar.bz2')
-    index[d] = Record.from_objects(d, channel='my_channel')
+    index[d] = IndexRecord.from_objects(d, channel='my_channel')
     d = Dist('dateutil-1.5-py33_0.tar.bz2')
-    index[d] = Record.from_objects(d, channel='my_channel')
+    index[d] = IndexRecord.from_objects(d, channel='my_channel')
 
     with captured() as c:
         display_actions(actions, index)
@@ -600,10 +601,10 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     reset_context(())
 
     d = Dist('cython-0.19.1-py33_0.tar.bz2')
-    index[d] = Record.from_objects(index[d], channel='my_channel')
+    index[d] = IndexRecord.from_objects(index[d], channel='my_channel')
 
     d = Dist('dateutil-1.5-py33_0.tar.bz2')
-    index[d] = Record.from_objects(index[d], channel='my_channel')
+    index[d] = IndexRecord.from_objects(index[d], channel='my_channel')
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 3', 'dateutil-1.5-py33_0 3',
     'numpy-1.7.1-py33_0 3', 'python-3.3.2-0 3', 'readline-6.2-0 3', 'sqlite-3.7.13-0 3', 'tk-8.5.13-0 3', 'zlib-1.2.7-0 3']})
@@ -895,19 +896,24 @@ class PlanFromActionsTests(unittest.TestCase):
 
     def test_plan_link_menuinst(self):
         menuinst = Dist('menuinst-1.4.2-py27_0')
+        menuinst_record = IndexRecord.from_objects(menuinst)
         ipython = Dist('ipython-5.1.0-py27_1')
+        ipython_record = IndexRecord.from_objects(ipython)
         actions = {
             'PREFIX': 'aprefix',
             'LINK': [ipython, menuinst],
         }
 
-        conda_plan = plan.plan_from_actions(actions)
+        conda_plan = plan.plan_from_actions(actions, {
+            menuinst: menuinst_record,
+            ipython: ipython_record,
+        })
 
         expected_plan = [
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
             # ('PROGRESS', '2'),
-            ('PROGRESSIVEFETCHEXTRACT', (ipython, menuinst)),
+            ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (ipython, menuinst))),
             ('UNLINKLINKTRANSACTION', ((), (ipython), menuinst)),
         ]
 
@@ -917,7 +923,7 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
-                ('PROGRESSIVEFETCHEXTRACT', (menuinst, ipython)),
+                ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (menuinst, ipython))),
                 ('UNLINKLINKTRANSACTION', ((), (menuinst, ipython))),
             ]
 

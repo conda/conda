@@ -23,7 +23,7 @@ class Link(DictSafeMixin, Entity):
 EMPTY_LINK = Link(source='')
 
 # TODO: eventually stop mixing Record with LinkedPackageData
-# class LinkedPackageData(DictSafeMixin, Entity):
+# class LinkedPackageRecord(DictSafeMixin, Entity):
 #     arch = EnumField(Arch, nullable=True)
 #     build = StringField()
 #     build_number = IntegerField()
@@ -43,7 +43,7 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
-class Record(DictSafeMixin, ImmutableEntity):
+class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
     arch = EnumField(Arch, required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()
@@ -56,7 +56,6 @@ class Record(DictSafeMixin, ImmutableEntity):
     md5 = StringField(required=False, nullable=True)
     name = StringField()
     # TODO: noarch should support being a string or bool
-    noarch = StringField(required=False, nullable=True)
     platform = EnumField(Platform, required=False, nullable=True)
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)

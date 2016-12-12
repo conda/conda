@@ -200,7 +200,6 @@ def execute(args, parser):
 
     if args.revisions:
         from conda.history import History
-
         h = History(prefix)
         if isfile(h.path):
             if not context.json:
@@ -208,7 +207,7 @@ def execute(args, parser):
             else:
                 stdout_json(h.object_log())
         else:
-            raise CondaFileNotFoundError(h.path, "No revision log found: %s\n" % h.path)
+            raise CondaFileNotFoundError(h.path)
         return
 
     if args.explicit:

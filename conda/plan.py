@@ -12,9 +12,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 from collections import defaultdict, namedtuple
 from logging import getLogger
-from os.path import abspath, basename, exists, join
+from os.path import abspath, basename, exists, isdir, join
 
-from . import instructions as inst
+from . import CondaError, instructions as inst
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
@@ -25,8 +25,10 @@ from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
+from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          PackageNotFoundError, RemoveError)
+from .gateways.disk.create import mkdir_p
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -311,7 +313,7 @@ def handle_menuinst(unlink_dists, link_dists):
     return unlink_dists, link_dists
 
 
-def inject_UNLINKLINKTRANSACTION(plan):
+def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
     # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:
@@ -319,20 +321,37 @@ def inject_UNLINKLINKTRANSACTION(plan):
         unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
+
+        # make sure prefix directory exists
+        if link_dists:
+            if not isdir(prefix):
+                try:
+                    mkdir_p(prefix)
+                except (IOError, OSError) as e:
+                    log.debug(repr(e))
+                    raise CondaError("Unable to create prefix directory '%s'.\n"
+                                     "Check that you have sufficient permissions." % prefix)
+
+        # TODO: ideally we'd move these two lines before both the y/n confirmation and the --dry-run exit  # NOQA
+        pfe = ProgressiveFetchExtract(index, link_dists)
+        pfe.prepare()
+
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
-        plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, link_dists))
+        plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
+
         # plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
         # don't filter LINK and UNLINK, just don't do anything with them
     return plan
 
 
-def plan_from_actions(actions):
+def plan_from_actions(actions, index):
     if 'op_order' in actions and actions['op_order']:
         op_order = actions['op_order']
     else:
         op_order = ACTION_CODES
 
     assert PREFIX in actions and actions[PREFIX]
+    prefix = actions[PREFIX]
     plan = [('PREFIX', '%s' % actions[PREFIX])]
 
     log.debug("Adding plans for operations: {0}".format(op_order))
@@ -353,7 +372,7 @@ def plan_from_actions(actions):
             log.debug("appending value {0} for action {1}".format(arg, op))
             plan.append((op, arg))
 
-    plan = inject_UNLINKLINKTRANSACTION(plan)
+    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix)
 
     return plan
 
@@ -849,8 +868,8 @@ def revert_actions(prefix, revision=-1, index=None):
 
 # ---------------------------- EXECUTION --------------------------
 
-def execute_actions(actions, index=None, verbose=False):
-    plan = plan_from_actions(actions)
+def execute_actions(actions, index, verbose=False):
+    plan = plan_from_actions(actions, index)
     with History(actions[PREFIX]):
         execute_instructions(plan, index, verbose)
 

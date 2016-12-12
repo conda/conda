@@ -85,7 +85,7 @@ def set_all_logger_level(level=DEBUG):
 
 def set_verbosity(verbosity_level):
     try:
-        set_all_logger_level(verbosity_level)
+        set_all_logger_level(VERBOSITY_LEVELS[verbosity_level])
     except IndexError:
         raise CondaError("Invalid verbosity level: %(verbosity_level)s",
                          verbosity_level=verbosity_level)

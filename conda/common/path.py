@@ -110,12 +110,12 @@ def parse_entry_point_def(ep_definition):
     return command, module, func
 
 
-def get_python_path(version=None):
+def get_python_short_path(python_version=None):
     if on_win:
         return "python.exe"
-    if version and '.' not in version:
-        version = '.'.join(version)
-    return join("bin", "python%s" % (version or ''))
+    if python_version and '.' not in python_version:
+        python_version = '.'.join(python_version)
+    return join("bin", "python%s" % (python_version or ''))
 
 
 def get_python_site_packages_short_path(python_version):
@@ -173,12 +173,12 @@ def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
 def prefix_to_env_name(prefix, root_prefix):
     if prefix == root_prefix:
         return None
-    split_env = prefix.split("/")
+    split_env = win_path_backout(prefix).split("/")
     return split_env[-1]
 
 
 def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
-    # type (str, str) -> bool
+    # type: (str, str, str) -> bool
     if preferred_env is None:
         return True
     prefix_dir = dirname(prefix)
@@ -202,3 +202,14 @@ def right_pad_os_sep(path):
 def split_filename(path_or_url):
     dn, fn = split(path_or_url)
     return (dn or None, fn) if '.' in fn else (path_or_url, None)
+
+
+def get_python_noarch_target_path(source_short_path, target_site_packages_short_path):
+    if source_short_path.startswith('site-packages/'):
+        sp_dir = target_site_packages_short_path
+        return source_short_path.replace('site-packages', sp_dir, 1)
+    elif source_short_path.startswith('python-scripts/'):
+        bin_dir = get_bin_directory_short_path()
+        return source_short_path.replace('python-scripts', bin_dir, 1)
+    else:
+        return source_short_path
