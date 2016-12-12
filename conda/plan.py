@@ -581,7 +581,7 @@ def determine_all_envs(r, specs, channel_priority_map=None):
     spec_for_envs = []
     for spec in specs:
         matched_dists = r.get_pkgs(spec)
-        best_match = get_highest_priority_match(matched_dists, prioritized_channel_list)
+        best_match = get_highest_priority_match(matched_dists, prioritized_channel_list, r.index)
         spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
                                         spec=best_match.name))
     return spec_for_envs
