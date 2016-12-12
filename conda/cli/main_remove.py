@@ -181,39 +181,37 @@ def execute(args, parser):
             return
         raise PackageNotFoundError('', 'no packages found to remove from '
                                        'environment: %s' % prefix)
-    for action in action_groups:
-        if not context.json:
-            print()
-            print("Package plan for package removal in environment %s:" % action["PREFIX"])
-            plan.display_actions(action, index)
+    if not context.json:
+        print()
+        plan.display_actions(action_groups, index)
 
-        if context.json and args.dry_run:
-            stdout_json({
-                'success': True,
-                'dry_run': True,
-                'actions': action_groups
-            })
-            return
+    if context.json and args.dry_run:
+        stdout_json({
+            'success': True,
+            'dry_run': True,
+            'actions': action_groups
+        })
+        return
 
     if not context.json:
         confirm_yn(args)
 
-    for actions in action_groups:
-        if context.json and not context.quiet:
-            with json_progress_bars():
-                plan.execute_actions(actions, index, verbose=not context.quiet)
-        else:
+    if context.json and not context.quiet:
+        with json_progress_bars():
             plan.execute_actions(actions, index, verbose=not context.quiet)
-            if specs:
-                try:
-                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                        f.write('# remove specs: %s\n' % ','.join(specs))
-                except IOError as e:
-                    if e.errno == errno.EACCES:
-                        log.debug("Can't write the history file")
-                    else:
-                        raise
+    else:
+        plan.execute_actions(actions, index, verbose=not context.quiet)
+        if specs:
+            try:
+                with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                    f.write('# remove specs: %s\n' % ','.join(specs))
+            except IOError as e:
+                if e.errno == errno.EACCES:
+                    log.debug("Can't write the history file")
+                else:
+                    raise
 
+    for actions in action_groups:
         target_prefix = actions["PREFIX"]
         if (is_private_env(prefix_to_env_name(target_prefix, context.root_prefix)) and
                 linked_data(target_prefix) == {}):
