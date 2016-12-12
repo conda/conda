@@ -200,7 +200,6 @@ def execute(args, parser):
 
     if args.revisions:
         from conda.history import History
-
         h = History(prefix)
         if isfile(h.path):
             if not context.json:

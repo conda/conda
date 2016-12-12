@@ -132,7 +132,8 @@ class LinkPathAction(CreateInPrefixPathAction):
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
                                  requested_link_type):
         def make_file_link_action(source_path_info):
-            noarch = package_info.noarch
+            # TODO: this inner function is still kind of a mess
+            noarch = package_info.package_metadata and package_info.package_metadata.noarch
             if noarch and noarch.type == 'python':
                 sp_dir = transaction_context['target_site_packages_short_path']
                 target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
@@ -311,7 +312,8 @@ class CompilePycAction(CreateInPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
                        file_link_actions):
-        if package_info.noarch and package_info.noarch.type == 'python':
+        noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        if noarch and noarch.type == 'python':
             py_ver = transaction_context['target_python_version']
             py_files = (axn.target_short_path for axn in file_link_actions
                         if axn.source_short_path.endswith('.py'))
@@ -351,7 +353,8 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                 target_short_path += "-script.py"
             return target_short_path, module, func
 
-        if package_info.noarch and package_info.noarch.type == 'python':
+        noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        if noarch and noarch.type == 'python':
             actions = tuple(cls(transaction_context, package_info, target_prefix,
                                 *this_triplet(ep_def))
                             for ep_def in package_info.noarch.entry_points)

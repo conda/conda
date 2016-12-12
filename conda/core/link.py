@@ -281,10 +281,8 @@ class UnlinkLinkTransaction(object):
         compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
                                                               file_link_actions=file_link_actions)
 
-        application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
-            *required_quad,
-        )
-        private_envs_meta_actions = CreatePrivateEnvMetaAction(*required_quad)
+        application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(*required_quad)
+        private_envs_meta_actions = CreatePrivateEnvMetaAction.create_actions(*required_quad)
 
         all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
             file_link_actions,
