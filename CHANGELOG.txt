@@ -1,11 +1,3 @@
-2016-XX-XX   3.19.4:
---------------------
-  * improve handling of local dependency information, #2107
-  * show warning message for pre-link scripts, #3727
-  * error and exit for install of packages that require conda minimum version 4.3, #3726
-  * fix conda/install.py single-file behavior, #3854
-
-
 2016-07-09  4.0.11:
 -------------------
   * allow auto_update_conda from sysrc, #3015 via #3021
@@ -98,6 +90,14 @@
   * Conda finally has an official logo.
   * Fix `conda clean --packages` on Windows, #1944
   * Conda sub-commands now support dashes in names, #1840
+
+
+2016-XX-XX   3.19.4:
+--------------------
+  * improve handling of local dependency information, #2107
+  * show warning message for pre-link scripts, #3727
+  * error and exit for install of packages that require conda minimum version 4.3, #3726
+  * fix conda/install.py single-file behavior, #3854
 
 
 2016-02-19   3.19.3:
