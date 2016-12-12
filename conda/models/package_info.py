@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .enums import FileMode
-from .record import Record
+from .index_record import IndexRecord
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
                                      IntegerField, ListField, StringField, ImmutableEntity)
 from ..common.compat import string_types
@@ -50,7 +50,7 @@ class PathDataV1(PathData):
     inode_paths = ListField(string_types, required=False, nullable=True)
 
 
-class Paths(Entity):
+class PathsData(Entity):
     # from info/paths.json
     paths_version = IntegerField()
     paths = ListField(PathData)
@@ -61,14 +61,14 @@ class PackageInfo(ImmutableEntity):
     # attributes external to the package tarball
     extracted_package_dir = StringField()
     channel = ComposableField(Channel)
-    repodata_record = ComposableField(Record)
+    repodata_record = ComposableField(IndexRecord)
     url = StringField()
 
     # attributes within the package tarball
-    index_json_record = ComposableField(Record)
+    index_json_record = ComposableField(IndexRecord)
     icondata = StringField(required=False, nullable=True)
     package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
-    paths = ComposableField(Paths)
+    paths_data = ComposableField(PathsData)
 
 
 

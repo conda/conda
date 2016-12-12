@@ -32,7 +32,7 @@ from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.dist import Dist
 from ..models.enums import LinkType, PathType
-from ..models.record import Link, Record
+from ..models.index_record import Link, IndexRecord
 
 try:
     from cytoolz.itertoolz import concatv
@@ -464,11 +464,11 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         #   of the paths that will be removed when the package is unlinked
 
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        linked_package_record = Record.from_objects(package_info.repodata_record,
-                                                    package_info.index_json_record,
-                                                    files=all_target_short_paths,
-                                                    link=link,
-                                                    url=package_info.url)
+        linked_package_record = IndexRecord.from_objects(package_info.repodata_record,
+                                                         package_info.index_json_record,
+                                                         files=all_target_short_paths,
+                                                         link=link,
+                                                         url=package_info.url)
 
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
@@ -628,7 +628,7 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
     def reverse(self):
         super(RemoveLinkedPackageRecordAction, self).reverse()
         with open(self.target_full_path, 'r') as fh:
-            meta_record = Record(**json.loads(fh.read()))
+            meta_record = IndexRecord(**json.loads(fh.read()))
         log.trace("reloading cache entry %s", self.target_full_path)
         load_linked_data(self.target_prefix,
                          Dist(self.linked_package_data).dist_name,

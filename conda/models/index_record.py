@@ -43,7 +43,7 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
-class Record(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
+class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
     arch = EnumField(Arch, required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()

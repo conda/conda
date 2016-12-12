@@ -11,7 +11,7 @@ from ..common.compat import itervalues, odict
 from ..gateways.disk.delete import rm_rf
 from ..models.channel import Channel
 from ..models.dist import Dist
-from ..models.record import EMPTY_LINK, Record
+from ..models.index_record import EMPTY_LINK, IndexRecord
 
 log = getLogger(__name__)
 
@@ -23,7 +23,7 @@ log = getLogger(__name__)
 # Therefore, we have implemented a full internal cache of this
 # data to eliminate redundant file reads.
 linked_data_ = {}
-# type: Dict[Dist, Record]
+# type: Dict[Dist, IndexRecord]
 
 
 def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
@@ -63,7 +63,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
         dist = Dist(channel=None, dist_name=dist_name)
     else:
         dist = Dist(channel=schannel, dist_name=dist_name)
-    linked_data_[prefix][dist] = rec = Record(**rec)
+    linked_data_[prefix][dist] = rec = IndexRecord(**rec)
 
     return rec
 

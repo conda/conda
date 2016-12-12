@@ -24,7 +24,7 @@ from ..common.path import (explode_directories, get_all_directories, get_bin_dir
                            get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import collect_all_info_for_package, isfile
+from ..gateways.disk.read import read_package_info, isfile
 from ..gateways.disk.test import hardlink_supported, softlink_supported
 from ..models.dist import Dist
 from ..models.enums import LinkType
@@ -111,7 +111,7 @@ class UnlinkLinkTransaction(object):
 
         pkg_dirs_to_link = tuple(PackageCache[dist].extracted_package_dir for dist in link_dists)
         assert all(pkg_dirs_to_link)
-        packages_info_to_link = tuple(collect_all_info_for_package(index[dist], pkg_dir)
+        packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
 
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,

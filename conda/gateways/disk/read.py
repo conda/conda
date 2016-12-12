@@ -19,9 +19,9 @@ from ...base.constants import PREFIX_PLACEHOLDER
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode
-from ...models.package_info import PackageInfo, PathData, PathDataV1
+from ...models.package_info import PackageInfo, PathData, PathDataV1, PackageMetadata
 from conda.models.enums import PathType
-from ...models.record import Record
+from ...models.index_record import IndexRecord
 
 log = getLogger(__name__)
 
@@ -53,96 +53,109 @@ def yield_lines(path):
             raise
 
 
-# # attributes external to the package tarball
-# extracted_package_dir = StringField()
-# channel = ComposableField(Channel)
-# repodata_record = ComposableField(Record)
-# url = StringField()
-#
-# # attributes within the package tarball
-# paths_version = IntegerField()
-# paths = ListField(PathInfo)
-# index_json_record = ComposableField(Record)
-# icondata = StringField(required=False, nullable=True)
-# noarch = ComposableField(NoarchInfo, required=False,
-#                          nullable=True)  # TODO: this isn't noarch anymore; package_metadata.json  # NOQA
+def compute_md5sum(file_full_path):
+    if not isfile(file_full_path):
+        raise CondaFileNotFoundError(file_full_path)
+
+    hash_md5 = hashlib.md5()
+    with open(file_full_path, "rb") as fh:
+        for chunk in iter(partial(fh.read, 4096), b''):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
-def collect_all_info_for_package(record, extracted_package_directory):
+def is_exe(path):
+    return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))
+
+
+def read_package_info(record, extracted_package_directory):
+    index_json_record = read_index_json(extracted_package_directory)
+    icondata = read_icondata(extracted_package_directory)
+    package_metadata = read_package_metadata(extracted_package_directory),
+    paths_data = read_paths_json(extracted_package_directory),
+
+    return PackageInfo(
+        extracted_package_dir=extracted_package_directory,
+        channel=Channel(record.schannel or record.channel),
+        repodata_record=record,
+        url=record.url,
+
+        index_json_record=index_json_record,
+        icondata=icondata,
+        package_metadata=package_metadata,
+        paths_data=paths_data,
+    )
+
+
+# ####################################################
+# functions supporting read_package_info()
+# ####################################################
+
+def read_index_json(extracted_package_directory):
+    with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
+        record = IndexRecord(**json.load(fi))  # TODO: change to LinkedPackageData
+    return record
+
+
+def read_icondata(extracted_package_directory):
+    icon_file_path = join(extracted_package_directory, 'info', 'icon.png')
+    if isfile(icon_file_path):
+        with open(icon_file_path, 'rb') as f:
+            data = f.read()
+        return b64encode(data).decode('utf-8')
+    else:
+        return None
+
+
+def read_package_metadata(extracted_package_directory):
+    package_metadata_path = join(extracted_package_directory, 'info', 'package_metadata.json')
+    if isfile(package_metadata_path):
+        with open(package_metadata_path, 'r') as f:
+            return PackageMetadata(**json.loads(f.read()))
+    else:
+        return None
+
+
+def read_paths_json(extracted_package_directory):
     info_dir = join(extracted_package_directory, 'info')
-
-    files_path = join(extracted_package_directory, 'info', 'files')
-    file_json_path = join(extracted_package_directory, 'info', 'paths.json')
-
-    if isfile(file_json_path):
-        with open(file_json_path) as file_json:
-            data = json.load(file_json)
+    paths_json_path = join(info_dir, 'paths.json')
+    if isfile(paths_json_path):
+        with open(paths_json_path) as paths_json:
+            data = json.load(paths_json)
         if data.get('paths_version') != 1:
             raise CondaUpgradeError(dals("""
             The current version of conda is too old to install this package. (This version
             only supports paths.json schema version 1.)  Please update conda to install
             this package."""))
-
-        paths = (PathDataV1(**f) for f in data['paths'])
-        index_json_record = read_index_json(extracted_package_directory)
-        noarch = read_noarch(extracted_package_directory)
-        icondata = read_icondata(extracted_package_directory)
-        return PackageInfo(extracted_package_dir=extracted_package_directory,
-                           channel=Channel(record.schannel or record.channel),
-                           repodata_record=record,
-                           url=record.url,
-                           paths_version=1,
-                           paths=paths,
-                           index_json_record=index_json_record,
-                           icondata=icondata,
-                           noarch=noarch)
+        paths_data = (PathDataV1(**f) for f in data['paths'])
+        path_data = PathData(
+            paths_version=1,
+            paths_data=paths_data,
+        )
     else:
-        files = tuple(ln for ln in (line.strip() for line in yield_lines(files_path)) if ln)
-
         has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
         no_link = read_no_link(info_dir)
 
-        path_info_files = []
-        for f in files:
-            path_info = {"_path": f}
-            if f in has_prefix_files.keys():
-                path_info["prefix_placeholder"] = has_prefix_files[f][0]
-                path_info["file_mode"] = has_prefix_files[f][1]
-            if f in no_link:
-                path_info["no_link"] = True
-            if islink(join(extracted_package_directory, f)):
-                path_info["path_type"] = PathType.softlink
-            else:
-                path_info["path_type"] = PathType.hardlink
-            path_info_files.append(PathData(**path_info))
+        def read_files_file():
+            files_path = join(info_dir, 'files')
+            for f in (ln for ln in (line.strip() for line in yield_lines(files_path)) if ln):
+                path_info = {"_path": f}
+                if f in has_prefix_files.keys():
+                    path_info["prefix_placeholder"] = has_prefix_files[f][0]
+                    path_info["file_mode"] = has_prefix_files[f][1]
+                if f in no_link:
+                    path_info["no_link"] = True
+                if islink(join(extracted_package_directory, f)):
+                    path_info["path_type"] = PathType.softlink
+                else:
+                    path_info["path_type"] = PathType.hardlink
+                yield PathData(**path_info)
+        path_data = PathData(
+            paths_version=0,
+            paths_data=read_files_file(),
+        )
 
-        index_json_record = read_index_json(extracted_package_directory)
-        icondata = read_icondata(extracted_package_directory)
-        noarch = read_noarch(extracted_package_directory)
-        return PackageInfo(extracted_package_dir=extracted_package_directory,
-                           channel=Channel(record.schannel or record.channel),
-                           repodata_record=record,
-                           url=record.url,
-                           paths_version=0,
-                           paths=path_info_files,
-                           index_json_record=index_json_record,
-                           icondata=icondata,
-                           noarch=noarch)
-
-
-def read_noarch(extracted_package_directory):
-    noarch_path = join(extracted_package_directory, 'info', 'noarch.json')
-    if isfile(noarch_path):
-        with open(noarch_path, 'r') as f:
-            return json.loads(f.read())
-    else:
-        return None
-
-
-def read_index_json(extracted_package_directory):
-    with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-        record = Record(**json.load(fi))  # TODO: change to LinkedPackageData
-    return record
+    return path_data
 
 
 def read_has_prefix(path):
@@ -195,28 +208,3 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
-
-
-def read_icondata(extracted_package_directory):
-    icon_file_path = join(extracted_package_directory, 'info', 'icon.png')
-    if isfile(icon_file_path):
-        with open(icon_file_path, 'rb') as f:
-            data = f.read()
-        return b64encode(data).decode('utf-8')
-    else:
-        return None
-
-
-def compute_md5sum(file_full_path):
-    if not isfile(file_full_path):
-        raise CondaFileNotFoundError(file_full_path)
-
-    hash_md5 = hashlib.md5()
-    with open(file_full_path, "rb") as fh:
-        for chunk in iter(partial(fh.read, 4096), b''):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
-
-
-def is_exe(path):
-    return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))

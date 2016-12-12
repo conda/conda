@@ -8,7 +8,7 @@ from conda.base.context import reset_context
 from conda.common.compat import iteritems, text_type
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
-from conda.models.record import Record
+from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
 from conda.models.package import Package
 from os.path import dirname, join
@@ -19,7 +19,7 @@ from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisf
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(key): Record(**value) for key, value in iteritems(json.load(fi))}
+    index = {Dist(key): IndexRecord(**value) for key, value in iteritems(json.load(fi))}
 
 r = Resolve(index)
 
@@ -530,7 +530,7 @@ def test_nonexistent():
 
 def test_nonexistent_deps():
     index2 = index.copy()
-    index2['mypackage-1.0-py33_0.tar.bz2'] = Record(**{
+    index2['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
@@ -538,7 +538,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
     })
-    index2['mypackage-1.1-py33_0.tar.bz2'] = Record(**{
+    index2['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*'],
@@ -546,7 +546,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
     })
-    index2['anotherpackage-1.0-py33_0.tar.bz2'] = Record(**{
+    index2['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage 1.1'],
@@ -554,7 +554,7 @@ def test_nonexistent_deps():
         'requires': ['nose', 'mypackage 1.1'],
         'version': '1.0',
     })
-    index2['anotherpackage-2.0-py33_0.tar.bz2'] = Record(**{
+    index2['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage'],
@@ -631,7 +631,7 @@ def test_nonexistent_deps():
 
     # This time, the latest version is messed up
     index3 = index.copy()
-    index3['mypackage-1.1-py33_0.tar.bz2'] = Record(**{
+    index3['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
@@ -639,7 +639,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
     })
-    index3['mypackage-1.0-py33_0.tar.bz2'] = Record(**{
+    index3['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*'],
@@ -647,7 +647,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
     })
-    index3['anotherpackage-1.0-py33_0.tar.bz2'] = Record(**{
+    index3['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage 1.0'],
@@ -655,7 +655,7 @@ def test_nonexistent_deps():
         'requires': ['nose', 'mypackage 1.0'],
         'version': '1.0',
     })
-    index3['anotherpackage-2.0-py33_0.tar.bz2'] = Record(**{
+    index3['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage'],
@@ -734,7 +734,7 @@ def test_nonexistent_deps():
 
 def test_install_package_with_feature():
     index2 = index.copy()
-    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = Record(**{
+    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = IndexRecord(**{
         'build': 'featurepy33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
@@ -742,7 +742,7 @@ def test_install_package_with_feature():
         'version': '1.0',
         'features': 'feature',
     })
-    index2['feature-1.0-py33_0.tar.bz2'] = Record(**{
+    index2['feature-1.0-py33_0.tar.bz2'] = IndexRecord(**{
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
@@ -760,7 +760,7 @@ def test_install_package_with_feature():
 
 def test_circular_dependencies():
     index2 = index.copy()
-    index2['package1-1.0-0.tar.bz2'] = Record(**{
+    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
         'build': '0',
         'build_number': 0,
         'depends': ['package2'],
@@ -768,7 +768,7 @@ def test_circular_dependencies():
         'requires': ['package2'],
         'version': '1.0',
     })
-    index2['package2-1.0-0.tar.bz2'] = Record(**{
+    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
         'build': '0',
         'build_number': 0,
         'depends': ['package1'],
@@ -882,7 +882,7 @@ def test_no_features():
             ]]]
 
     index2 = index.copy()
-    index2["pandas-0.12.0-np16py27_0.tar.bz2"] = Record(**{
+    index2["pandas-0.12.0-np16py27_0.tar.bz2"] = IndexRecord(**{
             "build": "np16py27_0",
             "build_number": 0,
             "depends": [
@@ -901,7 +901,7 @@ def test_no_features():
             "version": "0.12.0"
         })
     # Make it want to choose the pro version by having it be newer.
-    index2["numpy-1.6.2-py27_p5.tar.bz2"] = Record(**{
+    index2["numpy-1.6.2-py27_p5.tar.bz2"] = IndexRecord(**{
             "build": "py27_p5",
             "build_number": 5,
             "depends": [
@@ -1001,7 +1001,7 @@ def test_broken_install():
     # Remove the installed version of pandas from the index
     index2 = index.copy()
     d = Dist('pandas-0.11.0-np16py27_1.tar.bz2')
-    index2[d] = Record.from_objects(index2[d], priority=MAX_CHANNEL_PRIORITY)
+    index2[d] = IndexRecord.from_objects(index2[d], priority=MAX_CHANNEL_PRIORITY)
     r2 = Resolve(index2)
     installed2 = r2.install(['pandas', 'python 2.7*', 'numpy 1.6*'], installed)
     assert installed2 == [Dist(d) for d in [
@@ -1078,13 +1078,13 @@ def test_channel_priority():
     os.environ['CONDA_CHANNEL_PRIORITY'] = 'True'
     reset_context(())
 
-    r2.index[Dist(fn2)] = Record.from_objects(r2.index[Dist(fn2)], priority=0)
+    r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=0)
     # Should select the "other", older package because it
     # has a lower channel priority number
     installed1 = r2.install(spec)
     # Should select the newer package because now the "other"
     # package has a higher priority number
-    r2.index[Dist(fn2)] = Record.from_objects(r2.index[Dist(fn2)], priority=2)
+    r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=2)
     installed2 = r2.install(spec)
     # Should also select the newer package because we have
     # turned off channel priority altogether
@@ -1092,7 +1092,7 @@ def test_channel_priority():
     os.environ['CONDA_CHANNEL_PRIORITY'] = 'False'
     reset_context(())
 
-    r2.index[Dist(fn2)] = Record.from_objects(r2.index[Dist(fn2)], priority=0)
+    r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=0)
     installed3 = r2.install(spec)
     assert installed1 != installed2
     assert installed1 != installed3

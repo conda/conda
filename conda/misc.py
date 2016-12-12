@@ -23,7 +23,7 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.read import compute_md5sum
 from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
 from .models.dist import Dist
-from .models.record import Record
+from .models.index_record import IndexRecord
 from .plan import execute_actions
 from .resolve import MatchSpec, Resolve
 
@@ -89,7 +89,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             # TODO: we should be able to query across channels for no-channel dist + md5sum matches
         elif url.startswith('file:/'):
             md5sum = md5sum or compute_md5sum(url_to_path(url))
-            record = Record(**{
+            record = IndexRecord(**{
                 'fn': dist.to_filename(),
                 'url': url,
                 'md5': md5sum,
@@ -100,7 +100,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             })
         else:
             # non-local url that's not in index
-            record = Record(**{
+            record = IndexRecord(**{
                 'fn': dist.to_filename(),
                 'url': url,
                 'md5': md5sum,
@@ -119,7 +119,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     # merge new link_index into index
     for dist, record in iteritems(link_index):
         _fetched_record = index.get(dist)
-        index[dist] = Record.from_objects(record, _fetched_record) if _fetched_record else record
+        index[dist] = IndexRecord.from_objects(record, _fetched_record) if _fetched_record else record
 
     # unlink any installed packages with same package name
     unlink_dists = tuple(linked[dist.name] for dist in link_dists if dist.name in linked)
@@ -291,7 +291,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     for dist, info in iteritems(drecs):
         fkey = dist
         if fkey not in index:
-            index[fkey] = Record.from_objects(info, not_fetched=True)
+            index[fkey] = IndexRecord.from_objects(info, not_fetched=True)
             r = None
         urls[dist] = info['url']
 

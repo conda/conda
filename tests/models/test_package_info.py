@@ -1,13 +1,13 @@
 from conda.models.channel import Channel
 from conda.models.package_info import PackageInfo, PathData, PathType, Noarch
 from conda.models.enums import FileMode, PathType
-from conda.models.record import Record
+from conda.models.index_record import IndexRecord
 from unittest import TestCase
 
 
 class DefaultPackageInfo(TestCase):
     def test_package_info(self):
-        index_json_record = Record(build=0, build_number=0, name="test_foo", version=0)
+        index_json_record = IndexRecord(build=0, build_number=0, name="test_foo", version=0)
         icondata = "icondata"
         noarch = Noarch(type="python", entry_points=["test:foo"])
         paths = [PathData(_path="test/path/1", file_mode=FileMode.text, path_type=PathType.hardlink,
@@ -26,7 +26,7 @@ class DefaultPackageInfo(TestCase):
                                    icondata=icondata,
                                    noarch=noarch)
 
-        self.assertIsInstance(package_info.paths[0], PathData)
-        self.assertIsInstance(package_info.index_json_record, Record)
+        self.assertIsInstance(package_info.paths_data[0], PathData)
+        self.assertIsInstance(package_info.index_json_record, IndexRecord)
         self.assertIsInstance(package_info.noarch, Noarch)
-        self.assertEquals(package_info.paths[0].path, "test/path/1")
+        self.assertEquals(package_info.paths_data[0].path, "test/path/1")
