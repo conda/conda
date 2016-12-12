@@ -35,7 +35,7 @@ fail_unknown_host = False
 
 
 def supplement_index_with_prefix(index, prefix, channel_priority_map):
-    # type: (Dict[Dist, IndexRecord], str, Dict[channel_url, Tuple[canonical_name, priority]) -> None
+    # type: (Dict[Dist, IndexRecord], str, Dict[channel_url, Tuple[canonical_name, priority]) -> None  # NOQA
     # supplement index with information from prefix/conda-meta
     assert prefix
 
@@ -273,7 +273,6 @@ def _collect_repodatas_concurrent(executor, use_cache, urls):
 
 
 def _collect_repodatas(use_cache, urls):
-    # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]  # sorta a lie
     # TODO: there HAS to be a way to clean up this logic
     if context.concurrent:
         try:

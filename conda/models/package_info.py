@@ -3,13 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from .enums import FileMode
+from .channel import Channel
+from .enums import FileMode, PathType
 from .index_record import IndexRecord
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
-                                     IntegerField, ListField, StringField, ImmutableEntity)
+                                     ImmutableEntity, IntegerField, ListField, StringField)
 from ..common.compat import string_types
-from ..models.channel import Channel
-from ..models.enums import PathType
 
 log = getLogger(__name__)
 
@@ -69,6 +68,3 @@ class PackageInfo(ImmutableEntity):
     icondata = StringField(required=False, nullable=True)
     package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
     paths_data = ComposableField(PathsData)
-
-
-
