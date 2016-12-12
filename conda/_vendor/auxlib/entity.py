@@ -742,8 +742,9 @@ class Entity(object):
 
     def __repr__(self):
         def _valid(key):
-            if key.startswith('_'):
-                return False
+            # TODO: re-enable once aliases are implemented
+            # if key.startswith('_'):
+            #     return False
             try:
                 getattr(self, key)
                 return True

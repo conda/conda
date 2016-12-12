@@ -173,7 +173,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                 return LinkPathAction(transaction_context, package_info,
                                       package_info.extracted_package_dir, source_path_info.path,
                                       target_prefix, target_short_path, link_type)
-        return tuple(make_file_link_action(spi) for spi in package_info.paths)
+        return tuple(make_file_link_action(spi) for spi in package_info.paths_data.paths)
 
     @classmethod
     def create_directory_actions(cls, transaction_context, package_info, target_prefix,

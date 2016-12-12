@@ -19,7 +19,7 @@ from ...base.constants import PREFIX_PLACEHOLDER
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode
-from ...models.package_info import PackageInfo, PathData, PathDataV1, PackageMetadata
+from ...models.package_info import PackageInfo, PathData, PathDataV1, PackageMetadata, PathsData
 from conda.models.enums import PathType
 from ...models.index_record import IndexRecord
 
@@ -71,8 +71,8 @@ def is_exe(path):
 def read_package_info(record, extracted_package_directory):
     index_json_record = read_index_json(extracted_package_directory)
     icondata = read_icondata(extracted_package_directory)
-    package_metadata = read_package_metadata(extracted_package_directory),
-    paths_data = read_paths_json(extracted_package_directory),
+    package_metadata = read_package_metadata(extracted_package_directory)
+    paths_data = read_paths_json(extracted_package_directory)
 
     return PackageInfo(
         extracted_package_dir=extracted_package_directory,
@@ -127,10 +127,9 @@ def read_paths_json(extracted_package_directory):
             The current version of conda is too old to install this package. (This version
             only supports paths.json schema version 1.)  Please update conda to install
             this package."""))
-        paths_data = (PathDataV1(**f) for f in data['paths'])
-        path_data = PathData(
+        paths_data = PathsData(
             paths_version=1,
-            paths_data=paths_data,
+            paths=(PathDataV1(**f) for f in data['paths']),
         )
     else:
         has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
@@ -150,12 +149,11 @@ def read_paths_json(extracted_package_directory):
                 else:
                     path_info["path_type"] = PathType.hardlink
                 yield PathData(**path_info)
-        path_data = PathData(
+        paths_data = PathsData(
             paths_version=0,
-            paths_data=read_files_file(),
+            paths=read_files_file(),
         )
-
-    return path_data
+    return paths_data
 
 
 def read_has_prefix(path):
