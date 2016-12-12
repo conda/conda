@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.models.channel import Channel
-from conda.models.enums import PathType
 from logging import getLogger
 
 from .enums import FileMode
@@ -10,13 +8,26 @@ from .record import Record
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
                                      IntegerField, ListField, StringField)
 from ..common.compat import string_types
+from ..models.channel import Channel
+from ..models.enums import PathType
 
 log = getLogger(__name__)
 
 
-class NoarchInfo(Entity):
+class Noarch(Entity):
     type = StringField()
     entry_points = ListField(string_types, required=False)
+
+
+class PreferredEnv(Entity):
+    name = StringField()
+    executable_paths = ListField(string_types, required=False)
+
+
+class PackageMetadata(Entity):
+    version = IntegerField()
+    noarch = ComposableField(Noarch, required=False)
+    preferred_env = ComposableField(PreferredEnv, required=False)
 
 
 class PathInfo(Entity):
@@ -47,8 +58,8 @@ class PackageInfo(Entity):
     url = StringField()
 
     # attributes within the package tarball
-    paths_version = IntegerField()
-    paths = ListField(PathInfo)
+    paths_version = IntegerField()   # from info/paths.json
+    paths = ListField(PathInfo)  # from info/paths.json
     index_json_record = ComposableField(Record)
     icondata = StringField(required=False, nullable=True)
-    noarch = ComposableField(NoarchInfo, required=False, nullable=True)  # TODO: this isn't noarch anymore; package_metadata.json  # NOQA
+    package_metadata = ComposableField(Noarch, required=False, nullable=True)
