@@ -2,8 +2,22 @@
 """Common collection classes."""
 from __future__ import print_function, division, absolute_import
 from functools import reduce
+from collections import Mapping, Set
 
-from .compat import text_type
+from .compat import isiterable, iteritems, odict, text_type
+
+
+def make_immutable(value):
+    # this function is recursive, and if nested data structures fold back on themselves,
+    #   there will likely be recursion errors
+    if isinstance(value, Mapping):
+        return frozendict((k, make_immutable(v)) for k, v in iteritems(value))
+    elif isinstance(value, Set):
+        return frozenset(make_immutable(v) for v in value)
+    elif isiterable(value):
+        return tuple(make_immutable(v) for v in value)
+    else:
+        return value
 
 
 # http://stackoverflow.com/a/14620633/2127762
@@ -23,7 +37,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-class frozendict(dict):
+class frozendict(odict):
 
     def __key(self):
         return tuple((k, self[k]) for k in sorted(self))

@@ -111,7 +111,12 @@ def read_package_metadata(extracted_package_directory):
     package_metadata_path = join(extracted_package_directory, 'info', 'package_metadata.json')
     if isfile(package_metadata_path):
         with open(package_metadata_path, 'r') as f:
-            return PackageMetadata(**json.loads(f.read()))
+            package_metadata = PackageMetadata(**json.loads(f.read()))
+            if package_metadata.get('package_metadata_version') != 1:
+                raise CondaUpgradeError(dals("""
+                The current version of conda is too old to install this package. (This version
+                only supports paths.json schema version 1.)  Please update conda to install
+                this package."""))
     else:
         return None
 

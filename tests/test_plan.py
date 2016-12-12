@@ -3,6 +3,7 @@ from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.cli import common
 from conda.core import linked_data
+from conda.core.package_cache import ProgressiveFetchExtract
 from conda.exceptions import PackageNotFoundError, InstallError
 from conda.models.channel import prioritize_channels
 from conda.models.dist import Dist
@@ -895,20 +896,24 @@ class PlanFromActionsTests(unittest.TestCase):
 
     def test_plan_link_menuinst(self):
         menuinst = Dist('menuinst-1.4.2-py27_0')
+        menuinst_record = IndexRecord.from_objects(menuinst)
         ipython = Dist('ipython-5.1.0-py27_1')
+        ipython_record = IndexRecord.from_objects(ipython)
         actions = {
             'PREFIX': 'aprefix',
             'LINK': [ipython, menuinst],
         }
 
-        conda_plan = plan.plan_from_actions(actions, {})
-        assert False, 'this test needs updated'
+        conda_plan = plan.plan_from_actions(actions, {
+            menuinst: menuinst_record,
+            ipython: ipython_record,
+        })
 
         expected_plan = [
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
             # ('PROGRESS', '2'),
-            ('PROGRESSIVEFETCHEXTRACT', (ipython, menuinst)),
+            ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (ipython, menuinst))),
             ('UNLINKLINKTRANSACTION', ((), (ipython), menuinst)),
         ]
 
@@ -918,7 +923,7 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
-                ('PROGRESSIVEFETCHEXTRACT', (menuinst, ipython)),
+                ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (menuinst, ipython))),
                 ('UNLINKLINKTRANSACTION', ((), (menuinst, ipython))),
             ]
 
