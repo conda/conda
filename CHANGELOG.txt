@@ -95,8 +95,11 @@
 2016-XX-XX   3.19.4:
 --------------------
   * improve handling of local dependency information, #2107
-  * show warning message for pre-link scripts, #3727
+  * use install.rm_rf for TemporaryDirectory cleanup, #3425
+  * fix the api->conda substitution, #3456
   * error and exit for install of packages that require conda minimum version 4.3, #3726
+  * show warning message for pre-link scripts, #3727
+  * fix silent directory removal, #3730
   * fix conda/install.py single-file behavior, #3854
 
 
