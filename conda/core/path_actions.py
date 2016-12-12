@@ -396,15 +396,14 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       python_entry_point_actions):
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
         if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
             def package_executable_short_paths():
                 exe_paths = (package_info.package_metadata
                              and package_info.package_metadata.preferred_env
                              and package_info.package_metadata.preferred_env.executable_paths
                              or ())
-                for axn in concatv(exe_paths, python_entry_point_actions):
+                for axn in exe_paths:
                     yield axn.target_short_path
 
             private_env_prefix = preferred_env_to_prefix(

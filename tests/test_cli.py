@@ -199,8 +199,8 @@ class TestJson(unittest.TestCase):
     #     self.assertJsonSuccess(res)
 
     def test_list(self):
-        # res = capture_json_with_argv('conda list --json')
-        # self.assertIsInstance(res, list)
+        res = capture_json_with_argv('conda list --json')
+        self.assertIsInstance(res, list)
 
         res = capture_json_with_argv('conda list -r --json')
         self.assertTrue(isinstance(res, list) or

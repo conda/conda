@@ -283,8 +283,6 @@ class UnlinkLinkTransaction(object):
 
         application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
             *required_quad,
-            file_link_actions=file_link_actions,
-            python_entry_point_actions=python_entry_point_actions,
         )
         private_envs_meta_actions = CreatePrivateEnvMetaAction(*required_quad)
 
