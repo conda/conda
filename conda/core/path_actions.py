@@ -287,7 +287,7 @@ class MakeMenuAction(CreateInPrefixPathAction):
         if on_win and context.shortcuts:
             MENU_RE = re.compile(r'^menu/.*\.json$', re.IGNORECASE)
             return tuple(cls(transaction_context, package_info, target_prefix, spi.path)
-                         for spi in package_info.paths if bool(MENU_RE.match(spi.path)))
+                         for spi in package_info.paths_data.paths if bool(MENU_RE.match(spi.path)))
         else:
             return ()
 
