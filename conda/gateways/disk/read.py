@@ -19,7 +19,7 @@ from ...base.constants import PREFIX_PLACEHOLDER
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode
-from ...models.package_info import PackageInfo, PathInfo, PathInfoV1
+from ...models.package_info import PackageInfo, PathData, PathDataV1
 from conda.models.enums import PathType
 from ...models.record import Record
 
@@ -83,7 +83,7 @@ def collect_all_info_for_package(record, extracted_package_directory):
             only supports paths.json schema version 1.)  Please update conda to install
             this package."""))
 
-        paths = (PathInfoV1(**f) for f in data['paths'])
+        paths = (PathDataV1(**f) for f in data['paths'])
         index_json_record = read_index_json(extracted_package_directory)
         noarch = read_noarch(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)
@@ -114,7 +114,7 @@ def collect_all_info_for_package(record, extracted_package_directory):
                 path_info["path_type"] = PathType.softlink
             else:
                 path_info["path_type"] = PathType.hardlink
-            path_info_files.append(PathInfo(**path_info))
+            path_info_files.append(PathData(**path_info))
 
         index_json_record = read_index_json(extracted_package_directory)
         icondata = read_icondata(extracted_package_directory)

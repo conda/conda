@@ -6,7 +6,7 @@ from logging import getLogger
 from .enums import FileMode
 from .record import Record
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
-                                     IntegerField, ListField, StringField)
+                                     IntegerField, ListField, StringField, ImmutableEntity)
 from ..common.compat import string_types
 from ..models.channel import Channel
 from ..models.enums import PathType
@@ -25,12 +25,13 @@ class PreferredEnv(Entity):
 
 
 class PackageMetadata(Entity):
-    version = IntegerField()
+    # from info/package_metadata.json
+    package_metadata_version = IntegerField()
     noarch = ComposableField(Noarch, required=False)
     preferred_env = ComposableField(PreferredEnv, required=False)
 
 
-class PathInfo(Entity):
+class PathData(Entity):
     _path = StringField()
     prefix_placeholder = StringField(required=False, nullable=True)
     file_mode = EnumField(FileMode, required=False, nullable=True)
@@ -43,13 +44,19 @@ class PathInfo(Entity):
         return self._path
 
 
-class PathInfoV1(PathInfo):
+class PathDataV1(PathData):
     sha256 = StringField()
     size_in_bytes = IntegerField()
     inode_paths = ListField(string_types, required=False, nullable=True)
 
 
-class PackageInfo(Entity):
+class Paths(Entity):
+    # from info/paths.json
+    paths_version = IntegerField()
+    paths = ListField(PathData)
+
+
+class PackageInfo(ImmutableEntity):
 
     # attributes external to the package tarball
     extracted_package_dir = StringField()
@@ -58,8 +65,10 @@ class PackageInfo(Entity):
     url = StringField()
 
     # attributes within the package tarball
-    paths_version = IntegerField()   # from info/paths.json
-    paths = ListField(PathInfo)  # from info/paths.json
     index_json_record = ComposableField(Record)
     icondata = StringField(required=False, nullable=True)
     package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
+    paths = ComposableField(Paths)
+
+
+
