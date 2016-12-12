@@ -11,11 +11,13 @@
   it's impossible to anticipate every failure mechanism. In some circumstances, OS file
   permissions cannot be fully known until an operation is attempted and fails. And conda itself
   is not without bugs. Moving forward, unforeseeable failures won't be catastrophic. (#3833, #4030)
+
 * **Progressive Fetch and Extract Transactions**: Like package unlinking and linking, the
   download and extract phases of package handling have also been given transaction-like behavior.
   The distinction is the rollback on error is limited to a single package. Rather than rolling back
   the download and extract operation for all packages, the single-package rollback prevents the
   need for having to re-download every package if an error is encountered. (#4021, #4030)
+
 * **Generic- and Python-Type Noarch/Universal Packages**: Along with conda-build 2.1.0, a
   noarch/universal type for python packages is officially supported. These are much like universal
   python wheels. Files in a python noarch package are linked into a prefix just like any other
@@ -24,12 +26,15 @@
       in the environment,
   (2) conda creates the python entry points specified in the conda-build recipe, and
   (3) conda compiles pyc files at install time when prefix write permissions are guaranteed.
+
   Python noarch packages must be "fully universal."  They cannot have OS- or
   python version-specific dependencies.  They cannot have OS- or python version-specific "scripts"
   files. If these features are needed, traditional conda packages must be used. (#3712)
+
 * **Multi-User Package Caches**: While the on-disk package cache structure has been preserved,
   the core logic implementing package cache handling has had a complete overhaul.  Writable and
   read-only package caches are fully supported. (#4021)
+
 * **Python API Module**: An oft requested feature is the ability to use conda as a python library,
   obviating the need to "shell out" to another python process. Conda 4.3 includes a
   `conda.cli.python_api` module that facilitates this use case. While we maintain the user-facing
