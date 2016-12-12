@@ -137,7 +137,7 @@ def stderr_log_level(level, logger_name=None):
             logr.propagate = _prpgt
 
 
-def attach_stderr_handler(level=WARN, logger_name=None, propagate=False):
+def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatter=None):
     # get old stderr logger
     logr = getLogger(logger_name)
     old_stderr_handler = next((handler for handler in logr.handlers if handler.name == 'stderr'),
@@ -147,7 +147,7 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False):
     new_stderr_handler = StreamHandler(sys.stderr)
     new_stderr_handler.name = 'stderr'
     new_stderr_handler.setLevel(NOTSET)
-    new_stderr_handler.setFormatter(_FORMATTER)
+    new_stderr_handler.setFormatter(formatter or _FORMATTER)
 
     # do the switch
     with _logger_lock():
