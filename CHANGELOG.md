@@ -15,6 +15,7 @@
 * remove dead install_tar function (#3641)
 * no longer symlinking conda for activated envs (#3712)
 * remove *all* file locks (#3862)
+* no longer testing against conda-build < 2.0 (#4030)
 
 ### Improvements
 * remove *all* file locks (#3862)
