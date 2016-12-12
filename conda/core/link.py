@@ -294,7 +294,6 @@ class UnlinkLinkTransaction(object):
         meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
             *required_quad, all_target_short_paths=all_target_short_paths
         )
-
         # the ordering here is significant
         return tuple(concatv(
             create_directory_actions,

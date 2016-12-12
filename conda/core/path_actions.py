@@ -359,7 +359,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         if noarch and noarch.type == 'python':
             actions = tuple(cls(transaction_context, package_info, target_prefix,
                                 *this_triplet(ep_def))
-                            for ep_def in package_info.noarch.entry_points)
+                            for ep_def in noarch.entry_points)
 
             if on_win:
                 actions += tuple(

@@ -1,8 +1,5 @@
 ## 4.3.0 (unreleased)
 
-# TODO before release
-* confirm correct support for paths.json file
-
 ### New Features
 * **Unlink and Link Packages in a Single Transaction**: (#3833)
 * **Generic- and Python-Type Noarch/Universal Packages**: (#3712)

@@ -350,8 +350,10 @@ class ProgressiveFetchExtract(object):
         # returns a cache_action and extract_action
 
         # look in all caches for a dist that's already extracted
-        # NOTE: next we check the md5 sum of a tarball, but we're not checking that here,
-        #       so this could potentially give us a stale package
+        # NOTE: Next we check the md5 sum of a tarball, but we're not checking that here,
+        #         so this could potentially give us a stale package.
+        #       To remedy this, a package will have to be more like a repository, containing
+        #         something like a repodata.json so we can store full index records of packages.
         # if a matching extracted package exists, there's nothing to do here
         extracted_pc_entry = first(
             (PackageCache(pkgs_dir).get(dist) for pkgs_dir in context.pkgs_dirs),

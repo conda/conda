@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import hashlib
+import json
+import shlex
 from base64 import b64encode
 from collections import namedtuple
-from conda.common.compat import on_win
 from errno import ENOENT
 from functools import partial
-import hashlib
 from itertools import chain
-import json
 from logging import getLogger
-from os import listdir, access, X_OK
+from os import X_OK, access, listdir
 from os.path import exists, isdir, isfile, islink, join
-import shlex
 
+from conda.common.compat import on_win
+from conda.models.enums import PathType
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode
-from ...models.package_info import PackageInfo, PathData, PathDataV1, PackageMetadata, PathsData
-from conda.models.enums import PathType
 from ...models.index_record import IndexRecord
+from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathDataV1, PathsData
 
 log = getLogger(__name__)
 
@@ -112,11 +112,12 @@ def read_package_metadata(extracted_package_directory):
     if isfile(package_metadata_path):
         with open(package_metadata_path, 'r') as f:
             package_metadata = PackageMetadata(**json.loads(f.read()))
-            if package_metadata.get('package_metadata_version') != 1:
+            if package_metadata.package_metadata_version != 1:
                 raise CondaUpgradeError(dals("""
                 The current version of conda is too old to install this package. (This version
                 only supports paths.json schema version 1.)  Please update conda to install
                 this package."""))
+        return package_metadata
     else:
         return None
 
