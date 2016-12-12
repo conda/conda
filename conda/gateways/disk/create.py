@@ -7,6 +7,7 @@ import shutil
 import sys
 import tarfile
 import traceback
+from conda.base.context import context
 from errno import EEXIST
 from io import open
 from logging import getLogger
@@ -49,7 +50,7 @@ if __name__ == '__main__':
 
 
 def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
-    if exists(target_full_path):
+    if exists(target_full_path) and not context.force:
         raise ClobberError(
             destination_path=target_full_path,
             source_path=None,
@@ -66,7 +67,7 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
 
 
 def create_windows_python_entry_point(target_full_path, module, func):
-    if exists(target_full_path):
+    if exists(target_full_path) and not context.force:
         raise ClobberError(
             destination_path=target_full_path,
             source_path=None,
@@ -106,7 +107,7 @@ def write_linked_package_record(prefix, record):
         makedirs(meta_dir)
     dist = Dist(record)
     conda_meta_full_path = join(meta_dir, dist.to_filename('.json'))
-    if exists(conda_meta_full_path):
+    if exists(conda_meta_full_path) and not context.force:
         raise ClobberError(
             destination_path=conda_meta_full_path,
             source_path=None,
@@ -244,7 +245,7 @@ def _split_on_unix(command):
 
 
 def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
-    if exists(pyc_full_path):
+    if exists(pyc_full_path) and not context.force:
         raise ClobberError(pyc_full_path, py_full_path, PathType.pyc_file)
 
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
@@ -310,7 +311,7 @@ def remove_private_envs_meta(pkg):
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
-    if exists(target_full_path):
+    if exists(target_full_path) and not context.force:
         raise ClobberError(
             destination_path=target_full_path,
             source_path=None,

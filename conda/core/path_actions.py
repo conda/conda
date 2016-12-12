@@ -617,7 +617,7 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
                                                               target_prefix, target_short_path)
 
     def execute(self):
-        super(get_python_short_path(), self).execute()
+        super(RemoveLinkedPackageRecordAction, self).execute()
         delete_linked_data(self.target_prefix, Dist(self.linked_package_data),
                            delete=False)
 
