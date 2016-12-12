@@ -62,4 +62,4 @@ class PackageInfo(Entity):
     paths = ListField(PathInfo)  # from info/paths.json
     index_json_record = ComposableField(Record)
     icondata = StringField(required=False, nullable=True)
-    package_metadata = ComposableField(Noarch, required=False, nullable=True)
+    package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
