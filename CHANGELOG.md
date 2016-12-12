@@ -6,13 +6,10 @@
 
 ## 4.3.0 (unreleased)
 
-# TODO before release
-* confirm correct support for paths.json file
-
 ### New Features
-* **Unlink and Link Packages in a Single Transaction**: (#3833)
+* **Unlink and Link Packages in a Single Transaction**: (#3833, #4030)
 * **Generic- and Python-Type Noarch/Universal Packages**: (#3712)
-* progressive fetch and extract transactions (#4021)
+* progressive fetch and extract transactions (#4021, #4030)
 * add cli.python_api module (#4028)
 * multi-user package caches (#4021)
 
@@ -21,6 +18,7 @@
 * remove dead install_tar function (#3641)
 * no longer symlinking conda for activated envs (#3712)
 * remove *all* file locks (#3862)
+* no longer testing against conda-build < 2.0 (#4030)
 
 ### Improvements
 * remove *all* file locks (#3862)
@@ -28,7 +26,8 @@
 * allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
 * the 'r' channel is now part of defaults (#3677)
 * private environment support for conda (#3988)
-* support new info/paths.json file (#3927, #3943)
+* support v1 info/paths.json file (#3927, #3943)
+* support v1 info/package_metadata.json (#4030)
 * improved solver hint detection, simplified filtering (#3597)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
@@ -83,29 +82,6 @@
 ### Bug Fixes
 * fix location of temporary hard links of index.json (#3975)
 * fix potential errors in multi-channel export and offline clone (#3995)
-
-
-## 4.1.13 (unreleased)
-
-### Deprecations/Breaking Changes
-* show warning message for pre-link scripts (#3727)
-* error and exit for install of packages that require conda minimum version 4.3 (#3726)
-
-### Improvements
-* use install.rm_rf for TemporaryDirectory cleanup (#3425)
-* improve handling of local dependency information (#2107)
-
-### Bug Fixes
-* fix conda/install.py single-file behavior (#3854)
-* fix the api->conda substitution (#3456)
-* fix silent directory removal (#3730)
-
-
-## 3.19.4 (unreleased)
-
-### Deprecations/Breaking Changes
-* show warning message for pre-link scripts (#3727)
-* error and exit for install of packages that require conda minimum version 4.3 (#3726)
 
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
@@ -373,6 +349,17 @@
 * rename CHANGELOG to md (#3087)
 
 
+## 4.1.13 (unreleased)
+
+* error and exit for install of packages that require conda minimum version 4.3, #3726
+* show warning message for pre-link scripts, #3727
+
+
+## 4.1.12 (2016-09-08)
+  * fix #2837 "File exists" in symlinked path with parallel activations, #3210
+  * fix prune option when installing packages, #3354
+  * change check for placeholder to be more friendly to long PATH, #3349
+
 ## 4.1.11 (2016-07-26)
 
 * fix PS1 backup in activate script, #3135 via #3155
@@ -614,6 +601,17 @@
 * Conda finally has an official logo.
 * Fix `conda clean --packages` on Windows, #1944
 * Conda sub-commands now support dashes in names, #1840
+
+
+3.19.4 (unreleased):
+--------------------
+  * improve handling of local dependency information, #2107
+  * use install.rm_rf for TemporaryDirectory cleanup, #3425
+  * fix the api->conda substitution, #3456
+  * error and exit for install of packages that require conda minimum version 4.3, #3726
+  * show warning message for pre-link scripts, #3727
+  * fix silent directory removal, #3730
+  * fix conda/install.py single-file behavior, #3854
 
 
 2016-02-19   3.19.3:

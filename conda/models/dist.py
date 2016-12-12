@@ -7,7 +7,7 @@ import re
 
 from .channel import Channel
 from .package_info import PackageInfo
-from .record import Record
+from .index_record import IndexRecord
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, StringField
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS, UNKNOWN_CHANNEL
@@ -30,7 +30,7 @@ class DistType(EntityType):
                 return value
             elif value.__class__.__name__ == "Package":
                 return Dist.from_string(value.fn, channel_override=value.schannel)
-            elif isinstance(value, Record):
+            elif isinstance(value, IndexRecord):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,

@@ -427,7 +427,6 @@ def print_conda_exception(exception):
 
     stdoutlogger = getLogger('stdout')
     stderrlogger = getLogger('stderr')
-
     if context.json:
         import json
         # stdoutlogger.info('https://anaconda.org/t/fjffjelk3jl4TGEGGjl343/username/package/')

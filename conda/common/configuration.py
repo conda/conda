@@ -17,8 +17,7 @@ Limitations:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod
-from collections import Mapping, Set, defaultdict
-from enum import Enum
+from collections import Mapping, defaultdict
 from glob import glob
 from itertools import chain
 from logging import getLogger
@@ -26,12 +25,14 @@ from os import environ, stat
 from os.path import basename, join
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
+from enum import Enum
+
 from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, string_types,
                      text_type, with_metaclass)
 from .constants import EMPTY_MAP, NULL
 from .yaml import yaml_load
 from .. import CondaError, CondaMultiError
-from .._vendor.auxlib.collection import AttrDict, first, frozendict, last
+from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
@@ -165,19 +166,6 @@ class ParameterFlag(Enum):
             return cls.from_value(string)
         except (ValueError, AttributeError):
             return None
-
-
-# TODO: move elsewhere, probably auxlib
-# TODO: need to add order to at least frozendict, and preferrably frozenset
-def make_immutable(value):
-    if isinstance(value, Mapping):
-        return frozendict(value)
-    elif isinstance(value, Set):
-        return frozenset(value)
-    elif isiterable(value):
-        return tuple(value)
-    else:
-        return value
 
 
 @with_metaclass(ABCMeta)

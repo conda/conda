@@ -50,8 +50,8 @@ ACTION_CODES = (
 )
 
 
-def PREFIX_CMD(state, arg):
-    state['prefix'] = arg
+def PREFIX_CMD(state, prefix):
+    state['prefix'] = prefix
 
 
 def PRINT_CMD(state, arg):
@@ -83,21 +83,25 @@ def PROGRESS_CMD(state, arg):
 
 
 def SYMLINK_CONDA_CMD(state, arg):
-    if basename(state['prefix']).startswith('_'):
-        log.info("Conda environment at %s "
-                 "start with '_'. Skipping symlinking conda.", state['prefix'])
+    prefix = state['prefix']
+    if basename(state['prefix']).startswith('_') or prefix in (context.root_prefix,
+                                                               context.conda_prefix):
+        log.debug("Conda environment at %s "
+                  "start with '_'. Skipping symlinking conda.", state['prefix'])
         return
-    symlink_conda(state['prefix'], arg)
+    symlink_conda(prefix, arg)
 
 
-def PROGRESSIVEFETCHEXTRACT_CMD(state, link_dists):
-    ProgressiveFetchExtract(state['index'], link_dists).execute()
+def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
+    assert isinstance(progressive_fetch_extract, ProgressiveFetchExtract)
+    progressive_fetch_extract.execute()
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):
     unlink_dists, link_dists = arg
-    txn = UnlinkLinkTransaction.create_from_dists(state['index'], state['prefix'],
-                                                  unlink_dists, link_dists)
+    index = state['index']
+    prefix = state['prefix']
+    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists)
     txn.execute()
 
 

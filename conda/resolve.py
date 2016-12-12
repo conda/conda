@@ -12,7 +12,7 @@ from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableErro
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.package import Package
-from .models.record import Record
+from .models.index_record import IndexRecord
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
 
@@ -143,7 +143,7 @@ class MatchSpec(object):
 class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False):
-        assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, Record)
+        assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
         assert all(assertion(d, r) for d, r in iteritems(index))
         self.index = index = index.copy()
         if not processed:
@@ -200,7 +200,7 @@ class Resolve(object):
             'track_features': feature_name,
         }
 
-        self.index[feature_dist] = Record(**info)
+        self.index[feature_dist] = IndexRecord(**info)
         if group:
             self.groups[feature_dist.dist_name] = [feature_dist]
             self.trackers[feature_name] = [feature_dist]

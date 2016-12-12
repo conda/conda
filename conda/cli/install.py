@@ -13,13 +13,12 @@ import re
 from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
 
-from conda.models.channel import prioritize_channels
+from . import common
+from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
-from ..cli import common
-from ..cli.find_commands import find_executable
-from ..common.compat import text_type, on_win
+from ..common.compat import on_win, text_type
 from ..core.index import get_index
 from ..core.linked_data import is_linked, linked as install_linked
 from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFoundError,
@@ -28,6 +27,7 @@ from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFound
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
+from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions,
                     is_root_prefix, nothing_to_do, revert_actions)
 from ..resolve import Resolve
@@ -361,6 +361,7 @@ def install(args, parser, command='install'):
             print()
             print("Package plan for installation in environment %s:" % actions["PREFIX"])
             display_actions(actions, index, show_channel_urls=context.show_channel_urls)
+            # TODO: this is where the transactions should be instantiated
         common.confirm_yn(args)
 
     elif args.dry_run:

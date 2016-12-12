@@ -32,7 +32,7 @@ from conda.core.linked_data import get_python_version_for_prefix, \
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import TRACE
-from conda.models.record import Record
+from conda.models.index_record import IndexRecord
 from conda.utils import on_win
 from contextlib import contextmanager
 from glob import glob
@@ -219,8 +219,8 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'constructor')
 
     def test_transactional_rollback_simple(self):
-        from conda.core.path_actions import CreateCondaMetaAction
-        with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+        from conda.core.path_actions import CreateLinkedPackageRecordAction
+        with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
             with make_temp_env() as prefix:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(KeyError):
@@ -235,8 +235,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
             assert_package_is_installed(prefix, 'flask-0.10.1')
 
-            from conda.core.path_actions import CreateCondaMetaAction
-            with patch.object(CreateCondaMetaAction, 'execute') as mock_method:
+            from conda.core.path_actions import CreateLinkedPackageRecordAction
+            with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(KeyError):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
@@ -324,7 +324,7 @@ class IntegrationTests(TestCase):
             flask_data = flask_data.dump()
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
-            repodata = {'info': {}, 'packages': {flask_fname: Record(**flask_data)}}
+            repodata = {'info': {}, 'packages': {flask_fname: IndexRecord(**flask_data)}}
             with make_temp_env() as channel:
                 subchan = join(channel, context.subdir)
                 channel = path_to_url(channel)

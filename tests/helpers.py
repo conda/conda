@@ -11,7 +11,7 @@ import json
 from shlex import split
 
 from conda.base.context import reset_context
-from conda.common.io import captured, argv
+from conda.common.io import captured, argv, replace_log_streams
 from conda.gateways.logging import initialize_logging
 from conda import cli
 
@@ -104,7 +104,6 @@ def captured(disallow_stderr=True):
 def capture_json_with_argv(command, **kwargs):
     # used in test_config (6 times), test_info (2 times), test_list (5 times), and test_search (10 times)
     stdout, stderr, exit_code = run_inprocess_conda_command(command)
-
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
         if match:
@@ -112,7 +111,6 @@ def capture_json_with_argv(command, **kwargs):
     elif stderr:
         # TODO should be exception
         return stderr
-
     try:
         return json.loads(stdout.strip())
     except ValueError:
@@ -134,7 +132,7 @@ def assert_in(a, b, output=""):
 
 def run_inprocess_conda_command(command):
     reset_context(())
-    with argv(split(command)), captured() as c:
+    with argv(split(command)), captured() as c, replace_log_streams():
         initialize_logging()
         try:
             exit_code = cli.main()
