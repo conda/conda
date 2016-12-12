@@ -81,6 +81,7 @@ def display_actions(actions, index, show_channel_urls=None):
             return ''
         return s
 
+    import pdb; pdb.set_trace()
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
 
@@ -541,10 +542,12 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def get_highest_priority_match(matches, prioritized_channel_list):
+def get_highest_priority_match(matches, prioritized_channel_list, index):
     nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
                                       chnl[1] == n][0]
 
+    is_in_index = lambda mtch: tuple(dist for dist in index.keys() if
+                                     dist.dist_name.startswith(mtch))
     # This loop: match to the highest priority channel;
     #   if no packages match priority 0, try the next channel
     for i in range(0, len(prioritized_channel_list)):
@@ -553,6 +556,13 @@ def get_highest_priority_match(matches, prioritized_channel_list):
         if len(highest_match) > 0:
             newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[-1]
             return newest_pkg
+
+    # if a package can't be matched to a prioritized channel, it may still be able to be matched
+    #   to something in index
+    for m in matches:
+        in_index = is_in_index(m)
+        if in_index:
+            return in_index
     raise PackageNotFoundError(matches[0].name, "package not found")
 
 
