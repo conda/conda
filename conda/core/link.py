@@ -50,48 +50,6 @@ def determine_link_type(extracted_package_dir, target_prefix):
     return LinkType.copy
 
 
-def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type):
-    required_quad = transaction_context, package_info, target_prefix, requested_link_type
-
-    file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
-    create_directory_actions = LinkPathAction.create_directory_actions(
-        *required_quad, file_link_actions=file_link_actions
-    )
-    create_menu_actions = MakeMenuAction.create_actions(*required_quad)
-
-    python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
-    compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
-                                                          file_link_actions=file_link_actions)
-
-    application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
-        *required_quad,
-        file_link_actions=file_link_actions,
-        python_entry_point_actions=python_entry_point_actions,
-    )
-    private_envs_meta_actions = CreatePrivateEnvMetaAction(*required_quad)
-
-    all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
-        file_link_actions,
-        python_entry_point_actions,
-        compile_pyc_actions,
-        application_entry_point_actions,
-    ))
-    meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
-        *required_quad, all_target_short_paths=all_target_short_paths
-    )
-
-    # the ordering here is significant
-    return tuple(concatv(
-        create_directory_actions,
-        file_link_actions,
-        python_entry_point_actions,
-        compile_pyc_actions,
-        create_menu_actions,
-        application_entry_point_actions,
-        private_envs_meta_actions,
-        meta_create_actions,
-    ))
-
 
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
     # no side effects in this function!
@@ -195,8 +153,8 @@ class UnlinkLinkTransaction(object):
                                                                    self.target_prefix,
                                                                    lnkd_pkg_data))
                                for lnkd_pkg_data in self.linked_packages_data_to_unlink)
-        link_actions = tuple((pkg_info, make_link_actions(transaction_context, pkg_info,
-                                                          self.target_prefix, lt))
+        link_actions = tuple((pkg_info, self.make_link_actions(transaction_context, pkg_info,
+                                                               self.target_prefix, lt))
                              for pkg_info, lt in zip(self.packages_info_to_link, link_types))
         self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
                                  concatv(unlink_actions, link_actions))
@@ -308,6 +266,49 @@ class UnlinkLinkTransaction(object):
 
         # there won't be any python in the finished environment
         return None
+
+    @staticmethod
+    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type):
+        required_quad = transaction_context, package_info, target_prefix, requested_link_type
+
+        file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
+        create_directory_actions = LinkPathAction.create_directory_actions(
+            *required_quad, file_link_actions=file_link_actions
+        )
+        create_menu_actions = MakeMenuAction.create_actions(*required_quad)
+
+        python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
+        compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
+                                                              file_link_actions=file_link_actions)
+
+        application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
+            *required_quad,
+            file_link_actions=file_link_actions,
+            python_entry_point_actions=python_entry_point_actions,
+        )
+        private_envs_meta_actions = CreatePrivateEnvMetaAction(*required_quad)
+
+        all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
+            file_link_actions,
+            python_entry_point_actions,
+            compile_pyc_actions,
+            application_entry_point_actions,
+        ))
+        meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
+            *required_quad, all_target_short_paths=all_target_short_paths
+        )
+
+        # the ordering here is significant
+        return tuple(concatv(
+            create_directory_actions,
+            file_link_actions,
+            python_entry_point_actions,
+            compile_pyc_actions,
+            create_menu_actions,
+            application_entry_point_actions,
+            private_envs_meta_actions,
+            meta_create_actions,
+        ))
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

@@ -396,9 +396,8 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       file_link_actions, python_entry_point_actions):
-
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+        # TODO: only create entry points for explicitly listed files
         if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
             def package_executable_short_paths():
                 bin_dir = get_bin_directory_short_path()
@@ -412,9 +411,12 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                 package_info.repodata_record.preferred_env,
                 context.root_prefix, context.envs_dirs
             )
+            # isn't this just target_prefix?  maybe assert?
+
+            # target_prefix here is not the same as target_prefix for the larger transaction
             return tuple(
                 cls(transaction_context, package_info, private_env_prefix, executable_short_path,
-                    target_prefix, executable_short_path)
+                    context.root_prefix, executable_short_path)
                 for executable_short_path in package_executable_short_paths()
             )
         else:
@@ -430,6 +432,11 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
     def execute(self):
         log.trace("creating application entry point %s => %s",
                   self.source_full_path, self.target_full_path)
+        # this could blow up for the special case of application entry points in conda's
+        #   private environment
+        # in that case, probably should use the python version from transaction_context
+        # if source_prefix is conda's private env
+        if self.source_prefix
         conda_python_version = get_python_version_for_prefix(context.conda_prefix)
         conda_python_short_path = get_python_short_path(conda_python_version)
         conda_python_full_path = join(context.conda_prefix, win_path_ok(conda_python_short_path))

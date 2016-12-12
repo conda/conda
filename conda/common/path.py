@@ -173,12 +173,12 @@ def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
 def prefix_to_env_name(prefix, root_prefix):
     if prefix == root_prefix:
         return None
-    split_env = prefix.split("/")
+    split_env = win_path_backout(prefix).split("/")
     return split_env[-1]
 
 
 def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
-    # type (str, str) -> bool
+    # type: (str, str, str) -> bool
     if preferred_env is None:
         return True
     prefix_dir = dirname(prefix)
