@@ -1,9 +1,9 @@
 ## 4.3.0 (unreleased)
 
 ### New Features
-* **Unlink and Link Packages in a Single Transaction**: (#3833)
+* **Unlink and Link Packages in a Single Transaction**: (#3833, #4030)
 * **Generic- and Python-Type Noarch/Universal Packages**: (#3712)
-* progressive fetch and extract transactions (#4021)
+* progressive fetch and extract transactions (#4021, #4030)
 * add cli.python_api module (#4028)
 * multi-user package caches (#4021)
 
@@ -20,7 +20,8 @@
 * allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
 * the 'r' channel is now part of defaults (#3677)
 * private environment support for conda (#3988)
-* support new info/paths.json file (#3927, #3943)
+* support v1 info/paths.json file (#3927, #3943)
+* support v1 info/package_metadata.json (#4030)
 * improved solver hint detection, simplified filtering (#3597)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
