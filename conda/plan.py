@@ -81,7 +81,6 @@ def display_actions(actions, index, show_channel_urls=None):
             return ''
         return s
 
-    import pdb; pdb.set_trace()
     if actions.get(FETCH):
         print("\nThe following packages will be downloaded:\n")
 
