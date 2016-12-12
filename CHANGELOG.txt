@@ -6,14 +6,6 @@
   * fix conda/install.py single-file behavior, #3854
 
 
-3.19.4 (unreleased):
---------------------
-  * improve handling of local dependency information, #2107
-  * use install.rm_rf for TemporaryDirectory cleanup, #3425
-  * fix the api->conda substitution, #3456
-  * fix silent directory removal, #3730
-
-
 2016-09-08  4.1.12:
 -------------------
   * fix #2837 "File exists" in symlinked path with parallel activations, #3210
@@ -262,6 +254,17 @@
   * Conda finally has an official logo.
   * Fix `conda clean --packages` on Windows, #1944
   * Conda sub-commands now support dashes in names, #1840
+
+
+3.19.4 (unreleased):
+--------------------
+  * improve handling of local dependency information, #2107
+  * use install.rm_rf for TemporaryDirectory cleanup, #3425
+  * fix the api->conda substitution, #3456
+  * error and exit for install of packages that require conda minimum version 4.3, #3726
+  * show warning message for pre-link scripts, #3727
+  * fix silent directory removal, #3730
+  * fix conda/install.py single-file behavior, #3854
 
 
 2016-02-19   3.19.3:
