@@ -22,10 +22,10 @@
   noarch/universal type for python packages is officially supported. These are much like universal
   python wheels. Files in a python noarch package are linked into a prefix just like any other
   conda package, with the following additional features
-  (1) conda maps the `site-packages` directory to the correct location for the python version
-      in the environment,
-  (2) conda creates the python entry points specified in the conda-build recipe, and
-  (3) conda compiles pyc files at install time when prefix write permissions are guaranteed.
+  1. conda maps the `site-packages` directory to the correct location for the python version
+     in the environment,
+  2. conda creates the python entry points specified in the conda-build recipe, and
+  3. conda compiles pyc files at install time when prefix write permissions are guaranteed.
 
   Python noarch packages must be "fully universal."  They cannot have OS- or
   python version-specific dependencies.  They cannot have OS- or python version-specific "scripts"
