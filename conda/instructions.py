@@ -13,7 +13,6 @@ from .common.compat import on_win
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
-from .gateways.disk.create import mkdir_p
 from .install import symlink_conda
 from .models.dist import Dist
 
@@ -53,7 +52,6 @@ ACTION_CODES = (
 
 def PREFIX_CMD(state, prefix):
     state['prefix'] = prefix
-
 
 
 def PRINT_CMD(state, arg):

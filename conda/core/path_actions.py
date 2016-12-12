@@ -24,9 +24,10 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     create_private_envs_meta, create_private_pkg_entry_point,
                                     create_unix_python_entry_point,
                                     create_windows_python_entry_point, extract_tarball,
-                                    make_menu, remove_private_envs_meta, write_linked_package_record)
+                                    make_menu, remove_private_envs_meta,
+                                    write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import compute_md5sum, exists, is_exe, isfile, islink
+from ..gateways.disk.read import compute_md5sum, exists, isfile, islink
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.dist import Dist
@@ -332,7 +333,8 @@ class CompilePycAction(CreateInPrefixPathAction):
 
     def execute(self):
         log.trace("compiling %s", self.target_full_path)
-        python_short_path = get_python_short_path(self.transaction_context['target_python_version'])
+        target_python_version = self.transaction_context['target_python_version']
+        python_short_path = get_python_short_path(target_python_version)
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
         compile_pyc(python_full_path, self.source_full_path, self.target_full_path)
         self._execute_successful = True
@@ -385,7 +387,8 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         if on_win:
             create_windows_python_entry_point(self.target_full_path, self.module, self.func)
         else:
-            python_short_path = get_python_short_path(self.transaction_context['target_python_version'])
+            target_python_version = self.transaction_context['target_python_version']
+            python_short_path = get_python_short_path(target_python_version)
             python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
             create_unix_python_entry_point(self.target_full_path, python_full_path,
                                            self.module, self.func)
@@ -462,9 +465,10 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
         linked_package_record = Record.from_objects(package_info.repodata_record,
-                                          package_info.index_json_record,
-                                          files=all_target_short_paths, link=link,
-                                          url=package_info.url)
+                                                    package_info.index_json_record,
+                                                    files=all_target_short_paths,
+                                                    link=link,
+                                                    url=package_info.url)
 
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
@@ -786,4 +790,3 @@ class ExtractPackageAction(PathAction):
     def __str__(self):
         return ('ExtractPackageAction<source_full_path=%r, target_full_path=%r>'
                 % (self.source_full_path, self.target_full_path))
-

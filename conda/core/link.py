@@ -50,7 +50,6 @@ def determine_link_type(extracted_package_dir, target_prefix):
     return LinkType.copy
 
 
-
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
     # no side effects in this function!
     unlink_path_actions = tuple(UnlinkPathAction(transaction_context, linked_package_data,
@@ -281,7 +280,9 @@ class UnlinkLinkTransaction(object):
         compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
                                                               file_link_actions=file_link_actions)
 
-        application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(*required_quad)
+        application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
+            *required_quad
+        )
         private_envs_meta_actions = CreatePrivateEnvMetaAction.create_actions(*required_quad)
 
         all_target_short_paths = tuple(axn.target_short_path for axn in concatv(

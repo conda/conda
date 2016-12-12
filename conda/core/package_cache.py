@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import listdir
-from os.path import basename, dirname, isdir, isfile, islink, join
+from os.path import basename, isdir, isfile, islink, join
 from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
