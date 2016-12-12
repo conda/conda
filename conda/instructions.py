@@ -71,22 +71,24 @@ def EXTRACT_CMD(state, arg):
 
 def RM_EXTRACTED_CMD(state, dist):
     # temporary hack for conda-build compatibility
-    dist = Dist(dist)
-    assert dist.dist_name.split('::')[0] == 'local', dist
-    pc_entry = PackageCache(context.croot).get(dist)
-
-    if pc_entry and pc_entry.is_extracted:
-        rm_rf(pc_entry.extracted_package_dir)
+    # dist = Dist(dist)
+    # assert dist.dist_name.split('::')[0] == 'local', dist
+    # pc_entry = PackageCache(context.croot).get(dist)
+    #
+    # if pc_entry and pc_entry.is_extracted:
+    #     rm_rf(pc_entry.extracted_package_dir)
+    return None
 
 
 def RM_FETCHED_CMD(state, dist):
     # temporary hack for conda-build compatibility
-    dist = Dist(dist)
-    assert dist.dist_name.split('::')[0] == 'local', dist
-    pc_entry = PackageCache(context.croot).get(dist)
-
-    if pc_entry and pc_entry.is_fetched:
-        rm_rf(pc_entry.package_tarball_full_path)
+    # dist = Dist(dist)
+    # assert dist.dist_name.split('::')[0] == 'local', dist
+    # pc_entry = PackageCache(context.croot).get(dist)
+    #
+    # if pc_entry and pc_entry.is_fetched:
+    #     rm_rf(pc_entry.package_tarball_full_path)
+    return None
 
 
 def PROGRESS_CMD(state, arg):
