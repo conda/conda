@@ -9,3 +9,11 @@ from .._vendor.auxlib.compat import (iteritems, with_metaclass, itervalues,  # N
                                      StringIO, isiterable)  # NOQA
 
 from ..compat import *  # NOQA
+
+
+def ensure_binary(value):
+    return value.encode('utf-8') if hasattr(value, 'encode') else value
+
+
+def ensure_text_type(value):
+    return value.decode('utf-8') if hasattr(value, 'decode') else value

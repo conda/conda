@@ -6,25 +6,31 @@
 
 from __future__ import absolute_import, division, print_function
 
+from base64 import b64decode
 import cgi
-import email
+from email.utils import formatdate
 import ftplib
-import mimetypes
+from io import BytesIO
+import json
+from logging import getLogger
+from mimetypes import guess_type
 import os
+from os import lstat
 import platform
 import requests
-import tempfile
-from base64 import b64decode
-from io import BytesIO
-from logging import getLogger
 from requests.adapters import HTTPAdapter
 from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
+from requests.models import Response
+from requests.structures import CaseInsensitiveDict
 from requests.utils import get_auth_from_url, get_netrc_auth
+import tempfile
+from tempfile import SpooledTemporaryFile
 
 from . import __version__ as VERSION
 from ._vendor.auxlib.ish import dals
 from .base.context import context
+from .common.compat import ensure_binary
 from .common.disk import rm_rf
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
                          split_anaconda_token, url_to_path, url_to_s3_info, urlparse)
@@ -278,19 +284,28 @@ class LocalFSAdapter(requests.adapters.BaseAdapter):
     def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
         pathname = url_to_path(request.url)
 
-        resp = requests.models.Response()
+        resp = Response()
         resp.status_code = 200
         resp.url = request.url
 
         try:
-            stats = os.stat(pathname)
-        except OSError as exc:
+            stats = lstat(pathname)
+        except (IOError, OSError) as exc:
             resp.status_code = 404
-            resp.raw = exc
+            message = {
+                "error": "file does not exist",
+                "path": pathname,
+                "exception": repr(exc),
+            }
+            fh = SpooledTemporaryFile()
+            fh.write(ensure_binary(json.dumps(message)))
+            fh.seek(0)
+            resp.raw = fh
+            resp.close = resp.raw.close
         else:
-            modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
-            content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
-            resp.headers = requests.structures.CaseInsensitiveDict({
+            modified = formatdate(stats.st_mtime, usegmt=True)
+            content_type = guess_type(pathname)[0] or "text/plain"
+            resp.headers = CaseInsensitiveDict({
                 "Content-Type": content_type,
                 "Content-Length": stats.st_size,
                 "Last-Modified": modified,
@@ -298,8 +313,34 @@ class LocalFSAdapter(requests.adapters.BaseAdapter):
 
             resp.raw = open(pathname, "rb")
             resp.close = resp.raw.close
-
         return resp
+
+
+    # def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
+    #     pathname = url_to_path(request.url)
+    #
+    #     resp = requests.models.Response()
+    #     resp.status_code = 200
+    #     resp.url = request.url
+    #
+    #     try:
+    #         stats = os.stat(pathname)
+    #     except OSError as exc:
+    #         resp.status_code = 404
+    #         resp.raw = exc
+    #     else:
+    #         modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
+    #         content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
+    #         resp.headers = requests.structures.CaseInsensitiveDict({
+    #             "Content-Type": content_type,
+    #             "Content-Length": stats.st_size,
+    #             "Last-Modified": modified,
+    #         })
+    #
+    #         resp.raw = open(pathname, "rb")
+    #         resp.close = resp.raw.close
+    #
+    #     return resp
 
     def close(self):
         pass
