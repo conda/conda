@@ -78,7 +78,7 @@ miniconda_install() {
 
 conda_build_install() {
     # install conda
-    python setup.py install
+    python setup.py develop
     conda info
 
     # install conda-build test dependencies

@@ -245,4 +245,7 @@ class Dist(Entity):
         return name, self.quad[1], self.quad[2]
 
     def __contains__(self, item):
-        return ensure_text_type(item) in self.__str__()
+        item = ensure_text_type(item)
+        if item.endswith(CONDA_TARBALL_EXTENSION):
+            item = item[:-len(CONDA_TARBALL_EXTENSION)]
+        return item in self.__str__()

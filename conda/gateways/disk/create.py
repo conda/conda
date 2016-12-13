@@ -144,8 +144,8 @@ def make_menu(prefix, file_path, remove=False):
 def mkdir_p(path):
     try:
         log.trace('making directory %s', path)
-        makedirs(path)
-        return path
+        if path:
+            makedirs(path)
     except OSError as e:
         if e.errno == EEXIST and isdir(path):
             return path

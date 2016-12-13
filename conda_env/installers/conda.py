@@ -32,13 +32,12 @@ def install(prefix, specs, args, env, prune=False):
                                       channel_priority_map=_channel_priority_map)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
-        for actions in action_set:
-            try:
-                plan.execute_actions(actions, index, verbose=not args.quiet)
-            except RuntimeError as e:
-                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                    raise LockError('Already locked: %s' % text_type(e))
-                else:
-                    raise CondaRuntimeError('RuntimeError: %s' % e)
-            except SystemExit as e:
-                raise CondaSystemExit('Exiting', e)
+        try:
+            plan.execute_actions(action_set, index, verbose=not args.quiet)
+        except RuntimeError as e:
+            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                raise LockError('Already locked: %s' % text_type(e))
+            else:
+                raise CondaRuntimeError('RuntimeError: %s' % e)
+        except SystemExit as e:
+            raise CondaSystemExit('Exiting', e)
