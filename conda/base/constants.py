@@ -89,4 +89,6 @@ INTERRUPT_SIGNALS = (
     'SIGINT',
     'SIGTERM',
     'SIGQUIT',
+    'SIGBREAK',
+    'SIGCHLD',
 )

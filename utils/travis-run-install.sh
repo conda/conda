@@ -78,7 +78,8 @@ miniconda_install() {
 
 conda_build_install() {
     # install conda
-    python utils/setup-testing.py develop
+    python utils/setup-testing.py install
+    hash -r
     conda info
 
     # install conda-build test dependencies
@@ -95,6 +96,7 @@ conda_build_install() {
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
     python setup.py install
+    hash -r
     conda info
     popd
 
