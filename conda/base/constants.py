@@ -89,6 +89,5 @@ INTERRUPT_SIGNALS = (
     'SIGINT',
     'SIGTERM',
     'SIGQUIT',
-    'CTRL_C_EVENT',
     'CTRL_BREAK_EVENT',
 )
