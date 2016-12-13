@@ -70,7 +70,7 @@ elif [[ -n $CONDA_BUILD ]]; then
     # if [[ $CONDA_BUILD == 1.21.11 || $CONDA_BUILD == master ]]; then
     # fi
 else
-    main_test
+    # main_test
     if [[ "$(uname -s)" == "Linux" ]]; then
         activate_test
     fi
