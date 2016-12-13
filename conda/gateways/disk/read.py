@@ -11,7 +11,7 @@ from functools import partial
 from itertools import chain
 from logging import getLogger
 from os import X_OK, access, listdir
-from os.path import exists, isdir, isfile, islink, join
+from os.path import lexists, isdir, isfile, islink, join
 
 from conda.common.compat import on_win
 from conda.models.enums import PathType
@@ -26,7 +26,7 @@ from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathD
 log = getLogger(__name__)
 
 listdir = listdir
-exists, isdir, isfile, islink = exists, isdir, isfile, islink
+lexists, isdir, isfile, islink = lexists, isdir, isfile, islink
 
 
 def yield_lines(path):

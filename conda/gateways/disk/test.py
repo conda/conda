@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import W_OK, access, getpid
-from os.path import basename, exists, isdir, isfile, islink, join
+from os.path import basename, lexists, isdir, isfile, islink, join
 
 from .create import create_link
 from .delete import backoff_unlink, rm_rf
@@ -54,7 +54,7 @@ def hardlink_supported(source_file, dest_dir):
     test_file = join(dest_dir, '.tmp.' + basename(source_file))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
-    assert not exists(test_file), test_file
+    assert not lexists(test_file), test_file
     try:
         create_link(source_file, test_file, LinkType.hardlink, force=True)
         return not islink(test_file)
@@ -71,7 +71,7 @@ def softlink_supported(source_file, dest_dir):
     test_path = join(dest_dir, '.tmp.' + basename(source_file))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
-    assert not exists(test_path), test_path
+    assert not lexists(test_path), test_path
     try:
         create_link(source_file, test_path, LinkType.softlink, force=True)
         return islink(test_path)
