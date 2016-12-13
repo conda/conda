@@ -72,6 +72,6 @@ setup(
         'build_py': packaging.BuildPyCommand,
         'sdist': packaging.SDistCommand,
     },
-    install_requires=[],
+    install_requires=install_requires,
     zip_safe=False,
 )

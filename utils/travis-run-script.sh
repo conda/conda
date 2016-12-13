@@ -3,14 +3,17 @@ set +x
 
 make_conda_entrypoint() {
     local filepath="$1"
-    local workingdir="$2"
+    local pythonpath="$2"
+    local workingdir="$3"
+    ls -al $filepath
+    rm -rf $filepath
 	cat <<- EOF > $filepath
-	#!$(which python)
+	#!$pythonpath
 	if __name__ == '__main__':
 	   import sys
 	   sys.path.insert(0, '$workingdir')
-	   import conda.cli
-	   sys.exit(conda.cli.main())
+	   import conda.cli.main
+	   sys.exit(conda.cli.main.main())
 	EOF
     chmod +x $filepath
     cat $filepath
@@ -26,6 +29,11 @@ main_test() {
 }
 
 activate_test() {
+    local prefix=$(python -c "import sys; print(sys.prefix)")
+    ln -sf shell/activate $prefix/bin/activate
+    ln -sf shell/deactivate $prefix/bin/deactivate
+    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
+
     python setup.py develop
     hash -r
     which conda
