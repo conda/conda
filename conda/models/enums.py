@@ -12,9 +12,12 @@ class Arch(Enum):
     armv6l = 'armv6l'
     armv7l = 'armv7l'
     ppc64le = 'ppc64le'
+    z = 'z'
 
     @classmethod
     def from_sys(cls):
+        if sys.platform == 'zos':
+            return cls['z']
         return cls[machine()]
 
     def __json__(self):
@@ -26,6 +29,7 @@ class Platform(Enum):
     win = 'win32'
     openbsd = 'openbsd5'
     osx = 'darwin'
+    zos = 'zos'
 
     @classmethod
     def from_sys(cls):
