@@ -466,7 +466,7 @@ def get_prefix(ctx, args, search=True):
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
     """
-    if args.name:
+    if args.get('name'):
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   args.name, getattr(args, 'json', False))
@@ -476,7 +476,7 @@ def get_prefix(ctx, args, search=True):
             return locate_prefix_by_name(ctx, args.name)
         else:
             return join(ctx.envs_dirs[0], args.name)
-    elif args.prefix:
+    elif args.get('prefix'):
         return abspath(expanduser(args.prefix))
     else:
         return ctx.default_prefix
