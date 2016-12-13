@@ -475,6 +475,32 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
+    specs = [MatchSpec(spec) for spec in specs]
+    r = get_resolve_object(index.copy(), prefix)
+
+    linked_in_root = linked_data(context.root_prefix)
+
+    dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
+    preferred_envs = set(d.env for d in dists_for_envs)
+
+    assert len(preferred_envs) == 1
+    preferred_env = preferred_envs.pop()
+    specs_for_prefix = SpecsForPrefix(
+        prefix=preferred_env_to_prefix(preferred_env, context.root_dir, context.envs_dirs),
+        specs=tuple(sp.spec for sp in dists_for_envs),
+        r=r
+    )
+    actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy, prune,
+                          update_deps, pinned)
+    return actions
+
+
+def install_actions_list(prefix, index, specs, force=False, only_names=None, always_copy=False,
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                    channel_priority_map=None, is_update=False):
+    # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
     str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]

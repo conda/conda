@@ -28,8 +28,8 @@ from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFound
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
-from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions,
-                    is_root_prefix, nothing_to_do, revert_actions)
+from ..plan import (display_actions, execute_actions, get_pinned_specs,
+                    is_root_prefix, nothing_to_do, revert_actions, install_actions_list)
 from ..resolve import Resolve
 
 log = logging.getLogger(__name__)
@@ -275,7 +275,7 @@ def install(args, parser, command='install'):
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                action_set = install_actions(
+                action_set = install_actions_list(
                     prefix, index, specs, force=args.force, only_names=only_names,
                     pinned=args.pinned, always_copy=context.always_copy,
                     minimal_hint=args.alt_hint, update_deps=context.update_dependencies,

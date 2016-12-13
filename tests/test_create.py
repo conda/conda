@@ -454,7 +454,7 @@ class IntegrationTests(TestCase):
             # prune is a feature used by conda-env
             # conda itself does not provide a public API for it
             index = get_index_trap(prefix=prefix)
-            actions_set = plan.install_actions(prefix,
+            actions_set = plan.install_actions_list(prefix,
                                            index,
                                            specs=['flask'],
                                            prune=True)
