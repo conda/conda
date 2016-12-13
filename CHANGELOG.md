@@ -74,6 +74,7 @@
 * add an 'always_softlink' option (#3870, #3876)
 * pre-checks for diskspace, etc for fetch and extract #(4007)
 * address #3879 don't print activate message when quiet config is enabled (#3886)
+* add zos-z subdir (#4060)
 * add elapsed time to HTTP errors (#3942)
 
 ### Bug Fixes
@@ -109,6 +110,7 @@
 * move CrossPlatformStLink and make available as export (#3887)
 * make Record immutable (#3965)
 * project housekeeping (#3994)
+* context-dependent setup.py files (#4057)
 
 
 ## 4.2.14 (unreleased)
