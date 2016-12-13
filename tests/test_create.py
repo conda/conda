@@ -247,6 +247,7 @@ class IntegrationTests(TestCase):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
                 assert_package_is_installed(prefix, 'flask-0.10.1')
 
+    @pytest.mark.xfail(condition=(on_win and (datetime.now() < datetime(2016, 12, 17))), strict=True, reason="")
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
