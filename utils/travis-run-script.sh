@@ -65,7 +65,7 @@ env | sort
 if [[ $FLAKE8 == true ]]; then
     flake8_test
 elif [[ -n $CONDA_BUILD ]]; then
-    conda_build_smoke_test
+    # conda_build_smoke_test
     conda_build_unit_test
     # if [[ $CONDA_BUILD == 1.21.11 || $CONDA_BUILD == master ]]; then
     # fi
