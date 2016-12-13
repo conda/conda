@@ -244,6 +244,9 @@ class Dist(Entity):
         name = '%s::%s' % (self.channel, self.quad[0]) if self.channel else self.quad[0]
         return name, self.quad[1], self.quad[2]
 
+    def startswith(self, match):
+        return self.dist_name.startswith(match)
+
     def __contains__(self, item):
         item = ensure_text_type(item)
         if item.endswith(CONDA_TARBALL_EXTENSION):
