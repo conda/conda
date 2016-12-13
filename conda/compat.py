@@ -1,7 +1,4 @@
-# """
-# For compatibility between Python versions.
-# Taken mostly from six.py by Benjamin Peterson.
-# """
+# This module is only being maintained for conda-build compatibility
 from __future__ import absolute_import, division, print_function, unicode_literals
 import warnings as _warnings
 from tempfile import mkdtemp
@@ -10,6 +7,13 @@ from tempfile import mkdtemp
 # shim for conda-build
 from .common.compat import *
 PY3 = PY3
+
+
+if PY3:
+    import configparser
+else:
+    import ConfigParser as configparser
+configparser = configparser
 
 
 class TemporaryDirectory(object):

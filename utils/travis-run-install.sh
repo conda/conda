@@ -78,7 +78,8 @@ miniconda_install() {
 
 conda_build_install() {
     # install conda
-    python setup.py install
+    python utils/setup-testing.py install
+    hash -r
     conda info
 
     # install conda-build test dependencies
@@ -89,12 +90,13 @@ conda_build_install() {
     conda config --set add_pip_as_python_dependency true
 
     # install conda-build runtime dependencies
-    conda install -y -q filelock jinja2 patchelf conda-verify setuptools
+    conda install -y -q filelock jinja2 patchelf conda-verify setuptools contextlib2
 
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
     python setup.py install
+    hash -r
     conda info
     popd
 

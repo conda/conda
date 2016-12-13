@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from datetime import timedelta
-
 import logging
 import sys
+from datetime import timedelta
 from logging import getLogger
 from traceback import format_exc
 
-from . import CondaError, text_type, CondaExitZero
+from . import CondaError, CondaExitZero, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from .common.compat import iteritems, iterkeys, string_types
+from .common.signals import get_signal_name
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +31,14 @@ class CommandArgumentError(ArgumentError):
     def __init__(self, message, **kwargs):
         command = ' '.join(sys.argv)
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
+
+
+class CondaSignalInterrupt(CondaError):
+    def __init__(self, signum):
+        signal_name = get_signal_name(signum)
+        super(CondaSignalInterrupt, self).__init__("Signal interrupt %(signal_name)s",
+                                                   signal_name=signal_name,
+                                                   signum=signum)
 
 
 class ArgumentNotFoundError(ArgumentError):
