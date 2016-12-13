@@ -25,7 +25,7 @@ main_test() {
 
     # basic unit tests
     python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" tests
-    python utils/setup-test.py --version
+    python utils/setup-testing.py --version
 }
 
 activate_test() {
@@ -34,7 +34,7 @@ activate_test() {
 #    ln -sf shell/deactivate $prefix/bin/deactivate
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
 
-    python utils/setup-test.py develop
+    python utils/setup-testing.py develop
     hash -r
     which conda
     python -m conda info

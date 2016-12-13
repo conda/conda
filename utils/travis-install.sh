@@ -221,7 +221,7 @@ conda_build_extras() {
     echo "CONDA BUILD EXTRAS"
 
     # install conda (the repo exists at $PWD)
-    python utils/setup-test.py install
+    python utils/setup-testing.py install
     conda info
 
     # install conda-build test dependencies
