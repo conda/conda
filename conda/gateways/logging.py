@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import partial
 import logging
+from logging import CRITICAL, DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
-from functools import partial
-from logging import CRITICAL, DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
@@ -76,9 +76,10 @@ def initialize_conda_logger(level=WARN):
 
 
 def set_all_logger_level(level=DEBUG):
-    attach_stderr_handler(level)
-    attach_stderr_handler(level, 'conda')
-    attach_stderr_handler(level, 'binstar')
+    formatter = Formatter("%(message)s\n") if level < INFO else None
+    attach_stderr_handler(level, formatter=formatter)
+    attach_stderr_handler(level, 'conda', formatter=formatter)
+    attach_stderr_handler(level, 'binstar', formatter=formatter)
     attach_stderr_handler(level, 'requests')
     attach_stderr_handler(level, 'requests.packages.urllib3')
 
