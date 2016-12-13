@@ -131,7 +131,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     for link_dist in link_dists:
         actions[LINK].append(link_dist)
 
-    execute_actions([actions], index, verbose=verbose)
+    execute_actions(actions, index, verbose=verbose)
     return actions
 
 

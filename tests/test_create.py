@@ -458,7 +458,8 @@ class IntegrationTests(TestCase):
                                            index,
                                            specs=['flask'],
                                            prune=True)
-            plan.execute_actions(actions_set, index, verbose=True)
+            for actions in actions_set:
+                plan.execute_actions(actions, index, verbose=True)
 
             assert_package_is_installed(prefix, 'flask')
             assert not package_is_installed(prefix, 'decorator')

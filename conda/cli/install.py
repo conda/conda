@@ -357,9 +357,11 @@ def install(args, parser, command='install'):
                     message='All requested packages already installed.')
             return
 
-        print()
-        display_actions(action_set, index, show_channel_urls=context.show_channel_urls)
-        # TODO: this is where the transactions should be instantiated
+        for actions in action_set:
+            print()
+            print("Package plan for installation in environment %s:" % actions["PREFIX"])
+            display_actions(actions, index, show_channel_urls=context.show_channel_urls)
+            # TODO: this is where the transactions should be instantiated
         common.confirm_yn(args)
 
     elif args.dry_run:
@@ -382,26 +384,26 @@ def install(args, parser, command='install'):
         #     common.stdout_json_success(actions=actions, dry_run=True)
         #     raise DryRunExit()
 
-    with common.json_progress_bars(json=context.json and not context.quiet):
-        try:
-            execute_actions(action_set, index, verbose=not context.quiet)
-            if not (command == 'update' and args.all):
-                try:
-                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                        f.write('# %s specs: %s\n' % (command, ','.join(specs)))
-                except IOError as e:
-                    if e.errno == errno.EACCES:
-                        log.debug("Can't write the history file")
-                    else:
-                        raise CondaIOError("Can't write the history file", e)
+        with common.json_progress_bars(json=context.json and not context.quiet):
+            try:
+                execute_actions(actions, index, verbose=not context.quiet)
+                if not (command == 'update' and args.all):
+                    try:
+                        with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
+                            f.write('# %s specs: %s\n' % (command, ','.join(specs)))
+                    except IOError as e:
+                        if e.errno == errno.EACCES:
+                            log.debug("Can't write the history file")
+                        else:
+                            raise CondaIOError("Can't write the history file", e)
 
-        except RuntimeError as e:
-            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked: %s' % text_type(e))
-            else:
-                raise CondaRuntimeError('RuntimeError: %s' % e)
-        except SystemExit as e:
-            raise CondaSystemExit('Exiting', e)
+            except RuntimeError as e:
+                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                    raise LockError('Already locked: %s' % text_type(e))
+                else:
+                    raise CondaRuntimeError('RuntimeError: %s' % e)
+            except SystemExit as e:
+                raise CondaSystemExit('Exiting', e)
 
         if newenv:
             append_env(prefix)
