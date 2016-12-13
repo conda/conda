@@ -213,10 +213,8 @@ class UnlinkLinkTransaction(object):
                          dist, target_prefix, pkg_data.extracted_package_dir)
 
             run_script(target_prefix, Dist(pkg_data), 'pre-unlink' if is_unlink else 'pre-link')
-
             for axn_idx, action in enumerate(actions):
                 action.execute()
-
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
         finally:
             return axn_idx
