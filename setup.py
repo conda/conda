@@ -35,6 +35,14 @@ from conda._vendor.auxlib import packaging  # NOQA
 with open(os.path.join(here, "README.rst")) as f:
     long_description = f.read()
 
+scripts = ['shell/activate',
+           'shell/deactivate',
+           ]
+if sys.platform == 'win32':
+    # Powershell scripts should go here
+    scripts.extend(['shell/activate.bat',
+                    'shell/deactivate.bat'])
+
 install_requires = [
     'pycosat >=0.6.1',
     'requests >=2.5.3',
@@ -72,6 +80,13 @@ setup(
         'build_py': packaging.BuildPyCommand,
         'sdist': packaging.SDistCommand,
     },
-    install_requires=install_requires,
+    install_requires=[],
+    entry_points={
+        'console_scripts': [
+            "conda = conda.cli.main:main",
+            "conda-env = conda_env.cli.main:main"
+        ],
+    },
+    scripts=scripts,
     zip_safe=False,
 )
