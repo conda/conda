@@ -1,11 +1,48 @@
-## 4.3.0 (unreleased)
+## 4.3.0 (2016-12-12)  Safety
 
 ### New Features
-* **Unlink and Link Packages in a Single Transaction**: (#3833)
-* **Generic- and Python-Type Noarch/Universal Packages**: (#3712)
-* progressive fetch and extract transactions (#4021)
-* add cli.python_api module (#4028)
-* multi-user package caches (#4021)
+* **Unlink and Link Packages in a Single Transaction**: In the past, conda hasn't always been safe
+  and defensive with its disk-mutating actions. It has gleefully clobbered existing files, and
+  mid-operation failures leave environments completely broken. In some of the most severe examples,
+  conda can appear to "uninstall itself." With this release, the unlinking and linking of packages
+  for an executed command is done in a single transaction. If a failure occurs for any reason
+  while conda is mutating files on disk, the environment will be returned its previous state.
+  While we've implemented some pre-transaction checks (verifying package integrity for example),
+  it's impossible to anticipate every failure mechanism. In some circumstances, OS file
+  permissions cannot be fully known until an operation is attempted and fails. And conda itself
+  is not without bugs. Moving forward, unforeseeable failures won't be catastrophic. (#3833, #4030)
+
+* **Progressive Fetch and Extract Transactions**: Like package unlinking and linking, the
+  download and extract phases of package handling have also been given transaction-like behavior.
+  The distinction is the rollback on error is limited to a single package. Rather than rolling back
+  the download and extract operation for all packages, the single-package rollback prevents the
+  need for having to re-download every package if an error is encountered. (#4021, #4030)
+
+* **Generic- and Python-Type Noarch/Universal Packages**: Along with conda-build 2.1.0, a
+  noarch/universal type for python packages is officially supported. These are much like universal
+  python wheels. Files in a python noarch package are linked into a prefix just like any other
+  conda package, with the following additional features
+  1. conda maps the `site-packages` directory to the correct location for the python version
+     in the environment,
+  2. conda creates the python entry points specified in the conda-build recipe, and
+  3. conda compiles pyc files at install time when prefix write permissions are guaranteed.
+
+  Python noarch packages must be "fully universal."  They cannot have OS- or
+  python version-specific dependencies.  They cannot have OS- or python version-specific "scripts"
+  files. If these features are needed, traditional conda packages must be used. (#3712)
+
+* **Multi-User Package Caches**: While the on-disk package cache structure has been preserved,
+  the core logic implementing package cache handling has had a complete overhaul.  Writable and
+  read-only package caches are fully supported. (#4021)
+
+* **Python API Module**: An oft requested feature is the ability to use conda as a python library,
+  obviating the need to "shell out" to another python process. Conda 4.3 includes a
+  `conda.cli.python_api` module that facilitates this use case. While we maintain the user-facing
+  command-line interface, conda commands can be executed in-process. There is also a
+  `conda.exports` module to facilitate longer-term usage of conda as a library across conda
+  conda releases.  However, conda's python code *is* considered internal and private, subject
+  to change at any time across releases. At the moment, conda will not install itself into
+  environments other than its original install environment. (#4028)
 
 ### Deprecations/Breaking Changes
 * the 'r' channel is now part of defaults (#3677)
@@ -20,7 +57,8 @@
 * allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
 * the 'r' channel is now part of defaults (#3677)
 * private environment support for conda (#3988)
-* support new info/paths.json file (#3927, #3943)
+* support v1 info/paths.json file (#3927, #3943)
+* support v1 info/package_metadata.json (#4030)
 * improved solver hint detection, simplified filtering (#3597)
 * cache VersionOrder objects to improve performance (#3596)
 * fix documentation and typos (#3526, #3572, #3627)
@@ -295,7 +333,7 @@
 * move scripts in bin to shell directory (#3186)
 
 
-## 4.2.0 (2016-07-28)
+## 4.2.0 (2016-07-28)  Configuration
 
 ### New Features
 * **New Configuration Engine**: Configuration and "operating context" are the foundation of conda's functionality. Conda now has the ability to pull configuration information from a multitude of on-disk locations, including `.d` directories and a `.condarc` file *within* a conda environment), along with full `CONDA_` environment variable support. Helpful validation errors are given for improperly-specified configuration. Full documentation updates pending. (#2537, #3160, #3178)
