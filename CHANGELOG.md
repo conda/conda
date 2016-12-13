@@ -1,4 +1,4 @@
-## 4.3.0 (2016-12-12)  Safety
+## 4.3.0 (2016-12-13)  Safety
 
 ### New Features
 * **Unlink and Link Packages in a Single Transaction**: In the past, conda hasn't always been safe
@@ -44,15 +44,17 @@
   to change at any time across releases. At the moment, conda will not install itself into
   environments other than its original install environment. (#4028)
 
+* **Remove All Locks**:  Locking has never been fully effective in conda, and it often created a
+  false sense of security. In this release, multi-user package cache support has been
+  implemented for improved safety by hard-linking packages in read-only caches to the user's
+  primary user package cache. Still, users are cautioned that undefined behavior can result when
+  conda is running in multiple process and operating on the same package caches and/or
+  environments. (#3862)
+
 ### Deprecations/Breaking Changes
-* the 'r' channel is now part of defaults (#3677)
-* remove dead install_tar function (#3641)
-* no longer symlinking conda for activated envs (#3712)
-* remove *all* file locks (#3862)
-* no longer testing against conda-build < 2.0 (#4030)
+* Conda 4.4 will drop support for older versions of conda-build.
 
 ### Improvements
-* remove *all* file locks (#3862)
 * create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
 * allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
 * the 'r' channel is now part of defaults (#3677)
@@ -66,6 +68,7 @@
 * some Fish autocompletions (#2519)
 * reduce priority for packages removed from the index (#3703)
 * add user-agent, uid, gid to conda info (#3671)
+* add conda.exports module (#3429)
 * make http timeouts configurable (#3832)
 * add a pkgs_dirs config parameter (#3691)
 * add an 'always_softlink' option (#3870, #3876)
@@ -91,7 +94,7 @@
 
 ### Non-User-Facing Changes
 * remove unnecessary eval (#3428)
-* add conda.exports module (#3429)
+* remove dead install_tar function (#3641)
 * apply PEP-8 to conda-env (#3653)
 * refactor dist into an object (#3616)
 * vendor appdirs; remove conda's dependency on anaconda-client import (#3675)
@@ -305,7 +308,8 @@
 * enable binary prefix replacement on windows (#3262)
 * add `--verbose` command line flag (#3237)
 * improve logging and exception detail (#3237, #3252)
-* do not remove empty environment without asking; raise an error when a named environment can't be found (#3222)
+* do not remove empty environment without asking; raise an error when a named environment
+  can't be found (#3222)
 
 ### Bug Fixes
 * fix #3226 user condarc not available on Windows (#3228)
@@ -336,11 +340,27 @@
 ## 4.2.0 (2016-07-28)  Configuration
 
 ### New Features
-* **New Configuration Engine**: Configuration and "operating context" are the foundation of conda's functionality. Conda now has the ability to pull configuration information from a multitude of on-disk locations, including `.d` directories and a `.condarc` file *within* a conda environment), along with full `CONDA_` environment variable support. Helpful validation errors are given for improperly-specified configuration. Full documentation updates pending. (#2537, #3160, #3178)
-* **New Exception Handling Engine**: Previous releases followed a pattern of premature exiting (with hard calls to `sys.exit()` when exceptional circumstances were encountered. This release replaces over 100 `sys.exit` calls with python exceptions.  For conda developers, this will result in tests that are easier to write.  For developers using conda, this is a first step on a long path toward conda being directly importable.  For conda users, this will eventually result in more helpful and descriptive errors messages.  (#2899, #2993, #3016, #3152, #3045)
-* **Empty Environments**: Conda can now create "empty" environments when no initial packages are specified, alleviating a common source of confusion. (#3072, #3174)
-* **Conda in Private Env**: Conda can now be configured to live within its own private environment.  While it's not yet default behavior, this represents a first step toward separating the `root` environment into a "conda private" environment and a "user default" environment. (#3068)
-* **Regex Version Specification**: Regular expressions are now valid version specifiers.  For example, `^1\.[5-8]\.1$|2.2`. (#2933)
+* **New Configuration Engine**: Configuration and "operating context" are the foundation of
+  conda's functionality. Conda now has the ability to pull configuration information from a
+  multitude of on-disk locations, including `.d` directories and a `.condarc` file *within*
+  a conda environment), along with full `CONDA_` environment variable support. Helpful
+  validation errors are given for improperly-specified configuration. Full documentation
+  updates pending. (#2537, #3160, #3178)
+* **New Exception Handling Engine**: Previous releases followed a pattern of premature exiting
+  (with hard calls to `sys.exit()` when exceptional circumstances were encountered. This
+  release replaces over 100 `sys.exit` calls with python exceptions.  For conda developers,
+  this will result in tests that are easier to write.  For developers using conda, this is a
+  first step on a long path toward conda being directly importable.  For conda users, this will
+  eventually result in more helpful and descriptive errors messages.
+  (#2899, #2993, #3016, #3152, #3045)
+* **Empty Environments**: Conda can now create "empty" environments when no initial packages
+  are specified, alleviating a common source of confusion. (#3072, #3174)
+* **Conda in Private Env**: Conda can now be configured to live within its own private
+  environment.  While it's not yet default behavior, this represents a first step toward
+  separating the `root` environment into a "conda private" environment and a "user default"
+  environment. (#3068)
+* **Regex Version Specification**: Regular expressions are now valid version specifiers.
+  For example, `^1\.[5-8]\.1$|2.2`. (#2933)
 
 ### Deprecations/Breaking Changes
 * remove conda init (#2759)
@@ -520,7 +540,7 @@
 * add auto_update_conda config parameter, #2686
 
 
-## 4.1.0 (2016-06-14)
+## 4.1.0 (2016-06-14)  Channel Priority
 
 * clean up activate and deactivate scripts, moving back to conda repo, #1727,
   #2265, #2291, #2473, #2501, #2484
@@ -612,7 +632,7 @@
 * remove auxlib build dependency, #2188
 
 
-## 4.0.0 (2016-03-04)
+## 4.0.0 (2016-03-04)  Solver
 
 * The solver has been retooled significantly. Performance
   should be improved in most circumstances, and a number of issues

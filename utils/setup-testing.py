@@ -15,17 +15,10 @@ if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
-print("""
-WARNING: Your current install method for conda only supports conda
-as a python library.  You are not installing a conda executable command
-or activate/deactivate commands.  If your intention is to install conda
-as a standalone application, currently supported install methods include
-the Anaconda installer and the miniconda installer.
-""", file=sys.stderr)
-
 # When executing setup.py, we need to be able to import ourselves, this
 # means that we need to add the src directory to the sys.path.
-src_dir = here = os.path.abspath(os.path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
+src_dir = os.path.join(here, "..")
 sys.path.insert(0, src_dir)
 
 import conda  # NOQA
@@ -33,6 +26,14 @@ from conda._vendor.auxlib import packaging  # NOQA
 
 with open(os.path.join(src_dir, "README.rst")) as f:
     long_description = f.read()
+
+scripts = ['shell/activate',
+           'shell/deactivate',
+           ]
+if sys.platform == 'win32':
+    # Powershell scripts should go here
+    scripts.extend(['shell/activate.bat',
+                    'shell/deactivate.bat'])
 
 install_requires = [
     'pycosat >=0.6.1',
@@ -72,5 +73,12 @@ setup(
         'sdist': packaging.SDistCommand,
     },
     install_requires=install_requires,
+    entry_points={
+        'console_scripts': [
+            "conda = conda.cli.main:main",
+            "conda-env = conda_env.cli.main:main"
+        ],
+    },
+    scripts=scripts,
     zip_safe=False,
 )

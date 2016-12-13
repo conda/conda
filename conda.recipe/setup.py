@@ -6,26 +6,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 import sys
-if 'develop' in sys.argv:
-    from setuptools import setup
-else:
-    from distutils.core import setup
+from distutils.core import setup
 
 if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
-print("""
-WARNING: Your current install method for conda only supports conda
-as a python library.  You are not installing a conda executable command
-or activate/deactivate commands.  If your intention is to install conda
-as a standalone application, currently supported install methods include
-the Anaconda installer and the miniconda installer.
-""", file=sys.stderr)
-
 # When executing setup.py, we need to be able to import ourselves, this
 # means that we need to add the src directory to the sys.path.
-src_dir = here = os.path.abspath(os.path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
+src_dir = os.path.join(here, "..")
 sys.path.insert(0, src_dir)
 
 import conda  # NOQA
@@ -33,15 +23,6 @@ from conda._vendor.auxlib import packaging  # NOQA
 
 with open(os.path.join(src_dir, "README.rst")) as f:
     long_description = f.read()
-
-install_requires = [
-    'pycosat >=0.6.1',
-    'requests >=2.5.3',
-]
-
-if sys.version_info < (3, 4):
-    install_requires.append('enum34')
-
 
 setup(
     name=conda.__name__,
@@ -71,6 +52,5 @@ setup(
         'build_py': packaging.BuildPyCommand,
         'sdist': packaging.SDistCommand,
     },
-    install_requires=install_requires,
     zip_safe=False,
 )
