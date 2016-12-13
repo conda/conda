@@ -25,14 +25,13 @@ the Anaconda installer and the miniconda installer.
 
 # When executing setup.py, we need to be able to import ourselves, this
 # means that we need to add the src directory to the sys.path.
-here = os.path.abspath(os.path.dirname(__file__))
-src_dir = os.path.join(here, "conda")
+src_dir = here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, src_dir)
 
 import conda  # NOQA
 from conda._vendor.auxlib import packaging  # NOQA
 
-with open(os.path.join(here, "README.rst")) as f:
+with open(os.path.join(src_dir, "README.rst")) as f:
     long_description = f.read()
 
 install_requires = [
