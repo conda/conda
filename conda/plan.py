@@ -9,10 +9,10 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
 from collections import defaultdict, namedtuple
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir, join
+import sys
 
 from . import CondaError, instructions as inst
 from ._vendor.boltons.setutils import IndexedSet
@@ -488,13 +488,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         prefix=prefix, specs=tuple(sp.spec for sp in dists_for_envs), r=r
     )
     actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy, prune,
-                          update_deps, pinned)
+                                    update_deps, pinned)
     return actions
 
 
 def install_actions_list(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False):
+                         pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                         channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
     str_specs = specs
@@ -568,8 +568,6 @@ def get_highest_priority_match(matches, prioritized_channel_list, index):
     nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
                                       chnl[1] == n][0]
 
-    is_in_index = lambda mtch: tuple(dist for dist in index.keys() if
-                                     dist.dist_name.startswith(mtch))
     # This loop: match to the highest priority channel;
     #   if no packages match priority 0, try the next channel
     for i in range(0, len(prioritized_channel_list)):
@@ -579,13 +577,6 @@ def get_highest_priority_match(matches, prioritized_channel_list, index):
             newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[-1]
             return newest_pkg
 
-    # if a package can't be matched to a prioritized channel, it may still be able to be matched
-    #   to something in index
-    # for m in matches:
-    #     in_index = is_in_index(m.name)
-    #     if in_index:
-    #         import pdb;pdb.set_trace()
-    #         return in_index
     raise PackageNotFoundError(matches[0].name, "package not found")
 
 

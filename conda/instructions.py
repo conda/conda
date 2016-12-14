@@ -1,18 +1,17 @@
 from __future__ import absolute_import, division, print_function
 
 import ctypes
-import os
-import tarfile
 from functools import reduce
 from logging import getLogger
 from operator import add
+import os
 from os.path import basename, isdir, isfile, islink, join
+import tarfile
 
-from conda.gateways.disk.delete import rm_rf
 from .base.context import context
 from .common.compat import on_win
 from .core.link import UnlinkLinkTransaction
-from .core.package_cache import ProgressiveFetchExtract, PackageCache
+from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
 from .install import symlink_conda
 from .models.dist import Dist

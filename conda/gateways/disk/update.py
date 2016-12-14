@@ -3,9 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import rename
+from os.path import lexists
 import re
-
-from os.path import isfile, exists, lexists
 
 from . import exp_backoff_fn
 
