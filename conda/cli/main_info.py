@@ -78,24 +78,6 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def show_pkg_info(name):
-    from conda.api import get_index
-    from conda.resolve import Resolve
-
-    index = get_index()
-    r = Resolve(index)
-    print(name)
-    if name in r.groups:
-        for pkg in sorted(r.get_pkgs(name)):
-            print('    %-15s %15s  %s' % (
-                    pkg.version,
-                    pkg.build,
-                    disp_features(r.features(pkg.fn))))
-    else:
-        print('    not available')
-    # TODO
-
-
 python_re = re.compile('python\d\.\d')
 def get_user_site():
     site_dirs = []
