@@ -234,6 +234,10 @@ class PackageCache(object):
                          for pkgs_dir in context.pkgs_dirs)
         return pc_entry
 
+    @classmethod
+    def clear(cls):
+        cls._cache_.clear()
+
     def tarball_file_in_this_cache(self, tarball_path, md5sum=None):
         tarball_full_path, md5sum = self._clean_tarball_path_and_get_md5sum(tarball_path,
                                                                             md5sum=md5sum)
