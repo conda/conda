@@ -52,6 +52,9 @@
   environments. (#3862)
 
 ### Deprecations/Breaking Changes
+* Conda signed packages have been removed in 4.3. Vulnerabilities existed. An illusion of security
+  is worse than not having the feature at all.  We will be incorporating The Update Framework
+  into conda in a future feature release.
 * Conda 4.4 will drop support for older versions of conda-build.
 
 ### Improvements

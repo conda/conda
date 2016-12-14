@@ -400,12 +400,6 @@ class CondaHistoryError(CondaError):
         super(CondaHistoryError, self).__init__(msg)
 
 
-class CondaSignatureError(CondaError):
-    def __init__(self, message):
-        msg = 'Signature error: %s' % message
-        super(CondaSignatureError, self).__init__(msg)
-
-
 class CondaCorruptEnvironmentError(CondaError):
     def __init__(self, message):
         msg = "Corrupt environment error: %s" % message
