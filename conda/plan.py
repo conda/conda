@@ -473,6 +473,29 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
+    #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
+    specs = [MatchSpec(spec) for spec in specs]
+    r = get_resolve_object(index.copy(), prefix)
+
+    linked_in_root = linked_data(context.root_prefix)
+
+    dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
+    preferred_envs = set(d.env for d in dists_for_envs)
+
+    assert len(preferred_envs) == 1
+    specs_for_prefix = SpecsForPrefix(
+        prefix=prefix, specs=tuple(sp.spec for sp in dists_for_envs), r=r
+    )
+    actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy, prune,
+                          update_deps, pinned)
+    return actions
+
+
+def install_actions_list(prefix, index, specs, force=False, only_names=None, always_copy=False,
+                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                    channel_priority_map=None, is_update=False):
+    # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
     str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
@@ -541,10 +564,12 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def get_highest_priority_match(matches, prioritized_channel_list):
+def get_highest_priority_match(matches, prioritized_channel_list, index):
     nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
                                       chnl[1] == n][0]
 
+    is_in_index = lambda mtch: tuple(dist for dist in index.keys() if
+                                     dist.dist_name.startswith(mtch))
     # This loop: match to the highest priority channel;
     #   if no packages match priority 0, try the next channel
     for i in range(0, len(prioritized_channel_list)):
@@ -553,6 +578,14 @@ def get_highest_priority_match(matches, prioritized_channel_list):
         if len(highest_match) > 0:
             newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[-1]
             return newest_pkg
+
+    # if a package can't be matched to a prioritized channel, it may still be able to be matched
+    #   to something in index
+    # for m in matches:
+    #     in_index = is_in_index(m.name)
+    #     if in_index:
+    #         import pdb;pdb.set_trace()
+    #         return in_index
     raise PackageNotFoundError(matches[0].name, "package not found")
 
 
@@ -562,7 +595,12 @@ def determine_all_envs(r, specs, channel_priority_map=None):
 
     # Make sure there is a channel priority
     if channel_priority_map is None or len(channel_priority_map) == 0:
-        channel_priority_map = prioritize_channels(context.channels)
+        # copy context.channels into a list
+        channels = [ch for ch in context.channels]
+        for ind in r.index.keys():
+            if not(ind.channel in channels):
+                channels.append(ind.channel)
+        channel_priority_map = prioritize_channels(channels)
 
     # remove duplicates e.g. for channel names with multiple urls
     prioritized_channel_list = set((chnl, prrty) for chnl, prrty in
@@ -571,7 +609,7 @@ def determine_all_envs(r, specs, channel_priority_map=None):
     spec_for_envs = []
     for spec in specs:
         matched_dists = r.get_pkgs(spec)
-        best_match = get_highest_priority_match(matched_dists, prioritized_channel_list)
+        best_match = get_highest_priority_match(matched_dists, prioritized_channel_list, r.index)
         spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
                                         spec=best_match.name))
     return spec_for_envs

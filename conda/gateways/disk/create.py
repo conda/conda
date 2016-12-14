@@ -7,12 +7,12 @@ import shutil
 import sys
 import tarfile
 import traceback
-from conda.base.context import context
+from ...base.context import context
 from errno import EEXIST
 from io import open
 from logging import getLogger
 from os import makedirs
-from os.path import basename, exists, isdir, isfile, islink, join
+from os.path import basename, isdir, isfile, islink, join, lexists
 from shlex import split as shlex_split
 from subprocess import PIPE, Popen
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
 
 def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
-    if exists(target_full_path) and not context.force:
+    if lexists(target_full_path) and not context.force:
         raise ClobberError(
             destination_path=target_full_path,
             source_path=None,
@@ -67,7 +67,7 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
 
 
 def create_windows_python_entry_point(target_full_path, module, func):
-    if exists(target_full_path) and not context.force:
+    if lexists(target_full_path) and not context.force:
         raise ClobberError(
             destination_path=target_full_path,
             source_path=None,
@@ -86,7 +86,7 @@ def extract_tarball(tarball_full_path, destination_directory=None):
         destination_directory = tarball_full_path[:-8]
     log.debug("extracting %s\n  to %s", tarball_full_path, destination_directory)
 
-    assert not exists(destination_directory), destination_directory
+    assert not lexists(destination_directory), destination_directory
 
     with tarfile.open(tarball_full_path) as t:
         t.extractall(path=destination_directory)
@@ -107,7 +107,7 @@ def write_linked_package_record(prefix, record):
         makedirs(meta_dir)
     dist = Dist(record)
     conda_meta_full_path = join(meta_dir, dist.to_filename('.json'))
-    if exists(conda_meta_full_path) and not context.force:
+    if lexists(conda_meta_full_path) and not context.force:
         raise ClobberError(
             destination_path=conda_meta_full_path,
             source_path=None,
@@ -144,8 +144,8 @@ def make_menu(prefix, file_path, remove=False):
 def mkdir_p(path):
     try:
         log.trace('making directory %s', path)
-        makedirs(path)
-        return path
+        if path:
+            makedirs(path)
     except OSError as e:
         if e.errno == EEXIST and isdir(path):
             return path
@@ -212,7 +212,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         mkdir_p(dst)
         return
 
-    if exists(dst):  # TODO: should this be lexists() ?
+    if lexists(dst):
         if force:
             log.info("file exists, but clobbering: %r" % dst)
             rm_rf(dst)
@@ -245,7 +245,7 @@ def _split_on_unix(command):
 
 
 def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
-    if exists(pyc_full_path) and not context.force:
+    if lexists(pyc_full_path) and not context.force:
         raise ClobberError(pyc_full_path, py_full_path, PathType.pyc_file)
 
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
@@ -311,7 +311,7 @@ def remove_private_envs_meta(pkg):
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
-    if exists(target_full_path) and not context.force:
+    if lexists(target_full_path) and not context.force:
         raise ClobberError(
             destination_path=target_full_path,
             source_path=None,

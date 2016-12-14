@@ -90,7 +90,7 @@ conda_build_install() {
     conda config --set add_pip_as_python_dependency true
 
     # install conda-build runtime dependencies
-    conda install -y -q filelock jinja2 patchelf conda-verify setuptools contextlib2
+    conda install -y -q filelock jinja2 patchelf conda-verify setuptools contextlib2 pkginfo
 
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git

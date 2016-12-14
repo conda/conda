@@ -5,6 +5,8 @@ from logging import getLogger
 from os import rename
 import re
 
+from os.path import isfile, exists, lexists
+
 from . import exp_backoff_fn
 
 log = getLogger(__name__)
@@ -39,4 +41,6 @@ def update_file_in_place_as_binary(file_full_path, callback):
 
 
 def backoff_rename(source_path, destination_path):
-    exp_backoff_fn(rename, source_path, destination_path)
+    if lexists(source_path):
+        exp_backoff_fn(rename, source_path, destination_path)
+    return
