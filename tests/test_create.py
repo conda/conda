@@ -902,3 +902,7 @@ class IntegrationTests(TestCase):
             with make_temp_env("openssl --no-deps") as prefix:
                 assert_package_is_installed(prefix, 'openssl-')
                 assert rs.call_count == 2
+
+    def test_conda_info_python(self):
+        stdout, stderr = run_command(Commands.INFO, None, "python=3.5")
+        assert "python 3.5.1 0" in stdout
