@@ -20,8 +20,10 @@ build:
     - Scripts/activate          [win]
     - Scripts/deactivate        [win]
   entry_points:
-    - conda = conda.cli:main
+    - conda = conda.cli:main    [win]
     - conda-env = conda_env.cli.main:main
+  has_prefix:
+    - bin/conda
 
 requirements:
   build:
