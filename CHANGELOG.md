@@ -1,4 +1,4 @@
-## 4.3.0 (2016-12-13)  Safety
+## 4.3.0 (2016-12-14)  Safety
 
 ### New Features
 * **Unlink and Link Packages in a Single Transaction**: In the past, conda hasn't always been safe
