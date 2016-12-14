@@ -76,7 +76,7 @@ def initialize_conda_logger(level=WARN):
 
 
 def set_all_logger_level(level=DEBUG):
-    formatter = Formatter("%(message)s\n") if level < INFO else None
+    formatter = Formatter("%(message)s\n") if level >= INFO else None
     attach_stderr_handler(level, formatter=formatter)
     attach_stderr_handler(level, 'conda', formatter=formatter)
     attach_stderr_handler(level, 'binstar', formatter=formatter)

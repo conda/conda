@@ -172,22 +172,21 @@ class UnlinkLinkTransaction(object):
         if not self._verified:
             self.verify()
 
+        pkg_idx = 0
         try:
             for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
-                for axn_idx, action in enumerate(actions):
-                    action.execute()
-
+                self._execute_actions(self.target_prefix, self.num_unlink_pkgs, pkg_idx,
+                                      pkg_data, actions)
+                # for axn_idx, action in enumerate(actions):
+                #     action.execute()
         except:
-            log.error("Something bad happened, but it's okay because I'm going to roll back now.")
-            log.debug("Error in action %r", action)
-            log.debug(format_exc())
-
-            failed_pkg_idx, failed_axn_idx = pkg_idx, axn_idx
-            reverse_actions = self.all_actions[:failed_pkg_idx+1]
-            for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
-                reverse_from_axn_idx = failed_axn_idx if pkg_idx == failed_pkg_idx else -1
-                self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
-                                      pkg_idx, pkg_data, actions, reverse_from_axn_idx)
+            # reverse all executed packages except the one that failed
+            if context.rollback_enabled:
+                failed_pkg_idx = pkg_idx
+                reverse_actions = self.all_actions[:failed_pkg_idx]
+                for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
+                    self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
+                                          pkg_idx, pkg_data, actions)
             raise
 
         else:
@@ -197,7 +196,7 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def _execute_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions):
-        axn_idx = 0
+        axn_idx, action = 0, None
         try:
             dist = Dist(pkg_data)
             is_unlink = pkg_idx <= num_unlink_pkgs - 1
@@ -213,13 +212,20 @@ class UnlinkLinkTransaction(object):
                          dist, target_prefix, pkg_data.extracted_package_dir)
 
             run_script(target_prefix, Dist(pkg_data), 'pre-unlink' if is_unlink else 'pre-link')
-
             for axn_idx, action in enumerate(actions):
                 action.execute()
-
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
-        finally:
-            return axn_idx
+        except:
+            # reverse this package
+            log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
+            log.debug(format_exc())
+            if context.rollback_enabled:
+                log.error("Something bad happened, but it's okay because I'm going to "
+                          "roll back now.")
+
+                UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
+                                                       pkg_data, actions, reverse_from_idx=axn_idx)
+            raise
 
     @staticmethod
     def _reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions,
@@ -236,7 +242,7 @@ class UnlinkLinkTransaction(object):
             log.info("===> REVERSING PACKAGE LINK: %s <===\n"
                      "  prefix=%s\n,",
                      dist, target_prefix)
-
+        log.debug("reversing pkg_idx #%d from axn_idx #%d", pkg_idx, reverse_from_idx)
         for action in reversed(actions[:reverse_from_idx]):
             action.reverse()
 
