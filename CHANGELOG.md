@@ -24,8 +24,9 @@
   conda package, with the following additional features
   1. conda maps the `site-packages` directory to the correct location for the python version
      in the environment,
-  2. conda creates the python entry points specified in the conda-build recipe, and
-  3. conda compiles pyc files at install time when prefix write permissions are guaranteed.
+  2. conda maps the python-scripts to either $PREFIX/bin or $PREFIX/Scripts depending on platform,
+  3. conda creates the python entry points specified in the conda-build recipe, and
+  4. conda compiles pyc files at install time when prefix write permissions are guaranteed.
 
   Python noarch packages must be "fully universal."  They cannot have OS- or
   python version-specific dependencies.  They cannot have OS- or python version-specific "scripts"
