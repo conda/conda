@@ -137,7 +137,7 @@ class ContextTests(TestCase):
                     join_url(conda_bld_url, 'noarch'),
                 ]
                 assert channel.url() == join_url(conda_bld_url, context.subdir)
-                assert channel.channel_name == win_path_backout(conda_bld_path).lstrip('/')
+                assert channel.channel_name.lower() == win_path_backout(conda_bld_path).lstrip('/').lower()
                 assert channel.channel_location == ''  # location really is an empty string; all path information is in channel_name
                 assert channel.canonical_name == "local"
         finally:
