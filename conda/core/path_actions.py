@@ -27,7 +27,7 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     make_menu, remove_private_envs_meta,
                                     write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import compute_md5sum, exists, isfile, islink
+from ..gateways.disk.read import compute_md5sum, lexists, isfile, islink
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.dist import Dist
@@ -208,7 +208,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def verify(self):
         # TODO: consider checking hashsums
-        if self.link_type != LinkType.directory and not exists(self.source_full_path):
+        if self.link_type != LinkType.directory and not lexists(self.source_full_path):
             raise CondaVerificationError(dals("""
             The package for %s located at %s
             appears to be corrupted. The path '%s'
@@ -574,7 +574,7 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.target_full_path, self.holding_full_path)
 
     def reverse(self):
-        if self.link_type != LinkType.directory and exists(self.holding_full_path):
+        if self.link_type != LinkType.directory and lexists(self.holding_full_path):
             log.trace("reversing rename %s => %s", self.holding_short_path, self.target_short_path)
             backoff_rename(self.holding_full_path, self.target_full_path)
 
@@ -680,10 +680,10 @@ class CacheUrlAction(PathAction):
 
         log.trace("caching url %s => %s", self.url, self.target_full_path)
 
-        if exists(self.hold_path):
+        if lexists(self.hold_path):
             rm_rf(self.hold_path)
 
-        if exists(self.target_full_path):
+        if lexists(self.target_full_path):
             if self.url.startswith('file:/') and self.url == path_to_url(self.target_full_path):
                 # the source and destination are the same file, so we're done
                 return
@@ -728,7 +728,7 @@ class CacheUrlAction(PathAction):
             target_package_cache.urls_data.add_url(self.url)
 
     def reverse(self):
-        if exists(self.hold_path):
+        if lexists(self.hold_path):
             log.trace("moving %s => %s", self.hold_path, self.target_full_path)
             rm_rf(self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path)
@@ -761,9 +761,9 @@ class ExtractPackageAction(PathAction):
         from .package_cache import PackageCache, PackageCacheEntry
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
-        if exists(self.hold_path):
+        if lexists(self.hold_path):
             rm_rf(self.hold_path)
-        if exists(self.target_full_path):
+        if lexists(self.target_full_path):
             backoff_rename(self.target_full_path, self.hold_path)
         extract_tarball(self.source_full_path, self.target_full_path)
 
@@ -775,7 +775,7 @@ class ExtractPackageAction(PathAction):
         target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
-        if exists(self.hold_path):
+        if lexists(self.hold_path):
             log.trace("moving %s => %s", self.hold_path, self.target_full_path)
             rm_rf(self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path)

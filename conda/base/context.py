@@ -68,6 +68,7 @@ class Context(Configuration):
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
+    rollback_enabled = PrimitiveParameter(True)
 
     _root_dir = PrimitiveParameter("", aliases=('root_dir',))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
@@ -466,7 +467,7 @@ def get_prefix(ctx, args, search=True):
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
     """
-    if args.name:
+    if getattr(args, 'name'):
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   args.name, getattr(args, 'json', False))
@@ -476,7 +477,7 @@ def get_prefix(ctx, args, search=True):
             return locate_prefix_by_name(ctx, args.name)
         else:
             return join(ctx.envs_dirs[0], args.name)
-    elif args.prefix:
+    elif getattr(args, 'prefix'):
         return abspath(expanduser(args.prefix))
     else:
         return ctx.default_prefix

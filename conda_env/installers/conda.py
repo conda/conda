@@ -28,8 +28,8 @@ def install(prefix, specs, args, env, prune=False):
                       prepend='nodefaults' not in env.channels,
                       prefix=prefix)
     _channel_priority_map = prioritize_channels(channel_urls)
-    action_set = plan.install_actions(prefix, index, specs, prune=prune,
-                                      channel_priority_map=_channel_priority_map)
+    action_set = plan.install_actions_list(prefix, index, specs, prune=prune,
+                                           channel_priority_map=_channel_priority_map)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         for actions in action_set:

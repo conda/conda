@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import rename
+from os.path import lexists
 import re
 
 from . import exp_backoff_fn
@@ -39,4 +40,6 @@ def update_file_in_place_as_binary(file_full_path, callback):
 
 
 def backoff_rename(source_path, destination_path):
-    exp_backoff_fn(rename, source_path, destination_path)
+    if lexists(source_path):
+        exp_backoff_fn(rename, source_path, destination_path)
+    return
