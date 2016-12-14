@@ -224,7 +224,6 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
-    @pytest.mark.xfail(condition=(on_win and (datetime.now() < datetime(2016, 12, 17))), strict=True, reason="")
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
