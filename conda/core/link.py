@@ -217,10 +217,11 @@ class UnlinkLinkTransaction(object):
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
         except:
             # reverse this package
+            log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
+            log.debug(format_exc())
             if context.rollback_enabled:
-                log.error("Something bad happened, but it's okay because I'm going to roll back now.")
-                log.debug("Error in action %r", action)
-                log.debug(format_exc())
+                log.error("Something bad happened, but it's okay because I'm going to "
+                          "roll back now.")
 
                 UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
                                                        pkg_data, actions, reverse_from_idx=axn_idx)
@@ -241,7 +242,7 @@ class UnlinkLinkTransaction(object):
             log.info("===> REVERSING PACKAGE LINK: %s <===\n"
                      "  prefix=%s\n,",
                      dist, target_prefix)
-
+        log.debug("reversing pkg_idx #%d from axn_idx #%d", pkg_idx, reverse_from_idx)
         for action in reversed(actions[:reverse_from_idx]):
             action.reverse()
 
