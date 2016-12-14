@@ -366,7 +366,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context, package_info, target_prefix,
                         requested_link_type, ep_def
-                    ) for ep_def in package_info.noarch.entry_points
+                    ) for ep_def in package_info.package_metadata.noarch.entry_points
                 )
 
             return actions
