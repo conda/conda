@@ -24,7 +24,8 @@
   conda package, with the following additional features
   1. conda maps the `site-packages` directory to the correct location for the python version
      in the environment,
-  2. conda maps the python-scripts to either $PREFIX/bin or $PREFIX/Scripts depending on platform,
+  2. conda maps the python-scripts directory to either $PREFIX/bin or $PREFIX/Scripts depending
+     on platform,
   3. conda creates the python entry points specified in the conda-build recipe, and
   4. conda compiles pyc files at install time when prefix write permissions are guaranteed.
 
