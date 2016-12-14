@@ -68,6 +68,7 @@ class Context(Configuration):
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
+    rollback_enabled = PrimitiveParameter(True)
 
     _root_dir = PrimitiveParameter("", aliases=('root_dir',))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),

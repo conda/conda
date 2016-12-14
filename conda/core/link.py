@@ -181,11 +181,12 @@ class UnlinkLinkTransaction(object):
                 #     action.execute()
         except:
             # reverse all executed packages except the one that failed
-            failed_pkg_idx = pkg_idx
-            reverse_actions = self.all_actions[:failed_pkg_idx]
-            for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
-                self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
-                                      pkg_idx, pkg_data, actions)
+            if context.rollback_enabled:
+                failed_pkg_idx = pkg_idx
+                reverse_actions = self.all_actions[:failed_pkg_idx]
+                for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
+                    self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
+                                          pkg_idx, pkg_data, actions)
             raise
 
         else:
@@ -216,12 +217,13 @@ class UnlinkLinkTransaction(object):
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
         except:
             # reverse this package
-            log.error("Something bad happened, but it's okay because I'm going to roll back now.")
-            log.debug("Error in action %r", action)
-            log.debug(format_exc())
+            if context.rollback_enabled:
+                log.error("Something bad happened, but it's okay because I'm going to roll back now.")
+                log.debug("Error in action %r", action)
+                log.debug(format_exc())
 
-            UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
-                                                   pkg_data, actions, reverse_from_idx=axn_idx)
+                UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
+                                                       pkg_data, actions, reverse_from_idx=axn_idx)
             raise
 
     @staticmethod
