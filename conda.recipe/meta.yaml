@@ -22,8 +22,6 @@ build:
   entry_points:
     - conda = conda.cli:main
     - conda-env = conda_env.cli.main:main
-#  has_prefix_files:
-#    - bin/conda                 [unix]
 
 requirements:
   build:
