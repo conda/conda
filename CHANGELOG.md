@@ -76,6 +76,7 @@
 * address #3879 don't print activate message when quiet config is enabled (#3886)
 * add zos-z subdir (#4060)
 * add elapsed time to HTTP errors (#3942)
+* run python -O in conda's entry point (#4062)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
