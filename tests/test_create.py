@@ -223,30 +223,6 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
-    def test_transactional_rollback_simple(self):
-        from conda.core.path_actions import CreateLinkedPackageRecordAction
-        with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
-            with make_temp_env() as prefix:
-                mock_method.side_effect = KeyError('Bang bang!!')
-                with pytest.raises(KeyError):
-                    run_command(Commands.INSTALL, prefix, 'openssl')
-                assert not package_is_installed(prefix, 'openssl')
-
-    def test_transactional_rollback_upgrade_downgrade(self):
-        with make_temp_env("python=3") as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'python-3')
-
-            run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
-            assert_package_is_installed(prefix, 'flask-0.10.1')
-
-            from conda.core.path_actions import CreateLinkedPackageRecordAction
-            with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
-                mock_method.side_effect = KeyError('Bang bang!!')
-                with pytest.raises(KeyError):
-                    run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
-                assert_package_is_installed(prefix, 'flask-0.10.1')
-
     @pytest.mark.xfail(condition=(on_win and (datetime.now() < datetime(2016, 12, 17))), strict=True, reason="")
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:
@@ -899,3 +875,32 @@ class IntegrationTests(TestCase):
 
             assert package_is_installed(prefix, "pycosat-")
 
+    def test_transactional_rollback_simple(self):
+        from conda.core.path_actions import CreateLinkedPackageRecordAction
+        with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
+            with make_temp_env() as prefix:
+                mock_method.side_effect = KeyError('Bang bang!!')
+                with pytest.raises(KeyError):
+                    run_command(Commands.INSTALL, prefix, 'openssl')
+                assert not package_is_installed(prefix, 'openssl')
+
+    def test_transactional_rollback_upgrade_downgrade(self):
+        with make_temp_env("python=3") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+
+            from conda.core.path_actions import CreateLinkedPackageRecordAction
+            with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
+                mock_method.side_effect = KeyError('Bang bang!!')
+                with pytest.raises(KeyError):
+                    run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
+                assert_package_is_installed(prefix, 'flask-0.10.1')
+
+    def test_run_script_called(self):
+        with patch('conda.core.link.run_script') as rs:
+            with make_temp_env("openssl --no-deps") as prefix:
+                assert_package_is_installed(prefix, 'openssl-')
+                assert rs.call_count == 2
