@@ -32,6 +32,7 @@ from conda.core.linked_data import get_python_version_for_prefix, \
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import TRACE
+from conda.core.package_cache import PackageCache
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
 from contextlib import contextmanager
@@ -791,7 +792,6 @@ class IntegrationTests(TestCase):
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
-    @pytest.mark.skip(reason="just for now")
     def test_clean_tarballs_and_packages(self):
         try:
             with make_temp_env("flask") as prefix:
@@ -818,9 +818,7 @@ class IntegrationTests(TestCase):
             pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
             assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
         finally:
-            import conda.core.package_cache
-            conda.core.package_cache.package_cache_.clear()
-            conda.core.package_cache.fname_table_.clear()
+            PackageCache.clear()
 
     def test_clean_source_cache(self):
         cache_dirs = {
@@ -900,3 +898,7 @@ class IntegrationTests(TestCase):
             with make_temp_env("openssl --no-deps") as prefix:
                 assert_package_is_installed(prefix, 'openssl-')
                 assert rs.call_count == 2
+
+    def test_conda_info_python(self):
+        stdout, stderr = run_command(Commands.INFO, None, "python=3.5")
+        assert "python 3.5.1 0" in stdout

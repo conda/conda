@@ -58,6 +58,9 @@
   environments. (#3862)
 
 ### Deprecations/Breaking Changes
+* Conda signed packages have been removed in 4.3. Vulnerabilities existed. An illusion of security
+  is worse than not having the feature at all.  We will be incorporating The Update Framework
+  into conda in a future feature release. (#4064)
 * Conda 4.4 will drop support for older versions of conda-build.
 
 ### Improvements
@@ -82,7 +85,6 @@
 * address #3879 don't print activate message when quiet config is enabled (#3886)
 * add zos-z subdir (#4060)
 * add elapsed time to HTTP errors (#3942)
-* run python -O in conda's entry point (#4062)
 
 ### Bug Fixes
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363)
@@ -116,7 +118,7 @@
 * LinkType refactor (#3882)
 * move CrossPlatformStLink and make available as export (#3887)
 * make Record immutable (#3965)
-* project housekeeping (#3994)
+* project housekeeping (#3994, #4065)
 * context-dependent setup.py files (#4057)
 
 

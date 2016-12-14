@@ -6,16 +6,15 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import OrderedDict
 import json
 import os
-import re
-import sys
-from collections import OrderedDict
 from os import listdir
 from os.path import exists, expanduser, join
+import re
+import sys
 
-from .common import (add_parser_json, add_parser_offline, arg2spec, disp_features,
-                     handle_envs_list, stdout_json)
+from .common import add_parser_json, add_parser_offline, arg2spec, handle_envs_list, stdout_json
 from ..common.compat import itervalues, on_win
 from ..common.url import mask_anaconda_token
 from ..config import rc_path, sys_rc_path, user_rc_path
@@ -76,24 +75,6 @@ def configure_parser(sub_parsers):
         help='Display list of channels with tokens exposed.',
     )
     p.set_defaults(func=execute)
-
-
-def show_pkg_info(name):
-    from conda.api import get_index
-    from conda.resolve import Resolve
-
-    index = get_index()
-    r = Resolve(index)
-    print(name)
-    if name in r.groups:
-        for pkg in sorted(r.get_pkgs(name)):
-            print('    %-15s %15s  %s' % (
-                    pkg.version,
-                    pkg.build,
-                    disp_features(r.features(pkg.fn))))
-    else:
-        print('    not available')
-    # TODO
 
 
 python_re = re.compile('python\d\.\d')
