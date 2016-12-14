@@ -5,5 +5,5 @@ include README.rst
 include setup.cfg
 include setup.py
 include conda/resources/*
-include shell/*
 recursive-exclude tests *
+recursive-exclude shell *
