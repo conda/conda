@@ -15,6 +15,9 @@ if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
+
+# pip/wheel no longer displaying this message is unfortunate
+# https://github.com/pypa/pip/issues/2933
 print("""
 WARNING: Your current install method for conda only supports conda
 as a python library.  You are not installing a conda executable command
@@ -23,13 +26,13 @@ as a standalone application, currently supported install methods include
 the Anaconda installer and the miniconda installer.
 """, file=sys.stderr)
 
+
 # When executing setup.py, we need to be able to import ourselves, this
 # means that we need to add the src directory to the sys.path.
 src_dir = here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, src_dir)
+import conda._vendor.auxlib.packaging  # NOQA
 
-import conda  # NOQA
-from conda._vendor.auxlib import packaging  # NOQA
 
 with open(os.path.join(src_dir, "README.rst")) as f:
     long_description = f.read()
@@ -62,14 +65,14 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=packaging.find_packages(exclude=("tests",
-                                              "tests.*",
-                                              "build",
-                                              "utils",
-                                              ".tox")),
+    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests",
+                                                                   "tests.*",
+                                                                   "build",
+                                                                   "utils",
+                                                                   ".tox")),
     cmdclass={
-        'build_py': packaging.BuildPyCommand,
-        'sdist': packaging.SDistCommand,
+        'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
+        'sdist': conda._vendor.auxlib.packaging.SDistCommand,
     },
     install_requires=install_requires,
     zip_safe=False,
