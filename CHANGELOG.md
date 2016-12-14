@@ -112,7 +112,7 @@
 * LinkType refactor (#3882)
 * move CrossPlatformStLink and make available as export (#3887)
 * make Record immutable (#3965)
-* project housekeeping (#3994)
+* project housekeeping (#3994, #4065)
 * context-dependent setup.py files (#4057)
 
 
