@@ -568,6 +568,250 @@ The script run_test.sh (or .bat/.py/.pl) will be run automatically if it is part
 
 NOTE: Python or Perl .py/.pl scripts are only valid as part of Python/Perl packages, respectively.
 
+
+Outputs section
+---------------
+
+Explicitly specify packaging steps. Supports multiple outputs, as well as
+different package output type. Format is a list of mappings. Build strings for
+subpackages are determined by their runtime dependencies. This support was added
+in conda-build 2.1.0.
+
+.. code-block:: yaml
+
+   outputs:
+     - name: some-subpackage
+     - name: some-other-subpackage
+
+
+NOTE: if any output is specified in the outputs section, the default packaging
+behavior of conda-build is bypassed. In other words, if any subpackage is
+specified, then you will not get the normal top-level build for this recipe
+without explicitly defining a subpackage for it. This is an alternative to the
+existing behavior, not an addition to it. See the :ref:`implicit_metapackages`
+section below for more information.
+
+
+Specifying files to include in output
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Files to be included in the package can be specified one of two ways: explicit
+file lists, or scripts that move files into the build prefix.
+
+Explicit file lists are relative paths from the root of the build prefix.
+Explicit file lists support glob expressions. Directory names are also
+supported, and will recursively include contents.
+
+
+.. code-block:: yaml
+
+   outputs:
+     - name: subpackage-name
+       files:
+         - a-file
+         - a-folder
+         - *.some-extension
+         - somefolder/*.some-extension
+
+
+Scripts that create or move files into the build prefix can be any kind of
+script. Known script types need only specify the script name. Currently the list
+of recognized extensions is ``py``, ``bat``, ``ps1``, ``sh``
+
+.. code-block:: yaml
+
+   outputs:
+     - name: subpackage-name
+       script: move-files.py
+
+
+The interpreter command must be specified if the file extension is not
+"recognized."
+
+.. code-block:: yaml
+
+   outputs:
+     - name: subpackage-name
+       script: some-script.extension
+       script_interpreter: program plus arguments to run script
+
+
+ For scripts that move or create files, a fresh copy of the working directory is
+ provided at the start of each script execution. Results between scripts are
+ thus independent of one another.
+
+Note that for either the file list or the script approach, having more than one
+package contain a given file is not explicitly forbidden, but may prevent
+installation of both packages simultaneously.  Conda disallows this condition,
+because it creates ambiguous runtime conditions.
+
+
+Subpackage requirements
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Subpackages support runtime and test requirements. Build requirements are not
+supported, because subpackages are created after the build phase is complete. If
+you need a tool to accomplish subpackaging, put it in the top-level package
+requirements/build section.
+
+.. code-block:: yaml
+
+   outputs:
+     - name: subpackage-name
+       requirements:
+         - some-dep
+
+
+Subpackage dependencies propagate to the top-level package if and only if the
+subpackage is listed as a requirement.
+
+.. code-block:: yaml
+
+   requirements:
+     run:
+       - some-dep-that-will-propagate
+
+   outputs:
+     - name: some-dep-that-will-propagate
+       requirements:
+         - some-dep
+
+In this instance, the top-level package will depend on both
+``some-dep-that-will-propagate`` and ``some-dep`` as runtime requirements.
+
+.. _implicit_metapackages:
+
+Implicit metapackages
+~~~~~~~~~~~~~~~~~~~~~
+
+When viewing the top-level package as a collection of smaller subpackages, it
+may be convenient to define the top-level package as a composition of several
+subpackages. If you do this, and you do not define a subpackage name that
+matches the top-level package/name, then conda-build will create a metapackage
+for you. This metapackage will have runtime requirements drawn from its
+dependency subpackages, for the sake of accurate build strings.
+
+.. code-block:: yaml
+
+   package:
+     name: subpackage-example
+     version: 1.0
+
+   requirements:
+     run:
+       - subpackage1
+       - subpackage2
+
+   outputs:
+     - name: subpackage1
+       requirements:
+         - some-dep
+     - name: subpackage2
+       requirements:
+         - some-other-dep
+     - name: subpackage3
+       requirements:
+         - some-totally-exotic-dep
+
+
+In that example, a metapackage for subpackage-example will be created. It will
+have runtime dependencies on ``subpackage1``, ``subpackage2``, ``some-dep``, and
+``some-other-dep``.
+
+
+Subpackage tests
+~~~~~~~~~~~~~~~~
+
+Subpackages may be tested independently of the top-level package. Independent
+test script files for each separate package are specified under the subpackage's
+test section. These files support the same formats as the top-level run_test.*
+scripts: ``.py``, ``.pl``, ``.bat``, ``.sh``. These may be extended to support
+other script types in the future.
+
+.. code-block:: yaml
+
+   outputs:
+     - name: subpackage-name
+       test:
+         script: some-other-script.py
+
+
+The run_test.* scripts apply only to the top-level package, by default. To apply
+them also to subpackages, they can be explicitly listed in the script section:
+
+.. code-block:: yaml
+
+   outputs:
+     - name: subpackage-name
+       test:
+         script: run_test.py
+
+
+Test requirements for subpackages are not supported. Instead, subpackage tests
+install their runtime requirements (but not the run requirements for the
+top-level package) and the test-time requirements of the top-level package.
+
+.. code-block:: yaml
+
+   requirements:
+     run:
+       - some-top-level-run-req
+
+   test:
+     requires:
+       - some-test-dep
+
+   outputs:
+     - name: subpackage-name
+       requirements:
+         - subpackage-run-req
+       test:
+         script: run_test.py
+
+
+In this example, the test for subpackage-name will install ``some-test-dep`` and
+``subpackage-run-req``, but not ``some-top-level-run-req``.
+
+
+Output type
+~~~~~~~~~~~
+
+Conda-build supports creating packages other than conda packages. Right now,
+that support includes only wheels. RPMs, .deb files, and others may come as
+demand appears.  If type is not specified, the default value is ``conda``.
+
+
+.. code-block:: yaml
+
+   requirements:
+     build:
+       - wheel
+
+   outputs:
+     - name: name-of-wheel-package
+       type: wheel
+
+You currently must include the ``wheel`` package in your top-level
+requirements/build section in order to build wheels.
+
+When specifying type, the name field is optional, and defaults to the
+package/name field for the top-level recipe.
+
+.. code-block:: yaml
+
+   requirements:
+     build:
+       - wheel
+
+   outputs:
+     - type: wheel
+
+Conda-build currently only knows how to test conda packages. Conda-build does
+support using Twine to upload packages to PyPI. See the conda-build help output
+for the list of arguments accepted that will be passed through to Twine. Note
+that you must install twine (via pip) in order for this to work.
+
+
 .. _about:
 
 About section
