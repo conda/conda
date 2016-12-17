@@ -128,6 +128,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
 
     try:
         mtime = getmtime(cache_path)
+    except (IOError, OSError):
+        log.debug("No local cache found for %s at %s", url, cache_path)
+        if use_cache:
+            return {'packages': {}}
+        else:
+            mod_etag_headers = {}
+    else:
         timeout = mtime + context.repodata_timeout_secs - time()
         if timeout > 0:
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
@@ -138,13 +145,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             mod_etag_headers = read_mod_and_etag(cache_path)
             log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
-
-    except (IOError, ValueError):
-        log.debug("No local cache found for %s at %s", url, cache_path)
-        if use_cache:
-            return {'packages': {}}
-        else:
-            mod_etag_headers = {}
 
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
