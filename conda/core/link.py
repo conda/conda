@@ -207,8 +207,15 @@ class UnlinkLinkTransaction(object):
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
             for path in axn.linked_package_record.files:
-                link_paths_dict[path].append(axn)
+                link_paths_dict[path.lower()].append(axn)
                 if path not in unlink_paths and lexists(join(target_prefix, path)):
+                    if on_win and any(path.lower() == unlink_path.lower()
+                                      for unlink_path in unlink_paths):
+                        # python doesn't care about case sensitivity on windows apparently
+                        #   I really don't know how this hack is going to affect environment
+                        #   safety and correctness
+                        continue
+
                     # we have a collision; at least try to figure out where it came from
                     linked_data = get_linked_data(target_prefix)
                     colliding_linked_package_record = first(
