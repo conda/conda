@@ -158,11 +158,17 @@ class UnlinkLinkTransaction(object):
                                                                    self.target_prefix,
                                                                    lnkd_pkg_data))
                                for lnkd_pkg_data in self.linked_packages_data_to_unlink)
-        link_actions = (pkg_info, self.make_link_actions(transaction_context, pkg_info,
-                                                         self.target_prefix, lt)
-                             for pkg_info, lt in zip(self.packages_info_to_link, link_types))
+
+        link_actions = (
+            (pkg_info, self.make_link_actions(transaction_context, pkg_info,
+                                              self.target_prefix, lt))
+             for pkg_info, lt in zip(self.packages_info_to_link, link_types)
+        )
+
         self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
                                  concatv(unlink_actions, link_actions))
+        # type: Tuple[pkg_data, Tuple[PathAction]]
+
         self.num_unlink_pkgs = len(unlink_actions)
 
         self._prepared = True
@@ -172,14 +178,15 @@ class UnlinkLinkTransaction(object):
         # run all per-action verify methods
         #   one of the more important of these checks is to verify that a file listed in
         #   the packages manifest (i.e. info/files) is actually contained within the package
-        for axn in all_actions:
-            if axn.verified:
-                continue
-            error_result = axn.verify()
-            if error_result:
-                log.debug("Verification error in action %s", axn)
-                log.debug(format_exc())
-                yield error_result
+        for _, pkg_actions in all_actions:
+            for axn in pkg_actions:
+                if axn.verified:
+                    continue
+                error_result = axn.verify()
+                if error_result:
+                    log.debug("Verification error in action %s", axn)
+                    log.debug(format_exc())
+                    yield error_result
 
     @staticmethod
     def _verify_transaction_level(target_prefix, all_actions, num_unlink_pkgs):
@@ -188,12 +195,15 @@ class UnlinkLinkTransaction(object):
         #   1. each path either doesn't already exist in the prefix, or will be unlinked
         #   2. there's only a single instance of each path
         unlink_paths = set(axn.target_short_path
-                           for axn in all_actions[:num_unlink_pkgs]
+                           for _, pkg_actions in all_actions[:num_unlink_pkgs]
+                           for axn in pkg_actions
                            if isinstance(axn, UnlinkPathAction))
         # we can get all of the paths being linked by looking only at the
         #   CreateLinkedPackageRecordAction actions
-        create_lpr_actions = filter(lambda axn: isinstance(axn, CreateLinkedPackageRecordAction),
-                                    all_actions[num_unlink_pkgs:])
+        create_lpr_actions = (axn
+                              for _, pkg_actions in all_actions[num_unlink_pkgs:]
+                              for axn in pkg_actions
+                              if isinstance(axn, CreateLinkedPackageRecordAction))
         for axn in create_lpr_actions:
             for path in axn.linked_package_record.files:
                 if path not in unlink_paths and lexists(join(target_prefix, path)):
@@ -230,7 +240,7 @@ class UnlinkLinkTransaction(object):
         if not self._prepared:
             self.prepare()
 
-        exceptions = tuple(exc for exc in concat(
+        exceptions = tuple(exc for exc in concatv(
             self._verify_individual_level(self.all_actions),
             self._verify_transaction_level(self.target_prefix, self.all_actions,
                                            self.num_unlink_pkgs),
