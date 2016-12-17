@@ -69,7 +69,7 @@ class Context(Configuration):
     use_pip = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
     rollback_enabled = PrimitiveParameter(True)
-    repodata_timeout_secs = PrimitiveParameter(60)
+    repodata_timeout_secs = PrimitiveParameter(300)
 
     _root_dir = PrimitiveParameter("", aliases=('root_dir',))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
