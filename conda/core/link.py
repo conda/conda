@@ -84,11 +84,11 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
         private_envs_meta_action = ()
 
     return tuple(concatv(
-        remove_conda_meta_actions,
         remove_menu_actions,
         unlink_path_actions,
         directory_remove_actions,
         private_envs_meta_action,
+        remove_conda_meta_actions,
     ))
 
 
@@ -323,6 +323,7 @@ class UnlinkLinkTransaction(object):
         )
         # the ordering here is significant
         return tuple(concatv(
+            meta_create_actions,
             create_directory_actions,
             file_link_actions,
             python_entry_point_actions,
@@ -330,7 +331,6 @@ class UnlinkLinkTransaction(object):
             create_menu_actions,
             application_entry_point_actions,
             private_envs_meta_actions,
-            meta_create_actions,
         ))
 
 
