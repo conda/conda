@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
-import re
 from abc import ABCMeta, abstractmethod, abstractproperty
+import json
 from logging import getLogger
 from os.path import dirname, join
+import re
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
@@ -27,12 +27,12 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     make_menu, remove_private_envs_meta,
                                     write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import compute_md5sum, lexists, isfile, islink
+from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.dist import Dist
 from ..models.enums import LinkType, PathType
-from ..models.index_record import Link, IndexRecord
+from ..models.index_record import IndexRecord, Link
 
 try:
     from cytoolz.itertoolz import concatv
