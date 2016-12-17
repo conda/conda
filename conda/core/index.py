@@ -17,6 +17,7 @@ import warnings
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+from conda.gateways.disk.update import touch
 from .linked_data import linked_data
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
@@ -126,14 +127,17 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
 
     try:
-        log.debug("Opening repodata cache for %s at %s", url, cache_path)
         mtime = getmtime(cache_path)
-        if time() - mtime < context.repodata_timeout_secs:
+        timeout = mtime + context.repodata_timeout_secs - time()
+        if timeout > 0:
+            log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
+                      url, cache_path, timeout)
             with open(cache_path) as f:
                 cache = json.load(f)
             return cache
         else:
             mod_etag_headers = read_mod_and_etag(cache_path)
+            log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
     except (IOError, ValueError):
         log.debug("No local cache found for %s at %s", url, cache_path)
@@ -161,8 +165,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         headers['Content-Type'] = 'application/json'
         filename = 'repodata.json'
 
-    fetched_repodata = {}
-
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
@@ -172,15 +174,18 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         resp.raise_for_status()
 
         if resp.status_code == 304:
+            log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
+            touch(cache_path)
             with open(cache_path) as f:
                 fetched_repodata = json.load(f)
-        else:
-            def maybe_decompress(filename, resp_content):
-                return ensure_text_type(bz2.decompress(resp_content)
-                                        if filename.endswith('.bz2')
-                                        else resp_content)
-            fetched_repodata = json.loads(maybe_decompress(filename, resp.content))
+            return fetched_repodata
 
+        def maybe_decompress(filename, resp_content):
+            return ensure_text_type(bz2.decompress(resp_content)
+                                    if filename.endswith('.bz2')
+                                    else resp_content)
+        fetched_repodata = json.loads(maybe_decompress(filename, resp.content))
+        fetched_repodata['_url'] = url
         add_http_value_to_dict(resp, 'Etag', fetched_repodata, '_etag')
         add_http_value_to_dict(resp, 'Last-Modified', fetched_repodata, '_mod')
 
@@ -272,7 +277,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None))
 
-    fetched_repodata['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
             json.dump(fetched_repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
