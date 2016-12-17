@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from functools import reduce
 from logging import getLogger
 import os
 from os.path import join
@@ -10,11 +9,9 @@ import sys
 from traceback import format_exc
 import warnings
 
+from conda import CondaMultiError
 from conda._vendor.auxlib.collection import first
-
 from conda.exceptions import CondaVerificationError
-
-from conda import CondaMultiError, CondaError
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
 from .package_cache import PackageCache
@@ -25,7 +22,7 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            RemovePrivateEnvMetaAction, UnlinkPathAction)
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import on_win, text_type, itervalues
+from ..common.compat import itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
@@ -162,7 +159,7 @@ class UnlinkLinkTransaction(object):
         link_actions = (
             (pkg_info, self.make_link_actions(transaction_context, pkg_info,
                                               self.target_prefix, lt))
-             for pkg_info, lt in zip(self.packages_info_to_link, link_types)
+            for pkg_info, lt in zip(self.packages_info_to_link, link_types)
         )
 
         self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
