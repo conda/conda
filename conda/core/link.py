@@ -217,26 +217,25 @@ class UnlinkLinkTransaction(object):
                     )
                     if colliding_linked_package_record:
                         yield CondaVerificationError(dals("""
-                        The package '%s' cannot be installed due to a path collision for
-                        '%s'.
+                        The package '%s' cannot be installed due to a
+                        path collision for '%s'.
                         This path already exists in the target prefix, and it won't be removed by
                         an uninstall action in this transaction. The path appears to be coming from
                         the package '%s', which is already installed in the prefix. If you'd like
                         to proceed anyway, re-run the command with the `--force` flag.
                         """ % (Dist(axn.linked_package_record),
-                               axn.target_short_path,
+                               path,
                                Dist(colliding_linked_package_record))))
                     else:
                         yield CondaVerificationError(dals("""
-                        The package '%s' cannot be installed due to a path collision for
-                        '%s'.
+                        The package '%s' cannot be installed due to a
+                        path collision for '%s'.
                         This path already exists in the target prefix, and it won't be removed
                         by an uninstall action in this transaction. The path is one that conda
                         doesn't recognize. It may have been created by another package manager.
                         If you'd like to proceed anyway, re-run the command with the `--force`
                         flag.
-                        """ % (Dist(axn.linked_package_record),
-                               axn.target_short_path)))
+                        """ % (Dist(axn.linked_package_record), path)))
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
                 yield CondaVerificationError(dals("""
