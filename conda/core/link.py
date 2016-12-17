@@ -248,10 +248,11 @@ class UnlinkLinkTransaction(object):
                 yield CondaVerificationError(dals("""
                 This transaction has incompatible packages due to a shared path.
                   packages: %s
-                  path: %s
+                  path: %s%s
                 If you'd like to proceed anyway, re-run the command with the `--force` flag.
                 """ % (', '.join(text_type(Dist(axn.linked_package_record)) for axn in axns),
-                       path)))
+                       axns[0].target_short_path,
+                       "  (conda looks for paths to be case-insensitive)" if on_win else "")))
 
     def verify(self):
         if not self._prepared:
