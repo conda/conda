@@ -7,10 +7,13 @@ from functools import wraps
 import hashlib
 import json
 from logging import DEBUG, getLogger
+from mmap import ACCESS_READ, mmap
 from os import makedirs
 from os.path import getmtime, join
+import re
 from time import time
 import warnings
+
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -27,6 +30,12 @@ from ..exceptions import CondaHTTPError, CondaRuntimeError
 from ..models.channel import Channel, offline_keep, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
+
+try:
+    from cytoolz.itertoolz import take
+except ImportError:
+    from .._vendor.toolz.itertoolz import take
+
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -102,11 +111,21 @@ class dotlog_on_return(object):
         return func
 
 
+def read_mod_and_etag(path):
+    with open(path, 'r') as f:
+        with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
+            regex_str = r'"(_etag|_mod)":[ ]?"(.*)"'
+            match_objects = take(2, re.finditer(regex_str, m))
+            result = dict(mo.groups() for mo in match_objects)
+            return result
+
+
 @dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     if not offline_keep(url):
         return {'packages': {}}
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
+
     try:
         log.debug("Opening repodata cache for %s at %s", url, cache_path)
         mtime = getmtime(cache_path)
@@ -116,12 +135,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             return cache
         else:
             mod_etag_headers = read_mod_and_etag(cache_path)
+
     except (IOError, ValueError):
         log.debug("No local cache found for %s at %s", url, cache_path)
-        cache = {'packages': {}}
-
-    if use_cache:
-        return cache
+        if use_cache:
+            return {'packages': {}}
+        else:
+            mod_etag_headers = {}
 
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
@@ -129,10 +149,10 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     session = session or CondaSession()
 
     headers = {}
-    if "_etag" in cache:
-        headers["If-None-Match"] = cache["_etag"]
-    if "_mod" in cache:
-        headers["If-Modified-Since"] = cache["_mod"]
+    if "_etag" in mod_etag_headers:
+        headers["If-None-Match"] = mod_etag_headers["_etag"]
+    if "_mod" in mod_etag_headers:
+        headers["If-Modified-Since"] = mod_etag_headers["_mod"]
 
     if 'repo.continuum.io' in url or url.startswith("file://"):
         filename = 'repodata.json.bz2'
@@ -141,6 +161,8 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
         headers['Content-Type'] = 'application/json'
         filename = 'repodata.json'
+
+    fetched_repodata = {}
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
@@ -162,9 +184,9 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             else:
                 json_str = get_json_str(filename, resp.content)
 
-            cache = json.loads(json_str)
-            add_http_value_to_dict(resp, 'Etag', cache, '_etag')
-            add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
+            fetched_repodata = json.loads(json_str)
+            add_http_value_to_dict(resp, 'Etag', fetched_repodata, '_etag')
+            add_http_value_to_dict(resp, 'Last-Modified', fetched_repodata, '_mod')
 
     except ValueError as e:
         raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
@@ -254,14 +276,14 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None))
 
-    cache['_url'] = url
+    fetched_repodata['_url'] = url
     try:
         with open(cache_path, 'w') as fo:
-            json.dump(cache, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+            json.dump(fetched_repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
     except IOError:
         pass
 
-    return cache or None
+    return fetched_repodata or None
 
 
 def _collect_repodatas_serial(use_cache, urls):
