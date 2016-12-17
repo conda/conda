@@ -223,7 +223,7 @@ class UnlinkLinkTransaction(object):
                         an uninstall action in this transaction. The path appears to be coming from
                         the package '%s', which is already installed in the prefix. If you'd like
                         to proceed anyway, re-run the command with the `--force` flag.
-                        """ % (axn.linked_package_record.name,
+                        """ % (Dist(axn.linked_package_record),
                                axn.target_short_path,
                                Dist(colliding_linked_package_record))))
                     else:
@@ -235,7 +235,7 @@ class UnlinkLinkTransaction(object):
                         doesn't recognize. It may have been created by another package manager.
                         If you'd like to proceed anyway, re-run the command with the `--force`
                         flag.
-                        """ % (axn.linked_package_record.name,
+                        """ % (Dist(axn.linked_package_record),
                                axn.target_short_path)))
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
