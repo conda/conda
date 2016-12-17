@@ -338,7 +338,7 @@ class UnlinkLinkTransaction(object):
                     reverse_from_idx=axn_idx
                 )
             raise CondaMultiError(tuple(concatv(
-                (execute_exc,),
+                (e,),
                 reverse_excs,
             )))
 
