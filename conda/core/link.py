@@ -9,9 +9,6 @@ import sys
 from traceback import format_exc
 import warnings
 
-from conda import CondaMultiError
-from conda._vendor.auxlib.collection import first
-from conda.exceptions import CondaVerificationError
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
 from .package_cache import PackageCache
@@ -20,12 +17,15 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RemoveLinkedPackageRecordAction, RemoveMenuAction,
                            RemovePrivateEnvMetaAction, UnlinkPathAction)
+from .. import CondaMultiError
+from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
+from ..exceptions import CondaVerificationError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
@@ -276,7 +276,7 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def _execute_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions):
-        axn_idx, action = 0, None
+        axn_idx, action, is_unlink = 0, None, True
         try:
             dist = Dist(pkg_data)
             is_unlink = pkg_idx <= num_unlink_pkgs - 1
@@ -295,13 +295,15 @@ class UnlinkLinkTransaction(object):
             for axn_idx, action in enumerate(actions):
                 action.execute()
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
-        except:
+        except Exception as e:
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
             log.debug(format_exc())
             if context.rollback_enabled:
-                log.error("Something bad happened, but it's okay because I'm going to "
-                          "roll back now.")
+                log.error("An error occurred while %s package '%s'.\n"
+                          "%r\n"
+                          "Attempting to roll back.\n",
+                          'uninstalling' if is_unlink else 'installing', Dist(pkg_data), e)
 
                 UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
                                                        pkg_data, actions, reverse_from_idx=axn_idx)
