@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EEXIST, ENOENT
 from logging import getLogger
-from os import listdir, makedirs, rename, unlink, walk, removedirs
+from os import listdir, makedirs, removedirs, rename, unlink, walk
 from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from uuid import uuid4
@@ -11,7 +11,7 @@ from uuid import uuid4
 from . import MAX_TRIES, exp_backoff_fn
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import text_type, on_win
+from ...common.compat import on_win, text_type
 
 log = getLogger(__name__)
 
