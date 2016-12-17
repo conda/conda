@@ -226,6 +226,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing link creation %s", self.target_prefix)
             if self.link_type == LinkType.directory:
                 try_rmdir_all_empty(self.target_full_path)
             else:
@@ -341,6 +342,7 @@ class CompilePycAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing pyc creation %s", self.target_full_path)
             rm_rf(self.target_full_path)
 
 
@@ -396,6 +398,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing python entry point creation %s", self.target_full_path)
             rm_rf(self.target_full_path)
 
 
@@ -452,6 +455,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing application entry point creation %s", self.target_full_path)
             rm_rf(self.target_full_path)
 
 
@@ -497,11 +501,14 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         self._linked_data_loaded = True
 
     def reverse(self):
+        log.trace("reversing linked package record creation %s", self.target_full_path)
         if self._linked_data_loaded:
             delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
                                delete=False)
         if self._record_written_to_disk:
             rm_rf(self.target_full_path)
+        else:
+            log.trace("record was not created %s", self.target_full_path)
 
 
 class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
