@@ -112,10 +112,9 @@ class dotlog_on_return(object):
 
 
 def read_mod_and_etag(path):
-    with open(path, 'r') as f:
+    with open(path, 'rb') as f:
         with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-            regex_str = r'"(_etag|_mod)":[ ]?"(.*)"'
-            match_objects = take(2, re.finditer(regex_str, m))
+            match_objects = take(2, re.finditer(b'"(_etag|_mod)":[ ]?"(.*)"', m))
             result = dict(mo.groups() for mo in match_objects)
             return result
 
