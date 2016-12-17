@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import sys
-import warnings
 from logging import getLogger
+import os
 from os.path import join
 from subprocess import CalledProcessError, check_call
+import sys
 from traceback import format_exc
+import warnings
 
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
@@ -17,6 +17,7 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RemoveLinkedPackageRecordAction, RemoveMenuAction,
                            RemovePrivateEnvMetaAction, UnlinkPathAction)
+from .. import CondaMultiError
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import on_win, text_type
@@ -24,7 +25,7 @@ from ..common.path import (explode_directories, get_all_directories, get_bin_dir
                            get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import read_package_info, isfile
+from ..gateways.disk.read import isfile, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
 from ..models.dist import Dist
 from ..models.enums import LinkType
@@ -177,17 +178,22 @@ class UnlinkLinkTransaction(object):
             for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
                 self._execute_actions(self.target_prefix, self.num_unlink_pkgs, pkg_idx,
                                       pkg_data, actions)
-                # for axn_idx, action in enumerate(actions):
-                #     action.execute()
-        except:
+        except Exception as execute_multi_exc:
             # reverse all executed packages except the one that failed
+            rollback_excs = []
             if context.rollback_enabled:
                 failed_pkg_idx = pkg_idx
                 reverse_actions = self.all_actions[:failed_pkg_idx]
                 for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
-                    self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
-                                          pkg_idx, pkg_data, actions)
-            raise
+                    excs = self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
+                                                 pkg_idx, pkg_data, actions)
+                    rollback_excs.extend(excs)
+
+            first_excs = execute_multi_exc.errors if isinstance(execute_multi_exc, CondaMultiError) else (execute_multi_exc,)
+            raise CondaMultiError(tuple(concatv(
+                first_excs,
+                rollback_excs,
+            )))
 
         else:
             for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
@@ -215,17 +221,22 @@ class UnlinkLinkTransaction(object):
             for axn_idx, action in enumerate(actions):
                 action.execute()
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
-        except:
+        except Exception as execute_exc:
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
             log.debug(format_exc())
+            reverse_excs = ()
             if context.rollback_enabled:
                 log.error("Something bad happened, but it's okay because I'm going to "
                           "roll back now.")
 
-                UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
-                                                       pkg_data, actions, reverse_from_idx=axn_idx)
-            raise
+                reverse_excs = UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs,
+                                                              pkg_idx, pkg_data, actions,
+                                                              reverse_from_idx=axn_idx)
+            raise CondaMultiError(tuple(concatv(
+                (execute_exc,),
+                reverse_excs,
+            )))
 
     @staticmethod
     def _reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions,
@@ -240,11 +251,21 @@ class UnlinkLinkTransaction(object):
 
         else:
             log.info("===> REVERSING PACKAGE LINK: %s <===\n"
-                     "  prefix=%s\n,",
+                     "  prefix=%s\n",
                      dist, target_prefix)
         log.debug("reversing pkg_idx #%d from axn_idx #%d", pkg_idx, reverse_from_idx)
-        for action in reversed(actions[:reverse_from_idx]):
-            action.reverse()
+
+        exceptions = []
+        reverse_actions = actions if reverse_from_idx < 0 else actions[:reverse_from_idx+1]
+        for axn_idx, action in reversed(tuple(enumerate(reverse_actions))):
+            try:
+                action.reverse()
+            except Exception as e:
+                log.debug("action.reverse() error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
+                log.debug(format_exc())
+                exceptions.append(e)
+        return exceptions
+
 
     @staticmethod
     def get_python_version(target_prefix, linked_packages_data_to_unlink, packages_info_to_link):
