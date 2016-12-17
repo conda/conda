@@ -221,7 +221,7 @@ class UnlinkLinkTransaction(object):
                         an uninstall action in this transaction. The path appears to be coming from
                         the package '%s', which is already installed in the prefix. If you'd like
                         to proceed anyway, re-run the command with the `--force` flag.
-                        """ % (axn.index_json_record.name,
+                        """ % (axn.linked_package_record.name,
                                axn.target_short_path,
                                Dist(colliding_linked_package_record))))
                     else:
@@ -233,7 +233,7 @@ class UnlinkLinkTransaction(object):
                         doesn't recognize. It may have been created by another package manager.
                         If you'd like to proceed anyway, re-run the command with the `--force`
                         flag.
-                        """ % (axn.index_json_record.name,
+                        """ % (axn.linked_package_record.name,
                                axn.target_short_path)))
 
     def verify(self):
@@ -246,8 +246,10 @@ class UnlinkLinkTransaction(object):
                                            self.num_unlink_pkgs),
         ) if exc)
 
-        if exceptions:
+        if exceptions and not context.force:
             raise CondaMultiError(exceptions)
+        else:
+            log.info(exceptions)
 
         self._verified = True
 
