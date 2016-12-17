@@ -189,9 +189,10 @@ class UnlinkLinkTransaction(object):
                                                  pkg_idx, pkg_data, actions)
                     rollback_excs.extend(excs)
 
-            first_excs = execute_multi_exc.errors if isinstance(execute_multi_exc, CondaMultiError) else (execute_multi_exc,)
             raise CondaMultiError(tuple(concatv(
-                first_excs,
+                (execute_multi_exc.errors
+                 if isinstance(execute_multi_exc, CondaMultiError)
+                 else (execute_multi_exc,)),
                 rollback_excs,
             )))
 
@@ -230,11 +231,10 @@ class UnlinkLinkTransaction(object):
                 log.error("Something bad happened, but it's okay because I'm going to "
                           "roll back now.")
 
-                reverse_excs = UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs,
-                                                              pkg_idx, pkg_data, actions,
-                                                              reverse_from_idx=axn_idx)
             raise CondaMultiError(tuple(concatv(
-                (execute_exc,),
+                UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
+                                                       pkg_data, actions,
+                                                       reverse_from_idx=axn_idx),
                 reverse_excs,
             )))
 
@@ -261,11 +261,11 @@ class UnlinkLinkTransaction(object):
             try:
                 action.reverse()
             except Exception as e:
-                log.debug("action.reverse() error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
+                log.debug("action.reverse() error in action #%d for pkg_idx #%d %r", axn_idx,
+                          pkg_idx, action)
                 log.debug(format_exc())
                 exceptions.append(e)
         return exceptions
-
 
     @staticmethod
     def get_python_version(target_prefix, linked_packages_data_to_unlink, packages_info_to_link):

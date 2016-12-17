@@ -7,7 +7,7 @@ import os
 import pytest
 import requests
 import sys
-from conda import CondaError, plan
+from conda import CondaError, plan, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
@@ -877,7 +877,7 @@ class IntegrationTests(TestCase):
         with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
             with make_temp_env() as prefix:
                 mock_method.side_effect = KeyError('Bang bang!!')
-                with pytest.raises(KeyError):
+                with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, 'openssl')
                 assert not package_is_installed(prefix, 'openssl')
 
@@ -892,7 +892,7 @@ class IntegrationTests(TestCase):
             from conda.core.path_actions import CreateLinkedPackageRecordAction
             with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
-                with pytest.raises(KeyError):
+                with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
                 assert_package_is_installed(prefix, 'flask-0.10.1')
 
