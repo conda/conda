@@ -2,15 +2,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
+from contextlib import closing
+from functools import wraps
 import hashlib
 import json
-import warnings
-from functools import wraps
 from logging import DEBUG, getLogger
 from os import makedirs
+from os.path import getmtime, join
+from time import time
+import warnings
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from os.path import join
 
 from .linked_data import linked_data
 from .._vendor.auxlib.entity import EntityEncoder
@@ -107,8 +109,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
     try:
         log.debug("Opening repodata cache for %s at %s", url, cache_path)
-        with open(cache_path) as f:
-            cache = json.load(f)
+        mtime = getmtime(cache_path)
+        if time() - mtime < context.repodata_timeout_secs:
+            with open(cache_path) as f:
+                cache = json.load(f)
+            return cache
+        else:
+            mod_etag_headers = read_mod_and_etag(cache_path)
     except (IOError, ValueError):
         log.debug("No local cache found for %s at %s", url, cache_path)
         cache = {'packages': {}}
