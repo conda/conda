@@ -9,6 +9,8 @@ import sys
 from traceback import format_exc
 import warnings
 
+from collections import defaultdict
+
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
 from .package_cache import PackageCache
@@ -21,7 +23,7 @@ from .. import CondaMultiError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import itervalues, on_win, text_type
+from ..common.compat import itervalues, on_win, text_type, iteritems
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
@@ -33,9 +35,9 @@ from ..models.dist import Dist
 from ..models.enums import LinkType
 
 try:
-    from cytoolz.itertoolz import concat, concatv
+    from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:
-    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -201,8 +203,11 @@ class UnlinkLinkTransaction(object):
                               for _, pkg_actions in all_actions[num_unlink_pkgs:]
                               for axn in pkg_actions
                               if isinstance(axn, CreateLinkedPackageRecordAction))
+
+        link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
             for path in axn.linked_package_record.files:
+                link_paths_dict[path].append(axn)
                 if path not in unlink_paths and lexists(join(target_prefix, path)):
                     # we have a collision; at least try to figure out where it came from
                     linked_data = get_linked_data(target_prefix)
@@ -232,6 +237,15 @@ class UnlinkLinkTransaction(object):
                         flag.
                         """ % (axn.linked_package_record.name,
                                axn.target_short_path)))
+        for path, axns in iteritems(link_paths_dict):
+            if len(axns) > 1:
+                yield CondaVerificationError(dals("""
+                This transaction has incompatible packages due to a shared path.
+                  packages: %s
+                  path: %s
+                If you'd like to proceed anyway, re-run the command with the `--force` flag.
+                """ % (', '.join(text_type(Dist(axn.linked_package_record)) for axn in axns),
+                       path)))
 
     def verify(self):
         if not self._prepared:
