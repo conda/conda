@@ -29,7 +29,7 @@ from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
 from ..gateways.disk.update import touch
-from ..models.channel import Channel, offline_keep, prioritize_channels
+from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
 
@@ -267,8 +267,6 @@ def read_local_repodata(cache_path):
 
 @dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
-    # if not offline_keep(url):
-    #     return {'packages': {}}
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
 
     try:
