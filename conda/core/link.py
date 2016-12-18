@@ -192,7 +192,10 @@ class UnlinkLinkTransaction(object):
         # for each path we are creating in link_actions, we need to make sure
         #   1. each path either doesn't already exist in the prefix, or will be unlinked
         #   2. there's only a single instance of each path
-        unlink_paths = set(axn.target_short_path
+
+        # paths are case-insensitive on windows apparently
+        lower_on_win = lambda p: p.lower() if on_win else p
+        unlink_paths = set(lower_on_win(axn.target_short_path)
                            for _, pkg_actions in all_actions[:num_unlink_pkgs]
                            for axn in pkg_actions
                            if isinstance(axn, UnlinkPathAction))
@@ -206,6 +209,7 @@ class UnlinkLinkTransaction(object):
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
             for path in axn.linked_package_record.files:
+                path = lower_on_win(path)
                 link_paths_dict[path].append(axn)
                 if path not in unlink_paths and lexists(join(target_prefix, path)):
                     # we have a collision; at least try to figure out where it came from
