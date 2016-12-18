@@ -206,15 +206,8 @@ class UnlinkLinkTransaction(object):
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
             for path in axn.linked_package_record.files:
-                link_paths_dict[path.lower()].append(axn)
+                link_paths_dict[path].append(axn)
                 if path not in unlink_paths and lexists(join(target_prefix, path)):
-                    if on_win and any(path.lower() == unlink_path.lower()
-                                      for unlink_path in unlink_paths):
-                        # python doesn't care about case sensitivity on windows apparently
-                        #   I really don't know how this hack is going to affect environment
-                        #   safety and correctness
-                        continue
-
                     # we have a collision; at least try to figure out where it came from
                     linked_data = get_linked_data(target_prefix)
                     colliding_linked_package_record = first(
@@ -224,35 +217,32 @@ class UnlinkLinkTransaction(object):
                     if colliding_linked_package_record:
                         yield CondaVerificationError(dals("""
                         The package '%s' cannot be installed due to a
-                        %spath collision for '%s'.
+                        path collision for '%s'.
                         This path already exists in the target prefix, and it won't be removed by
                         an uninstall action in this transaction. The path appears to be coming from
                         the package '%s', which is already installed in the prefix. If you'd like
                         to proceed anyway, re-run the command with the `--force` flag.
                         """ % (Dist(axn.linked_package_record),
-                               "case-insensitive " if on_win else "",
                                path,
                                Dist(colliding_linked_package_record))))
                     else:
                         yield CondaVerificationError(dals("""
                         The package '%s' cannot be installed due to a
-                        %spath collision for '%s'.
+                        path collision for '%s'.
                         This path already exists in the target prefix, and it won't be removed
                         by an uninstall action in this transaction. The path is one that conda
                         doesn't recognize. It may have been created by another package manager.
                         If you'd like to proceed anyway, re-run the command with the `--force`
                         flag.
-                        """ % ("case-insensitive " if on_win else "",
-                               Dist(axn.linked_package_record), path)))
+                        """ % (Dist(axn.linked_package_record), path)))
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
                 yield CondaVerificationError(dals("""
                 This transaction has incompatible packages due to a shared path.
                   packages: %s
-                  %spath: %s
+                  path: %s
                 If you'd like to proceed anyway, re-run the command with the `--force` flag.
                 """ % (', '.join(text_type(Dist(axn.linked_package_record)) for axn in axns),
-                       "case-insensitive " if on_win else "",
                        path)))
 
     def verify(self):
