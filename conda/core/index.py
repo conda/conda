@@ -21,10 +21,10 @@ from .linked_data import linked_data
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL, DEFAULTS, MAX_CHANNEL_PRIORITY, \
-    PLATFORM_DIRECTORIES
+from ..base.constants import (CONDA_HOMEPAGE_URL, DEFAULTS, MAX_CHANNEL_PRIORITY,
+                              PLATFORM_DIRECTORIES)
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, itervalues, text_type, iterkeys
+from ..common.compat import ensure_text_type, iteritems, iterkeys, itervalues
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
