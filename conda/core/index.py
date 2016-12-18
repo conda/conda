@@ -452,8 +452,7 @@ def add_pip_dependency(index):
 
 
 def create_cache_dir():
-    from .package_cache import PackageCache
-    cache_dir = join(PackageCache.first_writable().pkgs_dir, 'cache')
+    cache_dir = join(context.pkgs_dirs[0], 'cache')
     try:
         makedirs(cache_dir)
     except OSError:
