@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from contextlib import contextmanager
 from logging import getLogger
-from os import makedirs
+from os import makedirs, unlink
 from os.path import isdir
+from tempfile import NamedTemporaryFile
 
 log = getLogger(__name__)
 
@@ -16,3 +18,22 @@ def conda_bld_ensure_dir(path):
             makedirs(path)
         except OSError:
             pass
+
+
+@contextmanager
+def temporary_content_in_file(content, suffix=""):
+    # content returns temporary file path with contents
+    fh = None
+    path = None
+    try:
+        fh = NamedTemporaryFile(mode="w", delete=False, suffix=suffix)
+        path = fh.name
+        fh.write(content)
+        fh.flush()
+        fh.close()
+        yield path
+    finally:
+        if fh is not None:
+            fh.close()
+        if path is not None:
+            unlink(path)

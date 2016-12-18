@@ -2,14 +2,26 @@
 from __future__ import absolute_import, division, print_function
 
 import bz2
+from contextlib import contextmanager
+from glob import glob
 import json
+from json import loads as json_loads
+from logging import DEBUG, getLogger
 import os
+from os.path import basename, exists, isdir, isfile, join, relpath
+from shlex import split
+from shutil import copyfile, rmtree
+from subprocess import check_call
+import sys
+from tempfile import gettempdir
+from unittest import TestCase
+from uuid import uuid4
+
 import pytest
 import requests
-import sys
-from conda import CondaError, plan, CondaMultiError
+
+from conda import CondaError, CondaMultiError, plan
 from conda._vendor.auxlib.entity import EntityEncoder
-from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
 from conda.cli.main import generate_parser
@@ -22,36 +34,20 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
+from conda.common.compat import itervalues, text_type
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
-from conda.common.path import get_bin_directory_short_path, missing_pyc_files, \
-    get_python_site_packages_short_path, pyc_path
+from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
-from conda.common.compat import itervalues, text_type
-from conda.connection import LocalFSAdapter, CondaSession
 from conda.core.index import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
+from conda.core.package_cache import PackageCache
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import TRACE
-from conda.core.package_cache import PackageCache
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
-from contextlib import contextmanager
-from datetime import datetime
-from glob import glob
-from json import loads as json_loads
-from logging import DEBUG, getLogger
-from os.path import basename, exists, isdir, isfile, join, relpath
-from requests import Session
-from requests.adapters import BaseAdapter
-from shlex import split
-from shutil import copyfile, rmtree
-from subprocess import check_call
-from tempfile import gettempdir
-from unittest import TestCase
-from uuid import uuid4
 
 try:
     from unittest.mock import patch
