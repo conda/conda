@@ -16,6 +16,7 @@ junit.xml
 tmpfile.rc
 .DS_Store
 .coverage*
+!.coveragerc
 *.bz2
 tempfile.rc
 .vagrant/
