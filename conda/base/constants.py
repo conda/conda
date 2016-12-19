@@ -12,7 +12,10 @@ import sys
 from os.path import join
 
 on_win = bool(sys.platform == "win32")
-PREFIX_PLACEHOLDER = '/opt/anaconda1anaconda2anaconda3'
+PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
+                      # this is intentionally split into parts, such that running
+                      # this program on itself will leave it unchanged
+                      'anaconda3')
 
 machine_bits = 8 * tuple.__itemsize__
 
