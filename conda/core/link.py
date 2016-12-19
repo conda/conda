@@ -474,17 +474,21 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env[str('PKG_VERSION')] = dist.version
     env[str('PKG_BUILDNUM')] = dist.build_number
 
-
-def _run_script(dist):
     try:
-        log.debug("for %s at %s, executing script: $ %s", dist, env_prefix, ' '.join(args))
-        check_call(args, env=env)
+        log.debug("for %s at %s, executing script: $ %s",
+                  dist, env[str('PREFIX')], ' '.join(command_args))
+        return _run_script(command_args, env)
+    finally:
+        messages(prefix)
+
+
+def _run_script(command_args, env):
+    try:
+        check_call(command_args, env=env)
     except CalledProcessError:
         return False
     else:
         return True
-    finally:
-        messages(prefix)
 
 
 def messages(prefix):
