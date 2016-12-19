@@ -75,6 +75,7 @@ from conda.base.context import get_prefix as context_get_prefix, non_x86_linux_m
 non_x86_linux_machines = non_x86_linux_machines
 
 from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
+DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX= DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 get_prefix = partial(context_get_prefix, conda.base.context.context)
 get_default_urls = lambda: DEFAULT_CHANNELS
 
