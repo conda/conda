@@ -1,3 +1,21 @@
+## 4.3.1 (2016-12-19)
+
+### Improvements
+* additional pre-transaction validation (#4090)
+* export FileMode enum for conda-build (#4080)
+* memoize disk permissions tests (#4091)
+* local caching of repodata without remote server calls; new 'repodata_timeout_secs'
+  configuration parameter (#4094)
+* performance tuning (#4104)
+* add additional fields to dist object serialization (#4102)
+
+### Bug Fixes
+* fix a noarch install bug on windows (#4071)
+* fix a spec mismatch that resulted in python versions getting mixed during packaging (#4079)
+* fix rollback linked record (#4092)
+* fix #4097 keep split in PREFIX_PLACEHOLDER (#4100)
+
+
 ## 4.3.0 (2016-12-14)  Safety
 
 ### New Features
