@@ -60,7 +60,8 @@ class Dist(Entity):
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
                  build_number=None, with_features_depends=None, base_url=None, platform=None):
-
+        if name is None:
+            import pdb; pdb.set_trace()
         super(Dist, self).__init__(channel=channel,
                                    dist_name=dist_name,
                                    name=name,
