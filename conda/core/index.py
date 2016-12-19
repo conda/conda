@@ -352,16 +352,16 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
             for fn, info in iteritems(repodata['packages']):
-                key = Dist(canonical_name + '::' + fn if canonical_name != 'defaults' else fn)
+                dist = Dist(canonical_name + '::' + fn if canonical_name != 'defaults' else fn)
                 full_url = join_url(channel_url, fn)
-                result[key] = IndexRecord.from_objects(index.get(dist), info,
-                                                       fn=fn,
-                                                       schannel=canonical_name,
-                                                       channel=channel_url,
-                                                       priority=priority,
-                                                       url=full_url,
-                                                       auth=channel.auth,
-                                                       )
+                result[dist] = IndexRecord.from_objects(index.get(dist), info,
+                                                        fn=fn,
+                                                        schannel=canonical_name,
+                                                        channel=channel_url,
+                                                        priority=priority,
+                                                        url=full_url,
+                                                        auth=channel.auth,
+                                                        )
         return result
 
     new_index = make_index(repodatas)
