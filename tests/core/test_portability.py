@@ -51,11 +51,11 @@ class ReplaceShebangTests(TestCase):
     def test_replace_long_shebang(self):
         content_line = b"content line " * 5
 
-        # # simple shebang no replacement
-        # shebang = b"#!/simple/shebang/escaped\\ space --and --flags -x"
-        # data = b'\n'.join((shebang, content_line, content_line, content_line))
-        # new_data = replace_long_shebang(FileMode.text, data)
-        # assert data == new_data
+        # simple shebang no replacement
+        shebang = b"#!/simple/shebang/escaped\\ space --and --flags -x"
+        data = b'\n'.join((shebang, content_line, content_line, content_line))
+        new_data = replace_long_shebang(FileMode.text, data)
+        assert data == new_data
 
         # long shebang with truncation
         #   executable name is 'escaped space'
