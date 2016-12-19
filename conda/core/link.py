@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict
 from logging import getLogger
 import os
 from os.path import join
@@ -18,22 +19,24 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            RemoveLinkedPackageRecordAction, RemoveMenuAction,
                            RemovePrivateEnvMetaAction, UnlinkPathAction)
 from .. import CondaMultiError
+from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import on_win, text_type
+from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
+from ..exceptions import CondaVerificationError
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import isfile, read_package_info
+from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
 from ..models.dist import Dist
 from ..models.enums import LinkType
 
 try:
-    from cytoolz.itertoolz import concat, concatv
+    from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:
-    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -153,20 +156,114 @@ class UnlinkLinkTransaction(object):
                                                                    self.target_prefix,
                                                                    lnkd_pkg_data))
                                for lnkd_pkg_data in self.linked_packages_data_to_unlink)
-        link_actions = tuple((pkg_info, self.make_link_actions(transaction_context, pkg_info,
-                                                               self.target_prefix, lt))
-                             for pkg_info, lt in zip(self.packages_info_to_link, link_types))
+
+        link_actions = (
+            (pkg_info, self.make_link_actions(transaction_context, pkg_info,
+                                              self.target_prefix, lt))
+            for pkg_info, lt in zip(self.packages_info_to_link, link_types)
+        )
+
         self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
                                  concatv(unlink_actions, link_actions))
+        # type: Tuple[pkg_data, Tuple[PathAction]]
+
         self.num_unlink_pkgs = len(unlink_actions)
 
         self._prepared = True
+
+    @staticmethod
+    def _verify_individual_level(all_actions):
+        # run all per-action verify methods
+        #   one of the more important of these checks is to verify that a file listed in
+        #   the packages manifest (i.e. info/files) is actually contained within the package
+        for _, pkg_actions in all_actions:
+            for axn in pkg_actions:
+                if axn.verified:
+                    continue
+                error_result = axn.verify()
+                if error_result:
+                    log.debug("Verification error in action %s", axn)
+                    log.debug(format_exc())
+                    yield error_result
+
+    @staticmethod
+    def _verify_transaction_level(target_prefix, all_actions, num_unlink_pkgs):
+        # further verification of the whole transaction
+        # for each path we are creating in link_actions, we need to make sure
+        #   1. each path either doesn't already exist in the prefix, or will be unlinked
+        #   2. there's only a single instance of each path
+
+        # paths are case-insensitive on windows apparently
+        lower_on_win = lambda p: p.lower() if on_win else p
+        unlink_paths = set(lower_on_win(axn.target_short_path)
+                           for _, pkg_actions in all_actions[:num_unlink_pkgs]
+                           for axn in pkg_actions
+                           if isinstance(axn, UnlinkPathAction))
+        # we can get all of the paths being linked by looking only at the
+        #   CreateLinkedPackageRecordAction actions
+        create_lpr_actions = (axn
+                              for _, pkg_actions in all_actions[num_unlink_pkgs:]
+                              for axn in pkg_actions
+                              if isinstance(axn, CreateLinkedPackageRecordAction))
+
+        link_paths_dict = defaultdict(list)
+        for axn in create_lpr_actions:
+            for path in axn.linked_package_record.files:
+                path = lower_on_win(path)
+                link_paths_dict[path].append(axn)
+                if path not in unlink_paths and lexists(join(target_prefix, path)):
+                    # we have a collision; at least try to figure out where it came from
+                    linked_data = get_linked_data(target_prefix)
+                    colliding_linked_package_record = first(
+                        (lpr for lpr in itervalues(linked_data)),
+                        key=lambda lpr: path in lpr.files
+                    )
+                    if colliding_linked_package_record:
+                        yield CondaVerificationError(dals("""
+                        The package '%s' cannot be installed due to a
+                        path collision for '%s'.
+                        This path already exists in the target prefix, and it won't be removed by
+                        an uninstall action in this transaction. The path appears to be coming from
+                        the package '%s', which is already installed in the prefix. If you'd like
+                        to proceed anyway, re-run the command with the `--force` flag.
+                        """ % (Dist(axn.linked_package_record),
+                               path,
+                               Dist(colliding_linked_package_record))))
+                    else:
+                        yield CondaVerificationError(dals("""
+                        The package '%s' cannot be installed due to a
+                        path collision for '%s'.
+                        This path already exists in the target prefix, and it won't be removed
+                        by an uninstall action in this transaction. The path is one that conda
+                        doesn't recognize. It may have been created by another package manager.
+                        If you'd like to proceed anyway, re-run the command with the `--force`
+                        flag.
+                        """ % (Dist(axn.linked_package_record), path)))
+        for path, axns in iteritems(link_paths_dict):
+            if len(axns) > 1:
+                yield CondaVerificationError(dals("""
+                This transaction has incompatible packages due to a shared path.
+                  packages: %s
+                  path: %s
+                If you'd like to proceed anyway, re-run the command with the `--force` flag.
+                """ % (', '.join(text_type(Dist(axn.linked_package_record)) for axn in axns),
+                       path)))
 
     def verify(self):
         if not self._prepared:
             self.prepare()
 
-        next((action.verify() for x in self.all_actions for action in x[1]), None)
+        exceptions = tuple(exc for exc in concatv(
+            self._verify_individual_level(self.all_actions),
+            self._verify_transaction_level(self.target_prefix, self.all_actions,
+                                           self.num_unlink_pkgs),
+        ) if exc)
+
+        if exceptions and not context.force:
+            raise CondaMultiError(exceptions)
+        else:
+            log.info(exceptions)
+
         self._verified = True
 
     def execute(self):
@@ -203,7 +300,7 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def _execute_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions):
-        axn_idx, action = 0, None
+        axn_idx, action, is_unlink = 0, None, True
         try:
             dist = Dist(pkg_data)
             is_unlink = pkg_idx <= num_unlink_pkgs - 1
@@ -222,19 +319,22 @@ class UnlinkLinkTransaction(object):
             for axn_idx, action in enumerate(actions):
                 action.execute()
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
-        except Exception as execute_exc:
+        except Exception as e:  # this won't be a multi error
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
             log.debug(format_exc())
             reverse_excs = ()
             if context.rollback_enabled:
-                log.error("Something bad happened, but it's okay because I'm going to "
-                          "roll back now.")
-
+                log.error("An error occurred while %s package '%s'.\n"
+                          "%r\n"
+                          "Attempting to roll back.\n",
+                          'uninstalling' if is_unlink else 'installing', Dist(pkg_data), e)
+                reverse_excs = UnlinkLinkTransaction._reverse_actions(
+                    target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions,
+                    reverse_from_idx=axn_idx
+                )
             raise CondaMultiError(tuple(concatv(
-                UnlinkLinkTransaction._reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx,
-                                                       pkg_data, actions,
-                                                       reverse_from_idx=axn_idx),
+                (e,),
                 reverse_excs,
             )))
 

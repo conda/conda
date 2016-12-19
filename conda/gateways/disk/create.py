@@ -212,6 +212,9 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         mkdir_p(dst)
         return
 
+    if not lexists(src):
+        raise CondaError("Cannot link a source that does not exist. %s" % src)
+
     if lexists(dst):
         if force:
             log.info("file exists, but clobbering: %r" % dst)
@@ -220,6 +223,8 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             raise ClobberError(dst, src, link_type)
 
     if link_type == LinkType.hardlink:
+        if isdir(src):
+            raise CondaError("Cannot hard link a directory. %s" % src)
         if on_win:
             win_hard_link(src, dst)
         else:

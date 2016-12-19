@@ -41,5 +41,8 @@ def update_file_in_place_as_binary(file_full_path, callback):
 
 def backoff_rename(source_path, destination_path):
     if lexists(source_path):
+        log.trace("renaming %s => %s", source_path, destination_path)
         exp_backoff_fn(rename, source_path, destination_path)
+    else:
+        log.trace("cannot rename; source path does not exist '%s'", source_path)
     return

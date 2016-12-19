@@ -55,6 +55,9 @@ class PathAction(object):
 
     @abstractmethod
     def verify(self):
+        # if verify fails, it should return an exception object rather than raise
+        #  at the end of a verification run, all errors will be raised as a CondaMultiError
+        # after successful verification, the verify method should set self._verified = True
         raise NotImplementedError()
 
     @abstractmethod
@@ -209,7 +212,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         # TODO: consider checking hashsums
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):
-            raise CondaVerificationError(dals("""
+            return CondaVerificationError(dals("""
             The package for %s located at %s
             appears to be corrupted. The path '%s'
             specified in the package manifest cannot be found.
@@ -247,7 +250,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
     def verify(self):
         if not (self.prefix_placeholder or self.file_mode):
-            raise CondaVerificationError(dals("""
+            return CondaVerificationError(dals("""
             The package for %s located at %s
             appears to be corrupted. For the file at path %s
             a prefix_placeholder and file_mode must be specified. Instead got values
@@ -256,7 +259,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
                    self.package_info.extracted_package_dir,
                    self.source_short_path, self.prefix_placeholder, self.file_mode)))
         if not isfile(self.source_full_path):
-            raise CondaVerificationError(dals("""
+            return CondaVerificationError(dals("""
             The package for %s located at %s
             appears to be corrupted. The path '%s'
             specified in the package manifest is not a file.
@@ -460,6 +463,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
 
 class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
+    # this is the action that creates a packages json file in the conda-meta/ directory
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
@@ -486,9 +490,6 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         self.linked_package_record = linked_package_record
         self._record_written_to_disk = False
         self._linked_data_loaded = False
-
-    def verify(self):
-        pass
 
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
