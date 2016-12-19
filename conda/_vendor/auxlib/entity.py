@@ -237,18 +237,19 @@ Chapter X: The del and null Weeds
 """
 from __future__ import absolute_import, division, print_function
 
-from collections import Iterable, Sequence, Mapping
-from copy import deepcopy
+from collections import Mapping
 from datetime import datetime
-from enum import Enum
 from functools import reduce
+from itertools import chain
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
 
+from enum import Enum
+
 from ._vendor.boltons.timeutils import isoparse
 from .collection import AttrDict, frozendict, make_immutable
-from .compat import (integer_types, iteritems, itervalues, odict, string_types, text_type,
-                     with_metaclass, isiterable)
+from .compat import (integer_types, isiterable, iteritems, itervalues, odict, string_types,
+                     text_type, with_metaclass)
 from .exceptions import Raise, ValidationError
 from .ish import find_or_none
 from .logz import DumpEncoder
@@ -732,8 +733,11 @@ class Entity(object):
     @classmethod
     def from_objects(cls, *objects, **override_fields):
         init_vars = dict()
-        search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
-                            for o in ((override_fields,) + objects))
+        field_and_object = chain.from_iterable((
+            (override_fields,),
+            (o for o in objects if o),
+        ))
+        search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o for o in field_and_object)
         for key in cls.__fields__:
             init_vars[key] = find_or_none(key, search_maps)
         return cls(**init_vars)
