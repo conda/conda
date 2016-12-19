@@ -499,7 +499,8 @@ class Resolve(object):
         if deps is None:
             rec = self.index[dist]
             if dist.with_features_depends:
-                f2, fstr = Dist(dist.channel, dist.dist_name), dist.with_features_depends
+                f2, fstr = (Dist.from_string(dist.dist_name, channel_override=dist.channel),
+                            dist.with_features_depends)
                 fdeps = {d.name: d for d in self.ms_depends(f2)}
                 for dep in rec['with_features_depends'][fstr]:
                     dep = MatchSpec(dep)
