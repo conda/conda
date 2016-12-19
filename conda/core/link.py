@@ -315,7 +315,10 @@ class UnlinkLinkTransaction(object):
                          "  source=%s\n",
                          dist, target_prefix, pkg_data.extracted_package_dir)
 
-            run_script(target_prefix, Dist(pkg_data), 'pre-unlink' if is_unlink else 'pre-link')
+            run_script(pkg_data.extracted_package_dir if is_unlink else target_prefix,
+                       Dist(pkg_data),
+                       'pre-unlink' if is_unlink else 'pre-link',
+                       target_prefix if is_unlink else None)
             for axn_idx, action in enumerate(actions):
                 action.execute()
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
@@ -439,28 +442,14 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
-    path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
-        dist.name,
-        action,
-        'bat' if on_win else 'sh'))
+    path = join(prefix,
+                'Scripts' if on_win else 'bin',
+                '.%s-%s.%s' % (dist.name, action, 'bat' if on_win else 'sh'))
     if not isfile(path):
         return True
-    if on_win:
-        try:
-            args = [os.environ['COMSPEC'], '/c', path]
-        except KeyError:
-            return False
-    else:
-        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
-        args = [shell_path, path]
+
     env = os.environ.copy()
-    name, version, _, _ = dist.quad
-    build_number = dist.build_number
-    env[str('ROOT_PREFIX')] = sys.prefix
-    env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = name
-    env[str('PKG_VERSION')] = version
-    env[str('PKG_BUILDNUM')] = build_number
+
     if action == 'pre-link':
         env[str('SOURCE_DIR')] = str(prefix)
         warnings.warn(dals("""
@@ -469,6 +458,24 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         package cache, and therefore modify the underlying files for already-created conda
         environments.  Future versions of conda may deprecate and ignore pre-link scripts.
         """ % dist))
+
+    if on_win:
+        try:
+            command_args = [os.environ['COMSPEC'], '/c', path]
+        except KeyError:
+            return False
+    else:
+        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
+        command_args = [shell_path, path]
+
+    env[str('ROOT_PREFIX')] = sys.prefix
+    env[str('PREFIX')] = str(env_prefix or prefix)
+    env[str('PKG_NAME')] = dist.name
+    env[str('PKG_VERSION')] = dist.version
+    env[str('PKG_BUILDNUM')] = dist.build_number
+
+
+def _run_script(dist):
     try:
         log.debug("for %s at %s, executing script: $ %s", dist, env_prefix, ' '.join(args))
         check_call(args, env=env)
