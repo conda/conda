@@ -34,7 +34,7 @@ class TestConnectionWithShortTimeouts(TestCase):
             with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
                 with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
                     with pytest.raises(CondaHTTPError) as execinfo:
-                        url = "http://240.0.0.0/"
+                        url = "http://240.0.0.0/channel/osx-64"
                         msg = "Connection error:"
                         fetch_repodata(url)
                         assert msg in str(execinfo)

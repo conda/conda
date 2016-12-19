@@ -9,7 +9,7 @@ from conda.misc import url_pat, walk_prefix
 class TestMisc(unittest.TestCase):
 
     def test_cache_fn_url(self):
-        url = "http://repo.continuum.io/pkgs/pro/osx-64/"
+        url = "http://repo.continuum.io/pkgs/pro/osx-64"
         self.assertEqual(cache_fn_url(url), '7618c8b6.json')
 
     def test_url_pat_1(self):
