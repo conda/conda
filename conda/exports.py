@@ -74,7 +74,7 @@ import conda.exceptions  # NOQA
 from conda.base.context import get_prefix as context_get_prefix, non_x86_linux_machines  # NOQA
 non_x86_linux_machines = non_x86_linux_machines
 
-from conda.base.constants import DEFAULT_CHANNELS  # NOQA
+from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 get_prefix = partial(context_get_prefix, conda.base.context.context)
 get_default_urls = lambda: DEFAULT_CHANNELS
 
