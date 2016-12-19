@@ -440,7 +440,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     False on failure
     """
     path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
-        dist.dist_name,
+        dist.name,
         action,
         'bat' if on_win else 'sh'))
     if not isfile(path):
