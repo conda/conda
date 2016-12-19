@@ -143,8 +143,8 @@ class MatchSpec(object):
 class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False):
-        assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
-        assert all(assertion(d, r) for d, r in iteritems(index))
+        # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
+        # assert all(assertion(d, r) for d, r in iteritems(index))
         self.index = index = index.copy()
         if not processed:
             for dist, info in iteritems(index.copy()):
@@ -509,7 +509,7 @@ class Resolve(object):
                 deps = [MatchSpec(d) for d in rec.get('depends', [])]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
-        assert all(isinstance(ms, MatchSpec) for ms in deps)
+        # assert all(isinstance(ms, MatchSpec) for ms in deps)
         return deps
 
     def depends_on(self, spec, target):
@@ -672,8 +672,8 @@ class Resolve(object):
     def dependency_sort(self, must_have):
         # type: (Dict[package_name, Dist]) -> List[Dist]
         assert isinstance(must_have, dict)
-        assertion = lambda k, v: isinstance(k, string_types) and isinstance(v, Dist)
-        assert all(assertion(*item) for item in iteritems(must_have))
+        # assertion = lambda k, v: isinstance(k, string_types) and isinstance(v, Dist)
+        # assert all(assertion(*item) for item in iteritems(must_have))
 
         digraph = {}
         for key, dist in iteritems(must_have):
@@ -687,7 +687,7 @@ class Resolve(object):
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
         # Take any key that were not sorted
         result.extend(must_have.values())
-        assert all(isinstance(d, Dist) for d in result)
+        # assert all(isinstance(d, Dist) for d in result)
         return result
 
     def explicit(self, specs):
@@ -734,7 +734,7 @@ class Resolve(object):
         match the installed packages as closely as possible.
         If no substitute is found, None is returned.
         """
-        assert all(isinstance(d, Dist) for d in installed)
+        # assert all(isinstance(d, Dist) for d in installed)
         dist = Dist(fn)
         name, version, unused_bld, schannel = self.package_quad(dist)
         candidates = {}
