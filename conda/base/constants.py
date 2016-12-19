@@ -12,7 +12,10 @@ import sys
 from os.path import join
 
 on_win = bool(sys.platform == "win32")
-PREFIX_PLACEHOLDER = '/opt/anaconda1anaconda2anaconda3'
+PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
+                      # this is intentionally split into parts, such that running
+                      # this program on itself will leave it unchanged
+                      'anaconda3')
 
 machine_bits = 8 * tuple.__itemsize__
 
@@ -35,7 +38,7 @@ SEARCH_PATH = (
 )
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
-CONDA_HOMEPAGE_URL = 'http://conda.pydata.org'
+CONDA_HOMEPAGE_URL = 'https://conda.pydata.org'
 DEFAULTS = 'defaults'
 
 PLATFORM_DIRECTORIES = ("linux-64",

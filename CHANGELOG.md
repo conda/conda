@@ -4,6 +4,24 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.1 (2016-12-19)
+
+### Improvements
+* additional pre-transaction validation (#4090)
+* export FileMode enum for conda-build (#4080)
+* memoize disk permissions tests (#4091)
+* local caching of repodata without remote server calls; new 'repodata_timeout_secs'
+  configuration parameter (#4094)
+* performance tuning (#4104)
+* add additional fields to dist object serialization (#4102)
+
+### Bug Fixes
+* fix a noarch install bug on windows (#4071)
+* fix a spec mismatch that resulted in python versions getting mixed during packaging (#4079)
+* fix rollback linked record (#4092)
+* fix #4097 keep split in PREFIX_PLACEHOLDER (#4100)
+
+
 ## 4.3.0 (2016-12-14)  Safety
 
 ### New Features
@@ -30,8 +48,10 @@
   conda package, with the following additional features
   1. conda maps the `site-packages` directory to the correct location for the python version
      in the environment,
-  2. conda creates the python entry points specified in the conda-build recipe, and
-  3. conda compiles pyc files at install time when prefix write permissions are guaranteed.
+  2. conda maps the python-scripts directory to either $PREFIX/bin or $PREFIX/Scripts depending
+     on platform,
+  3. conda creates the python entry points specified in the conda-build recipe, and
+  4. conda compiles pyc files at install time when prefix write permissions are guaranteed.
 
   Python noarch packages must be "fully universal."  They cannot have OS- or
   python version-specific dependencies.  They cannot have OS- or python version-specific "scripts"
@@ -58,6 +78,14 @@
   environments. (#3862)
 
 ### Deprecations/Breaking Changes
+* Conda will refuse to clobber existing files that are not within the unlink instructions of
+  the transaction. At the risk of being user-hostile, it's a step forward for conda. We do
+  anticipate some growing pains. For example, conda will not clobber packages that have been
+  installed with pip (or any other package manager). In other instances, conda packages that
+  contain overlapping file paths but are from different package families will not install at
+  the same time. The `--force` command line flag is the escape hatch. Using `--force` will
+  let your operation proceed, but also makes clear that you want conda to do something it
+  considers unsafe.
 * Conda signed packages have been removed in 4.3. Vulnerabilities existed. An illusion of security
   is worse than not having the feature at all.  We will be incorporating The Update Framework
   into conda in a future feature release. (#4064)

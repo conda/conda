@@ -370,12 +370,12 @@ class Field(object):
 
     def __init__(self, default=None, required=True, validation=None,
                  in_dump=True, nullable=False, immutable=False):
-        self._default = default if callable(default) else self.box(None, default)
         self._required = required
         self._validation = validation
         self._in_dump = in_dump
         self._nullable = nullable
         self._immutable = immutable
+        self._default = default if callable(default) else self.box(None, default)
         if default is not None:
             self.validate(None, self.box(None, maybecall(default)))
 
@@ -564,10 +564,10 @@ class ListField(Field):
     _type = tuple
 
     def __init__(self, element_type, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False):
+                 in_dump=True, nullable=False, immutable=False):
         self._element_type = element_type
         super(ListField, self).__init__(default, required, validation,
-                                        in_dump, nullable, True)
+                                        in_dump, nullable, immutable)
 
     def box(self, instance, val):
         if val is None:
@@ -580,11 +580,7 @@ class ListField(Field):
             if isinstance(et, type) and issubclass(et, Entity):
                 return self._type(v if isinstance(v, et) else et(**v) for v in val)
             else:
-                val = make_immutable(val)
-                if not isinstance(val, Sequence):
-                    raise ValidationError(val, msg="Cannot assign a non-iterable value to "
-                                                   "{0}".format(self.name))
-                return val
+                return make_immutable(val) if self.immutable else self._type(val)
         else:
             raise ValidationError(val, msg="Cannot assign a non-iterable value to "
                                            "{0}".format(self.name))

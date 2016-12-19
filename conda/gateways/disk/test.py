@@ -3,16 +3,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import W_OK, access, getpid
-from os.path import basename, lexists, isdir, isfile, islink, join
+from os.path import basename, isdir, isfile, islink, join, lexists
 
 from .create import create_link
 from .delete import backoff_unlink, rm_rf
+from ..._vendor.auxlib.decorators import memoize
 from ...common.compat import on_win
 from ...models.enums import LinkType
 
 log = getLogger(__name__)
 
 
+@memoize
 def try_write(dir_path, heavy=False):
     """Test write access to a directory.
 
@@ -44,6 +46,7 @@ def try_write(dir_path, heavy=False):
         return access(dir_path, W_OK)
 
 
+@memoize
 def hardlink_supported(source_file, dest_dir):
     # Some file systems (e.g. BeeGFS) do not support hard-links
     # between files in different directories. Depending on the
@@ -64,6 +67,7 @@ def hardlink_supported(source_file, dest_dir):
         rm_rf(test_file)
 
 
+@memoize
 def softlink_supported(source_file, dest_dir):
     # On Windows, softlink creation is restricted to Administrative users by default. It can
     # optionally be enabled for non-admin users through explicit registry modification.

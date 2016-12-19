@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
-import os
-import shutil
-import sys
-import tarfile
-import traceback
-from ...base.context import context
 from errno import EEXIST
 from io import open
+import json
 from logging import getLogger
+import os
 from os import makedirs
 from os.path import basename, isdir, isfile, islink, join, lexists
 from shlex import split as shlex_split
+import shutil
 from subprocess import PIPE, Popen
+import sys
+import tarfile
+import traceback
 
 from .delete import rm_rf
 from .permissions import make_executable
@@ -22,6 +21,7 @@ from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PRIVATE_ENVS
+from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import win_path_ok
 from ...exceptions import ClobberError, CondaOSError
@@ -212,6 +212,9 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         mkdir_p(dst)
         return
 
+    if not lexists(src):
+        raise CondaError("Cannot link a source that does not exist. %s" % src)
+
     if lexists(dst):
         if force:
             log.info("file exists, but clobbering: %r" % dst)
@@ -220,6 +223,8 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             raise ClobberError(dst, src, link_type)
 
     if link_type == LinkType.hardlink:
+        if isdir(src):
+            raise CondaError("Cannot hard link a directory. %s" % src)
         if on_win:
             win_hard_link(src, dst)
         else:

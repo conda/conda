@@ -986,11 +986,11 @@ class TestDetermineAllEnvs(unittest.TestCase):
             "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
         }
         index = {
-            Dist(dist_name="test-spec", channel="defaults"):
+            Dist.from_string("test-spec", channel_override="defaults"):
                 generate_mocked_package(None, "test-spec", "default", "1"),
-            Dist(dist_name="test-spec", channel="rando_chnl"):
+            Dist.from_string("test-spec", channel_override="rando_chnl"):
                 generate_mocked_package("ranenv", "test-spec", "default", "5"),
-            Dist(dist_name="test-spec2", channel="defaults"):
+            Dist.from_string("test-spec2", channel_override="defaults"):
                 generate_mocked_package("test1", "test-spec2", "default", "1")
         }
         self.res = generate_mocked_resolve(pkgs, index)
@@ -1061,11 +1061,11 @@ class TestGroupDistsForPrefix(unittest.TestCase):
             "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
         }
         self.index = {
-            Dist(dist_name="test-spec", channel="defaults"):
+            Dist.from_string("test-spec", channel_override="defaults"):
                 generate_mocked_package(None, "test-spec", "default", "1"),
-            Dist(dist_name="test-spec", channel="rando_chnl"):
+            Dist.from_string("test-spec", channel_override="rando_chnl"):
                 generate_mocked_package("ranenv", "test-spec", "default", "5"),
-            Dist(dist_name="test-spec2", channel="defaults"):
+            Dist.from_string("test-spec2", channel_override="defaults"):
                 generate_mocked_package("test1", "test-spec2", "default", "1")
         }
         self.res = generate_mocked_resolve(pkgs, self.index)
@@ -1134,13 +1134,13 @@ class TestGetActionsForDist(unittest.TestCase):
             "no-exist": [generate_mocked_package(None, "no-exist", "nope", "1")]
         }
         self.index = {
-            Dist(dist_name="test-spec", channel="defaults"):
+            Dist.from_string("test-spec", channel_override="defaults"):
                 generate_mocked_package(None, "test-spec", "default", "1"),
-            Dist(dist_name="test-spec", channel="rando_chnl"):
+            Dist.from_string("test-spec", channel_override="rando_chnl"):
                 generate_mocked_package("ranenv", "test-spec", "default", "5"),
-            Dist(dist_name="test-spec2", channel="defaults"):
+            Dist.from_string("test-spec2", channel_override="defaults"):
                 generate_mocked_package(None, "test-spec2", "default", "1"),
-            Dist(dist_name="test", channel="defaults"):
+            Dist.from_string("test-2", channel_override="defaults"):
                 generate_mocked_package("ranenv", "test", "default", "1.2.0")
         }
         self.res = generate_mocked_resolve(self.pkgs, self.index)
@@ -1247,15 +1247,15 @@ def generate_remove_action(prefix, unlink):
 class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
     def setUp(self):
         self.index = {
-            Dist(dist_name="test1", channel="defaults"):
+            Dist.from_string("test1-1", channel_override="defaults"):
                 generate_mocked_package(None, "test1", "default", "1.0.1"),
-            Dist(dist_name="test1", channel="rando_chnl"):
+            Dist.from_string("test1-1", channel_override="rando_chnl"):
                 generate_mocked_package("env", "test1", "default", "2.1.4"),
-            Dist(dist_name="test2", channel="defaults"):
+            Dist.from_string("test2-2", channel_override="defaults"):
                 generate_mocked_package("env", "test2", "default", "1.1.1"),
-            Dist(dist_name="test3", channel="defaults"):
+            Dist.from_string("test3-3", channel_override="defaults"):
                 generate_mocked_package(None, "test3", "default", "1.2.0"),
-            Dist(dist_name="test4", channel="defaults"):
+            Dist.from_string("test4-4", channel_override="defaults"):
                 generate_mocked_package(None, "test4", "default", "1.2.1")
         }
         self.res = generate_mocked_resolve(None, self.index)

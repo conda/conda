@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
-import re
 from abc import ABCMeta, abstractmethod, abstractproperty
+import json
 from logging import getLogger
 from os.path import dirname, join
+import re
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
@@ -27,12 +27,12 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     make_menu, remove_private_envs_meta,
                                     write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import compute_md5sum, lexists, isfile, islink
+from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download
 from ..models.dist import Dist
 from ..models.enums import LinkType, PathType
-from ..models.index_record import Link, IndexRecord
+from ..models.index_record import IndexRecord, Link
 
 try:
     from cytoolz.itertoolz import concatv
@@ -55,6 +55,9 @@ class PathAction(object):
 
     @abstractmethod
     def verify(self):
+        # if verify fails, it should return an exception object rather than raise
+        #  at the end of a verification run, all errors will be raised as a CondaMultiError
+        # after successful verification, the verify method should set self._verified = True
         raise NotImplementedError()
 
     @abstractmethod
@@ -209,7 +212,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         # TODO: consider checking hashsums
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):
-            raise CondaVerificationError(dals("""
+            return CondaVerificationError(dals("""
             The package for %s located at %s
             appears to be corrupted. The path '%s'
             specified in the package manifest cannot be found.
@@ -226,6 +229,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing link creation %s", self.target_prefix)
             if self.link_type == LinkType.directory:
                 try_rmdir_all_empty(self.target_full_path)
             else:
@@ -246,7 +250,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
     def verify(self):
         if not (self.prefix_placeholder or self.file_mode):
-            raise CondaVerificationError(dals("""
+            return CondaVerificationError(dals("""
             The package for %s located at %s
             appears to be corrupted. For the file at path %s
             a prefix_placeholder and file_mode must be specified. Instead got values
@@ -255,7 +259,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
                    self.package_info.extracted_package_dir,
                    self.source_short_path, self.prefix_placeholder, self.file_mode)))
         if not isfile(self.source_full_path):
-            raise CondaVerificationError(dals("""
+            return CondaVerificationError(dals("""
             The package for %s located at %s
             appears to be corrupted. The path '%s'
             specified in the package manifest is not a file.
@@ -341,6 +345,7 @@ class CompilePycAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing pyc creation %s", self.target_full_path)
             rm_rf(self.target_full_path)
 
 
@@ -366,7 +371,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context, package_info, target_prefix,
                         requested_link_type, ep_def
-                    ) for ep_def in package_info.noarch.entry_points
+                    ) for ep_def in package_info.package_metadata.noarch.entry_points
                 )
 
             return actions
@@ -396,6 +401,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing python entry point creation %s", self.target_full_path)
             rm_rf(self.target_full_path)
 
 
@@ -452,10 +458,12 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
     def reverse(self):
         if self._execute_successful:
+            log.trace("reversing application entry point creation %s", self.target_full_path)
             rm_rf(self.target_full_path)
 
 
 class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
+    # this is the action that creates a packages json file in the conda-meta/ directory
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
@@ -483,9 +491,6 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         self._record_written_to_disk = False
         self._linked_data_loaded = False
 
-    def verify(self):
-        pass
-
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
 
@@ -497,11 +502,14 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         self._linked_data_loaded = True
 
     def reverse(self):
+        log.trace("reversing linked package record creation %s", self.target_full_path)
         if self._linked_data_loaded:
             delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
                                delete=False)
         if self._record_written_to_disk:
             rm_rf(self.target_full_path)
+        else:
+            log.trace("record was not created %s", self.target_full_path)
 
 
 class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):

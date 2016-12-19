@@ -100,7 +100,8 @@ PaddingError = PaddingError
 from .common.compat import CrossPlatformStLink     # NOQA
 CrossPlatformStLink = CrossPlatformStLink
 
-
+from .models.enums import FileMode  # NOQA
+FileMode = FileMode
 from .models.enums import PathType  # NOQA
 PathType = PathType
 

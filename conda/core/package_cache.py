@@ -249,6 +249,8 @@ class PackageCache(object):
 
     def _init_dir(self):
         pkgs_dir = self.pkgs_dir
+        if not isdir(pkgs_dir):
+            return
         pkgs_dir_contents = listdir(pkgs_dir)
         while pkgs_dir_contents:
             base_name = pkgs_dir_contents.pop(0)

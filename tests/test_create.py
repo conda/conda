@@ -2,12 +2,26 @@
 from __future__ import absolute_import, division, print_function
 
 import bz2
+from contextlib import contextmanager
+from glob import glob
 import json
+from json import loads as json_loads
+from logging import DEBUG, getLogger
 import os
+from os.path import basename, exists, isdir, isfile, join, relpath
+from shlex import split
+from shutil import copyfile, rmtree
+from subprocess import check_call
+import sys
+from tempfile import gettempdir
+from textwrap import dedent
+from unittest import TestCase
+from uuid import uuid4
+
 import pytest
 import requests
-import sys
-from conda import CondaError, plan
+
+from conda import CondaError, CondaMultiError, plan
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
@@ -29,24 +43,12 @@ from conda.common.yaml import yaml_load
 from conda.core.index import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
+from conda.core.package_cache import PackageCache
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import TRACE
-from conda.core.package_cache import PackageCache
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
-from contextlib import contextmanager
-from glob import glob
-from json import loads as json_loads
-from logging import DEBUG, getLogger
-from os.path import basename, exists, isdir, isfile, join, relpath
-from shlex import split
-from shutil import copyfile, rmtree
-from subprocess import check_call
-from tempfile import gettempdir
-from textwrap import dedent
-from unittest import TestCase
-from uuid import uuid4
 
 try:
     from unittest.mock import patch
@@ -219,7 +221,6 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
-    @pytest.mark.xfail(condition=(on_win and (datetime.now() < datetime(2016, 12, 17))), strict=True, reason="")
     def test_noarch_package(self):
         with make_temp_env("-c scastellarin flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
@@ -874,7 +875,7 @@ class IntegrationTests(TestCase):
         with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
             with make_temp_env() as prefix:
                 mock_method.side_effect = KeyError('Bang bang!!')
-                with pytest.raises(KeyError):
+                with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, 'openssl')
                 assert not package_is_installed(prefix, 'openssl')
 
@@ -889,7 +890,7 @@ class IntegrationTests(TestCase):
             from conda.core.path_actions import CreateLinkedPackageRecordAction
             with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
-                with pytest.raises(KeyError):
+                with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
                 assert_package_is_installed(prefix, 'flask-0.10.1')
 

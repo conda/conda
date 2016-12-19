@@ -9,7 +9,7 @@ from .channel import Channel
 from .package_info import PackageInfo
 from .index_record import IndexRecord
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, StringField
+from .._vendor.auxlib.entity import Entity, EntityType, StringField, IntegerField
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
@@ -47,40 +47,38 @@ class DistType(EntityType):
 class Dist(Entity):
 
     channel = StringField(required=False, nullable=True, immutable=True)
+
     dist_name = StringField(immutable=True)
+    name = StringField(immutable=True)
+    version = StringField(immutable=True)
+    build_string = StringField(immutable=True)
+    build_number = IntegerField(immutable=True)
+
     with_features_depends = StringField(required=False, nullable=True, immutable=True)
     base_url = StringField(required=False, nullable=True, immutable=True)
     platform = StringField(required=False, nullable=True, immutable=True)
 
-    def __init__(self, channel, dist_name=None, with_features_depends=None,
-                 base_url=None, platform=None):
-        super(Dist, self).__init__(channel=channel, dist_name=dist_name,
+    def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
+                 build_number=None, with_features_depends=None, base_url=None, platform=None):
+        # if name is None:
+        #     import pdb; pdb.set_trace()
+        super(Dist, self).__init__(channel=channel,
+                                   dist_name=dist_name,
+                                   name=name,
+                                   version=version,
+                                   build_string=build_string,
+                                   build_number=build_number,
                                    with_features_depends=with_features_depends,
-                                   base_url=base_url, platform=platform)
+                                   base_url=base_url,
+                                   platform=platform)
 
     @property
     def full_name(self):
         return self.__str__()
 
     @property
-    def name(self):
-        return self.parse_dist_name(self.dist_name).name
-
-    @property
-    def version(self):
-        return self.parse_dist_name(self.dist_name).version
-
-    @property
-    def build_string(self):
-        return self.parse_dist_name(self.dist_name).build_string
-
-    @property
     def build(self):
         return self.build_string
-
-    @property
-    def build_number(self):
-        return self.parse_dist_name(self.dist_name).build_number
 
     @property
     def pair(self):
@@ -124,7 +122,13 @@ class Dist(Entity):
             return cls.from_url(string)
 
         if string.endswith('@'):
-            return cls(channel='@', dist_name=string, with_features_depends=None)
+            return cls(channel='@',
+                       name=string,
+                       version="",
+                       build_string="",
+                       build_number=0,
+                       dist_name=string,
+                       with_features_depends=None)
 
         REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
                      r'([^\s\[\]]+)'               # 3.x dist
@@ -141,9 +145,14 @@ class Dist(Entity):
             channel = DEFAULTS
 
         # enforce dist format
-        cls.parse_dist_name(original_dist)
-
-        return cls(channel=channel, dist_name=original_dist, with_features_depends=w_f_d)
+        dist_details = cls.parse_dist_name(original_dist)
+        return cls(channel=channel,
+                   name=dist_details.name,
+                   version=dist_details.version,
+                   build_string=dist_details.build_string,
+                   build_number=dist_details.build_number,
+                   dist_name=original_dist,
+                   with_features_depends=w_f_d)
 
     @staticmethod
     def parse_dist_name(string):
@@ -194,7 +203,14 @@ class Dist(Entity):
             base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
             channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 
-        return cls(channel, dist_details.dist_name, base_url=base_url, platform=platform)
+        return cls(channel=channel,
+                   name=dist_details.name,
+                   version=dist_details.version,
+                   build_string=dist_details.build_string,
+                   build_number=dist_details.build_number,
+                   dist_name=dist_details.dist_name,
+                   base_url=base_url,
+                   platform=platform)
 
     def to_url(self):
         if not self.base_url:

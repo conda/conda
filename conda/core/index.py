@@ -2,29 +2,42 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
+from contextlib import closing
+from functools import wraps
 import hashlib
 import json
-import warnings
-from functools import wraps
 from logging import DEBUG, getLogger
+from mmap import ACCESS_READ, mmap
 from os import makedirs
+from os.path import getmtime, join
+import re
+from time import time
+import warnings
+
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from os.path import join
 
 from .linked_data import linked_data
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL, DEFAULTS, MAX_CHANNEL_PRIORITY
+from ..base.constants import (CONDA_HOMEPAGE_URL, DEFAULTS, MAX_CHANNEL_PRIORITY,
+                              PLATFORM_DIRECTORIES)
 from ..base.context import context
-from ..common.compat import iteritems, itervalues
+from ..common.compat import ensure_text_type, iteritems, iterkeys, itervalues
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
-from ..models.channel import Channel, offline_keep, prioritize_channels
+from ..gateways.disk.update import touch
+from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
+
+try:
+    from cytoolz.itertoolz import take
+except ImportError:
+    from .._vendor.toolz.itertoolz import take
+
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -78,6 +91,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         channel_urls = ['local'] + list(channel_urls)
     if prepend:
         channel_urls += context.channels
+
     channel_priority_map = prioritize_channels(channel_urls, platform=platform)
     index = fetch_index(channel_priority_map, use_cache=use_cache, unknown=unknown)
 
@@ -100,32 +114,33 @@ class dotlog_on_return(object):
         return func
 
 
-@dotlog_on_return("fetching repodata:")
-def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
-    if not offline_keep(url):
-        return {'packages': {}}
-    cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
-    try:
-        log.debug("Opening repodata cache for %s at %s", url, cache_path)
-        with open(cache_path) as f:
-            cache = json.load(f)
-    except (IOError, ValueError):
-        log.debug("No local cache found for %s at %s", url, cache_path)
-        cache = {'packages': {}}
+def read_mod_and_etag(path):
+    with open(path, 'rb') as f:
+        try:
+            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
+                match_objects = take(2, re.finditer(b'"(_etag|_mod)":[ ]?"(.*)"', m))
+                result = dict(map(ensure_text_type, mo.groups()) for mo in match_objects)
+                return result
+        except ValueError:
+            # ValueError: cannot mmap an empty file
+            return {}
 
-    if use_cache:
-        return cache
 
+class Response304ContentUnchanged(Exception):
+    pass
+
+
+def fetch_repodata_remote_request(session, url, etag, mod_stamp):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
     session = session or CondaSession()
 
     headers = {}
-    if "_etag" in cache:
-        headers["If-None-Match"] = cache["_etag"]
-    if "_mod" in cache:
-        headers["If-Modified-Since"] = cache["_mod"]
+    if etag:
+        headers["If-None-Match"] = etag
+    if mod_stamp:
+        headers["If-Modified-Since"] = mod_stamp
 
     if 'repo.continuum.io' in url or url.startswith("file://"):
         filename = 'repodata.json.bz2'
@@ -143,21 +158,18 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             log.debug(stringify(resp))
         resp.raise_for_status()
 
-        if resp.status_code != 304:
-            def get_json_str(filename, resp_content):
-                if filename.endswith('.bz2'):
-                    return bz2.decompress(resp_content).decode('utf-8')
-                else:
-                    return resp_content.decode('utf-8')
+        if resp.status_code == 304:
+            raise Response304ContentUnchanged()
 
-            if url.startswith('file://'):
-                json_str = get_json_str(filename, resp.content)
-            else:
-                json_str = get_json_str(filename, resp.content)
-
-            cache = json.loads(json_str)
-            add_http_value_to_dict(resp, 'Etag', cache, '_etag')
-            add_http_value_to_dict(resp, 'Last-Modified', cache, '_mod')
+        def maybe_decompress(filename, resp_content):
+            return ensure_text_type(bz2.decompress(resp_content)
+                                    if filename.endswith('.bz2')
+                                    else resp_content)
+        fetched_repodata = json.loads(maybe_decompress(filename, resp.content))
+        fetched_repodata['_url'] = url
+        add_http_value_to_dict(resp, 'Etag', fetched_repodata, '_etag')
+        add_http_value_to_dict(resp, 'Last-Modified', fetched_repodata, '_mod')
+        return fetched_repodata
 
     except ValueError as e:
         raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
@@ -247,14 +259,48 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None))
 
-    cache['_url'] = url
-    try:
-        with open(cache_path, 'w') as fo:
-            json.dump(cache, fo, indent=2, sort_keys=True, cls=EntityEncoder)
-    except IOError:
-        pass
+def read_local_repodata(cache_path):
+    with open(cache_path) as f:
+        local_repodata = json.load(f)
+    return local_repodata
 
-    return cache or None
+
+@dotlog_on_return("fetching repodata:")
+def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
+    cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
+
+    try:
+        mtime = getmtime(cache_path)
+    except (IOError, OSError):
+        log.debug("No local cache found for %s at %s", url, cache_path)
+        if use_cache:
+            return {'packages': {}}
+        else:
+            mod_etag_headers = {}
+    else:
+        timeout = mtime + context.repodata_timeout_secs - time()
+        if timeout > 0 or context.offline:
+            log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
+                      url, cache_path, timeout)
+            return read_local_repodata(cache_path)
+        else:
+            mod_etag_headers = read_mod_and_etag(cache_path)
+            log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
+
+    try:
+        assert url is not None, url
+        fetched_repodata = fetch_repodata_remote_request(session, url,
+                                                         mod_etag_headers.get('_etag'),
+                                                         mod_etag_headers.get('_mod'))
+    except Response304ContentUnchanged:
+        log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
+        touch(cache_path)
+        return read_local_repodata(cache_path)
+
+    with open(cache_path, 'w') as fo:
+        json.dump(fetched_repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+
+    return fetched_repodata or None
 
 
 def _collect_repodatas_serial(use_cache, urls):
@@ -301,13 +347,10 @@ def _collect_repodatas(use_cache, urls):
 def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
     # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
     log.debug('channel_urls=' + repr(channel_urls))
-    # pool = ThreadPool(5)
-    if index is None:
-        index = {}
     if not context.json:
         stdoutlog.info("Fetching package metadata ...")
 
-    urls = tuple(filter(offline_keep, channel_urls))
+    urls = tuple(iterkeys(channel_urls))
     repodatas = _collect_repodatas(use_cache, urls)
     # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     #   this is sorta a lie; actually more primitve types
@@ -345,6 +388,9 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
 
 
 def cache_fn_url(url):
+    url = url.rstrip('/')
+    subdir = url.rsplit('/', 1)[-1]
+    assert subdir in PLATFORM_DIRECTORIES, subdir
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
     return '%s.json' % (md5[:8],)
 
