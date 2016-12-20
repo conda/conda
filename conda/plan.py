@@ -395,7 +395,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None,
     r = Resolve(index)
     linked = install.linked(prefix)
 
-    if config.auto_update_conda and is_root_prefix(prefix):
+    if (config.home_in_root and config.auto_update_conda and
+                is_root_prefix(prefix)):
         specs.append('conda')
 
     if pinned:
@@ -477,7 +478,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         if pinned and any(r.match(ms, dist) for ms in pinned_specs):
             raise RuntimeError(
                 "Cannot remove %s because it is pinned. Use --no-pin to override." % dist)
-        if name == 'conda' and name not in nlinked:
+        if config.home_in_root and name == 'conda' and name not in nlinked:
             if any(ms.name == 'conda' for ms in mss):
                 sys.exit("Error: 'conda' cannot be removed from the root environment")
             else:
