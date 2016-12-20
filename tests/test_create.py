@@ -43,7 +43,8 @@ from conda.core.index import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.core.package_cache import PackageCache
-from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
+from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler, \
+    UnsatisfiableError
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import TRACE
 from conda.models.index_record import IndexRecord
@@ -710,6 +711,15 @@ class IntegrationTests(TestCase):
                                          "linux-64", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj.keys()) == 0
+
+    def test_force_with_dependency_conflicts(self):
+        with pytest.raises(UnsatisfiableError):
+            with make_temp_env("bokeh=0.9.2 numpy=1.8"):
+                pass
+
+        with make_temp_env("bokeh=0.9.2 numpy=1.8 --force") as prefix:
+            assert_package_is_installed(prefix, 'bokeh-0.9.2')
+            assert_package_is_installed(prefix, 'numpy-1.8')
 
     @pytest.mark.timeout(30)
     def test_bad_anaconda_token_infinite_loop(self):
