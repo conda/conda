@@ -52,10 +52,10 @@ _arch_names = {
 }
 
 
-class ClobberBehavior(Enum):
-    enforcing = 'enforcing'
-    permissive = 'permissive'
-    disabled = 'disabled'
+class PathConflict(Enum):
+    clobber = 'clobber'
+    warn = 'warn'
+    prevent = 'prevent'
 
 
 def channel_alias_validation(value):
@@ -70,7 +70,7 @@ class Context(Configuration):
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     changeps1 = PrimitiveParameter(True)
-    clobber_behavior = PrimitiveParameter(ClobberBehavior.disabled)
+    path_conflict = PrimitiveParameter(PathConflict.clobber)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
