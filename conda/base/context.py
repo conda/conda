@@ -9,6 +9,8 @@ from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 import sys
 
+from enum import Enum
+
 from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
                         SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
@@ -50,6 +52,12 @@ _arch_names = {
 }
 
 
+class ClobberBehavior(Enum):
+    enforcing = 'enforcing'
+    permissive = 'permissive'
+    disabled = 'disabled'
+
+
 def channel_alias_validation(value):
     if value and not has_scheme(value):
         return "channel_alias value '%s' must have scheme/protocol." % value
@@ -62,6 +70,7 @@ class Context(Configuration):
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     changeps1 = PrimitiveParameter(True)
+    clobber_behavior = PrimitiveParameter(ClobberBehavior.disabled)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
