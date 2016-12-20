@@ -372,7 +372,8 @@ class Resolve(object):
             else:
                 # This means the package *itself* was the common conflict.
                 bad_deps.append((ms,))
-        raise UnsatisfiableError(bad_deps)
+        if not context.force:
+            raise UnsatisfiableError(bad_deps)
 
     def get_reduced_index(self, specs):
         log.debug('Retrieving packages for: %s', specs)
