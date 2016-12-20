@@ -893,10 +893,11 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(prefix, 'flask-0.10.1')
 
     def test_run_script_called(self):
-        with patch('conda.core.link.run_script') as rs:
-            with make_temp_env("openssl --no-deps") as prefix:
+        import conda.core.link
+        with patch.object(conda.core.link, '_run_script') as rs:
+            with make_temp_env("openssl=1.0.2j --no-deps") as prefix:
                 assert_package_is_installed(prefix, 'openssl-')
-                assert rs.call_count == 2
+                assert rs.call_count == 1
 
     def test_conda_info_python(self):
         stdout, stderr = run_command(Commands.INFO, None, "python=3.5")
