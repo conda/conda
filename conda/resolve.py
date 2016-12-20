@@ -90,7 +90,8 @@ class Resolve(object):
             return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return (optional and ms.optional) or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
+            return ((optional and ms.optional) or
+                    any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
         def v_fkey_(dist):
             val = filter.get(dist)
@@ -122,7 +123,10 @@ class Resolve(object):
             A generator of tuples, empty if the MatchSpec is valid.
         """
         def chains_(spec, names):
-            if self.valid(spec, filter, optional) or spec.name in names:
+            if spec.name in names:
+                return
+            names.add(spec.name)
+            if self.valid(spec, filter, optional):
                 return
             dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
             found = False
@@ -396,6 +400,9 @@ class Resolve(object):
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
+
+    def is_superceded(self, dist):
+        return dist in self.index or self.index.get('superceded', '')
 
     def get_pkgs(self, ms, emptyok=False):
         # legacy method for conda-build

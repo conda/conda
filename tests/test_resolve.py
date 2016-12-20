@@ -818,6 +818,69 @@ def test_optional_dependencies():
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
 
 
+def test_superceded():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    })
+    index2['package1-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2 >=2.0 (optional)'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '2.0',
+    })
+    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package1 >=2.0'],
+        'superceded': 'package1 >=2.0',
+        'name': 'package2',
+        'requires': [],
+        'version': '2.0',
+    })
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package1-2.0-0.tar.bz2'),
+    }
+    assert set(r.get_reduced_index(['package1']).keys()) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package1-2.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    }
+    installed = r.install(['package1 1.0'])
+    assert installed == [
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1 2.0']) == [
+        Dist('package1-2.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1 2.0'], installed) == [
+        Dist('package1-2.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    ]
+    assert raises(UnsatisfiableError, lambda: r.install(['package1 1.0', 'package2 2.0']))
+
+
 def test_irrational_version():
     assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[Dist(fname) for fname in [
         'openssl-1.0.1c-0.tar.bz2',
