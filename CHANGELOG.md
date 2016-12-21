@@ -1,3 +1,14 @@
+## 4.3.2 (unreleased)
+
+### Improvements
+* add new 'path_conflict' and 'clobber' configuration options (#4119)
+
+### Bug Fixes
+* fix pre/post unlink/link scripts (#4113)
+
+### Non-User-Facing Changes
+xfail anaconda token test if local token is found (#4124)
+
 ## 4.3.1 (2016-12-19)
 
 ### Improvements
