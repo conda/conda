@@ -15,8 +15,8 @@ from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import text_type
-from ..core.linked_data import is_linked, linked, linked_data
+from ..common.compat import text_type, iteritems
+from ..core.linked_data import linked_data
 from ..egg_info import get_egg_info
 from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
 
@@ -113,39 +113,31 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.quad[0].lower()):
-        name = dist.quad[0]
-        if pat and pat.search(name) is None:
-            continue
-
-        yield dist
+    for dist, info in sorted(iteritems(installed),
+                             key=lambda x: x[1]['name'].lower()):
+        if not pat or pat.search(info['name']):
+            yield dist, info
 
 
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=context.show_channel_urls):
     res = 0
     result = []
-    for dist in get_packages(installed, regex):
+    for dist, info in get_packages(installed, regex):
         if format == 'canonical':
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist.quad[:3]))
+            dist = '%(name)s=%(version)s=%(build)s' % info
+            result.append(dist)
             continue
-
-        try:
-            # Returns None if no meta-file found (e.g. pip install)
-            info = is_linked(prefix, dist)
-            features = set(info.get('features', '').split())
-            disp = '%(name)-25s %(version)-15s %(build)15s' % info
-            disp += '  %s' % disp_features(features)
-            schannel = info.get('schannel')
-            if show_channel_urls or show_channel_urls is None and schannel != DEFAULTS:
-                disp += '  %s' % schannel
-            result.append(disp)
-        except (AttributeError, IOError, KeyError, ValueError) as e:
-            log.debug("exception for dist %s:\n%r", dist, e)
-            result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
+        disp = '%(name)-25s %(version)-15s %(build)15s' % info
+        features = set(info.get('features', '').split())
+        disp += '  %s' % disp_features(features)
+        schannel = dist.channel
+        if show_channel_urls or show_channel_urls is None and schannel != DEFAULTS:
+            disp += '  %s' % schannel
+        result.append(disp)
 
     return res, result
 
@@ -162,7 +154,7 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         if format == 'export':
             print_export_header()
 
-    installed = linked(prefix)
+    installed = linked_data(prefix)
     log.debug("installed conda packages:\n%s", installed)
     if piplist and context.use_pip and format == 'human':
         other_python = get_egg_info(prefix)

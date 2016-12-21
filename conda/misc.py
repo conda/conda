@@ -17,7 +17,8 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, on_win
 from .common.path import url_to_path
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index
-from .core.linked_data import is_linked, linked as install_linked, linked_data
+from .core.linked_data import linked_data
+from .core.package_cache import PackageCache
 from .exceptions import (CondaRuntimeError, ParseError)
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.read import compute_md5sum
@@ -34,8 +35,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
     a given prefix.
     """
     res = set()
-    for dist in install_linked(prefix):
-        meta = is_linked(prefix, dist)
+    for dist, meta in iteritems(linked_data(prefix)):
         if exclude_self_build and 'file_hash' in meta:
             continue
         res.update(set(meta.get('files', ())))
@@ -49,7 +49,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
     actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
-    linked = {dist.name: dist for dist in install_linked(prefix)}
+
     index_args = index_args or {}
     index = index or {}
 
@@ -83,53 +83,55 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         return url, md5sum
 
     def url_details_to_dist_record(url, md5sum):
-        dist = Dist(url)
-        if dist in index:
-            record = index[dist]
-            # TODO: we should be able to query across channels for no-channel dist + md5sum matches
-        elif url.startswith('file:/'):
-            md5sum = md5sum or compute_md5sum(url_to_path(url))
-            record = IndexRecord(**{
-                'fn': dist.to_filename(),
-                'url': url,
-                'md5': md5sum,
-                'build': dist.build_string,
-                'build_number': dist.build_number,
-                'name': dist.name,
-                'version': dist.version,
-            })
+        pc_entry = None
+        if url.startswith('file:/'):
+            pc_entry = PackageCache.tarball_file_in_cache(url, md5sum)
+        if pc_entry:
+            dist = pc_entry.dist
+            md5sum = pc_entry.md5sum
         else:
-            # non-local url that's not in index
+            dist = Dist(url)
+        record = index.get(dist)
+        if not record:
+            # TODO: refactor to remove assumption about dist string
+            channel, dist_name = dist.pair
+            name, version, build = dist_name.rsplit('-', 2)
+            try:
+                build_number = int(build.rsplit('_', 1)[-1])
+            except:
+                build_number = 0
+            # TODO: we should be able to query across channels for no-channel dist + md5sum matches
+            if md5sum is None and url.startswith('file:/'):
+                md5sum = compute_md5sum(url_to_path(url))
+            # TODO: we need to fetch this data and extract it so we can get its IndexRecord
             record = IndexRecord(**{
                 'fn': dist.to_filename(),
                 'url': url,
                 'md5': md5sum,
-                'build': dist.build_string,
-                'build_number': dist.build_number,
-                'name': dist.name,
-                'version': dist.version,
+                'build': build,
+                'build_number': build_number,
+                'name': name,
+                'version': version,
             })
         return dist, record
 
     parsed_urls = (spec_to_parsed_url(spec) for spec in specs)
     link_index = odict(url_details_to_dist_record(url, md5sum)
                        for url, md5sum in parsed_urls if url)
-    link_dists = tuple(iterkeys(link_index))
 
     # merge new link_index into index
-    for dist, record in iteritems(link_index):
+    for dist, rec in iteritems(link_index):
         _fetched_record = index.get(dist)
-        index[dist] = (IndexRecord.from_objects(record, _fetched_record)
-                       if _fetched_record else record)
+        index[dist] = (IndexRecord.from_objects(rec, _fetched_record)
+                       if _fetched_record else rec)
 
     # unlink any installed packages with same package name
-    unlink_dists = tuple(linked[dist.name] for dist in link_dists if dist.name in linked)
+    link_names = {rec['name'] for rec in itervalues(link_index)}
+    for dist, rec in iteritems(linked_data(prefix)):
+        if rec['name'] in link_names:
+            actions[UNLINK].append(dist)
 
-    for unlink_dist in unlink_dists:
-        actions[UNLINK].append(unlink_dist)
-
-    for link_dist in link_dists:
-        actions[LINK].append(link_dist)
+    actions[LINK].extend(iterkeys(link_index))
 
     execute_actions(actions, index, verbose=verbose)
     return actions
@@ -298,7 +300,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
     if r is None:
         r = Resolve(index)
-    dists = r.dependency_sort({d.quad[0]: d for d in urls.keys()})
+    dists = r.dependency_sort({index[d]['name']: d for d in urls.keys()})
     urls = [urls[d] for d in dists]
 
     if verbose:

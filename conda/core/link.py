@@ -284,27 +284,29 @@ class UnlinkLinkTransaction(object):
     @staticmethod
     def _execute_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions):
         axn_idx, action, is_unlink = 0, None, True
+        dist = Dist(pkg_data)
         try:
-            dist = Dist(pkg_data)
             is_unlink = pkg_idx <= num_unlink_pkgs - 1
             if is_unlink:
+                meta = pkg_data
                 log.info("===> UNLINKING PACKAGE: %s <===\n"
                          "  prefix=%s\n",
                          dist, target_prefix)
 
             else:
+                meta = pkg_data.repodata_record
                 log.info("===> LINKING PACKAGE: %s <===\n"
                          "  prefix=%s\n"
                          "  source=%s\n",
                          dist, target_prefix, pkg_data.extracted_package_dir)
 
             run_script(target_prefix if is_unlink else pkg_data.extracted_package_dir,
-                       Dist(pkg_data),
+                       dist, meta,
                        'pre-unlink' if is_unlink else 'pre-link',
                        target_prefix if is_unlink else None)
             for axn_idx, action in enumerate(actions):
                 action.execute()
-            run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
+            run_script(target_prefix, dist, meta, 'post-unlink' if is_unlink else 'post-link')
         except Exception as e:  # this won't be a multi error
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
@@ -314,7 +316,7 @@ class UnlinkLinkTransaction(object):
                 log.error("An error occurred while %s package '%s'.\n"
                           "%r\n"
                           "Attempting to roll back.\n",
-                          'uninstalling' if is_unlink else 'installing', Dist(pkg_data), e)
+                          'uninstalling' if is_unlink else 'installing', dist, e)
                 reverse_excs = UnlinkLinkTransaction._reverse_actions(
                     target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions,
                     reverse_from_idx=axn_idx
@@ -420,14 +422,14 @@ class UnlinkLinkTransaction(object):
         ))
 
 
-def run_script(prefix, dist, action='post-link', env_prefix=None):
+def run_script(prefix, dist, meta, action='post-link', env_prefix=None):
     """
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
     path = join(prefix,
                 'Scripts' if on_win else 'bin',
-                '.%s-%s.%s' % (dist.name, action, 'bat' if on_win else 'sh'))
+                '.%s-%s.%s' % (meta['name'], action, 'bat' if on_win else 'sh'))
     if not isfile(path):
         return True
 
@@ -453,9 +455,9 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
 
     env[str('ROOT_PREFIX')] = sys.prefix
     env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = str(dist.name)
-    env[str('PKG_VERSION')] = str(dist.version)
-    env[str('PKG_BUILDNUM')] = str(dist.build_number)
+    env[str('PKG_NAME')] = str(meta['name'])
+    env[str('PKG_VERSION')] = str(meta['name'])
+    env[str('PKG_BUILDNUM')] = str(meta['build_number'])
 
     try:
         log.debug("for %s at %s, executing script: $ %s",

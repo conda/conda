@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import listdir
-from os.path import basename, isdir, isfile, islink, join
+from os.path import basename, dirname, isdir, isfile, islink, join
 from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
@@ -103,8 +103,9 @@ class PackageCacheEntry(object):
     def package_cache_writable(self):
         return PackageCache(self.pkgs_dir).is_writable
 
+    @property
     def md5sum(self):
-        return self.is_fetched and self._calculate_md5sum()
+        return self._calculate_md5sum() if self.is_fetched else None
 
     def get_urls_txt_value(self):
         return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
@@ -229,9 +230,14 @@ class PackageCache(object):
     @classmethod
     def tarball_file_in_cache(cls, tarball_path, md5sum=None):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
+        tarball_dir = dirname(tarball_full_path)
+        if tarball_dir in context.pkgs_dirs:
+            pkgs_dirs = (tarball_dir,)
+        else:
+            pkgs_dirs = context.pkgs_dirs
         pc_entry = first(PackageCache(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
                                                                            md5sum)
-                         for pkgs_dir in context.pkgs_dirs)
+                         for pkgs_dir in pkgs_dirs)
         return pc_entry
 
     @classmethod

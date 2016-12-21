@@ -21,6 +21,7 @@ from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, 
                           DryRunExit)
 from ..resolve import MatchSpec
 from ..utils import memoize
+from ..compat import itervalues
 get_prefix = partial(context_get_prefix, context)
 
 
@@ -107,7 +108,7 @@ class InstalledPackages(Completer):
     def _get_items(self):
         from conda.core.linked_data import linked
         packages = linked(context.prefix_w_legacy_search)
-        return [dist.quad[0] for dist in packages]
+        return [rec['name'] for rec in itervalues(packages)]
 
 def add_parser_help(p):
     """

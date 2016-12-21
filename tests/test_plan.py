@@ -48,6 +48,21 @@ def solve(specs):
     return [Dist.from_string(fn) for fn in r.solve(specs)]
 
 
+def IndexRecord_from_dist(d, **rec):
+    channel, dist_name = Dist(d).pair
+    name, version, build = dist_name.rsplit('-', 2)
+    try:
+        build_number = int(build.rsplit('_', 1)[-1])
+    except:
+        build_number = 0
+    rec.update({'name': name,
+                'version': version,
+                'build': build,
+                'build_number': build_number})
+    rec.setdefault('channel', channel)
+    return IndexRecord.from_objects(rec)
+
+
 class add_unlink_TestCase(unittest.TestCase):
     def generate_random_dist(self):
         return "foobar-%s-0" % random.randint(100, 200)
@@ -277,9 +292,9 @@ def test_display_actions_show_channel_urls():
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
     d = Dist('sympy-0.7.2-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, size=4374752)
+    index[d] = IndexRecord_from_dist(d, size=4374752)
     d = Dist('numpy-1.7.1-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, size=5994338)
+    index[d] = IndexRecord_from_dist(d, size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
@@ -413,9 +428,9 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
     d = Dist('cython-0.19.1-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, channel='my_channel')
+    index[d] = IndexRecord_from_dist(d, channel='my_channel')
     d = Dist('dateutil-1.5-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, channel='my_channel')
+    index[d] = IndexRecord_from_dist(d, channel='my_channel')
 
     with captured() as c:
         display_actions(actions, index)
@@ -852,9 +867,9 @@ class PlanFromActionsTests(unittest.TestCase):
 
     def test_plan_link_menuinst(self):
         menuinst = Dist('menuinst-1.4.2-py27_0')
-        menuinst_record = IndexRecord.from_objects(menuinst)
+        menuinst_record = IndexRecord_from_dist(menuinst)
         ipython = Dist('ipython-5.1.0-py27_1')
-        ipython_record = IndexRecord.from_objects(ipython)
+        ipython_record = IndexRecord_from_dist(ipython)
         actions = {
             'PREFIX': 'aprefix',
             'LINK': [ipython, menuinst],
@@ -898,7 +913,7 @@ def generate_mocked_package(preferred_env, name, schannel, version):
 
 def generate_mocked_resolve(matched_pkgs, index, install=None):
     mock_resolve = namedtuple("Resolve", ["get_pkgs", "index", "explicit", "install",
-                                          "package_name", "dependency_sort"])
+                                          "package_name", "dependency_sort", "match"])
 
     def get_pkgs(spec):
         # Here, spec should be a MatchSpec
@@ -910,15 +925,27 @@ def generate_mocked_resolve(matched_pkgs, index, install=None):
     def get_install(spec, installed, update_deps=None):
         return install
 
+    def get_record(dist):
+        rec = index.get(dist)
+        if rec is None:
+            rec = IndexRecord_from_dist(dist)
+        return rec
+
     def get_package_name(dist):
-        return dist.name
+        return get_record(dist)['name']
 
     def get_dependency_sort(specs):
         return tuple(spec for spec in specs.values())
 
+    def get_match(ms, dist):
+        ms = MatchSpec(ms)
+        rec = get_record(dist)
+        return (ms.name == rec['name'] and
+                ms.match_fast(rec['version'], rec['build']))
+
     return mock_resolve(get_pkgs=get_pkgs, index=index, explicit=get_explicit,
                         install=get_install, package_name=get_package_name,
-                        dependency_sort=get_dependency_sort)
+                        dependency_sort=get_dependency_sort, match=get_match)
 
 
 def generate_mocked_record(dist_name):
@@ -1231,7 +1258,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
 
         test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
         with patch("conda.core.linked_data.linked_data_", test_link_data):
-            plan.add_unlink_options_for_update(actions, required_solves, self.index)
+            plan.add_unlink_options_for_update(actions, required_solves, self.index, self.res)
 
         expected_output = [action, generate_remove_action("root/prefix", [Dist("test1-2.1.4-1")])]
         self.assertEquals(actions, expected_output)
@@ -1254,7 +1281,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
 
         test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
         with patch("conda.core.linked_data.linked_data_", test_link_data):
-            plan.add_unlink_options_for_update(actions, required_solves, self.index)
+            plan.add_unlink_options_for_update(actions, required_solves, self.index, self.res)
 
         aug_action_root = defaultdict(list)
         aug_action_root["PREFIX"] = context.root_prefix
@@ -1273,7 +1300,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
         action["PREFIX"] = "root/prefix"
         action["LINK"] = [Dist("test3-1.2.0"), Dist("test4-1.2.1")]
         actions = [action]
-        plan.add_unlink_options_for_update(actions, required_solves, self.index)
+        plan.add_unlink_options_for_update(actions, required_solves, self.index, self.res)
         expected_output = [action, generate_remove_action(
             "some/prefix/envs/_env_", [Dist("test3-1.2.0"), Dist("test4-2.1.0-22")])]
         self.assertEquals(actions, expected_output)
