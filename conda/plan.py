@@ -49,13 +49,13 @@ except ImportError:
 log = getLogger(__name__)
 
 
-def print_dists(dists_extras):
+def print_dists(dists_extras, index):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for dist, extra in dists_extras:
-        name, version, build, _ = dist.quad
-        line = fmt % (name + '-' + version, build)
+        rec = index[dist]
+        line = fmt % (rec['name'] + '-' + rec['version'], rec['build'])
         if extra:
             line += extra
         print(line)
@@ -93,7 +93,7 @@ def display_actions(actions, index, show_channel_urls=None):
             if schannel:
                 extra += '  ' + schannel
             disp_lst.append((dist, extra))
-        print_dists(disp_lst)
+        print_dists(disp_lst, index)
 
         if index and len(actions[FETCH]) > 1:
             num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
@@ -279,7 +279,7 @@ def add_checks(actions):
         actions.setdefault(CHECK_EXTRACT, [True])
 
 
-def handle_menuinst(unlink_dists, link_dists):
+def handle_menuinst(unlink_dists, link_dists, index):
     if not on_win:
         return unlink_dists, link_dists
 
@@ -287,22 +287,26 @@ def handle_menuinst(unlink_dists, link_dists):
     # package tries to import it to create/remove a shortcut
 
     # unlink
-    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
+    for q, d in enumerate(unlink_dists):
+        rec = index.get(d)
+        if rec and rec['name'] == 'menuinst':
+            unlink_dists = tuple(concatv(
+                unlink_dists[:q],
+                unlink_dists[q+1:],
+                unlink_dists[q:q+1],
+            ))
+            break
 
     # link
-    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
+    for q, d in enumerate(link_dists):
+        rec = index.get(d)
+        if rec and rec['name'] == 'menuinst':
+            link_dists = tuple(concatv(
+                link_dists[q:q+1],
+                link_dists[:q],
+                link_dists[q+1:],
+            ))
+            break
 
     return unlink_dists, link_dists
 
@@ -314,7 +318,7 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         grouped_instructions = groupby(lambda x: x[0], plan)
         unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
-        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
+        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists, index)
 
         # make sure prefix directory exists
         if link_dists:
@@ -463,31 +467,6 @@ SpecForEnv = namedtuple('DistForEnv', ['env', 'spec'])
 SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 
-def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False):
-    # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
-    #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
-    str_specs = specs
-    specs = [MatchSpec(spec) for spec in specs]
-    r = get_resolve_object(index.copy(), prefix)
-
-    linked_in_root = linked_data(context.root_prefix)
-
-    # Ensure that there is only one prefix to install into
-    dists_for_envs = determine_all_envs(r, specs)
-    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
-    preferred_envs = set(d.env for d in dists_for_envs)
-    assert len(preferred_envs) == 1
-
-    specs_for_prefix = SpecsForPrefix(
-        prefix=prefix, specs=tuple(str_specs), r=r
-    )
-    actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy, prune,
-                                    update_deps, pinned)
-    return actions
-
-
 def install_actions_list(prefix, index, specs, force=False, only_names=None, always_copy=False,
                          pinned=True, minimal_hint=False, update_deps=True, prune=False,
                          channel_priority_map=None, is_update=False):
@@ -495,7 +474,7 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
     str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
-    r = get_resolve_object(index.copy(), prefix)
+    r = get_resolve_object(index, prefix)
 
     linked_in_root = linked_data(context.root_prefix)
 
@@ -517,17 +496,17 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
-        add_unlink_options_for_update(actions, required_solves, index)
+        add_unlink_options_for_update(actions, required_solves, index, r)
 
     return actions
 
 
-def add_unlink_options_for_update(actions, required_solves, index):
+def add_unlink_options_for_update(actions, required_solves, r):
     # type: (Dict[weird], List[SpecsForPrefix], List[weird]) -> ()
     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
     linked_in_prefix = linked_data(context.root_prefix)
     spec_in_root = lambda spc: tuple(
-        mtch for mtch in linked_in_prefix.keys() if MatchSpec(spc).match(mtch))
+        mtch for mtch in linked_in_prefix.keys() if r.match(spc, mtch))
     for solved in required_solves:
         # If the solved prefix is private
         if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
@@ -538,7 +517,7 @@ def add_unlink_options_for_update(actions, required_solves, index):
                     if len(aug_action) > 0:
                         add_unlink(aug_action[0], matched_in_root[0])
                     else:
-                        actions.append(remove_actions(context.root_prefix, matched_in_root, index))
+                        actions.append(remove_actions(context.root_prefix, matched_in_root, r))
         # If the solved prefix is root
         elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
             for spec in solved.specs:
@@ -612,7 +591,7 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
             if preferred_env_matches_prefix(preferred_env, prefix, context.root_dir):
                 return r
             else:
-                return get_resolve_object(index.copy(), preferred_env_to_prefix(
+                return get_resolve_object(index, preferred_env_to_prefix(
                     preferred_env, context.root_dir, context.envs_dirs))
 
         prefix_with_dists_no_deps_has_resolve = []
@@ -748,24 +727,21 @@ def augment_specs(prefix, specs, pinned=True):
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
-    linked = linked_data(prefix)
-    linked_dists = [d for d in linked.keys()]
+    linked = r.installed
 
     if force:
         mss = list(map(MatchSpec, specs))
-        nlinked = {r.package_name(dist): dist
-                   for dist in linked_dists
-                   if not any(r.match(ms, dist) for ms in mss)}
+        nlinked = [dist for dist in linked if not r.match_any(mss, dist)]
     else:
-        add_defaults_to_specs(r, linked_dists, specs, update=True)
-        nlinked = {r.package_name(dist): dist
-                   for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
+        add_defaults_to_specs(r, linked, specs, update=True)
+        nlinked = r.remove(specs, linked)
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s" % pinned_specs)
 
-    linked = {r.package_name(dist): dist for dist in linked_dists}
+    nlinked = {r.package_name(dist): dist for dist in nlinked}
+    linked = {r.package_name(dist): dist for dist in linked}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
     for old_dist in reversed(r.dependency_sort(linked)):

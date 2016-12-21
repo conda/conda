@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import namedtuple
 from logging import getLogger
 import re
 
@@ -9,7 +8,7 @@ from .channel import Channel
 from .package_info import PackageInfo
 from .index_record import IndexRecord
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, StringField, IntegerField
+from .._vendor.auxlib.entity import Entity, EntityType, StringField
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
@@ -17,8 +16,6 @@ from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
 
 log = getLogger(__name__)
-DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
-                                         'dist_name'))
 
 
 class DistType(EntityType):
@@ -47,27 +44,17 @@ class DistType(EntityType):
 class Dist(Entity):
 
     channel = StringField(required=False, nullable=True, immutable=True)
-
     dist_name = StringField(immutable=True)
-    name = StringField(immutable=True)
-    version = StringField(immutable=True)
-    build_string = StringField(immutable=True)
-    build_number = IntegerField(immutable=True)
-
     with_features_depends = StringField(required=False, nullable=True, immutable=True)
     base_url = StringField(required=False, nullable=True, immutable=True)
     platform = StringField(required=False, nullable=True, immutable=True)
 
-    def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
-                 build_number=None, with_features_depends=None, base_url=None, platform=None):
+    def __init__(self, channel, dist_name=None,
+                 with_features_depends=None, base_url=None, platform=None):
         # if name is None:
         #     import pdb; pdb.set_trace()
         super(Dist, self).__init__(channel=channel,
                                    dist_name=dist_name,
-                                   name=name,
-                                   version=version,
-                                   build_string=build_string,
-                                   build_number=build_number,
                                    with_features_depends=with_features_depends,
                                    base_url=base_url,
                                    platform=platform)
@@ -77,18 +64,8 @@ class Dist(Entity):
         return self.__str__()
 
     @property
-    def build(self):
-        return self.build_string
-
-    @property
     def pair(self):
         return self.channel or DEFAULTS, self.dist_name
-
-    @property
-    def quad(self):
-        # returns: name, version, build_string, channel
-        parts = self.dist_name.rsplit('-', 2) + ['', '']
-        return parts[0], parts[1], parts[2], self.channel or DEFAULTS
 
     def __str__(self):
         base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
@@ -111,9 +88,6 @@ class Dist(Entity):
         else:
             return self.dist_name + extension
 
-    def to_matchspec(self):
-        return ' '.join(self.quad[:3])
-
     @classmethod
     def from_string(cls, string, channel_override=NULL):
         string = text_type(string)
@@ -123,10 +97,6 @@ class Dist(Entity):
 
         if string.endswith('@'):
             return cls(channel='@',
-                       name=string,
-                       version="",
-                       build_string="",
-                       build_number=0,
                        dist_name=string,
                        with_features_depends=None)
 
@@ -145,12 +115,7 @@ class Dist(Entity):
             channel = DEFAULTS
 
         # enforce dist format
-        dist_details = cls.parse_dist_name(original_dist)
         return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
                    dist_name=original_dist,
                    with_features_depends=w_f_d)
 
@@ -170,17 +135,7 @@ class Dist(Entity):
             else:
                 dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
 
-            parts = dist_name.rsplit('-', 2)
-
-            name = parts[0]
-            version = parts[1]
-            build_string = parts[2] if len(parts) >= 3 else ''
-            build_number_as_string = ''.join(filter(lambda x: x.isdigit(),
-                                                    (build_string.rsplit('_')[-1]
-                                                     if build_string else '0')))
-            build_number = int(build_number_as_string) if build_number_as_string else 0
-
-            return DistDetails(name, version, build_string, build_number, dist_name)
+            return dist_name
 
         except:
             raise CondaError("dist_name is not a valid conda package: %s" % original_string)
@@ -191,7 +146,7 @@ class Dist(Entity):
         if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
-        dist_details = cls.parse_dist_name(url)
+        dist_name = cls.parse_dist_name(url)
         if '::' in url:
             url_no_tarball = url.rsplit('::', 1)[0]
             platform = context.subdir
@@ -204,11 +159,7 @@ class Dist(Entity):
             channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 
         return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
-                   dist_name=dist_details.dist_name,
+                   dist_name=dist_name,
                    base_url=base_url,
                    platform=platform)
 
@@ -257,8 +208,11 @@ class Dist(Entity):
     def rsplit(self, sep=None, maxsplit=-1):
         assert sep == '-'
         assert maxsplit == 2
-        name = '%s::%s' % (self.channel, self.quad[0]) if self.channel else self.quad[0]
-        return name, self.quad[1], self.quad[2]
+        channel, dist_name = self.pair
+        name, version, build = dist_name.rsplit('-', 2)
+        if channel != DEFAULTS:
+            name = '%s::%s' % (channel, name)
+        return name, version, build
 
     def startswith(self, match):
         return self.dist_name.startswith(match)

@@ -35,9 +35,13 @@ def pretty_diff(diff):
     added = {}
     removed = {}
     for s in diff:
-        fn = s[1:]
-        dist = Dist(fn)
-        name, version, _, channel = dist.quad
+        parts = s[1:].rsplit(' ')
+        dist = Dist(parts[0])
+        channel, fn = dist.pair
+        if len(parts) == 4:
+            _, name, version, _ = parts
+        else:
+            name, version, _ = fn.rsplit('-', 2)
         if channel != DEFAULTS:
             version += ' (%s)' % channel
         if s.startswith('-'):
@@ -46,11 +50,11 @@ def pretty_diff(diff):
             added[name.lower()] = version
     changed = set(added) & set(removed)
     for name in sorted(changed):
-        yield ' %s  {%s -> %s}' % (name, removed[name], added[name])
+        yield ' %s {%s -> %s}' % (name, removed[name], added[name])
     for name in sorted(set(removed) - changed):
-        yield '-%s-%s' % (name, removed[name])
+        yield '-%s %s' % (name, removed[name])
     for name in sorted(set(added) - changed):
-        yield '+%s-%s' % (name, added[name])
+        yield '+%s %s' % (name, added[name])
 
 
 def pretty_content(content):

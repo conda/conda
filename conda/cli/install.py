@@ -18,10 +18,10 @@ from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
-from ..common.compat import on_win, text_type
+from ..common.compat import on_win, text_type, itervalues
 from ..core.index import get_index
-from ..core.linked_data import linked as install_linked
-from ..exceptions import (CondaEnvironmentNotFoundError,
+from ..core.linked_data import linked_data
+from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
@@ -111,6 +111,17 @@ def get_revision(arg, json=False):
         CondaValueError("expected revision number, not: '%s'" % arg, json)
 
 
+def installed_by_name(prefix):
+    linked_dists = {}
+    for rec in itervalues(linked_data(prefix)):
+        if rec['name'] in linked_dists:
+            msg = """It seems like there is a package conflict in the conda-meta directory.
+    Please remove duplicates of %s package""" % rec['name']
+            raise CondaCorruptEnvironmentError(msg)
+        linked_dists[rec['name']] = rec
+    return linked_dists
+
+
 def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
@@ -133,12 +144,12 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
-    linked_dists = install_linked(prefix)
-    linked_names = tuple(ld.quad[0] for ld in linked_dists)
+    linked_dists = installed_by_name(prefix)
+
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in linked_names and common.prefix_if_in_private_env(name) is None:
+            if name not in linked_dists and common.prefix_if_in_private_env(name) is None:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
 
@@ -173,7 +184,7 @@ def install(args, parser, command='install'):
         if not linked_dists:
             raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
-        specs.extend(d.quad[0] for d in linked_dists)
+        specs.extend(linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:
@@ -205,9 +216,11 @@ def install(args, parser, command='install'):
         return
 
     index = get_index(channel_urls=index_args['channel_urls'],
-                      prepend=index_args['prepend'], platform=None,
-                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                      unknown=index_args['unknown'], prefix=prefix)
+                      prepend=index_args['prepend'],
+                      use_local=index_args['use_local'],
+                      use_cache=index_args['use_cache'],
+                      unknown=index_args['unknown'],
+                      platform=None, prefix=prefix)
     ospecs = list(specs)
 
     if args.force:

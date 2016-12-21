@@ -4,12 +4,12 @@ import os
 from collections import OrderedDict
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
-from conda.core.linked_data import linked
-from copy import copy
+from conda.core.linked_data import linked_data
+from conda.base.constants import DEFAULTS
 from itertools import chain
 
 from . import compat, exceptions, yaml
-from .pip_util import add_pip_installed
+from .pip_util import pip_installed
 
 def load_from_directory(directory):
     """Load and return an ``Environment`` from a given ``directory``"""
@@ -40,17 +40,21 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
 
     Returns:     Environment object
     """
-    installed = linked(prefix, ignore_channels=ignore_channels)
-    conda_pkgs = copy(installed)
+    conda_pkgs = linked_data(prefix, ignore_channels=ignore_channels)
+    conda_names = set(p['name'] for p in conda_pkgs.values())
     # json=True hides the output, data is added to installed
-    add_pip_installed(prefix, installed, json=True)
+    pip_pkgs = sorted(pip_installed(prefix, conda_names, json=True))
 
-    pip_pkgs = sorted(installed - conda_pkgs)
+    def _fmt(p):
+        name = p['name']
+        if not ignore_channels and p['schannel'] != DEFAULTS:
+            name = p['schannel'] + '::' + name
+        res = name + '=' + p['version']
+        if not ignore_channels:
+            res += '=' + p['build']
+        return res
 
-    if no_builds:
-        dependencies = ['='.join(a.quad[0:3]) for a in sorted(conda_pkgs)]
-    else:
-        dependencies = ['='.join(a.quad[0:3]) for a in sorted(conda_pkgs)]
+    dependencies = list(map(_fmt, sorted(conda_pkgs.values(), key=lambda a: a['name'])))
     if len(pip_pkgs) > 0:
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
     # conda uses ruamel_yaml which returns a ruamel_yaml.comments.CommentedSeq

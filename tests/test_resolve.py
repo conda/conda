@@ -25,6 +25,10 @@ r = Resolve(index)
 f_mkl = set(['mkl'])
 
 
+def triple_(dstr):
+    return dstr[:-8].rsplit('-',2)
+
+
 class TestMatchSpec(unittest.TestCase):
 
     def test_match(self):
@@ -45,20 +49,20 @@ class TestMatchSpec(unittest.TestCase):
             ('python', False),
             ]:
             m = MatchSpec(spec)
-            self.assertEqual(m.match(Dist('numpy-1.7.1-py27_0.tar.bz2')), res)
+            self.assertEqual(m.match(*triple_('numpy-1.7.1-py27_0.tar.bz2')), res)
 
         # both version numbers conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1').match(Dist('numpy-1.0.1a-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1').match(*triple_('numpy-1.0.1a-0.tar.bz2')))
         # both version numbers non-conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(*triple_('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match(*triple_('numpy-1.0.1a.vc11-0.tar.bz2')))
         # one conforming, other non-conforming to PEP 440
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(Dist('numpy-1.0.1.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(Dist('numpy-1.0.1a-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a').match(Dist('numpy-1.0.1z-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match(Dist('numpy-1.0.1z-py27_1.tar.bz2')))
-        self.assertTrue(MatchSpec('blas * openblas').match(Dist('blas-1.0-openblas.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy <1.0.1').match(*triple_('numpy-1.0.1.vc11-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy <1.0.1').match(*triple_('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(*triple_('numpy-1.0.1a-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a').match(*triple_('numpy-1.0.1z-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match(*triple_('numpy-1.0.1z-py27_1.tar.bz2')))
+        self.assertTrue(MatchSpec('blas * openblas').match(*triple_('blas-1.0-openblas.tar.bz2')))
 
         self.assertTrue(MatchSpec('blas').is_simple())
         self.assertFalse(MatchSpec('blas').is_exact())
@@ -112,7 +116,7 @@ class TestSolve(unittest.TestCase):
 
     def assert_have_mkl(self, dists, names):
         for dist in dists:
-            if dist.quad[0] in names:
+            if r.package_name(dist) in names:
                 self.assertEqual(r.features(dist), f_mkl)
 
     def test_explicit0(self):
@@ -917,10 +921,10 @@ def test_broken_install():
     installed2 = list(installed)
     installed2[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
     installed2.append(Dist('notarealpackage-2.0-0.tar.bz2'))
-    assert r.install([], installed2) == installed2
+    assert r.install([], installed2) == installed2[:-1]
     installed3 = r.install(['numpy'], installed2)
     installed4 = r.remove(['pandas'], installed2)
-    assert set(installed4) == set(installed2[:3] + installed2[4:])
+    assert set(installed4) == set(installed2[:3] + installed2[4:-1])
 
     # Remove the installed version of pandas from the index
     index2 = index.copy()

@@ -12,7 +12,7 @@ from .common import (Completer, Packages, add_parser_channels, add_parser_json, 
                      ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
 from ..api import get_index
 from ..base.context import context
-from ..common.compat import text_type
+from ..common.compat import text_type, itervalues
 from ..exceptions import CommandArgumentError, PackageNotFoundError
 from ..misc import make_icon_url
 from ..resolve import MatchSpec, NoPackagesFoundError
@@ -158,7 +158,7 @@ def execute_search(args, parser):
     from ..core.package_cache import PackageCache
 
     linked = linked_data(prefix)
-    extracted = set(pc_entry.dist.name for pc_entry in PackageCache.get_all_extracted_entries())
+    extracted = set(pc_entry.dist for pc_entry in PackageCache.get_all_extracted_entries())
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
@@ -205,7 +205,8 @@ def execute_search(args, parser):
             json[name] = []
 
         if args.outdated:
-            vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
+            vers_inst = [rec['version'] for rec in itervalues(linked)
+                         if rec['name'] == name]
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name

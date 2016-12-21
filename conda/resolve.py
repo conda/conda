@@ -100,15 +100,10 @@ class MatchSpec(object):
     def _match_full(self, version, build):
         return self.build.match(build) and self.version.match(version)
 
-    def match(self, dist):
-        # type: (Dist) -> bool
-        assert isinstance(dist, Dist)
-        name, version, build, _ = dist.quad
+    def match(self, name, version, build):
         if name != self.name:
             return False
-        result = self.match_fast(version, build)
-        assert isinstance(result, bool), type(result)
-        return result
+        return self.match_fast(version, build)
 
     def to_filename(self):
         if self.is_exact() and not self.optional:
@@ -141,10 +136,15 @@ class MatchSpec(object):
 
 class Resolve(object):
 
-    def __init__(self, index, sort=False, processed=False):
+    def __new__(cls, index, sort=False, processed=False):
+        if isinstance(index, Resolve):
+            self = index
+        else:
+            self = object.__new__(cls)
         # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
         # assert all(assertion(d, r) for d, r in iteritems(index))
         self.index = index = index.copy()
+
         if not processed:
             for dist, info in iteritems(index.copy()):
                 if dist.with_features_depends:
@@ -173,6 +173,7 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
+        return self
 
     @property
     def installed(self):
@@ -471,8 +472,8 @@ class Resolve(object):
 
     def match(self, ms, fkey):
         # type: (MatchSpec, Dist) -> bool
-        rec = self.index[fkey]
         ms = MatchSpec(ms)
+        rec = self.index[fkey]
         return (ms.name == rec['name'] and
                 ms.match_fast(rec['version'], rec['build']))
 
@@ -549,11 +550,8 @@ class Resolve(object):
         return set(self.index[dist].get('track_features', '').split())
 
     def package_quad(self, dist):
-        rec = self.index.get(dist, None)
-        if rec is None:
-            return dist.quad
-        else:
-            return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
+        rec = self.index[dist]
+        return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
@@ -770,7 +768,7 @@ class Resolve(object):
             if xtra or not (solution or all(s.name in snames for s in specs)):
                 limit = set(s.name for s in specs if s.name in snames)
                 xtra = [dist for dist in (Dist(fn) for fn in installed)
-                        if self.package_name(dist) not in snames]
+                        if dist in self.index and self.package_name(dist) not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)
@@ -779,7 +777,8 @@ class Resolve(object):
     def restore_bad(self, pkgs, preserve):
         if preserve:
             sdict = {self.package_name(pkg): pkg for pkg in pkgs}
-            pkgs.extend(p for p in preserve if self.package_name(p) not in sdict)
+            pkgs.extend(p for p in preserve if p in self.index and
+                        self.package_name(p) not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
@@ -817,6 +816,9 @@ class Resolve(object):
         limit, _ = self.bad_installed(installed, specs)
         preserve = []
         for dist in installed:
+            if dist not in self.index:
+                preserve.append(dist)
+                continue
             nm, ver, build, schannel = self.package_quad(dist)
             if nm in snames:
                 continue

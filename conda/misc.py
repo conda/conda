@@ -62,6 +62,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             raise ParseError('Could not parse explicit URL: %s' % spec)
         url_p, fn, md5sum = m.group('url_p'), m.group('fn'), m.group('md5')
         url = join_url(url_p, fn)
+
         # url_p is everything but the tarball_basename and the md5sum
 
         # If the path points to a file in the package cache, we need to use
@@ -265,7 +266,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
     if r is None:
         r = Resolve(index)
-    dists = r.dependency_sort({d.quad[0]: d for d in urls.keys()})
+    dists = r.dependency_sort({index[d]['name']: d for d in urls.keys()})
     urls = [urls[d] for d in dists]
 
     if verbose:

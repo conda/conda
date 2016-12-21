@@ -15,10 +15,6 @@ class DistTests(TestCase):
     def test_dist(self):
         d = Dist.from_string("spyder-app-2.3.8-py27_0.tar.bz2")
         assert d.channel == 'defaults'
-        assert d.quad[0] == "spyder-app"
-        assert d.quad[1] == "2.3.8"
-        assert d.quad[2] == "py27_0"
-        assert d.build_number == 0
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
 
         assert d == Dist.from_string("spyder-app-2.3.8-py27_0")
@@ -36,21 +32,16 @@ class DistTests(TestCase):
 
         d = Dist("mkl@")
         assert d.channel == "@"
-        assert d.quad[0] == "mkl@"
-        assert d.quad[1] == ""
-        assert d.quad[2] == ""
         assert d.with_features_depends is None
         assert d.is_feature_package
 
     def test_channel(self):
         d = Dist.from_string("conda-forge::spyder-app-2.3.8-py27_0.tar.bz2")
         assert d.channel == 'conda-forge'
-        assert d.quad[0] == "spyder-app"
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
 
         d = Dist.from_string("s3://some/bucket/name::spyder-app-2.3.8-py27_0.tar.bz2")
         assert d.channel == 's3://some/bucket/name'
-        assert d.quad[0] == "spyder-app"
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
         assert d.to_url() == join_url("s3://some/bucket/name", context.subdir,
                                       "spyder-app-2.3.8-py27_0.tar.bz2")
@@ -63,9 +54,6 @@ class UrlDistTests(TestCase):
         url = "https://repo.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
         assert d.channel == 'defaults'
-        assert d.name == 'spyder-app'
-        assert d.version == '2.3.8'
-        assert d.build_string == 'py27_0'
 
         assert d.to_url() == url
         assert d.is_channel is True
@@ -74,9 +62,6 @@ class UrlDistTests(TestCase):
         url = "https://not.real.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
         assert d.channel == 'defaults'  # because pkgs/free is in defaults
-        assert d.name == 'spyder-app'
-        assert d.version == '2.3.8'
-        assert d.build_string == 'py27_0'
 
         assert d.to_url() == url
         assert d.is_channel is True
@@ -85,9 +70,6 @@ class UrlDistTests(TestCase):
         url = "https://not.real.continuum.io/not/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
         assert d.channel == 'https://not.real.continuum.io/not/free'
-        assert d.name == 'spyder-app'
-        assert d.version == '2.3.8'
-        assert d.build_string == 'py27_0'
 
         assert d.to_url() == url
         assert d.is_channel is True
@@ -96,9 +78,6 @@ class UrlDistTests(TestCase):
         url = path_to_url(join_url(context.croot, 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2'))
         d = Dist(url)
         assert d.channel == 'local'
-        assert d.name == 'bcrypt'
-        assert d.version == '3.1.1'
-        assert d.build_string == 'py35_2'
 
         assert d.to_url() == url
         assert d.is_channel is True
@@ -107,9 +86,6 @@ class UrlDistTests(TestCase):
         url = join_url('file:///some/location/on/disk', 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2')
         d = Dist(url)
         assert d.channel == 'file:///some/location/on/disk'
-        assert d.name == 'bcrypt'
-        assert d.version == '3.1.1'
-        assert d.build_string == 'py35_2'
 
         assert d.to_url() == url
         assert d.is_channel is True
@@ -119,9 +95,6 @@ class UrlDistTests(TestCase):
         url = "https://repo.continuum.io/pkgs/free/cffi-1.9.1-py34_0.tar.bz2"
         d = Dist(url)
         assert d.channel == '<unknown>'
-        assert d.name == 'cffi'
-        assert d.version == '1.9.1'
-        assert d.build_string == 'py34_0'
 
         assert d.to_url() == url
         assert d.is_channel is False
@@ -130,9 +103,6 @@ class UrlDistTests(TestCase):
         url = path_to_url(join_url(context.croot, 'cffi-1.9.1-py34_0.tar.bz2'))
         d = Dist(url)
         assert d.channel == '<unknown>'
-        assert d.name == 'cffi'
-        assert d.version == '1.9.1'
-        assert d.build_string == 'py34_0'
 
         assert d.to_url() == url
         assert d.is_channel is False
@@ -142,9 +112,6 @@ class UrlDistTests(TestCase):
         url = join_url(path_to_url(context.pkgs_dirs[0]), 'cffi-1.9.1-py34_0.tar.bz2')
         d = Dist(url)
         assert d.channel == '<unknown>'
-        assert d.name == 'cffi'
-        assert d.version == '1.9.1'
-        assert d.build_string == 'py34_0'
 
         assert d.to_url() == url
         assert d.is_channel is False
