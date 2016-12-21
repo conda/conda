@@ -892,6 +892,7 @@ class IntegrationTests(TestCase):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
                 assert_package_is_installed(prefix, 'flask-0.10.1')
 
+    @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
         import conda.core.link
         with patch.object(conda.core.link, '_run_script') as rs:
