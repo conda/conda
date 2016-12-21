@@ -75,10 +75,9 @@ class TooFewArgumentsError(ArgumentError):
         self.received = received
         self.optional_message = optional_message
 
-        msg = 'Too few arguments: %s. Got %s arguments and expected %s.' %\
-              (optional_message, received, expected)
+        msg = ('Too few arguments: %s. Got %s arguments and expected %s.' %
+               (optional_message, received, expected))
         super(TooFewArgumentsError, self).__init__(msg, *args)
-
 
 
 class ClobberError(CondaError):

@@ -26,7 +26,7 @@ from ...common.compat import on_win
 from ...common.path import win_path_ok
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
-from ...models.enums import LinkType, PathType
+from ...models.enums import LinkType
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
