@@ -842,7 +842,7 @@ def test_optional_dependencies():
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
 
 
-def test_superceded():
+def test_superseded():
     index2 = index.copy()
     index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
         'build': '0',
@@ -872,7 +872,7 @@ def test_superceded():
         'build': '0',
         'build_number': 0,
         'depends': ['package1 >=2.0'],
-        'superceded': 'package1 >=2.0',
+        'superseded': True,
         'name': 'package2',
         'requires': [],
         'version': '2.0',

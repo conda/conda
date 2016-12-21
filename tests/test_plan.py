@@ -442,6 +442,27 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 """
 
 
+def test_display_actions_supersede_conda_env():
+    os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
+    reset_context(())
+    actions = defaultdict(list, {
+        'LINK': ['conda-2.0-py27_0'],
+        'REPLACE': ['conda-env-2.0-py27_0'],
+        'UNLINK': ['conda-1.5.2-py27_0', 'conda-env-1.0-py27_0']})
+    with captured() as c:
+        display_actions(actions, index)
+    assert c.stdout == """
+The following packages will be UPDATED:
+
+    conda:     1.5.2-py27_0 --> 2.0-py27_0
+
+The following packages will be REPLACED:
+
+    conda-env: 1.0-py27_0   --> conda >=2.0
+
+"""
+
+
 @pytest.mark.xfail(strict=True, reason="Not reporting link type until refactoring display_actions "
                                        "after txn.verify()")
 def test_display_actions_link_type():
