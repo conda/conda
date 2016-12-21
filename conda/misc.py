@@ -13,15 +13,15 @@ from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink
 
 from ._vendor.auxlib.path import expand
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, odict, on_win
+from .common.compat import iteritems, iterkeys, itervalues, on_win
 from .common.path import url_to_path
 from .common.url import is_url, join_url, path_to_url
-from .core.index import get_index
-from .core.linked_data import is_linked, linked as install_linked, linked_data
-from .exceptions import (CondaRuntimeError, ParseError)
+from .core.index import get_index, supplement_index_with_cache
+from .core.linked_data import linked_data
+from .core.package_cache import PackageCache, ProgressiveFetchExtract
+from .exceptions import (CondaRuntimeError, CondaFileNotFoundError, ParseError)
 from .gateways.disk.delete import rm_rf
-from .gateways.disk.read import compute_md5sum
-from .instructions import EXTRACT, FETCH, LINK, RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK
+from .instructions import LINK, UNLINK
 from .models.dist import Dist
 from .models.index_record import IndexRecord
 from .plan import execute_actions
@@ -34,8 +34,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
     a given prefix.
     """
     res = set()
-    for dist in install_linked(prefix):
-        meta = is_linked(prefix, dist)
+    for dist, meta in iteritems(linked_data(prefix)):
         if exclude_self_build and 'file_hash' in meta:
             continue
         res.update(set(meta.get('files', ())))
@@ -48,26 +47,11 @@ url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
 def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, index=None):
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
-    actions['op_order'] = RM_FETCHED, FETCH, RM_EXTRACTED, EXTRACT, UNLINK, LINK, SYMLINK_CONDA
-    linked = {dist.name: dist for dist in install_linked(prefix)}
-    index_args = index_args or {}
-    index = index or {}
 
-    # get our index
-    index_args = index_args or {}
-    index.update(get_index(
-        channel_urls=context.channels,
-        prepend=False,
-        platform=context.subdir,
-        use_local=index_args.get('use_local', False),
-        use_cache=index_args.get('use_cache', context.offline),
-        unknown=index_args.get('unknown', False),
-        prefix=index_args.get('prefix', False),
-    ))
-
-    def spec_to_parsed_url(spec):
+    fetch_recs = {}
+    for spec in specs:
         if spec == '@EXPLICIT':
-            return None, None
+            continue
 
         if not is_url(spec):
             spec = path_to_url(expand(spec))
@@ -77,59 +61,42 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         if m is None:
             raise ParseError('Could not parse explicit URL: %s' % spec)
         url_p, fn, md5sum = m.group('url_p'), m.group('fn'), m.group('md5')
+        url = join_url(url_p, fn)
         # url_p is everything but the tarball_basename and the md5sum
 
-        url = join_url(url_p, fn)
-        return url, md5sum
+        # If the path points to a file in the package cache, we need to use
+        # the dist name that corresponds to that package. The MD5 may not
+        # match, but we will let PFE below worry about that
+        dist = None
+        if url.startswith('file:/'):
+            path = url_to_path(url)
+            if dirname(path) in context.pkgs_dirs:
+                if not exists(path):
+                    raise CondaFileNotFoundError(path)
+                pc_entry = PackageCache.tarball_file_in_cache(path)
+                dist = pc_entry.dist
+                url = dist.to_url() or pc_entry.get_urls_txt_value()
+                md5sum = md5sum or pc_entry.md5sum
+        dist = dist or Dist(url)
+        fetch_recs[dist] = {'md5': md5sum, 'url': url}
 
-    def url_details_to_dist_record(url, md5sum):
-        dist = Dist(url)
-        if dist in index:
-            record = index[dist]
-            # TODO: we should be able to query across channels for no-channel dist + md5sum matches
-        elif url.startswith('file:/'):
-            md5sum = md5sum or compute_md5sum(url_to_path(url))
-            record = IndexRecord(**{
-                'fn': dist.to_filename(),
-                'url': url,
-                'md5': md5sum,
-                'build': dist.build_string,
-                'build_number': dist.build_number,
-                'name': dist.name,
-                'version': dist.version,
-            })
-        else:
-            # non-local url that's not in index
-            record = IndexRecord(**{
-                'fn': dist.to_filename(),
-                'url': url,
-                'md5': md5sum,
-                'build': dist.build_string,
-                'build_number': dist.build_number,
-                'name': dist.name,
-                'version': dist.version,
-            })
-        return dist, record
+    # perform any necessary fetches and extractions
+    if verbose:
+        from .console import setup_verbose_handlers
+        setup_verbose_handlers()
+    link_dists = tuple(iterkeys(fetch_recs))
+    pfe = ProgressiveFetchExtract(fetch_recs, link_dists)
+    pfe.execute()
 
-    parsed_urls = (spec_to_parsed_url(spec) for spec in specs)
-    link_index = odict(url_details_to_dist_record(url, md5sum)
-                       for url, md5sum in parsed_urls if url)
-    link_dists = tuple(iterkeys(link_index))
-
-    # merge new link_index into index
-    for dist, record in iteritems(link_index):
-        _fetched_record = index.get(dist)
-        index[dist] = (IndexRecord.from_objects(record, _fetched_record)
-                       if _fetched_record else record)
+    # Now get the index---but the only index we need is the package cache
+    index = {}
+    supplement_index_with_cache(index, ())
 
     # unlink any installed packages with same package name
-    unlink_dists = tuple(linked[dist.name] for dist in link_dists if dist.name in linked)
-
-    for unlink_dist in unlink_dists:
-        actions[UNLINK].append(unlink_dist)
-
-    for link_dist in link_dists:
-        actions[LINK].append(link_dist)
+    link_names = {index[d]['name'] for d in link_dists}
+    actions[UNLINK].extend(d for d, r in iteritems(linked_data(prefix))
+                           if r['name'] in link_names)
+    actions[LINK].extend(link_dists)
 
     execute_actions(actions, index, verbose=verbose)
     return actions
