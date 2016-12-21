@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
-import sys
 from datetime import timedelta
+import logging
 from logging import getLogger
+import sys
 from traceback import format_exc
 
-from . import CondaError, CondaExitZero, text_type
+from conda.base.constants import PathConflict
+from . import CondaError, CondaExitZero, text_type, CondaMultiError
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from .common.compat import iteritems, iterkeys, string_types
 from .common.signals import get_signal_name
+
+try:
+    from cytoolz.itertoolz import groupby
+except ImportError:
+    from ._vendor.toolz.itertoolz import groupby  # NOQA
 
 log = logging.getLogger(__name__)
 
@@ -74,15 +80,91 @@ class TooFewArgumentsError(ArgumentError):
         super(TooFewArgumentsError, self).__init__(msg, *args)
 
 
+
 class ClobberError(CondaError):
-    def __init__(self, destination_path, source_path, path_type):
+
+    def __init__(self, message, path_conflict, **kwargs):
+        self.path_conflict = path_conflict
+        super(ClobberError, self).__init__(message, **kwargs)
+
+    def __repr__(self):
+        clz_name = "ClobberWarning" if self.path_conflict == PathConflict.warn else "ClobberError"
+        return '%s: %s\n' % (clz_name, text_type(self))
+
+
+class BasicClobberError(ClobberError):
+    def __init__(self, source_path, target_path, context):
         message = dals("""
-        Conda no longer clobbers existing files without the use of the --force option.
+        Conda was asked to clobber an existing path.
           source path:      %(source_path)s
-          destination path: %(destination_path)s
+          destination path: %(target_path)s
         """)
-        super(ClobberError, self).__init__(message, destination_path=destination_path,
-                                           source_path=source_path, path_type=path_type)
+        if context.path_conflict == PathConflict.prevent:
+            message += ("Conda no longer clobbers existing paths without the use of the "
+                        "--clobber option\n.")
+        super(BasicClobberError, self).__init__(message, context.path_conflict,
+                                                destination_path=target_path,
+                                                source_path=source_path)
+
+
+class KnownPackageClobberError(ClobberError):
+
+    def __init__(self, target_path, colliding_dist_being_linked, colliding_linked_dist, context):
+        message = dals("""
+        The package '%(colliding_dist_being_linked)s' cannot be installed due to a
+        path collision for '%(target_path)s'.
+        This path already exists in the target prefix, and it won't be removed by
+        an uninstall action in this transaction. The path appears to be coming from
+        the package '%(colliding_linked_dist)s', which is already installed in the prefix.
+        """)
+        if context.path_conflict == PathConflict.prevent:
+            message += ("If you'd like to proceed anyway, re-run the command with "
+                        "the `--clobber` flag.\n.")
+        super(KnownPackageClobberError, self).__init__(
+            message, context.path_conflict,
+            target_path=target_path,
+            colliding_dist_being_linked=colliding_dist_being_linked,
+            colliding_linked_dist=colliding_linked_dist,
+        )
+
+
+class UnknownPackageClobberError(ClobberError):
+
+    def __init__(self, target_path, colliding_dist_being_linked, context):
+        message = dals("""
+        The package '%(colliding_dist_being_linked)s' cannot be installed due to a
+        path collision for '%(target_path)s'.
+        This path already exists in the target prefix, and it won't be removed
+        by an uninstall action in this transaction. The path is one that conda
+        doesn't recognize. It may have been created by another package manager.
+        """)
+        if context.path_conflict == PathConflict.prevent:
+            message += ("If you'd like to proceed anyway, re-run the command with "
+                        "the `--clobber` flag.\n.")
+        super(UnknownPackageClobberError, self).__init__(
+            message, context.path_conflict,
+            target_path=target_path,
+            colliding_dist_being_linked=colliding_dist_being_linked,
+        )
+
+
+class SharedLinkPathClobberError(ClobberError):
+
+    def __init__(self, target_path, incompatible_package_dists, context):
+        message = dals("""
+        This transaction has incompatible packages due to a shared path.
+          packages: %(incompatible_packages)s
+          path: %(target_path)s
+        """)
+        if context.path_conflict == PathConflict.prevent:
+            message += ("If you'd like to proceed anyway, re-run the command with "
+                        "the `--clobber` flag.\n.")
+        super(SharedLinkPathClobberError, self).__init__(
+            message, context.path_conflict,
+            target_path=target_path,
+            incompatible_packages=', '.join(text_type(d) for d in incompatible_package_dists),
+        )
+
 
 class CommandError(CondaError):
     def __init__(self, command, message):
@@ -508,6 +590,27 @@ conda GitHub issue tracker at:
 #     if failed_delete:
 #         log.warn("Unable to remove all for this processlocks.\n"
 #                  "Please run `conda clean --lock`.")
+
+
+def maybe_raise(error, context):
+    if isinstance(error, CondaMultiError):
+        groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
+        clobber_errors = groups.get(True, ())
+        non_clobber_errors = groups.get(False, ())
+        if clobber_errors:
+            if context.path_conflict == PathConflict.prevent and not context.clobber:
+                raise error
+            elif context.path_conflict == PathConflict.warn and not context.clobber:
+                print_conda_exception(CondaMultiError(clobber_errors))
+            if non_clobber_errors:
+                raise CondaMultiError(non_clobber_errors)
+    if isinstance(error, ClobberError):
+        if context.path_conflict == PathConflict.prevent and not context.clobber:
+            raise error
+        elif context.path_conflict == PathConflict.warn and not context.clobber:
+            print_conda_exception(error)
+    else:
+        raise NotImplementedError()
 
 
 def conda_exception_handler(func, *args, **kwargs):

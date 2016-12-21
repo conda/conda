@@ -26,7 +26,8 @@ from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
-from ..exceptions import CondaVerificationError
+from ..exceptions import (KnownPackageClobberError, SharedLinkPathClobberError,
+                          UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
@@ -219,35 +220,17 @@ class UnlinkLinkTransaction(object):
                         key=lambda lpr: path in lpr.files
                     )
                     if colliding_linked_package_record:
-                        yield CondaVerificationError(dals("""
-                        The package '%s' cannot be installed due to a
-                        path collision for '%s'.
-                        This path already exists in the target prefix, and it won't be removed by
-                        an uninstall action in this transaction. The path appears to be coming from
-                        the package '%s', which is already installed in the prefix. If you'd like
-                        to proceed anyway, re-run the command with the `--force` flag.
-                        """ % (Dist(axn.linked_package_record),
-                               path,
-                               Dist(colliding_linked_package_record))))
+                        yield KnownPackageClobberError(Dist(axn.linked_package_record), path,
+                                                       Dist(colliding_linked_package_record),
+                                                       context)
                     else:
-                        yield CondaVerificationError(dals("""
-                        The package '%s' cannot be installed due to a
-                        path collision for '%s'.
-                        This path already exists in the target prefix, and it won't be removed
-                        by an uninstall action in this transaction. The path is one that conda
-                        doesn't recognize. It may have been created by another package manager.
-                        If you'd like to proceed anyway, re-run the command with the `--force`
-                        flag.
-                        """ % (Dist(axn.linked_package_record), path)))
+                        yield UnknownPackageClobberError(Dist(axn.linked_package_record), path,
+                                                         context)
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
-                yield CondaVerificationError(dals("""
-                This transaction has incompatible packages due to a shared path.
-                  packages: %s
-                  path: %s
-                If you'd like to proceed anyway, re-run the command with the `--force` flag.
-                """ % (', '.join(text_type(Dist(axn.linked_package_record)) for axn in axns),
-                       path)))
+                yield SharedLinkPathClobberError(
+                    path, tuple(Dist(axn.linked_package_record) for axn in axns), context
+                )
 
     def verify(self):
         if not self._prepared:
@@ -259,8 +242,8 @@ class UnlinkLinkTransaction(object):
                                            self.num_unlink_pkgs),
         ) if exc)
 
-        if exceptions and not context.force:
-            raise CondaMultiError(exceptions)
+        if exceptions:
+            maybe_raise(CondaMultiError(exceptions), context)
         else:
             log.info(exceptions)
 

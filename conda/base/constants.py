@@ -11,6 +11,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 from os.path import join
 
+from enum import Enum
+
 on_win = bool(sys.platform == "win32")
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -95,3 +97,9 @@ INTERRUPT_SIGNALS = (
     'SIGQUIT',
     'SIGBREAK',
 )
+
+
+class PathConflict(Enum):
+    clobber = 'clobber'
+    warn = 'warn'
+    prevent = 'prevent'

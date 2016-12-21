@@ -24,7 +24,7 @@ from ...base.constants import PRIVATE_ENVS
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import win_path_ok
-from ...exceptions import ClobberError, CondaOSError
+from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
 from ...models.enums import LinkType, PathType
 
@@ -50,12 +50,12 @@ if __name__ == '__main__':
 
 
 def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
-    if lexists(target_full_path) and not context.force:
-        raise ClobberError(
-            destination_path=target_full_path,
+    if lexists(target_full_path):
+        maybe_raise(BasicClobberError(
             source_path=None,
-            path_type=PathType.unix_python_entry_point,
-        )
+            target_path=target_full_path,
+            context=context,
+        ), context)
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
     with open(target_full_path, 'w') as fo:
@@ -67,12 +67,12 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
 
 
 def create_windows_python_entry_point(target_full_path, module, func):
-    if lexists(target_full_path) and not context.force:
-        raise ClobberError(
-            destination_path=target_full_path,
+    if lexists(target_full_path):
+        maybe_raise(BasicClobberError(
             source_path=None,
-            path_type=PathType.windows_python_entry_point,
-        )
+            target_path=target_full_path,
+            context=context,
+        ), context)
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
     with open(target_full_path, 'w') as fo:
@@ -107,12 +107,12 @@ def write_linked_package_record(prefix, record):
         makedirs(meta_dir)
     dist = Dist(record)
     conda_meta_full_path = join(meta_dir, dist.to_filename('.json'))
-    if lexists(conda_meta_full_path) and not context.force:
-        raise ClobberError(
-            destination_path=conda_meta_full_path,
+    if lexists(conda_meta_full_path):
+        maybe_raise(BasicClobberError(
             source_path=None,
-            path_type=PathType.linked_package_record,
-        )
+            target_path=conda_meta_full_path,
+            context=context,
+        ), context)
     with open(conda_meta_full_path, 'w') as fo:
         json_str = json.dumps(record, indent=2, sort_keys=True, cls=EntityEncoder)
         if hasattr(json_str, 'decode'):
@@ -220,7 +220,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             log.info("file exists, but clobbering: %r" % dst)
             rm_rf(dst)
         else:
-            raise ClobberError(dst, src, link_type)
+            maybe_raise(BasicClobberError(src, dst, link_type), context)
 
     if link_type == LinkType.hardlink:
         if isdir(src):
@@ -250,8 +250,8 @@ def _split_on_unix(command):
 
 
 def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
-    if lexists(pyc_full_path) and not context.force:
-        raise ClobberError(pyc_full_path, py_full_path, PathType.pyc_file)
+    if lexists(pyc_full_path):
+        maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
     log.trace(command)
@@ -316,12 +316,12 @@ def remove_private_envs_meta(pkg):
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
-    if lexists(target_full_path) and not context.force:
-        raise ClobberError(
-            destination_path=target_full_path,
+    if lexists(target_full_path):
+        maybe_raise(BasicClobberError(
             source_path=None,
-            path_type=PathType.unix_python_entry_point,
-        )
+            target_path=target_full_path,
+            context=context,
+        ), context)
 
     entry_point = application_entry_point_template % {"source_full_path": source_full_path}
     with open(target_full_path, "w") as fo:
