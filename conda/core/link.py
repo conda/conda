@@ -4,8 +4,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from logging import getLogger
 import os
-from os.path import join
-from subprocess import CalledProcessError, check_call
+from os.path import join, split
+from subprocess import CalledProcessError, check_call, Popen, PIPE
 import sys
 from traceback import format_exc
 import warnings
@@ -315,7 +315,7 @@ class UnlinkLinkTransaction(object):
                          "  source=%s\n",
                          dist, target_prefix, pkg_data.extracted_package_dir)
 
-            run_script(pkg_data.extracted_package_dir if is_unlink else target_prefix,
+            run_script(target_prefix if is_unlink else pkg_data.extracted_package_dir,
                        Dist(pkg_data),
                        'pre-unlink' if is_unlink else 'pre-link',
                        target_prefix if is_unlink else None)
@@ -470,9 +470,9 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
 
     env[str('ROOT_PREFIX')] = sys.prefix
     env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = dist.name
-    env[str('PKG_VERSION')] = dist.version
-    env[str('PKG_BUILDNUM')] = dist.build_number
+    env[str('PKG_NAME')] = str(dist.name)
+    env[str('PKG_VERSION')] = str(dist.version)
+    env[str('PKG_BUILDNUM')] = str(dist.build_number)
 
     try:
         log.debug("for %s at %s, executing script: $ %s",
