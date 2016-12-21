@@ -604,7 +604,7 @@ def maybe_raise(error, context):
                 print_conda_exception(CondaMultiError(clobber_errors))
             if non_clobber_errors:
                 raise CondaMultiError(non_clobber_errors)
-    if isinstance(error, ClobberError):
+    elif isinstance(error, ClobberError):
         if context.path_conflict == PathConflict.prevent and not context.clobber:
             raise error
         elif context.path_conflict == PathConflict.warn and not context.clobber:

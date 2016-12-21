@@ -213,7 +213,7 @@ def typify(value, type_hint=None):
     # now we either have a stripped string, a type hint, or both
     # use the hint if it exists
     if isiterable(type_hint):
-        if issubclass(type_hint, Enum):
+        if isinstance(type_hint, type) and issubclass(type_hint, Enum):
             try:
                 return type_hint(value)
             except ValueError:
