@@ -3,12 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import errno
 import json
 import logging
-import os
+from os import makedirs, stat
+from os.path import isdir, isfile, join
 import re
 import sys
 import time
 import warnings
-from os.path import isdir, isfile, join
 
 from .base.constants import DEFAULTS
 from .core.linked_data import linked
@@ -80,7 +80,7 @@ class History(object):
         self.write_dists(linked(self.prefix))
 
     def file_is_empty(self):
-        return os.stat(self.path).st_size == 0
+        return stat(self.path).st_size == 0
 
     def update(self, enter_or_exit=''):
         """
@@ -251,7 +251,7 @@ class History(object):
 
     def write_dists(self, dists):
         if not isdir(self.meta_dir):
-            os.makedirs(self.meta_dir)
+            makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
             if dists:
                 write_head(fo)
