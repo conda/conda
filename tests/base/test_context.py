@@ -2,13 +2,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+
+from conda.base.constants import PathConflict
 from conda.common.path import win_path_backout
 from tempfile import gettempdir
 
 import pytest
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
-from conda.base.context import context, reset_context, ClobberBehavior
+from conda.base.context import context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var
@@ -149,5 +151,5 @@ class ContextTests(TestCase):
         assert rc.get('conda-build')['root-dir'] == "/some/test/path"
 
     def test_clobber_enum(self):
-        with env_var("CONDA_CLOBBER_BEHAVIOR", 'enforcing', reset_context):
-            assert context.clobber_behavior == ClobberBehavior.enforcing
+        with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
+            assert context.path_conflict == PathConflict.prevent
