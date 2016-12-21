@@ -9,6 +9,7 @@ from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 import sys
 
+from conda.base.constants import PathConflict
 from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
                         SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
@@ -61,15 +62,17 @@ class Context(Configuration):
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
+    clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
+    concurrent = PrimitiveParameter(False)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
+    path_conflict = PrimitiveParameter(PathConflict.clobber)
+    repodata_timeout_secs = PrimitiveParameter(300)
+    rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(False)
-    rollback_enabled = PrimitiveParameter(True)
-    repodata_timeout_secs = PrimitiveParameter(300)
 
     _root_dir = PrimitiveParameter("", aliases=('root_dir',))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),

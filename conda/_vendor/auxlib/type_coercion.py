@@ -3,6 +3,8 @@ from collections import Mapping
 from itertools import chain
 from re import IGNORECASE, compile
 
+from enum import Enum
+
 from .compat import NoneType, integer_types, isiterable, iteritems, string_types, text_type
 from .decorators import memoize, memoizedproperty
 from .exceptions import AuxlibError
@@ -211,6 +213,11 @@ def typify(value, type_hint=None):
     # now we either have a stripped string, a type hint, or both
     # use the hint if it exists
     if isiterable(type_hint):
+        if isinstance(type_hint, type) and issubclass(type_hint, Enum):
+            try:
+                return type_hint(value)
+            except ValueError:
+                return type_hint[value]
         type_hint = set(type_hint)
         if not (type_hint - NUMBER_TYPES_SET):
             return numberify(value)

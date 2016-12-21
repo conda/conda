@@ -18,6 +18,7 @@ from textwrap import dedent
 from unittest import TestCase
 from uuid import uuid4
 
+from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
 
@@ -744,6 +745,11 @@ class IntegrationTests(TestCase):
         # TODO: should also write a test to use binstar_client to set the token,
         # then let conda load the token
 
+        # Step 0. xfail if a token is set, for example when testing locally
+        tokens = read_binstar_tokens()
+        if tokens:
+            pytest.xfail("binstar token found in global configuration")
+
         # Step 1. Make sure without the token we don't see the anyjson package
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
@@ -894,11 +900,13 @@ class IntegrationTests(TestCase):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
                 assert_package_is_installed(prefix, 'flask-0.10.1')
 
+    @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
-        with patch('conda.core.link.run_script') as rs:
-            with make_temp_env("openssl --no-deps") as prefix:
+        import conda.core.link
+        with patch.object(conda.core.link, '_run_script') as rs:
+            with make_temp_env("openssl=1.0.2j --no-deps") as prefix:
                 assert_package_is_installed(prefix, 'openssl-')
-                assert rs.call_count == 2
+                assert rs.call_count == 1
 
     def test_conda_info_python(self):
         stdout, stderr = run_command(Commands.INFO, None, "python=3.5")

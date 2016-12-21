@@ -26,7 +26,8 @@ from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
-from ..exceptions import CondaVerificationError
+from ..exceptions import (KnownPackageClobberError, SharedLinkPathClobberError,
+                          UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
@@ -219,35 +220,17 @@ class UnlinkLinkTransaction(object):
                         key=lambda lpr: path in lpr.files
                     )
                     if colliding_linked_package_record:
-                        yield CondaVerificationError(dals("""
-                        The package '%s' cannot be installed due to a
-                        path collision for '%s'.
-                        This path already exists in the target prefix, and it won't be removed by
-                        an uninstall action in this transaction. The path appears to be coming from
-                        the package '%s', which is already installed in the prefix. If you'd like
-                        to proceed anyway, re-run the command with the `--force` flag.
-                        """ % (Dist(axn.linked_package_record),
-                               path,
-                               Dist(colliding_linked_package_record))))
+                        yield KnownPackageClobberError(Dist(axn.linked_package_record), path,
+                                                       Dist(colliding_linked_package_record),
+                                                       context)
                     else:
-                        yield CondaVerificationError(dals("""
-                        The package '%s' cannot be installed due to a
-                        path collision for '%s'.
-                        This path already exists in the target prefix, and it won't be removed
-                        by an uninstall action in this transaction. The path is one that conda
-                        doesn't recognize. It may have been created by another package manager.
-                        If you'd like to proceed anyway, re-run the command with the `--force`
-                        flag.
-                        """ % (Dist(axn.linked_package_record), path)))
+                        yield UnknownPackageClobberError(Dist(axn.linked_package_record), path,
+                                                         context)
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
-                yield CondaVerificationError(dals("""
-                This transaction has incompatible packages due to a shared path.
-                  packages: %s
-                  path: %s
-                If you'd like to proceed anyway, re-run the command with the `--force` flag.
-                """ % (', '.join(text_type(Dist(axn.linked_package_record)) for axn in axns),
-                       path)))
+                yield SharedLinkPathClobberError(
+                    path, tuple(Dist(axn.linked_package_record) for axn in axns), context
+                )
 
     def verify(self):
         if not self._prepared:
@@ -259,8 +242,8 @@ class UnlinkLinkTransaction(object):
                                            self.num_unlink_pkgs),
         ) if exc)
 
-        if exceptions and not context.force:
-            raise CondaMultiError(exceptions)
+        if exceptions:
+            maybe_raise(CondaMultiError(exceptions), context)
         else:
             log.info(exceptions)
 
@@ -315,7 +298,10 @@ class UnlinkLinkTransaction(object):
                          "  source=%s\n",
                          dist, target_prefix, pkg_data.extracted_package_dir)
 
-            run_script(target_prefix, Dist(pkg_data), 'pre-unlink' if is_unlink else 'pre-link')
+            run_script(target_prefix if is_unlink else pkg_data.extracted_package_dir,
+                       Dist(pkg_data),
+                       'pre-unlink' if is_unlink else 'pre-link',
+                       target_prefix if is_unlink else None)
             for axn_idx, action in enumerate(actions):
                 action.execute()
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
@@ -439,28 +425,14 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
-    path = join(prefix, 'Scripts' if on_win else 'bin', '.%s-%s.%s' % (
-        dist.dist_name,
-        action,
-        'bat' if on_win else 'sh'))
+    path = join(prefix,
+                'Scripts' if on_win else 'bin',
+                '.%s-%s.%s' % (dist.name, action, 'bat' if on_win else 'sh'))
     if not isfile(path):
         return True
-    if on_win:
-        try:
-            args = [os.environ['COMSPEC'], '/c', path]
-        except KeyError:
-            return False
-    else:
-        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
-        args = [shell_path, path]
+
     env = os.environ.copy()
-    name, version, _, _ = dist.quad
-    build_number = dist.build_number
-    env[str('ROOT_PREFIX')] = sys.prefix
-    env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = name
-    env[str('PKG_VERSION')] = version
-    env[str('PKG_BUILDNUM')] = build_number
+
     if action == 'pre-link':
         env[str('SOURCE_DIR')] = str(prefix)
         warnings.warn(dals("""
@@ -469,15 +441,37 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         package cache, and therefore modify the underlying files for already-created conda
         environments.  Future versions of conda may deprecate and ignore pre-link scripts.
         """ % dist))
+
+    if on_win:
+        try:
+            command_args = [os.environ['COMSPEC'], '/c', path]
+        except KeyError:
+            return False
+    else:
+        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
+        command_args = [shell_path, path]
+
+    env[str('ROOT_PREFIX')] = sys.prefix
+    env[str('PREFIX')] = str(env_prefix or prefix)
+    env[str('PKG_NAME')] = str(dist.name)
+    env[str('PKG_VERSION')] = str(dist.version)
+    env[str('PKG_BUILDNUM')] = str(dist.build_number)
+
     try:
-        log.debug("for %s at %s, executing script: $ %s", dist, env_prefix, ' '.join(args))
-        check_call(args, env=env)
+        log.debug("for %s at %s, executing script: $ %s",
+                  dist, env[str('PREFIX')], ' '.join(command_args))
+        return _run_script(command_args, env)
+    finally:
+        messages(prefix)
+
+
+def _run_script(command_args, env):
+    try:
+        check_call(command_args, env=env)
     except CalledProcessError:
         return False
     else:
         return True
-    finally:
-        messages(prefix)
 
 
 def messages(prefix):

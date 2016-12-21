@@ -2,6 +2,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+
+from conda.base.constants import PathConflict
 from conda.common.path import win_path_backout
 from tempfile import gettempdir
 
@@ -147,3 +149,7 @@ class ContextTests(TestCase):
         assert context.conda_build['root-dir'] == "/some/test/path"
         from conda.config import rc
         assert rc.get('conda-build')['root-dir'] == "/some/test/path"
+
+    def test_clobber_enum(self):
+        with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
+            assert context.path_conflict == PathConflict.prevent
