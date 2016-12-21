@@ -17,6 +17,7 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
 
@@ -741,6 +742,11 @@ class IntegrationTests(TestCase):
     def test_anaconda_token_with_private_package(self):
         # TODO: should also write a test to use binstar_client to set the token,
         # then let conda load the token
+
+        # Step 0. xfail if a token is set, for example when testing locally
+        tokens = read_binstar_tokens()
+        if tokens:
+            pytest.xfail("binstar token found in global configuration")
 
         # Step 1. Make sure without the token we don't see the anyjson package
         try:
