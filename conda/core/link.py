@@ -4,8 +4,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from logging import getLogger
 import os
-from os.path import join, split
-from subprocess import CalledProcessError, check_call, Popen, PIPE
+from os.path import join
+from subprocess import CalledProcessError, check_call
 import sys
 from traceback import format_exc
 import warnings
