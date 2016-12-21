@@ -13,7 +13,7 @@ from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..connection import CondaSession
-from ..exceptions import ClobberError, CondaHTTPError, MD5MismatchError
+from ..exceptions import BasicClobberError, CondaHTTPError, MD5MismatchError, maybe_raise
 
 log = getLogger(__name__)
 
@@ -52,7 +52,7 @@ def download(url, target_full_path, md5sum):
     content_length = None
 
     if exists(target_full_path):
-        raise ClobberError(target_full_path, url, None)
+        maybe_raise(BasicClobberError(target_full_path, url, context))
 
     if not context.ssl_verify:
         disable_ssl_verify_warning()

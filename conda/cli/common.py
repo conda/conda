@@ -384,6 +384,17 @@ def add_parser_show_channel_urls(p):
         help="Don't show channel urls.",
     )
 
+
+def add_parser_create_install_update(p):
+    p.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering of overlapping file paths within packages, "
+             "and suppress related warnings.",
+    )
+
+
 def ensure_use_local(args):
     if not args.use_local:
         return
