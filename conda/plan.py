@@ -32,7 +32,7 @@ from .gateways.disk.create import mkdir_p
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
-                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK,
+                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK, REPLACE,
                            UNLINKLINKTRANSACTION, execute_instructions)
 from .models.channel import Channel
 from .models.dist import Dist
@@ -105,6 +105,7 @@ def display_actions(actions, index, show_channel_urls=None):
     features = defaultdict(lambda: list(('', '')))
     channels = defaultdict(lambda: list(('', '')))
     records = defaultdict(lambda: list((None, None)))
+    absorbed = {}
     linktypes = {}
 
     for arg in actions.get(LINK, []):
@@ -124,9 +125,20 @@ def display_actions(actions, index, show_channel_urls=None):
         packages[pkg][0] = rec['version'] + '-' + rec['build']
         records[pkg][0] = rec
         features[pkg][0] = rec.get('features', '')
+    for arg in actions.get(REPLACE, []):
+        dist = Dist(arg)
+        rec = index[dist]
+        assert rec.get('superseded') and rec.get('depends')
+        absorbed[rec['name']] = ', '.join(rec['depends'])
+        # If a package is not being removed, then the user is trying
+        # to install a package that is already superseded
+        if not packages[pkg][0]:
+            for var in (packages, features, channels, records):
+                var[pkg] = var[pkg][::-1]
 
-    new = {p for p in packages if not packages[p][0]}
-    removed = {p for p in packages if not packages[p][1]}
+    replaced = set(absorbed.keys())
+    new = {p for p in packages if not packages[p][0]} - replaced
+    removed = {p for p in packages if not packages[p][1]} - replaced
     # New packages are actually listed in the left-hand column,
     # so let's move them over there
     for pkg in new:
@@ -145,6 +157,9 @@ def display_actions(actions, index, show_channel_urls=None):
     else:
         empty = True
 
+    arrow = ' --> '
+    lead = ' ' * 4
+
     updated = set()
     downgraded = set()
     channeled = set()
@@ -161,8 +176,10 @@ def display_actions(actions, index, show_channel_urls=None):
 
         lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
         lt = '' if lt == LinkType.hardlink else (' (%s)' % lt)
-        if pkg in removed or pkg in new:
+        if pkg in removed or pkg in replaced or pkg in new:
             oldfmt[pkg] += lt
+            if pkg in replaced:
+                oldfmt[pkg] += arrow + absorbed[pkg]
             continue
 
         newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
@@ -206,9 +223,6 @@ def display_actions(actions, index, show_channel_urls=None):
         else:
             downgraded.add(pkg)
 
-    arrow = ' --> '
-    lead = ' ' * 4
-
     def format(s, pkg):
         chans = [channel_filt(c) for c in channels[pkg]]
         return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
@@ -229,6 +243,11 @@ def display_actions(actions, index, show_channel_urls=None):
         print("\nThe following packages will be UPDATED:\n")
         for pkg in sorted(updated):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+
+    if replaced:
+        print("\nThe following packages will be REPLACED:\n")
+        for pkg in sorted(replaced):
+            print(format(oldfmt[pkg], pkg))
 
     if channeled:
         print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
@@ -383,9 +402,15 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                            UNLINK, LINK, SYMLINK_CONDA)
 
     for dist in dists:
+        superseded = index and index.get(dist, {}).get('superseded', None)
         if not force and is_linked(prefix, dist):
+            if superseded:
+                actions[UNLINK].append(dist)
             continue
-        actions[LINK].append(dist)
+        if superseded:
+            actions[REPLACE].append(dist)
+        else:
+            actions[LINK].append(dist)
     return actions
 
 # -------------------------------------------------------------------
