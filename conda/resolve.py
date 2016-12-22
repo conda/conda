@@ -470,9 +470,12 @@ class Resolve(object):
         n, v, b = rec['name'], rec['version'], rec['build']
         return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
 
-    def match(self, ms, dist):
+    def match(self, ms, fkey):
         # type: (MatchSpec, Dist) -> bool
-        return MatchSpec(ms).match(dist)
+        rec = self.index[fkey]
+        ms = MatchSpec(ms)
+        return (ms.name == rec['name'] and
+                ms.match_fast(rec['version'], rec['build']))
 
     def match_fast(self, ms, fkey):
         rec = self.index[fkey]
