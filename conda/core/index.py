@@ -18,16 +18,18 @@ from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from .linked_data import linked_data
+from .package_cache import PackageCache
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import (CONDA_HOMEPAGE_URL, DEFAULTS, MAX_CHANNEL_PRIORITY,
+from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY,
                               PLATFORM_DIRECTORIES)
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, iterkeys, itervalues
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
+from ..gateways.disk.read import read_index_json
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
@@ -47,39 +49,58 @@ stderrlog = getLogger('stderrlog')
 fail_unknown_host = False
 
 
-def supplement_index_with_prefix(index, prefix, channel_priority_map):
-    # type: (Dict[Dist, IndexRecord], str, Dict[channel_url, Tuple[canonical_name, priority]) -> None  # NOQA
+def supplement_index_with_prefix(index, prefix, channels):
+    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None  # NOQA
     # supplement index with information from prefix/conda-meta
     assert prefix
-
-    priorities = {chnl: prrty for chnl, prrty in itervalues(channel_priority_map)}
-    maxp = max(itervalues(priorities)) + 1 if priorities else 1
+    maxp = len(channels) + 1
     for dist, info in iteritems(linked_data(prefix)):
-        fn = info['fn']
-        schannel = info['schannel']
-        prefix = '' if schannel == DEFAULTS else schannel + '::'
-        priority = priorities.get(schannel, maxp)
-        key = Dist(prefix + fn)
-        if key in index:
-            # Copy the link information so the resolver knows this is installed
-            old_record = index[key]
+        if dist in index:
+            # The downloaded repodata takes priority, so we do not overwrite.
+            # We do, however, copy the link information so that the solver
+            # knows this package is installed.
+            old_record = index[dist]
             link = info.get('link') or EMPTY_LINK
-            index[key] = IndexRecord.from_objects(old_record, link=link)
+            index[dist] = IndexRecord.from_objects(old_record, link=link)
         else:
-            # # only if the package in not in the repodata, use local
-            # # conda-meta (with 'depends' defaulting to [])
-            # info.setdefault('depends', ())
+            # If the package is not in the repodata, use the local data. If
+            # the 'depends' field is not present, we need to set it; older
+            # installations are likely to have this.
+            depends = info.get('depends') or ()
+            # If the channel is known but the package is not in the index, it
+            # is because 1) the channel is unavailable offline, or 2) it no
+            # longer contains this package. Either way, we should prefer any
+            # other version of the package to this one. On the other hand, if
+            # it is in a channel we don't know about, assign it a value just
+            # above the priority of all known channels.
+            priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
+            index[dist] = IndexRecord.from_objects(info, depends=depends,
+                                                   priority=priority)
 
-            # If the schannel is known but the package is not in the index, it is
-            # because 1) the channel is unavailable offline or 2) the package has
-            # been removed from that channel. Either way, we should prefer any
-            # other version of the package to this one.
-            priority = MAX_CHANNEL_PRIORITY if schannel in priorities else priority
-            index[key] = IndexRecord.from_objects(info, priority=priority)
+
+def supplement_index_with_cache(index, channels):
+    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None  # NOQA
+    # supplement index with packages from the cache
+    maxp = len(channels) + 1
+    for pc_entry in PackageCache.get_all_extracted_entries():
+        dist = pc_entry.dist
+        if dist in index:
+            # The downloaded repodata takes priority
+            continue
+        pkg_dir = pc_entry.extracted_package_dir
+        meta = read_index_json(pkg_dir)
+        # See the discussion above about priority assignments.
+        priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
+        rec = IndexRecord.from_objects(meta,
+                                       fn=dist.to_filename(),
+                                       schannel=dist.channel,
+                                       priority=priority,
+                                       url=dist.to_url())
+        index[dist] = rec
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_local=False, use_cache=False, unknown=False, prefix=False):
+              use_local=False, use_cache=False, unknown=None, prefix=None):
     """
     Return the index of packages available on the channels
 
@@ -91,12 +112,20 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         channel_urls = ['local'] + list(channel_urls)
     if prepend:
         channel_urls += context.channels
+    if context.offline and unknown is None:
+        unknown = True
 
     channel_priority_map = prioritize_channels(channel_urls, platform=platform)
-    index = fetch_index(channel_priority_map, use_cache=use_cache, unknown=unknown)
+    index = fetch_index(channel_priority_map, use_cache=use_cache)
 
+    if prefix or unknown:
+        known_channels = {chnl for chnl, _ in itervalues(channel_priority_map)}
     if prefix:
-        supplement_index_with_prefix(index, prefix, channel_priority_map)
+        supplement_index_with_prefix(index, prefix, known_channels)
+    if unknown:
+        supplement_index_with_cache(index, known_channels)
+    if context.add_pip_as_python_dependency:
+        add_pip_dependency(index)
     return index
 
 
@@ -344,7 +373,7 @@ def _collect_repodatas(use_cache, urls):
     return repodatas
 
 
-def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
+def fetch_index(channel_urls, use_cache=False, index=None):
     # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
     log.debug('channel_urls=' + repr(channel_urls))
     if not context.json:
@@ -364,26 +393,20 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
             for fn, info in iteritems(repodata['packages']):
-                full_url = join_url(channel_url, fn)
-                info.update(dict(fn=fn,
-                                 schannel=canonical_name,
-                                 channel=channel_url,
-                                 priority=priority,
-                                 url=full_url,
-                                 auth=channel.auth,
-                                 ))
-                key = Dist(canonical_name + '::' + fn if canonical_name != 'defaults' else fn)
-                result[key] = IndexRecord(**info)
+                rec = IndexRecord.from_objects(info,
+                                               fn=fn,
+                                               schannel=canonical_name,
+                                               channel=channel_url,
+                                               priority=priority,
+                                               url=join_url(channel_url, fn),
+                                               auth=channel.auth)
+                result[Dist(rec)] = rec
         return result
 
     index = make_index(repodatas)
 
     if not context.json:
         stdoutlog.info('\n')
-    if unknown:
-        add_unknown(index, channel_urls)
-    if context.add_pip_as_python_dependency:
-        add_pip_dependency(index)
     return index
 
 
@@ -399,49 +422,6 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
     value = resp.headers.get(http_key)
     if value:
         d[dict_key] = value
-
-
-def add_unknown(index, priorities):
-    # TODO: discuss with @mcg1969 and document
-    raise NotImplementedError()
-    # priorities = {p[0]: p[1] for p in itervalues(priorities)}
-    # maxp = max(itervalues(priorities)) + 1 if priorities else 1
-    # for dist, info in iteritems(package_cache()):
-    #     # schannel, dname = dist2pair(dist)
-    #     fname = dist.to_filename()
-    #     # fkey = dist + '.tar.bz2'
-    #     if dist in index or not info['dirs']:
-    #         continue
-    #     try:
-    #         with open(join(info['dirs'][0], 'info', 'index.json')) as fi:
-    #             meta = json.load(fi)
-    #     except IOError:
-    #         continue
-    #     if info['urls']:
-    #         url = info['urls'][0]
-    #     elif meta.get('url'):
-    #         url = meta['url']
-    #     elif meta.get('channel'):
-    #         url = meta['channel'].rstrip('/') + '/' + fname
-    #     else:
-    #         url = '<unknown>/' + fname
-    #     if url.rsplit('/', 1)[-1] != fname:
-    #         continue
-    #     channel, schannel2 = Channel(url).url_channel_wtf
-    #     if schannel2 != dist.channel:
-    #         continue
-    #     priority = priorities.get(dist.channel, maxp)
-    #     if 'link' in meta:
-    #         del meta['link']
-    #     meta.update({'fn': fname,
-    #                  'url': url,
-    #                  'channel': channel,
-    #                  'schannel': dist.channel,
-    #                  'priority': priority,
-    #                  })
-    #     meta.setdefault('depends', [])
-    #     log.debug("adding cached pkg to index: %s" % dist)
-    #     index[dist] = Record(**meta)
 
 
 def add_pip_dependency(index):
