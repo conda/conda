@@ -286,12 +286,30 @@ Advanced features. The following four keys (binary_relocation, has_prefix_files 
 Binary relocation
 ~~~~~~~~~~~~~~~~~
 
-Whether binary files should be made relocatable using install_name_tool on OS X or patchelf on Linux. Default is True.
+Whether binary files should be made relocatable using install_name_tool on OS X
+or patchelf on Linux. Default is True. Accepts False (no relocation for any
+files) or a list of files (relocation only for listed files.)
 
 .. code-block:: yaml
 
   build:
     binary_relocation: False
+
+Detect binary files with prefix
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Binary files may contain the build prefix and need it replaced with the install
+prefix at installation time. Conda can automatically identify and register such
+files. Default is ``True``. Note that this default changed from ``False`` to
+``True`` in conda-build 2.0. Setting this to ``False`` means that binary
+relocation (RPATH) replacement will still be done, but hard-coded prefixes in
+binaries will not be replaced. Prefixes in text files will still be replaced.
+
+.. code-block:: yaml
+
+  build:
+    detect_binary_files_with_prefix: False
+
 
 Binary has prefix files
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -338,7 +356,8 @@ To specify individual file names use
       ignore_prefix_files:
         - file1
 
-Files that are ignored from prefix detection are also ignored from RPATH replacement, similar to the binary_relocation setting, but with finer granularity.
+This setting is independent of RPATH replacement. Use the
+``detect_binary_files_with_prefix`` setting to control that behavior.
 
 Skipping builds
 ~~~~~~~~~~~~~~~
