@@ -814,50 +814,6 @@ The following packages will be UPDATED:
 """
 
 
-def test_display_actions_no_index():
-    # Test removing a package that is not in the index. This issue
-    # should only come up for removing.
-    actions = defaultdict(list, {'UNLINK': ['notinstalled-1.0-py33_0']})
-
-    with captured() as c:
-        display_actions(actions, index)
-
-    assert c.stdout == """
-The following packages will be REMOVED:
-
-    notinstalled: 1.0-py33_0 <unknown>
-
-"""
-
-    actions = defaultdict(list, {"LINK": ['numpy-1.7.1-py33_0'], "UNLINK":
-        ['numpy-2.0.0-py33_1']})
-
-    with captured() as c:
-        display_actions(actions, index)
-
-    assert c.stdout == """
-The following packages will be DOWNGRADED due to dependency conflicts:
-
-    numpy: 2.0.0-py33_1 <unknown> --> 1.7.1-py33_0 <unknown>
-
-"""
-
-    # tk-8.5.13-1 is not in the index. Test that it guesses the build number
-    # correctly.
-    actions = defaultdict(list, {"LINK": ['tk-8.5.13-0'], "UNLINK":
-        ['tk-8.5.13-1']})
-
-    with captured() as c:
-        display_actions(actions, index)
-
-    assert c.stdout == """
-The following packages will be DOWNGRADED due to dependency conflicts:
-
-    tk: 8.5.13-1 <unknown> --> 8.5.13-0 <unknown>
-
-"""
-
-
 class TestDeprecatedExecutePlan(unittest.TestCase):
 
     def test_update_old_plan(self):
