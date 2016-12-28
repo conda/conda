@@ -209,7 +209,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(900)
     def test_create_install_update_remove(self):
-        with make_temp_env("python=3") as prefix:
+        with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
@@ -234,7 +234,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
-        with make_temp_env("python=3 pip") as prefix:
+        with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -244,7 +244,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_list_with_pip_wheel(self):
-        with make_temp_env("python=3 pip") as prefix:
+        with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -444,7 +444,14 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
-        with make_temp_env("python") as prefix:
+        with make_temp_env("python=3.5") as prefix:
+
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
+            json_obj = json_loads(stdout)
+            assert 'defaults' not in json_obj['channels']
+
             assert_package_is_installed(prefix, 'python')
             from conda.config import get_rc_urls
             assert 'r' not in get_rc_urls()
