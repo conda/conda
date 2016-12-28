@@ -285,7 +285,7 @@ class NewIntegrationTest(unittest.TestCase):
             Test conda env export
         """
 
-        run_conda_command(Commands.CREATE, test_env_name_2, "python")
+        run_conda_command(Commands.CREATE, test_env_name_2, "python=3.5")
         self.assertTrue(env_is_created(test_env_name_2))
 
         # install something from other channel not in config file
