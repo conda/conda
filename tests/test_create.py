@@ -287,7 +287,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_install_tarball_from_local_channel(self):
-        with make_temp_env("python flask=0.10.1") as prefix:
+        with make_temp_env("flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
