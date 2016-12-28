@@ -265,7 +265,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
     if r is None:
         r = Resolve(index)
-    dists = r.dependency_sort({d.quad[0]: d for d in urls.keys()})
+    dists = r.dependency_sort({index[d]['name']: d for d in urls.keys()})
     urls = [urls[d] for d in dists]
 
     if verbose:

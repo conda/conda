@@ -44,7 +44,8 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     fn = rec.get('fn')
     if not fn:
         fn = rec['fn'] = url.rsplit('/', 1)[-1] if url else dist_name + '.tar.bz2'
-    if fn[:-8] != dist_name:
+    if fn[:-8] != dist_name or any(x not in rec for x in
+                                   ('name', 'version', 'build', 'build_number')):
         log.debug('Ignoring invalid package metadata file: %s' % meta_file)
         return None
     channel = rec.get('channel')

@@ -224,6 +224,7 @@ class TestJson(unittest.TestCase):
         with captured():
             res = capture_json_with_argv('conda search --json')
         self.assertIsInstance(res, dict)
+        assert 'conda' in res
         self.assertIsInstance(res['conda'], list)
         self.assertIsInstance(res['conda'][0], dict)
         keys = ('build', 'channel', 'extracted', 'features', 'fn',

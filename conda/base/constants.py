@@ -90,6 +90,8 @@ PRIVATE_ENVS = join(sys.prefix, "conda-meta/private_envs")
 
 UNKNOWN_CHANNEL = "<unknown>"
 
+PIP_PSEUDOCHANNEL = "<pip>"
+
 INTERRUPT_SIGNALS = (
     'SIGABRT',
     'SIGINT',

@@ -78,7 +78,7 @@ def pretty_diff(diff):
             fmt1 = '{2}_{3}'
         fmt2 = fmt1 + ' ({4})' if new[4] else fmt1
         fmt1 = fmt1 + ' ({4})' if old[4] else fmt1
-        yield '%s{%s -> %s}' % (fmt0.format(*old), 
+        yield '%s{%s -> %s}' % (fmt0.format(*old),
                                 fmt1.format(*old), fmt2.format(*new))
     for pset in (removed, added):
         for name in sorted(set(pset) - changed):
