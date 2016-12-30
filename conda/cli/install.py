@@ -231,7 +231,7 @@ def install(args, parser, command='install'):
         Please remove duplicates of %s package""" % name
                 raise CondaCorruptEnvironmentError(msg)
 
-            pkgs = sorted(r.get_pkgs(name))
+            pkgs = r.get_pkgs(name)
             if not pkgs:
                 # Shouldn't happen?
                 continue
