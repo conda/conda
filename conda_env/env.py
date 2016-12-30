@@ -36,10 +36,9 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
         name: The name of environment
         prefix: The path of prefix
         no_builds: Whether has build requirement
-        ignore_channels: whether ingore_channels
+        ignore_channels: whether ignore_channels
 
-    Returns:     Environment obejct
-
+    Returns:     Environment object
     """
     installed = linked(prefix, ignore_channels=ignore_channels)
     conda_pkgs = copy(installed)
