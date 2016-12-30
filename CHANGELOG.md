@@ -1,3 +1,9 @@
+## 4.4.0 (unreleased)
+
+### New Features
+* general support for all bourne- and c-based shells #3175
+
+
 ## 4.3.2 (unreleased)
 
 ### Improvements
@@ -8,6 +14,7 @@
 
 ### Non-User-Facing Changes
 xfail anaconda token test if local token is found (#4124)
+
 
 ## 4.3.1 (2016-12-19)
 

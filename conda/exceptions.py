@@ -222,8 +222,14 @@ class DryRunExit(CondaExitZero):
 
 class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
-        msg = ' '.join(text_type(arg) for arg in self.args)
+        msg = ' '.join(text_type(arg) for arg in args)
         super(CondaSystemExit, self).__init__(msg)
+
+
+class CondaHelp(CondaSystemExit):
+    def __init__(self, message, returncode):
+        self.returncode = returncode
+        super(CondaHelp, self).__init__(message)
 
 
 class SubprocessExit(CondaExitZero):
@@ -617,6 +623,10 @@ def conda_exception_handler(func, *args, **kwargs):
         return_value = func(*args, **kwargs)
         if isinstance(return_value, int):
             return return_value
+    except CondaHelp as e:
+        print_conda_exception(e)
+        # delete_lock()
+        return e.returncode
     except CondaExitZero:
         return 0
     except CondaRuntimeError as e:
