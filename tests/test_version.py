@@ -7,82 +7,69 @@ class TestVersionSpec(unittest.TestCase):
 
     def test_version_order(self):
         versions = [
-           (VersionOrder("0.4"),        [[0], [0], [4]]),
-           (VersionOrder("0.4.0"),      [[0], [0], [4], [0]]),
-           (VersionOrder("0.4.1a.vc11"),[[0], [0], [4], [1, 'a'],[0, 'vc', 11]]),
-           (VersionOrder("0.4.1.rc"),   [[0], [0], [4], [1], [0, 'rc']]),
-           (VersionOrder("0.4.1.vc11"), [[0], [0], [4], [1],[0, 'vc', 11]]),
-           (VersionOrder("0.4.1"),      [[0], [0], [4], [1]]),
-           (VersionOrder("0.5*"),       [[0], [0], [5, '*']]),
-           (VersionOrder("0.5a1"),      [[0], [0], [5, 'a', 1]]),
-           (VersionOrder("0.5b3"),      [[0], [0], [5, 'b', 3]]),
-           (VersionOrder("0.5C1"),      [[0], [0], [5, 'c', 1]]),
-           (VersionOrder("0.5z"),       [[0], [0], [5, 'z']]),
-           (VersionOrder("0.5za"),      [[0], [0], [5, 'za']]),
-           (VersionOrder("0.5"),        [[0], [0], [5]]),
-           (VersionOrder("0.5_5"),      [[0], [0], [5], [5]]),
-           (VersionOrder("0.5-5"),      [[0], [0], [5], [5]]),
-           (VersionOrder("0.9.6"),      [[0], [0], [9], [6]]),
-           (VersionOrder("0.960923"),   [[0], [0], [960923]]),
-           (VersionOrder("1.0"),        [[0], [1], [0]]),
-           (VersionOrder("1.0.4a3"),    [[0], [1], [0], [4, 'a', 3]]),
-           (VersionOrder("1.0.4b1"),    [[0], [1], [0], [4, 'b', 1]]),
-           (VersionOrder("1.0.4"),      [[0], [1], [0], [4]]),
-           (VersionOrder("1.1dev1"),    [[0], [1], [1, 'DEV', 1]]),
-           (VersionOrder("1.1a1"),      [[0], [1], [1, 'a', 1]]),
-           (VersionOrder("1.1.dev1"),   [[0], [1], [1], [0, 'DEV', 1]]),
-           (VersionOrder("1.1.a1"),     [[0], [1], [1], [0, 'a', 1]]),
-           (VersionOrder("1.1"),        [[0], [1], [1]]),
-           (VersionOrder("1.1.post1"),  [[0], [1], [1], [0, float('inf'), 1]]),
-           (VersionOrder("1.1.1dev1"),  [[0], [1], [1], [1, 'DEV', 1]]),
-           (VersionOrder("1.1.1rc1"),   [[0], [1], [1], [1, 'rc', 1]]),
-           (VersionOrder("1.1.1"),      [[0], [1], [1], [1]]),
-           (VersionOrder("1.1.1post1"), [[0], [1], [1], [1, float('inf'), 1]]),
-           (VersionOrder("1.1post1"),   [[0], [1], [1, float('inf'), 1]]),
-           (VersionOrder("2g6"),        [[0], [2, 'g', 6]]),
-           (VersionOrder("2.0b1pr0"),   [[0], [2], [0, 'b', 1, 'pr', 0]]),
-           (VersionOrder("2.2be.ta29"), [[0], [2], [2, 'be'], [0, 'ta', 29]]),
-           (VersionOrder("2.2be5ta29"), [[0], [2], [2, 'be', 5, 'ta', 29]]),
-           (VersionOrder("2.2beta29"),  [[0], [2], [2, 'beta', 29]]),
-           (VersionOrder("2.2.0.1"),    [[0], [2], [2],[0],[1]]),
-           (VersionOrder("3.1.1.6"),    [[0], [3], [1], [1], [6]]),
-           (VersionOrder("3.2.p.r0"),   [[0], [3], [2], [0, 'p'], [0, 'r', 0]]),
-           (VersionOrder("3.2.pr0"),    [[0], [3], [2], [0, 'pr', 0]]),
-           (VersionOrder("3.2.pr.1"),   [[0], [3], [2], [0, 'pr'], [1]]),
-           (VersionOrder("5.5.kw"),     [[0], [5], [5], [0, 'kw']]),
-           (VersionOrder("11g"),        [[0], [11, 'g']]),
-           (VersionOrder("14.3.1"),     [[0], [14], [3], [1]]),
-           (VersionOrder("14.3.1.post26.g9d75ca2"),
+           ("0.4",         [[0], [0], [4]]),
+           ("0.4.0",      [[0], [0], [4], [0]]),
+           ("0.4.1a.vc11",[[0], [0], [4], [1, 'a'],[0, 'vc', 11]]),
+           ("0.4.1.rc",   [[0], [0], [4], [1], [0, 'rc']]),
+           ("0.4.1.vc11", [[0], [0], [4], [1],[0, 'vc', 11]]),
+           ("0.4.1",      [[0], [0], [4], [1]]),
+           ("0.5*",       [[0], [0], [5, '*']]),
+           ("0.5a1",      [[0], [0], [5, 'a', 1]]),
+           ("0.5b3",      [[0], [0], [5, 'b', 3]]),
+           ("0.5C1",      [[0], [0], [5, 'c', 1]]),
+           ("0.5z",       [[0], [0], [5, 'z']]),
+           ("0.5za",      [[0], [0], [5, 'za']]),
+           ("0.5",        [[0], [0], [5]]),
+           ("0.5_5",      [[0], [0], [5], [5]]),
+           ("0.5-5",      [[0], [0], [5], [5]]),
+           ("0.9.6",      [[0], [0], [9], [6]]),
+           ("0.960923",   [[0], [0], [960923]]),
+           ("1.0",        [[0], [1], [0]]),
+           ("1.0.4a3",    [[0], [1], [0], [4, 'a', 3]]),
+           ("1.0.4b1",    [[0], [1], [0], [4, 'b', 1]]),
+           ("1.0.4",      [[0], [1], [0], [4]]),
+           ("1.1dev1",    [[0], [1], [1, 'DEV', 1]]),
+           ("1.1a1",      [[0], [1], [1, 'a', 1]]),
+           ("1.1.dev1",   [[0], [1], [1], [0, 'DEV', 1]]),
+           ("1.1.a1",     [[0], [1], [1], [0, 'a', 1]]),
+           ("1.1",        [[0], [1], [1]]),
+           ("1.1.post1",  [[0], [1], [1], [0, float('inf'), 1]]),
+           ("1.1.1dev1",  [[0], [1], [1], [1, 'DEV', 1]]),
+           ("1.1.1rc1",   [[0], [1], [1], [1, 'rc', 1]]),
+           ("1.1.1",      [[0], [1], [1], [1]]),
+           ("1.1.1post1", [[0], [1], [1], [1, float('inf'), 1]]),
+           ("1.1post1",   [[0], [1], [1, float('inf'), 1]]),
+           ("2g6",        [[0], [2, 'g', 6]]),
+           ("2.0b1pr0",   [[0], [2], [0, 'b', 1, 'pr', 0]]),
+           ("2.2be.ta29", [[0], [2], [2, 'be'], [0, 'ta', 29]]),
+           ("2.2be5ta29", [[0], [2], [2, 'be', 5, 'ta', 29]]),
+           ("2.2beta29",  [[0], [2], [2, 'beta', 29]]),
+           ("2.2.0.1",    [[0], [2], [2],[0],[1]]),
+           ("3.1.1.6",    [[0], [3], [1], [1], [6]]),
+           ("3.2.p.r0",   [[0], [3], [2], [0, 'p'], [0, 'r', 0]]),
+           ("3.2.pr0",    [[0], [3], [2], [0, 'pr', 0]]),
+           ("3.2.pr.1",   [[0], [3], [2], [0, 'pr'], [1]]),
+           ("5.5.kw",     [[0], [5], [5], [0, 'kw']]),
+           ("11g",        [[0], [11, 'g']]),
+           ("14.3.1",     [[0], [14], [3], [1]]),
+           ("14.3.1.post26.g9d75ca2",
                                         [[0],[14],[3],[1],[0,float('inf'),26],[0,'g',9,'d',75,'ca',2]]),
-           (VersionOrder("1996.07.12"), [[0], [1996], [7], [12]]),
-           (VersionOrder("1!0.4.1"),    [[1], [0], [4], [1]]),
-           (VersionOrder("1!3.1.1.6"),  [[1], [3], [1], [1], [6]]),
-           (VersionOrder("2!0.4.1"),    [[2], [0], [4], [1]]),
+           ("1996.07.12", [[0], [1996], [7], [12]]),
+           ("1!0.4.1",    [[1], [0], [4], [1]]),
+           ("1!3.1.1.6",  [[1], [3], [1], [1], [6]]),
+           ("2!0.4.1",    [[2], [0], [4], [1]]),
         ]
 
         # check parser
-        for v, l in versions:
+        versions = [(v, VersionOrder(v), l) for v, l in versions]
+        for s, v, l in versions:
+            assert VersionOrder(v) is v
+            assert str(v) == s.lower().replace('-', '_')
             self.assertEqual(v.version, l)
         self.assertEqual(VersionOrder("0.4.1.rc"), VersionOrder("  0.4.1.RC  "))
         self.assertEqual(normalized_version("  0.4.1.RC  "), VersionOrder("0.4.1.rc"))
-        with self.assertRaises(ValueError):
-            VersionOrder("")
-        with self.assertRaises(ValueError):
-            VersionOrder("  ")
-        with self.assertRaises(ValueError):
-            VersionOrder("3.5&1")
-        with self.assertRaises(ValueError):
-            VersionOrder("5.5++")
-        with self.assertRaises(ValueError):
-            VersionOrder("5.5..mw")
-        with self.assertRaises(ValueError):
-            VersionOrder("5.5.mw.")
-        with self.assertRaises(ValueError):
-            VersionOrder("!")
-        with self.assertRaises(ValueError):
-            VersionOrder("a!1.0")
-        with self.assertRaises(ValueError):
-            VersionOrder("a!b!1.0")
+        for ver in ("", "", "  ", "3.5&1", "5.5++", "5.5..mw", "!", "a!1.0", "a!b!1.0"):
+            self.assertRaises(ValueError, VersionOrder, ver)
 
         # check __eq__
         self.assertEqual(VersionOrder("  0.4.rc  "), VersionOrder("0.4.RC"))
@@ -92,7 +79,19 @@ class TestVersionSpec(unittest.TestCase):
         self.assertNotEqual(VersionOrder("0.4.a1"), VersionOrder("0.4.1a1"))
 
         # check __lt__
-        self.assertEqual(sorted(versions, key=lambda x: x[0]), versions)
+        self.assertEqual(sorted(versions, key=lambda x: x[1]), versions)
+
+        # check startswith
+        self.assertTrue(VersionOrder("0.4.1").startswith(VersionOrder("0")))
+        self.assertTrue(VersionOrder("0.4.1").startswith(VersionOrder("0.4")))
+        self.assertTrue(VersionOrder("0.4.1p1").startswith(VersionOrder("0.4")))
+        self.assertTrue(VersionOrder("0.4.1p1").startswith(VersionOrder("0.4.1p")))
+        self.assertFalse(VersionOrder("0.4.1p1").startswith(VersionOrder("0.4.1q1")))
+        self.assertFalse(VersionOrder("0.4").startswith(VersionOrder("0.4.1")))
+        self.assertTrue(VersionOrder("0.4.1+1.3").startswith(VersionOrder("0.4.1")))
+        self.assertTrue(VersionOrder("0.4.1+1.3").startswith(VersionOrder("0.4.1+1")))
+        self.assertFalse(VersionOrder("0.4.1").startswith(VersionOrder("0.4.1+1.3")))
+        self.assertFalse(VersionOrder("0.4.1+1").startswith(VersionOrder("0.4.1+1.3")))
 
         # test openssl convention
         openssl = [VersionOrder(k) for k in ['1.0.1', '1.0.1post.a', '1.0.1post.b',
@@ -161,6 +160,27 @@ class TestVersionSpec(unittest.TestCase):
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!!2.4.5')
         self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!')
 
+    def test_version_spec(self):
+        v1 = VersionSpec('1.7.1')
+        v2 = VersionSpec('1.7.1*')
+        v3 = VersionSpec('1.7.1')
+        self.assertTrue(v1.is_exact())
+        self.assertFalse(v2.is_exact())
+        self.assertTrue(v1 == v3)
+        self.assertFalse(v1 != v3)
+        self.assertTrue(v1 != v2)
+        self.assertFalse(v1 == v2)
+        self.assertTrue(v1 != 1.0)
+        self.assertFalse(v1 == 1.0)
+        self.assertEqual(hash(v1), hash(v3))
+        self.assertNotEqual(hash(v1), hash(v2))
+        v1 = VersionSpec('( (1.5|((1.6|1.7), 1.8), 1.9 |2.0))|2.1')
+        self.assertEqual(v1.spec, '1.5|(1.6|1.7),1.8,1.9|2.0|2.1')
+        self.assertRaises(RuntimeError, VersionSpec, '(1.5')
+        self.assertRaises(RuntimeError, VersionSpec, '1.5)')
+        self.assertRaises(RuntimeError, VersionSpec, '1.5||1.6')
+        self.assertRaises(RuntimeError, VersionSpec, '^1.5')
+
     def test_match(self):
         for vspec, res in [
             ('1.7*', True),   ('1.7.1', True),    ('1.7.0', False),
@@ -174,13 +194,14 @@ class TestVersionSpec(unittest.TestCase):
             ('^[0-9+]+\.[0-9+]+\.[0-9]+$', True), ('^$', False),
             ('^.*$', True), ('1.7.*|^0.*$', True), ('1.6.*|^0.*$', False),
             ('1.6.*|^0.*$|1.7.1', True), ('^0.*$|1.7.1', True),
-            ('1.6.*|^.*\.7\.1$|0.7.1', True),
+            ('1.6.*|^.*\.7\.1$|0.7.1', True), ('*', True), ('1.*.1', True),
+            ('1.5*|>1.7,<1.8', True), ('1.5*|>1.7,<1.7.1', False)
             ]:
             m = VersionSpec(vspec)
             assert VersionSpec(m) is m
             assert str(m) == vspec
-            assert repr(m) == "VersionSpec('%s')"%vspec
-            self.assertEqual(m.match('1.7.1'), res)
+            assert repr(m) == "VersionSpec('%s')" % vspec
+            assert  m.match('1.7.1') == res, vspec
 
     def test_local_identifier(self):
         """The separator for the local identifier should be either `.` or `+`"""
@@ -194,4 +215,5 @@ class TestVersionSpec(unittest.TestCase):
         for version in versions:
             m = VersionSpec(version)
             self.assertTrue(m.match(version))
+
 

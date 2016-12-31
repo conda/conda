@@ -58,6 +58,22 @@ def channel_alias_validation(value):
     return True
 
 
+def default_python_default():
+    ver = sys.version_info
+    return '%d.%d' % (ver.major, ver.minor)
+
+
+def default_python_validation(value):
+    if value and len(value) == 3 and value[1] == '.':
+        try:
+            value = float(value)
+            if 2.0 <= value < 4.0:
+                return True
+        except ValueError:
+            pass
+    return "default_python value '%s' not of the form '[23].[0-9]'" % value
+
+
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
@@ -111,6 +127,8 @@ class Context(Configuration):
     _custom_multichannels = MapParameter(Sequence, aliases=('custom_multichannels',))
 
     # command line
+    default_python = PrimitiveParameter(default_python_default(),
+                                        validation=default_python_validation)
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
     always_yes = PrimitiveParameter(False, aliases=('yes',))
@@ -200,11 +218,6 @@ class Context(Configuration):
         path = join(self.croot, 'svn_cache')
         conda_bld_ensure_dir(path)
         return path
-
-    @property
-    def default_python(self):
-        ver = sys.version_info
-        return '%d.%d' % (ver.major, ver.minor)
 
     @property
     def arch_name(self):
@@ -478,11 +491,17 @@ def get_help_dict():
             """),
         'proxy_servers': dals("""
             """),
+        'default_python': dals("""
+            specifies the default major & minor version of Python to be used when
+            building packages with conda-build. Also used to determine the major
+            version of Python (2/3) to be used in new environments. Defaults to
+            the version used by conda itself.
+            """),
         'force_32bit': dals("""
             CONDA_FORCE_32BIT should only be used when running conda-build (in order
             to build 32-bit packages on a 64-bit system).  We don't want to mention it
             in the documentation, because it can mess up a lot of things.
-        """)
+            """)
     }
 
 

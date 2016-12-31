@@ -132,21 +132,16 @@ class VersionOrder(object):
       1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
     '''
 
-    def __new__(cls, version):
-        if isinstance(version, cls):
-            return version
-        self = version_cache.get(version)
+    def __new__(cls, vstr):
+        if isinstance(vstr, cls):
+            return vstr
+        self = version_cache.get(vstr)
         if self is not None:
             return self
-        self = version_cache[version] = object.__new__(cls)
 
-        # when fillvalue ==  0  =>  1.1 == 1.1.0
-        # when fillvalue == -1  =>  1.1  < 1.1.0
-        self.fillvalue = 0
-
-        message = "Malformed version string '%s': " % version
+        message = "Malformed version string '%s': " % vstr
         # version comparison is case-insensitive
-        version = version.strip().rstrip().lower()
+        version = vstr.strip().rstrip().lower()
         # basic validity checks
         if version == '':
             raise CondaValueError("Empty version string.")
@@ -158,7 +153,16 @@ class VersionOrder(object):
             invalid = not version_check_re.match(version)
         if invalid:
             raise CondaValueError(message + "invalid character(s).")
+        self = version_cache.get(version)
+        if self is not None:
+            version_cache[vstr] = self
+            return self
+
+        # when fillvalue ==  0  =>  1.1 == 1.1.0
+        # when fillvalue == -1  =>  1.1  < 1.1.0
+        self = version_cache[vstr] = version_cache[version] = object.__new__(cls)
         self.norm_version = version
+        self.fillvalue = 0
 
         # find epoch
         version = version.split('!')
@@ -210,6 +214,7 @@ class VersionOrder(object):
                     # components shall start with a number to keep numbers and
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
+
         return self
 
     def __str__(self):
@@ -233,11 +238,9 @@ class VersionOrder(object):
                 return False
             t1 = self.local
             t2 = other.local
-        elif other.version:
+        else:
             t1 = self.version
             t2 = other.version
-        else:
-            return True
         nt = len(t2) - 1
         if not self._eq(t1[:nt], t2[:nt]):
             return False
@@ -283,16 +286,78 @@ class VersionOrder(object):
         return not (self < other)
 
 
+# each token slurps up leading whitespace, which we strip out.
+VSPEC_TOKENS = (r'\s*\^[^$]*[$]|'  # regexes
+                r'\s*[()|,]|'      # parentheses, logical and, logical or
+                r'[^()|,]+')       # everything else
+
+
+def treeify(spec):
+    # Converts a VersionSpec expression string into a tuple-based
+    # expression tree.
+    tokens = re.findall(VSPEC_TOKENS, '(%s)' % spec)
+    output = []
+    stack = []
+
+    def apply_ops(cstop):
+        # cstop: operators with lower precedence
+        while stack and stack[-1] not in cstop:
+            if len(output) < 2:
+                raise CondaRuntimeError('Invalid version spec: %s' % spec)
+            c = stack.pop()
+            r = output.pop()
+            # Fuse expressions with the same operator; e.g.,
+            #   ('|', ('|', a, b), ('|', c, d))becomes
+            #   ('|', a, b, c d)
+            # We're playing a bit of a trick here. Instead of checking
+            # if the left or right entries are tuples, we're counting
+            # on the fact that if we _do_ see a string instead, its
+            # first character cannot possibly be equal to the operator.
+            r = r[1:] if r[0] == c else (r,)
+            l = output.pop()
+            l = l[1:] if l[0] == c else (l,)
+            output.append((c,)+l+r)
+
+    for item in tokens:
+        item = item.strip()
+        if item == '|':
+            apply_ops('(')
+            stack.append('|')
+        elif item == ',':
+            apply_ops('|(')
+            stack.append(',')
+        elif item == '(':
+            stack.append('(')
+        elif item == ')':
+            apply_ops('(')
+            if not stack or stack[-1] != '(':
+                raise CondaRuntimeError('Invalid version spec: %s' % spec)
+            stack.pop()
+        else:
+            output.append(item)
+    if stack:
+        raise CondaRuntimeError('Invalid version spec: %s' % spec)
+    return output[0]
+
+
+def untreeify(spec, inand=False):
+    if isinstance(spec, tuple):
+        if spec[0] == '|':
+            res = '|'.join(map(untreeify, spec[1:]))
+            if inand:
+                res = '(%s)' % res
+        else:
+            res = ','.join(map(lambda x: untreeify(x, True), spec[1:]))
+        return res
+    return spec
+
+
 # This RE matches the operators '==', '!=', '<=', '>=', '<', '>'
 # followed by a version string. It rejects expressions like
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
 version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
-regex_split_re = re.compile(r'(\^\S+?\$)')
-regex_split_converter = {
-    '|': 'any',
-    ',': 'all',
-}
+regex_split_re = re.compile(r'.*[()|,^$]')
 opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
           '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
 
@@ -308,10 +373,10 @@ class VersionSpec(object):
         return self.op(VersionOrder(vspec), self.cmp)
 
     def all_match_(self, vspec):
-        return all(s.match(vspec) for s in self.spec[1])
+        return all(s.match(vspec) for s in self.tup)
 
     def any_match_(self, vspec):
-        return any(s.match(vspec) for s in self.spec[1])
+        return any(s.match(vspec) for s in self.tup)
 
     def triv_match_(self, vspec):
         return True
@@ -319,25 +384,21 @@ class VersionSpec(object):
     def __new__(cls, spec):
         if isinstance(spec, cls):
             return spec
-        self = object.__new__(cls)
-        self.spec = spec
+        if isinstance(spec, string_types) and regex_split_re.match(spec):
+            spec = treeify(spec)
         if isinstance(spec, tuple):
-            self.match = self.all_match_ if spec[0] == 'all' else self.any_match_
-        elif regex_split_re.match(spec):
-            m = regex_split_re.match(spec)
-            first = m.group()
-            operator = spec[m.end()] if len(spec) > m.end() else None
-            if operator is None:
-                self.spec = first
-                self.regex = re.compile(spec)
-                self.match = self.regex_match_
-            else:
-                return VersionSpec((regex_split_converter[operator],
-                                    tuple(VersionSpec(s) for s in (first, spec[m.end()+1:]))))
-        elif '|' in spec:
-            return VersionSpec(('any', tuple(VersionSpec(s) for s in spec.split('|'))))
-        elif ',' in spec:
-            return VersionSpec(('all', tuple(VersionSpec(s) for s in spec.split(','))))
+            self = object.__new__(cls)
+            self.tup = tuple(VersionSpec(s) for s in spec[1:])
+            self.match = self.any_match_ if spec[0] == '|' else self.all_match_
+            self.spec = untreeify(spec)
+            return self
+        self = object.__new__(cls)
+        self.spec = spec = spec.strip()
+        if spec.startswith('^') or spec.endswith('$'):
+            if not spec.startswith('^') or not spec.endswith('$'):
+                raise CondaRuntimeError('Invalid version spec: %s' % spec)
+            self.regex = re.compile(spec)
+            self.match = self.regex_match_
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
@@ -364,31 +425,24 @@ class VersionSpec(object):
             self.match = self.exact_match_
         return self
 
-    def str(self, inand=False):
-        s = self.spec
-        if isinstance(s, tuple):
-            newand = not inand and s[0] == all
-            inand = inand and s[0] == any
-            s = (',' if s[0] == 'all' else '|').join(x.str(newand) for x in s[1])
-            if inand:
-                s = '(%s)' % s
-        return s
-
     def is_exact(self):
         return self.match == self.exact_match_
 
+    def __eq__(self, other):
+        if isinstance(other, VersionSpec):
+            return self.spec == other.spec
+        return False
+
+    def __ne__(self, other):
+        if isinstance(other, VersionSpec):
+            return self.spec != other.spec
+        return True
+
+    def __hash__(self):
+        return hash(self.spec)
+
     def __str__(self):
-        return self.str()
+        return self.spec
 
     def __repr__(self):
-        return "VersionSpec('%s')" % self.str()
-
-    def __and__(self, other):
-        if not isinstance(other, VersionSpec):
-            other = VersionSpec(other)
-        return VersionSpec((all, (self, other)))
-
-    def __or__(self, other):
-        if not isinstance(other, VersionSpec):
-            other = VersionSpec(other)
-        return VersionSpec((any, (self, other)))
+        return "VersionSpec('%s')" % self.spec
