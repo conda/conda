@@ -47,35 +47,22 @@ stderrlog = getLogger('stderrlog')
 fail_unknown_host = False
 
 
-def supplement_index_with_prefix(index, prefix, channel_priority_map):
-    # type: (Dict[Dist, IndexRecord], str, Dict[channel_url, Tuple[canonical_name, priority]) -> None  # NOQA
-    # supplement index with information from prefix/conda-meta
+
+def build_linked_data_index(prefix, channel_priority_map):
+    # type: (str, Dict[channel_url, Tuple[canonical_name, priority]]) -> Dict[Dist, Record]
     assert prefix
+
+    index = {}
 
     priorities = {chnl: prrty for chnl, prrty in itervalues(channel_priority_map)}
     maxp = max(itervalues(priorities)) + 1 if priorities else 1
-    for dist, info in iteritems(linked_data(prefix)):
-        fn = info['fn']
-        schannel = info['schannel']
-        prefix = '' if schannel == DEFAULTS else schannel + '::'
-        priority = priorities.get(schannel, maxp)
-        key = Dist(prefix + fn)
-        if key in index:
-            # Copy the link information so the resolver knows this is installed
-            old_record = index[key]
-            link = info.get('link') or EMPTY_LINK
-            index[key] = IndexRecord.from_objects(old_record, link=link)
-        else:
-            # # only if the package in not in the repodata, use local
-            # # conda-meta (with 'depends' defaulting to [])
-            # info.setdefault('depends', ())
+    for dist, linked_package_record in iteritems(linked_data(prefix)):
+        # the only thing we have to do here is update channel priority in index based on
+        #   potentially new priorities
+        priority = priorities.get(linked_package_record.schannel, maxp)
+        index[dist] = IndexRecord.from_objects(linked_package_record, priority=priority)
 
-            # If the schannel is known but the package is not in the index, it is
-            # because 1) the channel is unavailable offline or 2) the package has
-            # been removed from that channel. Either way, we should prefer any
-            # other version of the package to this one.
-            priority = MAX_CHANNEL_PRIORITY if schannel in priorities else priority
-            index[key] = IndexRecord.from_objects(info, priority=priority)
+    return index
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
@@ -93,10 +80,11 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         channel_urls += context.channels
 
     channel_priority_map = prioritize_channels(channel_urls, platform=platform)
-    index = fetch_index(channel_priority_map, use_cache=use_cache, unknown=unknown)
 
-    if prefix:
-        supplement_index_with_prefix(index, prefix, channel_priority_map)
+    prefix_index = build_linked_data_index(prefix, channel_priority_map) if prefix else {}
+    index = fetch_index(channel_priority_map, use_cache=use_cache, unknown=unknown,
+                        index=prefix_index)
+
     return index
 
 
@@ -364,27 +352,27 @@ def fetch_index(channel_urls, use_cache=False, unknown=False, index=None):
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
             for fn, info in iteritems(repodata['packages']):
+                dist = Dist(canonical_name + '::' + fn if canonical_name != 'defaults' else fn)
                 full_url = join_url(channel_url, fn)
-                info.update(dict(fn=fn,
-                                 schannel=canonical_name,
-                                 channel=channel_url,
-                                 priority=priority,
-                                 url=full_url,
-                                 auth=channel.auth,
-                                 ))
-                key = Dist(canonical_name + '::' + fn if canonical_name != 'defaults' else fn)
-                result[key] = IndexRecord(**info)
+                result[dist] = IndexRecord.from_objects(index.get(dist), info,
+                                                        fn=fn,
+                                                        schannel=canonical_name,
+                                                        channel=channel_url,
+                                                        priority=priority,
+                                                        url=full_url,
+                                                        auth=channel.auth,
+                                                        )
         return result
 
-    index = make_index(repodatas)
+    new_index = make_index(repodatas)
 
     if not context.json:
         stdoutlog.info('\n')
     if unknown:
-        add_unknown(index, channel_urls)
+        add_unknown(new_index, channel_urls)
     if context.add_pip_as_python_dependency:
-        add_pip_dependency(index)
-    return index
+        add_pip_dependency(new_index)
+    return new_index
 
 
 def cache_fn_url(url):

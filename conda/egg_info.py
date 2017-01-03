@@ -5,7 +5,7 @@ installed Python packages, e.g. using "python setup.py install", or "pip".
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from io import open
-import os
+from os import listdir
 from os.path import isdir, isfile, join
 import re
 import sys
@@ -29,7 +29,7 @@ def get_site_packages_dir(installed_pkgs):
 
 
 def get_egg_info_files(sp_dir):
-    for fn in os.listdir(sp_dir):
+    for fn in listdir(sp_dir):
         if not fn.endswith(('.egg', '.egg-info', '.dist-info')):
             continue
         path = join(sp_dir, fn)
