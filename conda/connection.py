@@ -6,24 +6,26 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.gateways.adapters.localfs import LocalFSAdapter
-from conda.gateways.adapters.s3 import S3Adapter
 from logging import getLogger
 import platform
+
 from requests import Session, __version__ as REQUESTS_VERSION
-from requests.adapters import HTTPAdapter, BaseAdapter
+from requests.adapters import BaseAdapter, HTTPAdapter
 from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
 from requests.utils import get_auth_from_url, get_netrc_auth
 
 from . import __version__ as VERSION
 from ._vendor.auxlib.ish import dals
+from .base.constants import CONDA_HOMEPAGE_URL
 from .base.context import context
 from .common.compat import iteritems
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
                          split_anaconda_token, urlparse)
 from .exceptions import ProxyError
 from .gateways.adapters.ftp import FTPAdapter
+from .gateways.adapters.localfs import LocalFSAdapter
+from .gateways.adapters.s3 import S3Adapter
 from .gateways.anaconda_client import read_binstar_tokens
 from .utils import gnu_get_libc_version
 
@@ -176,9 +178,11 @@ class CondaHttpAuth(AuthBase):
 
         proxy_scheme = urlparse(response.url).scheme
         if proxy_scheme not in proxies:
-            raise ProxyError(dals("""Could not find a proxy for %r. See
-            http://conda.pydata.org/docs/html#configure-conda-for-use-behind-a-proxy-server
-            for more information on how to configure proxies.""" % proxy_scheme))
+            raise ProxyError(dals("""
+            Could not find a proxy for %r. See
+            %s/docs/html#configure-conda-for-use-behind-a-proxy-server
+            for more information on how to configure proxies.
+            """ % (proxy_scheme, CONDA_HOMEPAGE_URL)))
 
         # fix-up proxy_url with username & password
         proxy_url = proxies[proxy_scheme]
