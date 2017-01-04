@@ -206,7 +206,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(900)
     def test_create_install_update_remove(self):
-        with make_temp_env("python=3") as prefix:
+        with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
@@ -259,7 +259,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_list_with_pip_egg(self):
-        with make_temp_env("python=3 pip") as prefix:
+        with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -269,7 +269,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_list_with_pip_wheel(self):
-        with make_temp_env("python=3 pip") as prefix:
+        with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -479,11 +479,18 @@ class IntegrationTests(TestCase):
                     assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                     assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 12, 1), reason="configs are borked")
+    @pytest.mark.xfail(reason="configs are borked")
     @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
     @pytest.mark.timeout(600)
     def test_clone_offline_multichannel_with_untracked(self):
-        with make_temp_env("python") as prefix:
+        with make_temp_env("python=3.5") as prefix:
+
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
+            json_obj = json_loads(stdout)
+            assert 'defaults' not in json_obj['channels']
+
             assert_package_is_installed(prefix, 'python')
             assert 'r' not in context.channels
 
@@ -588,7 +595,7 @@ class IntegrationTests(TestCase):
                 os.remove(shortcut_file)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2016, 12, 1), reason="deal with this later")
+    @pytest.mark.xfail(reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
         from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'

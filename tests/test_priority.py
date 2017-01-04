@@ -11,7 +11,7 @@ class PriorityTest(TestCase):
 
     @pytest.mark.timeout(300)
     def test_channel_order_channel_priority_true(self):
-        with make_temp_env("python=3 pycosat==0.6.1") as prefix:
+        with make_temp_env("python=3.5 pycosat==0.6.1") as prefix:
             assert_package_is_installed(prefix, 'python')
             assert_package_is_installed(prefix, 'pycosat')
 
@@ -39,7 +39,7 @@ class PriorityTest(TestCase):
         """
             This case will fail now
         """
-        with make_temp_env("python=3 ") as prefix:
+        with make_temp_env("python=3.5") as prefix:
             assert_package_is_installed(prefix, 'python')
 
             # add conda-forge channel
