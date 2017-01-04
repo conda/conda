@@ -216,11 +216,10 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         raise CondaError("Cannot link a source that does not exist. %s" % src)
 
     if lexists(dst):
-        if force:
-            log.info("file exists, but clobbering: %r" % dst)
-            rm_rf(dst)
-        else:
-            maybe_raise(BasicClobberError(src, dst, link_type), context)
+        if not force:
+            maybe_raise(BasicClobberError(src, dst, context), context)
+        log.info("file exists, but clobbering: %r" % dst)
+        rm_rf(dst)
 
     if link_type == LinkType.hardlink:
         if isdir(src):

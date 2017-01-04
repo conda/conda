@@ -13,7 +13,7 @@ class ExportIntegrationTests(TestCase):
 
     @pytest.mark.timeout(900)
     def test_basic(self):
-        with make_temp_env("python=3") as prefix:
+        with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
@@ -31,14 +31,13 @@ class ExportIntegrationTests(TestCase):
             output2, error= run_command(Commands.LIST, prefix2, "-e")
             self.assertEqual(output, output2)
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 1, 1), reason="Bring back `conda list --export` #3445",
-                       strict = True)
+    @pytest.mark.xfail(reason="Bring back `conda list --export` #3445", strict=True)
     def test_multi_channel_export(self):
         """
             When try to import from txt
             every package should come from same channel
         """
-        with make_temp_env("python=3") as prefix:
+        with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
@@ -66,7 +65,7 @@ class ExportIntegrationTests(TestCase):
             When try to import from txt
             every package should come from same channel
         """
-        with make_temp_env("python=3") as prefix:
+        with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
