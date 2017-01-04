@@ -7,11 +7,15 @@
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 * improve handling of local dependency information (#2107)
+* add default channels to exports for Windows and Unix (#4103)
 
 ### Bug Fixes
 * fix conda/install.py single-file behavior (#3854)
 * fix the api->conda substitution (#3456)
 * fix silent directory removal (#3730)
+
+### Non-User-Facing Changes
+* fix open-ended test failures relating to python 3.6 release (#4166)
 
 
 ## 4.2.13 (2016-11-22)
