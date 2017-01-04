@@ -64,6 +64,7 @@ class Context(Configuration):
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
     _root_dir = PrimitiveParameter(sys.prefix, aliases=('root_dir',))
+    _subdir = PrimitiveParameter('', aliases=('subdir',))
 
     # connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
@@ -166,6 +167,8 @@ class Context(Configuration):
 
     @property
     def subdir(self):
+        if self._subdir:
+            return self._subdir
         m = machine()
         if m in non_x86_linux_machines:
             return 'linux-%s' % m
