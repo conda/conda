@@ -401,7 +401,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
                 continue
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
-            for fn, info in iteritems(repodata['packages']):
+            for fn, info in iteritems(repodata.get('packages', {})):
                 rec = IndexRecord.from_objects(info,
                                                fn=fn,
                                                schannel=canonical_name,
