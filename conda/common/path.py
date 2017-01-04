@@ -10,10 +10,11 @@ from .compat import on_win, string_types
 
 try:
     # Python 3
-    from urllib.parse import unquote  # NOQA
+    from urllib.parse import unquote, urlparse  # NOQA
 except ImportError:
     # Python 2
     from urllib import unquote  # NOQA
+    from urlparse import urlparse  # NOQA
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
@@ -26,22 +27,37 @@ def is_path(value):
 
 
 def is_windows_path(value):
-    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
+    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE) or is_windows_unc_path(value)
+
+
+def is_windows_unc_path(value):
+    return value.startswith(r'\\')
 
 
 def url_to_path(url):
-    """Convert a file:// URL to a path."""
+    """Convert a file:// URL to a path.
+
+    For now, releative file-URLs (file:relative/path) are not supported.
+    It does not make sense to use a relative path with conda config:
+        conda config --add channels file:releative/to/what
+    (although it could be expaneded to an absolute path)
+    It could make sense to use a releative path with conda install:
+        conda install -c file:my_conda_repos/staging my_package
+    """
     if is_path(url):
         return url
-    assert url.startswith('file:'), "You can only turn file: urls into filenames (not %r)" % url
-    path = url[len('file:'):].lstrip('/')
-    path = unquote(path)
-    if re.match('^([a-z])[:|]', path, re.I):
-        path = path[0] + ':' + path[2:]
-    elif not path.startswith(r'\\'):
-        # if not a Windows UNC path
-        path = '/' + path
-    return path
+    assert url.startswith('file://'), "You can only turn absolute file: urls into filenames (not %s)" % url
+    urlparts = urlparse(url)
+    path = unquote(urlparts.path)
+    if urlparts.netloc != '' and urlparts.netloc != 'localhost':
+        # The only net location potentially accessible is a Windows UNC path
+        netloc = '//' + urlparts.netloc
+    else:
+        netloc = ''
+        # Handle Windows drive letters if present
+        if re.match('^/([a-z])[:|]', path, re.I):
+            path = path[1] + ':' + path[3:]
+    return netloc + path
 
 
 def tokenized_startswith(test_iterable, startswith_iterable):
