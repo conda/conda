@@ -39,12 +39,12 @@ def run_command(command, *arguments, **kwargs):
 
     Args:
         command: one of the Commands.X
-        *arguments: instructions you would normally pass to the conda comamnd on the command line
+        *arguments: instructions you would normally pass to the conda command on the command line
                     see below for examples
         **kwargs: special instructions for programmatic overrides
           use_exception_handler: defaults to False.  False will let the code calling
               `run_command` handle all exceptions.  True won't raise when an exception
-              has occured, and instead give a non-zero return code
+              has occurred, and instead give a non-zero return code
           search_path: an optional non-standard search path for configuration information
               that overrides the default SEARCH_PATH
 
