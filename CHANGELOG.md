@@ -5,9 +5,17 @@
 
 ### Bug Fixes
 * fix pre/post unlink/link scripts (#4113)
+* fix package version regex and bug in create_link (#4132)
+* fix history tracking (#4143)
+* fix index creation order (#4131)
+* fix #4152 conda env export failure (#4175)
 
 ### Non-User-Facing Changes
-xfail anaconda token test if local token is found (#4124)
+* xfail anaconda token test if local token is found (#4124)
+* fix open-ended test failures relating to python 3.6 release (#4145)
+* extend timebomb for test_multi_channel_export (#4169)
+* don't unlink dists that aren't in the index (#4130)
+
 
 ## 4.3.1 (2016-12-19)
 
