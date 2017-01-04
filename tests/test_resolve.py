@@ -26,6 +26,10 @@ r = Resolve(index)
 f_mkl = set(['mkl'])
 
 
+def triple_(dstr):
+    return dstr[:-8].rsplit('-',2)
+
+
 class TestMatchSpec(unittest.TestCase):
 
     def test_match(self):
@@ -46,20 +50,20 @@ class TestMatchSpec(unittest.TestCase):
             ('python', False),
             ]:
             m = MatchSpec(spec)
-            self.assertEqual(m.match(Dist('numpy-1.7.1-py27_0.tar.bz2')), res)
+            self.assertEqual(m.match(*triple_('numpy-1.7.1-py27_0.tar.bz2')), res)
 
         # both version numbers conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1').match(Dist('numpy-1.0.1a-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1').match(*triple_('numpy-1.0.1a-0.tar.bz2')))
         # both version numbers non-conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(*triple_('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match(*triple_('numpy-1.0.1a.vc11-0.tar.bz2')))
         # one conforming, other non-conforming to PEP 440
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(Dist('numpy-1.0.1.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(Dist('numpy-1.0.1a-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a').match(Dist('numpy-1.0.1z-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match(Dist('numpy-1.0.1z-py27_1.tar.bz2')))
-        self.assertTrue(MatchSpec('blas * openblas').match(Dist('blas-1.0-openblas.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy <1.0.1').match(*triple_('numpy-1.0.1.vc11-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy <1.0.1').match(*triple_('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(*triple_('numpy-1.0.1a-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a').match(*triple_('numpy-1.0.1z-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match(*triple_('numpy-1.0.1z-py27_1.tar.bz2')))
+        self.assertTrue(MatchSpec('blas * openblas').match(*triple_('blas-1.0-openblas.tar.bz2')))
 
         self.assertTrue(MatchSpec('blas').is_simple())
         self.assertFalse(MatchSpec('blas').is_exact())
@@ -73,9 +77,11 @@ class TestMatchSpec(unittest.TestCase):
         m2 = MatchSpec(m, optional=False)
         m3 = MatchSpec(m2, target='blas-1.0-0.tar.bz2')
         m4 = MatchSpec(m3, target=None, optional=True)
+        m5 = MatchSpec('blas 1.0 (optional)')
         self.assertTrue(m.spec == m2.spec and m.optional != m2.optional)
         self.assertTrue(m2.spec == m3.spec and m2.optional == m3.optional and m2.target != m3.target)
         self.assertTrue(m == m4)
+        self.assertTrue(m == m5)
 
         self.assertRaises(ValueError, MatchSpec, 'blas (optional')
         self.assertRaises(ValueError, MatchSpec, 'blas (optional,test)')
@@ -130,7 +136,7 @@ class TestSolve(unittest.TestCase):
 
     def assert_have_mkl(self, dists, names):
         for dist in dists:
-            if dist.quad[0] in names:
+            if r.package_name(dist) in names:
                 self.assertEqual(r.features(dist), f_mkl)
 
     def test_explicit0(self):
@@ -793,6 +799,116 @@ def test_circular_dependencies():
     ]
 
 
+def test_optional_dependencies():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2 >1.0 (optional)'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    })
+    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '2.0',
+    })
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        Dist('package1-1.0-0.tar.bz2'),
+    }
+    assert set(r.get_reduced_index(['package1']).keys()) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    }
+    assert r.install(['package1']) == [
+        Dist('package1-1.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1', 'package2']) == r.install(['package1', 'package2 >1.0']) == [
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    ]
+    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 <2.0']))
+    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
+
+
+def test_superseded():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    })
+    index2['package1-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2 >=2.0 (optional)'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '2.0',
+    })
+    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package1 >=2.0'],
+        'superseded': True,
+        'name': 'package2',
+        'requires': [],
+        'version': '2.0',
+    })
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package1-2.0-0.tar.bz2'),
+    }
+    assert set(r.get_reduced_index(['package1']).keys()) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package1-2.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    }
+    installed = r.install(['package1 1.0'])
+    assert installed == [
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1 2.0']) == [
+        Dist('package1-2.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1 2.0'], installed) == [
+        Dist('package1-2.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    ]
+    assert raises(UnsatisfiableError, lambda: r.install(['package1 1.0', 'package2 2.0']))
+
+
 def test_package_ordering():
     sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index[Dist('sympy-0.7.1-py27_0.tar.bz2')])
     sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index[Dist('sympy-0.7.2-py27_0.tar.bz2')])
@@ -993,10 +1109,10 @@ def test_broken_install():
     installed2 = list(installed)
     installed2[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
     installed2.append(Dist('notarealpackage-2.0-0.tar.bz2'))
-    assert r.install([], installed2) == installed2
+    assert r.install([], installed2) == installed2[:-1]
     installed3 = r.install(['numpy'], installed2)
     installed4 = r.remove(['pandas'], installed2)
-    assert set(installed4) == set(installed2[:3] + installed2[4:])
+    assert set(installed4) == set(installed2[:3] + installed2[4:-1])
 
     # Remove the installed version of pandas from the index
     index2 = index.copy()

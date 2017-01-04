@@ -32,7 +32,7 @@ from .gateways.disk.create import mkdir_p
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
-                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK,
+                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK, REPLACE,
                            UNLINKLINKTRANSACTION, execute_instructions)
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
@@ -49,13 +49,13 @@ except ImportError:
 log = getLogger(__name__)
 
 
-def print_dists(dists_extras):
+def print_dists(dists_extras, index):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for dist, extra in dists_extras:
-        name, version, build, _ = dist.quad
-        line = fmt % (name + '-' + version, build)
+        rec = index[dist]
+        line = fmt % (rec['name'] + '-' + rec['version'], rec['build'])
         if extra:
             line += extra
         print(line)
@@ -93,7 +93,7 @@ def display_actions(actions, index, show_channel_urls=None):
             if schannel:
                 extra += '  ' + schannel
             disp_lst.append((dist, extra))
-        print_dists(disp_lst)
+        print_dists(disp_lst, index)
 
         if index and len(actions[FETCH]) > 1:
             num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
@@ -105,6 +105,7 @@ def display_actions(actions, index, show_channel_urls=None):
     features = defaultdict(lambda: list(('', '')))
     channels = defaultdict(lambda: list(('', '')))
     records = defaultdict(lambda: list((None, None)))
+    absorbed = {}
     linktypes = {}
 
     for arg in actions.get(LINK, []):
@@ -124,9 +125,20 @@ def display_actions(actions, index, show_channel_urls=None):
         packages[pkg][0] = rec['version'] + '-' + rec['build']
         records[pkg][0] = Package(dist.to_filename(), rec)
         features[pkg][0] = rec.get('features', '')
+    for arg in actions.get(REPLACE, []):
+        dist = Dist(arg)
+        rec = index[dist]
+        assert rec.get('superseded') and rec.get('depends')
+        absorbed[rec['name']] = ', '.join(rec['depends'])
+        # If a package is not being removed, then the user is trying
+        # to install a package that is already superseded
+        if not packages[pkg][0]:
+            for var in (packages, features, channels, records):
+                var[pkg] = var[pkg][::-1]
 
-    new = {p for p in packages if not packages[p][0]}
-    removed = {p for p in packages if not packages[p][1]}
+    replaced = set(absorbed.keys())
+    new = {p for p in packages if not packages[p][0]} - replaced
+    removed = {p for p in packages if not packages[p][1]} - replaced
     # New packages are actually listed in the left-hand column,
     # so let's move them over there
     for pkg in new:
@@ -145,6 +157,9 @@ def display_actions(actions, index, show_channel_urls=None):
     else:
         empty = True
 
+    arrow = ' --> '
+    lead = ' ' * 4
+
     updated = set()
     downgraded = set()
     channeled = set()
@@ -161,8 +176,10 @@ def display_actions(actions, index, show_channel_urls=None):
 
         lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
         lt = '' if lt == LinkType.hardlink else (' (%s)' % lt)
-        if pkg in removed or pkg in new:
+        if pkg in removed or pkg in replaced or pkg in new:
             oldfmt[pkg] += lt
+            if pkg in replaced:
+                oldfmt[pkg] += arrow + absorbed[pkg]
             continue
 
         newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
@@ -204,9 +221,6 @@ def display_actions(actions, index, show_channel_urls=None):
         else:
             downgraded.add(pkg)
 
-    arrow = ' --> '
-    lead = ' ' * 4
-
     def format(s, pkg):
         chans = [channel_filt(c) for c in channels[pkg]]
         return lead + s.format(pkg=pkg + ':', vers=packages[pkg],
@@ -227,6 +241,11 @@ def display_actions(actions, index, show_channel_urls=None):
         print("\nThe following packages will be UPDATED:\n")
         for pkg in sorted(updated):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+
+    if replaced:
+        print("\nThe following packages will be REPLACED:\n")
+        for pkg in sorted(replaced):
+            print(format(oldfmt[pkg], pkg))
 
     if channeled:
         print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
@@ -277,7 +296,7 @@ def add_checks(actions):
         actions.setdefault(CHECK_EXTRACT, [True])
 
 
-def handle_menuinst(unlink_dists, link_dists):
+def handle_menuinst(unlink_dists, link_dists, index):
     if not on_win:
         return unlink_dists, link_dists
 
@@ -285,22 +304,26 @@ def handle_menuinst(unlink_dists, link_dists):
     # package tries to import it to create/remove a shortcut
 
     # unlink
-    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
+    for q, d in enumerate(unlink_dists):
+        rec = index.get(d)
+        if rec and rec['name'] == 'menuinst':
+            unlink_dists = tuple(concatv(
+                unlink_dists[:q],
+                unlink_dists[q+1:],
+                unlink_dists[q:q+1],
+            ))
+            break
 
     # link
-    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
+    for q, d in enumerate(link_dists):
+        rec = index.get(d)
+        if rec and rec['name'] == 'menuinst':
+            link_dists = tuple(concatv(
+                link_dists[q:q+1],
+                link_dists[:q],
+                link_dists[q+1:],
+            ))
+            break
 
     return unlink_dists, link_dists
 
@@ -312,7 +335,7 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         grouped_instructions = groupby(lambda x: x[0], plan)
         unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
-        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
+        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists, index)
 
         # make sure prefix directory exists
         if link_dists:
@@ -381,9 +404,15 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
                            UNLINK, LINK, SYMLINK_CONDA)
 
     for dist in dists:
+        superseded = index and index.get(dist, {}).get('superseded', None)
         if not force and is_linked(prefix, dist):
+            if superseded:
+                actions[UNLINK].append(dist)
             continue
-        actions[LINK].append(dist)
+        if superseded:
+            actions[REPLACE].append(dist)
+        else:
+            actions[LINK].append(dist)
     return actions
 
 # -------------------------------------------------------------------
@@ -515,17 +544,17 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
-        add_unlink_options_for_update(actions, required_solves, index)
+        add_unlink_options_for_update(actions, required_solves, index, r)
 
     return actions
 
 
-def add_unlink_options_for_update(actions, required_solves, index):
+def add_unlink_options_for_update(actions, required_solves, index, r):
     # type: (Dict[weird], List[SpecsForPrefix], List[weird]) -> ()
     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
     linked_in_prefix = linked_data(context.root_prefix)
     spec_in_root = lambda spc: tuple(
-        mtch for mtch in linked_in_prefix.keys() if MatchSpec(spc).match(mtch))
+        mtch for mtch in linked_in_prefix.keys() if r.match(spc, mtch))
     for solved in required_solves:
         # If the solved prefix is private
         if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
@@ -559,13 +588,9 @@ def get_resolve_object(index, prefix):
 
 
 def get_highest_priority_match(matches, prioritized_channel_list, index):
-    nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
-                                      chnl[1] == n][0]
-
     # This loop: match to the highest priority channel;
     #   if no packages match priority 0, try the next channel
-    for i in range(0, len(prioritized_channel_list)):
-        target_channel = nth_channel_priority(i)
+    for target_channel in prioritized_channel_list:
         highest_match = [m for m in matches if m.schannel == target_channel]
         if len(highest_match) > 0:
             newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[-1]
@@ -588,15 +613,16 @@ def determine_all_envs(r, specs, channel_priority_map=None):
         channel_priority_map = prioritize_channels(channels)
 
     # remove duplicates e.g. for channel names with multiple urls
-    prioritized_channel_list = set((chnl, prrty) for chnl, prrty in
-                                   itervalues(channel_priority_map))
+    prioritized_channel_list = dict(itervalues(channel_priority_map))
+    prioritized_channel_list = sorted(prioritized_channel_list,
+                                      key=lambda k: prioritized_channel_list[k])
 
     spec_for_envs = []
     for spec in specs:
         matched_dists = r.get_pkgs(spec)
         best_match = get_highest_priority_match(matched_dists, prioritized_channel_list, r.index)
-        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
-                                        spec=best_match.name))
+        info = r.index[Dist(best_match)]
+        spec_for_envs.append(SpecForEnv(env=info.preferred_env, spec=info.name))
     return spec_for_envs
 
 

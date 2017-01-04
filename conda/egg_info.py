@@ -14,7 +14,9 @@ from .common.compat import itervalues, on_win
 from .core.linked_data import linked_data
 from .misc import rel_path
 from .models.dist import Dist
-
+from .models.index_record import IndexRecord
+from ._vendor.auxlib.exceptions import ValidationError
+from .base.constants import PIP_PSEUDOCHANNEL
 
 def get_site_packages_dir(installed_pkgs):
     for info in itervalues(installed_pkgs):
@@ -43,23 +45,28 @@ def get_egg_info_files(sp_dir):
                     yield path2
 
 
-pat = re.compile(r'(\w+):\s*(\S+)', re.I)
+PIP_FIELDS = ('name', 'version')
+pat = re.compile(r'(\w+):\s*([^\s:]+)', re.I)
 def parse_egg_info(path):
     """
     Parse an .egg-info file and return its canonical distribution name
     """
-    info = {}
+    info = {'build': '<pip>',
+            'build_number': 0,
+            'schannel': PIP_PSEUDOCHANNEL}
     for line in open(path, encoding='utf-8'):
         line = line.strip()
         m = pat.match(line)
         if m:
-            key = m.group(1).lower()
-            info[key] = m.group(2)
-        try:
-            return '%(name)s-%(version)s-<pip>' % info
-        except KeyError:
-            pass
-    return None
+            fld = m.group(1).lower()
+            if fld in PIP_FIELDS:
+                info[fld] = m.group(2)
+    try:
+        info['fn'] = '%(name)s-%(version)s-%(build)s' % info
+        info = IndexRecord.from_objects(info)
+    except (KeyError, ValidationError, UnicodeDecodeError):
+        return None
+    return info
 
 
 def get_egg_info(prefix, all_pkgs=False):
@@ -78,16 +85,14 @@ def get_egg_info(prefix, all_pkgs=False):
     for info in itervalues(installed_pkgs):
         conda_files.update(info.get('files', []))
 
-    res = set()
+    res = {}
     for path in get_egg_info_files(join(prefix, sp_dir)):
         f = rel_path(prefix, path)
-        if all_pkgs or f not in conda_files:
-            try:
-                dist = parse_egg_info(path)
-            except UnicodeDecodeError:
-                dist = None
-            if dist:
-                res.add(Dist(dist))
+        if not all_pkgs and f in conda_files:
+            continue
+        info = parse_egg_info(path)
+        if info:
+            res[Dist(info)] = info
     return res
 
 

@@ -101,15 +101,10 @@ class MatchSpec(object):
     def _match_full(self, version, build):
         return self.build.match(build) and self.version.match(version)
 
-    def match(self, dist):
-        # type: (Dist) -> bool
-        assert isinstance(dist, Dist)
-        name, version, build, _ = dist.quad
+    def match(self, name, version, build):
         if name != self.name:
             return False
-        result = self.match_fast(version, build)
-        assert isinstance(result, bool), type(result)
-        return result
+        return self.match_fast(version, build)
 
     def to_filename(self):
         if self.is_exact() and not self.optional:
@@ -215,7 +210,7 @@ class Resolve(object):
             filter.update({Dist(fstr+'@'): True for fstr in features})
         return filter
 
-    def valid(self, spec_or_dist, filter):
+    def valid(self, spec_or_dist, filter, optional=True):
         """Tests if a package, MatchSpec, or a list of both has satisfiable
         dependencies, assuming cyclic dependencies are always valid.
 
@@ -223,6 +218,8 @@ class Resolve(object):
             spec_or_dist: a package key, a MatchSpec, or an iterable of these.
             filter: a dictionary of (fkey,valid) pairs, used to consider a subset
                 of dependencies, and to eliminate repeated searches.
+            optional: if True (default), do not enforce optional specifications
+                when considering validity. If False, enforce them.
 
         Returns:
             True if the full set of dependencies can be satisfied; False otherwise.
@@ -233,7 +230,8 @@ class Resolve(object):
             return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
+            return ((optional and ms.optional) or
+                    any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
         def v_fkey_(dist):
             assert isinstance(dist, Dist)
@@ -246,7 +244,7 @@ class Resolve(object):
         result = v_(spec_or_dist)
         return result
 
-    def invalid_chains(self, spec, filter):
+    def invalid_chains(self, spec, filter, optional=True):
         """Constructs a set of 'dependency chains' for invalid specs.
 
         A dependency chain is a tuple of MatchSpec objects, starting with
@@ -259,12 +257,17 @@ class Resolve(object):
             spec: a package key or MatchSpec
             filter: a dictionary of (dist, valid) pairs to be used when
                 testing for package validity.
+            optional: if True (default), do not enforce optional specifications
+                when considering validity. If False, enforce them.
 
         Returns:
             A generator of tuples, empty if the MatchSpec is valid.
         """
         def chains_(spec, names):
-            if self.valid(spec, filter) or spec.name in names:
+            if spec.name in names:
+                return
+            names.add(spec.name)
+            if self.valid(spec, filter, optional):
                 return
             dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
             found = False
@@ -358,11 +361,11 @@ class Resolve(object):
             filter = {}
             for mn, v in sdep.items():
                 if mn != ms.name and mn in commkeys:
-                    # Mark this package's "unique" dependencies as invali
+                    # Mark this package's "unique" dependencies as invalid
                     for fkey in v - commkeys[mn]:
                         filter[fkey] = False
             # Find the dependencies that lead to those invalid choices
-            ndeps = set(self.invalid_chains(ms, filter))
+            ndeps = set(self.invalid_chains(ms, filter, False))
             # This may produce some additional invalid chains that we
             # don't care about. Select only those that terminate in our
             # predetermined set of "common" keys.
@@ -548,14 +551,14 @@ class Resolve(object):
         return set(self.index[dist].get('track_features', '').split())
 
     def package_quad(self, dist):
-        rec = self.index.get(dist, None)
-        if rec is None:
-            return dist.quad
-        else:
-            return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
+        rec = self.index[dist]
+        return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
+
+    def is_superceded(self, dist):
+        return dist in self.index or self.index.get('superceded', '')
 
     def get_pkgs(self, ms, emptyok=False):
         ms = MatchSpec(ms)
@@ -585,9 +588,9 @@ class Resolve(object):
             elif not ms.is_simple():
                 m = C.from_name(self.push_MatchSpec(C, ms.name))
         if m is None:
+            libs = [dist.full_name for dist in libs]
             if ms.optional:
                 libs.append('!@s@'+ms.name)
-            libs = [dist.full_name for dist in libs]
             m = C.Any(libs)
         C.name_var(m, name)
         return name
@@ -794,7 +797,7 @@ class Resolve(object):
             if xtra or not (solution or all(s.name in snames for s in specs)):
                 limit = set(s.name for s in specs if s.name in snames)
                 xtra = [dist for dist in (Dist(fn) for fn in installed)
-                        if self.package_name(dist) not in snames]
+                        if dist in self.index and self.package_name(dist) not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)
@@ -803,7 +806,8 @@ class Resolve(object):
     def restore_bad(self, pkgs, preserve):
         if preserve:
             sdict = {self.package_name(pkg): pkg for pkg in pkgs}
-            pkgs.extend(p for p in preserve if self.package_name(p) not in sdict)
+            pkgs.extend(p for p in preserve if p in self.index and
+                        self.package_name(p) not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
@@ -841,6 +845,9 @@ class Resolve(object):
         limit, _ = self.bad_installed(installed, specs)
         preserve = []
         for dist in installed:
+            if dist not in self.index:
+                preserve.append(dist)
+                continue
             nm, ver, build, schannel = self.package_quad(dist)
             if nm in snames:
                 continue

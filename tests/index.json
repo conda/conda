@@ -3987,6 +3987,46 @@
     ],
     "version": "1.5.2"
   },
+  "conda-2.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python 2.7*",
+      "pyyaml 3.10",
+      "conda-env 2.0 (optional)"
+    ],
+    "name": "conda",
+    "requires": [
+      "python 2.7",
+      "pyyaml 3.10"
+    ],
+    "version": "2.0"
+  },
+  "conda-env-1.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "conda"
+    ],
+    "name": "conda-env",
+    "requires": [
+      "conda"
+    ],
+    "version": "1.0"
+  },
+  "conda-env-2.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "conda >=2.0"
+    ],
+    "superseded": true,
+    "name": "conda-env",
+    "requires": [
+      "conda"
+    ],
+    "version": "2.0"
+  },
   "conda-api-1.0.0-py26_0.tar.bz2": {
     "build": "py26_0",
     "build_number": 0,

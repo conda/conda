@@ -98,7 +98,7 @@ def installed(prefix, output=True):
         yield PipPackage(**kwargs)
 
 
-def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
+def pip_installed(prefix, conda_pkgs, json=None, output=True):
     # Defer to json for backwards compatibility
     if isinstance(json, bool):
         output = not json
@@ -106,8 +106,11 @@ def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
     # TODO Refactor so installed is a real list of objects/dicts
     #      instead of strings allowing for direct comparison
     # split :: to get rid of channel info
-    conda_names = {d.quad[0] for d in installed_pkgs}
+    installed_pkgs = set()
     for pip_pkg in installed(prefix, output=output):
-        if pip_pkg['name'] in conda_names and 'path' not in pip_pkg:
+        if ((pip_pkg['name'] in conda_pkgs or
+             pip_pkg['name'].replace('-', '_') in conda_pkgs) and
+           'path' not in pip_pkg):
             continue
         installed_pkgs.add(str(pip_pkg))
+    return installed_pkgs
