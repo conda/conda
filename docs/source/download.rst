@@ -30,7 +30,7 @@ Anaconda download: http://continuum.io/downloads
 * Do not have time or disk space to install over 150 packages at once, and/or
 * Just want fast access to Python and the conda commands, and wish to sort out the other programs later. 
 
-Miniconda download: http://conda.pydata.org/miniconda.html
+Miniconda download: https://conda.io/miniconda.html
 
 Which version of Anaconda or Miniconda should I choose?
 -------------------------------------------------------

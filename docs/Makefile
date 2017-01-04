@@ -180,7 +180,7 @@ test:
 
 live:
 	rsync -rvzchP --delete-after -e ssh build/html/ pydata.org:/www/conda/docs/
-	$(LAUNCH) http://conda.pydata.org/docs
+	$(LAUNCH) https://conda.io/docs
 
 livehtml:
 	livereload build/html

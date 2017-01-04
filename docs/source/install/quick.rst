@@ -8,7 +8,7 @@ runs, and updates packages and their dependencies. It allows you to easily set u
 between environments on your local computer.  Conda is included in all versions 
 of **Anaconda** and **Miniconda**.
 
-The fastest way to get and install conda is to `download Miniconda <http://conda.pydata.org/miniconda.html>`_, 
+The fastest way to get and install conda is to `download Miniconda <https://conda.io/miniconda.html>`_,
 a mini version of Anaconda that includes just conda and its dependencies. 
 Anaconda has all that plus over 720 open source packages that install with Anaconda or 
 can be installed with the simple ``conda install`` command. 
@@ -31,7 +31,7 @@ NOTE: If you choose to install the full Anaconda package, it requires 3 GB of av
 Windows Miniconda install
 -------------------------
 
-In your browser download the `Miniconda installer for Windows <http://conda.pydata.org/miniconda.html>`_, then double click 
+In your browser download the `Miniconda installer for Windows <https://conda.io/miniconda.html>`_, then double click
 the .exe file and follow the instructions on the screen.  If unsure about any setting, 
 simply accept the defaults as they all can be changed later.
 
@@ -54,7 +54,7 @@ Go to Control Panel, click “Add or remove Program,” select “Python 2.7 (Mi
 OS X Miniconda install
 ----------------------
 
-In your browser download the `Miniconda installer for OS X <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
+In your browser download the `Miniconda installer for OS X <https://conda.io/miniconda.html>`_, then in your terminal
 window type the following and follow the prompts on the installer screens. If unsure about any setting, 
 simply accept the defaults as they all can be changed later.
 
@@ -85,7 +85,7 @@ in the home directory with ``rm -rf ~/.condarc ~/.conda ~/.continuum``.
 Linux Miniconda install
 -----------------------
 
-In your browser download the `Miniconda installer for Linux <http://conda.pydata.org/miniconda.html>`_, then in your terminal 
+In your browser download the `Miniconda installer for Linux <https://conda.io/miniconda.html>`_, then in your terminal
 window type the following and follow the prompts on the installer screens. If unsure 
 about any setting, simply accept the defaults as they all can be changed later:
 

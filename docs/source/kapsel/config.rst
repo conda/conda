@@ -491,4 +491,4 @@ do not need to duplicate this information in ``kapsel.yml``.
  * `app: entry:`
  * `app: icon:`
 
-For more about ``meta.yaml`` see http://conda.pydata.org/docs/building/meta-yaml.html
+For more about ``meta.yaml`` see https://conda.io/docs/building/meta-yaml.html

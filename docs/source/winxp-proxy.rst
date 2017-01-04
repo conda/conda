@@ -9,8 +9,8 @@ The last Python 3-based Anaconda version to support Windows XP is Anaconda 2.3.0
 When behind a corporate proxy that uses proxy auto-config (PAC) files and SSL certificates for secure connections:
 
 * To find a proxy server address from the PAC file, open "Internet Explorer > Tools > Internet Options > Connections tab > LAN Settings", and copy the address beneath "Use automatic configuration script". Paste this address into Internet Explorer and choose "Open". Search the file for "return" until you find what looks like a proxy IP or DNS address with the port number, which may take some time if the PAC file is long. Copy the address and port number.
-* Follow the `.condarc instructions <http://conda.pydata.org/docs/config.html#the-conda-configuration-file-condarc>`_ to create a file named ``.condarc`` in your home directory or the installation directory, such as ``C:\Anaconda\.condarc``.
-* Follow the `.condarc proxy server instructions <http://conda.pydata.org/docs/config.html#configure-conda-for-use-behind-a-proxy-server-proxy-servers>`_ and add the proxy information. If you decide to include any passwords in the file, beware of transformations that can affect special characters.
+* Follow the `.condarc instructions <https://conda.io/docs/config.html#the-conda-configuration-file-condarc>`_ to create a file named ``.condarc`` in your home directory or the installation directory, such as ``C:\Anaconda\.condarc``.
+* Follow the `.condarc proxy server instructions <https://conda.io/docs/config.html#configure-conda-for-use-behind-a-proxy-server-proxy-servers>`_ and add the proxy information. If you decide to include any passwords in the file, beware of transformations that can affect special characters.
 
 Here is an example of proxy information with passwords::
 

@@ -680,7 +680,7 @@ processing, which in practice means changing the conda-build source code.  Pleas
 
 See the `Jinja2 template documentation <http://jinja.pocoo.org/docs/dev/templates/>`_
 for more information, or `the list of available environment
-variables <http://conda.pydata.org/docs/building/environment-vars.html>`_.
+variables <https://conda.io/docs/building/environment-vars.html>`_.
 
 Jinja templates are evaluated during the build process. To retrieve a fully rendered ``meta.yaml``
 use the :doc:`../commands/build/conda-render`.

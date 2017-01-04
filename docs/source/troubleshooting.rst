@@ -48,7 +48,7 @@ I am getting a conda error and want to reinstall Miniconda to fix it but when I 
 Resolution: Install Miniconda using the -f (force) option
 ---------------------------------------------------------
 
-Download and install the appropriate Miniconda for your computer operating system from the `Miniconda download page <http://conda.pydata.org/miniconda.html>`_ using the force or ``-f`` option as shown: 
+Download and install the appropriate Miniconda for your computer operating system from the `Miniconda download page <https://conda.io/miniconda.html>`_ using the force or ``-f`` option as shown:
 
 .. code-block:: bash
 

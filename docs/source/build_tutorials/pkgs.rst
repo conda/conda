@@ -40,7 +40,7 @@ Before you start
 
 You should already have installed Miniconda_ or Anaconda_.
 
-.. _Miniconda: http://conda.pydata.org/docs/install/quick.html
+.. _Miniconda: https://conda.io/docs/install/quick.html
 .. _Anaconda: https://docs.continuum.io/anaconda/install
 
 Install conda-build:
@@ -317,4 +317,4 @@ Additional Information
 ----------------------
 See the full conda skeleton documentation_ for more options.
 
-.. _documentation: http://conda.pydata.org/docs/commands/build/conda-skeleton-pypi.html
+.. _documentation: https://conda.io/docs/commands/build/conda-skeleton-pypi.html

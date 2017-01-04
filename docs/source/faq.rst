@@ -384,7 +384,7 @@ a file req.txt that sets python=2.7.9. However, when I conda install my package 
 automatically upgrades to 2.7.10. How do I avoid this?
 
 If you make a conda package for the app using conda-build, you can set dependencies
-with specific version numbers. In `this example <http://conda.pydata.org/docs/building/meta-yaml.html>`_
+with specific version numbers. In `this example <https://conda.io/docs/building/meta-yaml.html>`_
 the requirements lines that say "- python" could be "- python ==2.7.9" instead. It
 is important to have one space before the == operator and no space after.
 

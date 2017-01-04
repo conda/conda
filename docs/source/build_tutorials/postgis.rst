@@ -35,7 +35,7 @@ Before you start
 
 You should already have installed Miniconda_ or Anaconda_.
 
-.. _Miniconda: http://conda.pydata.org/docs/install/quick.html
+.. _Miniconda: https://conda.io/docs/install/quick.html
 .. _Anaconda: https://docs.continuum.io/anaconda/install
 
 Install conda-build:
@@ -279,8 +279,8 @@ Troubleshooting and Additional Information
 ------------------------------------------
 The troubleshooting_ page contains helpful hints for cases where conda-build fails.
 
-.. _troubleshooting: http://conda.pydata.org/docs/troubleshooting.html
+.. _troubleshooting: https://conda.io/docs/troubleshooting.html
 
-See the full conda recipe documentation_ and the `sample recipes <http://conda.pydata.org/docs/building/sample-recipes.html>`_ page for more options that are available in the conda recipe meta.yaml file.
+See the full conda recipe documentation_ and the `sample recipes <https://conda.io/docs/building/sample-recipes.html>`_ page for more options that are available in the conda recipe meta.yaml file.
 
-.. _documentation: http://conda.pydata.org/docs/building/meta-yaml.html
+.. _documentation: https://conda.io/docs/building/meta-yaml.html

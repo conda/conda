@@ -478,7 +478,7 @@ Remove the Anaconda OR Miniconda install directory:
 * To read the full documentation for any conda command, type the command
   followed by  ``-h`` for “help.” For example, to learn about the conda update
   command: ``conda update -h``
-* Full documentation: 	http://conda.pydata.org/docs/
+* Full documentation: 	https://conda.io/docs/
 * Cheat sheet: :doc:`/using/cheatsheet`
 * FAQs: 				http://docs.continuum.io/anaconda/faq.html and :doc:`/faq`
 * Free community support:	 https://groups.google.com/a/continuum.io/forum/#!forum/anaconda

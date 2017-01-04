@@ -23,7 +23,7 @@ do this tutorial.
 This tutorial is for all platforms: Windows, OS X and Linux.
 
 NOTE: You must have `conda installed
-<http://conda.pydata.org/docs/install/quick.html>`_ before
+<https://conda.io/docs/install/quick.html>`_ before
 beginning this tutorial.
 
 NOTE: Windows users using Python 3.5.1 should upgrade to Python 3.5.2+ 

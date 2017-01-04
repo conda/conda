@@ -18,7 +18,7 @@ The .travis.yml file
 
 The
 following shows how to modify the ``.travis.yml`` file to use `Miniconda
-<http://conda.pydata.org/miniconda.html>`_ for a project that supports Python
+<https://conda.io/miniconda.html>`_ for a project that supports Python
 2.6, 2.7, 3.3, and 3.4.
 
 NOTE: Please see the Travis CI website for information about the `basic configuration for
@@ -92,7 +92,7 @@ with
    - conda build your-conda-recipe
    - conda install your-package --use-local
    
-For more information on building conda packages, see the `conda build <http://conda.pydata.org/docs/build.html>`_ section
+For more information on building conda packages, see the `conda build <https://conda.io/docs/build.html>`_ section
 and the example recipes in the `conda-recipes repo <https://github.com/conda/conda-recipes>`_.
 
 
