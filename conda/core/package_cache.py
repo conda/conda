@@ -15,7 +15,7 @@ from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
 from ..common.path import url_to_path
-from ..common.url import join_url, path_to_url
+from ..common.url import path_to_url
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.disk.test import try_write
 from ..models.channel import Channel
@@ -99,12 +99,16 @@ class PackageCacheEntry(object):
     def tarball_matches_md5(self, md5sum):
         return self.md5sum == md5sum
 
+    def tarball_matches_md5_if(self, md5sum):
+        return not md5sum or self.md5sum == md5sum
+
     @property
     def package_cache_writable(self):
         return PackageCache(self.pkgs_dir).is_writable
 
+    @property
     def md5sum(self):
-        return self.is_fetched and self._calculate_md5sum()
+        return self._calculate_md5sum() if self.is_fetched else None
 
     def get_urls_txt_value(self):
         return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
@@ -355,15 +359,12 @@ class ProgressiveFetchExtract(object):
         assert record is not None, dist
         # returns a cache_action and extract_action
 
-        # look in all caches for a dist that's already extracted
-        # NOTE: Next we check the md5 sum of a tarball, but we're not checking that here,
-        #         so this could potentially give us a stale package.
-        #       To remedy this, a package will have to be more like a repository, containing
-        #         something like a repodata.json so we can store full index records of packages.
-        # if a matching extracted package exists, there's nothing to do here
+        # look in all caches for a dist that's already extracted and matches
+        # the MD5 if one has been supplied. if one exists, no action needed.
+        md5 = record.get('md5')
         extracted_pc_entry = first(
             (PackageCache(pkgs_dir).get(dist) for pkgs_dir in context.pkgs_dirs),
-            key=lambda d: d and d.is_extracted
+            key=lambda pce: pce and pce.is_extracted and pce.tarball_matches_md5_if(md5)
         )
         if extracted_pc_entry:
             return None, None
@@ -376,7 +377,7 @@ class ProgressiveFetchExtract(object):
         first_writable_cache = PackageCache.first_writable()
         pc_entry_writable_cache = first(
             (writable_cache.get(dist) for writable_cache in PackageCache.all_writable()),
-            key=lambda pce: pce and pce.is_fetched and pce.tarball_matches_md5(record.md5)
+            key=lambda pce: pce and pce.is_fetched and pce.tarball_matches_md5_if(md5)
         )
         if pc_entry_writable_cache:
             # extract in place
@@ -389,7 +390,7 @@ class ProgressiveFetchExtract(object):
 
         pc_entry_read_only_cache = first(
             (pce_read_only.get(dist) for pce_read_only in PackageCache.read_only_caches()),
-            key=lambda pce: pce and pce.is_fetched and pce.tarball_matches_md5(record.md5)
+            key=lambda pce: pce and pce.is_fetched and pce.tarball_matches_md5_if(md5)
         )
         if pc_entry_read_only_cache:
             # we found a tarball, but it's in a read-only package cache
@@ -399,7 +400,7 @@ class ProgressiveFetchExtract(object):
                 url=path_to_url(pc_entry_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=dist.to_filename(),
-                md5sum=record.md5,
+                md5sum=md5,
             )
             extract_axn = ExtractPackageAction(
                 source_full_path=cache_axn.target_full_path,
@@ -410,12 +411,11 @@ class ProgressiveFetchExtract(object):
 
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
-        url = record.get('url') or join_url(record.channel, record.fn)
         cache_axn = CacheUrlAction(
-            url=url,
+            url=record.get('url') or dist.to_url(),
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=dist.to_filename(),
-            md5sum=record.md5,
+            md5sum=md5,
         )
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
