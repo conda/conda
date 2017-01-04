@@ -458,14 +458,17 @@
 
 ## 4.1.13 (unreleased)
 
-* error and exit for install of packages that require conda minimum version 4.3, #3726
+* improve handling of local dependency information, #2107
 * show warning message for pre-link scripts, #3727
+* error and exit for install of packages that require conda minimum version 4.3, #3726
+* fix conda/install.py single-file behavior, #3854
+* fix open-ended test failures relating to python 3.6 release (#4167)
 
 
 ## 4.1.12 (2016-09-08)
-  * fix #2837 "File exists" in symlinked path with parallel activations, #3210
-  * fix prune option when installing packages, #3354
-  * change check for placeholder to be more friendly to long PATH, #3349
+* fix #2837 "File exists" in symlinked path with parallel activations, #3210
+* fix prune option when installing packages, #3354
+* change check for placeholder to be more friendly to long PATH, #3349
 
 ## 4.1.11 (2016-07-26)
 
