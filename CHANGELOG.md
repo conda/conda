@@ -172,21 +172,21 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.14 (unreleased)
-
-### Bug Fixes
-* fix location of temporary hard links of index.json (#3975)
-* fix potential errors in multi-channel export and offline clone (#3995)
+## 4.2.14 (2017-01-05)
 
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 * improve handling of local dependency information (#2107)
 * add default channels to exports for Windows and Unix (#4103)
+* make subdir configurable (#4178)
 
 ### Bug Fixes
 * fix conda/install.py single-file behavior (#3854)
 * fix the api->conda substitution (#3456)
 * fix silent directory removal (#3730)
+* fix location of temporary hard links of index.json (#3975)
+* fix potential errors in multi-channel export and offline clone (#3995)
+* fix auxlib/packaging, git hashes are not limited to 7 characters (#4189)
 
 ### Non-User-Facing Changes
 * fix open-ended test failures relating to python 3.6 release (#4166)

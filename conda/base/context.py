@@ -78,6 +78,7 @@ class Context(Configuration):
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
+    _subdir = PrimitiveParameter('', aliases=('subdir',))
 
     # remote connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
@@ -213,6 +214,8 @@ class Context(Configuration):
 
     @property
     def subdir(self):
+        if self._subdir:
+            return self._subdir
         m = machine()
         if m in non_x86_linux_machines:
             return 'linux-%s' % m
