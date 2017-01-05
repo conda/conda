@@ -80,15 +80,20 @@ def generate_parser():
     return p, sub_parsers
 
 
-def _main():
+def _main(*args):
     from ..base.context import context
     from ..gateways.logging import set_all_logger_level, set_verbosity
     from ..exceptions import CommandNotFoundError
     from ..utils import on_win
+    if not args:
+        args = sys.argv
 
-    log.debug("conda.cli.main called with %s", sys.argv)
-    if len(sys.argv) > 1:
-        argv1 = sys.argv[1]
+    if not args:
+        args = sys.argv
+
+    log.debug("conda.cli.main called with %s", args)
+    if len(args) > 1:
+        argv1 = sys.argv[1].strip()
         if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
             import conda.cli.activate as activate
             activate.main()
@@ -97,12 +102,12 @@ def _main():
 
             message = "'%s' is not a conda command.\n" % argv1
             if not on_win:
-                message += ' Did you mean "source %s" ?\n' % ' '.join(sys.argv[1:])
+                message += ' Did you mean "source %s" ?\n' % ' '.join(args[1:])
 
             raise CommandNotFoundError(argv1, message)
 
-    if len(sys.argv) == 1:
-        sys.argv.append('-h')
+    if len(args) == 1:
+        args.append('-h')
 
     p, sub_parsers = generate_parser()
 
@@ -123,8 +128,15 @@ def _main():
         return [i for i in list(sub_parsers.choices) + find_commands()
                 if i.startswith(prefix)]
 
+    # when using sys.argv, first argument is generally conda or __main__.py.  Ignore it.
+    if (any(sname in args[0] for sname in ('conda', 'conda.exe',
+                                           '__main__.py', 'conda-script.py')) and
+            (args[1] in main_modules + find_commands() or args[1].startswith('-'))):
+        log.debug("Ignoring first argument (%s), as it is not a subcommand", args[0])
+        args = args[1:]
+
     sub_parsers.completer = completer
-    args = p.parse_args()
+    args = p.parse_args(args)
 
     context._add_argparse_args(args)
 
@@ -147,9 +159,9 @@ def _main():
         return exit_code
 
 
-def main():
+def main(*args):
     from ..exceptions import conda_exception_handler
-    return conda_exception_handler(_main)
+    return conda_exception_handler(_main, *args)
 
 
 if __name__ == '__main__':
