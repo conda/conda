@@ -671,7 +671,6 @@ def package_cache():
         return package_cache_
     # Stops recursion
     package_cache_['@'] = None
-    # import pdb; pdb.set_trace()
     for pdir in context.pkgs_dirs:
         try:
             data = open(join(pdir, 'urls.txt')).read()
@@ -770,8 +769,13 @@ def is_extracted(dist):
     returns the full path of the extracted data for the requested package,
     or None if that package is not extracted.
     """
-    for fn in package_cache().get(dist, {}).get('dirs', ()):
-        return fn
+    fn = None
+    if dist in package_cache():
+        for _fn in package_cache().get(dist, {}).get('dirs', ()):
+            fn = _fn
+    elif dist.startswith('file://'):
+        fn = dist.replace('::', '/{}/'.format(context.subdir)).replace('file://', '')
+    return fn
 
 
 def rm_extracted(dist):
@@ -797,7 +801,14 @@ def extract(dist):
     Extract a package, i.e. make a package available for linkage. We assume
     that the compressed package is located in the packages directory.
     """
-    rec = package_cache()[dist]
+
+    print("subdir: ", context.subdir)
+
+    if dist in package_cache():
+        rec = package_cache()[dist]
+    elif dist.startswith('file://'):
+        rec = {'urls': [dist.replace('::', '/{}/'.format(context.subdir)) + '.tar.bz2']}
+        rec.update({'files': [rec['urls'][0].replace('file://', '')]})
     url = rec['urls'][0]
     fname = rec['files'][0]
     assert url and fname
@@ -806,10 +817,13 @@ def extract(dist):
     with FileLock(path):
         temp_path = path + '.tmp'
         rm_rf(temp_path)
+
         with tarfile.open(fname) as t:
             t.extractall(path=temp_path)
         rm_rf(path)
+        print("extracted to ", temp_path)
         exp_backoff_fn(os.rename, temp_path, path)
+        print("moved to ", path)
         if sys.platform.startswith('linux') and os.getuid() == 0:
             # When extracting as root, tarfile will by restore ownership
             # of extracted files.  However, we want root to be the owner
