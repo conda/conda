@@ -778,11 +778,10 @@ class UrlChannelTests(TestCase):
             )
             prioritized = prioritize_channels(context.channels)
             assert prioritized == OrderedDict((
-                ("file:///machine/shared_folder/path/conda/%s" % context.subdir, ("/machine/shared_folder/path/conda", 1)),
-                ("file:///machine/shared_folder/path/conda/noarch", ("/machine/shared_folder/path/conda", 1)),
-                ("file:///machine/shared_folder/path/conda/%s" % context.subdir, ("/machine/shared_folder/path/conda", 2)),
-                ("file:///machine/shared_folder/path/conda/noarch", ("/machine/shared_folder/path/conda", 2)),
-                ("file:///machine/shared_folder/path/conda/%s" % context.subdir, ("/machine/shared_folder/path/conda", 3)),
-                ("file:///machine/shared_folder/path/conda/noarch", ("/machine/shared_folder/path/conda", 3)),
+                ("file://\\\\machine\\shared_folder\\path\\conda/%s" % context.subdir, ("file://\\\\machine\\shared_folder\\path\\conda", 0)),
+                ("file://\\\\machine\\shared_folder\\path\\conda/noarch", ("file://\\\\machine\\shared_folder\\path\\conda", 0)),
+                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 1)),
+                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 1)),
+                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 2)),
+                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
             ))
-

@@ -27,6 +27,8 @@ def test_url_to_path_windows_local():
 def test_url_to_path_windows_unc():
     assert url_to_path("file://windowshost/windowshare/path") == "//windowshost/windowshare/path"
     assert url_to_path("\\\\windowshost\\windowshare\\path") == "\\\\windowshost\\windowshare\\path"
+    assert url_to_path("file://windowshost\\windowshare\\path") == "//windowshost\\windowshare\\path"
+    assert url_to_path("file://\\\\machine\\shared_folder\\path\\conda") == "\\\\machine\\shared_folder\\path\\conda"
 
 
 FILES = (

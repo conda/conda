@@ -55,8 +55,9 @@ def url_to_path(url):
     _, netloc, path, _, _ = urlsplit(url)
     path = unquote(path)
     if netloc not in ('', 'localhost', '127.0.0.1', '::1'):
-        # The only net location potentially accessible is a Windows UNC path
-        netloc = '//' + netloc
+        if not netloc.startswith('\\\\'):
+            # The only net location potentially accessible is a Windows UNC path
+            netloc = '//' + netloc
     else:
         netloc = ''
         # Handle Windows drive letters if present
