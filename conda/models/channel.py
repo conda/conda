@@ -10,7 +10,7 @@ from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_C
                               UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import iteritems, odict, with_metaclass
-from ..common.path import is_windows_path
+from ..common.path import is_path
 from ..common.url import (has_scheme, is_url, join_url, on_win, path_to_url,
                           split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
 
@@ -216,7 +216,7 @@ class Channel(object):
             if value.startswith('file:') and on_win:
                 value = value.replace('\\', '/')
             return Channel.from_url(value)
-        elif value.startswith(('./', '..', '~', '/')) or is_windows_path(value):
+        elif is_path(value):
             return Channel.from_url(path_to_url(value))
         elif value.endswith('.tar.bz2'):
             if value.startswith('file:') and on_win:

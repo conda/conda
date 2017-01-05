@@ -6,14 +6,18 @@ import os
 from os.path import basename, dirname, join, split, splitext
 import re
 
+from conda import CondaError
 from .compat import on_win, string_types
+from .._vendor.auxlib.decorators import memoize
 
 try:
     # Python 3
-    from urllib.parse import unquote  # NOQA
+    from urllib.parse import unquote, urlsplit
+    from urllib.request import url2pathname
 except ImportError:
     # Python 2
-    from urllib import unquote  # NOQA
+    from urllib import unquote, url2pathname  # NOQA
+    from urlparse import urlsplit  # NOQA
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
@@ -21,27 +25,45 @@ except ImportError:
     from .._vendor.toolz.itertoolz import accumulate, concat, take
 
 
+PATH_MATCH_REGEX = (
+    r"\./"              # ./
+    r"|\.\."            # ..
+    r"|~"               # ~
+    r"|/"               # /
+    r"|[a-zA-Z]:[/\\]"  # drive letter, colon, forward or backslash
+    r"|\\\\"            # windows UNC path
+    r"|//"              # windows UNC path
+)
+
+
 def is_path(value):
-    return value.startswith(('./', '..', '~', '/')) or is_windows_path(value)
+    if '://' in value:
+        return False
+    return re.match(PATH_MATCH_REGEX, value)
 
 
-def is_windows_path(value):
-    return re.match(r'[a-z]:[/\\]', value, re.IGNORECASE)
-
-
+@memoize
 def url_to_path(url):
-    """Convert a file:// URL to a path."""
+    """Convert a file:// URL to a path.
+
+    Relative file URLs (i.e. `file:relative/path`) are not supported.
+    """
     if is_path(url):
         return url
-    assert url.startswith('file:'), "You can only turn file: urls into filenames (not %r)" % url
-    path = url[len('file:'):].lstrip('/')
+    if not url.startswith("file://"):
+        raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
+    _, netloc, path, _, _ = urlsplit(url)
     path = unquote(path)
-    if re.match('^([a-z])[:|]', path, re.I):
-        path = path[0] + ':' + path[2:]
-    elif not path.startswith(r'\\'):
-        # if not a Windows UNC path
-        path = '/' + path
-    return path
+    if netloc not in ('', 'localhost', '127.0.0.1', '::1'):
+        if not netloc.startswith('\\\\'):
+            # The only net location potentially accessible is a Windows UNC path
+            netloc = '//' + netloc
+    else:
+        netloc = ''
+        # Handle Windows drive letters if present
+        if re.match('^/([a-z])[:|]', path, re.I):
+            path = path[1] + ':' + path[3:]
+    return netloc + path
 
 
 def tokenized_startswith(test_iterable, startswith_iterable):
