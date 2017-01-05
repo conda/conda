@@ -1,10 +1,32 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.common.path import missing_pyc_files, get_major_minor_version
+from conda.common.path import missing_pyc_files, get_major_minor_version, url_to_path
 from logging import getLogger
 
 log = getLogger(__name__)
+
+
+def test_url_to_path_unix():
+    assert url_to_path("file:///etc/fstab") == "/etc/fstab"
+    assert url_to_path("file://localhost/etc/fstab") == "/etc/fstab"
+    assert url_to_path("file://127.0.0.1/etc/fstab") == "/etc/fstab"
+    assert url_to_path("file://::1/etc/fstab") == "/etc/fstab"
+
+
+def test_url_to_path_windows_local():
+    assert url_to_path("file:///c|/WINDOWS/notepad.exe") == "c:/WINDOWS/notepad.exe"
+    assert url_to_path("file:///C:/WINDOWS/notepad.exe") == "C:/WINDOWS/notepad.exe"
+    assert url_to_path("file://localhost/C|/WINDOWS/notepad.exe") == "C:/WINDOWS/notepad.exe"
+    assert url_to_path("file://localhost/c:/WINDOWS/notepad.exe") == "c:/WINDOWS/notepad.exe"
+    assert url_to_path("C:\\Windows\\notepad.exe") == "C:\\Windows\\notepad.exe"
+    assert url_to_path("file:///C:/Program%20Files/Internet%20Explorer/iexplore.exe") == "C:/Program Files/Internet Explorer/iexplore.exe"
+    assert url_to_path("C:\\Program Files\\Internet Explorer\\iexplore.exe") == "C:\\Program Files\\Internet Explorer\\iexplore.exe"
+
+
+def test_url_to_path_windows_unc():
+    assert url_to_path("file://windowshost/windowshare/path") == "//windowshost/windowshare/path"
+    assert url_to_path("\\\\windowshost\\windowshare\\path") == "\\\\windowshost\\windowshare\\path"
 
 
 FILES = (
