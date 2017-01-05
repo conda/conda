@@ -8,12 +8,11 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
 from os.path import join
+import sys
 
 from enum import Enum
 
-on_win = bool(sys.platform == "win32")
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
                       # this program on itself will leave it unchanged
@@ -68,7 +67,8 @@ DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
                         'https://repo.continuum.io/pkgs/msys2',
                         )
 
-DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
+# use the bool(sys.platform == "win32") definition here so we don't import .compat.on_win
+DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if bool(sys.platform == "win32") else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'root'
 
