@@ -16,6 +16,7 @@
 * fix history tracking (#4143)
 * fix index creation order (#4131)
 * fix #4152 conda env export failure (#4175)
+* fix #3779 channel UNC path encoding errors on windows (#4190)
 * fix progress bar (#4191)
 
 ### Non-User-Facing Changes
