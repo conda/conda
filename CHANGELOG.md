@@ -16,6 +16,7 @@
 
 ### Non-User-Facing Changes
 * fix open-ended test failures relating to python 3.6 release (#4166)
+* allow args passed to cli.main() (#4193)
 
 
 ## 4.2.13 (2016-11-22)
