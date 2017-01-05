@@ -6,8 +6,15 @@
 
 ## 4.3.2 (unreleased)
 
+### Deprecations/Breaking Changes
+* Further refine conda channels specification. To verify if the url of a channel
+  represents a valid conda channel, we check that `noarch/repodata.json` and/or
+  `noarch/repodata.json.bz2` exist, even if empty. (#3739)
+
 ### Improvements
 * add new 'path_conflict' and 'clobber' configuration options (#4119)
+* separate fetch/extract pass for explicit URLs (#4125)
+* update conda homepage to conda.io (#4180)
 
 ### Bug Fixes
 * fix pre/post unlink/link scripts (#4113)
@@ -15,6 +22,8 @@
 * fix history tracking (#4143)
 * fix index creation order (#4131)
 * fix #4152 conda env export failure (#4175)
+* fix #3779 channel UNC path encoding errors on windows (#4190)
+* fix progress bar (#4191)
 
 ### Non-User-Facing Changes
 * xfail anaconda token test if local token is found (#4124)
@@ -170,21 +179,21 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.14 (unreleased)
-
-### Bug Fixes
-* fix location of temporary hard links of index.json (#3975)
-* fix potential errors in multi-channel export and offline clone (#3995)
+## 4.2.14 (2017-01-05)
 
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 * improve handling of local dependency information (#2107)
 * add default channels to exports for Windows and Unix (#4103)
+* make subdir configurable (#4178)
 
 ### Bug Fixes
 * fix conda/install.py single-file behavior (#3854)
 * fix the api->conda substitution (#3456)
 * fix silent directory removal (#3730)
+* fix location of temporary hard links of index.json (#3975)
+* fix potential errors in multi-channel export and offline clone (#3995)
+* fix auxlib/packaging, git hashes are not limited to 7 characters (#4189)
 
 ### Non-User-Facing Changes
 * fix open-ended test failures relating to python 3.6 release (#4166)

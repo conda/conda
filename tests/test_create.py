@@ -289,7 +289,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.timeout(300)
     def test_install_tarball_from_local_channel(self):
-        with make_temp_env("python flask=0.10.1") as prefix:
+        with make_temp_env("flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
@@ -307,12 +307,17 @@ class IntegrationTests(TestCase):
             repodata = {'info': {}, 'packages': {flask_fname: IndexRecord(**flask_data)}}
             with make_temp_env() as channel:
                 subchan = join(channel, context.subdir)
+                noarch_dir = join(channel, 'noarch')
                 channel = path_to_url(channel)
                 os.makedirs(subchan)
+                os.makedirs(noarch_dir)
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
                 with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
                     f.write(json.dumps(repodata, cls=EntityEncoder).encode('utf-8'))
+                with bz2.BZ2File(join(noarch_dir, 'repodata.json.bz2'), 'w') as f:
+                    f.write(json.dumps({}, cls=EntityEncoder).encode('utf-8'))
+
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask', '--json')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
