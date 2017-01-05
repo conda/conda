@@ -1,7 +1,14 @@
 ## 4.3.2 (unreleased)
 
+### Deprecations/Breaking Changes
+* Further refine conda channels specification. To verify if the url of a channel
+  represents a valid conda channel, we check that `noarch/repodata.json` and/or
+  `noarch/repodata.json.bz2` exist, even if empty. (#3739)
+
 ### Improvements
 * add new 'path_conflict' and 'clobber' configuration options (#4119)
+* separate fetch/extract pass for explicit URLs (#4125)
+* update conda homepage to conda.io (#4180)
 
 ### Bug Fixes
 * fix pre/post unlink/link scripts (#4113)
@@ -9,6 +16,7 @@
 * fix history tracking (#4143)
 * fix index creation order (#4131)
 * fix #4152 conda env export failure (#4175)
+* fix progress bar (#4191)
 
 ### Non-User-Facing Changes
 * xfail anaconda token test if local token is found (#4124)
