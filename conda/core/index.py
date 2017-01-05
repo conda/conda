@@ -193,8 +193,9 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
         def maybe_decompress(filename, resp_content):
             return ensure_text_type(bz2.decompress(resp_content)
                                     if filename.endswith('.bz2')
-                                    else resp_content)
-        fetched_repodata = json.loads(maybe_decompress(filename, resp.content))
+                                    else resp_content).strip()
+        json_str = maybe_decompress(filename, resp.content)
+        fetched_repodata = json.loads(json_str) if json_str else {}
         fetched_repodata['_url'] = url
         add_http_value_to_dict(resp, 'Etag', fetched_repodata, '_etag')
         add_http_value_to_dict(resp, 'Last-Modified', fetched_repodata, '_mod')
@@ -207,23 +208,31 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
         # status_code might not exist on SSLError
         status_code = getattr(e.response, 'status_code', None)
         if status_code == 404:
-            if url.endswith('/noarch'):  # noarch directory might not exist
+            if not url.endswith('/noarch'):
                 return None
+            else:
+                help_message = dals("""
+                The remote server could not find the channel you requested.
 
-            help_message = dals("""
-            The remote server could not find the channel you requested.
+                As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                empty.
 
-            You will need to adjust your conda configuration to proceed.
-            Use `conda config --show` to view your configuration's current state.
-            Further configuration help can be found at <%s>.
-            """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                You will need to adjust your conda configuration to proceed.
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 403:
-            if url.endswith('/noarch'):
+            if not url.endswith('/noarch'):
                 return None
             else:
                 help_message = dals("""
                 The channel you requested is not available on the remote server.
+
+                As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                empty.
 
                 You will need to adjust your conda configuration to proceed.
                 Use `conda config --show` to view your configuration's current state.
@@ -388,11 +397,11 @@ def fetch_index(channel_urls, use_cache=False, index=None):
         result = dict()
 
         for channel_url, repodata in repodatas:
-            if repodata is None:
+            if not repodata:
                 continue
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
-            for fn, info in iteritems(repodata['packages']):
+            for fn, info in iteritems(repodata.get('packages', {})):
                 rec = IndexRecord.from_objects(info,
                                                fn=fn,
                                                schannel=canonical_name,
