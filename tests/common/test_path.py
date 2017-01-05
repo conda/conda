@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.common.path import missing_pyc_files, get_major_minor_version, url_to_path
 from logging import getLogger
+
+from conda.common.path import (get_major_minor_version, missing_pyc_files, url_to_path,
+                               win_path_backout)
 
 log = getLogger(__name__)
 
@@ -29,6 +31,11 @@ def test_url_to_path_windows_unc():
     assert url_to_path("\\\\windowshost\\windowshare\\path") == "\\\\windowshost\\windowshare\\path"
     assert url_to_path("file://windowshost\\windowshare\\path") == "//windowshost\\windowshare\\path"
     assert url_to_path("file://\\\\machine\\shared_folder\\path\\conda") == "\\\\machine\\shared_folder\\path\\conda"
+
+
+def test_win_path_backout():
+    assert win_path_backout("file://\\\\machine\\shared_folder\\path\\conda") == "file://machine/shared_folder/path/conda"
+    assert win_path_backout("file://\\\\machine\\shared\\ folder\\path\\conda") == "file://machine/shared\\ folder/path/conda"
 
 
 FILES = (
