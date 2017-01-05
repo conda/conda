@@ -57,15 +57,15 @@ PLATFORM_DIRECTORIES = ("linux-64",
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
-DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
-                         'https://repo.continuum.io/pkgs/r',
-                         'https://repo.continuum.io/pkgs/pro',
+DEFAULT_CHANNELS_UNIX = ('https://repocloudflare.kjf.io/pkgs/free',
+                         'https://repocloudflare.kjf.io/pkgs/r',
+                         'https://repocloudflare.kjf.io/pkgs/pro',
                          )
 
-DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
-                        'https://repo.continuum.io/pkgs/r',
-                        'https://repo.continuum.io/pkgs/pro',
-                        'https://repo.continuum.io/pkgs/msys2',
+DEFAULT_CHANNELS_WIN = ('https://repocloudflare.kjf.io/pkgs/free',
+                        'https://repocloudflare.kjf.io/pkgs/r',
+                        'https://repocloudflare.kjf.io/pkgs/pro',
+                        'https://repocloudflare.kjf.io/pkgs/msys2',
                         )
 
 DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX

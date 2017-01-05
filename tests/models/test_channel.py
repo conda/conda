@@ -23,15 +23,15 @@ class DefaultConfigChannelTests(TestCase):
     def setUpClass(cls):
         reset_context()
         cls.platform = context.subdir
-        cls.DEFAULT_URLS = ['https://repo.continuum.io/pkgs/free/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/free/noarch',
-                            'https://repo.continuum.io/pkgs/r/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/r/noarch',
-                            'https://repo.continuum.io/pkgs/pro/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/pro/noarch']
+        cls.DEFAULT_URLS = ['https://repocloudflare.kjf.io/pkgs/free/%s' % cls.platform,
+                            'https://repocloudflare.kjf.io/pkgs/free/noarch',
+                            'https://repocloudflare.kjf.io/pkgs/r/%s' % cls.platform,
+                            'https://repocloudflare.kjf.io/pkgs/r/noarch',
+                            'https://repocloudflare.kjf.io/pkgs/pro/%s' % cls.platform,
+                            'https://repocloudflare.kjf.io/pkgs/pro/noarch']
         if on_win:
-            cls.DEFAULT_URLS.extend(['https://repo.continuum.io/pkgs/msys2/%s' % cls.platform,
-                                     'https://repo.continuum.io/pkgs/msys2/noarch'])
+            cls.DEFAULT_URLS.extend(['https://repocloudflare.kjf.io/pkgs/msys2/%s' % cls.platform,
+                                     'https://repocloudflare.kjf.io/pkgs/msys2/noarch'])
 
     def test_channel_alias_channels(self):
         channel = Channel('binstar/label/dev')
@@ -75,19 +75,19 @@ class DefaultConfigChannelTests(TestCase):
         assert dc.urls() == self.DEFAULT_URLS
 
     def test_url_channel_w_platform(self):
-        channel = Channel('https://repo.continuum.io/pkgs/free/osx-64')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/free/osx-64')
 
         assert channel.scheme == "https"
-        assert channel.location == "repo.continuum.io"
+        assert channel.location == "repocloudflare.kjf.io"
         assert channel.platform == 'osx-64'
         assert channel.name == 'pkgs/free'
 
-        assert channel.base_url == 'https://repo.continuum.io/pkgs/free'
+        assert channel.base_url == 'https://repocloudflare.kjf.io/pkgs/free'
         assert channel.canonical_name == 'defaults'
-        assert channel.url() == 'https://repo.continuum.io/pkgs/free/osx-64'
+        assert channel.url() == 'https://repocloudflare.kjf.io/pkgs/free/osx-64'
         assert channel.urls() == [
-            'https://repo.continuum.io/pkgs/free/osx-64',
-            'https://repo.continuum.io/pkgs/free/noarch',
+            'https://repocloudflare.kjf.io/pkgs/free/osx-64',
+            'https://repocloudflare.kjf.io/pkgs/free/noarch',
         ]
 
     def test_bare_channel(self):
@@ -233,7 +233,7 @@ class CustomConfigChannelTests(TestCase):
         migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
-          pkgs/free: https://repo.continuum.io
+          pkgs/free: https://repocloudflare.kjf.io
         migrated_channel_aliases:
           - https://conda.anaconda.org
         channel_alias: ftp://new.url:8082
@@ -271,7 +271,7 @@ class CustomConfigChannelTests(TestCase):
             'http://192.168.0.15:8080/pkgs/free/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/free')
         assert channel.channel_name == "pkgs/free"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
@@ -280,7 +280,7 @@ class CustomConfigChannelTests(TestCase):
             'http://192.168.0.15:8080/pkgs/free/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/noarch')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/free/noarch')
         assert channel.channel_name == "pkgs/free"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
@@ -288,7 +288,7 @@ class CustomConfigChannelTests(TestCase):
             'http://192.168.0.15:8080/pkgs/free/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/label/dev')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/free/label/dev')
         assert channel.channel_name == "pkgs/free/label/dev"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "pkgs/free/label/dev"
@@ -297,7 +297,7 @@ class CustomConfigChannelTests(TestCase):
             'http://192.168.0.15:8080/pkgs/free/label/dev/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/noarch/flask-1.0.tar.bz2')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/free/noarch/flask-1.0.tar.bz2')
         assert channel.channel_name == "pkgs/free"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.platform == "noarch"
@@ -317,40 +317,40 @@ class CustomConfigChannelTests(TestCase):
             'http://192.168.0.15:8080/pkgs/pro/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/pro')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/pro')
         assert channel.channel_name == "pkgs/pro"
-        assert channel.channel_location == "repo.continuum.io"
+        assert channel.channel_location == "repocloudflare.kjf.io"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'https://repo.continuum.io/pkgs/pro/%s' % self.platform,
-            'https://repo.continuum.io/pkgs/pro/noarch',
+            'https://repocloudflare.kjf.io/pkgs/pro/%s' % self.platform,
+            'https://repocloudflare.kjf.io/pkgs/pro/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/pro/noarch')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/pro/noarch')
         assert channel.channel_name == "pkgs/pro"
-        assert channel.channel_location == "repo.continuum.io"
+        assert channel.channel_location == "repocloudflare.kjf.io"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'https://repo.continuum.io/pkgs/pro/noarch',
+            'https://repocloudflare.kjf.io/pkgs/pro/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/pro/label/dev')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/pro/label/dev')
         assert channel.channel_name == "pkgs/pro/label/dev"
-        assert channel.channel_location == "repo.continuum.io"
+        assert channel.channel_location == "repocloudflare.kjf.io"
         assert channel.canonical_name == "pkgs/pro/label/dev"
         assert channel.urls() == [
-            'https://repo.continuum.io/pkgs/pro/label/dev/%s' % self.platform,
-            'https://repo.continuum.io/pkgs/pro/label/dev/noarch',
+            'https://repocloudflare.kjf.io/pkgs/pro/label/dev/%s' % self.platform,
+            'https://repocloudflare.kjf.io/pkgs/pro/label/dev/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/pro/noarch/flask-1.0.tar.bz2')
+        channel = Channel('https://repocloudflare.kjf.io/pkgs/pro/noarch/flask-1.0.tar.bz2')
         assert channel.channel_name == "pkgs/pro"
-        assert channel.channel_location == "repo.continuum.io"
+        assert channel.channel_location == "repocloudflare.kjf.io"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'https://repo.continuum.io/pkgs/pro/noarch',
+            'https://repocloudflare.kjf.io/pkgs/pro/noarch',
         ]
 
     def test_custom_channels(self):
