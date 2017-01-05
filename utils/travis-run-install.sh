@@ -19,12 +19,16 @@ osx_setup() {
             python get-pip.py --user
             ;;
         '3.4')
-            pyenv install 3.4.4
-            pyenv global 3.4.4
+            pyenv install 3.4.5
+            pyenv global 3.4.5
             ;;
         '3.5')
-            pyenv install 3.5.1
-            pyenv global 3.5.1
+            pyenv install 3.5.2
+            pyenv global 3.5.2
+            ;;
+        '3.6')
+            pyenv install 3.6.0
+            pyenv global 3.6.0
             ;;
     esac
     pyenv rehash
@@ -83,13 +87,15 @@ conda_build_install() {
 
     # install conda-build test dependencies
     conda install -y -q pytest pytest-cov pytest-timeout mock
-    python -m pip install pytest-capturelog pytest-mock pkginfo
-    conda install -y -q anaconda-client numpy
     conda install -y -q -c conda-forge perl pytest-xdist
+    conda install -y -q anaconda-client numpy
+
+    python -m pip install pytest-capturelog pytest-mock
+
     conda config --set add_pip_as_python_dependency true
 
     # install conda-build runtime dependencies
-    conda install -y -q filelock jinja2 patchelf
+    conda install -y -q filelock jinja2 patchelf conda-verify setuptools contextlib2 pkginfo
 
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
