@@ -92,7 +92,7 @@ log = getLogger(__name__)
 Response = namedtuple('Response', ['stdout', 'stderr', 'rc'])
 GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
                              r"(?P<version>\d+\.\d+\.\d+)"
-                             r"(?:-(?P<dev>\d+)-g(?P<hash>[0-9a-f]{7,9}))")
+                             r"(?:-(?P<dev>\d+)-g(?P<hash>[0-9a-f]{7,}))")
 
 
 def call(command, path=None, raise_on_error=True):
