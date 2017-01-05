@@ -21,6 +21,9 @@ matrix:
     - python: '3.5'
       os: linux
       language: python
+    - python: '3.6'
+      os: linux
+      language: python
     - python: '3.5'
       env: FLAKE8=true
       os: linux
@@ -33,11 +36,11 @@ matrix:
       os: linux
       language: python
     - python: '3.5'
-      env: CONDA_BUILD=2.0.1
+      env: CONDA_BUILD=2.0.12
       os: linux
       language: python
     - python: '3.5'
-      env: CONDA_BUILD=2.0.12
+      env: CONDA_BUILD=2.1.0
       os: linux
       language: python
 
