@@ -178,7 +178,10 @@ def win_path_double_escape(path):
 
 
 def win_path_backout(path):
-    return path.replace('\\', '/') if on_win else path
+    # replace all backslashes except those escaping spaces
+    # if we pass a file url, something like file://\\unc\path\on\win, make sure
+    #   we clean that up too
+    return re.sub(r"(\\(?! ))", r"/", path).replace(':////', '://')
 
 
 def ensure_pad(name, pad="_"):

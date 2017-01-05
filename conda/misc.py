@@ -3,23 +3,23 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict
 import os
+from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink, join,
+                     relpath)
 import re
 import shutil
 import sys
-from collections import defaultdict
-from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink, join,
-                     relpath)
 
 from ._vendor.auxlib.path import expand
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win
-from .common.path import url_to_path
+from .common.path import url_to_path, win_path_ok
 from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index, supplement_index_with_cache
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import (CondaRuntimeError, CondaFileNotFoundError, ParseError)
+from .exceptions import CondaFileNotFoundError, CondaRuntimeError, ParseError
 from .gateways.disk.delete import rm_rf
 from .instructions import LINK, UNLINK
 from .models.dist import Dist
@@ -69,7 +69,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # match, but we will let PFE below worry about that
         dist = None
         if url.startswith('file:/'):
-            path = url_to_path(url)
+            path = win_path_ok(url_to_path(url))
             if dirname(path) in context.pkgs_dirs:
                 if not exists(path):
                     raise CondaFileNotFoundError(path)
