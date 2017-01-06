@@ -30,6 +30,7 @@
 * fix open-ended test failures relating to python 3.6 release (#4145)
 * extend timebomb for test_multi_channel_export (#4169)
 * don't unlink dists that aren't in the index (#4130)
+* add python 3.6 and new conda-build test targets (#4194)
 
 
 
@@ -197,6 +198,8 @@
 
 ### Non-User-Facing Changes
 * fix open-ended test failures relating to python 3.6 release (#4166)
+* allow args passed to cli.main() (#4193)
+* test against python 3.6 (#4197)
 
 
 ## 4.2.13 (2016-11-22)

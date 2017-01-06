@@ -422,7 +422,6 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 def cache_fn_url(url):
     url = url.rstrip('/')
     subdir = url.rsplit('/', 1)[-1]
-    assert subdir in PLATFORM_DIRECTORIES, subdir
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
     return '%s.json' % (md5[:8],)
 

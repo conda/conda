@@ -26,7 +26,10 @@ matrix:
     - python: '3.4'
       os: linux
       language: python
-    - python: '3.5'
+    - python: '3.6'
+      os: linux
+      language: python
+    - python: '3.6'
       os: linux
       language: python
     - python: '3.5'
@@ -41,11 +44,11 @@ matrix:
       os: linux
       language: python
     - python: '3.5'
-      env: CONDA_BUILD=2.0.1
+      env: CONDA_BUILD=2.0.12
       os: linux
       language: python
     - python: '3.5'
-      env: CONDA_BUILD=2.0.12
+      env: CONDA_BUILD=2.1.0
       os: linux
       language: python
 

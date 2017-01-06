@@ -9,8 +9,8 @@ from requests.packages.urllib3.util import Url
 from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY,
                               UNKNOWN_CHANNEL)
 from ..base.context import context
-from ..common.compat import iteritems, odict, with_metaclass
-from ..common.path import is_path
+from ..common.compat import ensure_text_type, iteritems, odict, with_metaclass
+from ..common.path import is_path, win_path_backout
 from ..common.url import (has_scheme, is_url, join_url, on_win, path_to_url,
                           split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
 
@@ -210,17 +210,16 @@ class Channel(object):
     def from_value(value):
         if value is None:
             return Channel(name=UNKNOWN_CHANNEL)
-        if hasattr(value, 'decode'):
-            value = value.decode('utf-8')
+        value = ensure_text_type(value)
         if has_scheme(value):
-            if value.startswith('file:') and on_win:
-                value = value.replace('\\', '/')
+            if value.startswith('file:'):
+                value = win_path_backout(value)
             return Channel.from_url(value)
         elif is_path(value):
             return Channel.from_url(path_to_url(value))
         elif value.endswith('.tar.bz2'):
             if value.startswith('file:') and on_win:
-                value = value.replace('\\', '/')
+                value = win_path_backout(value)
             return Channel.from_url(value)
         else:
             # at this point assume we don't have a bare (non-scheme) url
