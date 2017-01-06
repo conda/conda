@@ -380,10 +380,12 @@ class Context(Configuration):
     @property
     def channels(self):
         # add 'defaults' channel when necessary if --channel is given via the command line
-        if self._argparse_args and self._argparse_args.channels:
-            argparse_channels = tuple(self._argparse_args.channels)
-            if argparse_channels == self._channels:
-                return argparse_channels + (DEFAULT_CHANNEL_NAME,)
+        if self._argparse_args:
+            argparse_channels = self._argparse_args.get('channels')
+            if argparse_channels:
+                argparse_channels = tuple(self._argparse_args.channels)
+                if argparse_channels == self._channels:
+                    return argparse_channels + (DEFAULT_CHANNEL_NAME,)
         return self._channels
 
 
