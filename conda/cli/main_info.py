@@ -154,14 +154,14 @@ def execute(args, parser):
         r = Resolve(index)
         if context.json:
             stdout_json({
-                package: [dump_record(r.index[p])
-                          for p in r.get_pkgs(arg2spec(package))]
+                package: [dump_record(r.index[d])
+                          for d in r.get_dists_for_spec(arg2spec(package))]
                 for package in args.packages
             })
         else:
             for package in args.packages:
-                for pkg in r.get_pkgs(arg2spec(package)):
-                    pretty_package(pkg, r.index[pkg])
+                for dist in r.get_dists_for_spec(arg2spec(package)):
+                    pretty_package(dist, r.index[dist])
         return
 
     options = 'envs', 'system', 'license'

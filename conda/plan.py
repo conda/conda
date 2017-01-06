@@ -563,8 +563,8 @@ def get_resolve_object(index, prefix):
 def determine_all_envs(r, specs, channel_priority_map=None):
     # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
-    best_pkgs = [r.index[r.get_pkgs(s, emptyok=False)[-1]] for s in specs]
-    spec_for_envs = [SpecForEnv(env=p.preferred_env, spec=p.name) for p in best_pkgs]
+    best_pkgs = (r.index[r.get_dists_for_spec(s, emptyok=False)[-1]] for s in specs)
+    spec_for_envs = tuple(SpecForEnv(env=p.preferred_env, spec=p.name) for p in best_pkgs)
     return spec_for_envs
 
 

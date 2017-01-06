@@ -184,13 +184,13 @@ def execute_search(args, parser):
             continue
         res = []
         if args.reverse_dependency:
-            res = [pkg for pkg in r.get_pkgs(name)
-                   if any(pat.search(dep.name) for dep in r.ms_depends(pkg))]
+            res = [dist for dist in r.get_dists_for_spec(name)
+                   if any(pat.search(dep.name) for dep in r.ms_depends(dist))]
         elif ms is not None:
             if ms.name == name:
-                res = r.get_pkgs(ms)
+                res = r.get_dists_for_spec(ms)
         elif pat is None or pat.search(name):
-            res = r.get_pkgs(name)
+            res = r.get_dists_for_spec(name)
         if res:
             names.append((name, res))
 
@@ -219,7 +219,7 @@ def execute_search(args, parser):
                 continue
 
         for dist in pkgs:
-            pkg = r.index[dist]
+            index_record = r.index[dist]
             if args.canonical:
                 if not context.json:
                     print(dist.dist_name)
@@ -240,33 +240,33 @@ def execute_search(args, parser):
             if not context.json:
                 print('%-25s %s  %-15s %15s  %-15s %s' % (
                     disp_name, inst,
-                    pkg.version,
-                    pkg.build,
-                    pkg.schannel,
+                    index_record.version,
+                    index_record.build,
+                    index_record.schannel,
                     disp_features(features),
                 ))
                 disp_name = ''
             else:
                 data = {}
-                data.update(pkg.dump())
+                data.update(index_record.dump())
                 data.update({
-                    'fn': pkg.fn,
+                    'fn': index_record.fn,
                     'installed': inst == '*',
                     'extracted': inst in '*.',
-                    'version': pkg.version,
-                    'build': pkg.build,
-                    'build_number': pkg.build_number,
-                    'channel': pkg.schannel,
-                    'full_channel': pkg.channel,
+                    'version': index_record.version,
+                    'build': index_record.build,
+                    'build_number': index_record.build_number,
+                    'channel': index_record.schannel,
+                    'full_channel': index_record.channel,
                     'features': list(features),
-                    'license': pkg.get('license'),
-                    'size': pkg.get('size'),
-                    'depends': pkg.get('depends'),
-                    'type': pkg.get('type')
+                    'license': index_record.get('license'),
+                    'size': index_record.get('size'),
+                    'depends': index_record.get('depends'),
+                    'type': index_record.get('type')
                 })
 
                 if data['type'] == 'app':
-                    data['icon'] = make_icon_url(pkg.info)
+                    data['icon'] = make_icon_url(index_record.info)
                 json[name].append(data)
 
     if context.json:

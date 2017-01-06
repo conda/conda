@@ -558,12 +558,12 @@ class Resolve(object):
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
-    def get_pkgs(self, ms, emptyok=False):
+    def get_dists_for_spec(self, ms, emptyok=False):
         ms = MatchSpec(ms)
-        pkgs = self.find_matches(ms)
-        if not pkgs and not emptyok:
+        dists = self.find_matches(ms)
+        if not dists and not emptyok:
             raise NoPackagesFoundError([(ms,)])
-        return sorted(pkgs, key=self.version_key)
+        return sorted(dists, key=self.version_key)
 
     @staticmethod
     def ms_to_v(ms):

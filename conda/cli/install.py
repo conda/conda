@@ -231,11 +231,11 @@ def install(args, parser, command='install'):
         Please remove duplicates of %s package""" % name
                 raise CondaCorruptEnvironmentError(msg)
 
-            pkgs = r.get_pkgs(name)
-            if not pkgs:
+            dists = r.get_dists_for_spec(name)
+            if not dists:
                 # Shouldn't happen?
                 continue
-            latest = pkgs[-1]
+            latest = dists[-1]
 
             if all([latest.version == vers_inst[0],
                     latest.build_number == build_inst[0],
