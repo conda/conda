@@ -1,4 +1,4 @@
-## 4.3.2 (unreleased)
+## 4.3.2 (2016-01-06)
 
 ### Deprecations/Breaking Changes
 * Further refine conda channels specification. To verify if the url of a channel
@@ -18,6 +18,8 @@
 * fix #4152 conda env export failure (#4175)
 * fix #3779 channel UNC path encoding errors on windows (#4190)
 * fix progress bar (#4191)
+* use context.channels instead of args.channel (#4199)
+* don't use local cached repodata for file:// urls (#4209)
 
 ### Non-User-Facing Changes
 * xfail anaconda token test if local token is found (#4124)
