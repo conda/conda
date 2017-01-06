@@ -175,7 +175,7 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.14 (2017-01-05)
+## 4.2.14 (2017-01-06)
 
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
@@ -190,10 +190,11 @@
 * fix location of temporary hard links of index.json (#3975)
 * fix potential errors in multi-channel export and offline clone (#3995)
 * fix auxlib/packaging, git hashes are not limited to 7 characters (#4189)
+* fix compatibility with requests >=2.12, add pyopenssl as dependency (#4059)
 
 ### Non-User-Facing Changes
 * fix open-ended test failures relating to python 3.6 release (#4166)
-* allow args passed to cli.main() (#4193)
+* allow args passed to cli.main() (#4193, #4200, #4201)
 * test against python 3.6 (#4197)
 
 

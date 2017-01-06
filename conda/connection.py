@@ -13,7 +13,11 @@ from requests import Session, __version__ as REQUESTS_VERSION
 from requests.adapters import BaseAdapter, HTTPAdapter
 from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
+from requests.models import Response
+from requests.structures import CaseInsensitiveDict
 from requests.utils import get_auth_from_url, get_netrc_auth
+import tempfile
+from tempfile import SpooledTemporaryFile
 
 from . import __version__ as VERSION
 from ._vendor.auxlib.ish import dals

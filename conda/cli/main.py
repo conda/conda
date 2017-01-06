@@ -81,6 +81,7 @@ def generate_parser():
 
 
 def _main(*args):
+    from ..base.constants import SEARCH_PATH
     from ..base.context import context
     from ..common.compat import on_win
     from ..gateways.logging import set_all_logger_level, set_verbosity
@@ -93,7 +94,7 @@ def _main(*args):
 
     log.debug("conda.cli.main called with %s", args)
     if len(args) > 1:
-        argv1 = sys.argv[1].strip()
+        argv1 = args[1].strip()
         if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
             import conda.cli.activate as activate
             activate.main()
@@ -138,7 +139,7 @@ def _main(*args):
     sub_parsers.completer = completer
     args = p.parse_args(args)
 
-    context._set_argparse_args(args)
+    context.__init__(SEARCH_PATH, 'conda', args)
 
     if getattr(args, 'json', False):
         # # Silence logging info to avoid interfering with JSON output
