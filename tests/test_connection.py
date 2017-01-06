@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.common.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.connection import CondaHttpAuth
-from conda.gateways.anaconda_client import set_binstar_token, remove_binstar_token
 from logging import getLogger
 from unittest import TestCase
 
