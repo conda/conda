@@ -296,6 +296,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None))
 
+
 def read_local_repodata(cache_path):
     with open(cache_path) as f:
         local_repodata = json.load(f)
@@ -316,7 +317,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             mod_etag_headers = {}
     else:
         timeout = mtime + context.repodata_timeout_secs - time()
-        if timeout > 0 or context.offline:
+        if timeout > 0 or context.offline and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
             return read_local_repodata(cache_path)
