@@ -21,9 +21,6 @@ matrix:
     - python: '3.6'
       os: linux
       language: python
-    - python: '3.6'
-      os: linux
-      language: python
     - python: '3.5'
       env: FLAKE8=true
       os: linux
