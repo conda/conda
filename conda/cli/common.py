@@ -186,6 +186,7 @@ def add_parser_quiet(p):
 def add_parser_channels(p):
     p.add_argument(
         '-c', '--channel',
+        dest='channels',
         action="append",
         help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults

@@ -247,7 +247,7 @@ class ArgParseRawParameter(RawParameter):
         return None
 
     def valueflags(self, parameter_obj):
-        return None
+        return None if isinstance(parameter_obj, PrimitiveParameter) else ()
 
     @classmethod
     def make_raw_parameters(cls, args_from_argparse):
@@ -579,7 +579,7 @@ class SequenceParameter(Parameter):
             return tuple(line
                          for line, flag in zip(match.value(parameter_obj),
                                                match.valueflags(parameter_obj))
-                         if flag is marker)
+                         if flag is marker) if match else ()
         top_lines = concat(get_marked_lines(m, ParameterFlag.top, self) for m in relevant_matches)
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
@@ -611,6 +611,14 @@ class SequenceParameter(Parameter):
             lines.append("  - %s%s" % (self._str_format_value(value),
                                        self._str_format_flag(valueflag)))
         return '\n'.join(lines)
+
+    def _get_all_matches(self, instance):
+        # this is necessary to handle argparse `action="append"`, which can't be set to a
+        #   default value of NULL
+        matches, multikey_exceptions = super(SequenceParameter, self)._get_all_matches(instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, multikey_exceptions
+
 
 
 class MapParameter(Parameter):
