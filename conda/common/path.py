@@ -84,7 +84,8 @@ def get_leaf_directories(files):
         return ()
 
     leaves = []
-    def _process(x, y):  # NOQA
+
+    def _process(x, y):
         if not tokenized_startswith(y, x):
             leaves.append(x)
         return y

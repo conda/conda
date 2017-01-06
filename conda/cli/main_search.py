@@ -8,16 +8,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from .common import (Completer, Packages, add_parser_channels, add_parser_json, add_parser_known,
                      add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
-                     add_parser_use_local, disp_features,
+                     add_parser_use_local, disp_features, arg2spec,
                      ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
 from ..api import get_index
 from ..base.context import context
 from ..common.compat import text_type
 from ..exceptions import CommandArgumentError, PackageNotFoundError
 from ..misc import make_icon_url
-from ..models.dist import Dist
-from ..resolve import NoPackagesFoundError
-from conda.models.package import Package
+from ..resolve import MatchSpec, NoPackagesFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -141,7 +139,7 @@ def execute_search(args, parser):
     ms = None
     if args.regex:
         if args.spec:
-            ms = ' '.join(args.regex.split('='))
+            ms = MatchSpec(arg2spec(args.regex))
         else:
             regex = args.regex
             if args.full_name:
@@ -168,8 +166,7 @@ def execute_search(args, parser):
         args.unknown = False
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
-    channel_urls = args.channel or ()
-    index = get_index(channel_urls=channel_urls, prepend=not args.override_channels,
+    index = get_index(channel_urls=context.channels, prepend=not args.override_channels,
                       platform=args.platform, use_local=args.use_local,
                       use_cache=args.use_index_cache, prefix=None,
                       unknown=args.unknown)
@@ -185,42 +182,20 @@ def execute_search(args, parser):
     for name in sorted(r.groups):
         if '@' in name:
             continue
+        res = []
         if args.reverse_dependency:
-            ms_name = ms
-            for pkg in r.groups[name]:
-                for dep in r.ms_depends(pkg):
-                    if pat.search(dep.name):
-                        names.append((name, Package(pkg, r.index[pkg])))
-        else:
-            if pat and pat.search(name) is None:
-                continue
-            if ms and name != ms.split()[0]:
-                continue
-
-            if ms:
-                ms_name = ms
-            else:
-                ms_name = name
-
-            pkgs = sorted(r.get_pkgs(ms_name))
-            names.append((name, pkgs))
-
-    if args.reverse_dependency:
-        new_names = []
-        old = None
-        for name, pkg in sorted(names, key=lambda x: (x[0], x[1].name, x[1])):
-            if name == old:
-                new_names[-1][1].append(pkg)
-            else:
-                new_names.append((name, [pkg]))
-            old = name
-        names = new_names
+            res = [dist for dist in r.get_dists_for_spec(name)
+                   if any(pat.search(dep.name) for dep in r.ms_depends(dist))]
+        elif ms is not None:
+            if ms.name == name:
+                res = r.get_dists_for_spec(ms)
+        elif pat is None or pat.search(name):
+            res = r.get_dists_for_spec(name)
+        if res:
+            names.append((name, res))
 
     for name, pkgs in names:
-        if args.reverse_dependency:
-            disp_name = pkgs[0].name
-        else:
-            disp_name = name
+        disp_name = name
 
         if args.names_only and not args.outdated:
             print(name)
@@ -243,8 +218,8 @@ def execute_search(args, parser):
                 print(name)
                 continue
 
-        for pkg in pkgs:
-            dist = Dist(pkg)
+        for dist in pkgs:
+            index_record = r.index[dist]
             if args.canonical:
                 if not context.json:
                     print(dist.dist_name)
@@ -265,33 +240,33 @@ def execute_search(args, parser):
             if not context.json:
                 print('%-25s %s  %-15s %15s  %-15s %s' % (
                     disp_name, inst,
-                    pkg.version,
-                    pkg.build,
-                    pkg.schannel,
+                    index_record.version,
+                    index_record.build,
+                    index_record.schannel,
                     disp_features(features),
                 ))
                 disp_name = ''
             else:
                 data = {}
-                data.update(pkg.info.dump())
+                data.update(index_record.dump())
                 data.update({
-                    'fn': pkg.fn,
+                    'fn': index_record.fn,
                     'installed': inst == '*',
                     'extracted': inst in '*.',
-                    'version': pkg.version,
-                    'build': pkg.build,
-                    'build_number': pkg.build_number,
-                    'channel': pkg.schannel,
-                    'full_channel': pkg.channel,
+                    'version': index_record.version,
+                    'build': index_record.build,
+                    'build_number': index_record.build_number,
+                    'channel': index_record.schannel,
+                    'full_channel': index_record.channel,
                     'features': list(features),
-                    'license': pkg.info.get('license'),
-                    'size': pkg.info.get('size'),
-                    'depends': pkg.info.get('depends'),
-                    'type': pkg.info.get('type')
+                    'license': index_record.get('license'),
+                    'size': index_record.get('size'),
+                    'depends': index_record.get('depends'),
+                    'type': index_record.get('type')
                 })
 
                 if data['type'] == 'app':
-                    data['icon'] = make_icon_url(pkg.info)
+                    data['icon'] = make_icon_url(index_record.info)
                 json[name].append(data)
 
     if context.json:
