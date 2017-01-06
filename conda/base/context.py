@@ -9,7 +9,7 @@ from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 import sys
 
-from conda.base.constants import PathConflict
+from conda.base.constants import PathConflict, DEFAULT_CHANNEL_NAME
 from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
                         SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
@@ -17,7 +17,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
-                                    SequenceParameter, ValidationError)
+                                    SequenceParameter, ValidationError, ArgParseRawParameter)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
@@ -95,7 +95,8 @@ class Context(Configuration):
                                         validation=channel_alias_validation)
 
     # channels
-    channels = SequenceParameter(string_types, default=('defaults',))
+    _channels = SequenceParameter(string_types, default=(DEFAULT_CHANNEL_NAME,),
+                                  aliases=('channels',))
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
@@ -334,14 +335,14 @@ class Context(Configuration):
         # the format for 'default_channels' is a list of strings that either
         #   - start with a scheme
         #   - are meant to be prepended with channel_alias
-        return self.custom_multichannels['defaults']
+        return self.custom_multichannels[DEFAULT_CHANNEL_NAME]
 
     @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
 
         reserved_multichannel_urls = odict((
-            ('defaults', self._default_channels),
+            (DEFAULT_CHANNEL_NAME, self._default_channels),
             ('local', self.conda_build_local_urls),
         ))
         reserved_multichannels = odict(
@@ -375,6 +376,15 @@ class Context(Configuration):
             custom_channels,
         )))
         return all_channels
+
+    @property
+    def channels(self):
+        # add 'defaults' channel when necessary if --channel is given via the command line
+        if self._argparse_args and self._argparse_args.channels:
+            argparse_channels = tuple(self._argparse_args.channels)
+            if argparse_channels == self._channels:
+                return argparse_channels + (DEFAULT_CHANNEL_NAME,)
+        return self._channels
 
 
 def conda_in_private_env():

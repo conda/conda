@@ -620,7 +620,6 @@ class SequenceParameter(Parameter):
         return matches, multikey_exceptions
 
 
-
 class MapParameter(Parameter):
     """Parameter type for a Configuration class that holds a map (i.e. dict) of python
     primitive values.
