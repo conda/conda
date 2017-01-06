@@ -893,7 +893,7 @@ class PlanFromActionsTests(unittest.TestCase):
 def generate_mocked_resolve(pkgs, install=None):
     mock_package = namedtuple("IndexRecord",
                               ["preferred_env", "name", "schannel", "version", "fn"])
-    mock_resolve = namedtuple("Resolve", ["get_pkgs", "index", "explicit", "install",
+    mock_resolve = namedtuple("Resolve", ["get_dists_for_spec", "index", "explicit", "install",
                                           "package_name", "dependency_sort"])
 
     index = {}
@@ -905,7 +905,7 @@ def generate_mocked_resolve(pkgs, install=None):
         groups[name].append(dist)
         index[dist] = pkg
 
-    def get_pkgs(spec, emptyok=False):
+    def get_dists_for_spec(spec, emptyok=False):
         # Here, spec should be a MatchSpec
         res = groups[spec.name]
         if not res and not emptyok:
@@ -924,7 +924,7 @@ def generate_mocked_resolve(pkgs, install=None):
     def get_dependency_sort(specs):
         return tuple(spec for spec in specs.values())
 
-    return mock_resolve(get_pkgs=get_pkgs, index=index, explicit=get_explicit,
+    return mock_resolve(get_dists_for_spec=get_dists_for_spec, index=index, explicit=get_explicit,
                         install=get_install, package_name=get_package_name,
                         dependency_sort=get_dependency_sort)
 
@@ -950,8 +950,8 @@ class TestDetermineAllEnvs(unittest.TestCase):
 
     def test_determine_all_envs(self):
         specs_for_envs = plan.determine_all_envs(self.res, self.specs)
-        expected_output = [plan.SpecForEnv(env=None, spec="test-spec"),
-                           plan.SpecForEnv(env="test1", spec="test-spec2")]
+        expected_output = (plan.SpecForEnv(env=None, spec="test-spec"),
+                           plan.SpecForEnv(env="test1", spec="test-spec2"))
         self.assertEquals(specs_for_envs, expected_output)
 
     def test_determine_all_envs_with_channel_priority(self):
@@ -963,8 +963,8 @@ class TestDetermineAllEnvs(unittest.TestCase):
         prioritized_channel_map = prioritize_channels(tuple(["rando_chnl", "defaults"]))
         specs_for_envs_w_channel_priority = plan.determine_all_envs(
             self.res, self.specs, prioritized_channel_map)
-        expected_output = [plan.SpecForEnv(env="ranenv", spec="test-spec"),
-                           plan.SpecForEnv(env="test1", spec="test-spec2")]
+        expected_output = (plan.SpecForEnv(env="ranenv", spec="test-spec"),
+                           plan.SpecForEnv(env="test1", spec="test-spec2"))
         self.assertEquals(specs_for_envs_w_channel_priority, expected_output)
 
     def test_determine_all_envs_no_package(self):
