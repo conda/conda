@@ -81,6 +81,7 @@ def generate_parser():
 
 
 def _main(*args):
+    from ..base.constants import SEARCH_PATH
     from ..base.context import context
     from ..gateways.logging import set_all_logger_level, set_verbosity
     from ..exceptions import CommandNotFoundError
@@ -138,7 +139,7 @@ def _main(*args):
     sub_parsers.completer = completer
     args = p.parse_args(args)
 
-    context._add_argparse_args(args)
+    context.__init__(SEARCH_PATH, 'conda', args)
 
     if getattr(args, 'json', False):
         # # Silence logging info to avoid interfering with JSON output
