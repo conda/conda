@@ -472,7 +472,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     linked_in_root = linked_data(context.root_prefix)
 
-    # Ensure that there is only on prefix to install into
+    # Ensure that there is only one prefix to install into
     dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
     ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
     preferred_envs = set(d.env for d in dists_for_envs)
@@ -558,22 +558,6 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def get_highest_priority_match(matches, prioritized_channel_list, index):
-    nth_channel_priority = lambda n: [chnl[0] for chnl in prioritized_channel_list if
-                                      chnl[1] == n][0]
-
-    # This loop: match to the highest priority channel;
-    #   if no packages match priority 0, try the next channel
-    for i in range(0, len(prioritized_channel_list)):
-        target_channel = nth_channel_priority(i)
-        highest_match = [m for m in matches if m.schannel == target_channel]
-        if len(highest_match) > 0:
-            newest_pkg = sorted(highest_match, key=lambda pk: pk.version)[-1]
-            return newest_pkg
-
-    raise PackageNotFoundError(matches[0].name, "package not found")
-
-
 def determine_all_envs(r, specs, channel_priority_map=None):
     # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
@@ -588,13 +572,10 @@ def determine_all_envs(r, specs, channel_priority_map=None):
         channel_priority_map = prioritize_channels(channels)
 
     # remove duplicates e.g. for channel names with multiple urls
-    prioritized_channel_list = set((chnl, prrty) for chnl, prrty in
-                                   itervalues(channel_priority_map))
-
     spec_for_envs = []
     for spec in specs:
-        matched_dists = r.get_pkgs(spec)
-        best_match = get_highest_priority_match(matched_dists, prioritized_channel_list, r.index)
+        matched_dists = r.find_matches(spec)
+        best_match = sorted(matched_dists, key=lambda d: r.index[d]['priority'])[0]
         spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
                                         spec=best_match.name))
     return spec_for_envs
