@@ -251,8 +251,37 @@ specification. ``python >= 2.7`` is an invalid match
 specification. Furthermore, ``python>=2.7`` will be matched as any version of
 a package named "python>=2.7".
 
+When using the command line, put double quotes around any package version 
+specification that contains the characters `` `` (space), ``<``, ``>``, ``*``, 
+or ``|``::
+
+    conda install numpy=1.11
+    conda install numpy==1.11
+    conda install "numpy>1.11"
+    conda install "numpy=1.11.1|1.11.3"
+    conda install "numpy>=1.8,<2"
+
 Examples
 ~~~~~~~~
+
+The "OR" constraint ``"numpy=1.11.1|1.11.3"`` will match with 1.11.1 or with 
+1.11.3.
+
+The "AND" constraint ``"numpy>=1.8,<2"`` will match with 1.8 and 1.9 but not 
+2.0.
+
+The "fuzzy" constraint ``numpy=1.11`` will match 1.11, 1.11.0, 1.11.1, 1.11.2, 
+1.11.18, and so on.
+
+The "exact" constraint ``numpy==1.11`` matches 1.11, 1.11.0, 1.11.0.0, and so 
+on.
+
+The build string constraint ``"numpy=1.11.2=*nomkl*"`` matches the NumPy 1.11.2 
+packages without MKL but not the normal MKL NumPy 1.11.2 packages.
+
+The build string constraint ``"numpy=1.11.1|1.11.3=py36_0"`` matches NumPy 1.11.1 
+or 1.11.3 built for Python 3.6 but not any versions of NumPy built for Python 
+3.5 or Python 2.7.
 
 The following are all valid match specifications for numpy-1.8.1-py27_0:
 
