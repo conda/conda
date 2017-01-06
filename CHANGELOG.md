@@ -24,6 +24,7 @@
 * fix open-ended test failures relating to python 3.6 release (#4145)
 * extend timebomb for test_multi_channel_export (#4169)
 * don't unlink dists that aren't in the index (#4130)
+* add python 3.6 and new conda-build test targets (#4194)
 
 
 ## 4.3.1 (2016-12-19)
