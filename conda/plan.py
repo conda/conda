@@ -559,30 +559,15 @@ def get_resolve_object(index, prefix):
 
 
 def determine_all_envs(r, specs, channel_priority_map=None):
-    # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
+    # type: (Record, List[MatchSpec], Option[List[Tuple]]) -> List[SpecForEnv]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
-
-    # Make sure there is a channel priority
-    if channel_priority_map is None or len(channel_priority_map) == 0:
-        # copy context.channels into a list
-        channels = [ch for ch in context.channels]
-        for ind in r.index.keys():
-            if not(ind.channel in channels):
-                channels.append(ind.channel)
-        channel_priority_map = prioritize_channels(channels)
-
-    # remove duplicates e.g. for channel names with multiple urls
-    spec_for_envs = []
-    for spec in specs:
-        matched_dists = r.find_matches(spec)
-        best_match = sorted(matched_dists, key=lambda d: r.index[d]['priority'])[0]
-        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
-                                        spec=best_match.name))
+    best_pkgs = (r.index[r.get_pkgs(s, emptyok=False)[-1]] for s in specs)
+    spec_for_envs = tuple(SpecForEnv(env=p.preferred_env, spec=p.name) for p in best_pkgs)
     return spec_for_envs
 
 
 def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root):
-    # type: List[DistForEnv], List[(Dist, Record)] -> ()
+    # type: (List[DistForEnv], List[(Dist, Record)]) -> ()
     for dist_env in dists_for_envs:
         # If trying to install a package in root that is already in a private env
         if dist_env.env is None and common.prefix_if_in_private_env(dist_env.spec) is not None:
