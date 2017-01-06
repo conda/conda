@@ -33,7 +33,7 @@ requirements:
     - menuinst             [win]
     - pycosat >=0.6.1
     - pyopenssl >=16.2.0
-    - requests >=2.12.14
+    - requests >=2.12.4
     - ruamel_yaml >=0.11.14
 
 test:
