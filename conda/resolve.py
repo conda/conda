@@ -11,7 +11,6 @@ from .console import setup_handlers
 from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
-from .models.package import Package
 from .models.index_record import IndexRecord
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
@@ -539,7 +538,9 @@ class Resolve(object):
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
         bld = rec.get('build_number', 0)
-        return (valid, -cpri, ver, bld) if context.channel_priority else (valid, ver, -cpri, bld)
+        bs = rec.get('build_string')
+        return ((valid, -cpri, ver, bld, bs) if context.channel_priority else
+                (valid, ver, -cpri, bld, bs))
 
     def features(self, dist):
         return set(self.index[dist].get('features', '').split())
@@ -557,12 +558,12 @@ class Resolve(object):
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
-    def get_pkgs(self, ms, emptyok=False):
+    def get_dists_for_spec(self, ms, emptyok=False):
         ms = MatchSpec(ms)
-        pkgs = [Package(dist, self.index[dist]) for dist in self.find_matches(ms)]
-        if not pkgs and not emptyok:
+        dists = self.find_matches(ms)
+        if not dists and not emptyok:
             raise NoPackagesFoundError([(ms,)])
-        return pkgs
+        return sorted(dists, key=self.version_key)
 
     @staticmethod
     def ms_to_v(ms):
@@ -742,8 +743,7 @@ class Resolve(object):
         dist = Dist(fn)
         name, version, unused_bld, schannel = self.package_quad(dist)
         candidates = {}
-        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
-            fn1 = pkg.dist
+        for fn1 in self.find_matches(MatchSpec(name + ' ' + version)):
             if self.features(fn1).intersection(features):
                 continue
             key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)

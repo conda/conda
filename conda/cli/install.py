@@ -157,7 +157,7 @@ def install(args, parser, command='install'):
     common.ensure_override_channels_requires_channel(args)
     index_args = {
         'use_cache': args.use_index_cache,
-        'channel_urls': args.channel or (),
+        'channel_urls': context.channels,
         'unknown': args.unknown,
         'prepend': not args.override_channels,
         'use_local': args.use_local
@@ -231,11 +231,11 @@ def install(args, parser, command='install'):
         Please remove duplicates of %s package""" % name
                 raise CondaCorruptEnvironmentError(msg)
 
-            pkgs = sorted(r.get_pkgs(name))
-            if not pkgs:
+            dists = r.get_dists_for_spec(name)
+            if not dists:
                 # Shouldn't happen?
                 continue
-            latest = pkgs[-1]
+            latest = dists[-1]
 
             if all([latest.version == vers_inst[0],
                     latest.build_number == build_inst[0],

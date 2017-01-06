@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.common.io import env_var
+
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
 from conda.common.configuration import (Configuration, MapParameter, ParameterFlag,
@@ -397,3 +399,11 @@ class ConfigurationTests(TestCase):
         data = odict(s1=YamlRawParameter.make_raw_parameters('s1', yaml_load(string)))
         config = SampleConfiguration()._set_raw_data(data)
         raises(InvalidTypeError, config.validate_all)
+
+    def test_config_resets(self):
+        appname = "myapp"
+        config = SampleConfiguration(app_name=appname)
+        assert config.changeps1 is True
+        with env_var("MYAPP_CHANGEPS1", "false"):
+            config.__init__(app_name=appname)
+            assert config.changeps1 is False

@@ -22,8 +22,7 @@ from .package_cache import PackageCache
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY,
-                              PLATFORM_DIRECTORIES)
+from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, iterkeys, itervalues
 from ..common.url import join_url
@@ -297,6 +296,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None))
 
+
 def read_local_repodata(cache_path):
     with open(cache_path) as f:
         local_repodata = json.load(f)
@@ -317,7 +317,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             mod_etag_headers = {}
     else:
         timeout = mtime + context.repodata_timeout_secs - time()
-        if timeout > 0 or context.offline:
+        if timeout > 0 or context.offline and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
             return read_local_repodata(cache_path)
@@ -397,13 +397,18 @@ def fetch_index(channel_urls, use_cache=False, index=None):
         result = dict()
 
         for channel_url, repodata in repodatas:
-            if not repodata:
+            if not repodata or not repodata.get('packages', {}):
                 continue
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
-            for fn, info in iteritems(repodata.get('packages', {})):
+            repodata_info = repodata.get('info', {})
+            arch = repodata_info.get('arch')
+            platform = repodata_info.get('platform')
+            for fn, info in iteritems(repodata['packages']):
                 rec = IndexRecord.from_objects(info,
                                                fn=fn,
+                                               arch=arch,
+                                               platform=platform,
                                                schannel=canonical_name,
                                                channel=channel_url,
                                                priority=priority,
@@ -421,7 +426,8 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 
 def cache_fn_url(url):
     url = url.rstrip('/')
-    subdir = url.rsplit('/', 1)[-1]
+    # subdir = url.rsplit('/', 1)[-1]
+    # assert subdir in PLATFORM_DIRECTORIES or context.subdir != context._subdir, subdir
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
     return '%s.json' % (md5[:8],)
 

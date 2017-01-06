@@ -56,6 +56,9 @@ PLATFORM_DIRECTORIES = ("linux-64",
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
+
+DEFAULT_CHANNEL_NAME = 'defaults'
+
 DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
                          'https://repo.continuum.io/pkgs/r',
                          'https://repo.continuum.io/pkgs/pro',
