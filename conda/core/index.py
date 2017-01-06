@@ -22,8 +22,7 @@ from .package_cache import PackageCache
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY,
-                              PLATFORM_DIRECTORIES)
+from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, iterkeys, itervalues
 from ..common.url import join_url
@@ -397,13 +396,18 @@ def fetch_index(channel_urls, use_cache=False, index=None):
         result = dict()
 
         for channel_url, repodata in repodatas:
-            if not repodata:
+            if not repodata or not repodata.get('packages', {}):
                 continue
             canonical_name, priority = channel_urls[channel_url]
             channel = Channel(channel_url)
-            for fn, info in iteritems(repodata.get('packages', {})):
+            repodata_info = repodata.get('info', {})
+            arch = repodata_info.get('arch')
+            platform = repodata_info.get('platform')
+            for fn, info in iteritems(repodata['packages']):
                 rec = IndexRecord.from_objects(info,
                                                fn=fn,
+                                               arch=arch,
+                                               platform=platform,
                                                schannel=canonical_name,
                                                channel=channel_url,
                                                priority=priority,
@@ -421,7 +425,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 
 def cache_fn_url(url):
     url = url.rstrip('/')
-    subdir = url.rsplit('/', 1)[-1]
+    # subdir = url.rsplit('/', 1)[-1]
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
     return '%s.json' % (md5[:8],)
 

@@ -28,8 +28,8 @@ class DistType(EntityType):
             value = args[0]
             if isinstance(value, Dist):
                 return value
-            elif value.__class__.__name__ == "Package":
-                return Dist.from_string(value.fn, channel_override=value.schannel)
+            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
+                return value.dist
             elif isinstance(value, IndexRecord):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             elif isinstance(value, PackageInfo):

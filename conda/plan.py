@@ -20,26 +20,26 @@ from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
 from .base.context import context
 from .cli import common
 from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
-from .common.compat import itervalues, odict, on_win
+from .common.compat import odict, on_win
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
-from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
-                         PackageNotFoundError, RemoveError)
+from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
+                         InstallError, RemoveError)
 from .gateways.disk.create import mkdir_p
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
                            RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK,
                            UNLINKLINKTRANSACTION, execute_instructions)
-from .models.channel import Channel, prioritize_channels
+from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
-from .models.package import Package
 from .resolve import MatchSpec, Resolve
 from .utils import human_bytes
+from .version import normalized_version
 
 try:
     from cytoolz.itertoolz import concatv, groupby
@@ -113,7 +113,7 @@ def display_actions(actions, index, show_channel_urls=None):
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
-        records[pkg][1] = Package(dist.to_filename(), rec)
+        records[pkg][1] = rec
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(UNLINK, []):
@@ -122,7 +122,7 @@ def display_actions(actions, index, show_channel_urls=None):
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
-        records[pkg][0] = Package(dist.to_filename(), rec)
+        records[pkg][0] = rec
         features[pkg][0] = rec.get('features', '')
 
     new = {p for p in packages if not packages[p][0]}
@@ -174,8 +174,8 @@ def display_actions(actions, index, show_channel_urls=None):
 
         P0 = records[pkg][0]
         P1 = records[pkg][1]
-        pri0 = P0.priority
-        pri1 = P1.priority
+        pri0 = P0.get('priority')
+        pri1 = P1.get('priority')
         if pri0 is None or pri1 is None:
             pri0 = pri1 = 1
         try:
@@ -184,8 +184,10 @@ def display_actions(actions, index, show_channel_urls=None):
                 oldver = not newver
             else:
                 # <= here means that unchanged packages will be put in updated
-                newver = P0.norm_version < P1.norm_version
-                oldver = P0.norm_version > P1.norm_version
+                N0 = normalized_version(P0.version)
+                N1 = normalized_version(P1.version)
+                newver = N0 < N1
+                oldver = N0 > N1
         except TypeError:
             newver = P0.version < P1.version
             oldver = P0.version > P1.version
@@ -473,7 +475,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     linked_in_root = linked_data(context.root_prefix)
 
     # Ensure that there is only one prefix to install into
-    dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+    dists_for_envs = determine_all_envs(r, specs)
     ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
     preferred_envs = set(d.env for d in dists_for_envs)
     assert len(preferred_envs) == 1
@@ -561,26 +563,8 @@ def get_resolve_object(index, prefix):
 def determine_all_envs(r, specs, channel_priority_map=None):
     # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
     assert all(isinstance(spec, MatchSpec) for spec in specs)
-
-    # Make sure there is a channel priority
-    if channel_priority_map is None or len(channel_priority_map) == 0:
-        # copy context.channels into a list
-        channels = [ch for ch in context.channels]
-        for ind in r.index.keys():
-            if not(ind.channel in channels):
-                channels.append(ind.channel)
-        channel_priority_map = prioritize_channels(channels)
-
-    # remove duplicates e.g. for channel names with multiple urls
-    spec_for_envs = []
-    for spec in specs:
-        matched_dists = r.find_matches(spec)
-        try:
-            best_match = sorted(matched_dists, key=lambda d: r.version_key(d))[-1]
-        except IndexError:
-            raise PackageNotFoundError(matched_dists[0].name, "package not found")
-        spec_for_envs.append(SpecForEnv(env=r.index[Dist(best_match)].preferred_env,
-                                        spec=best_match.name))
+    best_pkgs = [r.index[r.get_pkgs(s, emptyok=False)[-1]] for s in specs]
+    spec_for_envs = [SpecForEnv(env=p.preferred_env, spec=p.name) for p in best_pkgs]
     return spec_for_envs
 
 
