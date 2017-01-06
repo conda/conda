@@ -573,7 +573,7 @@ successfully. The output will also contain the location of the final
 package file, and a command that can be run to upload the package to 
 Anaconda Cloud.
 
-**Problems, questions? As discussed in the “Build strategy” section above, 
+Problems, questions? As discussed in the “Build strategy” section above, 
 in case of any linker or compiler errors, the recipe can be modified and 
 run again. 
 
