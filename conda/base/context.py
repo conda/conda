@@ -9,15 +9,15 @@ from os.path import abspath, basename, dirname, expanduser, isdir, join
 from platform import machine
 import sys
 
-from conda.base.constants import PathConflict, DEFAULT_CHANNEL_NAME
 from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
                         SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
+from ..base.constants import DEFAULT_CHANNEL_NAME, PathConflict
 from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
-                                    SequenceParameter, ValidationError, ArgParseRawParameter)
+                                    SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
