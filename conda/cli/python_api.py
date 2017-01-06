@@ -77,6 +77,10 @@ def run_command(command, *arguments, **kwargs):
         if use_exception_handler:
             return_code = conda_exception_handler(args.func, args, p)
         else:
-            return_code = args.func(args, p)
+            try:
+                return_code = args.func(args, p)
+            except Exception as e:
+                e.stdout, e.stderr = c.stdout, c.stderr
+                raise e
     log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", c.stdout, c.stderr, return_code)
     return c.stdout, c.stderr, return_code
