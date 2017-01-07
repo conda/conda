@@ -74,9 +74,9 @@ if (( $? == 0 )); then
     # The activate script sets _CONDA_HOLD here to activate that behavior.
     #   Otherwise, PATH is simply removed.
     if [ -n "$_CONDA_HOLD" ]; then
-        export PATH="$(echo "$PATH" | sed -E "s|$_LAST_ACTIVATE_PATH(:?)|CONDA_PATH_PLACEHOLDER\1|g")"
+        export PATH="$(echo "$PATH" | sed -E "s|$_LAST_ACTIVATE_PATH(:?)|CONDA_PATH_PLACEHOLDER\1|")"
     else
-        export PATH="$(echo "$PATH" | sed -E "s|$_LAST_ACTIVATE_PATH(:?)||g")"
+        export PATH="$(echo "$PATH" | sed -E "s|$_LAST_ACTIVATE_PATH(:?)||")"
     fi
 
     unset _LAST_ACTIVATE_PATH
