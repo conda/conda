@@ -1,4 +1,4 @@
-## 4.2.14 (2017-01-06)
+## 4.2.14 (2017-01-07)
 
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
@@ -14,6 +14,7 @@
 * fix potential errors in multi-channel export and offline clone (#3995)
 * fix auxlib/packaging, git hashes are not limited to 7 characters (#4189)
 * fix compatibility with requests >=2.12, add pyopenssl as dependency (#4059)
+* fix #3287 activate in 4.1-4.2.3 clobbers non-conda PATH changes (#4211)
 
 ### Non-User-Facing Changes
 * fix open-ended test failures relating to python 3.6 release (#4166)
@@ -157,14 +158,6 @@
 * fix cio_test compatibility (#3395 via #3400)
 
 
-## 4.1.12 (2016-09-08)
-
-### Bug Fixes
-* fix #2837 "File exists" in symlinked path with parallel activations (#3210)
-* fix prune option when installing packages (#3354)
-* change check for placeholder to be more friendly to long PATH (#3349)
-
-
 ## 4.2.4 (2016-08-18)
 
 ### Bug Fixes
@@ -284,12 +277,15 @@
 * error and exit for install of packages that require conda minimum version 4.3, #3726
 * fix conda/install.py single-file behavior, #3854
 * fix open-ended test failures relating to python 3.6 release (#4167)
+* fix #3287 activate in 4.1-4.2.3 clobbers non-conda PATH changes (#4211)
 
 
 ## 4.1.12 (2016-09-08)
+
 * fix #2837 "File exists" in symlinked path with parallel activations, #3210
 * fix prune option when installing packages, #3354
 * change check for placeholder to be more friendly to long PATH, #3349
+
 
 ## 4.1.11 (2016-07-26)
 
