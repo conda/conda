@@ -203,7 +203,7 @@ def test_activate_deactivate(shell):
         assert_equals(stdout, u"%s" % shell_vars['base_path'])
 
 
-@pytest.mark.slow
+@pytest.mark.installed
 def test_activate_root_simple(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
