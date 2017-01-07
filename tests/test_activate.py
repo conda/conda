@@ -493,8 +493,8 @@ def test_activate_deactivate(shell):
             assert_equals(stderr,'')
 
 
-@pytest.mark.installed
-def test_activate_root(shell):
+@pytest.mark.slow
+def test_activate_root_simple(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=os.path.dirname(__file__)) as envs:
         env_dirs,env_vars=gen_test_env_paths(envs, shell)
