@@ -4,6 +4,6 @@ coverage:
   range: 60...100
 
 ignore:
-  - conda-env/.*
+  - conda_env/.*
   - conda/_vendor/.*
   - tests/.*
