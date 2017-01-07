@@ -201,7 +201,7 @@ def test_activate_deactivate(shell):
 
 
 @pytest.mark.slow
-def test_activate_root(shell):
+def test_activate_root_simple(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
