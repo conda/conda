@@ -392,6 +392,20 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
+    @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+    @pytest.mark.timeout(300)
+    def test_remove_features(self):
+        with make_temp_env("numpy nomkl") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'numpy')
+            assert_package_is_installed(prefix, 'nomkl')
+            assert not package_is_installed(prefix, 'mkl')
+
+            run_command(Commands.REMOVE, prefix, '--features', 'nomkl')
+            assert_package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'nomkl')
+            assert_package_is_installed(prefix, 'mkl')
+
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
