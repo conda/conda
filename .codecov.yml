@@ -6,6 +6,7 @@ coverage:
 ignore:
   - conda_env/.*
   - conda/_vendor/.*
+  - conda/console.py
   - conda/cli/main_package.py
   - conda/gateways/adapters/ftp.py
   - conda/gateways/adapters/s3.py

@@ -3,8 +3,8 @@ KEYS_DIR = None
 
 
 def hash_file(_):
-    return None
+    return None  # pragma: no cover
 
 
 def verify(_):
-    return False
+    return False  # pragma: no cover
