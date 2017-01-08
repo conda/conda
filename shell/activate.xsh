@@ -107,4 +107,4 @@ def _main(args=None):
     _cleanup()
 
 
-_main(args=$ARGS[1:])
+_main(args=$ARGS)
