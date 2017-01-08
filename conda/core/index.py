@@ -146,12 +146,17 @@ def read_mod_and_etag(path):
     with open(path, 'rb') as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = take(2, re.finditer(b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"', m))
+                match_objects = take(3, re.finditer(b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"', m))
                 result = dict(map(ensure_text_type, mo.groups()) for mo in match_objects)
                 return result
         except ValueError:
             # ValueError: cannot mmap an empty file
             return {}
+
+
+def get_cache_control_max_age(cache_control_value):
+    max_age = re.search(r"max-age=(\d+)", cache_control_value)
+    return int(max_age.groups()[0]) if max_age else 0
 
 
 class Response304ContentUnchanged(Exception):
@@ -317,14 +322,15 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             mod_etag_headers = {}
     else:
-        timeout = mtime + context.repodata_timeout_secs - time()
-        if timeout > 0 or context.offline and not url.startswith('file://'):
+        mod_etag_headers = read_mod_and_etag(cache_path)
+        max_age = get_cache_control_max_age(mod_etag_headers.get('_cache_control', ''))
+        timeout = mtime + max_age - time()
+        if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
             return read_local_repodata(cache_path)
-        else:
-            mod_etag_headers = read_mod_and_etag(cache_path)
-            log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
+
+        log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
     try:
         assert url is not None, url
