@@ -140,10 +140,6 @@ class VersionOrder(object):
             return self
         self = version_cache[version] = object.__new__(cls)
 
-        # when fillvalue ==  0  =>  1.1 == 1.1.0
-        # when fillvalue == -1  =>  1.1  < 1.1.0
-        self.fillvalue = 0
-
         message = "Malformed version string '%s': " % version
         # version comparison is case-insensitive
         version = version.strip().rstrip().lower()
@@ -208,23 +204,42 @@ class VersionOrder(object):
                     v[k] = c
                 else:
                     # components shall start with a number to keep numbers and
-                    # strings in phase => prepend fillvalue
-                    v[k] = [self.fillvalue] + c
+                    # strings in phase => prepend 0
+                    v[k] = [0] + c
         return self
 
     def __str__(self):
         return self.norm_version
 
-    def _eq(self, t1, t2):
-        for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
-            for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
-                if c1 != c2:
-                    return False
-        return True
-
     def __eq__(self, other):
-        return (self._eq(self.version, other.version) and
-                self._eq(self.local, other.local))
+        return (not (self.version < other.version) and
+                not (self.version > other.version))
+
+    def _lt(self, t1, t2):
+        min_per_type = {str: 'DEV', int: 0}
+        for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
+            for c1, c2 in zip_longest(v1, v2):
+                if c1 is None:
+                    c1 = min_per_type[type(c2)]
+                elif c2 is None:
+                    c2 = min_per_type[type(c1)]
+                if c1 == c2:
+                    continue
+                elif isinstance(c1, string_types):
+                    if not isinstance(c2, string_types):
+                        # str < int
+                        return True
+                elif isinstance(c2, string_types):
+                        # not (int < str)
+                        return False
+                # c1 and c2 have the same type
+                return c1 < c2
+        # self == other
+        return False
+
+    def _eq(self, t1, t2):
+        return (not self._lt(t1, t2) and
+                not self._lt(t2, t1))
 
     def startswith(self, other):
         # Tests if the version lists match up to the last element in "other".
@@ -246,7 +261,7 @@ class VersionOrder(object):
         nt = len(v2) - 1
         if not self._eq([v1[:nt]], [v2[:nt]]):
             return False
-        c1 = self.fillvalue if len(v1) <= nt else v1[nt]
+        c1 = 0 if len(v1) <= nt else v1[nt]
         c2 = v2[nt]
         if isinstance(c2, string_types):
             return isinstance(c1, string_types) and c1.startswith(c2)
@@ -256,21 +271,9 @@ class VersionOrder(object):
         return not (self == other)
 
     def __lt__(self, other):
-        for t1, t2 in zip([self.version, self.local], [other.version, other.local]):
-            for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
-                for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
-                    if c1 == c2:
-                        continue
-                    elif isinstance(c1, string_types):
-                        if not isinstance(c2, string_types):
-                            # str < int
-                            return True
-                    elif isinstance(c2, string_types):
-                            # not (int < str)
-                            return False
-                    # c1 and c2 have the same type
-                    return c1 < c2
-        # self == other
+        if self._lt(self.version, other.version):
+            if self._lt(self.local, other.local):
+                return True
         return False
 
     def __gt__(self, other):
