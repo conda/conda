@@ -146,7 +146,7 @@ def read_mod_and_etag(path):
     with open(path, 'rb') as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = take(2, re.finditer(b'"(_etag|_mod)":[ ]?"(.*)"', m))
+                match_objects = take(2, re.finditer(b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"', m))
                 result = dict(map(ensure_text_type, mo.groups()) for mo in match_objects)
                 return result
         except ValueError:
@@ -198,6 +198,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
         fetched_repodata['_url'] = url
         add_http_value_to_dict(resp, 'Etag', fetched_repodata, '_etag')
         add_http_value_to_dict(resp, 'Last-Modified', fetched_repodata, '_mod')
+        add_http_value_to_dict(resp, 'Cache-Control', fetched_repodata, '_cache_control')
         return fetched_repodata
 
     except ValueError as e:
