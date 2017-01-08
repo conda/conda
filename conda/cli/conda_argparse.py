@@ -162,7 +162,7 @@ use the "conda %s" command.''' % cmd)
 
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             print("""
-other commands, such as "conda build", are avaialble when additional conda
+other commands, such as "conda build", are available when additional conda
 packages (e.g. conda-build) are installed
 """)
 

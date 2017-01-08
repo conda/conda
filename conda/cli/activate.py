@@ -249,7 +249,7 @@ def main():
     elif mode == '..checkenv':
         # conda ..checkenv <SHELL> <ENV>
 
-        # dont't count conda and ..checkenv
+        # don't count conda and ..checkenv
         received -= 2
         if received != 2:
             expected = 2
