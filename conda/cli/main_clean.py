@@ -287,7 +287,7 @@ def execute(args, parser):
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': first,  # Backwards compabitility
+            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
             'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
