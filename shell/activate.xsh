@@ -37,7 +37,7 @@ def _make_parser():
                    action='store_true', help='show help')
     p.add_argument('-v', '--verbose', dest='verbose', default=CONDA_VERBOSE,
                    action='store_true', help='verbose mode')
-    p.add_argument('envname', nargs='?', dest='envname',
+    p.add_argument('envname', nargs='?',
                    default=CONDA_ENVNAME, help='environment name')
     return p
 
@@ -52,8 +52,8 @@ def _parse_args(args=None):
 
 
 def _cleanup():
-    global os, ArgumentParser, is_bool_to_bool
-    del os, ArgumentParser, is_bool_to_bool
+    global os, ArgumentParser, is_bool, to_bool
+    del os, ArgumentParser, is_bool, to_bool
     del $CONDA_HELP, $CONDA_VERBOSE, $CONDA_ENVNAME
 
 
