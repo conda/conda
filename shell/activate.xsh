@@ -60,13 +60,13 @@ def _cleanup():
 def _failsafe(pipeline=None):
     if not pipeline:
         _cleanup()
-        raise RuntimeError
+        raise RuntimeError("conda activate failed")
 
 
 def _main(args=None):
     ns = _parse_args(args=args)
     if ns.help:
-        conda "..activate" @(WHAT_SHELL_AM_I) "-h" ""
+        _failsafe(![conda "..activate" @(WHAT_SHELL_AM_I) "-h" ""])
         _cleanup()
         return
     # CHECK ENV AND DEACTIVATE OLD ENV                                    #
