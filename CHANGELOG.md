@@ -9,9 +9,11 @@
 ### Improvements
 * respect Cache-Control max-age header for repodata (#4220)
 * remove questionable "nothing to install" logic (#4237)
+* relax channel noarch requirement for 4.3; warn now, raise in future feature release (#4238)
 
 ### Bug Fixes
 * remove features properly (#4236)
+* do not use `IFS` to find activate/deactivate scripts to source (#4239)
 
 
 ## 4.3.2 (2017-01-06)
