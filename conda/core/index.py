@@ -351,7 +351,14 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             mod_etag_headers = {}
     else:
         mod_etag_headers = read_mod_and_etag(cache_path)
-        max_age = get_cache_control_max_age(mod_etag_headers.get('_cache_control', ''))
+
+        if context.local_repodata_ttl > 1:
+            max_age = context.local_repodata_ttl
+        elif context.local_repodata_ttl == 1:
+            max_age = get_cache_control_max_age(mod_etag_headers.get('_cache_control', ''))
+        else:
+            max_age = 0
+
         timeout = mtime + max_age - time()
         if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",

@@ -79,6 +79,11 @@ class Context(Configuration):
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
     _subdir = PrimitiveParameter('', aliases=('subdir',))
 
+    local_repodata_ttl = PrimitiveParameter(True, parameter_type=(bool, int))
+    # number of seconds to cache repodata locally
+    #   True/1: respect Cache-Control max-age header
+    #   False/0: always fetch remote repodata (HTTP 304 responses respected)
+
     # remote connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
     client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
