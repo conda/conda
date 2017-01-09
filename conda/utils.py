@@ -231,6 +231,34 @@ posix_c_base = dict(
     suffix_script='.csh',
     var_set='set {variable}="{value}"',
 )
+posix_xonsh_base = dict(
+    allargs='$ARGS',
+    binpath='/bin/',  # mind the trailing slash.
+    defaultenv_print='print($CONDA_DEFAULT_ENV)',
+    echo='echo',
+    envvar_getall='env',
+    envvar_set='${variable} = "{value}"',
+    envvar_unset='del ${variable}',
+    flag_double='--',
+    flag_single='-',
+    nul='out> /dev/null',
+    path_delim=':',
+    path_from=path_identity,
+    path_print='print($PATH)',
+    path_to=path_identity,
+    path_prepend='$PATH.insert(0, {})"',
+    prompt_print='print($PROMPT)"',
+    prompt_set='$PROMPT = "{value}"',
+    prompt_unset='del $PROMPT',
+    sep='/',
+    shell_args='-l',
+    source='source "{}"',
+    suffix_executable='',
+    suffix_script='.xsh',
+    var_format='{}',
+    var_set='{variable} = "{value}"',
+    var_unset='del {variable}',
+)
 
 cygwin_prefix = "C:\\cygwin64\\bin\\"
 cygwin_bash_base = dict(
@@ -346,6 +374,12 @@ powershell_base = dict(
     var_set='${variable}="{value}"',
     var_unset='Remove-Variable {variable}',
 )
+win_xonsh_base = dict(
+    posix_xonsh_base,
+    binpath='\Scripts\\',  # mind the trailing slash.
+    envvar_getall='print("\n".join([k + '=' + v for k, v in ${...}.detype().items()]))',
+    sep='\\',
+)
 
 if on_win:
     shells = {
@@ -397,6 +431,10 @@ if on_win:
             # this is the default install location for MSYS
             exe=msys_prefix + 'tcsh.exe',
         ),
+        "xonsh": dict(
+            win_xonsh_base,
+            exe='xonsh.bat',
+        ),
     }
 
 else:
@@ -439,6 +477,10 @@ else:
         "tcsh": dict(
             posix_c_base,
             exe='tcsh',
+        ),
+        "xonsh": dict(
+            posix_xonsh_base,
+            exe='xonsh',
         ),
     }
 
