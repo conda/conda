@@ -1,3 +1,9 @@
+## 4.2.15 (unreleased)
+
+### Improvements
+* Use 'post' instead of 'dev' for commits according to PEP-440 (#4234)
+
+
 ## 4.2.14 (2017-01-07)
 
 ### Improvements
