@@ -55,7 +55,7 @@
 
 @REM Do we have CONDA_PATH_PLACEHOLDER in PATH?
 @SET "CHECK_PLACEHOLDER=import os; print('CONDA_PATH_PLACEHOLDER' in os.environ['PATH'])"
-@FOR /F "tokens=1 delims=;" %%i in ('@call python -c "%CHECK_PLACEHOLDER%"') DO @SET "HAS_PLACEHOLDER=%%i"
+@FOR /F "tokens=1 delims=;" %%i in ('@call "%~dp0\..\python" -c "%CHECK_PLACEHOLDER%"') DO @SET "HAS_PLACEHOLDER=%%i"
 
 @REM look if the deactivate script left a placeholder for us.
 @IF "%HAS_PLACEHOLDER%" == "True" (
