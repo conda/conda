@@ -4,7 +4,17 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.2 (2016-01-06)
+## 4.3.3 (unreleased)
+
+### Improvements
+* respect Cache-Control max-age header for repodata (#4220)
+* remove questionable "nothing to install" logic (#4237)
+
+### Bug Fixes
+* remove features properly (#4236)
+
+
+## 4.3.2 (2017-01-06)
 
 ### Deprecations/Breaking Changes
 * Further refine conda channels specification. To verify if the url of a channel
