@@ -377,7 +377,7 @@ powershell_base = dict(
 win_xonsh_base = dict(
     posix_xonsh_base,
     binpath='\Scripts\\',  # mind the trailing slash.
-    envvar_getall='print("\n".join([k + '=' + v for k, v in ${...}.detype().items()]))',
+    envvar_getall='print("\n".join([k + "=" + v for k, v in ${...}.detype().items()]))',
     sep='\\',
 )
 

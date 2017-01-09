@@ -74,12 +74,17 @@ def _main(args=None):
         _cleanup()
         return
     # RESTORE PATH                                                        #
-    # remove only first instance of $CONDA_PREFIX from $PATH, since this is#
-    # Unix we will only expect a single path that need to be removed, for #
-    # simplicity and consistency with the Windows *.bat scripts we will use#
-    # fuzzy matching (/f) to get all of the relevant removals             #
-    i = $PATH.index($CONDA_PREFIX)
-    del $PATH[i]
+    # remove only first instance of $CONDA_PREFIX from $PATH, since this  #
+    # is Unix we will only expect a single path that need to be removed   #
+    # fuzzy matching (/f) removals will be used                           #
+    i = 0
+    for p in $PATH:
+        if p.startswith($CONDA_PREFIX):
+            break
+    else:
+        i = None
+    if i is not None:
+        del $PATH[i]
     # REMOVE CONDA_PREFIX and CONDA_DEFAULT_ENV                           #
     conda_dir = os.path.join($CONDA_PREFIX, 'etc', 'conda', 'deactivate.d')
     del $CONDA_PREFIX, $CONDA_DEFAULT_ENV

@@ -64,6 +64,7 @@ def _failsafe(pipeline=None):
 
 
 def _main(args=None):
+    import os
     ns = _parse_args(args=args)
     if ns.help:
         _failsafe(![conda "..activate" @(WHAT_SHELL_AM_I) "-h" ""])
@@ -85,7 +86,8 @@ def _main(args=None):
     # the shortest representation of how conda recognizes your env        #
     # can be an env name, or a full path (if the string contains / it's a #
     # path)                                                               #
-    if os.sep in ns.envname or os.altsep in ns.envname:
+    if (os.sep in ns.envname) or (os.altsep is not None and
+                                  os.altsep in ns.envname):
         $CONDA_DEFAULT_ENV = ns.envname
     else:
         d = os.path.abspath(os.path.dirname(ns.envname))
