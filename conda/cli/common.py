@@ -91,7 +91,7 @@ class Packages(Completer):
         # TODO: Include .tar.bz2 files for local installs.
         from conda.core.index import get_index
         args = self.parsed_args
-        call_dict = dict(channel_urls=args.channels or (),
+        call_dict = dict(channel_urls=args.channel or (),
                          use_cache=True,
                          prepend=not args.override_channels,
                          unknown=args.unknown)
@@ -188,7 +188,8 @@ def add_parser_quiet(p):
 def add_parser_channels(p):
     p.add_argument(
         '-c', '--channel',
-        dest='channels',
+        dest='channel',  # apparently conda-build uses this; someday rename to channels are remove context.channels alias to channel  # NOQA
+        # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
         action="append",
         help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults
@@ -408,7 +409,7 @@ def ensure_use_local(args):
                                 " to use the --use-local option." % e)
 
 def ensure_override_channels_requires_channel(args, dashc=True):
-    if args.override_channels and not (args.channels or args.use_local):
+    if args.override_channels and not (args.channel or args.use_local):
         if dashc:
             raise CondaValueError('--override-channels requires -c/--channel'
                                   ' or --use-local')
