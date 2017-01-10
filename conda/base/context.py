@@ -95,7 +95,7 @@ class Context(Configuration):
 
     # channels
     _channels = SequenceParameter(string_types, default=(DEFAULT_CHANNEL_NAME,),
-                                  aliases=('channels',))
+                                  aliases=('channels', 'channel',))  # channel for args.channel
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
