@@ -189,6 +189,7 @@ def add_parser_channels(p):
     p.add_argument(
         '-c', '--channel',
         dest='channel',  # apparently conda-build uses this; someday rename to channels are remove context.channels alias to channel  # NOQA
+        # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
         action="append",
         help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults

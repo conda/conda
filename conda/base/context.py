@@ -379,8 +379,9 @@ class Context(Configuration):
     @property
     def channels(self):
         # add 'defaults' channel when necessary if --channel is given via the command line
-        if self._argparse_args and 'channels' in self._argparse_args:
-            argparse_channels = tuple(self._argparse_args['channels'] or ())
+        if self._argparse_args and 'channel' in self._argparse_args:
+            # TODO: it's args.channel right now, not channels
+            argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULT_CHANNEL_NAME,)
         return self._channels
