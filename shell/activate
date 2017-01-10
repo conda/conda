@@ -27,9 +27,11 @@ case "$(uname -s)" in
         if [ "${CONDA_PATH_BACKUP:0:1}" != "/"  ]; then
            unset CONDA_PATH_BACKUP
         fi
+        _CONDA_PYTHON="_CONDA_DIR/../python"
         ;;
     *)
         EXT=""
+        _CONDA_PYTHON="_CONDA_DIR/python"
         ;;
 esac
 
@@ -69,7 +71,7 @@ if (( $? == 0 )); then
     # look if the deactivate script left a placeholder for us
     if [[ $PATH == *"CONDA_PATH_PLACEHOLDER"* ]]; then
         # If it did, replace it with our _NEW_PART
-        export PATH="$($_CONDA_DIR/python -c "import re; print(re.sub(r'CONDA_PATH_PLACEHOLDER', r'$_NEW_PART', '$PATH', 1))")"
+        export PATH="$($_CONDA_PYTHON -c "import re; print(re.sub(r'CONDA_PATH_PLACEHOLDER', r'$_NEW_PART', '$PATH', 1))")"
     else
         export PATH="$_NEW_PART:$PATH"
     fi
@@ -108,6 +110,7 @@ else
 fi
 
 unset CONDA_PATH
+unset _CONDA_PYTHON
 
 if [[ -n $BASH_VERSION ]]; then
     hash -r

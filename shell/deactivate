@@ -17,9 +17,11 @@ case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
         export MSYS2_ENV_CONV_EXCL=CONDA_PATH
+        _CONDA_PYTHON="_CONDA_DIR/../python"
         ;;
     *)
         EXT=""
+        _CONDA_PYTHON="_CONDA_DIR/python"
         ;;
 esac
 
@@ -74,12 +76,13 @@ if (( $? == 0 )); then
     # The activate script sets _CONDA_HOLD here to activate that behavior.
     #   Otherwise, PATH is simply removed.
     if [ -n "$_CONDA_HOLD" ]; then
-        export PATH="$($_CONDA_DIR/python -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'CONDA_PATH_PLACEHOLDER\1', '$PATH', 1))")"
+        export PATH="$($_CONDA_PYTHON -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'CONDA_PATH_PLACEHOLDER\1', '$PATH', 1))")"
     else
-        export PATH="$($_CONDA_DIR/python -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'', '$PATH', 1))")"
+        export PATH="$($_CONDA_PYTHON -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'', '$PATH', 1))")"
     fi
 
     unset _LAST_ACTIVATE_PATH
+    unset _CONDA_PYTHON
 
     unset CONDA_DEFAULT_ENV
     unset CONDA_PREFIX
