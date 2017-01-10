@@ -4,7 +4,7 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.3 (01-10-2017)
+## 4.3.3 (2017-01-10)
 
 ### Improvements
 * respect Cache-Control max-age header for repodata (#4220)
@@ -200,12 +200,15 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.15 (unreleased)
+## 4.2.15 (2017-01-10)
 
 ### Improvements
 * use 'post' instead of 'dev' for commits according to PEP-440 (#4234)
 * do not use IFS to find activate/deactivate scripts to source (#4243)
 * fix relative path to python in activate.bat (#4244)
+
+### Bug Fixes
+* replace sed with python for activate and deactivate #4257
 
 
 ## 4.2.14 (2017-01-07)
