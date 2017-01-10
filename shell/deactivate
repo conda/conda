@@ -74,9 +74,9 @@ if (( $? == 0 )); then
     # The activate script sets _CONDA_HOLD here to activate that behavior.
     #   Otherwise, PATH is simply removed.
     if [ -n "$_CONDA_HOLD" ]; then
-        export PATH="$(python -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'CONDA_PATH_PLACEHOLDER\1', '$PATH', 1))")"
+        export PATH="$($_CONDA_DIR/python -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'CONDA_PATH_PLACEHOLDER\1', '$PATH', 1))")"
     else
-        export PATH="$(python -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'', '$PATH', 1))")"
+        export PATH="$($_CONDA_DIR/python -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'', '$PATH', 1))")"
     fi
 
     unset _LAST_ACTIVATE_PATH

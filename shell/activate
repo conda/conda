@@ -69,8 +69,7 @@ if (( $? == 0 )); then
     # look if the deactivate script left a placeholder for us
     if [[ $PATH == *"CONDA_PATH_PLACEHOLDER"* ]]; then
         # If it did, replace it with our _NEW_PART
-        export PATH="$(python -c "import re; print(re.sub(r'CONDA_PATH_PLACEHOLDER', r'$_NEW_PART', '$PATH', 1))")"
-        # export PATH="$(echo "$PATH" | sed "s|CONDA_PATH_PLACEHOLDER|$_NEW_PART|")"
+        export PATH="$($_CONDA_DIR/python -c "import re; print(re.sub(r'CONDA_PATH_PLACEHOLDER', r'$_NEW_PART', '$PATH', 1))")"
     else
         export PATH="$_NEW_PART:$PATH"
     fi
