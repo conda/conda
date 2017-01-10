@@ -4,16 +4,23 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.3 (unreleased)
+## 4.3.3 (01-10-2017)
 
 ### Improvements
 * respect Cache-Control max-age header for repodata (#4220)
+* add 'local_repodata_ttl' configurability (#4240)
 * remove questionable "nothing to install" logic (#4237)
 * relax channel noarch requirement for 4.3; warn now, raise in future feature release (#4238)
+* add additional info to setup.py warning message (#4258)
 
 ### Bug Fixes
 * remove features properly (#4236)
 * do not use `IFS` to find activate/deactivate scripts to source (#4239)
+* fix #4235 print message to stderr (#4241)
+* fix relative path to python in activate.bat (#4242)
+* fix args.channel references (#4245, #4246)
+* ensure cache_fn_url right pad (#4255)
+* fix #4256 subprocess calls must have env wrapped in str (#4259)
 
 
 ## 4.3.2 (2017-01-06)
