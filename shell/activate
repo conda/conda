@@ -69,7 +69,7 @@ if (( $? == 0 )); then
     # look if the deactivate script left a placeholder for us
     if [[ $PATH == *"CONDA_PATH_PLACEHOLDER"* ]]; then
         # If it did, replace it with our _NEW_PART
-        export PATH="$(echo "$PATH" | sed -E "s|CONDA_PATH_PLACEHOLDER|$_NEW_PART|g")"
+        export PATH="$(echo "$PATH" | sed "s|CONDA_PATH_PLACEHOLDER|$_NEW_PART|g")"
     else
         export PATH="$_NEW_PART:$PATH"
     fi
