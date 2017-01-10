@@ -5,6 +5,9 @@
 * do not use IFS to find activate/deactivate scripts to source (#4243)
 * fix relative path to python in activate.bat (#4244)
 
+### Bug Fixes
+* replace sed with python for activate and deactivate #4257
+
 
 ## 4.2.14 (2017-01-07)
 
