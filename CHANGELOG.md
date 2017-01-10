@@ -2,7 +2,7 @@
 
 ### Improvements
 * Use 'post' instead of 'dev' for commits according to PEP-440 (#4234)
-
+* do not use IFS to find activate/deactivate scripts to source (#4243)
 
 ## 4.2.14 (2017-01-07)
 
