@@ -467,7 +467,9 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 
 
 def cache_fn_url(url):
-    url = url.rstrip('/')
+    # url must be right-padded with '/' to not invalidate any existing caches
+    if not url.endswith('/'):
+        url += '/'
     # subdir = url.rsplit('/', 1)[-1]
     # assert subdir in PLATFORM_DIRECTORIES or context.subdir != context._subdir, subdir
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
