@@ -310,11 +310,26 @@ binaries will not be replaced. Prefixes in text files will still be replaced.
   build:
     detect_binary_files_with_prefix: False
 
+Windows is a different beast when it comes to binary prefix replacement. At this
+time, we are unaware of any executable or library that uses hardcoded embedded
+paths for locating other libraries on Windows. Instead, Windows follows `DLL
+search path rules <https://msdn.microsoft.com/en-us/library/7d83bc18.aspx>`_.
+Because of this, conda ignores most prefixes. However, pip creates executables
+for Python entry points that *do* use embedded paths on Windows. Conda-build
+thus detects prefixes in all files and records them by default. If you are
+getting errors about path length on Windows, you should try to disable
+``detect_binary_files_with_prefix``. Newer versions of Conda (recent 4.2.x
+series releases and up) should have no problems here, but earlier versions of
+conda do erroneously try to apply any binary prefix replacement.
+
 
 Binary has prefix files
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, conda-build tries to detect prefixes in all files.  You may also elect to specify files with binary prefixes individually.  This allows you to specify the type of file as binary, when it may be incorrectly detected as text for some reason.  Binary files are those containing NULL bytes.
+By default, conda-build tries to detect prefixes in all files. You may also
+elect to specify files with binary prefixes individually. This allows you to
+specify the type of file as binary, when it may be incorrectly detected as text
+for some reason. Binary files are those containing NULL bytes.
 
 .. code-block:: yaml
 
@@ -326,7 +341,12 @@ By default, conda-build tries to detect prefixes in all files.  You may also ele
 Text files with prefix files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Text files (files containing no NULL bytes) may contain the build prefix and need it replaced with the install prefix at installation time.  Conda will automatically register such files.  Binary files that contain the  build prefix are generally handled differently (see binary_has_prefix_files), but there may be cases where such a binary file needs to be treated as an ordinary text file, in which case they need to be identified:
+Text files (files containing no NULL bytes) may contain the build prefix and
+need it replaced with the install prefix at installation time. Conda will
+automatically register such files. Binary files that contain the build prefix
+are generally handled differently (see binary_has_prefix_files), but there may
+be cases where such a binary file needs to be treated as an ordinary text file,
+in which case they need to be identified:
 
 .. code-block:: yaml
 
