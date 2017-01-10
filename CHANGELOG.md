@@ -4,7 +4,7 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.2 (2016-01-06)
+## 4.3.2 (2017-01-06)
 
 ### Deprecations/Breaking Changes
 * Further refine conda channels specification. To verify if the url of a channel
