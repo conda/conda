@@ -4,7 +4,26 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.2 (2016-01-06)
+## 4.3.3 (2017-01-10)
+
+### Improvements
+* respect Cache-Control max-age header for repodata (#4220)
+* add 'local_repodata_ttl' configurability (#4240)
+* remove questionable "nothing to install" logic (#4237)
+* relax channel noarch requirement for 4.3; warn now, raise in future feature release (#4238)
+* add additional info to setup.py warning message (#4258)
+
+### Bug Fixes
+* remove features properly (#4236)
+* do not use `IFS` to find activate/deactivate scripts to source (#4239)
+* fix #4235 print message to stderr (#4241)
+* fix relative path to python in activate.bat (#4242)
+* fix args.channel references (#4245, #4246)
+* ensure cache_fn_url right pad (#4255)
+* fix #4256 subprocess calls must have env wrapped in str (#4259)
+
+
+## 4.3.2 (2017-01-06)
 
 ### Deprecations/Breaking Changes
 * Further refine conda channels specification. To verify if the url of a channel
@@ -180,6 +199,17 @@
 * make Record immutable (#3965)
 * project housekeeping (#3994, #4065)
 * context-dependent setup.py files (#4057)
+
+
+## 4.2.15 (2017-01-10)
+
+### Improvements
+* use 'post' instead of 'dev' for commits according to PEP-440 (#4234)
+* do not use IFS to find activate/deactivate scripts to source (#4243)
+* fix relative path to python in activate.bat (#4244)
+
+### Bug Fixes
+* replace sed with python for activate and deactivate #4257
 
 
 ## 4.2.14 (2017-01-07)
@@ -477,8 +507,9 @@
 * show warning message for pre-link scripts, #3727
 * error and exit for install of packages that require conda minimum version 4.3, #3726
 * fix conda/install.py single-file behavior, #3854
-* fix open-ended test failures relating to python 3.6 release (#4167)
-* fix #3287 activate in 4.1-4.2.3 clobbers non-conda PATH changes (#4211)
+* fix open-ended test failures relating to python 3.6 release, #4167
+* fix #3287 activate in 4.1-4.2.3 clobbers non-conda PATH changes, #4211
+* fix relative path to python in activate.bat, #4244
 
 
 ## 4.1.12 (2016-09-08)

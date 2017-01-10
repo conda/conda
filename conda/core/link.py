@@ -434,7 +434,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ.copy()
 
     if action == 'pre-link':
-        env[str('SOURCE_DIR')] = str(prefix)
+        env['SOURCE_DIR'] = prefix
         warnings.warn(dals("""
         Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
         This is because pre-link scripts have the ability to change the package contents in the
@@ -451,15 +451,15 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         command_args = [shell_path, path]
 
-    env[str('ROOT_PREFIX')] = sys.prefix
-    env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = str(dist.name)
-    env[str('PKG_VERSION')] = str(dist.version)
-    env[str('PKG_BUILDNUM')] = str(dist.build_number)
+    env['ROOT_PREFIX'] = sys.prefix
+    env['PREFIX'] = env_prefix or prefix
+    env['PKG_NAME'] = dist.name
+    env['PKG_VERSION'] = dist.version
+    env['PKG_BUILDNUM'] = dist.build_number
 
     try:
         log.debug("for %s at %s, executing script: $ %s",
-                  dist, env[str('PREFIX')], ' '.join(command_args))
+                  dist, env['PREFIX'], ' '.join(command_args))
         return _run_script(command_args, env)
     finally:
         messages(prefix)
@@ -467,7 +467,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
 
 def _run_script(command_args, env):
     try:
-        check_call(command_args, env=env)
+        check_call(command_args, env={str(k): str(v) for k, v in iteritems(env)})
     except CalledProcessError:
         return False
     else:

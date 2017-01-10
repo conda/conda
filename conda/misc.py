@@ -224,9 +224,10 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
     if filter:
         if not quiet:
-            print('The following packages cannot be cloned out of the root environment:')
+            fh = sys.stderr if context.json else sys.stdout
+            print('The following packages cannot be cloned out of the root environment:', file=fh)
             for pkg in itervalues(filter):
-                print(' - ' + pkg.dist_name)
+                print(' - ' + pkg.dist_name, file=fh)
             drecs = {dist: info for dist, info in iteritems(drecs) if info['name'] not in filter}
 
     # Resolve URLs for packages that do not have URLs

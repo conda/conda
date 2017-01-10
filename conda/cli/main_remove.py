@@ -136,8 +136,8 @@ def execute(args, parser):
                           prefix=prefix)
     specs = None
     if args.features:
-        features = set(args.package_names)
-        actions = plan.remove_features_actions(prefix, index, features)
+        specs = ['@' + f for f in set(args.package_names)]
+        actions = plan.remove_actions(prefix, specs, index, pinned=args.pinned)
         action_groups = actions,
     elif args.all:
         if plan.is_root_prefix(prefix):

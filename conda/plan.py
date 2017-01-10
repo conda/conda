@@ -787,34 +787,6 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     return actions
 
 
-def remove_features_actions(prefix, index, features):
-    r = Resolve(index)
-    linked = r.installed
-
-    actions = defaultdict(list)
-    actions[PREFIX] = prefix
-    _linked = [d + '.tar.bz2' for d in linked]
-    to_link = []
-
-    for dist in sorted(linked):
-        fn = dist.dist_name + '.tar.bz2'
-        if fn not in index:
-            continue
-        if r.track_features(fn).intersection(features):
-            add_unlink(actions, dist)
-        if r.features(fn).intersection(features):
-            add_unlink(actions, dist)
-            subst = r.find_substitute(_linked, features, fn)
-            if subst:
-                to_link.append(subst[:-8])
-
-    if to_link:
-        dists = (Dist(d) for d in to_link)
-        actions.update(ensure_linked_actions(dists, prefix))
-
-    return actions
-
-
 def remove_spec_action_from_prefix(prefix, dist):
     actions = defaultdict(list)
     actions[inst.PREFIX] = prefix
