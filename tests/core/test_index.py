@@ -152,11 +152,11 @@ class StaticFunctionTests(TestCase):
     def test_cache_fn_url(self):
         hash1 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64/")
         hash2 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64")
-        assert "87c17da0.json" == hash1 == hash2
+        assert "aa99d924.json" == hash1 == hash2
 
         hash3 = cache_fn_url("https://repo.continuum.io/pkgs/free/osx-64/")
         hash4 = cache_fn_url("https://repo.continuum.io/pkgs/free/osx-64")
-        assert "840cf1fb.json" == hash3 == hash4 != hash1
+        assert "d85a531e.json" == hash3 == hash4 != hash1
 
         hash5 = cache_fn_url("https://repo.continuum.io/pkgs/free/linux-64/")
         assert hash4 != hash5
