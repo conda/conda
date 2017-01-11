@@ -220,7 +220,7 @@ def main():
     core_commands = conda_commands()
 
     # let's just hard-code this for now
-    # build_commands = external_commands()
+    # build_commands = ()
     build_commands = [
         'build',
         'convert',
