@@ -231,7 +231,7 @@ def main():
         'inspect linkages',
         'inspect objects',
         'metapackage',
-        'pipbuild',
+        # 'pipbuild',
         'render',
         # 'sign',  # let's drop this one; I've dropped support for it in 4.3.x; coming back with TUF in the near future
         'skeleton',
