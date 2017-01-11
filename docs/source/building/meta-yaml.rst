@@ -310,10 +310,10 @@ binaries will not be replaced. Prefixes in text files will still be replaced.
   build:
     detect_binary_files_with_prefix: False
 
-Windows is a different beast when it comes to binary prefix replacement. At this
-time, we are unaware of any executable or library that uses hardcoded embedded
-paths for locating other libraries or program data on Windows. Instead, Windows
-follows `DLL search path rules
+Windows handles binary prefix replacement very differently than Unix systems
+such as Linux and macOS. At this time, we are unaware of any executable or
+library that uses hardcoded embedded paths for locating other libraries or
+program data on Windows. Instead, Windows follows `DLL search path rules
 <https://msdn.microsoft.com/en-us/library/7d83bc18.aspx>`_, or more natively
 supports relocatability using relative paths. Because of this, conda ignores
 most prefixes. However, pip creates executables for Python entry points that
