@@ -102,7 +102,7 @@ conda_build_install() {
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
-    python setup.py install
+    ~/miniconda/bin/pip install .
     hash -r
     conda info
     popd
