@@ -218,7 +218,20 @@ def write_rst(command, sep=None):
 
 def main():
     core_commands = conda_commands()
-    build_commands = external_commands()
+
+    # let's just hard-code this for now
+    # build_commands = external_commands()
+    build_commands = [
+        'build',
+        'convert',
+        'develop',
+        'index',
+        'inspect',
+        'metapackage',
+        'render',
+        #  'sign',  let's drop this one; I've dropped support for it in 4.3.x; coming back with TUF in the near future
+        'skeleton',
+    ]
 
     commands = sys.argv[1:] or core_commands + build_commands
 
