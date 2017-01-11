@@ -24,9 +24,8 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     create_private_envs_meta, create_private_pkg_entry_point,
                                     create_unix_python_entry_point,
                                     create_windows_python_entry_point, extract_tarball,
-                                    make_menu, remove_private_envs_meta,
-                                    write_linked_package_record)
-from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+                                    make_menu, write_linked_package_record)
+from ..gateways.disk.delete import remove_private_envs_meta, rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename
 from ..gateways.download import download

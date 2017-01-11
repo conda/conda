@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from . import MAX_TRIES, exp_backoff_fn
 from .permissions import make_writable, recursive_make_writable
+from .read import get_json_content
 from ...base.context import context
 from ...common.compat import on_win, text_type
 
@@ -178,3 +179,14 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
         exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
     except (IOError, OSError):
         pass
+
+
+def remove_private_envs_meta(pkg):
+    private_envs_json = get_json_content(context.private_envs_json_path)
+    if pkg in private_envs_json.keys():
+        private_envs_json.pop(pkg)
+    if private_envs_json == {}:
+        rm_rf(context.private_envs_json_path)
+    else:
+        with open(context.private_envs_json_path, "w") as f:
+            json.dump(private_envs_json, f)

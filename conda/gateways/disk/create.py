@@ -17,6 +17,7 @@ import traceback
 
 from .delete import rm_rf
 from .permissions import make_executable
+from .read import get_json_content
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
@@ -277,18 +278,6 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     return pyc_full_path
 
 
-def get_json_content(path_to_json):
-    if isfile(path_to_json):
-        try:
-            with open(path_to_json, "r") as f:
-                json_content = json.load(f)
-        except json.decoder.JSONDecodeError:
-            json_content = {}
-    else:
-        json_content = {}
-    return json_content
-
-
 def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
     # type: (str, str, str) -> ()
     path_to_conda_meta = join(root_prefix, "conda-meta")
@@ -300,17 +289,6 @@ def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
     private_envs_json[pkg] = private_env_prefix
     with open(context.private_envs_json_path, "w") as f:
         json.dump(private_envs_json, f)
-
-
-def remove_private_envs_meta(pkg):
-    private_envs_json = get_json_content(context.private_envs_json_path)
-    if pkg in private_envs_json.keys():
-        private_envs_json.pop(pkg)
-    if private_envs_json == {}:
-        rm_rf(context.private_envs_json_path)
-    else:
-        with open(context.private_envs_json_path, "w") as f:
-            json.dump(private_envs_json, f)
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
