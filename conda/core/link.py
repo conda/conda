@@ -451,7 +451,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         command_args = [shell_path, path]
 
-    env['ROOT_PREFIX'] = sys.prefix
+    env['ROOT_PREFIX'] = context.root_prefix
     env['PREFIX'] = env_prefix or prefix
     env['PKG_NAME'] = dist.name
     env['PKG_VERSION'] = dist.version

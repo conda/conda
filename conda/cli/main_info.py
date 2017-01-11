@@ -168,7 +168,7 @@ def execute(args, parser):
 
     try:
         from conda.install import linked_data
-        root_pkgs = linked_data(sys.prefix)
+        root_pkgs = linked_data(context.root_prefix)
     except:
         root_pkgs = None
 
