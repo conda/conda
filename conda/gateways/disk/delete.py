@@ -76,8 +76,10 @@ def delete_trash(prefix=None):
                     backoff_unlink(path, max_tries=1)
             except (IOError, OSError) as e:
                 log.info("Could not delete path in trash dir %s\n%r", path, e)
-        if listdir(trash_dir):
-            log.info("Unable to clean trash directory %s", trash_dir)
+        files_remaining = listdir(trash_dir)
+        if files_remaining:
+            log.info("Unable to fully clean trash directory %s\nThere are %d remaining file(s).",
+                     trash_dir, len(files_remaining))
 
 
 def move_to_trash(prefix, f, tempdir=None):
