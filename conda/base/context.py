@@ -5,7 +5,7 @@ from collections import Sequence
 from itertools import chain
 from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, isdir, join, normpath,
+from os.path import (abspath, basename, expanduser, isdir, join, normpath,
                      split as path_split)
 from platform import machine
 import sys

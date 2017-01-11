@@ -6,9 +6,7 @@
 """OS-agnostic, system-level binary package manager."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
 from os.path import dirname
-import sys
 
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import iteritems, text_type

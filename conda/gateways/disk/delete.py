@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EEXIST, ENOENT
+import json
 from logging import getLogger
 from os import listdir, makedirs, removedirs, rename, unlink, walk
 from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
