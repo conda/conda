@@ -82,7 +82,8 @@ miniconda_install() {
 
 conda_build_install() {
     # install conda
-    python utils/setup-testing.py install
+    rm -rf $(~/miniconda/bin/python -c "import site; print(site.getsitepackages()[0])")/conda
+    ~/miniconda/bin/python utils/setup-testing.py install
     hash -r
     conda info
 
@@ -91,7 +92,7 @@ conda_build_install() {
     conda install -y -q -c conda-forge perl pytest-xdist
     conda install -y -q anaconda-client numpy
 
-    python -m pip install pytest-capturelog pytest-mock
+    ~/miniconda/bin/python -m pip install pytest-capturelog pytest-mock
 
     conda config --set add_pip_as_python_dependency true
 
