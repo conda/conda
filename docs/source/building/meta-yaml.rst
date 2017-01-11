@@ -312,15 +312,17 @@ binaries will not be replaced. Prefixes in text files will still be replaced.
 
 Windows is a different beast when it comes to binary prefix replacement. At this
 time, we are unaware of any executable or library that uses hardcoded embedded
-paths for locating other libraries on Windows. Instead, Windows follows `DLL
-search path rules <https://msdn.microsoft.com/en-us/library/7d83bc18.aspx>`_.
-Because of this, conda ignores most prefixes. However, pip creates executables
-for Python entry points that *do* use embedded paths on Windows. Conda-build
-thus detects prefixes in all files and records them by default. If you are
-getting errors about path length on Windows, you should try to disable
-``detect_binary_files_with_prefix``. Newer versions of Conda (recent 4.2.x
-series releases and up) should have no problems here, but earlier versions of
-conda do erroneously try to apply any binary prefix replacement.
+paths for locating other libraries or program data on Windows. Instead, Windows
+follows `DLL search path rules
+<https://msdn.microsoft.com/en-us/library/7d83bc18.aspx>`_, or more natively
+supports relocatability using relative paths. Because of this, conda ignores
+most prefixes. However, pip creates executables for Python entry points that
+*do* use embedded paths on Windows. Conda-build thus detects prefixes in all
+files and records them by default. If you are getting errors about path length
+on Windows, you should try to disable ``detect_binary_files_with_prefix``. Newer
+versions of Conda (recent 4.2.x series releases and up) should have no problems
+here, but earlier versions of conda do erroneously try to apply any binary
+prefix replacement.
 
 
 Binary has prefix files
