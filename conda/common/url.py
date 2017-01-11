@@ -52,8 +52,6 @@ def url_to_path(url):  # NOQA
 
 @memoize
 def urlparse(url):
-    if on_win and url.startswith('file:'):
-        url.replace('\\', '/')
     return parse_url(url)
 
 
