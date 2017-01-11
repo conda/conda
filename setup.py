@@ -46,6 +46,11 @@ install_requires = [
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
 
+# build packages list
+exclude_packages = ("tests", "tests.*", "build", "utils", ".tox")
+packages = conda._vendor.auxlib.packaging.find_packages(exclude=exclude_packages)
+packages.append('xontrib')  # find_packages() doesn't handle implicit namespace pkgs
+
 setup(
     name=conda.__name__,
     version=conda.__version__,
@@ -65,11 +70,9 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests",
-                                                                   "tests.*",
-                                                                   "build",
-                                                                   "utils",
-                                                                   ".tox")),
+    packages=packages,
+    package_dir={'xontrib': 'shell'},
+    package_data={'xontrib': ['*.xsh']},
     cmdclass={
         'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
         'sdist': conda._vendor.auxlib.packaging.SDistCommand,
