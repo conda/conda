@@ -512,3 +512,20 @@ def rm_fetched(dist):
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
     from ..gateways.download import download as gateway_download
     gateway_download(url, dst_path, md5)
+
+
+class package_cache(object):
+
+    def __contains__(self, dist):
+        return dist in PackageCache.first_writable()
+
+    def keys(self):
+        return iter(PackageCache.first_writable())
+
+    def __delitem__(self, dist):
+        del PackageCache.first_writable()[dist]
+
+
+
+
+
