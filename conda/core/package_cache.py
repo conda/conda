@@ -524,8 +524,3 @@ class package_cache(object):
 
     def __delitem__(self, dist):
         del PackageCache.first_writable()[dist]
-
-
-
-
-
