@@ -11,6 +11,7 @@ from mmap import ACCESS_READ, mmap
 from os import makedirs
 from os.path import getmtime, join
 import re
+from textwrap import dedent
 from time import time
 import warnings
 
@@ -47,6 +48,7 @@ stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
 
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 def supplement_index_with_prefix(index, prefix, channels):
     # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None  # NOQA
@@ -146,12 +148,17 @@ def read_mod_and_etag(path):
     with open(path, 'rb') as f:
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = take(2, re.finditer(b'"(_etag|_mod)":[ ]?"(.*)"', m))
+                match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
                 result = dict(map(ensure_text_type, mo.groups()) for mo in match_objects)
                 return result
         except ValueError:
             # ValueError: cannot mmap an empty file
             return {}
+
+
+def get_cache_control_max_age(cache_control_value):
+    max_age = re.search(r"max-age=(\d+)", cache_control_value)
+    return int(max_age.groups()[0]) if max_age else 0
 
 
 class Response304ContentUnchanged(Exception):
@@ -198,6 +205,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
         fetched_repodata['_url'] = url
         add_http_value_to_dict(resp, 'Etag', fetched_repodata, '_etag')
         add_http_value_to_dict(resp, 'Last-Modified', fetched_repodata, '_mod')
+        add_http_value_to_dict(resp, 'Cache-Control', fetched_repodata, '_cache_control')
         return fetched_repodata
 
     except ValueError as e:
@@ -210,33 +218,59 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             if not url.endswith('/noarch'):
                 return None
             else:
-                help_message = dals("""
-                The remote server could not find the channel you requested.
+                # help_message = dals("""
+                # The remote server could not find the channel you requested.
+                #
+                # As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                # associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                # empty.
+                #
+                # You will need to adjust your conda configuration to proceed.
+                # Use `conda config --show` to view your configuration's current state.
+                # Further configuration help can be found at <%s>.
+                # """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                help_message = dedent("""
+                WARNING: The remote server could not find the noarch directory for the requested
+                channel with url: %s
 
-                As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
-                associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                empty.
+                It is possible you have given conda an invalid channel. Please double-check
+                your conda configuration using `conda config --show`.
 
-                You will need to adjust your conda configuration to proceed.
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                If the requested url is in fact a valid conda channel, please request that the
+                channel administrator create `noarch/repodata.json` and associated
+                `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                """ % url)
+                stderrlog.warn(help_message)
+                return None
 
         elif status_code == 403:
             if not url.endswith('/noarch'):
                 return None
             else:
-                help_message = dals("""
-                The channel you requested is not available on the remote server.
+                # help_message = dals("""
+                # The channel you requested is not available on the remote server.
+                #
+                # As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                # associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                # empty.
+                #
+                # You will need to adjust your conda configuration to proceed.
+                # Use `conda config --show` to view your configuration's current state.
+                # Further configuration help can be found at <%s>.
+                # """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                help_message = dedent("""
+                WARNING: The remote server could not find the noarch directory for the requested
+                channel with url: %s
 
-                As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
-                associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                empty.
+                It is possible you have given conda an invalid channel. Please double-check
+                your conda configuration using `conda config --show`.
 
-                You will need to adjust your conda configuration to proceed.
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                If the requested url is in fact a valid conda channel, please request that the
+                channel administrator create `noarch/repodata.json` and associated
+                `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                """ % url)
+                stderrlog.warn(help_message)
+                return None
 
         elif status_code == 401:
             channel = Channel(url)
@@ -316,14 +350,22 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         else:
             mod_etag_headers = {}
     else:
-        timeout = mtime + context.repodata_timeout_secs - time()
-        if timeout > 0 or context.offline and not url.startswith('file://'):
+        mod_etag_headers = read_mod_and_etag(cache_path)
+
+        if context.local_repodata_ttl > 1:
+            max_age = context.local_repodata_ttl
+        elif context.local_repodata_ttl == 1:
+            max_age = get_cache_control_max_age(mod_etag_headers.get('_cache_control', ''))
+        else:
+            max_age = 0
+
+        timeout = mtime + max_age - time()
+        if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
             return read_local_repodata(cache_path)
-        else:
-            mod_etag_headers = read_mod_and_etag(cache_path)
-            log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
+
+        log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
     try:
         assert url is not None, url
@@ -425,7 +467,9 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 
 
 def cache_fn_url(url):
-    url = url.rstrip('/')
+    # url must be right-padded with '/' to not invalidate any existing caches
+    if not url.endswith('/'):
+        url += '/'
     # subdir = url.rsplit('/', 1)[-1]
     # assert subdir in PLATFORM_DIRECTORIES or context.subdir != context._subdir, subdir
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()

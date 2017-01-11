@@ -44,6 +44,8 @@ EMPTY_LINK = Link(source='')
 
 
 class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
+    _lazy_validate = True
+
     arch = EnumField(Arch, required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()

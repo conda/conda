@@ -222,18 +222,6 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(len(dists), 61)
 
 
-class TestFindSubstitute(unittest.TestCase):
-
-    def test1(self):
-        installed = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
-        for old, new in [('numpy-1.7.1-py27_p0.tar.bz2', 'numpy-1.7.1-py27_0.tar.bz2'),
-                         ('scipy-0.12.0-np17py27_p0.tar.bz2', 'scipy-0.12.0-np17py27_0.tar.bz2'),
-                         ('mkl-rt-11.0-p0.tar.bz2', None)
-                         ]:
-            assert Dist(old) in installed
-            assert r.find_substitute(installed, f_mkl, old) == (Dist(new) if new else None)
-
-
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
     assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[Dist(fn) for fn in [

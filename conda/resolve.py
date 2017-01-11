@@ -488,8 +488,8 @@ class Resolve(object):
             if ms.name[0] == '@':
                 res = self.trackers.get(ms.name[1:], [])
             else:
-                res1 = self.groups.get(ms.name, [])
-                res = [p for p in res1 if self.match_fast(ms, p)]
+                res = self.groups.get(ms.name, [])
+            res = [p for p in res if self.match_fast(ms, p)]
             self.find_matches_[ms] = res
         assert all(isinstance(d, Dist) for d in res)
         return res
@@ -586,9 +586,9 @@ class Resolve(object):
             elif not ms.is_simple():
                 m = C.from_name(self.push_MatchSpec(C, ms.name))
         if m is None:
+            libs = [dist.full_name for dist in libs]
             if ms.optional:
                 libs.append('!@s@'+ms.name)
-            libs = [dist.full_name for dist in libs]
             m = C.Any(libs)
         C.name_var(m, name)
         return name
@@ -730,30 +730,6 @@ class Resolve(object):
         assert isinstance(fn1, Dist)
         assert isinstance(fn2, Dist)
         return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
-
-    def find_substitute(self, installed, features, fn):
-        """
-        Find a substitute package for `fn` (given `installed` packages)
-        which does *NOT* have `features`.  If found, the substitute will
-        have the same package name and version and its dependencies will
-        match the installed packages as closely as possible.
-        If no substitute is found, None is returned.
-        """
-        # assert all(isinstance(d, Dist) for d in installed)
-        dist = Dist(fn)
-        name, version, unused_bld, schannel = self.package_quad(dist)
-        candidates = {}
-        for fn1 in self.find_matches(MatchSpec(name + ' ' + version)):
-            if self.features(fn1).intersection(features):
-                continue
-            key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
-            candidates[key] = fn1
-
-        if candidates:
-            maxkey = max(candidates)
-            return candidates[maxkey]
-        else:
-            return None
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')

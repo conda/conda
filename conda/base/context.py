@@ -69,7 +69,6 @@ class Context(Configuration):
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
-    repodata_timeout_secs = PrimitiveParameter(300)
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
@@ -79,6 +78,11 @@ class Context(Configuration):
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
     _subdir = PrimitiveParameter('', aliases=('subdir',))
+
+    local_repodata_ttl = PrimitiveParameter(True, parameter_type=(bool, int))
+    # number of seconds to cache repodata locally
+    #   True/1: respect Cache-Control max-age header
+    #   False/0: always fetch remote repodata (HTTP 304 responses respected)
 
     # remote connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
@@ -96,7 +100,7 @@ class Context(Configuration):
 
     # channels
     _channels = SequenceParameter(string_types, default=(DEFAULT_CHANNEL_NAME,),
-                                  aliases=('channels',))
+                                  aliases=('channels', 'channel',))  # channel for args.channel
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
@@ -380,8 +384,9 @@ class Context(Configuration):
     @property
     def channels(self):
         # add 'defaults' channel when necessary if --channel is given via the command line
-        if self._argparse_args and 'channels' in self._argparse_args:
-            argparse_channels = tuple(self._argparse_args['channels'] or ())
+        if self._argparse_args and 'channel' in self._argparse_args:
+            # TODO: it's args.channel right now, not channels
+            argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULT_CHANNEL_NAME,)
         return self._channels

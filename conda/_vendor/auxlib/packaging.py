@@ -92,7 +92,7 @@ log = getLogger(__name__)
 Response = namedtuple('Response', ['stdout', 'stderr', 'rc'])
 GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
                              r"(?P<version>\d+\.\d+\.\d+)"
-                             r"(?:-(?P<dev>\d+)-g(?P<hash>[0-9a-f]{7,}))")
+                             r"(?:-(?P<post>\d+)-g(?P<hash>[0-9a-f]{7,}))$")
 
 
 def call(command, path=None, raise_on_error=True):
@@ -141,13 +141,13 @@ def _git_describe_tags(path):
 
 def _get_version_from_git_tag(path):
     """Return a PEP440-compliant version derived from the git status.
-    If that fails for any reason, return the first 7 chars of the changeset hash.
+    If that fails for any reason, return the changeset hash.
     """
     m = GIT_DESCRIBE_REGEX.match(_git_describe_tags(path) or '')
     if m is None:
         return None
     version, post_commit, hash = m.groups()
-    return version if post_commit == '0' else "{0}.dev{1}+{2}".format(version, post_commit, hash)
+    return version if post_commit == '0' else "{0}.post{1}+{2}".format(version, post_commit, hash)
 
 
 def get_version(dunder_file):
