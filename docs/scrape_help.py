@@ -227,10 +227,26 @@ def main():
         'develop',
         'index',
         'inspect',
+        'inspect channels',
+        'inspect linkages',
+        'inspect objects',
         'metapackage',
+        'pipbuild',
         'render',
-        #  'sign',  let's drop this one; I've dropped support for it in 4.3.x; coming back with TUF in the near future
+        # 'sign',  # let's drop this one; I've dropped support for it in 4.3.x; coming back with TUF in the near future
         'skeleton',
+        'skeleton cpan',
+        'skeleton cran',
+        'skeleton luarocks',
+        'skeleton pypi',
+        'env',
+        'env attach',
+        'env create',
+        'env export',
+        'env list',
+        'env remove',
+        'env update',
+        'env upload',
     ]
 
     commands = sys.argv[1:] or core_commands + build_commands
