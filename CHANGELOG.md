@@ -6,6 +6,9 @@
 
 ## 4.3.4 (unreleased)
 
+### Bug Fixes
+* fix some bugs in windows multi-user support (#4277)
+
 ### Non-User-Facing Changes
 * make arch in IndexRecord a StringField instead of EnumField
 * improve conda-build compatibility (#4266)
