@@ -179,7 +179,46 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         supplement_index_with_features(index)
     if context.add_pip_as_python_dependency:
         add_pip_dependency(index)
-    return index
+    return Index(index)
+
+
+class Index(object):
+
+    def __init__(self, index):
+        self._index = index
+
+    def __getitem__(self, dist):
+        return self._index[dist]
+
+    def __setitem__(self, key, value):
+        raise NotImplementedError()
+
+    def __delitem__(self, key):
+        raise NotImplementedError()
+
+    def get(self, dist, default=None):
+        return getattr(self, dist, default)
+
+    def __contains__(self, dist):
+        return dist in self._index
+
+    def __iter__(self):
+        return iter(self._index)
+
+    def iteritems(self):
+        return iteritems(self._index)
+
+    def items(self):
+        return self.iteritems()
+
+    def copy(self):
+        return self
+
+    def setdefault(self, key, default_value):
+        raise NotImplementedError()
+
+    def update(self, E=None, **F):
+        raise NotImplementedError()
 
 
 # We need a decorator so that the dot gets printed *after* the repodata is fetched
