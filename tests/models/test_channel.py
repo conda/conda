@@ -747,8 +747,7 @@ class UrlChannelTests(TestCase):
             "file:///machine/shared_folder/noarch",
         ]
 
-    @patch.object(conda.models.channel, 'on_win', return_value=True)
-    def test_file_url_with_backslashes(self, on_win_mock):
+    def test_file_url_with_backslashes(self):
         url = "file://\\machine\\shared_folder\\path\\conda"
         c = Channel(url)
         assert c.scheme == "file"
