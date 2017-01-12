@@ -8,10 +8,12 @@ from .base.constants import DEFAULTS, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
-from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
+from .exceptions import (CondaValueError, NoPackagesFoundError, UnsatisfiableError,
+                         print_conda_exception)
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.index_record import IndexRecord
+from .models.package import Package
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
 
@@ -371,7 +373,10 @@ class Resolve(object):
             else:
                 # This means the package *itself* was the common conflict.
                 bad_deps.append((ms,))
-        raise UnsatisfiableError(bad_deps)
+        if context.force:
+            print_conda_exception(UnsatisfiableError(bad_deps))
+        else:
+            raise UnsatisfiableError(bad_deps)
 
     def get_reduced_index(self, specs):
         log.debug('Retrieving packages for: %s', specs)
