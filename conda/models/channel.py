@@ -5,7 +5,7 @@ from itertools import chain
 from logging import getLogger
 from requests.packages.urllib3.util import Url
 
-from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, UTF8
+from ..base.constants import DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, UNKNOWN_CHANNEL, UTF8
 from ..base.context import context
 from ..common.compat import iteritems, odict, with_metaclass
 from ..common.url import (has_scheme, is_url, is_windows_path, join_url, on_win, path_to_url,
@@ -206,8 +206,8 @@ class Channel(object):
 
     @staticmethod
     def from_value(value):
-        if value is None:
-            return Channel(name="<unknown>")
+        if value in (None, '<unknown>', 'None:///<unknown>', 'None'):
+            return Channel(name=UNKNOWN_CHANNEL)
         if hasattr(value, 'decode'):
             value = value.decode(UTF8)
         if has_scheme(value):
@@ -262,9 +262,15 @@ class Channel(object):
 
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
-        return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+        if self.scheme:
+            return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+        else:
+            return join_url(self.location, self.name).lstrip('/')
 
     def urls(self, with_credentials=False, platform=None):
+        if self.canonical_name == UNKNOWN_CHANNEL:
+            return Channel('defaults').urls(with_credentials, platform)
+
         base = [self.location]
         if with_credentials and self.token:
             base.extend(['t', self.token])
@@ -282,6 +288,9 @@ class Channel(object):
             return ["%s://%s" % (self.scheme, b) for b in bases]
 
     def url(self, with_credentials=False):
+        if self.canonical_name == UNKNOWN_CHANNEL:
+            return None
+
         base = [self.location]
         if with_credentials and self.token:
             base.extend(['t', self.token])
@@ -302,10 +311,12 @@ class Channel(object):
 
     @property
     def base_url(self):
+        if self.canonical_name == UNKNOWN_CHANNEL:
+            return None
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
     def __str__(self):
-        return self.base_url
+        return self.base_url or ""
 
     def __repr__(self):
         return ("Channel(scheme=%s, auth=%s, location=%s, token=%s, name=%s, platform=%s, "

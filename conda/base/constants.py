@@ -100,6 +100,8 @@ ROOT_ENV_NAME = 'root'
 EMPTY_LIST = ()
 EMPTY_MAP = frozendict()
 
+UNKNOWN_CHANNEL = "<unknown>"
+
 
 class _Null(object):
     def __nonzero__(self):

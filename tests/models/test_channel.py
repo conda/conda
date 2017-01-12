@@ -710,3 +710,53 @@ class ChannelAuthTokenPriorityTests(TestCase):
         channel = Channel("ftp://new.url:8081/donald")
         assert channel.location == "new.url:8081"
         assert channel.canonical_name == "donald"
+
+
+class UnknownChannelTests(TestCase):
+
+    def test_regression_against_unknown_none(self):
+        defaults = Channel('defaults')
+
+        channel = Channel(None)
+        assert channel.scheme is None
+        assert channel.location is None
+        assert channel.platform is None
+        assert channel.name == "<unknown>"
+        assert channel.canonical_name == "<unknown>"
+
+        assert channel.base_url is None
+        assert channel.url() == defaults.url()
+        assert channel.urls() == defaults.urls()
+
+        channel = Channel('<unknown>')
+        assert channel.scheme is None
+        assert channel.location is None
+        assert channel.platform is None
+        assert channel.name == "<unknown>"
+        assert channel.canonical_name == "<unknown>"
+
+        assert channel.base_url is None
+        assert channel.url() == defaults.url()
+        assert channel.urls() == defaults.urls()
+
+        channel = Channel('None:///<unknown>')
+        assert channel.scheme is None
+        assert channel.location is None
+        assert channel.platform is None
+        assert channel.name == "<unknown>"
+        assert channel.canonical_name == "<unknown>"
+
+        assert channel.base_url is None
+        assert channel.url() == defaults.url()
+        assert channel.urls() == defaults.urls()
+
+        channel = Channel('None')
+        assert channel.scheme is None
+        assert channel.location is None
+        assert channel.platform is None
+        assert channel.name == "<unknown>"
+        assert channel.canonical_name == "<unknown>"
+
+        assert channel.base_url is None
+        assert channel.url() == defaults.url()
+        assert channel.urls() == defaults.urls()
