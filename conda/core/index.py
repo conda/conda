@@ -496,3 +496,7 @@ def create_cache_dir():
     except OSError:
         pass
     return cache_dir
+
+
+def dist_str_in_index(index, dist_str):
+    return Dist(dist_str) in index

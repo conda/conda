@@ -558,6 +558,11 @@ class Resolve(object):
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
+    def get_pkgs(self, ms, emptyok=False):
+        # legacy method for conda-build
+        # TODO: remove in conda 4.4
+        return self.get_dists_for_spec(ms, emptyok)
+
     def get_dists_for_spec(self, ms, emptyok=False):
         ms = MatchSpec(ms)
         dists = self.find_matches(ms)
