@@ -4,6 +4,12 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.4 (unreleased)
+
+### Non-User-Facing Changes
+* make arch in IndexRecord a StringField instead of EnumField
+
+
 ## 4.3.3 (2017-01-10)
 
 ### Improvements
