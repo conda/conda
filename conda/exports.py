@@ -7,8 +7,7 @@ from warnings import warn
 
 log = getLogger(__name__)
 
-
-from . import CondaError
+from . import CondaError  # NOQA
 CondaError = CondaError
 
 from . import compat, plan  # NOQA
