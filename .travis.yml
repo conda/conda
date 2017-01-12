@@ -37,15 +37,11 @@ matrix:
       env: PYTHON_VERSION=3.5
       language: generic
     - python: '3.5'
-      env: CONDA_BUILD=1.21.14
-      os: linux
-      language: python
-    - python: '3.5'
       env: CONDA_BUILD=2.0.12
       os: linux
       language: python
     - python: '3.5'
-      env: CONDA_BUILD=2.1.0
+      env: CONDA_BUILD=2.1.1
       os: linux
       language: python
 

@@ -4,6 +4,13 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.4 (unreleased)
+
+### Non-User-Facing Changes
+* make arch in IndexRecord a StringField instead of EnumField
+* improve conda-build compatibility (#4266)
+
+
 ## 4.3.3 (2017-01-10)
 
 ### Improvements
@@ -199,6 +206,14 @@
 * make Record immutable (#3965)
 * project housekeeping (#3994, #4065)
 * context-dependent setup.py files (#4057)
+
+
+## 4.2.16 (unreleased)
+
+### Bug Fixes
+* do not replace \ with / in file:// URLs on Windows (#4269)
+* include aliases for first command-line argument (#4279)
+* fix for multi-line FTP status codes (#4276)
 
 
 ## 4.2.15 (2017-01-10)
