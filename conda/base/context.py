@@ -5,7 +5,8 @@ from collections import Sequence
 from itertools import chain
 from logging import getLogger
 import os
-from os.path import abspath, basename, dirname, expanduser, isdir, join
+from os.path import (abspath, basename, expanduser, isdir, join, normpath,
+                     split as path_split)
 from platform import machine
 import sys
 
@@ -257,11 +258,11 @@ class Context(Configuration):
 
     @property
     def envs_dirs(self):
-        return tuple(abspath(expanduser(p))
-                     for p in concatv(self._envs_dirs,
-                                      (join(self.root_dir, 'envs'), )
-                                      if self.root_writable
-                                      else ('~/.conda/envs', join(self.root_dir, 'envs'))))
+        return tuple(abspath(expanduser(p)) for p in concatv(
+            self._envs_dirs,
+            ('~/.conda/envs',) if not self.root_writable else (),
+            (join(self.root_dir, 'envs'),),
+        ))
 
     @property
     def pkgs_dirs(self):
@@ -269,6 +270,10 @@ class Context(Configuration):
             return list(self._pkgs_dirs)
         else:
             return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
+
+    @property
+    def private_envs_json_path(self):
+        return join(self.root_prefix, "conda-meta", "private_envs")
 
     @property
     def default_prefix(self):
@@ -309,8 +314,10 @@ class Context(Configuration):
     def root_prefix(self):
         if self._root_dir:
             return abspath(expanduser(self._root_dir))
+        elif conda_in_private_env():
+            return normpath(join(self.conda_prefix, '..', '..'))
         else:
-            return abspath(join(sys.prefix, '..', '..')) if conda_in_private_env() else sys.prefix
+            return self.conda_prefix
 
     @property
     def conda_prefix(self):
@@ -394,7 +401,8 @@ class Context(Configuration):
 
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda_'
-    return basename(sys.prefix) == '_conda_' and basename(dirname(sys.prefix)) == 'envs'
+    envs_dir, env_name = path_split(sys.prefix)
+    return env_name == '_conda_' and basename(envs_dir) == 'envs'
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):

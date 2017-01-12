@@ -8,10 +8,8 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import join
-import sys
-
 from enum import Enum
+import sys
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -88,8 +86,6 @@ ROOT_NO_RM = (
 MAX_CHANNEL_PRIORITY = 10000
 
 CONDA_TARBALL_EXTENSION = '.tar.bz2'
-
-PRIVATE_ENVS = join(sys.prefix, "conda-meta/private_envs")
 
 UNKNOWN_CHANNEL = "<unknown>"
 
