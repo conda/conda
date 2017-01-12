@@ -316,6 +316,8 @@ class CreateNonadminAction(CreateInPrefixPathAction):
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
         if on_win and lexists(join(context.root_dir, '.nonadmin')):
             return cls(transaction_context, package_info, target_prefix),
+        else:
+            return ()
 
     def __init__(self, transaction_context, package_info, target_prefix):
         super(CreateNonadminAction, self).__init__(transaction_context, package_info, None, None,
