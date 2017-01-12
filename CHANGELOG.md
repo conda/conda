@@ -211,6 +211,8 @@
 
 ### Bug Fixes
 * do not replace \ with / in file:// URLs on Windows (#4269)
+* include aliases for first command-line argument (#4279)
+* fix for multi-line FTP status codes (#4276)
 
 
 ## 4.2.15 (2017-01-10)

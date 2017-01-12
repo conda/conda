@@ -243,7 +243,7 @@ def build_response(request, data, code, encoding):
     response.raw = data
     response.url = request.url
     response.request = request
-    response.status_code = int(code.split()[0])
+    response.status_code = get_status_code_from_code_response(code)
 
     # Make sure to seek the file-like raw object back to the start.
     response.raw.seek(0)
@@ -275,3 +275,40 @@ def parse_multipart_files(request):
     buf.seek(0)
 
     return buf
+
+
+def get_status_code_from_code_response(code):
+    """
+    The idea is to handle complicated code response (even multi lines).
+    We get the status code in two ways:
+    - extracting the code from the last valid line in the response
+    - getting it from the 3 first digits in the code
+    After a comparison between the two values,
+    we can safely set the code or raise a warning.
+    Examples:
+        - get_status_code_from_code_response('200 Welcome') == 200
+        - multi_line_code = '226-File successfully transferred\n226 0.000 seconds'
+          get_status_code_from_code_response(multi_line_code) == 226
+        - multi_line_with_code_conflicts = '200-File successfully transferred\n226 0.000 seconds'
+          get_status_code_from_code_response(multi_line_with_code_conflicts) == 226
+    For more detail see RFC 959, page 36, on multi-line responses:
+        https://www.ietf.org/rfc/rfc959.txt
+        "Thus the format for multi-line replies is that the first line
+         will begin with the exact required reply code, followed
+         immediately by a Hyphen, "-" (also known as Minus), followed by
+         text.  The last line will begin with the same code, followed
+         immediately by Space <SP>, optionally some text, and the Telnet
+         end-of-line code."
+    """
+    last_valid_line_from_code = [line for line in code.split('\n') if line][-1]
+    status_code_from_last_line = int(last_valid_line_from_code.split()[0])
+    status_code_from_first_digits = int(code[:3])
+    if status_code_from_last_line != status_code_from_first_digits:
+        log.warning(
+            'FTP response status code seems to be inconsistent.\n'
+            'Code received: %s, extracted: %s and %s',
+            code,
+            status_code_from_last_line,
+            status_code_from_first_digits
+        )
+    return status_code_from_last_line
