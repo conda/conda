@@ -140,7 +140,8 @@ def list_packages(prefix, installed, regex=None, format='human',
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')
-            if show_channel_urls or show_channel_urls is None and schannel != DEFAULTS_CHANNEL_NAME:
+            if (show_channel_urls or show_channel_urls is None
+                    and schannel != DEFAULTS_CHANNEL_NAME):
                 disp += '  %s' % schannel
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:

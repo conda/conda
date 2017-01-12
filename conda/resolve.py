@@ -553,7 +553,8 @@ class Resolve(object):
         if rec is None:
             return dist.quad
         else:
-            return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS_CHANNEL_NAME)
+            return (rec['name'], rec['version'], rec['build'],
+                    rec.get('schannel', DEFAULTS_CHANNEL_NAME))
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
