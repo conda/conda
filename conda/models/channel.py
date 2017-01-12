@@ -211,8 +211,6 @@ class Channel(object):
         if hasattr(value, 'decode'):
             value = value.decode(UTF8)
         if has_scheme(value):
-            if value.startswith('file:') and on_win:
-                value = value.replace('\\', '/')
             return Channel.from_url(value)
         elif value.startswith(('./', '..', '~', '/')) or is_windows_path(value):
             return Channel.from_url(path_to_url(value))
