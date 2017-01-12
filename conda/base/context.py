@@ -15,7 +15,7 @@ from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..base.constants import DEFAULT_CHANNEL_NAME, PathConflict
+from ..base.constants import DEFAULTS_CHANNEL_NAME, PathConflict
 from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
@@ -100,7 +100,7 @@ class Context(Configuration):
                                         validation=channel_alias_validation)
 
     # channels
-    _channels = SequenceParameter(string_types, default=(DEFAULT_CHANNEL_NAME,),
+    _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
@@ -346,14 +346,14 @@ class Context(Configuration):
         # the format for 'default_channels' is a list of strings that either
         #   - start with a scheme
         #   - are meant to be prepended with channel_alias
-        return self.custom_multichannels[DEFAULT_CHANNEL_NAME]
+        return self.custom_multichannels[DEFAULTS_CHANNEL_NAME]
 
     @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
 
         reserved_multichannel_urls = odict((
-            (DEFAULT_CHANNEL_NAME, self._default_channels),
+            (DEFAULTS_CHANNEL_NAME, self._default_channels),
             ('local', self.conda_build_local_urls),
         ))
         reserved_multichannels = odict(
@@ -395,7 +395,7 @@ class Context(Configuration):
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
-                return argparse_channels + (DEFAULT_CHANNEL_NAME,)
+                return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
         return self._channels
 
 

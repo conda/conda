@@ -38,7 +38,7 @@ SEARCH_PATH = (
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
 CONDA_HOMEPAGE_URL = 'https://conda.io'
-DEFAULTS = 'defaults'
+DEFAULTS_CHANNEL_NAME = 'defaults'
 
 PLATFORM_DIRECTORIES = ("linux-64",
                         "linux-32",
@@ -54,8 +54,6 @@ PLATFORM_DIRECTORIES = ("linux-64",
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
-
-DEFAULT_CHANNEL_NAME = 'defaults'
 
 DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
                          'https://repo.continuum.io/pkgs/r',
