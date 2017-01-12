@@ -5,8 +5,8 @@ from itertools import chain
 from logging import getLogger
 from requests.packages.urllib3.util import Url
 
-from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY,
-                              UNKNOWN_CHANNEL)
+from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
+                              MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
@@ -207,7 +207,7 @@ class Channel(object):
 
     @staticmethod
     def from_value(value):
-        if value is None:
+        if value in (None, '<unknown>', 'None:///<unknown>', 'None'):
             return Channel(name=UNKNOWN_CHANNEL)
         value = ensure_text_type(value)
         if has_scheme(value):
@@ -300,6 +300,9 @@ class Channel(object):
     #         return Channel(None)
 
     def urls(self, with_credentials=False, platform=None):
+        if self.canonical_name == UNKNOWN_CHANNEL:
+            return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, platform)
+
         base = [self.location]
         if with_credentials and self.token:
             base.extend(['t', self.token])
@@ -340,7 +343,7 @@ class Channel(object):
 
     @property
     def base_url(self):
-        if self.canonical_name is None:
+        if self.canonical_name == UNKNOWN_CHANNEL:
             return None
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
