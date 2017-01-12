@@ -212,13 +212,13 @@ class Channel(object):
             return Channel(name=UNKNOWN_CHANNEL)
         value = ensure_text_type(value)
         if has_scheme(value):
-            if value.startswith('file:') and on_win:
-                value = value.replace('\\', '/')
+            if value.startswith('file:'):
+                value = win_path_backout(value)
             return Channel.from_url(value)
         elif is_path(value):
             return Channel.from_url(path_to_url(value))
         elif value.endswith('.tar.bz2'):
-            if value.startswith('file:') and on_win:
+            if value.startswith('file:'):
                 value = win_path_backout(value)
             return Channel.from_url(value)
         else:
