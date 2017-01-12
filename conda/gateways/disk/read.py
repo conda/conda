@@ -211,3 +211,15 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
+
+
+def get_json_content(path_to_json):
+    if isfile(path_to_json):
+        try:
+            with open(path_to_json, "r") as f:
+                json_content = json.load(f)
+        except json.decoder.JSONDecodeError:
+            json_content = {}
+    else:
+        json_content = {}
+    return json_content
