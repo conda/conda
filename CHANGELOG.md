@@ -1,3 +1,9 @@
+## 4.2.16 (unreleased)
+
+### Bug Fixes
+* do not replace \ with / in file:// URLs on Windows (#4269)
+
+
 ## 4.2.15 (2017-01-10)
 
 ### Improvements
