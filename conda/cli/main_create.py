@@ -13,10 +13,12 @@ from ..common.constants import NULL
 from ..gateways.disk.delete import delete_trash
 
 help = "Create a new conda environment from a list of specified packages. "
-descr = (help +
-         "To use the created environment, use 'source activate "
-         "envname' look in that directory first.  This command requires either "
-         "the -n NAME or -p PREFIX option.")
+descr = help + """
+
+To use the created environment, use 'source activate  envname' look in that
+directory first.  This command requires either the -n NAME or -p PREFIX
+option.
+"""
 
 example = """
 Examples:
