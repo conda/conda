@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .enums import Arch, LinkType, Platform
+from .enums import LinkType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, ImmutableEntity, IntegerField, ListField,
                                      MapField, StringField)
@@ -46,7 +46,7 @@ EMPTY_LINK = Link(source='')
 class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
     _lazy_validate = True
 
-    arch = EnumField(Arch, required=False, nullable=True)
+    arch = StringField(required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()
     date = StringField(required=False)

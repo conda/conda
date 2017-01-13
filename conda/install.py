@@ -47,8 +47,8 @@ prefix_placeholder = PREFIX_PLACEHOLDER
 
 # backwards compatibility for conda-build
 def package_cache():
-    log.warn('package_cache() is a no-op and deprecated')
-    return {}
+    from .core.package_cache import package_cache
+    return package_cache()
 
 
 if on_win:

@@ -130,9 +130,9 @@ def _main(*args):
                 if i.startswith(prefix)]
 
     # when using sys.argv, first argument is generally conda or __main__.py.  Ignore it.
-    if (any(sname in args[0] for sname in ('conda', 'conda.exe',
-                                           '__main__.py', 'conda-script.py')) and
-            (args[1] in main_modules + find_commands() or args[1].startswith('-'))):
+    if (any(sname in args[0] for sname in ('conda', 'conda.exe', '__main__.py', 'conda-script.py'))
+        and (args[1] in list(sub_parsers.choices.keys()) + find_commands()
+             or args[1].startswith('-'))):
         log.debug("Ignoring first argument (%s), as it is not a subcommand", args[0])
         args = args[1:]
 

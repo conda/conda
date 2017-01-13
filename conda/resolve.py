@@ -4,7 +4,7 @@ from itertools import chain
 import logging
 import re
 
-from .base.constants import DEFAULTS, MAX_CHANNEL_PRIORITY
+from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
@@ -553,10 +553,16 @@ class Resolve(object):
         if rec is None:
             return dist.quad
         else:
-            return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
+            return (rec['name'], rec['version'], rec['build'],
+                    rec.get('schannel', DEFAULTS_CHANNEL_NAME))
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
+
+    def get_pkgs(self, ms, emptyok=False):
+        # legacy method for conda-build
+        # TODO: remove in conda 4.4
+        return self.get_dists_for_spec(ms, emptyok)
 
     def get_dists_for_spec(self, ms, emptyok=False):
         ms = MatchSpec(ms)

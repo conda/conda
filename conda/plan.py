@@ -16,7 +16,7 @@ import sys
 
 from . import CondaError, instructions as inst
 from ._vendor.boltons.setutils import IndexedSet
-from .base.constants import DEFAULTS, UNKNOWN_CHANNEL
+from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
 from .cli import common
 from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
@@ -77,7 +77,7 @@ def display_actions(actions, index, show_channel_urls=None):
     def channel_filt(s):
         if show_channel_urls is False:
             return ''
-        if show_channel_urls is None and s == DEFAULTS:
+        if show_channel_urls is None and s == DEFAULTS_CHANNEL_NAME:
             return ''
         return s
 

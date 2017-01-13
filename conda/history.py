@@ -4,13 +4,13 @@ import errno
 import json
 import logging
 import os
+from os.path import isdir, isfile, join
 import re
 import sys
 import time
 import warnings
-from os.path import isdir, isfile, join
 
-from .base.constants import DEFAULTS
+from .base.constants import DEFAULTS_CHANNEL_NAME
 from .core.linked_data import linked
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .models.dist import Dist
@@ -38,7 +38,7 @@ def pretty_diff(diff):
         fn = s[1:]
         dist = Dist(fn)
         name, version, _, channel = dist.quad
-        if channel != DEFAULTS:
+        if channel != DEFAULTS_CHANNEL_NAME:
             version += ' (%s)' % channel
         if s.startswith('-'):
             removed[name.lower()] = version

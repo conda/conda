@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EEXIST, ENOENT
+import json
 from logging import getLogger
 from os import listdir, makedirs, removedirs, rename, unlink, walk
 from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
@@ -10,6 +11,7 @@ from uuid import uuid4
 
 from . import MAX_TRIES, exp_backoff_fn
 from .permissions import make_writable, recursive_make_writable
+from .read import get_json_content
 from ...base.context import context
 from ...common.compat import on_win, text_type
 
@@ -76,8 +78,10 @@ def delete_trash(prefix=None):
                     backoff_unlink(path, max_tries=1)
             except (IOError, OSError) as e:
                 log.info("Could not delete path in trash dir %s\n%r", path, e)
-        if listdir(trash_dir):
-            log.info("Unable to clean trash directory %s", trash_dir)
+        files_remaining = listdir(trash_dir)
+        if files_remaining:
+            log.info("Unable to fully clean trash directory %s\nThere are %d remaining file(s).",
+                     trash_dir, len(files_remaining))
 
 
 def move_to_trash(prefix, f, tempdir=None):
@@ -176,3 +180,14 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
         exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
     except (IOError, OSError):
         pass
+
+
+def remove_private_envs_meta(pkg):
+    private_envs_json = get_json_content(context.private_envs_json_path)
+    if pkg in private_envs_json.keys():
+        private_envs_json.pop(pkg)
+    if private_envs_json == {}:
+        rm_rf(context.private_envs_json_path)
+    else:
+        with open(context.private_envs_json_path, "w") as f:
+            json.dump(private_envs_json, f)

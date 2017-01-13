@@ -13,7 +13,7 @@ import re
 
 from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
-from ..base.constants import DEFAULTS, UNKNOWN_CHANNEL
+from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import text_type
 from ..core.linked_data import is_linked, linked, linked_data
@@ -140,7 +140,8 @@ def list_packages(prefix, installed, regex=None, format='human',
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')
-            if show_channel_urls or show_channel_urls is None and schannel != DEFAULTS:
+            if (show_channel_urls or show_channel_urls is None
+                    and schannel != DEFAULTS_CHANNEL_NAME):
                 disp += '  %s' % schannel
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:

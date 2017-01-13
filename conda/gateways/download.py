@@ -63,9 +63,10 @@ def download(url, target_full_path, md5sum):
             resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
             resp.raise_for_status()
 
-            content_length = int(resp.headers.get('Content-Length'))
+            content_length = int(resp.headers.get('Content-Length', 0))
 
-            getLogger('fetch.start').info((basename(target_full_path)[:14], content_length))
+            if content_length:
+                getLogger('fetch.start').info((basename(target_full_path)[:14], content_length))
 
             digest_builder = hashlib.new('md5')
             try:
