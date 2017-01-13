@@ -2,25 +2,26 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
-from conda import CondaError
 from contextlib import closing
 from functools import wraps
-from itertools import chain
 import hashlib
+from itertools import chain
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
 from os.path import getmtime, join
 import re
-from requests.exceptions import ConnectionError, HTTPError, SSLError
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from textwrap import dedent
 from time import time
 import warnings
 
+from requests.exceptions import ConnectionError, HTTPError, SSLError
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 from .linked_data import linked_data
 from .package_cache import PackageCache
+from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
@@ -29,13 +30,13 @@ from ..base.context import context
 from ..common.compat import ensure_text_type, ensure_unicode, iteritems, iterkeys, itervalues
 from ..common.url import join_url
 from ..connection import CondaSession
-from ..resolve import MatchSpec
 from ..exceptions import CondaHTTPError, CondaRuntimeError
 from ..gateways.disk.read import read_index_json
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
+from ..resolve import MatchSpec
 
 try:
     from cytoolz.itertoolz import take
@@ -185,7 +186,47 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 class Index(object):
 
     def __init__(self, index):
+        # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
+        # assert all(assertion(d, r) for d, r in iteritems(index))
+
+        feature_records = {}
+        for dist, info in iteritems(index):
+            if dist.with_features_depends:
+                continue
+
+            for feature_name in chain(info.get('features', '').split(),
+                                      info.get('track_features', '').split(),
+                                      context.track_features or ()):
+                feature_dist = Dist(feature_name + '@')
+                if feature_dist in index:
+                    continue
+                feature_records[feature_dist] = self.make_feature_record(feature_name, feature_dist)
+
+            for feature_name in iterkeys(info.get('with_features_depends', {})):
+                what_is_this_dist_for = Dist('%s[%s]' % (dist, feature_name))
+                feature_records[what_is_this_dist_for] = info
+
+                feature_dist = Dist(feature_name + '@')
+                self.make_feature_record(feature_name, feature_dist)
+                feature_records[feature_dist] = self.make_feature_record(feature_name, feature_dist)
+
+        index.update(feature_records)
         self._index = index
+
+    @staticmethod
+    def make_feature_record(feature_name, feature_dist):
+        info = {
+            'name': feature_dist.dist_name,
+            'channel': '@',
+            'priority': 0,
+            'version': '0',
+            'build_number': 0,
+            'fn': feature_dist.to_filename(),
+            'build': '0',
+            'depends': [],
+            'track_features': feature_name,
+        }
+        return IndexRecord(**info)
 
     def __getitem__(self, dist):
         return self._index[dist]
@@ -197,7 +238,7 @@ class Index(object):
         raise NotImplementedError()
 
     def get(self, dist, default=None):
-        return getattr(self, dist, default)
+        return self._index.get(dist, default)
 
     def __contains__(self, dist):
         return dist in self._index
