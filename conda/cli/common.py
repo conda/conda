@@ -349,7 +349,7 @@ def add_parser_use_local(p):
     p.add_argument(
         "--use-local",
         action="store_true",
-        default=False,
+        default=NULL,
         help="Use locally built packages.",
     )
 

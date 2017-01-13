@@ -123,6 +123,7 @@ class Context(Configuration):
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, parameter_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
+    use_local = PrimitiveParameter(False)
     verbosity = PrimitiveParameter(0, aliases=('verbose',), parameter_type=int)
 
     # conda_build
@@ -395,8 +396,18 @@ class Context(Configuration):
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
-                return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
-        return self._channels
+                if self.use_local:
+                    return argparse_channels + ('local', DEFAULTS_CHANNEL_NAME,)
+                else:
+                    return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
+        return (('local',) + self._channels) if self.use_local else self._channels
+
+    @property
+    def subdirs(self):
+        return (
+            self.subdir,
+            'noarch',
+        )
 
 
 def conda_in_private_env():

@@ -151,6 +151,26 @@ def supplement_index_with_features(index, features=()):
         index[Dist(rec)] = rec
 
 
+def get_index(channel_urls=None, subdirs=None, prefix=None):
+    """
+
+    Args:
+        channel_urls (Option[Sequence[str]]): a list of channel urls
+            if not given, context.channels is used
+        subdirs: (Option[Sequence[str]]): a list of channel subdirs
+            if not given, context.subdirs is used
+        prefix: if supplied, the packages installed in the prefix are added
+
+
+    """
+    platform = subdirs[0] if subdirs else context.subdirs[0]
+    channel_priority_map = prioritize_channels(
+        channel_urls or context.channels,
+        platform,
+    )
+    index = fetch_index(channel_priority_map)
+
+
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     """
@@ -184,6 +204,18 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
 
 class Index(object):
+    """
+    Three sources:
+      1. repodata
+      2. package cache
+      3. prefix
+
+    Keep a copy of repodata records exactly as it's downloaded.  Don't add a bunch of stuff to it.
+    Things added to repodata records on fetch -- mostly channel information.
+
+    The resolve logic for like features, track_features, ms_depends, find_matches, could be moved here.
+
+    """
 
     def __init__(self, index):
         # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
@@ -241,6 +273,7 @@ class Index(object):
         return self._index.get(dist, default)
 
     def __contains__(self, dist):
+        # number 1 most common
         return dist in self._index
 
     def __iter__(self):
