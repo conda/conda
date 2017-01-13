@@ -6,11 +6,11 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .package_info import PackageInfo
 from .index_record import IndexRecord
+from .package_info import PackageInfo
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, StringField, IntegerField
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS, UNKNOWN_CHANNEL
+from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
+from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..common.constants import NULL
@@ -28,8 +28,8 @@ class DistType(EntityType):
             value = args[0]
             if isinstance(value, Dist):
                 return value
-            elif value.__class__.__name__ == "Package":
-                return Dist.from_string(value.fn, channel_override=value.schannel)
+            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
+                return value.dist
             elif isinstance(value, IndexRecord):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             elif isinstance(value, PackageInfo):
@@ -82,13 +82,13 @@ class Dist(Entity):
 
     @property
     def pair(self):
-        return self.channel or DEFAULTS, self.dist_name
+        return self.channel or DEFAULTS_CHANNEL_NAME, self.dist_name
 
     @property
     def quad(self):
         # returns: name, version, build_string, channel
         parts = self.dist_name.rsplit('-', 2) + ['', '']
-        return parts[0], parts[1], parts[2], self.channel or DEFAULTS
+        return parts[0], parts[1], parts[2], self.channel or DEFAULTS_CHANNEL_NAME
 
     def __str__(self):
         base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
@@ -142,7 +142,7 @@ class Dist(Entity):
         if channel_override != NULL:
             channel = channel_override
         elif channel is None:
-            channel = DEFAULTS
+            channel = DEFAULTS_CHANNEL_NAME
 
         # enforce dist format
         dist_details = cls.parse_dist_name(original_dist)

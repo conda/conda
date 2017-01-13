@@ -3,16 +3,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from itertools import chain
 from logging import getLogger
-
 from requests.packages.urllib3.util import Url
 
-from ..base.constants import (DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN, MAX_CHANNEL_PRIORITY,
-                              UNKNOWN_CHANNEL)
+from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
+                              MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
-from ..common.compat import iteritems, odict, with_metaclass
-from ..common.path import is_windows_path
-from ..common.url import (has_scheme, is_url, join_url, on_win, path_to_url,
-                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
+from ..common.compat import ensure_text_type, iteritems, odict, with_metaclass
+from ..common.path import is_path, win_path_backout
+from ..common.url import (has_scheme, is_url, join_url, path_to_url, split_conda_url_easy_parts,
+                          split_scheme_auth_token, urlparse)
 
 try:
     from cytoolz.functoolz import excepts
@@ -208,19 +207,18 @@ class Channel(object):
 
     @staticmethod
     def from_value(value):
-        if value is None:
+        if value in (None, '<unknown>', 'None:///<unknown>', 'None'):
             return Channel(name=UNKNOWN_CHANNEL)
-        if hasattr(value, 'decode'):
-            value = value.decode('utf-8')
+        value = ensure_text_type(value)
         if has_scheme(value):
-            if value.startswith('file:') and on_win:
-                value = value.replace('\\', '/')
+            if value.startswith('file:'):
+                value = win_path_backout(value)
             return Channel.from_url(value)
-        elif value.startswith(('./', '..', '~', '/')) or is_windows_path(value):
+        elif is_path(value):
             return Channel.from_url(path_to_url(value))
         elif value.endswith('.tar.bz2'):
-            if value.startswith('file:') and on_win:
-                value = value.replace('\\', '/')
+            if value.startswith('file:'):
+                value = win_path_backout(value)
             return Channel.from_url(value)
         else:
             # at this point assume we don't have a bare (non-scheme) url
@@ -302,6 +300,9 @@ class Channel(object):
     #         return Channel(None)
 
     def urls(self, with_credentials=False, platform=None):
+        if self.canonical_name == UNKNOWN_CHANNEL:
+            return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, platform)
+
         base = [self.location]
         if with_credentials and self.token:
             base.extend(['t', self.token])
@@ -342,7 +343,7 @@ class Channel(object):
 
     @property
     def base_url(self):
-        if self.canonical_name is None:
+        if self.canonical_name == UNKNOWN_CHANNEL:
             return None
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 

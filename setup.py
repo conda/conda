@@ -23,7 +23,8 @@ WARNING: Your current install method for conda only supports conda
 as a python library.  You are not installing a conda executable command
 or activate/deactivate commands.  If your intention is to install conda
 as a standalone application, currently supported install methods include
-the Anaconda installer and the miniconda installer.
+the Anaconda installer and the miniconda installer.  If you'd still like
+for setup.py to create entry points for you, use `utils/setup-testing.py`.
 """, file=sys.stderr)
 
 
@@ -64,6 +65,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
     ],
     packages=conda._vendor.auxlib.packaging.find_packages(exclude=("tests",
                                                                    "tests.*",

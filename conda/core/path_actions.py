@@ -24,11 +24,10 @@ from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, creat
                                     create_private_envs_meta, create_private_pkg_entry_point,
                                     create_unix_python_entry_point,
                                     create_windows_python_entry_point, extract_tarball,
-                                    make_menu, remove_private_envs_meta,
-                                    write_linked_package_record)
-from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+                                    make_menu, write_linked_package_record)
+from ..gateways.disk.delete import remove_private_envs_meta, rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
-from ..gateways.disk.update import backoff_rename
+from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
 from ..models.dist import Dist
 from ..models.enums import LinkType, PathType
@@ -295,8 +294,7 @@ class MakeMenuAction(CreateInPrefixPathAction):
         else:
             return ()
 
-    def __init__(self, transaction_context, package_info,
-                 target_prefix, target_short_path):
+    def __init__(self, transaction_context, package_info, target_prefix, target_short_path):
         super(MakeMenuAction, self).__init__(transaction_context, package_info,
                                              None, None, target_prefix, target_short_path)
         self._execute_successful = False
@@ -310,6 +308,29 @@ class MakeMenuAction(CreateInPrefixPathAction):
         if self._execute_successful:
             log.trace("removing menu for %s", self.target_full_path)
             make_menu(self.target_prefix, self.target_short_path, remove=True)
+
+
+class CreateNonadminAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+        if on_win and lexists(join(context.root_dir, '.nonadmin')):
+            return cls(transaction_context, package_info, target_prefix),
+        else:
+            return ()
+
+    def __init__(self, transaction_context, package_info, target_prefix):
+        super(CreateNonadminAction, self).__init__(transaction_context, package_info, None, None,
+                                                   target_prefix, '.nonadmin')
+
+    def execute(self):
+        log.trace("touching nonadmin %s", self.target_full_path)
+        self._file_created = touch(self.target_full_path)
+
+    def reverse(self):
+        if self._file_created:
+            log.trace("removing nonadmin file %s", self.target_full_path)
+            rm_rf(self.target_full_path)
 
 
 class CompilePycAction(CreateInPrefixPathAction):

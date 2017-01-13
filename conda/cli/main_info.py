@@ -15,7 +15,7 @@ import re
 import sys
 
 from .common import add_parser_json, add_parser_offline, arg2spec, handle_envs_list, stdout_json
-from ..common.compat import itervalues, on_win
+from ..common.compat import itervalues, on_win, iteritems
 from ..common.url import mask_anaconda_token
 from ..config import rc_path, sys_rc_path, user_rc_path
 from ..models.channel import prioritize_channels
@@ -95,25 +95,31 @@ def get_user_site():
     return site_dirs
 
 
-def pretty_package(pkg):
-    from conda.utils import human_bytes
-    from conda.models.channel import Channel
+IGNORE_FIELDS = {'files', 'auth', 'with_features_depends',
+                 'preferred_env', 'priority'}
 
+SKIP_FIELDS = IGNORE_FIELDS | {'name', 'version', 'build', 'build_number',
+                               'channel', 'schannel', 'size', 'fn', 'depends'}
+
+def dump_record(pkg):
+    return {k: v for k, v in iteritems(pkg.dump()) if k not in IGNORE_FIELDS}
+
+
+def pretty_package(dist, pkg):
+    from conda.utils import human_bytes
+
+    pkg = dump_record(pkg)
     d = OrderedDict([
-        ('file name', pkg.fn),
-        ('name', pkg.name),
-        ('version', pkg.version),
-        ('build number', pkg.build_number),
-        ('build string', pkg.build),
-        ('channel', Channel(pkg.channel).canonical_name),
-        ('size', human_bytes(pkg.info['size'])),
+        ('file name', dist.to_filename()),
+        ('name', pkg['name']),
+        ('version', pkg['version']),
+        ('build string', pkg['build']),
+        ('build number', pkg['build_number']),
+        ('channel', dist.channel),
+        ('size', human_bytes(pkg['size'])),
     ])
-    rest = pkg.info
-    for key in sorted(rest):
-        if key in {'build', 'depends', 'requires', 'channel', 'name',
-                   'version', 'build_number', 'size'}:
-            continue
-        d[key] = rest[key]
+    for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
+        d[key] = pkg[key]
 
     print()
     header = "%s %s %s" % (d['name'], d['version'], d['build string'])
@@ -122,7 +128,7 @@ def pretty_package(pkg):
     for key in d:
         print("%-12s: %s" % (key, d[key]))
     print('dependencies:')
-    for dep in pkg.info['depends']:
+    for dep in pkg['depends']:
         print('    %s' % dep)
 
 def execute(args, parser):
@@ -148,22 +154,21 @@ def execute(args, parser):
         r = Resolve(index)
         if context.json:
             stdout_json({
-                package: [p._asdict()
-                          for p in sorted(r.get_pkgs(arg2spec(package)))]
+                package: [dump_record(r.index[d])
+                          for d in r.get_dists_for_spec(arg2spec(package))]
                 for package in args.packages
             })
         else:
             for package in args.packages:
-                versions = r.get_pkgs(arg2spec(package))
-                for pkg in sorted(versions):
-                    pretty_package(pkg)
+                for dist in r.get_dists_for_spec(arg2spec(package)):
+                    pretty_package(dist, r.index[dist])
         return
 
     options = 'envs', 'system', 'license'
 
     try:
         from conda.install import linked_data
-        root_pkgs = linked_data(sys.prefix)
+        root_pkgs = linked_data(context.root_prefix)
     except:
         root_pkgs = None
 

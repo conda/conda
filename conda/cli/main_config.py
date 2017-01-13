@@ -15,6 +15,7 @@ from .. import CondaError
 from .._vendor.auxlib.compat import isiterable
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.type_coercion import boolify
+from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import iteritems, string_types
 from ..common.configuration import pretty_list, pretty_map
@@ -36,7 +37,7 @@ config command.  Writes to the user .condarc file (%s) by default.
 # recognize it because it removes the indentation, but at least it will be
 # valid.
 additional_descr = """
-See http://conda.pydata.org/docs/config.html for details on all the options
+See %s/docs/config.html for details on all the options
 that can go in .condarc.
 
 List keys, like
@@ -76,7 +77,7 @@ valid ways to spell "true", and "no", "NO", "off", "false", "False", and
 "FALSE", are all valid ways to spell "false".
 
 The .condarc file is YAML, and any valid YAML syntax is allowed.
-"""
+""" % CONDA_HOMEPAGE_URL
 
 
 # Note, the formatting of this is designed to work well with help2man

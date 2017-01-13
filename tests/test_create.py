@@ -305,12 +305,17 @@ class IntegrationTests(TestCase):
             repodata = {'info': {}, 'packages': {flask_fname: IndexRecord(**flask_data)}}
             with make_temp_env() as channel:
                 subchan = join(channel, context.subdir)
+                noarch_dir = join(channel, 'noarch')
                 channel = path_to_url(channel)
                 os.makedirs(subchan)
+                os.makedirs(noarch_dir)
                 tar_new_path = join(subchan, flask_fname)
                 copyfile(tar_old_path, tar_new_path)
                 with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
                     f.write(json.dumps(repodata, cls=EntityEncoder).encode('utf-8'))
+                with bz2.BZ2File(join(noarch_dir, 'repodata.json.bz2'), 'w') as f:
+                    f.write(json.dumps({}, cls=EntityEncoder).encode('utf-8'))
+
                 run_command(Commands.INSTALL, prefix, '-c', channel, 'flask', '--json')
                 assert_package_is_installed(prefix, channel + '::' + 'flask-')
 
@@ -386,6 +391,20 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
+
+    @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+    @pytest.mark.timeout(300)
+    def test_remove_features(self):
+        with make_temp_env("numpy nomkl") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'numpy')
+            assert_package_is_installed(prefix, 'nomkl')
+            assert not package_is_installed(prefix, 'mkl')
+
+            run_command(Commands.REMOVE, prefix, '--features', 'nomkl')
+            assert_package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'nomkl')
+            assert_package_is_installed(prefix, 'mkl')
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
     def test_dash_c_usage_replacing_python(self):

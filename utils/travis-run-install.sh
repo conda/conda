@@ -19,12 +19,16 @@ osx_setup() {
             python get-pip.py --user
             ;;
         '3.4')
-            pyenv install 3.4.4
-            pyenv global 3.4.4
+            pyenv install 3.4.5
+            pyenv global 3.4.5
             ;;
         '3.5')
-            pyenv install 3.5.1
-            pyenv global 3.5.1
+            pyenv install 3.5.2
+            pyenv global 3.5.2
+            ;;
+        '3.6')
+            pyenv install 3.6.0
+            pyenv global 3.6.0
             ;;
     esac
     pyenv rehash
@@ -40,7 +44,7 @@ main_install() {
         *) ;;
     esac
 
-    python -m pip install psutil ruamel.yaml pycosat pycrypto requests
+    python -m pip install psutil ruamel.yaml pycosat pycrypto requests==2.12.4 pyopenssl==16.2.0
 
     case "${TRAVIS_PYTHON_VERSION:-PYTHON_VERSION}" in
       '2.7')
@@ -78,15 +82,18 @@ miniconda_install() {
 
 conda_build_install() {
     # install conda
-    python utils/setup-testing.py install
+    rm -rf $(~/miniconda/bin/python -c "import site; print(site.getsitepackages()[0])")/conda
+    ~/miniconda/bin/python utils/setup-testing.py install
     hash -r
     conda info
 
     # install conda-build test dependencies
     conda install -y -q pytest pytest-cov pytest-timeout mock
-    python -m pip install pytest-capturelog
-    conda install -y -q anaconda-client numpy
     conda install -y -q -c conda-forge perl pytest-xdist
+    conda install -y -q anaconda-client numpy
+
+    ~/miniconda/bin/python -m pip install pytest-capturelog pytest-mock
+
     conda config --set add_pip_as_python_dependency true
 
     # install conda-build runtime dependencies
@@ -95,7 +102,7 @@ conda_build_install() {
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
     pushd conda-build
-    python setup.py install
+    ~/miniconda/bin/pip install .
     hash -r
     conda info
     popd
@@ -114,5 +121,3 @@ else
     main_install
     test_extras
 fi
-
-python -m pip install requests==2.11.1

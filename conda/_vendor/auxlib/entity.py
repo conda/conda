@@ -711,6 +711,7 @@ class EntityType(type):
 @with_metaclass(EntityType)
 class Entity(object):
     __fields__ = odict()
+    _lazy_validate = False
 
     def __init__(self, **kwargs):
         for key, field in iteritems(self.__fields__):
@@ -727,7 +728,8 @@ class Entity(object):
             except ValidationError:
                 if kwargs[key] is not None or field.required:
                     raise
-        self.validate()
+        if not self._lazy_validate:
+            self.validate()
 
     @classmethod
     def from_objects(cls, *objects, **override_fields):

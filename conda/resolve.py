@@ -4,14 +4,13 @@ from itertools import chain
 import logging
 import re
 
-from .base.constants import DEFAULTS, MAX_CHANNEL_PRIORITY
+from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
 from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
-from .models.package import Package
 from .models.index_record import IndexRecord
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
@@ -489,8 +488,8 @@ class Resolve(object):
             if ms.name[0] == '@':
                 res = self.trackers.get(ms.name[1:], [])
             else:
-                res1 = self.groups.get(ms.name, [])
-                res = [p for p in res1 if self.match_fast(ms, p)]
+                res = self.groups.get(ms.name, [])
+            res = [p for p in res if self.match_fast(ms, p)]
             self.find_matches_[ms] = res
         assert all(isinstance(d, Dist) for d in res)
         return res
@@ -539,7 +538,9 @@ class Resolve(object):
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
         bld = rec.get('build_number', 0)
-        return (valid, -cpri, ver, bld) if context.channel_priority else (valid, ver, -cpri, bld)
+        bs = rec.get('build_string')
+        return ((valid, -cpri, ver, bld, bs) if context.channel_priority else
+                (valid, ver, -cpri, bld, bs))
 
     def features(self, dist):
         return set(self.index[dist].get('features', '').split())
@@ -552,17 +553,23 @@ class Resolve(object):
         if rec is None:
             return dist.quad
         else:
-            return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
+            return (rec['name'], rec['version'], rec['build'],
+                    rec.get('schannel', DEFAULTS_CHANNEL_NAME))
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
     def get_pkgs(self, ms, emptyok=False):
+        # legacy method for conda-build
+        # TODO: remove in conda 4.4
+        return self.get_dists_for_spec(ms, emptyok)
+
+    def get_dists_for_spec(self, ms, emptyok=False):
         ms = MatchSpec(ms)
-        pkgs = [Package(dist, self.index[dist]) for dist in self.find_matches(ms)]
-        if not pkgs and not emptyok:
+        dists = self.find_matches(ms)
+        if not dists and not emptyok:
             raise NoPackagesFoundError([(ms,)])
-        return pkgs
+        return sorted(dists, key=self.version_key)
 
     @staticmethod
     def ms_to_v(ms):
@@ -585,9 +592,9 @@ class Resolve(object):
             elif not ms.is_simple():
                 m = C.from_name(self.push_MatchSpec(C, ms.name))
         if m is None:
+            libs = [dist.full_name for dist in libs]
             if ms.optional:
                 libs.append('!@s@'+ms.name)
-            libs = [dist.full_name for dist in libs]
             m = C.Any(libs)
         C.name_var(m, name)
         return name
@@ -729,31 +736,6 @@ class Resolve(object):
         assert isinstance(fn1, Dist)
         assert isinstance(fn2, Dist)
         return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
-
-    def find_substitute(self, installed, features, fn):
-        """
-        Find a substitute package for `fn` (given `installed` packages)
-        which does *NOT* have `features`.  If found, the substitute will
-        have the same package name and version and its dependencies will
-        match the installed packages as closely as possible.
-        If no substitute is found, None is returned.
-        """
-        # assert all(isinstance(d, Dist) for d in installed)
-        dist = Dist(fn)
-        name, version, unused_bld, schannel = self.package_quad(dist)
-        candidates = {}
-        for pkg in self.get_pkgs(MatchSpec(name + ' ' + version)):
-            fn1 = pkg.dist
-            if self.features(fn1).intersection(features):
-                continue
-            key = sum(self.sum_matches(fn1, fn2) for fn2 in installed)
-            candidates[key] = fn1
-
-        if candidates:
-            maxkey = max(candidates)
-            return candidates[maxkey]
-        else:
-            return None
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')

@@ -18,7 +18,6 @@ BOOL_COERCEABLE_TYPES = integer_types + (bool, float, complex, list, set, dict, 
 NUMBER_TYPES = integer_types + (float, complex)
 NUMBER_TYPES_SET = set(NUMBER_TYPES)
 STRING_TYPES_SET = set(string_types)
-BOOLNULL_TYPE_SET = {bool, NoneType}
 
 NO_MATCH = object()
 
@@ -177,6 +176,11 @@ def boolify_truthy_string_ok(value):
         return True
 
 
+def typify_str_no_hint(value):
+    candidate = _REGEX.convert(value)
+    return candidate if candidate is not NO_MATCH else value
+
+
 @memoize
 def typify(value, type_hint=None):
     """Take a primitive value, usually a string, and try to make a more relevant type out of it.
@@ -223,10 +227,12 @@ def typify(value, type_hint=None):
             return numberify(value)
         elif not (type_hint - STRING_TYPES_SET):
             return text_type(value)
-        elif not (type_hint - BOOLNULL_TYPE_SET):
+        elif not (type_hint - {bool, NoneType}):
             return boolify(value, nullable=True)
         elif not (type_hint - (STRING_TYPES_SET | {bool})):
             return boolify(value, return_string=True)
+        elif not (type_hint - {bool, int}):
+            return typify_str_no_hint(text_type(value))
         else:
             raise NotImplementedError()
     elif type_hint is not None:
@@ -238,12 +244,8 @@ def typify(value, type_hint=None):
             raise TypeCoercionError(value, text_type(e))
     else:
         # no type hint, but we know value is a string, so try to match with the regex patterns
-        candidate = _REGEX.convert(value)
-        if candidate is not NO_MATCH:
-            return candidate
-
-        # nothing has caught so far; give up, and return the value that was given
-        return value
+        #   if there's still no match, `typify_str_no_hint` will return `value`
+        return typify_str_no_hint(value)
 
 
 def typify_data_structure(value, type_hint=None):

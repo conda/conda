@@ -73,10 +73,15 @@ def run_command(command, *arguments, **kwargs):
         argparse_args=args,
     )
     log.debug("executing command >>>  conda %s", command_line)
-    with captured() as c, replace_log_streams():
-        if use_exception_handler:
-            return_code = conda_exception_handler(args.func, args, p)
-        else:
-            return_code = args.func(args, p)
+    try:
+        with captured() as c, replace_log_streams():
+            if use_exception_handler:
+                return_code = conda_exception_handler(args.func, args, p)
+            else:
+                return_code = args.func(args, p)
+    except Exception as e:
+        log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
+        e.stdout, e.stderr = c.stdout, c.stderr
+        raise e
     log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", c.stdout, c.stderr, return_code)
     return c.stdout, c.stderr, return_code

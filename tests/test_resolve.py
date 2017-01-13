@@ -10,12 +10,11 @@ from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
-from conda.models.package import Package
 from os.path import dirname, join
 
 import pytest
 
-from conda.resolve import MatchSpec, Package, Resolve, NoPackagesFound, Unsatisfiable
+from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
@@ -107,23 +106,6 @@ class TestMatchSpec(unittest.TestCase):
     def test_string(self):
         a = MatchSpec("foo1 >=1.3 2 (optional,target=burg)")
         assert a.optional and a.target=='burg'
-
-
-class TestPackage(unittest.TestCase):
-
-    def test_llvm(self):
-        ms = MatchSpec('llvm')
-        pkgs = [Package(fn, r.index[Dist(fn)]) for fn in r.find_matches(ms)]
-        pkgs.sort()
-        self.assertEqual([p.fn for p in pkgs],
-                         ['llvm-3.1-0.tar.bz2',
-                          'llvm-3.1-1.tar.bz2',
-                          'llvm-3.2-0.tar.bz2'])
-
-    def test_different_names(self):
-        pkgs = [Package(fn, r.index[Dist(fn)]) for fn in [
-                'llvm-3.1-1.tar.bz2', 'python-2.7.5-0.tar.bz2']]
-        self.assertRaises(TypeError, pkgs.sort)
 
 
 class TestSolve(unittest.TestCase):
@@ -238,18 +220,6 @@ class TestSolve(unittest.TestCase):
         self.assertTrue(Dist('scipy-0.12.0-np17py33_p0.tar.bz2') in dists)
         self.assertTrue(Dist('mkl-rt-11.0-p0.tar.bz2') in dists)
         self.assertEqual(len(dists), 61)
-
-
-class TestFindSubstitute(unittest.TestCase):
-
-    def test1(self):
-        installed = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
-        for old, new in [('numpy-1.7.1-py27_p0.tar.bz2', 'numpy-1.7.1-py27_0.tar.bz2'),
-                         ('scipy-0.12.0-np17py27_p0.tar.bz2', 'scipy-0.12.0-np17py27_0.tar.bz2'),
-                         ('mkl-rt-11.0-p0.tar.bz2', None)
-                         ]:
-            assert Dist(old) in installed
-            assert r.find_substitute(installed, f_mkl, old) == (Dist(new) if new else None)
 
 
 def test_pseudo_boolean():
@@ -522,7 +492,7 @@ def test_unsat():
 
 
 def test_nonexistent():
-    assert raises(NoPackagesFoundError, lambda: r.get_pkgs('notarealpackage 2.0*'))
+    assert not r.find_matches(MatchSpec('notarealpackage 2.0*'))
     assert raises(NoPackagesFoundError, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
     assert raises(NoPackagesFoundError, lambda: r.install(['numpy 1.5']))
@@ -791,52 +761,6 @@ def test_circular_dependencies():
         Dist('package1-1.0-0.tar.bz2'),
         Dist('package2-1.0-0.tar.bz2'),
     ]
-
-
-def test_package_ordering():
-    sympy_071 = Package('sympy-0.7.1-py27_0.tar.bz2', r.index[Dist('sympy-0.7.1-py27_0.tar.bz2')])
-    sympy_072 = Package('sympy-0.7.2-py27_0.tar.bz2', r.index[Dist('sympy-0.7.2-py27_0.tar.bz2')])
-    python_275 = Package('python-2.7.5-0.tar.bz2', r.index[Dist('python-2.7.5-0.tar.bz2')])
-    numpy = Package('numpy-1.7.1-py27_0.tar.bz2', r.index[Dist('numpy-1.7.1-py27_0.tar.bz2')])
-    numpy_mkl = Package('numpy-1.7.1-py27_p0.tar.bz2', r.index[Dist('numpy-1.7.1-py27_p0.tar.bz2')])
-
-    assert sympy_071 < sympy_072
-    assert not sympy_071 < sympy_071
-    assert not sympy_072 < sympy_071
-    raises(TypeError, lambda: sympy_071 < python_275)
-
-    assert sympy_071 <= sympy_072
-    assert sympy_071 <= sympy_071
-    assert not sympy_072 <= sympy_071
-    assert raises(TypeError, lambda: sympy_071 <= python_275)
-
-    assert sympy_071 == sympy_071
-    assert not sympy_071 == sympy_072
-    assert (sympy_071 == python_275) is False
-    assert (sympy_071 == 1) is False
-
-    assert not sympy_071 != sympy_071
-    assert sympy_071 != sympy_072
-    assert (sympy_071 != python_275) is True
-
-    assert not sympy_071 > sympy_072
-    assert not sympy_071 > sympy_071
-    assert sympy_072 > sympy_071
-    raises(TypeError, lambda: sympy_071 > python_275)
-
-    assert not sympy_071 >= sympy_072
-    assert sympy_071 >= sympy_071
-    assert sympy_072 >= sympy_071
-    assert raises(TypeError, lambda: sympy_071 >= python_275)
-
-    # The first four are a bit arbitrary. For now, we just test that it
-    # doesn't prefer the mkl version.
-    assert not numpy > numpy_mkl
-    assert not numpy >= numpy_mkl
-    assert numpy < numpy_mkl
-    assert numpy <= numpy_mkl
-    assert (numpy != numpy_mkl) is True
-    assert (numpy == numpy_mkl) is False
 
 
 def test_irrational_version():

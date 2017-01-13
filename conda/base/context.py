@@ -5,16 +5,17 @@ from collections import Sequence
 from itertools import chain
 from logging import getLogger
 import os
-from os.path import abspath, basename, dirname, expanduser, isdir, join
+from os.path import (abspath, basename, expanduser, isdir, join, normpath,
+                     split as path_split)
 from platform import machine
 import sys
 
-from conda.base.constants import PathConflict
 from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
                         SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
+from ..base.constants import DEFAULTS_CHANNEL_NAME, PathConflict
 from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
@@ -69,7 +70,6 @@ class Context(Configuration):
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
-    repodata_timeout_secs = PrimitiveParameter(300)
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
@@ -78,6 +78,12 @@ class Context(Configuration):
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
+    _subdir = PrimitiveParameter('', aliases=('subdir',))
+
+    local_repodata_ttl = PrimitiveParameter(True, parameter_type=(bool, int))
+    # number of seconds to cache repodata locally
+    #   True/1: respect Cache-Control max-age header
+    #   False/0: always fetch remote repodata (HTTP 304 responses respected)
 
     # remote connection details
     ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
@@ -94,7 +100,8 @@ class Context(Configuration):
                                         validation=channel_alias_validation)
 
     # channels
-    channels = SequenceParameter(string_types, default=('defaults',))
+    _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
+                                  aliases=('channels', 'channel',))  # channel for args.channel
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
@@ -213,6 +220,8 @@ class Context(Configuration):
 
     @property
     def subdir(self):
+        if self._subdir:
+            return self._subdir
         m = machine()
         if m in non_x86_linux_machines:
             return 'linux-%s' % m
@@ -249,11 +258,11 @@ class Context(Configuration):
 
     @property
     def envs_dirs(self):
-        return tuple(abspath(expanduser(p))
-                     for p in concatv(self._envs_dirs,
-                                      (join(self.root_dir, 'envs'), )
-                                      if self.root_writable
-                                      else ('~/.conda/envs', join(self.root_dir, 'envs'))))
+        return tuple(abspath(expanduser(p)) for p in concatv(
+            self._envs_dirs,
+            ('~/.conda/envs',) if not self.root_writable else (),
+            (join(self.root_dir, 'envs'),),
+        ))
 
     @property
     def pkgs_dirs(self):
@@ -261,6 +270,10 @@ class Context(Configuration):
             return list(self._pkgs_dirs)
         else:
             return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
+
+    @property
+    def private_envs_json_path(self):
+        return join(self.root_prefix, "conda-meta", "private_envs")
 
     @property
     def default_prefix(self):
@@ -301,8 +314,10 @@ class Context(Configuration):
     def root_prefix(self):
         if self._root_dir:
             return abspath(expanduser(self._root_dir))
+        elif conda_in_private_env():
+            return normpath(join(self.conda_prefix, '..', '..'))
         else:
-            return abspath(join(sys.prefix, '..', '..')) if conda_in_private_env() else sys.prefix
+            return self.conda_prefix
 
     @property
     def conda_prefix(self):
@@ -331,14 +346,14 @@ class Context(Configuration):
         # the format for 'default_channels' is a list of strings that either
         #   - start with a scheme
         #   - are meant to be prepended with channel_alias
-        return self.custom_multichannels['defaults']
+        return self.custom_multichannels[DEFAULTS_CHANNEL_NAME]
 
     @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
 
         reserved_multichannel_urls = odict((
-            ('defaults', self._default_channels),
+            (DEFAULTS_CHANNEL_NAME, self._default_channels),
             ('local', self.conda_build_local_urls),
         ))
         reserved_multichannels = odict(
@@ -373,10 +388,21 @@ class Context(Configuration):
         )))
         return all_channels
 
+    @property
+    def channels(self):
+        # add 'defaults' channel when necessary if --channel is given via the command line
+        if self._argparse_args and 'channel' in self._argparse_args:
+            # TODO: it's args.channel right now, not channels
+            argparse_channels = tuple(self._argparse_args['channel'] or ())
+            if argparse_channels and argparse_channels == self._channels:
+                return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
+        return self._channels
+
 
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda_'
-    return basename(sys.prefix) == '_conda_' and basename(dirname(sys.prefix)) == 'envs'
+    envs_dir, env_name = path_split(sys.prefix)
+    return env_name == '_conda_' and basename(envs_dir) == 'envs'
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):

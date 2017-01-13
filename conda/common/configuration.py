@@ -247,7 +247,7 @@ class ArgParseRawParameter(RawParameter):
         return None
 
     def valueflags(self, parameter_obj):
-        return None
+        return None if isinstance(parameter_obj, PrimitiveParameter) else ()
 
     @classmethod
     def make_raw_parameters(cls, args_from_argparse):
@@ -579,7 +579,7 @@ class SequenceParameter(Parameter):
             return tuple(line
                          for line, flag in zip(match.value(parameter_obj),
                                                match.valueflags(parameter_obj))
-                         if flag is marker)
+                         if flag is marker) if match else ()
         top_lines = concat(get_marked_lines(m, ParameterFlag.top, self) for m in relevant_matches)
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
@@ -611,6 +611,13 @@ class SequenceParameter(Parameter):
             lines.append("  - %s%s" % (self._str_format_value(value),
                                        self._str_format_flag(valueflag)))
         return '\n'.join(lines)
+
+    def _get_all_matches(self, instance):
+        # this is necessary to handle argparse `action="append"`, which can't be set to a
+        #   default value of NULL
+        matches, multikey_exceptions = super(SequenceParameter, self)._get_all_matches(instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, multikey_exceptions
 
 
 class MapParameter(Parameter):
@@ -689,6 +696,10 @@ class Configuration(object):
         self._reset_callbacks = set()  # TODO: make this a boltons ordered set
         self._validation_errors = defaultdict(list)
 
+        if not hasattr(self, '_search_path') and search_path is not None:
+            # we only set search_path once; we never change it
+            self._search_path = search_path
+
         if not hasattr(self, '_app_name') and app_name is not None:
             # we only set app_name once; we never change it
             self._app_name = app_name
@@ -698,22 +709,27 @@ class Configuration(object):
         self._set_argparse_args(argparse_args)
 
     def _set_search_path(self, search_path):
-        self._search_path = search_path
+        if not hasattr(self, '_search_path') and search_path is not None:
+            # we only set search_path once; we never change it
+            self._search_path = search_path
 
-        # we need to make sure old data doesn't stick around if we are resetting
-        #   easiest solution is to completely clear raw_data and re-load other sources
-        #   if raw_data holds contents
-        raw_data_held_contents = bool(self.raw_data)
-        if raw_data_held_contents:
-            self.raw_data = odict()
+        if getattr(self, '_search_path', None):
 
-        self._set_raw_data(load_file_configs(search_path))
+            # we need to make sure old data doesn't stick around if we are resetting
+            #   easiest solution is to completely clear raw_data and re-load other sources
+            #   if raw_data holds contents
+            raw_data_held_contents = bool(self.raw_data)
+            if raw_data_held_contents:
+                self.raw_data = odict()
 
-        if raw_data_held_contents:
-            # this should only be triggered on re-initialization / reset
-            self._set_env_vars(getattr(self, '_app_name', None))
-            self._set_argparse_args(self._argparse_args)
+            self._set_raw_data(load_file_configs(search_path))
 
+            if raw_data_held_contents:
+                # this should only be triggered on re-initialization / reset
+                self._set_env_vars(getattr(self, '_app_name', None))
+                self._set_argparse_args(self._argparse_args)
+
+        self._reset_cache()
         return self
 
     def _set_env_vars(self, app_name=None):

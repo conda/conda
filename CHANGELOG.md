@@ -1,7 +1,50 @@
-## 4.3.2 (unreleased)
+## 4.4.0 (unreleased)
+
+### New Features
+* general support for all bourne- and c-based shells #3175
+
+
+## 4.3.4 (unreleased)
+
+### Bug Fixes
+* fix some bugs in windows multi-user support (#4277)
+* fix problems with channels of type <unknown> (#4290)
+
+### Non-User-Facing Changes
+* make arch in IndexRecord a StringField instead of EnumField
+* improve conda-build compatibility (#4266)
+
+
+## 4.3.3 (2017-01-10)
+
+### Improvements
+* respect Cache-Control max-age header for repodata (#4220)
+* add 'local_repodata_ttl' configurability (#4240)
+* remove questionable "nothing to install" logic (#4237)
+* relax channel noarch requirement for 4.3; warn now, raise in future feature release (#4238)
+* add additional info to setup.py warning message (#4258)
+
+### Bug Fixes
+* remove features properly (#4236)
+* do not use `IFS` to find activate/deactivate scripts to source (#4239)
+* fix #4235 print message to stderr (#4241)
+* fix relative path to python in activate.bat (#4242)
+* fix args.channel references (#4245, #4246)
+* ensure cache_fn_url right pad (#4255)
+* fix #4256 subprocess calls must have env wrapped in str (#4259)
+
+
+## 4.3.2 (2017-01-06)
+
+### Deprecations/Breaking Changes
+* Further refine conda channels specification. To verify if the url of a channel
+  represents a valid conda channel, we check that `noarch/repodata.json` and/or
+  `noarch/repodata.json.bz2` exist, even if empty. (#3739)
 
 ### Improvements
 * add new 'path_conflict' and 'clobber' configuration options (#4119)
+* separate fetch/extract pass for explicit URLs (#4125)
+* update conda homepage to conda.io (#4180)
 
 ### Bug Fixes
 * fix pre/post unlink/link scripts (#4113)
@@ -9,12 +52,17 @@
 * fix history tracking (#4143)
 * fix index creation order (#4131)
 * fix #4152 conda env export failure (#4175)
+* fix #3779 channel UNC path encoding errors on windows (#4190)
+* fix progress bar (#4191)
+* use context.channels instead of args.channel (#4199)
+* don't use local cached repodata for file:// urls (#4209)
 
 ### Non-User-Facing Changes
 * xfail anaconda token test if local token is found (#4124)
 * fix open-ended test failures relating to python 3.6 release (#4145)
 * extend timebomb for test_multi_channel_export (#4169)
 * don't unlink dists that aren't in the index (#4130)
+* add python 3.6 and new conda-build test targets (#4194)
 
 
 ## 4.3.1 (2016-12-19)
@@ -163,24 +211,51 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.14 (unreleased)
+## 4.2.16 (unreleased)
+
+### Improvements
+* vendor url parsing from urllib3 (#4289)
 
 ### Bug Fixes
-* fix location of temporary hard links of index.json (#3975)
-* fix potential errors in multi-channel export and offline clone (#3995)
+* do not replace \ with / in file:// URLs on Windows (#4269)
+* include aliases for first command-line argument (#4279)
+* fix for multi-line FTP status codes (#4276)
+* fix errors with unknown type channels (#4291)
+
+
+## 4.2.15 (2017-01-10)
+
+### Improvements
+* use 'post' instead of 'dev' for commits according to PEP-440 (#4234)
+* do not use IFS to find activate/deactivate scripts to source (#4243)
+* fix relative path to python in activate.bat (#4244)
+
+### Bug Fixes
+* replace sed with python for activate and deactivate #4257
+
+
+## 4.2.14 (2017-01-07)
 
 ### Improvements
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 * improve handling of local dependency information (#2107)
 * add default channels to exports for Windows and Unix (#4103)
+* make subdir configurable (#4178)
 
 ### Bug Fixes
 * fix conda/install.py single-file behavior (#3854)
 * fix the api->conda substitution (#3456)
 * fix silent directory removal (#3730)
+* fix location of temporary hard links of index.json (#3975)
+* fix potential errors in multi-channel export and offline clone (#3995)
+* fix auxlib/packaging, git hashes are not limited to 7 characters (#4189)
+* fix compatibility with requests >=2.12, add pyopenssl as dependency (#4059)
+* fix #3287 activate in 4.1-4.2.3 clobbers non-conda PATH changes (#4211)
 
 ### Non-User-Facing Changes
 * fix open-ended test failures relating to python 3.6 release (#4166)
+* allow args passed to cli.main() (#4193, #4200, #4201)
+* test against python 3.6 (#4197)
 
 
 ## 4.2.13 (2016-11-22)
@@ -319,14 +394,6 @@
 * fix cio_test compatibility (#3395 via #3400)
 
 
-## 4.1.12 (2016-09-08)
-
-### Bug Fixes
-* fix #2837 "File exists" in symlinked path with parallel activations (#3210)
-* fix prune option when installing packages (#3354)
-* change check for placeholder to be more friendly to long PATH (#3349)
-
-
 ## 4.2.4 (2016-08-18)
 
 ### Bug Fixes
@@ -462,13 +529,17 @@
 * show warning message for pre-link scripts, #3727
 * error and exit for install of packages that require conda minimum version 4.3, #3726
 * fix conda/install.py single-file behavior, #3854
-* fix open-ended test failures relating to python 3.6 release (#4167)
+* fix open-ended test failures relating to python 3.6 release, #4167
+* fix #3287 activate in 4.1-4.2.3 clobbers non-conda PATH changes, #4211
+* fix relative path to python in activate.bat, #4244
 
 
 ## 4.1.12 (2016-09-08)
+
 * fix #2837 "File exists" in symlinked path with parallel activations, #3210
 * fix prune option when installing packages, #3354
 * change check for placeholder to be more friendly to long PATH, #3349
+
 
 ## 4.1.11 (2016-07-26)
 

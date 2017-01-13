@@ -20,8 +20,8 @@ from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
 from ..common.compat import on_win, text_type
 from ..core.index import get_index
-from ..core.linked_data import is_linked, linked as install_linked
-from ..exceptions import (CondaCorruptEnvironmentError, CondaEnvironmentNotFoundError,
+from ..core.linked_data import linked as install_linked
+from ..exceptions import (CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
@@ -30,7 +30,6 @@ from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs,
                     is_root_prefix, nothing_to_do, revert_actions, install_actions_list)
-from ..resolve import Resolve
 
 log = logging.getLogger(__name__)
 
@@ -157,7 +156,7 @@ def install(args, parser, command='install'):
     common.ensure_override_channels_requires_channel(args)
     index_args = {
         'use_cache': args.use_index_cache,
-        'channel_urls': args.channel or (),
+        'channel_urls': context.channels,
         'unknown': args.unknown,
         'prepend': not args.override_channels,
         'use_local': args.use_local
@@ -209,49 +208,8 @@ def install(args, parser, command='install'):
                       prepend=index_args['prepend'], platform=None,
                       use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                       unknown=index_args['unknown'], prefix=prefix)
-    r = Resolve(index)
     ospecs = list(specs)
 
-    # Don't update packages that are already up-to-date
-    if isupdate and not (args.all or args.force):
-        orig_packages = args.packages[:]
-        installed_metadata = [is_linked(prefix, dist) for dist in linked_dists]
-        for name in orig_packages:
-            private_env = common.prefix_if_in_private_env(name)
-            if private_env is not None:
-                linked_dists = install_linked(private_env)
-                installed_metadata = [is_linked(private_env, dist) for dist in linked_dists]
-
-            vers_inst = [m['version'] for m in installed_metadata if m['name'] == name]
-            build_inst = [m['build_number'] for m in installed_metadata if m['name'] == name]
-            channel_inst = [m['channel'] for m in installed_metadata if m['name'] == name]
-
-            if len(vers_inst) != 1 or len(build_inst) != 1 or len(channel_inst) != 1:
-                msg = """It seems like there is a package conflict in the conda-meta directory.
-        Please remove duplicates of %s package""" % name
-                raise CondaCorruptEnvironmentError(msg)
-
-            pkgs = sorted(r.get_pkgs(name))
-            if not pkgs:
-                # Shouldn't happen?
-                continue
-            latest = pkgs[-1]
-
-            if all([latest.version == vers_inst[0],
-                    latest.build_number == build_inst[0],
-                    latest.channel == channel_inst[0]]):
-                args.packages.remove(name)
-        if not args.packages:
-            from .main_list import print_packages
-
-            if not context.json:
-                regex = '^(%s)$' % '|'.join(orig_packages)
-                print('# All requested packages already installed.')
-                print_packages(prefix, regex)
-            else:
-                common.stdout_json_success(
-                    message='All requested packages already installed.')
-            return
     if args.force:
         args.no_deps = True
 

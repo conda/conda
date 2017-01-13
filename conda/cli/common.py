@@ -2,25 +2,27 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import contextlib
+from functools import partial
 import json
 import os
+from os.path import abspath, basename, isfile, join
 import re
 import sys
-from functools import partial
-from os.path import abspath, basename, join, isfile
 
-from conda import iteritems
-from conda.common.path import is_private_env, prefix_to_env_name
-from conda.install import linked_data
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
+from ..common.compat import iteritems
 from ..common.constants import NULL
+from ..common.path import is_private_env, prefix_to_env_name
+from ..core.linked_data import linked_data
 from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DryRunExit)
 from ..resolve import MatchSpec
 from ..utils import memoize
+
+
 get_prefix = partial(context_get_prefix, context)
 
 
@@ -186,6 +188,8 @@ def add_parser_quiet(p):
 def add_parser_channels(p):
     p.add_argument(
         '-c', '--channel',
+        dest='channel',  # apparently conda-build uses this; someday rename to channels are remove context.channels alias to channel  # NOQA
+        # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
         action="append",
         help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults

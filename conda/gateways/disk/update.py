@@ -52,9 +52,14 @@ def backoff_rename(source_path, destination_path):
 
 
 def touch(path):
+    # returns
+    #   True if the file did not exist but was created
+    #   False if the file already existed
     path = expand(path)
     log.trace("touching path %s", path)
     if lexists(path):
         utime(path, None)
+        return True
     else:
         open(path, 'a').close()
+        return False

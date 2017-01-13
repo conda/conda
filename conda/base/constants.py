@@ -8,12 +8,9 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
-from os.path import join
-
 from enum import Enum
+import sys
 
-on_win = bool(sys.platform == "win32")
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
                       # this program on itself will leave it unchanged
@@ -40,8 +37,8 @@ SEARCH_PATH = (
 )
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
-CONDA_HOMEPAGE_URL = 'https://conda.pydata.org'
-DEFAULTS = 'defaults'
+CONDA_HOMEPAGE_URL = 'https://conda.io'
+DEFAULTS_CHANNEL_NAME = 'defaults'
 
 PLATFORM_DIRECTORIES = ("linux-64",
                         "linux-32",
@@ -57,6 +54,7 @@ PLATFORM_DIRECTORIES = ("linux-64",
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
+
 DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
                          'https://repo.continuum.io/pkgs/r',
                          'https://repo.continuum.io/pkgs/pro',
@@ -68,7 +66,8 @@ DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
                         'https://repo.continuum.io/pkgs/msys2',
                         )
 
-DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
+# use the bool(sys.platform == "win32") definition here so we don't import .compat.on_win
+DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if bool(sys.platform == "win32") else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'root'
 
@@ -85,8 +84,6 @@ ROOT_NO_RM = (
 MAX_CHANNEL_PRIORITY = 10000
 
 CONDA_TARBALL_EXTENSION = '.tar.bz2'
-
-PRIVATE_ENVS = join(sys.prefix, "conda-meta/private_envs")
 
 UNKNOWN_CHANNEL = "<unknown>"
 

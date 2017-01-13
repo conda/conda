@@ -17,7 +17,7 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateLinkedPackageRecordAction, CreatePrivateEnvMetaAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RemoveLinkedPackageRecordAction, RemoveMenuAction,
-                           RemovePrivateEnvMetaAction, UnlinkPathAction)
+                           RemovePrivateEnvMetaAction, UnlinkPathAction, CreateNonadminAction)
 from .. import CondaMultiError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -387,6 +387,7 @@ class UnlinkLinkTransaction(object):
         create_directory_actions = LinkPathAction.create_directory_actions(
             *required_quad, file_link_actions=file_link_actions
         )
+        create_nonadmin_actions = CreateNonadminAction.create_actions(*required_quad)
         create_menu_actions = MakeMenuAction.create_actions(*required_quad)
 
         python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
@@ -412,6 +413,7 @@ class UnlinkLinkTransaction(object):
             meta_create_actions,
             create_directory_actions,
             file_link_actions,
+            create_nonadmin_actions,
             python_entry_point_actions,
             compile_pyc_actions,
             create_menu_actions,
@@ -434,7 +436,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ.copy()
 
     if action == 'pre-link':
-        env[str('SOURCE_DIR')] = str(prefix)
+        env['SOURCE_DIR'] = prefix
         warnings.warn(dals("""
         Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
         This is because pre-link scripts have the ability to change the package contents in the
@@ -451,15 +453,15 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
         command_args = [shell_path, path]
 
-    env[str('ROOT_PREFIX')] = sys.prefix
-    env[str('PREFIX')] = str(env_prefix or prefix)
-    env[str('PKG_NAME')] = str(dist.name)
-    env[str('PKG_VERSION')] = str(dist.version)
-    env[str('PKG_BUILDNUM')] = str(dist.build_number)
+    env['ROOT_PREFIX'] = context.root_prefix
+    env['PREFIX'] = env_prefix or prefix
+    env['PKG_NAME'] = dist.name
+    env['PKG_VERSION'] = dist.version
+    env['PKG_BUILDNUM'] = dist.build_number
 
     try:
         log.debug("for %s at %s, executing script: $ %s",
-                  dist, env[str('PREFIX')], ' '.join(command_args))
+                  dist, env['PREFIX'], ' '.join(command_args))
         return _run_script(command_args, env)
     finally:
         messages(prefix)
@@ -467,7 +469,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
 
 def _run_script(command_args, env):
     try:
-        check_call(command_args, env=env)
+        check_call(command_args, env={str(k): str(v) for k, v in iteritems(env)})
     except CalledProcessError:
         return False
     else:

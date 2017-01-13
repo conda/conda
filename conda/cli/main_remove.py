@@ -125,20 +125,19 @@ def execute(args, parser):
     check_write('remove', prefix, json=context.json)
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
-    channel_urls = args.channel or ()
     if not args.features and args.all:
         index = linked_data(prefix)
         index = {dist: info for dist, info in iteritems(index)}
     else:
-        index = get_index(channel_urls=channel_urls,
+        index = get_index(channel_urls=context.channels,
                           prepend=not args.override_channels,
                           use_local=args.use_local,
                           use_cache=args.use_index_cache,
                           prefix=prefix)
     specs = None
     if args.features:
-        features = set(args.package_names)
-        actions = plan.remove_features_actions(prefix, index, features)
+        specs = ['@' + f for f in set(args.package_names)]
+        actions = plan.remove_actions(prefix, specs, index, pinned=args.pinned)
         action_groups = actions,
     elif args.all:
         if plan.is_root_prefix(prefix):
