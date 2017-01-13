@@ -1,9 +1,13 @@
 ## 4.2.16 (unreleased)
 
+### Improvements
+* vendor url parsing from urllib3 (#4289)
+
 ### Bug Fixes
 * do not replace \ with / in file:// URLs on Windows (#4269)
 * include aliases for first command-line argument (#4279)
 * fix for multi-line FTP status codes (#4276)
+* fix errors with unknown type channels (#4291)
 
 
 ## 4.2.15 (2017-01-10)
