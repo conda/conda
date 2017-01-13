@@ -4,7 +4,7 @@ from itertools import chain
 import logging
 import re
 
-from .base.constants import DEFAULTS, MAX_CHANNEL_PRIORITY
+from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
@@ -553,7 +553,8 @@ class Resolve(object):
         if rec is None:
             return dist.quad
         else:
-            return rec['name'], rec['version'], rec['build'], rec.get('schannel', DEFAULTS)
+            return (rec['name'], rec['version'], rec['build'],
+                    rec.get('schannel', DEFAULTS_CHANNEL_NAME))
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
