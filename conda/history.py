@@ -32,6 +32,11 @@ def is_diff(content):
 
 
 def parse_content_line(s):
+    """
+    If a line representing a package addition/removal has more than one word, it is assumed
+    that words 2, 3, and 4 represent name, version, and build, respectively. Otherwise the
+    parser will split apart the dist name according to current convention.
+    """
     if s.startswith(('-', '+')):
         pm = s[0]
         s = s[1:]
