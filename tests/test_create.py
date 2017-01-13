@@ -36,7 +36,8 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.compat import itervalues, text_type
-from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
+from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level, \
+    env_var
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
@@ -181,6 +182,9 @@ def get_conda_list_tuple(prefix, package_name):
 
 
 class IntegrationTests(TestCase):
+
+    def setUp(self):
+        PackageCache.clear()
 
     def test_install_python2(self):
         with make_temp_env("python=2") as prefix:
@@ -928,3 +932,11 @@ class IntegrationTests(TestCase):
     def test_conda_info_python(self):
         stdout, stderr = run_command(Commands.INFO, None, "python=3.5")
         assert "python 3.5.1 0" in stdout
+
+    def test_toolz_cytoolz_package_cache_regression(self):
+        with make_temp_env("python=3.5") as prefix:
+            pkgs_dir = join(prefix, 'pkgs')
+            with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+                assert context.pkgs_dirs == [pkgs_dir]
+                run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
+                assert_package_is_installed(prefix, 'toolz-')
