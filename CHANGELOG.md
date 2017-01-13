@@ -4,11 +4,16 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.4 (unreleased)
+## 4.3.4 (2017-01-13)
+
+### Improvements
+* vendor url parsing from urllib3 (#4289)
 
 ### Bug Fixes
 * fix some bugs in windows multi-user support (#4277)
 * fix problems with channels of type <unknown> (#4290)
+* include aliases for first command-line argument (#4279)
+* fix for multi-line FTP status codes (#4276)
 
 ### Non-User-Facing Changes
 * make arch in IndexRecord a StringField instead of EnumField
