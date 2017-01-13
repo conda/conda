@@ -9,3 +9,9 @@ if errorlevel 1 exit 1
 
 copy %SRC_DIR%\shell\conda.fish %PREFIX%\etc\fish\conf.d
 if errorlevel 1 exit 1
+
+if not exist %SP_DIR%\xontrib mkdir %SP_DIR%\xontrib
+if errorlevel 1 exit 1
+
+copy %SRC_DIR%\shell\conda.xsh %SP_DIR%\xontrib
+if errorlevel 1 exit 1
