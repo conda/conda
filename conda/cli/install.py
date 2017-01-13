@@ -115,32 +115,18 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
-    context.validate_configuration()
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
-    if newenv:
-        common.ensure_name_or_prefix(args, command)
+
     prefix = context.prefix if newenv or args.mkdir else context.prefix_w_legacy_search
-    if newenv:
-        check_prefix(prefix, json=context.json)
+
+
     if context.force_32bit and is_root_prefix(prefix):
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
-    if isupdate and not (args.file or args.all or args.packages):
-        raise CondaValueError("""no package names supplied
-# If you want to update to a newer version of Anaconda, type:
-#
-# $ conda update --prefix %s anaconda
-""" % prefix)
 
     linked_dists = install_linked(prefix)
     linked_names = tuple(ld.quad[0] for ld in linked_dists)
-    if isupdate and not args.all:
-        for name in args.packages:
-            common.arg2spec(name, json=context.json, update=True)
-            if name not in linked_names and common.prefix_if_in_private_env(name) is None:
-                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
-                                           (name, prefix))
 
     if newenv and not args.no_default_packages:
         default_packages = list(context.create_default_packages)

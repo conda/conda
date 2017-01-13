@@ -62,5 +62,26 @@ def configure_parser(sub_parsers, name='update'):
 
 
 def execute(args, parser):
+    context.validate_configuration()
+
+
+    if not (args.file or args.all or args.packages):
+        raise CondaValueError("""no package names supplied
+    # If you want to update to a newer version of Anaconda, type:
+    #
+    # $ conda update --prefix %s anaconda
+    """ % prefix)
+
+    linked_dists = install_linked(prefix)
+    linked_names = tuple(ld.quad[0] for ld in linked_dists)
+    if isupdate and not args.all:
+        for name in args.packages:
+            common.arg2spec(name, json=context.json, update=True)
+            if name not in linked_names and common.prefix_if_in_private_env(name) is None:
+                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
+                                           (name, prefix))
+
+
+
     install(args, parser, 'update')
     delete_trash()
