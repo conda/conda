@@ -227,6 +227,9 @@
 * fix for multi-line FTP status codes (#4276)
 * fix errors with unknown type channels (#4291)
 
+### Non-User-Facing Changes
+* start using doctests in test runs and coverage (#4304)
+
 
 ## 4.2.15 (2017-01-10)
 
