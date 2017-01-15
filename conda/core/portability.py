@@ -5,6 +5,7 @@ from logging import getLogger
 from os.path import realpath
 import re
 import struct
+import sys
 
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..common.compat import on_win
@@ -71,44 +72,46 @@ def replace_prefix(mode, data, placeholder, new_prefix):
     if mode == FileMode.text:
         data = data.replace(placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
     elif mode == FileMode.binary:
-        data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
+        if on_win:
+            # on Windows for binary files, we currently only replace a pyzzer-type entry point
+            #   we skip all other prefix replacement
+            return replace_pyzzer_entry_point_shebang(data, placeholder, new_prefix)
+        # use utf-16-le/be instead of utf-16 to avoid BOM
+        if sys.byteorder == 'little':
+            encodings = ['utf-8', 'utf-16-le', 'utf-32-le']
+        else:
+            encodings = ['utf-8', 'utf-16-be', 'utf-32-be']
+        for enc in encodings:
+            data = binary_replace(data, placeholder, new_prefix, enc)
     else:
         raise RuntimeError("Invalid mode: %r" % mode)
     return data
 
 
-def binary_replace(data, a, b):
+def binary_replace(data, a, b, encoding):
     """
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with null characters.
-    All input arguments are expected to be bytes objects.
+    `data` is expected to be bytes object.
     """
-    if on_win:
-        # on Windows for binary files, we currently only replace a pyzzer-type entry point
-        #   we skip all other prefix replacement
-        if has_pyzzer_entry_point(data):
-            return replace_pyzzer_entry_point_shebang(data, a, b)
-        else:
-            return data
-
+    old = a.encode(encoding)
+    new = b.encode(encoding)
+    zero = '\0'.encode(encoding)
     def replace(match):
-        occurances = match.group().count(a)
-        padding = (len(a) - len(b)) * occurances
+        occurances = match.group().count(old)
+        padding = (len(old) - len(new)) * occurances
         if padding < 0:
             raise _PaddingError
-        return match.group().replace(a, b) + b'\0' * padding
+        return match.group().replace(old, new) + b'\0' * padding
 
     original_data_len = len(data)
-    pat = re.compile(re.escape(a) + b'([^\0]*?)\0')
+    # Placeholder in, say, 4-byte wide string may be followed by 4n bytes
+    # of text until terminating \0\0\0\0 (4-byte wide null character).
+    pat = re.compile(re.escape(old) + b'(.{%d})*?' % len(zero) + zero)
     data = pat.sub(replace, data)
     assert len(data) == original_data_len
 
     return data
-
-
-def has_pyzzer_entry_point(data):
-    pos = data.rfind(b'PK\x05\x06')
-    return pos >= 0
 
 
 def replace_pyzzer_entry_point_shebang(all_data, placeholder, new_prefix):
