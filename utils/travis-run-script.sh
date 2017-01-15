@@ -6,7 +6,7 @@ main_test() {
     echo $PYTHONHASHSEED
 
     # basic unit tests
-    python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" tests
+    python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" conda tests
     python setup.py --version
 
     # activate tests
