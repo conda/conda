@@ -74,7 +74,7 @@ install:
 build: false
 
 test_script:
-  - py.test --cov conda --cov-report term-missing tests --shell=cmd.exe --shell=bash.exe
+  - py.test --cov conda --cov-report term-missing conda tests --shell=cmd.exe --shell=bash.exe
 
 on_success:
   - pip install codecov coveralls scrutinizer-ocular
