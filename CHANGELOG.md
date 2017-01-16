@@ -11,6 +11,7 @@
 
 ### Non-User-Facing Changes
 * start using doctests in test runs and coverage (#4304)
+* additional package pinning tests (#4312)
 
 
 ## 4.2.15 (2017-01-10)
