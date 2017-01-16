@@ -12,12 +12,11 @@ from mmap import ACCESS_READ, mmap
 from os import makedirs
 from os.path import getmtime, join
 import re
+from requests.exceptions import ConnectionError, HTTPError, SSLError
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from textwrap import dedent
 from time import time
 import warnings
-
-from requests.exceptions import ConnectionError, HTTPError, SSLError
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from .linked_data import linked_data
 from .package_cache import PackageCache
@@ -26,7 +25,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, iterkeys, itervalues
+from ..common.compat import ensure_text_type, ensure_unicode, iteritems, iterkeys, itervalues
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
@@ -150,7 +149,7 @@ def read_mod_and_etag(path):
         try:
             with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
                 match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
-                result = dict(map(ensure_text_type, mo.groups()) for mo in match_objects)
+                result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
         except ValueError:
             # ValueError: cannot mmap an empty file
