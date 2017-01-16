@@ -114,7 +114,8 @@ class UnlinkLinkTransaction(object):
                   '\n    '.join(text_type(d) for d in unlink_dists),
                   '\n    '.join(text_type(d) for d in link_dists))
 
-        pkg_dirs_to_link = tuple(PackageCache[dist].extracted_package_dir for dist in link_dists)
+        pkg_dirs_to_link = tuple(PackageCache.get_entry_to_link(dist).extracted_package_dir
+                                 for dist in link_dists)
         assert all(pkg_dirs_to_link)
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))

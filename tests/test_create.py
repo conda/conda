@@ -36,7 +36,8 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.compat import itervalues, text_type
-from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level
+from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level, \
+    env_var
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
@@ -181,6 +182,9 @@ def get_conda_list_tuple(prefix, package_name):
 
 
 class IntegrationTests(TestCase):
+
+    def setUp(self):
+        PackageCache.clear()
 
     def test_install_python2(self):
         with make_temp_env("python=2") as prefix:
@@ -519,6 +523,34 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python')
                 assert_package_is_installed(clone_prefix, 'rpy2')
                 assert isfile(join(clone_prefix, 'condarc'))  # untracked file
+
+    def test_update_all(self):
+        with make_temp_env("numpy=1.10 pandas=0.17") as prefix:
+            assert package_is_installed(prefix, "numpy-1.10")
+            assert package_is_installed(prefix, "pandas-0.17")
+
+            run_command(Commands.UPDATE, prefix, "--all")
+            assert not package_is_installed(prefix, "numpy-1.10")
+            assert package_is_installed(prefix, "numpy")
+            assert not package_is_installed(prefix, "pandas-0.17")
+            assert package_is_installed(prefix, "pandas")
+
+    def test_package_pinning(self):
+        with make_temp_env("numpy=1.10.4 pandas=0.17") as prefix:
+            assert package_is_installed(prefix, "numpy-1.10.4")
+            assert package_is_installed(prefix, "pandas-0.17")
+
+            with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
+                fh.write("numpy 1.10.4\n")
+
+            run_command(Commands.UPDATE, prefix, "--all")
+            assert package_is_installed(prefix, "numpy-1.10.4")
+            assert not package_is_installed(prefix, "pandas-0.17")
+            assert package_is_installed(prefix, "pandas")
+
+            run_command(Commands.UPDATE, prefix, "--all --no-pin")
+            assert not package_is_installed(prefix, "numpy-1.10.4")
+            assert package_is_installed(prefix, "numpy")
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):
@@ -928,3 +960,11 @@ class IntegrationTests(TestCase):
     def test_conda_info_python(self):
         stdout, stderr = run_command(Commands.INFO, None, "python=3.5")
         assert "python 3.5.1 0" in stdout
+
+    def test_toolz_cytoolz_package_cache_regression(self):
+        with make_temp_env("python=3.5") as prefix:
+            pkgs_dir = join(prefix, 'pkgs')
+            with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+                assert context.pkgs_dirs == [pkgs_dir]
+                run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
+                assert_package_is_installed(prefix, 'toolz-')

@@ -14,7 +14,7 @@ from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
-from ..common.path import url_to_path
+from ..common.path import url_to_path, safe_basename
 from ..common.url import path_to_url
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.disk.test import try_write
@@ -64,7 +64,7 @@ class UrlsData(object):
         package_path = basename(package_path)
         if not package_path.endswith(CONDA_TARBALL_EXTENSION):
             package_path += CONDA_TARBALL_EXTENSION
-        return first(self, lambda url: url.endswith(package_path))
+        return first(self, lambda url: safe_basename(url) == package_path)
 
 
 class PackageCacheEntry(object):
@@ -221,7 +221,6 @@ class PackageCache(object):
         pc_entry = next((cache.scan_for_dist_no_channel(dist) for cache in caches if cache), None)
         if pc_entry is not None:
             return pc_entry
-
         raise CondaError("No package '%s' found in cache directories." % dist)
 
     def scan_for_dist_no_channel(self, dist):
@@ -271,7 +270,7 @@ class PackageCache(object):
                 self._remove_match(pkgs_dir_contents, base_name)
 
     def _add_entry(self, pkgs_dir, package_filename):
-        dist = first(self.urls_data, lambda x: x.endswith(package_filename), apply=Dist)
+        dist = first(self.urls_data, lambda x: safe_basename(x) == package_filename, apply=Dist)
         if not dist:
             dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
         pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
