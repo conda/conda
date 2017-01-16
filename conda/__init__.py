@@ -6,7 +6,9 @@
 """OS-agnostic, system-level binary package manager."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 from os.path import dirname
+import sys
 
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import iteritems, text_type
@@ -24,6 +26,10 @@ __email__ = "conda@continuum.io"
 __license__ = "BSD"
 __summary__ = __doc__
 __url__ = "https://github.com/conda/conda"
+
+
+if os.getenv('CONDA_ROOT') is None:
+    os.environ['CONDA_ROOT'] = sys.prefix
 
 CONDA_PACKAGE_ROOT = dirname(__file__)
 
