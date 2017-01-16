@@ -524,6 +524,34 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'rpy2')
                 assert isfile(join(clone_prefix, 'condarc'))  # untracked file
 
+    def test_update_all(self):
+        with make_temp_env("numpy=1.10 pandas=0.17") as prefix:
+            assert package_is_installed(prefix, "numpy-1.10")
+            assert package_is_installed(prefix, "pandas-0.17")
+
+            run_command(Commands.UPDATE, prefix, "--all")
+            assert not package_is_installed(prefix, "numpy-1.10")
+            assert package_is_installed(prefix, "numpy")
+            assert not package_is_installed(prefix, "pandas-0.17")
+            assert package_is_installed(prefix, "pandas")
+
+    def test_package_pinning(self):
+        with make_temp_env("numpy=1.10.4 pandas=0.17") as prefix:
+            assert package_is_installed(prefix, "numpy-1.10.4")
+            assert package_is_installed(prefix, "pandas-0.17")
+
+            with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
+                fh.write("numpy 1.10.4\n")
+
+            run_command(Commands.UPDATE, prefix, "--all")
+            assert package_is_installed(prefix, "numpy-1.10.4")
+            assert not package_is_installed(prefix, "pandas-0.17")
+            assert package_is_installed(prefix, "pandas")
+
+            run_command(Commands.UPDATE, prefix, "--all --no-pin")
+            assert not package_is_installed(prefix, "numpy-1.10.4")
+            assert package_is_installed(prefix, "numpy")
+
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):
     #     prefix = make_temp_prefix("_" + str(uuid4())[:7])
