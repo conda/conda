@@ -68,7 +68,7 @@
     @REM @IF EXIST "!MSYS2_BIN!\tcsh.exe"  [ @SET "shells=!shells! --shell=tcsh.msys"    ]
     @ECHO "TESTING ON SHELLS: !shells!"
 
-    python -m pytest --cov conda --cov-report term-missing --cov-report xml !shells! -m "not installed" tests
+    python -m pytest --cov conda --cov-report term-missing --cov-report xml !shells! -m "not installed" tests conda
 
     @REM # `develop` instead of `install` to avoid coverage issues of
     @REM # tracking two separate "codes"

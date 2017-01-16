@@ -155,6 +155,10 @@ def ensure_text_type(value):
     return value.decode('utf-8') if hasattr(value, 'decode') else value
 
 
+def ensure_unicode(value):
+    return value.decode('unicode_escape') if hasattr(value, 'decode') else value
+
+
 # TODO: move this somewhere else
 # work-around for python bug on Windows prior to python 3.2
 # https://bugs.python.org/issue10027
