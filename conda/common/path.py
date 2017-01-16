@@ -239,3 +239,10 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path.replace('python-scripts', bin_dir, 1)
     else:
         return source_short_path
+
+
+def safe_basename(value):
+    # basename that should be safe regardless of OS
+    match = re.search(r'[/\\]((?:\\ |[^ \n\r\t\\/])+)$', value.rstrip('\\/'))
+    if match:
+        return match.groups()[0]
