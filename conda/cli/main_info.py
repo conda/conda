@@ -245,7 +245,7 @@ def execute(args, parser):
         for option in options:
             setattr(args, option, True)
 
-    if args.all or all(not getattr(args, opt) for opt in options):
+    if (args.all or all(not getattr(args, opt) for opt in options)) and not context.json:
         for key in 'pkgs_dirs', 'envs_dirs', 'channels':
             info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
