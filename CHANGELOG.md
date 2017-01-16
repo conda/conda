@@ -4,6 +4,21 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.5 (unreleased)
+
+### Improvements
+* add exception message for corrupt repodata (#4315)
+
+### Bug Fixes
+* fix package not being found in cache after download (#4297)
+* disable raise for Content-Length mismatch until correct logic can be determined (#4311)
+* use unicode_escape after etag regex instead of utf-8 (#4325)
+* fix #4323 central condarc file being ignored (#4327)
+
+### Non-User-Facing Changes
+* additional package pinning tests (#4317)
+
+
 ## 4.3.4 (2017-01-13)
 
 ### Improvements
