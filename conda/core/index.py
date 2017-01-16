@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
+from conda import CondaError
 from contextlib import closing
 from functools import wraps
 import hashlib
@@ -333,8 +334,19 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
 
 def read_local_repodata(cache_path):
     with open(cache_path) as f:
-        local_repodata = json.load(f)
-    return local_repodata
+        try:
+            local_repodata = json.load(f)
+        except ValueError as e:
+            # ValueError: Expecting object: line 11750 column 6 (char 303397)
+            log.debug("Error for cache path: '%s'\n%r", cache_path, e)
+            message = dals("""
+            An error occurred when loading cached repodata.  Executing
+            `conda clean --index-cache` will remove cached repodata files
+            so they can be downloaded again.
+            """)
+            raise CondaError(message)
+        else:
+            return local_repodata
 
 
 @dotlog_on_return("fetching repodata:")
