@@ -120,7 +120,6 @@ def main():
         # all execution paths sys.exit at end.
         help(sys.argv[1], sys.argv[2])
 
-
     if len(sys.argv) > 2:
         shell = sys.argv[2]
         shelldict = shells[shell]
