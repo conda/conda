@@ -174,7 +174,7 @@
 
 ### Improvements
 * create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
-* allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
+* allow conda to be installed with pip, but only when used as a library/dependency (#4028)
 * the 'r' channel is now part of defaults (#3677)
 * private environment support for conda (#3988)
 * support v1 info/paths.json file (#3927, #3943)
@@ -220,7 +220,7 @@
 * revert boto patch from #2380 (#3676)
 * move and update ROOT_NO_RM (#3697)
 * integration tests for conda clean (#3695, #3699)
-* disable coverage on s3 and ftp requests adapaters (#3696, #3701)
+* disable coverage on s3 and ftp requests adapters (#3696, #3701)
 * github repo hygiene (#3705, #3706)
 * major install refactor (#3712)
 * remove test timebombs (#4012)
@@ -390,7 +390,7 @@
 * conda-env version matches conda version (#3422)
 
 ### Bug Fixes
-* fix #3409 unsatisfiable dependecy error message (#3412)
+* fix #3409 unsatisfiable dependency error message (#3412)
 * fix #3408 quiet rm_rf (#3413)
 * fix #3407 padding error messaging (#3416)
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363 via #3420)
@@ -767,7 +767,7 @@
 * quiets some logging for package downloads under python 3, #2217
 * more urls for `conda list --explicit`, #1855
 * prefer more "latest builds" for more packages, #2227
-* fixes a bug with dependecy resolution and features, #2226
+* fixes a bug with dependency resolution and features, #2226
 
 
 ## 4.0.2 (2016-03-08)
