@@ -11,12 +11,12 @@
 
 ### Bug Fixes
 * fix package not being found in cache after download (#4297)
-* disable raise for Content-Length mismatch until correct logic can be determined (#4311)
+* fix logic for Content-Length mismatch (#4311, #4326)
 * use unicode_escape after etag regex instead of utf-8 (#4325)
 * fix #4323 central condarc file being ignored (#4327)
 * fix #4316 a bug in deactivate (#4316)
 * pass target_prefix as env_prefix regardless of is_unlink (#4332)
-* ;ass positional argument 'context' to BasicClobberError (#4335)
+* pass positional argument 'context' to BasicClobberError (#4335)
 
 ### Non-User-Facing Changes
 * additional package pinning tests (#4317)
