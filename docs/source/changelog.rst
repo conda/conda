@@ -176,14 +176,16 @@ New Features
 Deprecations/Breaking Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Conda will refuse to clobber existing files that are not within the unlink instructions of
-  the transaction. At the risk of being user-hostile, it's a step forward for conda. We do
-  anticipate some growing pains. For example, conda will not clobber packages that have been
-  installed with pip (or any other package manager). In other instances, conda packages that
-  contain overlapping file paths but are from different package families will not install at
-  the same time. The ``--force`` command line flag is the escape hatch. Using ``--force`` will
-  let your operation proceed, but also makes clear that you want conda to do something it
-  considers unsafe.
+* Conda now has the ability to refuse to clobber existing files that are not within the unlink
+  instructions of the transaction.  This behavior is configurable via the `path_conflict`
+  configuration option, which has three possible values: `clobber`, `warn`, and `prevent`. In 4.3,
+  the default value will be `clobber`.  That will give package maintainers time to correct current
+  incompatibilities within their package ecosystem. In 4.4, the default will switch to `warn`,
+  which means these operations continue to clobber, but the warning messages are displayed.  In
+  `4.5`, the default value will switch to `prevent`.  As we tighten up the `path_conflict`
+  constraint, a new command line flag `--clobber` will loosen it back up on an *ad hoc* basis.
+  Using `--clobber` overrides the setting for `path_conflict` to effectively be `clobber` for
+  that operation.
 * Conda signed packages have been removed in 4.3. Vulnerabilities existed. An illusion of security
   is worse than not having the feature at all.  We will be incorporating The Update Framework
   into conda in a future feature release. (#4064)

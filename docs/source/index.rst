@@ -126,12 +126,12 @@ contains a complete list of changes.
   can still result when conda is running in multiple processes and operating on
   the same package caches or the same environments.
 
-* Conda now refuses to clobber existing files that are not within the unlink
-  instructions of the transaction. This will mean that conda is now too
-  cautious to clobber packages that were installed with pip or other package
-  managers, or to install packages at the same time if they are from different
-  package families and contain overlapping file paths. This can be overridden
-  with the ``--force`` command line flag.
+* Conda can now refuse to clobber existing files that are not within the unlink
+  instructions of the transaction. The `path_conflict` configuration option can
+  be set to ``clobber``, ``warn``, and ``prevent``. The current behavior and
+  default in 4.3 is ``clobber``. The default in 4.4 will be ``warn``. The
+  default in 4.5 and beyond will be ``prevent``. This can be overridden with
+  the ``--clobber`` command line flag.
 
 * Conda signed packages were vulnerable and created a false sense of security
   and have now been removed. Work has begun to incorporate The Update Framework
@@ -143,11 +143,13 @@ contains a complete list of changes.
   ``noarch/repodata.json`` or ``noarch/repodata.json.bz2`` exist. The check
   does pass if one or both of these files exist but are empty.
 
-* New "trace" log level enabled by ``-v -v -v`` or ``-vvv``.
+* A new "trace" log level with extremely verbose output, enabled with the
+  ``-v -v -v`` or ``-vvv`` command-line flags, the ``verbose: 3`` configuration
+  parameter, or the ``CONDA_VERBOSE=3`` environment variable.
 
 * Conda can now be installed with pip, but only when used as a library or dependency.
 
-* The 'r' channel is now part of defaults.
+* The 'r' channel is now part of the default channels.
 
 * ``conda info`` now shows user-agent, UID, and GID.
 
@@ -167,6 +169,8 @@ contains a complete list of changes.
 * Conda now has a ``pkgs_dirs`` configuration parameter, an ``always_softlink``
   option, ``local_repodata_ttl`` configurability, and ``path_conflict`` and
   ``clobber`` configuration options.
+
+* Package resolution/solver hints have been improved with better messaging.
 
 * Further bug fixes, performance improvements, and better error and warning messages.
 
