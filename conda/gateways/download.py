@@ -97,10 +97,9 @@ def download(url, target_full_path, md5sum):
                       Content-Length: %(content_length)d
                       downloaded bytes: %(downloaded_bytes)d
                     """)
-                    # raise CondaError(message, url=url, target_path=target_full_path,
-                    #                  content_length=content_length,
-                    #                  downloaded_bytes=streamed_bytes)
-                    log.info(message)
+                    raise CondaError(message, url=url, target_path=target_full_path,
+                                     content_length=content_length,
+                                     downloaded_bytes=streamed_bytes)
 
             except (IOError, OSError) as e:
                 if e.errno == 104:
