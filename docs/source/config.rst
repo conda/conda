@@ -242,6 +242,9 @@ the same as ``conda install --channel https://yourrepo.com/jsmith <package>`` .
 
   channel_alias: https://your.repo/
 
+NOTE: For Windows users, the slash (/) at the end of a URL is required. 
+Example https://your.repo/conda/
+
 
 Always add packages by default (create_default_packages)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
