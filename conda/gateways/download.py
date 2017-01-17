@@ -73,7 +73,9 @@ def download(url, target_full_path, md5sum):
                 with open(target_full_path, 'wb') as fh:
                     streamed_bytes = 0
                     for chunk in resp.iter_content(2 ** 14):
-                        streamed_bytes += len(chunk)
+                        # chunk could be the decompressed form of the real data
+                        # but we want the exact number of bytes read till now
+                        streamed_bytes = resp.raw.tell()
                         try:
                             fh.write(chunk)
                         except IOError as e:
@@ -95,10 +97,9 @@ def download(url, target_full_path, md5sum):
                       Content-Length: %(content_length)d
                       downloaded bytes: %(downloaded_bytes)d
                     """)
-                    # raise CondaError(message, url=url, target_path=target_full_path,
-                    #                  content_length=content_length,
-                    #                  downloaded_bytes=streamed_bytes)
-                    log.info(message)
+                    raise CondaError(message, url=url, target_path=target_full_path,
+                                     content_length=content_length,
+                                     downloaded_bytes=streamed_bytes)
 
             except (IOError, OSError) as e:
                 if e.errno == 104:
