@@ -52,7 +52,7 @@ def download(url, target_full_path, md5sum):
     content_length = None
 
     if exists(target_full_path):
-        maybe_raise(BasicClobberError(target_full_path, url, context))
+        maybe_raise(BasicClobberError(target_full_path, url, context), context)
 
     if not context.ssl_verify:
         disable_ssl_verify_warning()
