@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from itertools import chain
 import logging
 import re
 
@@ -11,7 +10,6 @@ from .console import setup_handlers
 from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
-from .models.index_record import IndexRecord
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
 
