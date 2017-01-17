@@ -302,7 +302,7 @@ class UnlinkLinkTransaction(object):
             run_script(target_prefix if is_unlink else pkg_data.extracted_package_dir,
                        Dist(pkg_data),
                        'pre-unlink' if is_unlink else 'pre-link',
-                       target_prefix if is_unlink else None)
+                       target_prefix)
             for axn_idx, action in enumerate(actions):
                 action.execute()
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
