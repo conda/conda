@@ -8,8 +8,10 @@ from conda.base.context import reset_context
 from conda.common.compat import iteritems, text_type
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
+from conda.models.channel import Channel
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
+from conda.core.index import supplement_index_with_repodata, supplement_index_with_features
 from os.path import dirname, join
 
 import pytest
@@ -18,8 +20,12 @@ from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(key): IndexRecord(**value) for key, value in iteritems(json.load(fi))}
+    repodata = json.load(fi)
 
+index = {}
+channel = Channel('defaults')
+supplement_index_with_repodata(index, {'packages': repodata}, channel, 1)
+supplement_index_with_features(index, ('mkl',))
 r = Resolve(index)
 
 f_mkl = set(['mkl'])

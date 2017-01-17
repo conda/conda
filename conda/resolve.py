@@ -144,18 +144,7 @@ class Resolve(object):
     def __init__(self, index, sort=False, processed=False):
         # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
         # assert all(assertion(d, r) for d, r in iteritems(index))
-        self.index = index = index.copy()
-        if not processed:
-            for dist, info in iteritems(index.copy()):
-                if dist.with_features_depends:
-                    continue
-                for fstr in chain(info.get('features', '').split(),
-                                  info.get('track_features', '').split(),
-                                  context.track_features or ()):
-                    self.add_feature(fstr, group=False)
-                for fstr in iterkeys(info.get('with_features_depends', {})):
-                    index[Dist('%s[%s]' % (dist, fstr))] = info
-                    self.add_feature(fstr, group=False)
+        self.index = index
 
         groups = {}
         trackers = {}
@@ -179,30 +168,9 @@ class Resolve(object):
         # type: () -> Set[Dist]
         installed = set()
         for dist, info in iteritems(self.index):
-            if 'link' in info and not dist.with_features_depends:
+            if 'link' in info:
                 installed.add(dist)
         return installed
-
-    def add_feature(self, feature_name, group=True):
-        feature_dist = Dist(feature_name + '@')
-        if feature_dist in self.index:
-            return
-        info = {
-            'name': feature_dist.dist_name,
-            'channel': '@',
-            'priority': 0,
-            'version': '0',
-            'build_number': 0,
-            'fn': feature_dist.to_filename(),
-            'build': '0',
-            'depends': [],
-            'track_features': feature_name,
-        }
-
-        self.index[feature_dist] = IndexRecord(**info)
-        if group:
-            self.groups[feature_dist.dist_name] = [feature_dist]
-            self.trackers[feature_name] = [feature_dist]
 
     def default_filter(self, features=None, filter=None):
         if filter is None:
@@ -294,7 +262,6 @@ class Resolve(object):
         for s in specs:
             ms = MatchSpec(s)
             if ms.name[-1] == '@':
-                self.add_feature(ms.name[:-1])
                 feats.add(ms.name[:-1])
             else:
                 spec2.append(ms)
@@ -500,16 +467,7 @@ class Resolve(object):
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
-            if dist.with_features_depends:
-                f2, fstr = (Dist.from_string(dist.dist_name, channel_override=dist.channel),
-                            dist.with_features_depends)
-                fdeps = {d.name: d for d in self.ms_depends(f2)}
-                for dep in rec['with_features_depends'][fstr]:
-                    dep = MatchSpec(dep)
-                    fdeps[dep.name] = dep
-                deps = list(fdeps.values())
-            else:
-                deps = [MatchSpec(d) for d in rec.get('depends', [])]
+            deps = [MatchSpec(d) for d in rec.get('depends', [])]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
         # assert all(isinstance(ms, MatchSpec) for ms in deps)
