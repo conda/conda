@@ -73,68 +73,102 @@ Requirements
 * pyyaml
 * requests
 
-What's new in conda 4.1?
+What's new in conda 4.3?
 ------------------------
 
-This release contains many small bug fixes for all operating systems, and a few 
-special fixes for Windows behavior. The 
-`changelog <https://github.com/conda/conda/releases/tag/4.1.0>`_ contains a 
-complete list of changes. 
+This release contains many improvements to performance, warning and error
+messages, and conda's disk access, download, and package caching behavior.
+Also a noarch/universal type for python packages is now officially supported,
+a Python API module has been added, and the 'r' channel is now a default
+channel. The `changelog <https://github.com/conda/conda/releases/tag/4.3.4>`_
+contains a complete list of changes.
 
-**Notable changes for all systems Windows, OS X and Linux:**
+* **Unlink and Link Packages in a Single Transaction**: This provides improved
+  error recovery by ensuring that conda is safe, defensive and fault-tolerant
+  whenever it changes data on disk.
 
-* **Channel order now matters.** The most significant conda change is that 
-  when you add channels, channel order matters. If you have a list of channels 
-  in a .condarc file, conda installs the package from the first channel where 
-  it's available, even if it's available in a later channel with a higher 
-  version number.
-* **No version downgrades.** Conda remove no longer performs version 
-  downgrades on any remaining packages that might be suggested to resolve 
-  dependency losses; the package will just be removed instead.
-* **New YAML parser/emitter.** PyYAML is replaced with ruamel.yaml, 
-  which gives more robust control over yaml document use. 
-  `More on ruamel.yaml <http://yaml.readthedocs.io/en/latest/>`_
-* **Shebang lines over 127 characters are now truncated (Linux, OS X 
-  only).** `Shebangs <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_ are
-  the first line of the many executable scripts that tell the operating 
-  system how to execute the program.  They start with ``#!``. Most OSes
-  don't support these lines over 127 characters, so conda now checks 
-  the length and replaces the full interpreter path in long lines with 
-  ``/usr/bin/env``. When you're working in a conda environment that
-  is deeply under many directories, or you otherwise have long paths
-  to your conda environment, make sure you activate that environment
-  now.
-* **Changes to conda list command.** When looking for packages that 
-  aren’t installed with conda, conda list now examines the Python 
-  site-packages directory rather than relying on pip.
-* **Changes to conda remove command.** The command  ``conda remove --all`` 
-  now removes a conda environment without fetching information from a remote 
-  server on the packages in the environment.
-* **Conda update can be turned off and on.** When turned off, conda will 
-  not update itself unless the user manually issues a conda update command. 
-  Previously conda updated any time a user updated or installed a package 
-  in the root environment. Use the option ``conda config set auto_update_conda false``.
-* **Improved support for BeeGFS.** BeeGFS is a parallel cluster file 
-  system for performance and designed for easy installation and 
-  management. `More on BeeGFS <http://www.beegfs.com/content/documentation/>`_
+* **Progressive Fetch and Extract Transactions**: If errors are encountered
+  while downloading packages, conda now keeps the packages that downloaded
+  correctly and only re-downloads those with errors.
 
-**Windows-only changes include:**
+* **Generic- and Python-Type Noarch/Universal Packages**: Along with conda-build 2.1.0, a
+  noarch/universal type for python packages is now officially supported. These are much like universal
+  python wheels. Files in a python noarch package are linked into a prefix just like any other
+  conda package, with the following additional features:
+  
+  1. conda maps the ``site-packages`` directory to the correct location for the python version
+     in the environment,
+  2. conda maps the python-scripts directory to either ``$PREFIX/bin`` or ``$PREFIX/Scripts`` depending
+     on platform,
+  3. conda creates the python entry points specified in the conda-build recipe, and
+  4. conda compiles pyc files at install time when prefix write permissions are guaranteed.
 
-* **Shortcuts are no longer installed by default on Windows.** Shortcuts can 
-  now be installed with the ``--shortcuts`` option. Example 1: Install a shortcut 
-  to Spyder with ``conda install spyder --shortcut``. Note if you have Anaconda 
-  (not Miniconda), you already have this shortcut and Spyder. Example 2: 
-  Install the open source package named ``console_shortcut``. When you click 
-  the shortcut icon, a terminal window will open with the environment 
-  containing the ``console_shortcut`` package already activated. ``conda install 
-  console_shortcut --shortcuts``
-* **Skip binary replacement on Windows.** Linux & OS X have binaries that 
-  are coded with library locations, and this information must sometimes be 
-  replaced for relocatability, but Windows does not generally embed prefixes 
-  in binaries, and was already relocatable. We skip binary replacement on 
-  Windows.
+  Python noarch packages must be "fully universal."  They cannot have OS- or
+  python version-specific dependencies.  They cannot have OS- or python version-specific "scripts"
+  files. If these features are needed, traditional conda packages must be used.
 
+* **Multi-User Package Caches**: Package cache handling has been improved while
+  preserving the on-disk package cache structure. Both writable and read-only
+  package caches are fully supported.
 
+* **Python API Module**: The new ``conda.cli.python_api`` module allows using
+  conda as a Python library without needing to "shell out" to another Python
+  process. There is also a ``conda.exports`` module for longer-term use of
+  conda as a library across conda releases, although conda's Python code is
+  considered internal and private and is subject to change across releases. For
+  now conda will not install itself into environments other than its original
+  install environment.
 
-See the `changelog <https://github.com/conda/conda/releases/tag/4.1.0>`_ for 
+* **Remove All Locks**: Locking in conda had bugs and often created a false
+  sense of security, and has been removed. The multi-user package caches in
+  this release have improved safety by hard-linking packages in read-only
+  caches to the user's primary user package cache. However, undefined behavior
+  can still result when conda is running in multiple processes and operating on
+  the same package caches or the same environments.
+
+* Conda now refuses to clobber existing files that are not within the unlink
+  instructions of the transaction. This will mean that conda is now too
+  cautious to clobber packages that were installed with pip or other package
+  managers, or to install packages at the same time if they are from different
+  package families and contain overlapping file paths. This can be overridden
+  with the ``--force`` command line flag.
+
+* Conda signed packages were vulnerable and created a false sense of security
+  and have now been removed. Work has begun to incorporate The Update Framework
+  into conda as a replacement.
+
+* Conda 4.4 will drop support for older versions of conda-build.
+
+* To verify that a channel URL is a valid conda channel, conda now checks that
+  ``noarch/repodata.json`` or ``noarch/repodata.json.bz2`` exist. The check
+  does pass if one or both of these files exist but are empty.
+
+* New "trace" log level enabled by ``-v -v -v`` or ``-vvv``.
+
+* Conda can now be installed with pip, but only when used as a library or dependency.
+
+* The 'r' channel is now part of defaults.
+
+* ``conda info`` now shows user-agent, UID, and GID.
+
+* HTTP timeouts are configurable.
+
+* The conda home page is now updated to conda.io.
+
+* Fetch and extract for explicit URLs are now separate passes.
+
+* Vendor URLs are now parsed by urllib3.
+
+* Use of the Cache-Control max-age header for repodata is now implemented.
+
+* Conda now caches repodata locally without remote server calls and has a
+  ``repodata_timeout_secs`` configuration parameter.
+
+* Conda now has a ``pkgs_dirs`` configuration parameter, an ``always_softlink``
+  option, ``local_repodata_ttl`` configurability, and ``path_conflict`` and
+  ``clobber`` configuration options.
+
+* Further bug fixes, performance improvements, and better error and warning messages.
+
+See the `changelog <https://github.com/conda/conda/releases/tag/4.3.4>`_ for 
 a complete list of changes. 
