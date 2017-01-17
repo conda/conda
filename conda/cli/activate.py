@@ -94,8 +94,26 @@ def pathlist_to_str(paths, escape_backslashes=True):
     return path
 
 
+def get_activate_path(shelldict):
+    arg_num = len(sys.argv)
+    if arg_num != 4:
+        num_expected = 2
+        if arg_num < 4:
+            raise TooFewArgumentsError(num_expected, arg_num - num_expected,
+                                       "..activate expected exactly two arguments:\
+                                        shell and env name")
+        if arg_num > 4:
+            raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
+                                        "..activate expected exactly two arguments:\
+                                         shell and env name")
+    binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
+
+    # prepend our new entries onto the existing path and make sure that the separator is native
+    path = shelldict['pathsep'].join(binpath)
+    return path
+
+
 def main():
-    from conda.base.context import context
     from conda.base.constants import ROOT_ENV_NAME
     from conda.utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
@@ -105,25 +123,26 @@ def main():
     if len(sys.argv) > 2:
         shell = sys.argv[2]
         shelldict = shells[shell]
+    else:
+        shelldict = {}
+
     if sys.argv[1] == '..activate':
-        arg_num = len(sys.argv)
-        if arg_num != 4:
-            num_expected = 2
-            if arg_num < 4:
-                raise TooFewArgumentsError(num_expected, arg_num - num_expected,
-                                           "..activate expected exactly two arguments:\
-                                            shell and env name")
-            if arg_num > 4:
-                raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
-                                            "..activate expected exactly two arguments:\
-                                             shell and env name")
-        binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
+        print(get_activate_path(shelldict))
+        sys.exit(0)
 
-        # prepend our new entries onto the existing path and make sure that the separator is native
-        path = shelldict['pathsep'].join(binpath)
+    elif sys.argv[1] == '..deactivate.path':
+        import re
+        activation_path = get_activate_path(shelldict)
 
-    # deactivation is handled completely in shell scripts - it restores backups of env variables.
-    #    It is done in shell scripts because they handle state much better than we can here.
+        if os.getenv('_CONDA_HOLD'):
+            new_path = re.sub(r'%s(:?)' % re.escape(activation_path),
+                              r'CONDA_PATH_PLACEHOLDER\1',
+                              os.environ['PATH'], 1)
+        else:
+            new_path = re.sub(r'%s(:?)' % re.escape(activation_path), r'', os.environ['PATH'], 1)
+
+        print(new_path)
+        sys.exit(0)
 
     elif sys.argv[1] == '..checkenv':
         if len(sys.argv) < 4:
@@ -143,6 +162,7 @@ def main():
 
         # Make sure an env always has the conda symlink
         try:
+            from conda.base.context import context
             import conda.install
             conda.install.symlink_conda(prefix, context.root_dir, shell)
         except (IOError, OSError) as e:
