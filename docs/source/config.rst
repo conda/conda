@@ -241,6 +241,9 @@ the same as ``conda install --channel https://yourrepo.com/jsmith <package>`` .
 .. code-block:: yaml
 
   channel_alias: https://your.repo/
+  
+NOTE: For Windows users, the slash (/) at the end of a URL is required. 
+Example https://your.repo/conda/
 
 NOTE: For Windows users, the slash (/) at the end of a URL is required. 
 Example https://your.repo/conda/
