@@ -109,6 +109,10 @@ Alias for non-url channels used with the -c or --channel flag. The default is ``
 .. code-block:: yaml
 
   channel_alias: https://your.repo/conda
+  
+NOTE: For Windows users, the slash (/) at the end of a URL is required. 
+Example https://your.repo/conda/
+
 
 Disallow installation of specific packages (disallow)
 -----------------------------------------------------
