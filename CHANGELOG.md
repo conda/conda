@@ -16,6 +16,7 @@
 * fix #4323 central condarc file being ignored (#4327)
 * fix #4316 a bug in deactivate (#4316)
 * pass target_prefix as env_prefix regardless of is_unlink (#4332)
+* ;ass positional argument 'context' to BasicClobberError (#4335)
 
 ### Non-User-Facing Changes
 * additional package pinning tests (#4317)
