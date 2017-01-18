@@ -62,6 +62,13 @@ A complete example:
 
 NOTE: This only sets the PATH for the current session, not permanently. Trying
 to use conda when conda is not in your PATH will cause errors such as "command
-not found". To set the PATH permanently, add a line to your ``.bashrc`` file
-such as ``export PATH="/home/tester/miniconda3/bin:$PATH"``, replacing
-``/home/tester/miniconda3`` with your Miniconda or Anaconda directory.
+not found".
+
+We recommend running "source activate" in each new bash session before using
+conda, which will set the PATH and run the activation scripts of your conda
+packages.
+
+It is also possible to set the PATH permanently by adding a line to your
+``.bashrc`` file such as ``export PATH="/home/tester/miniconda3/bin:$PATH"``.
+However, this makes it possible to use conda without running the activation
+scripts of your conda packages, which may produce errors.
