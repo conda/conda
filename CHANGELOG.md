@@ -4,6 +4,17 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.6 (unreleased)
+
+### Bug Fixes
+* fix 'Uncaught backoff with errno 41' warning on windows (#4366)
+* revert json output for leaky plan (#4349)
+* audit os.environ setting (#4360)
+* fix #4324 using old dist string instead of dist object (#4361)
+* fix #4351 infinite recursion via code in #4120 (#4370)
+* fix #4368 conda -h (#4367)
+
+
 ## 4.3.5 (2017-01-17)
 
 ### Improvements
