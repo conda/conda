@@ -263,7 +263,10 @@ class Resolve(object):
             A generator of tuples, empty if the MatchSpec is valid.
         """
         def chains_(spec, names):
-            if self.valid(spec, filter) or spec.name in names:
+            if spec.name in names:
+                return
+            names.add(spec.name)
+            if self.valid(spec, filter):
                 return
             dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
             found = False
