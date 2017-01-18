@@ -4,7 +4,7 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.6 (unreleased)
+## 4.3.6 (2017-01-18)
 
 ### Bug Fixes
 * fix 'Uncaught backoff with errno 41' warning on windows (#4366)
@@ -13,6 +13,7 @@
 * fix #4324 using old dist string instead of dist object (#4361)
 * fix #4351 infinite recursion via code in #4120 (#4370)
 * fix #4368 conda -h (#4367)
+* workaround for symlink race conditions on activate (#4346)
 
 
 ## 4.3.5 (2017-01-17)
@@ -249,6 +250,7 @@
 
 ### Improvements
 * vendor url parsing from urllib3 (#4289)
+* workaround for symlink race conditions on activate (#4346)
 
 ### Bug Fixes
 * do not replace \ with / in file:// URLs on Windows (#4269)
