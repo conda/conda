@@ -45,7 +45,7 @@ Linux and OS X
 Silent installation of Miniconda for Linux and OS X is a simple as specifying the ``-b`` and ``-p`` arguments of the
 bash installer. The following arguments are supported:
 
-- ``-b``, batch mode
+- ``-b``, batch mode, no PATH modifications to ``~/.bashrc``
 - ``-p``, installation prefix/path
 - ``-f``, force installation even if prefix ``-p`` already exists
 
