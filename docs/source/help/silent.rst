@@ -60,9 +60,8 @@ A complete example:
     bash ~/miniconda.sh -b -p $HOME/miniconda
     export PATH="$HOME/miniconda/bin:$PATH"
 
-NOTE: This only sets the PATH variable for the current session, not permanently.
-Trying to use conda when conda is not in your PATH will produce errors such as
-"command not found". To add the Miniconda binary directory to the PATH
-environment variable permanently, add a line to your ``.bashrc`` file such as
-``export PATH="/home/tester/miniconda3/bin:$PATH"``. Replace
+NOTE: This only sets the PATH for the current session, not permanently. Trying
+to use conda when conda is not in your PATH will cause errors such as "command
+not found". To set the PATH permanently, add a line to your ``.bashrc`` file
+such as ``export PATH="/home/tester/miniconda3/bin:$PATH"``, replacing
 ``/home/tester/miniconda3`` with your Miniconda or Anaconda directory.
