@@ -72,9 +72,11 @@ class TestMatchSpec(unittest.TestCase):
         m2 = MatchSpec(m, optional=False)
         m3 = MatchSpec(m2, target='blas-1.0-0.tar.bz2')
         m4 = MatchSpec(m3, target=None, optional=True)
+        m5 = MatchSpec('blas 1.0 (optional)')
         self.assertTrue(m.spec == m2.spec and m.optional != m2.optional)
         self.assertTrue(m2.spec == m3.spec and m2.optional == m3.optional and m2.target != m3.target)
         self.assertTrue(m == m4)
+        self.assertTrue(m == m5)
 
         self.assertRaises(ValueError, MatchSpec, 'blas (optional')
         self.assertRaises(ValueError, MatchSpec, 'blas (optional,test)')
@@ -761,6 +763,116 @@ def test_circular_dependencies():
         Dist('package1-1.0-0.tar.bz2'),
         Dist('package2-1.0-0.tar.bz2'),
     ]
+
+
+def test_optional_dependencies():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2 >1.0 (optional)'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    })
+    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '2.0',
+    })
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        Dist('package1-1.0-0.tar.bz2'),
+    }
+    assert set(r.get_reduced_index(['package1']).keys()) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    }
+    assert r.install(['package1']) == [
+        Dist('package1-1.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1', 'package2']) == r.install(['package1', 'package2 >1.0']) == [
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    ]
+    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 <2.0']))
+    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
+
+
+def test_superseded():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    })
+    index2['package1-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2 >=2.0 (optional)'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '2.0',
+    })
+    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package1 >=2.0'],
+        'superseded': True,
+        'name': 'package2',
+        'requires': [],
+        'version': '2.0',
+    })
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package1-2.0-0.tar.bz2'),
+    }
+    assert set(r.get_reduced_index(['package1']).keys()) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package1-2.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    }
+    installed = r.install(['package1 1.0'])
+    assert installed == [
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-1.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1 2.0']) == [
+        Dist('package1-2.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1 2.0'], installed) == [
+        Dist('package1-2.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    ]
+    assert raises(UnsatisfiableError, lambda: r.install(['package1 1.0', 'package2 2.0']))
 
 
 def test_irrational_version():
