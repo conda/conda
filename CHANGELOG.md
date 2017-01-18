@@ -2,6 +2,7 @@
 
 ### Improvements
 * vendor url parsing from urllib3 (#4289)
+* workaround for symlink race conditions on activate (#4346)
 
 ### Bug Fixes
 * do not replace \ with / in file:// URLs on Windows (#4269)
