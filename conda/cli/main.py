@@ -108,7 +108,7 @@ def _main(*args):
             raise CommandNotFoundError(argv1, message)
 
     if len(args) == 1:
-        args.append('-h')
+        args = args + ('-h',)
 
     p, sub_parsers = generate_parser()
 
