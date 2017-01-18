@@ -773,7 +773,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
         name = r.package_name(old_dist)
         if old_dist == nlinked.get(name):
             continue
-        if pinned and any(r.match(ms, old_dist.to_filename()) for ms in pinned_specs):
+        if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
             raise CondaRuntimeError(msg % old_dist.to_filename())
         if context.conda_in_root and name == 'conda' and name not in nlinked and not context.force:
