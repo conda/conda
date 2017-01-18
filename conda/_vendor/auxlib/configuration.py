@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 def make_env_key(app_name, key):
     """Creates an environment key-equivalent for the given key"""
     key = key.replace('-', '_').replace(' ', '_')
-    return "_".join((x.upper() for x in (app_name, key)))
+    return str("_".join((x.upper() for x in (app_name, key))))
 
 
 @memoize

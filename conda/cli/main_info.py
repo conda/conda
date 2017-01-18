@@ -88,7 +88,7 @@ def get_user_site():
     else:
         if 'APPDATA' not in os.environ:
             return site_dirs
-        APPDATA = os.environ['APPDATA']
+        APPDATA = os.environ[str('APPDATA')]
         if exists(join(APPDATA, 'Python')):
             site_dirs = [join(APPDATA, 'Python', i) for i in
                          listdir(join(APPDATA, 'PYTHON'))]

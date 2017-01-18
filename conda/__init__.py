@@ -29,7 +29,7 @@ __url__ = "https://github.com/conda/conda"
 
 
 if os.getenv('CONDA_ROOT') is None:
-    os.environ['CONDA_ROOT'] = sys.prefix
+    os.environ[str('CONDA_ROOT')] = sys.prefix
 
 CONDA_PACKAGE_ROOT = dirname(__file__)
 
