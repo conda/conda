@@ -87,7 +87,7 @@ def _main(*args):
     from ..gateways.logging import set_all_logger_level, set_verbosity
 
     if len(args) == 1:
-        args.append('-h')
+        args = args + ('-h',)
 
     p, sub_parsers = generate_parser()
 
