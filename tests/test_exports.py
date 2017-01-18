@@ -9,6 +9,11 @@ def test_exports():
 
 def test_conda_subprocess():
     import os
-    import subprocess
+    from subprocess import Popen, PIPE
     import conda
-    subprocess.check_output('echo "%s"' % conda.__version__, env=os.environ)
+
+    p = Popen(['echo', '"%s"' % conda.__version__], env=os.environ, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    rc = p.returncode
+    if rc != 0:
+        raise CalledProcessError(rc, command, "stdout: {0}\nstderr: {1}".format(stdout, stderr))
