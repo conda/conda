@@ -137,9 +137,10 @@ def main():
         if os.getenv('_CONDA_HOLD'):
             new_path = re.sub(r'%s(:?)' % re.escape(activation_path),
                               r'CONDA_PATH_PLACEHOLDER\1',
-                              os.environ['PATH'], 1)
+                              os.environ[str('PATH')], 1)
         else:
-            new_path = re.sub(r'%s(:?)' % re.escape(activation_path), r'', os.environ['PATH'], 1)
+            new_path = re.sub(r'%s(:?)' % re.escape(activation_path), r'',
+                              os.environ[str('PATH')], 1)
 
         print(new_path)
         sys.exit(0)
