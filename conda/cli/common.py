@@ -596,10 +596,11 @@ def stdout_json_success(success=True, **kwargs):
 
     # this code reverts json output for plan back to previous behavior
     #   relied on by Anaconda Navigator and nb_conda
-    if 'LINK' in kwargs:
-        kwargs['LINK'] = [str(d) for d in kwargs['LINK']]
-    if 'UNLINK' in kwargs:
-        kwargs['UNLINK'] = [str(d) for d in kwargs['UNLINK']]
+    actions = kwargs.get('actions', {})
+    if 'LINK' in actions:
+        actions['LINK'] = [str(d) for d in actions['LINK']]
+    if 'UNLINK' in actions:
+        actions['UNLINK'] = [str(d) for d in actions['UNLINK']]
 
     result.update(kwargs)
     stdout_json(result)
