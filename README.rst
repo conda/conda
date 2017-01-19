@@ -7,29 +7,22 @@
 
 ----------------------------------------
 
-.. image:: https://travis-ci.org/conda/conda.svg?branch=master
-   :alt: Travis-CI Build Status
-   :target: https://travis-ci.org/conda/conda
+.. image:: https://img.shields.io/travis/conda/conda/4.1.x.svg?maxAge=900&label=Linux%20%26%20MacOS
+    :target: https://travis-ci.org/conda/conda
+    :alt: Linux & MacOS tests (Travis)
 
-.. image:: https://ci.appveyor.com/api/projects/status/idy477yjwiswsskg/branch/master?svg=true
-   :alt: Appveyor Build Status
-   :target: https://ci.appveyor.com/project/ContinuumAnalytics/conda/branch/master
+.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/4.1.x.svg?maxAge=900&label=Windows
+    :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
+    :alt: Windows tests (Appveyor)
 
-.. image:: https://codecov.io/github/conda/conda/coverage.svg?branch=master
+.. image:: https://img.shields.io/codecov/c/github/conda/conda/4.1.x.svg?label=coverage
    :alt: Codecov Status
    :target: https://codecov.io/github/conda/conda?branch=master
 
-.. image:: https://scrutinizer-ci.com/g/conda/conda/badges/quality-score.png?b=master
-   :alt: Scrutinizer Code Quality
-   :target: https://scrutinizer-ci.com/g/conda/conda/?branch=master
+.. image:: https://img.shields.io/github/release/conda/conda.svg
+   :alt: latest release version
+   :target: https://github.com/conda/conda/releases
 
-.. image:: https://www.quantifiedcode.com/api/v1/project/81377831ebe54def8b31c55a4b5b4cb0/badge.svg
-   :alt: Quantified Code
-   :target: https://www.quantifiedcode.com/app/project/81377831ebe54def8b31c55a4b5b4cb0
-
-.. image:: https://badges.gitter.im/conda/conda.svg
-   :alt: Join the chat at https://gitter.im/conda/conda
-   :target: https://gitter.im/conda/conda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
 Conda is a cross-platform, Python-agnostic binary package manager. It is the
 package manager used by `Anaconda
