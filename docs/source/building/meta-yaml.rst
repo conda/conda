@@ -480,6 +480,8 @@ Some users may wish to build a recipe against different versions of NumPy and en
       - python
       - numpy x.x
 
+.. _meta-test:
+
 Test section
 ------------
 
