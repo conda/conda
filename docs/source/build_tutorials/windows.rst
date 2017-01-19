@@ -17,9 +17,10 @@ packages from this tutorial for both
 
 Writing the recpies will be discussed in this tutorial, and on GitHub in the
 `conda documentation repository <https://github.com/conda/conda-docs>`_ you can
-also find the final recipes for both
-`SEP <https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/sep>`_ and
-`pySLALIB <https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/pyslalib>`_.
+also find the `SEP recipe
+<https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/sep>`_
+and the `pySLALIB recipe
+<https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/pyslalib>`_.
 
 Before you start
 ----------------
@@ -175,7 +176,7 @@ and choose to install "Visual C++" under "Programming Languages".
 
 The `SEP documentation <https://sep.readthedocs.io>`_ states that SEP works on
 Python 2 and 3 and depends only on NumPy. Searching for SEP and PyPI shows that
-there is already a `PyPI package for SEP <https://pypi.python.org/pypi/sep>`_.
+there is already `a PyPI package for SEP <https://pypi.python.org/pypi/sep>`_.
 
 Because a PyPI package for SEP already exists, the ``conda 
 skeleton`` command can make a skeleton or outline of a conda 
