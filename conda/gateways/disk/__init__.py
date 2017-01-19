@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-from errno import EACCES, ENOENT, EPERM, EPROTOTYPE
+from errno import EACCES, ENOENT, EPERM, ENOTEMPTY, errorcode
 from logging import getLogger
 from os.path import basename
 from time import sleep
@@ -39,12 +39,12 @@ def exp_backoff_fn(fn, *args, **kwargs):
                           fn.__name__,
                           sleep_time)
                 sleep(sleep_time)
-            elif e.errno in (ENOENT, EPROTOTYPE):
+            elif e.errno in (ENOENT, ENOTEMPTY):
                 # errno.ENOENT File not found error / No such file or directory
-                # errno.EPROTOTYPE OSError(41, 'The directory is not empty')
+                # errno.ENOTEMPTY OSError(41, 'The directory is not empty')
                 raise
             else:
-                log.warn("Uncaught backoff with errno %d", e.errno)
+                log.warn("Uncaught backoff with errno %s %d", errorcode[e.errno], e.errno)
                 raise
         else:
             return result

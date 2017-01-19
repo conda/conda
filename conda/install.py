@@ -21,10 +21,10 @@ These API functions have argument names referring to:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import EACCES, EEXIST, ENOENT, EPERM, EROFS
 import functools
 import logging
 import os
-from errno import EACCES, EEXIST, EPERM, EROFS
 from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
 
@@ -134,5 +134,11 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
                     (e.errno in (EPERM, EACCES, EROFS, EEXIST))):
                 log.debug("Cannot symlink {0} to {1}. Ignoring since link already exists."
                           .format(root_file, prefix_file))
+            elif e.errno == ENOENT:
+                log.debug("Problem with symlink management {0} {1}. File may have been removed by "
+                          "another concurrent process." .format(root_file, prefix_file))
+            elif e.errno == EEXIST:
+                log.debug("Problem with symlink management {0} {1}. File may have been created by "
+                          "another concurrent process." .format(root_file, prefix_file))
             else:
                 raise

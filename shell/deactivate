@@ -17,11 +17,9 @@ case "$(uname -s)" in
     CYGWIN*|MINGW*|MSYS*)
         EXT=".exe"
         export MSYS2_ENV_CONV_EXCL=CONDA_PATH
-        export _CONDA_PYTHON2="$_CONDA_DIR/../python"
         ;;
     *)
         EXT=""
-        export _CONDA_PYTHON2="$_CONDA_DIR/python"
         ;;
 esac
 
@@ -69,19 +67,21 @@ if (( $? == 0 )); then
         eval $(find "$_CONDA_D" -iname "*.sh" -exec echo source \'{}\'';' \;)
     fi
 
-    # get the activation path that would have been provided for this prefix
-    _LAST_ACTIVATE_PATH=$("$_CONDA_DIR/conda" ..activate $_SHELL$EXT "$CONDA_PREFIX")
+#    # get the activation path that would have been provided for this prefix
+#    _LAST_ACTIVATE_PATH=$("$_CONDA_DIR/conda" ..activate $_SHELL$EXT "$CONDA_PREFIX")
+#
+#    # in activate, we replace a placeholder so that conda keeps its place in the PATH order
+#    # The activate script sets _CONDA_HOLD here to activate that behavior.
+#    #   Otherwise, PATH is simply removed.
+#    if [ -n "$_CONDA_HOLD" ]; then
+#        export PATH="$($_CONDA_PYTHON2 -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'CONDA_PATH_PLACEHOLDER\1', '$PATH', 1))")"
+#    else
+#        export PATH="$($_CONDA_PYTHON2 -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'', '$PATH', 1))")"
+#    fi
+#
+#    unset _LAST_ACTIVATE_PATH
 
-    # in activate, we replace a placeholder so that conda keeps its place in the PATH order
-    # The activate script sets _CONDA_HOLD here to activate that behavior.
-    #   Otherwise, PATH is simply removed.
-    if [ -n "$_CONDA_HOLD" ]; then
-        export PATH="$($_CONDA_PYTHON2 -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'CONDA_PATH_PLACEHOLDER\1', '$PATH', 1))")"
-    else
-        export PATH="$($_CONDA_PYTHON2 -c "import re; print(re.sub(r'$_LAST_ACTIVATE_PATH(:?)', r'', '$PATH', 1))")"
-    fi
-
-    unset _LAST_ACTIVATE_PATH
+    export PATH=$("$_CONDA_DIR/conda" ..deactivate.path $_SHELL$EXT "$CONDA_PREFIX")
 
     unset CONDA_DEFAULT_ENV
     unset CONDA_PREFIX
