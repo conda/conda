@@ -193,8 +193,26 @@ def pathlist_to_str(paths, escape_backslashes=True):
     return path
 
 
+def get_activate_path(shelldict):
+    arg_num = len(sys.argv)
+    if arg_num != 4:
+        num_expected = 2
+        if arg_num < 4:
+            raise TooFewArgumentsError(num_expected, arg_num - num_expected,
+                                       "..activate expected exactly two arguments:\
+                                        shell and env name")
+        if arg_num > 4:
+            raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
+                                        "..activate expected exactly two arguments:\
+                                         shell and env name")
+    binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
+
+    # prepend our new entries onto the existing path and make sure that the separator is native
+    path = shelldict['pathsep'].join(binpath)
+    return path
+
+
 def main():
-    from conda.base.context import context
     from conda.base.constants import ROOT_ENV_NAME
     from conda.utils import shells
 
@@ -273,6 +291,7 @@ def main():
 
         # Make sure an env always has the conda symlink
         try:
+            from conda.base.context import context
             import conda.install
             conda.install.symlink_conda(prefix, context.root_dir, shell)
         except (IOError, OSError) as e:

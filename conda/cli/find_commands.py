@@ -21,7 +21,7 @@ def find_executable(executable, include_others=True):
     else:
         dir_paths = []
 
-    dir_paths.extend(os.environ['PATH'].split(os.pathsep))
+    dir_paths.extend(os.environ[str('PATH')].split(os.pathsep))
 
     for dir_path in dir_paths:
         if on_win:

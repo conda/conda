@@ -4,16 +4,31 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.5 (unreleased)
+## 4.3.6 (2017-01-18)
+
+### Bug Fixes
+* fix 'Uncaught backoff with errno 41' warning on windows (#4366)
+* revert json output for leaky plan (#4349)
+* audit os.environ setting (#4360)
+* fix #4324 using old dist string instead of dist object (#4361)
+* fix #4351 infinite recursion via code in #4120 (#4370)
+* fix #4368 conda -h (#4367)
+* workaround for symlink race conditions on activate (#4346)
+
+
+## 4.3.5 (2017-01-17)
 
 ### Improvements
 * add exception message for corrupt repodata (#4315)
 
 ### Bug Fixes
 * fix package not being found in cache after download (#4297)
-* disable raise for Content-Length mismatch until correct logic can be determined (#4311)
+* fix logic for Content-Length mismatch (#4311, #4326)
 * use unicode_escape after etag regex instead of utf-8 (#4325)
 * fix #4323 central condarc file being ignored (#4327)
+* fix #4316 a bug in deactivate (#4316)
+* pass target_prefix as env_prefix regardless of is_unlink (#4332)
+* pass positional argument 'context' to BasicClobberError (#4335)
 
 ### Non-User-Facing Changes
 * additional package pinning tests (#4317)
@@ -236,6 +251,7 @@
 
 ### Improvements
 * vendor url parsing from urllib3 (#4289)
+* workaround for symlink race conditions on activate (#4346)
 
 ### Bug Fixes
 * do not replace \ with / in file:// URLs on Windows (#4269)
