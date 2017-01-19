@@ -280,7 +280,7 @@ Now the recipe is complete.
 Build the package.
 ~~~~~~~~~~~~~~~~~~
 
-Build the package using the recipe you just created:
+Build the package using the recipe you just created::
 
     conda build . --numpy=1.11
 
