@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+from errno import EXDEV
 import json
 from logging import getLogger
 from os.path import dirname, join
@@ -793,7 +794,17 @@ class ExtractPackageAction(PathAction):
         if lexists(self.hold_path):
             rm_rf(self.hold_path)
         if lexists(self.target_full_path):
-            backoff_rename(self.target_full_path, self.hold_path)
+            try:
+                backoff_rename(self.target_full_path, self.hold_path)
+            except (IOError, OSError) as e:
+                if e.errno == EXDEV:
+                    # OSError(18, 'Invalid cross-device link')
+                    # https://github.com/docker/docker/issues/25409
+                    # ignore, but we won't be able to roll back
+                    log.debug("Invalid cross-device link on rename %s => %s",
+                              self.target_full_path, self.hold_path)
+                else:
+                    raise
         extract_tarball(self.source_full_path, self.target_full_path)
 
         target_package_cache = PackageCache(self.target_pkgs_dir)
