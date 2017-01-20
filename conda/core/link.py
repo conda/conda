@@ -481,7 +481,6 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         return True
 
 
-
 def messages(prefix):
     path = join(prefix, '.messages.txt')
     try:
