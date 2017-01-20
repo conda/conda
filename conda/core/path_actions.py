@@ -803,6 +803,7 @@ class ExtractPackageAction(PathAction):
                     # ignore, but we won't be able to roll back
                     log.debug("Invalid cross-device link on rename %s => %s",
                               self.target_full_path, self.hold_path)
+                    rm_rf(self.target_full_path)
                 else:
                     raise
         extract_tarball(self.source_full_path, self.target_full_path)
