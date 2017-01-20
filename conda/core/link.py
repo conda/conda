@@ -27,7 +27,7 @@ from ..common.path import (explode_directories, get_all_directories, get_bin_dir
                            get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..exceptions import (KnownPackageClobberError, SharedLinkPathClobberError,
-                          UnknownPackageClobberError, maybe_raise)
+                          UnknownPackageClobberError, maybe_raise, LinkError)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
@@ -463,24 +463,31 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     try:
         log.debug("for %s at %s, executing script: $ %s",
                   dist, env['PREFIX'], ' '.join(command_args))
-        return _run_script(command_args, env)
-    finally:
-        messages(prefix)
-
-
-def _run_script(command_args, env):
-    try:
         check_call(command_args, env={str(k): str(v) for k, v in iteritems(env)})
     except CalledProcessError:
+        m = messages(prefix)
+        if action in ('pre-link', 'post-link'):
+            if m:
+                raise LinkError("Error: %s failed for: %s\n%s" % (action, dist, m))
+            else:
+                raise LinkError("Error: %s failed for: %s" % (action, dist))
+        else:
+            return False
+    except:
+        messages(prefix)
         return False
     else:
+        messages(prefix)
         return True
 
 
 def messages(prefix):
     path = join(prefix, '.messages.txt')
-    if isfile(path):
-        with open(path) as fi:
-            fh = sys.stderr if context.json else sys.stdout
-            fh.write(fi.read())
+    try:
+        if isfile(path):
+            with open(path) as fi:
+                m = fi.read()
+                print(m, file=sys.stderr if context.json else sys.stdout)
+                return m
+    finally:
         rm_rf(path)

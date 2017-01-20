@@ -4,6 +4,14 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.7 (2017-01-20)
+
+### Bug Fixes
+* actually revert json output for leaky plan (#4383)
+* fix not raising on pre/post-link error (#4382)
+* fix find_commands and find_executable for symlinks (#4387)
+
+
 ## 4.3.6 (2017-01-18)
 
 ### Bug Fixes
@@ -246,7 +254,7 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.16 (unreleased)
+## 4.2.16 (2017-01-20)
 
 ### Improvements
 * vendor url parsing from urllib3 (#4289)
@@ -257,6 +265,7 @@
 * include aliases for first command-line argument (#4279)
 * fix for multi-line FTP status codes (#4276)
 * fix errors with unknown type channels (#4291)
+* change sys.exit to raise UpgradeError when info/files not found (#4388)
 
 ### Non-User-Facing Changes
 * start using doctests in test runs and coverage (#4304)

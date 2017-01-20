@@ -17,7 +17,7 @@
 
 .. image:: https://img.shields.io/codecov/c/github/conda/conda/4.3.x.svg?label=coverage
    :alt: Codecov Status
-   :target: https://codecov.io/github/conda/conda?branch=master
+   :target: https://codecov.io/gh/conda/conda/branch/4.3.x
 
 .. image:: https://img.shields.io/github/release/conda/conda.svg
    :alt: latest release version
