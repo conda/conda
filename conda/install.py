@@ -46,7 +46,7 @@ from .base.constants import UTF8
 from .base.context import context
 from .common.disk import exp_backoff_fn, rm_rf
 from .common.url import path_to_url
-from .exceptions import CondaOSError, LinkError, PaddingError
+from .exceptions import CondaOSError, LinkError, PaddingError, CondaUpgradeError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
 from .utils import on_win
@@ -955,8 +955,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     info_dir = join(source_dir, 'info')
 
     if not os.path.isfile(join(info_dir, "files")):
-        print("Installing %s requires a minimum conda version of 4.3." % dist, file=sys.stderr)
-        sys.exit(1)
+        raise CondaUpgradeError("Installing %s requires a minimum conda version of 4.3." % dist)
 
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
