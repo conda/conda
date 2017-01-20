@@ -2,7 +2,8 @@
 Building conda packages on Windows
 ==================================
 
-.. contents::
+.. contents:: Contents
+   :depth: 1
 
 Overview
 --------
