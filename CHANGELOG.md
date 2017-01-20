@@ -254,7 +254,7 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.16 (unreleased)
+## 4.2.16 (2017-01-20)
 
 ### Improvements
 * vendor url parsing from urllib3 (#4289)
