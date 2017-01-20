@@ -3,21 +3,25 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 import os
 import re
 import sys
-from os.path import isdir, isfile, join, expanduser
-
+import sysconfig
 from ..common.compat import on_win
-from ..utils import memoized
+from os.path import isdir, isfile, join, expanduser, basename
+
+from ..utils import memoized, sys_prefix_unfollowed
 
 def find_executable(executable, include_others=True):
     # backwards compatibility
     global dir_paths
 
     if include_others:
+        prefixes = [sys_prefix_unfollowed()]
+        if sys.prefix != prefixes[0]:
+            prefixes.append(sys.prefix)
+        dir_paths = [join(p, basename(sysconfig.get_path('scripts')))
+                     for p in prefixes]
+        # Is this still needed?
         if on_win:
-            dir_paths = [join(sys.prefix, 'Scripts'),
-                         'C:\\cygwin\\bin']
-        else:
-            dir_paths = [join(sys.prefix, 'bin')]
+            dir_paths.append('C:\\cygwin\\bin')
     else:
         dir_paths = []
 
@@ -37,12 +41,16 @@ def find_executable(executable, include_others=True):
 
 @memoized
 def find_commands(include_others=True):
+
     if include_others:
+        prefixes = [sys_prefix_unfollowed()]
+        if sys.prefix != prefixes[0]:
+            prefixes.append(sys.prefix)
+        dir_paths = [join(p, basename(sysconfig.get_path('scripts')))
+                     for p in prefixes]
+        # Is this still needed?
         if on_win:
-            dir_paths = [join(sys.prefix, 'Scripts'),
-                         'C:\\cygwin\\bin']
-        else:
-            dir_paths = [join(sys.prefix, 'bin')]
+            dir_paths.append('C:\\cygwin\\bin')
     else:
         dir_paths = []
 
