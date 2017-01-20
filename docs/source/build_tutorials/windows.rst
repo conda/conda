@@ -16,12 +16,13 @@ packages from this tutorial for both
 `SEP <https://anaconda.org/wwarner/sep/files>`_ and
 `pySLALIB <https://anaconda.org/wwarner/pyslalib/files>`_.
 
-Writing the recpies will be discussed in this tutorial, and on GitHub in the
-`conda documentation repository <https://github.com/conda/conda-docs>`_ you can
-also find the `SEP recipe
+Writing the recipes will also be discussed in this tutorial. 
+You can see the final `SEP recipe
 <https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/sep>`_
 and the `pySLALIB recipe
-<https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/pyslalib>`_.
+<https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/pyslalib>`_
+on GitHub in the `conda documentation repository <https://github.com/conda/conda-docs>`_.
+
 
 Before you start
 ----------------
