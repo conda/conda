@@ -955,8 +955,7 @@ def link(prefix, dist, linktype=LINK_HARD, index=None):
     info_dir = join(source_dir, 'info')
 
     if not os.path.isfile(join(info_dir, "files")):
-        print("Installing %s requires a minimum conda version of 4.3." % dist, file=sys.stderr)
-        sys.exit(1)
+        raise LinkError("Installing %s requires a minimum conda version of 4.3." % dist)
 
     files = list(yield_lines(join(info_dir, 'files')))
     has_prefix_files = read_has_prefix(join(info_dir, 'has_prefix'))
