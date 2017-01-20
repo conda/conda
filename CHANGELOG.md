@@ -9,6 +9,7 @@
 * include aliases for first command-line argument (#4279)
 * fix for multi-line FTP status codes (#4276)
 * fix errors with unknown type channels (#4291)
+* change sys.exit to raise UpgradeError when info/files not found (#4388)
 
 ### Non-User-Facing Changes
 * start using doctests in test runs and coverage (#4304)
