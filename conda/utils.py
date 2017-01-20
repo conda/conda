@@ -1,13 +1,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import collections
+from functools import partial
 import hashlib
 import logging
+from os.path import dirname
 import re
 import sys
-import threading
-from functools import partial
 from textwrap import dedent
+import threading
 
 from .common.compat import on_win
 from .common.url import path_to_url
@@ -444,3 +445,25 @@ else:
 
 # put back because of conda build
 urlpath = url_path = path_to_url
+
+
+@memoized
+def sys_prefix_unfollowed():
+    """Since conda is installed into non-root environments as a symlink only
+    and because sys.prefix follows symlinks, this function can be used to
+    get the 'unfollowed' sys.prefix.
+
+    This value is usually the same as the prefix of the environment into
+    which conda has been symlinked. An example of when this is necessary
+    is when conda looks for external sub-commands in find_commands.py
+    """
+    try:
+        frame = sys._current_frames().values()[0]
+        while frame.f_back:
+            frame = frame.f_back
+        code = frame.f_code
+        filename = code.co_filename
+        unfollowed = dirname(dirname(filename))
+    except:
+        return sys.prefix
+    return unfollowed

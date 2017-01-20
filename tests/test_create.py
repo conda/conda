@@ -954,7 +954,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
         import conda.core.link
-        with patch.object(conda.core.link, '_run_script') as rs:
+        with patch.object(conda.core.link, 'check_call') as rs:
             with make_temp_env("openssl=1.0.2j --no-deps") as prefix:
                 assert_package_is_installed(prefix, 'openssl-')
                 assert rs.call_count == 1
