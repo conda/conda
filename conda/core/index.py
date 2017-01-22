@@ -43,7 +43,6 @@ stdoutlog = getLogger('stdoutlog')
 
 fail_unknown_host = False
 
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 def supplement_index_with_prefix(index, prefix, channels):
     # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None  # NOQA
@@ -75,7 +74,7 @@ def supplement_index_with_prefix(index, prefix, channels):
 
 
 def supplement_index_with_cache(index, channels):
-    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None  # NOQA
+    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None
     # supplement index with packages from the cache
     maxp = len(channels) + 1
     for pc_entry in PackageCache.get_all_extracted_entries():
@@ -143,7 +142,14 @@ def supplement_index_with_features(index, features=()):
         index[Dist(rec)] = rec
 
 
-def get_index(channel_urls=None, subdirs=None, prefix=None):
+def add_pip_dependency(index):
+    # TODO: discuss with @mcg1969 and document
+    for dist, info in iteritems(index):
+        if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
+            index[dist] = IndexRecord.from_objects(info, depends=info['depends'] + ('pip',))
+
+
+def get_index_new(channel_urls=None, subdirs=None, prefix=None):
     """
 
     Args:
@@ -184,6 +190,9 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
     if prefix or unknown:
         known_channels = {chnl for chnl, _ in itervalues(channel_priority_map)}
+    else:
+        known_channels = set()
+
     if prefix:
         supplement_index_with_prefix(index, prefix, known_channels)
     if unknown:
@@ -193,6 +202,10 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     if context.add_pip_as_python_dependency:
         add_pip_dependency(index)
     return Index(index)
+
+
+def dist_str_in_index(index, dist_str):
+    return Dist(dist_str) in index
 
 
 class Index(object):
@@ -213,44 +226,7 @@ class Index(object):
         # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
         # assert all(assertion(d, r) for d, r in iteritems(index))
 
-        feature_records = {}
-        for dist, info in iteritems(index):
-            if dist.with_features_depends:
-                continue
-
-            for feature_name in chain(info.get('features', '').split(),
-                                      info.get('track_features', '').split(),
-                                      context.track_features or ()):
-                feature_dist = Dist(feature_name + '@')
-                if feature_dist in index:
-                    continue
-                feature_records[feature_dist] = self.make_feature_record(feature_name, feature_dist)
-
-            for feature_name in iterkeys(info.get('with_features_depends', {})):
-                what_is_this_dist_for = Dist('%s[%s]' % (dist, feature_name))
-                feature_records[what_is_this_dist_for] = info
-
-                feature_dist = Dist(feature_name + '@')
-                self.make_feature_record(feature_name, feature_dist)
-                feature_records[feature_dist] = self.make_feature_record(feature_name, feature_dist)
-
-        index.update(feature_records)
         self._index = index
-
-    @staticmethod
-    def make_feature_record(feature_name, feature_dist):
-        info = {
-            'name': feature_dist.dist_name,
-            'channel': '@',
-            'priority': 0,
-            'version': '0',
-            'build_number': 0,
-            'fn': feature_dist.to_filename(),
-            'build': '0',
-            'depends': [],
-            'track_features': feature_name,
-        }
-        return IndexRecord(**info)
 
     def __getitem__(self, dist):
         return self._index[dist]
@@ -265,7 +241,6 @@ class Index(object):
         return self._index.get(dist, default)
 
     def __contains__(self, dist):
-        # number 1 most common
         return dist in self._index
 
     def __iter__(self):
@@ -278,7 +253,7 @@ class Index(object):
         return self.iteritems()
 
     def copy(self):
-        return self
+        raise NotImplementedError()
 
     def setdefault(self, key, default_value):
         raise NotImplementedError()
@@ -286,6 +261,80 @@ class Index(object):
     def update(self, E=None, **F):
         raise NotImplementedError()
 
+
+# ##########################################
+# index fetching
+# ##########################################
+
+def fetch_index(channel_urls, use_cache=False, index=None):
+    # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
+    log.debug('channel_urls=' + repr(channel_urls))
+    if not context.json:
+        stdoutlog.info("Fetching package metadata ...")
+
+    urls = tuple(iterkeys(channel_urls))
+    repodatas = _collect_repodatas(use_cache, urls)
+    # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
+    #   this is sorta a lie; actually more primitve types
+
+    index = dict()
+    for channel_url, repodata in repodatas:
+        if repodata and repodata.get('packages'):
+            _, priority = channel_urls[channel_url]
+            channel = Channel(channel_url)
+            supplement_index_with_repodata(index, repodata, channel, priority)
+
+    if not context.json:
+        stdoutlog.info('\n')
+    return index
+
+
+def _collect_repodatas(use_cache, urls):
+    # TODO: there HAS to be a way to clean up this logic
+    if context.concurrent:
+        try:
+            import concurrent.futures
+            executor = concurrent.futures.ThreadPoolExecutor(10)
+        except (ImportError, RuntimeError) as e:
+            log.debug(repr(e))
+            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+            # RuntimeError is thrown if number of threads are limited by OS
+            repodatas = _collect_repodatas_serial(use_cache, urls)
+        else:
+            try:
+                repodatas = _collect_repodatas_concurrent(executor, use_cache, urls)
+            except RuntimeError as e:
+                # Cannot start new thread, then give up parallel execution
+                log.debug(repr(e))
+                repodatas = _collect_repodatas_serial(use_cache, urls)
+            finally:
+                executor.shutdown(wait=True)
+    else:
+        repodatas = _collect_repodatas_serial(use_cache, urls)
+
+    return repodatas
+
+
+def _collect_repodatas_serial(use_cache, urls):
+    # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
+    session = CondaSession()
+    repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
+                 for url in urls]
+    return repodatas
+
+
+def _collect_repodatas_concurrent(executor, use_cache, urls):
+    futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
+                                    session=CondaSession()) for url in urls)
+    repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+    return repodatas
+
+
+# ##########################################
+# repodata fetching and on-disk caching
+# ##########################################
+
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 # We need a decorator so that the dot gets printed *after* the repodata is fetched
 class dotlog_on_return(object):
@@ -299,40 +348,6 @@ class dotlog_on_return(object):
             dotlog.debug("%s args %s kwargs %s" % (self.msg, args, kwargs))
             return res
         return func
-
-
-def read_mod_and_etag(path):
-    with open(path, 'rb') as f:
-        try:
-            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
-                result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
-                return result
-        except ValueError:
-            # ValueError: cannot mmap an empty file
-            return {}
-
-
-def get_cache_control_max_age(cache_control_value):
-    max_age = re.search(r"max-age=(\d+)", cache_control_value)
-    return int(max_age.groups()[0]) if max_age else 0
-
-
-def read_local_repodata(cache_path):
-    with open(cache_path) as f:
-        try:
-            local_repodata = json.load(f)
-        except ValueError as e:
-            # ValueError: Expecting object: line 11750 column 6 (char 303397)
-            log.debug("Error for cache path: '%s'\n%r", cache_path, e)
-            message = dals("""
-            An error occurred when loading cached repodata.  Executing
-            `conda clean --index-cache` will remove cached repodata files
-            so they can be downloaded again.
-            """)
-            raise CondaError(message)
-        else:
-            return local_repodata
 
 
 @dotlog_on_return("fetching repodata:")
@@ -381,70 +396,6 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     return fetched_repodata or None
 
 
-def _collect_repodatas_serial(use_cache, urls):
-    # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
-    session = CondaSession()
-    repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                 for url in urls]
-    return repodatas
-
-
-def _collect_repodatas_concurrent(executor, use_cache, urls):
-    futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                                    session=CondaSession()) for url in urls)
-    repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
-    return repodatas
-
-
-def _collect_repodatas(use_cache, urls):
-    # TODO: there HAS to be a way to clean up this logic
-    if context.concurrent:
-        try:
-            import concurrent.futures
-            executor = concurrent.futures.ThreadPoolExecutor(10)
-        except (ImportError, RuntimeError) as e:
-            log.debug(repr(e))
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
-            repodatas = _collect_repodatas_serial(use_cache, urls)
-        else:
-            try:
-                repodatas = _collect_repodatas_concurrent(executor, use_cache, urls)
-            except RuntimeError as e:
-                # Cannot start new thread, then give up parallel execution
-                log.debug(repr(e))
-                repodatas = _collect_repodatas_serial(use_cache, urls)
-            finally:
-                executor.shutdown(wait=True)
-    else:
-        repodatas = _collect_repodatas_serial(use_cache, urls)
-
-    return repodatas
-
-
-def fetch_index(channel_urls, use_cache=False, index=None):
-    # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
-    log.debug('channel_urls=' + repr(channel_urls))
-    if not context.json:
-        stdoutlog.info("Fetching package metadata ...")
-
-    urls = tuple(iterkeys(channel_urls))
-    repodatas = _collect_repodatas(use_cache, urls)
-    # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
-    #   this is sorta a lie; actually more primitve types
-
-    index = dict()
-    for channel_url, repodata in repodatas:
-        if repodata and repodata.get('packages'):
-            _, priority = channel_urls[channel_url]
-            channel = Channel(channel_url)
-            supplement_index_with_repodata(index, repodata, channel, priority)
-
-    if not context.json:
-        stdoutlog.info('\n')
-    return index
-
-
 def cache_fn_url(url):
     # url must be right-padded with '/' to not invalidate any existing caches
     if not url.endswith('/'):
@@ -453,13 +404,6 @@ def cache_fn_url(url):
     # assert subdir in PLATFORM_DIRECTORIES or context.subdir != context._subdir, subdir
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
     return '%s.json' % (md5[:8],)
-
-
-def add_pip_dependency(index):
-    # TODO: discuss with @mcg1969 and document
-    for dist, info in iteritems(index):
-        if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-            index[dist] = IndexRecord.from_objects(info, depends=info['depends'] + ('pip',))
 
 
 def create_cache_dir():
@@ -471,5 +415,35 @@ def create_cache_dir():
     return cache_dir
 
 
-def dist_str_in_index(index, dist_str):
-    return Dist(dist_str) in index
+def read_mod_and_etag(path):
+    with open(path, 'rb') as f:
+        try:
+            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
+                match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
+                result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
+                return result
+        except ValueError:
+            # ValueError: cannot mmap an empty file
+            return {}
+
+
+def get_cache_control_max_age(cache_control_value):
+    max_age = re.search(r"max-age=(\d+)", cache_control_value)
+    return int(max_age.groups()[0]) if max_age else 0
+
+
+def read_local_repodata(cache_path):
+    with open(cache_path) as f:
+        try:
+            local_repodata = json.load(f)
+        except ValueError as e:
+            # ValueError: Expecting object: line 11750 column 6 (char 303397)
+            log.debug("Error for cache path: '%s'\n%r", cache_path, e)
+            message = dals("""
+            An error occurred when loading cached repodata.  Executing
+            `conda clean --index-cache` will remove cached repodata files
+            so they can be downloaded again.
+            """)
+            raise CondaError(message)
+        else:
+            return local_repodata
