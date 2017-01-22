@@ -817,12 +817,20 @@ def test_broken_install():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']
-    installed[1] = 'numpy-1.7.1-py33_p0.tar.bz2'
     installed.append('notarealpackage-2.0-0.tar.bz2')
-    assert r.install([], installed) == installed
-    installed2 = r.install(['numpy'], installed)
-    installed3 = r.remove(['pandas'], installed)
-    assert set(installed3) == set(installed[:3] + installed[4:])
+    installed.sort()
+    installed2 = list(installed)
+    installed2[2] = 'numpy-1.7.1-py33_p0.tar.bz2'
+    installed3 = r.install([], installed2)
+    installed4 = r.install(['numpy 1.6*'], installed2)
+    installed5 = r.install(['numpy'], installed2)
+    installed6 = r.remove(['pandas'], installed2)
+    installed7 = list(installed2)
+    installed7.remove('pandas-0.11.0-np16py27_1.tar.bz2')
+    assert installed3 == installed2
+    assert installed4 == installed
+    assert sum(x != y for x, y in zip(installed, installed5)) == 1
+    assert installed6 == installed7
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
@@ -931,6 +939,11 @@ def test_update_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]
+
+    # Test accidentally duplicated packages
+    installed2 = installed + ['sqlite-3.9.2-0.tar.bz2', 'six-1.10.0-py27_0.tar.bz2']
+    installed3 = r.install([], installed=installed2)
+    assert installed == installed3
 
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
