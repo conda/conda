@@ -1,7 +1,10 @@
 ## 4.4.0 (unreleased)
 
 ### New Features
-* general support for all bourne- and c-based shells #3175
+* general support for all bourne- and c-based shells (#3175)
+
+### Non-User-Facing Changes
+* eliminate index modification in Resolve.__init__ (#4333)
 
 
 ## 4.3.7 (2017-01-20)
