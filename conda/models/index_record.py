@@ -76,3 +76,7 @@ class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
     link = ComposableField(Link, required=False)
 
     preferred_env = StringField(default=None, required=False, nullable=True)
+
+    @property
+    def is_installed(self):
+        return hasattr(self, 'link') and bool(self.link)

@@ -166,7 +166,7 @@ class Resolve(object):
         # type: () -> Set[Dist]
         installed = set()
         for dist, info in iteritems(self.index):
-            if 'link' in info:
+            if info.is_installed:
                 installed.add(dist)
         return installed
 
