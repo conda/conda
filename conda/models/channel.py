@@ -8,7 +8,7 @@ from requests.packages.urllib3.util import Url
 from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
                               MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, odict, with_metaclass
+from ..common.compat import ensure_text_type, iteritems, odict, with_metaclass, isiterable
 from ..common.path import is_path, win_path_backout
 from ..common.url import (has_scheme, is_url, join_url, path_to_url, split_conda_url_easy_parts,
                           split_scheme_auth_token, urlparse)
@@ -299,9 +299,9 @@ class Channel(object):
     #         #   maybe the path really doesn't have a channel name
     #         return Channel(None)
 
-    def urls(self, with_credentials=False, platform=None):
+    def urls(self, with_credentials=False, platform=None, subdirs=None):
         if self.canonical_name == UNKNOWN_CHANNEL:
-            return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, platform)
+            return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, platform, subdirs)
 
         base = [self.location]
         if with_credentials and self.token:
@@ -310,8 +310,12 @@ class Channel(object):
         base = join_url(*base)
 
         def _platforms():
+            if subdirs:
+                assert isiterable(subdirs)
+                return subdirs
             p = platform or self.platform or context.subdir
             return (p, 'noarch') if p != 'noarch' else ('noarch',)
+
         bases = (join_url(base, p) for p in _platforms())
 
         if with_credentials and self.auth:
