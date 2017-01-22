@@ -601,12 +601,12 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
     def execute(self):
         if self.link_type != LinkType.directory:
             log.trace("renaming %s => %s", self.target_short_path, self.holding_short_path)
-            backoff_rename(self.target_full_path, self.holding_full_path)
+            backoff_rename(self.target_full_path, self.holding_full_path, force=True)
 
     def reverse(self):
         if self.link_type != LinkType.directory and lexists(self.holding_full_path):
             log.trace("reversing rename %s => %s", self.holding_short_path, self.target_short_path)
-            backoff_rename(self.holding_full_path, self.target_full_path)
+            backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
         if self.link_type == LinkType.directory:
@@ -718,7 +718,7 @@ class CacheUrlAction(PathAction):
                 # the source and destination are the same file, so we're done
                 return
             else:
-                backoff_rename(self.target_full_path, self.hold_path)
+                backoff_rename(self.target_full_path, self.hold_path, force=True)
 
         if self.url.startswith('file:/'):
             source_path = url_to_path(self.url)
@@ -760,8 +760,7 @@ class CacheUrlAction(PathAction):
     def reverse(self):
         if lexists(self.hold_path):
             log.trace("moving %s => %s", self.hold_path, self.target_full_path)
-            rm_rf(self.target_full_path)
-            backoff_rename(self.hold_path, self.target_full_path)
+            backoff_rename(self.hold_path, self.target_full_path, force=True)
 
     def cleanup(self):
         rm_rf(self.hold_path)
