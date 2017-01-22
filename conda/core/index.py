@@ -16,8 +16,10 @@ from time import time
 from .linked_data import linked_data
 from .package_cache import PackageCache
 from .. import CondaError
+from .._vendor.auxlib.decorators import memoizedproperty, memoize
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
+from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import (MAX_CHANNEL_PRIORITY)
 from ..base.context import context
 from ..common.compat import ensure_unicode, iteritems, iterkeys, itervalues
@@ -32,9 +34,9 @@ from ..models.index_record import EMPTY_LINK, IndexRecord
 from ..resolve import MatchSpec
 
 try:
-    from cytoolz.itertoolz import take
+    from cytoolz.itertoolz import concat, take
 except ImportError:
-    from .._vendor.toolz.itertoolz import take
+    from .._vendor.toolz.itertoolz import concat, take
 
 
 log = getLogger(__name__)
@@ -113,6 +115,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
                                        auth=auth)
         dist = Dist(rec)
         index[dist] = rec
+
         if 'with_features_depends' in info:
             base_deps = info.get('depends', ())
             base_feats = set(info.get('features', '').strip().split())
@@ -186,12 +189,20 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         unknown = True
 
     channel_priority_map = prioritize_channels(channel_urls, platform=platform)
+    # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
+
+    # for url in channel_priority_map:
+    #     if url not in Index._repodata_cache:
+    #         # repodata = fetch_repodata(url) or {}
+    #         # packages = repodata.get('packages', {})
+    #         # Index._repodata_cache[url] = {Dist(join_url(url, fn)): info for fn, info in iteritems(packages)}
+    #         Index._repodata_cache[url] = fetch_repodata(url) or {}
+
     index = fetch_index(channel_priority_map, use_cache=use_cache)
 
     if prefix or unknown:
+        # this must always be True, otherwsise we'd get errors below
         known_channels = {chnl for chnl, _ in itervalues(channel_priority_map)}
-    else:
-        known_channels = set()
 
     if prefix:
         supplement_index_with_prefix(index, prefix, known_channels)
@@ -221,14 +232,29 @@ class Index(object):
     The resolve logic for like features, track_features, ms_depends, find_matches, could be moved here.
 
     """
+    _repodata_cache = {}
+    _conda_session = CondaSession()
 
-    def __init__(self, index):
-        # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
-        # assert all(assertion(d, r) for d, r in iteritems(index))
+    def __init__(self, index, channels=(), subdirs=(), prefix=None):
+        if channels:
+            self._channels = channels
+            self.subdirs = subdirs or context.subdirs
+            self.prefix = prefix
+            self._all_dists = None
+        else:
+            self._index = index
 
-        self._index = index
+    @memoizedproperty
+    def channels(self):
+        return IndexedSet(Channel(c) for c in self._channels)
+
+    @memoizedproperty
+    def channel_urls(self):
+        return tuple(concat(c.urls(with_credentials=True, subdirs=self.subdirs)
+                            for c in self.channels))
 
     def __getitem__(self, dist):
+        # return self._get_record(dist)
         return self._index[dist]
 
     def __setitem__(self, key, value):
@@ -260,6 +286,114 @@ class Index(object):
 
     def update(self, E=None, **F):
         raise NotImplementedError()
+
+    def get_records_for_package_name(self, package_name):
+        for url in self.channel_urls:
+            repodata = self._get_repodata(url)
+        raise NotImplementedError()
+
+    def _load_all_dists(self):
+        if self._all_dists is not None:
+            return self._all_dists
+
+        sources = []
+        for channel_url in self.channel_urls:
+            repodata = self._get_repodata(channel_url)
+            repodata_dists = repodata.get('dists')
+            if repodata_dists is None:
+                # cache these dist objects on the repodata cache object
+                repodata_dists = repodata['dists'] = set(Dist(join_url(channel_url, fn)) for fn in repodata.get('packages', {}))
+            sources.append(repodata_dists)
+
+        sources.extend(iter(PackageCache(pd)) for pd in context.pkgs_dirs)
+        if self.prefix:
+            sources.append(linked_data(self.prefix))
+        _all_dists = self._all_dists = set(concat(sources))
+        return _all_dists
+
+    @memoize
+    def _get_record(self, dist):
+
+        # TODO: not so sure about channel_url here yet
+        channel = Channel(dist.to_url())
+        channel_url = channel.url(with_credentials=True)
+        fn = dist.to_filename()
+
+        package_data = {
+            "channel": channel_url,
+            "fn": fn,
+            "schannel": channel.canonical_name,
+            "url": join_url(channel_url, fn),
+        }
+
+        # Step 1. look for repodata
+        repodata = self._get_repodata(channel_url)
+        repodata_package = repodata.get('packages', {}).get(fn)
+        repodata_info = repodata.get('info', {})
+        if repodata_package:
+            package_data.update(repodata_package)
+            package_data['arch'] = repodata_info.get('arch')
+            package_data['platform'] = repodata_info.get('platform')
+
+        # Step 2. look in package cache
+        if repodata_package:
+            # The downloaded repodata takes priority
+            pass
+        else:
+            pc_entries = PackageCache.get_matching_entries(dist)
+            if pc_entries:
+                pkg_dir = pc_entries[0].extracted_package_dir
+                index_json_record = read_index_json(pkg_dir)
+                package_data.update(index_json_record.dump())
+
+        # Step 3. look in prefix
+        if self.prefix:
+            linked_data_record = linked_data(self.prefix).get(dist)
+            if linked_data_record:
+                if repodata_package:
+                    # The downloaded repodata takes priority, so we do not overwrite.
+                    # We do, however, copy the link information so that the solver
+                    # knows this package is installed.
+                    link = linked_data_record.get('link') or EMPTY_LINK
+                    package_data['link'] = link
+                else:
+                    # If the package is not in the repodata, use the local data in the prefix.
+                    # Here we are preferring the prefix data over the package cache data.
+                    package_data.update(linked_data_record.dump())
+
+                    if 'depends' not in package_data:
+                        # If the 'depends' field is not present, we need to set it; older
+                        # installations are likely to have this.
+                        package_data['depends'] = ()
+
+        # Step 4. set priority
+        if repodata_package:
+            priority = self.channel_urls.index(channel_url)
+            package_data['priority'] = priority
+        else:
+            # If the channel is known but the package is not in the index, it
+            # is because 1) the channel is unavailable offline, or 2) it no
+            # longer contains this package. Either way, we should prefer any
+            # other version of the package to this one. On the other hand, if
+            # it is in a channel we don't know about, assign it a value just
+            # above the priority of all known channels.
+            maxp = len(self.channels) + 1
+            package_data['priority'] = MAX_CHANNEL_PRIORITY if channel_url in self.channel_urls else maxp
+
+        # Step 5. add pip as dependency
+        if context.add_pip_as_python_dependency:
+            package_data['depends'] += ('pip',)
+
+        return IndexRecord(**package_data)
+
+    def _get_repodata(self, url):
+        repodata = Index._repodata_cache.get(url)
+        if repodata:
+            return repodata
+        repodata = Index._repodata_cache[url] = fetch_repodata(url) or {}
+        return repodata
+
+
 
 
 # ##########################################
@@ -351,13 +485,14 @@ class dotlog_on_return(object):
 
 
 @dotlog_on_return("fetching repodata:")
-def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
-    cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
+def fetch_repodata(raw_url, cache_dir=None, use_cache=False, session=None):
+    cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(raw_url))
+    session = session or Index._conda_session
 
     try:
         mtime = getmtime(cache_path)
     except (IOError, OSError):
-        log.debug("No local cache found for %s at %s", url, cache_path)
+        log.debug("No local cache found for %s at %s", raw_url, cache_path)
         if use_cache:
             return {'packages': {}}
         else:
@@ -373,20 +508,20 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             max_age = 0
 
         timeout = mtime + max_age - time()
-        if (timeout > 0 or context.offline) and not url.startswith('file://'):
+        if (timeout > 0 or context.offline) and not raw_url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
-                      url, cache_path, timeout)
+                      raw_url, cache_path, timeout)
             return read_local_repodata(cache_path)
 
-        log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
+        log.debug("Locally invalidating cached repodata for %s at %s", raw_url, cache_path)
 
     try:
-        assert url is not None, url
-        fetched_repodata = fetch_repodata_remote_request(session, url,
+        assert raw_url is not None, raw_url
+        fetched_repodata = fetch_repodata_remote_request(session, raw_url,
                                                          mod_etag_headers.get('_etag'),
                                                          mod_etag_headers.get('_mod'))
     except Response304ContentUnchanged:
-        log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
+        log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", raw_url)
         touch(cache_path)
         return read_local_repodata(cache_path)
 
