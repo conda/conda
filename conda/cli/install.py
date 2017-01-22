@@ -19,7 +19,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
 from ..common.compat import on_win, text_type
-from ..core.index import get_index, get_index_2
+from ..core.index import get_index, get_index
 from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
@@ -204,7 +204,7 @@ def install(args, parser, command='install'):
             print(print_activate(args.name if args.name else prefix))
         return
 
-    index = get_index_2(channel_urls=index_args['channel_urls'],
+    index = get_index(channel_urls=index_args['channel_urls'],
                       prepend=index_args['prepend'], platform=None,
                       use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                       unknown=index_args['unknown'], prefix=prefix)

@@ -176,17 +176,17 @@ def get_index_new(channel_urls=None, subdirs=None, prefix=None):
     index = fetch_index(channel_priority_map)
 
 
-def get_index_2(channel_urls=(), prepend=True, platform=None,
-                use_local=False, use_cache=False, unknown=None, prefix=None):
+def get_index(channel_urls=(), prepend=True, platform=None,
+              use_local=False, use_cache=False, unknown=None, prefix=None):
     if use_local:
         channel_urls = ['local'] + list(channel_urls)
     if prepend:
         channel_urls += context.channels
 
-    return Index(None, channel_urls, context.subdirs, prefix)
+    return Index(channel_urls, context.subdirs, prefix)
 
 
-def get_index(channel_urls=(), prepend=True, platform=None,
+def get_index_old(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     """
     Return the index of packages available on the channels
@@ -226,7 +226,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         supplement_index_with_features(index)
     if context.add_pip_as_python_dependency:
         add_pip_dependency(index)
-    return Index(index)
+    return index
 
 
 def dist_str_in_index(index, dist_str):
@@ -249,7 +249,7 @@ class Index(object):
     _repodata_cache = {}
     _conda_session = CondaSession()
 
-    def __init__(self, index, channels=(), subdirs=(), prefix=None):
+    def __init__(self, channels=(), subdirs=(), prefix=None):
         if channels:
             self._channels = channels
             self.subdirs = subdirs or context.subdirs
@@ -354,8 +354,8 @@ class Index(object):
         else:
             # channel must be a multichannel
             channel = Channel(dist.channel)
-            assert isinstance(channel, MultiChannel)
             channel_urls = Channel(dist.channel).urls(with_credentials=True, subdirs=context.subdirs)
+            assert channel_urls
             for url in channel_urls:
                 repodata = self._get_repodata(url)
                 repodata_dists = self._get_repodata_dists(repodata)

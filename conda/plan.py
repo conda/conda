@@ -558,7 +558,7 @@ def get_resolve_object(index, prefix):
     # index = index._index
     # supplement_index_with_prefix(index, prefix, {})
     # r = Resolve(Index(index))
-    r = Resolve(Index(None, index.channel_urls, prefix=prefix))
+    r = Resolve(Index(index.channel_urls, prefix=prefix))
     return r
 
 
