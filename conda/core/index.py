@@ -343,9 +343,8 @@ class Index(object):
     @memoize
     def _get_record(self, dist):
 
-        # TODO: not so sure about channel_url here yet
         dist_url = dist.to_url()
-        if dist_url:
+        if False:  # dist_url
             channel = Channel(dist_url)
             assert channel.platform
             channel_url = channel.url(with_credentials=True)
