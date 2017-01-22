@@ -272,6 +272,9 @@ class Index(object):
     def __iter__(self):
         return iter(self._index)
 
+    def keys(self):
+        return self.__iter__()
+
     def iteritems(self):
         return iteritems(self._index)
 
