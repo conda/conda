@@ -13,6 +13,10 @@ from os.path import getmtime, join
 import re
 from time import time
 
+from conda._vendor.auxlib.collection import first
+
+from conda.exceptions import PackageNotFoundError
+
 from .linked_data import linked_data
 from .package_cache import PackageCache
 from .. import CondaError
@@ -20,7 +24,7 @@ from .._vendor.auxlib.decorators import memoizedproperty, memoize
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import (MAX_CHANNEL_PRIORITY)
+from ..base.constants import (MAX_CHANNEL_PRIORITY, CONDA_TARBALL_EXTENSION)
 from ..base.context import context
 from ..common.compat import ensure_unicode, iteritems, iterkeys, itervalues
 from ..common.url import join_url
@@ -28,7 +32,7 @@ from ..connection import CondaSession
 from ..gateways.disk.read import read_index_json
 from ..gateways.disk.update import touch
 from ..gateways.download import Response304ContentUnchanged, fetch_repodata_remote_request
-from ..models.channel import Channel, prioritize_channels
+from ..models.channel import Channel, prioritize_channels, MultiChannel
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
 from ..resolve import MatchSpec
@@ -172,6 +176,16 @@ def get_index_new(channel_urls=None, subdirs=None, prefix=None):
     index = fetch_index(channel_priority_map)
 
 
+def get_index_2(channel_urls=(), prepend=True, platform=None,
+                use_local=False, use_cache=False, unknown=None, prefix=None):
+    if use_local:
+        channel_urls = ['local'] + list(channel_urls)
+    if prepend:
+        channel_urls += context.channels
+
+    return Index(None, channel_urls, context.subdirs, prefix)
+
+
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     """
@@ -242,6 +256,7 @@ class Index(object):
             self.prefix = prefix
             self._all_dists = None
         else:
+            assert False
             self._index = index
 
     @memoizedproperty
@@ -254,8 +269,8 @@ class Index(object):
                             for c in self.channels))
 
     def __getitem__(self, dist):
-        # return self._get_record(dist)
-        return self._index[dist]
+        return self._get_record(dist)
+        # return self._index[dist]
 
     def __setitem__(self, key, value):
         raise NotImplementedError()
@@ -264,19 +279,26 @@ class Index(object):
         raise NotImplementedError()
 
     def get(self, dist, default=None):
-        return self._index.get(dist, default)
+        try:
+            return self[dist]
+        except PackageNotFoundError:
+            return default
 
     def __contains__(self, dist):
-        return dist in self._index
+        # return dist in self._index
+        return dist in self._load_all_dists()
 
     def __iter__(self):
-        return iter(self._index)
+        # return iter(self._index)
+        return iter(self._load_all_dists())
 
     def keys(self):
         return self.__iter__()
 
     def iteritems(self):
-        return iteritems(self._index)
+        # return iteritems(self._index)
+        for dist in self:
+            yield dist, self._get_record(dist)
 
     def items(self):
         return self.iteritems()
@@ -301,12 +323,7 @@ class Index(object):
 
         sources = []
         for channel_url in self.channel_urls:
-            repodata = self._get_repodata(channel_url)
-            repodata_dists = repodata.get('dists')
-            if repodata_dists is None:
-                # cache these dist objects on the repodata cache object
-                repodata_dists = repodata['dists'] = set(Dist(join_url(channel_url, fn)) for fn in repodata.get('packages', {}))
-            sources.append(repodata_dists)
+            sources.append(self._get_repodata_dists(self._get_repodata(channel_url)))
 
         sources.extend(iter(PackageCache(pd)) for pd in context.pkgs_dirs)
         if self.prefix:
@@ -314,12 +331,42 @@ class Index(object):
         _all_dists = self._all_dists = set(concat(sources))
         return _all_dists
 
+    @staticmethod
+    def _get_repodata_dists(repodata):
+        repodata_dists = repodata.get('dists')
+        if repodata_dists is None:
+            # cache these dist objects on the repodata cache object
+            channel_url = Channel(repodata['_url']).url(with_credentials=True)
+            repodata_dists = repodata['dists'] = set(Dist(join_url(channel_url, fn)) for fn in repodata.get('packages', {}))
+        return repodata_dists
+
     @memoize
     def _get_record(self, dist):
 
         # TODO: not so sure about channel_url here yet
-        channel = Channel(dist.to_url())
-        channel_url = channel.url(with_credentials=True)
+        dist_url = dist.to_url()
+        if dist_url:
+            channel = Channel(dist_url)
+            assert channel.platform
+            channel_url = channel.url(with_credentials=True)
+            if channel_url.endswith(CONDA_TARBALL_EXTENSION):
+                channel_url = channel_url.rsplit('/', 1)[0]
+        else:
+            # channel must be a multichannel
+            channel = Channel(dist.channel)
+            assert isinstance(channel, MultiChannel)
+            channel_urls = Channel(dist.channel).urls(with_credentials=True, subdirs=context.subdirs)
+            for url in channel_urls:
+                repodata = self._get_repodata(url)
+                repodata_dists = self._get_repodata_dists(repodata)
+                repodata_dist = first(repodata_dists, key=lambda d: d.dist_name == dist.dist_name)
+                if repodata_dist:
+                    channel = Channel(url)
+                    assert channel.platform
+                    channel_url = channel.url(with_credentials=True)
+                    if channel_url.endswith(CONDA_TARBALL_EXTENSION):
+                        channel_url = channel_url.rsplit('/', 1)[0]
+
         fn = dist.to_filename()
 
         package_data = {
@@ -369,10 +416,13 @@ class Index(object):
                         # installations are likely to have this.
                         package_data['depends'] = ()
 
+        if len(package_data) <= 4:
+            # <= 4 means no additional information was added
+            raise PackageNotFoundError(dist.full_name, "")
+
         # Step 4. set priority
-        if repodata_package:
-            priority = self.channel_urls.index(channel_url)
-            package_data['priority'] = priority
+        if repodata_package and channel_url in self.channel_urls:
+            package_data['priority'] = self.channel_urls.index(channel_url)
         else:
             # If the channel is known but the package is not in the index, it
             # is because 1) the channel is unavailable offline, or 2) it no

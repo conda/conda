@@ -22,7 +22,7 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      names_in_specs, specs_from_args, stdout_json,
                      create_prefix_spec_map_with_deps)
 from conda.base.constants import ROOT_NO_RM
-from conda.core.index import get_index
+from conda.core.index import get_index, get_index_2
 from ..base.context import check_write, context
 from ..gateways.disk.delete import delete_trash
 from ..common.compat import iteritems, iterkeys
@@ -129,7 +129,7 @@ def execute(args, parser):
         index = linked_data(prefix)
         index = {dist: info for dist, info in iteritems(index)}
     else:
-        index = get_index(channel_urls=context.channels,
+        index = get_index_2(channel_urls=context.channels,
                           prepend=not args.override_channels,
                           use_local=args.use_local,
                           use_cache=args.use_index_cache,

@@ -554,10 +554,11 @@ def add_unlink_options_for_update(actions, required_solves, index):
 
 
 def get_resolve_object(index, prefix):
-    # instantiate resolve object
-    index = index._index
-    supplement_index_with_prefix(index, prefix, {})
-    r = Resolve(Index(index))
+    # # instantiate resolve object
+    # index = index._index
+    # supplement_index_with_prefix(index, prefix, {})
+    # r = Resolve(Index(index))
+    r = Resolve(Index(None, index.channel_urls, prefix=prefix))
     return r
 
 

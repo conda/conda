@@ -408,7 +408,7 @@ class MultiChannel(Channel):
     def canonical_name(self):
         return self.name
 
-    def urls(self, with_credentials=False, platform=None):
+    def urls(self, with_credentials=False, platform=None, subdirs=None):
         if platform and platform != context.subdir and self.name == 'defaults':
             # necessary shenanigan because different platforms have different default channels
             urls = DEFAULT_CHANNELS_WIN if 'win' in platform else DEFAULT_CHANNELS_UNIX
@@ -416,7 +416,7 @@ class MultiChannel(Channel):
             _channels = tuple(Channel.make_simple_channel(ca, v) for v in urls)
         else:
             _channels = self._channels
-        return list(chain.from_iterable(c.urls(with_credentials, platform) for c in _channels))
+        return list(chain.from_iterable(c.urls(with_credentials, platform, subdirs) for c in _channels))
 
     @property
     def base_url(self):

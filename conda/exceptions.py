@@ -498,12 +498,6 @@ class CondaVerificationError(CondaError):
         super(CondaVerificationError, self).__init__(message)
 
 
-class CondaUpgradeError(CondaError):
-    def __init__(self, message):
-        msg = "Conda upgrade error: %s" % message
-        super(CondaUpgradeError, self).__init__(msg)
-
-
 def print_conda_exception(exception):
     from conda.base.context import context
 
