@@ -6,7 +6,7 @@ from collections import defaultdict
 from itertools import chain
 
 from .compat import iterkeys, itervalues, iteritems
-from .config import subdir, channel_priority, canonical_channel_name, track_features
+from .config import subdir, channel_priority, canonical_channel_name, track_features, MAX_PRIORITY
 from .console import setup_handlers
 from .install import dist2quad
 from .logic import minimal_unsatisfiable_subset, Clauses
@@ -651,10 +651,11 @@ class Resolve(object):
 
     def version_key(self, fkey, vtype=None):
         rec = self.index[fkey]
-        cpri = -rec.get('priority', 1)
+        pri = rec.get('priority', 1)
+        valid = 1 if pri < MAX_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
         bld = rec.get('build_number', 0)
-        return (cpri, ver, bld) if channel_priority else (ver, cpri, bld)
+        return (valid, -pri, ver, bld) if channel_priority else (valid, ver, -pri, bld)
 
     def features(self, fkey):
         return set(self.index[fkey].get('features', '').split())
@@ -771,8 +772,9 @@ class Resolve(object):
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             rec = sdict.setdefault(s.name, [])
-            if s.target:
-                rec.append(s.target)
+            if s.target and s.target in self.index:
+                if self.index[s.target].get('priority', 0) < MAX_PRIORITY:
+                    rec.append(s.target)
         for name, targets in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
             pkey = None
@@ -781,10 +783,10 @@ class Resolve(object):
                     continue
                 if pkey is None:
                     iv = ib = 0
-                elif pkey[0] != nkey[0] or pkey[1] != nkey[1]:
+                elif pkey[0] != nkey[0] or pkey[1] != nkey[1] or pkey[2] != nkey[2]:
                     iv += 1
                     ib = 0
-                elif pkey[2] != nkey[2]:
+                elif pkey[3] != nkey[3]:
                     ib += 1
                 if iv:
                     eqv[npkg] = iv
