@@ -24,7 +24,7 @@ from .._vendor.auxlib.decorators import memoizedproperty, memoize
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import (MAX_CHANNEL_PRIORITY, CONDA_TARBALL_EXTENSION)
+from ..base.constants import (MAX_CHANNEL_PRIORITY, CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_unicode, iteritems, iterkeys, itervalues
 from ..common.url import join_url
@@ -343,8 +343,12 @@ class Index(object):
     @memoize
     def _get_record(self, dist):
 
+        # this whole block is all about figuring out what the channel_url is
+        channel_url = None
         dist_url = dist.to_url()
-        if False:  # dist_url
+        if dist.channel == UNKNOWN_CHANNEL:
+            channel = Channel(UNKNOWN_CHANNEL)
+        elif dist_url:
             channel = Channel(dist_url)
             assert channel.platform
             channel_url = channel.url(with_credentials=True)
@@ -372,17 +376,19 @@ class Index(object):
             "channel": channel_url,
             "fn": fn,
             "schannel": channel.canonical_name,
-            "url": join_url(channel_url, fn),
+            "url": join_url(channel_url, fn) if channel_url else None,
         }
 
         # Step 1. look for repodata
-        repodata = self._get_repodata(channel_url)
-        repodata_package = repodata.get('packages', {}).get(fn)
-        repodata_info = repodata.get('info', {})
-        if repodata_package:
-            package_data.update(repodata_package)
-            package_data['arch'] = repodata_info.get('arch')
-            package_data['platform'] = repodata_info.get('platform')
+        repodata_package = ()
+        if channel_url:
+            repodata = self._get_repodata(channel_url)
+            repodata_package = repodata.get('packages', {}).get(fn)
+            repodata_info = repodata.get('info', {})
+            if repodata_package:
+                package_data.update(repodata_package)
+                package_data['arch'] = repodata_info.get('arch')
+                package_data['platform'] = repodata_info.get('platform')
 
         # Step 2. look in package cache
         if repodata_package:
