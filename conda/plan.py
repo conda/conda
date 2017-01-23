@@ -23,7 +23,7 @@ from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
 from .common.compat import odict, on_win
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
-from .core.index import supplement_index_with_prefix
+from .core.index import supplement_index_with_prefix, Index
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
@@ -495,7 +495,7 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
     str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
-    r = get_resolve_object(index.copy(), prefix)
+    r = get_resolve_object(index, prefix)
 
     linked_in_root = linked_data(context.root_prefix)
 
@@ -554,9 +554,11 @@ def add_unlink_options_for_update(actions, required_solves, index):
 
 
 def get_resolve_object(index, prefix):
-    # instantiate resolve object
-    supplement_index_with_prefix(index, prefix, {})
-    r = Resolve(index)
+    # # instantiate resolve object
+    # index = index._index
+    # supplement_index_with_prefix(index, prefix, {})
+    # r = Resolve(Index(index))
+    r = Resolve(Index(index.channel_urls, prefix=prefix))
     return r
 
 

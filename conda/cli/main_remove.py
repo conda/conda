@@ -6,28 +6,27 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from argparse import RawDescriptionHelpFormatter
 import errno
 import logging
-import sys
-from argparse import RawDescriptionHelpFormatter
 from os.path import join
+import sys
 
+from conda.base.constants import ROOT_NO_RM
 from conda.common.path import is_private_env, prefix_to_env_name
+from conda.core.index import get_index
 from conda.resolve import Resolve
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
-                     add_parser_use_index_cache, add_parser_use_local, add_parser_yes,
-                     confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
-                     names_in_specs, specs_from_args, stdout_json,
-                     create_prefix_spec_map_with_deps)
-from conda.base.constants import ROOT_NO_RM
-from conda.core.index import get_index
+                     add_parser_use_index_cache, add_parser_use_local, add_parser_yes, confirm_yn,
+                     create_prefix_spec_map_with_deps, ensure_override_channels_requires_channel,
+                     ensure_use_local, names_in_specs, specs_from_args, stdout_json)
 from ..base.context import check_write, context
-from ..gateways.disk.delete import delete_trash
 from ..common.compat import iteritems, iterkeys
 from ..console import json_progress_bars
 from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
+from ..gateways.disk.delete import delete_trash
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """

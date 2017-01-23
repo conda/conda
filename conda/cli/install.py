@@ -19,7 +19,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
 from ..common.compat import on_win, text_type
-from ..core.index import get_index
+from ..core.index import get_index, get_index
 from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
