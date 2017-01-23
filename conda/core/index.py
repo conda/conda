@@ -13,7 +13,7 @@ from os.path import getmtime, join
 import re
 from time import time
 
-from conda._vendor.auxlib.collection import first
+from conda._vendor.auxlib.collection import first, make_immutable
 
 from conda.exceptions import PackageNotFoundError
 
@@ -26,7 +26,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import (MAX_CHANNEL_PRIORITY, CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL)
 from ..base.context import context
-from ..common.compat import ensure_unicode, iteritems, iterkeys, itervalues
+from ..common.compat import ensure_unicode, iteritems, iterkeys, itervalues, with_metaclass
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..gateways.disk.read import read_index_json
@@ -233,6 +233,23 @@ def dist_str_in_index(index, dist_str):
     return Dist(dist_str) in index
 
 
+class IndexType(type):
+    """
+    This metaclass does basic caching of PackageCache instance objects.
+    """
+
+    def __call__(cls, channels=(), subdirs=(), prefix=None):
+        channels = make_immutable(channels)
+        subdirs = make_immutable(subdirs)
+        key = (channels, subdirs, prefix)
+        if key in Index._cache_:
+            return Index._cache_[key]
+        else:
+            ndx = Index._cache_[key] = super(IndexType, cls).__call__(channels, subdirs, prefix)
+            return ndx
+
+
+@with_metaclass(IndexType)
 class Index(object):
     """
     Three sources:
@@ -246,18 +263,15 @@ class Index(object):
     The resolve logic for like features, track_features, ms_depends, find_matches, could be moved here.
 
     """
+    _cache_ = {}
     _repodata_cache = {}
     _conda_session = CondaSession()
 
     def __init__(self, channels=(), subdirs=(), prefix=None):
-        if channels:
-            self._channels = channels
-            self.subdirs = subdirs or context.subdirs
-            self.prefix = prefix
-            self._all_dists = None
-        else:
-            assert False
-            self._index = index
+        self._channels = channels
+        self.subdirs = subdirs or context.subdirs
+        self.prefix = prefix
+        self._all_dists = None
 
     @memoizedproperty
     def channels(self):
