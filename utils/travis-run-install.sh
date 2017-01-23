@@ -92,7 +92,7 @@ conda_build_install() {
     conda install -y -q -c conda-forge perl pytest-xdist
     conda install -y -q anaconda-client numpy
 
-    ~/miniconda/bin/python -m pip install pytest-capturelog pytest-mock
+    ~/miniconda/bin/python -m pip install pytest-catchlog pytest-mock
 
     conda config --set add_pip_as_python_dependency true
 
