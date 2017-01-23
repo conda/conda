@@ -4,6 +4,10 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.8 (2017-01-23)
+* fix #4309 ignore EXDEV error for directory renames (#4392)
+* fix #4393 by force-renaming certain backup files if the path already exists (#4397)
+
 ## 4.3.7 (2017-01-20)
 
 ### Bug Fixes
