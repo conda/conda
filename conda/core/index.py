@@ -20,7 +20,7 @@ from conda.exceptions import PackageNotFoundError
 from .linked_data import linked_data
 from .package_cache import PackageCache
 from .. import CondaError
-from .._vendor.auxlib.decorators import memoizedproperty, memoize
+from .._vendor.auxlib.decorators import memoizedproperty, memoizemethod
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
@@ -340,7 +340,7 @@ class Index(object):
             repodata_dists = repodata['dists'] = set(Dist(join_url(channel_url, fn)) for fn in repodata.get('packages', {}))
         return repodata_dists
 
-    @memoize
+    @memoizemethod
     def _get_record(self, dist):
 
         # this whole block is all about figuring out what the channel_url is
