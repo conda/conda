@@ -754,11 +754,7 @@ class Resolve(object):
         r2 = Resolve(dists, True, True)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
-        try:
-            solution = C.sat(constraints)
-        except TypeError:
-            log.debug('Package set caused an unexpected error, assuming a conflict')
-            solution = None
+        solution = C.sat(constraints)
         limit = xtra = None
         if not solution or xtra:
             def get_(name, snames):
@@ -771,14 +767,11 @@ class Resolve(object):
             # are consistent with each other, and include those in the
             # list of packages to maintain consistency with
             snames = set()
-            try:
-                eq_optional_c = r2.generate_removal_count(C, specs)
-                solution, _ = C.minimize(eq_optional_c, C.sat())
-                snames.update(dists[Dist(q)]['name']
-                              for q in (C.from_index(s) for s in solution)
-                              if q and q[0] != '!' and '@' not in q)
-            except:
-                pass
+            eq_optional_c = r2.generate_removal_count(C, specs)
+            solution, _ = C.minimize(eq_optional_c, C.sat())
+            snames.update(dists[Dist(q)]['name']
+                          for q in (C.from_index(s) for s in solution)
+                          if q and q[0] != '!' and '@' not in q)
             # Existing behavior: keep all specs and their dependencies
             for spec in new_specs:
                 get_(MatchSpec(spec).name, snames)
