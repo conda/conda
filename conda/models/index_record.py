@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .enums import LinkType, Platform
+from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, ImmutableEntity, IntegerField, ListField,
                                      MapField, StringField)
@@ -17,6 +17,11 @@ class LinkTypeField(EnumField):
             elif val == 'soft':
                 val = LinkType.softlink
         return super(LinkTypeField, self).box(instance, val)
+
+
+class NoarchField(EnumField):
+    def box(self, instance, val):
+        return super(NoarchField, self).box(instance, NoarchType.coerce(val))
 
 
 class Link(DictSafeMixin, Entity):
@@ -61,7 +66,7 @@ class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
     license_family = StringField(required=False)
     md5 = StringField(required=False, nullable=True)
     name = StringField()
-    # TODO: noarch should support being a string or bool
+    noarch = NoarchField(NoarchType, required=False, nullable=True)
     platform = EnumField(Platform, required=False, nullable=True)
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)
