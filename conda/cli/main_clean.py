@@ -77,7 +77,8 @@ def find_tarballs():
     for pkgs_dir in context.pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
-        for fn in os.listdir(pkgs_dir):
+        _, _, filenames = next(os.walk(pkgs_dir))
+        for fn in filenames:
             if fn.endswith('.tar.bz2') or fn.endswith('.tar.bz2.part'):
                 pkgs_dirs[pkgs_dir].append(fn)
 
