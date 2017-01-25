@@ -4,7 +4,7 @@
 Conda kapsel configuration
 ==========================
 
-The ``conda kapsel`` command works with *project directories*,
+The ``conda-kapsel`` command works with *project directories*,
 which can contain scripts, notebooks, data files... anything
 that is related to your project.
 
@@ -63,8 +63,8 @@ Mac) and for Windows. If you only care about one platform, you
 are not required to provide command lines for other platforms.
 
 When you send your project to someone else, they can type
-``conda kapsel run`` to run your script. The cool part
-is that ``conda kapsel run`` makes sure that all
+``conda-kapsel run`` to run your script. The cool part
+is that ``conda-kapsel run`` makes sure that all
 prerequisites are set up *before* it runs the script.
 
 Let's say your script requires a certain conda package to be
@@ -76,7 +76,7 @@ dependency:
   packages:
     - redis-py
 
-Now when someone runs ``conda kapsel run`` the script is
+Now when someone runs ``conda-kapsel run`` the script is
 automatically run in a conda environment that has ``redis-py``
 installed.
 
@@ -92,7 +92,7 @@ downloaded locally:
       url: http://example.com/bigdatafile
       sha1: da39a3ee5e6b4b0d3255bfef95601890afd80709
 
-Now when someone runs ``conda kapsel run``, the file is
+Now when someone runs ``conda-kapsel run``, the file is
 downloaded if it hasn't been downloaded already, and the
 environment variable ``MYDATAFILE`` is set to the local
 filename of the data. In your ``analyze.py`` file you can write
@@ -103,25 +103,25 @@ something like this:
    import os
    filename = os.getenv('MYDATAFILE')
    if filename is None:
-     raise Exception("Please use 'conda kapsel run' to start this script")
+     raise Exception("Please use 'conda-kapsel run' to start this script")
    with open(filename, 'r') as input:
      data = input.read()
      # and so on
 
-``conda kapsel`` supports many other requirements,
+``conda-kapsel`` supports many other requirements,
 too. Instead of writing long documentation about how to set up
 your script before others can run it, simply put the requirements in
-a ``kapsel.yml`` file and let ``conda kapsel`` check the setup
+a ``kapsel.yml`` file and let ``conda-kapsel`` check the setup
 automatically.
 
 Multiple Commands
 =================
 
 A ``kapsel.yml`` can list multiple commands. Each command has a
-name; ``conda kapsel run COMMAND_NAME`` runs the command named
+name; ``conda-kapsel run COMMAND_NAME`` runs the command named
 ``COMMAND_NAME``.
 
-``conda kapsel list-commands`` lists commands, along with a
+``conda-kapsel list-commands`` lists commands, along with a
 description of each command. To customize a command's description,
 add a ``description:`` field in ``kapsel.yml``, like this:
 
@@ -152,7 +152,7 @@ packages:
   channels:
     - conda-forge
 
-``conda kapsel`` creates an environment in ``envs/default`` by
+``conda-kapsel`` creates an environment in ``envs/default`` by
 default. But if you prefer, you can have multiple named
 environments available in the ``envs`` directory. To do that,
 specify an ``env_specs:`` section of your ``kapsel.yml`` file:
@@ -186,9 +186,7 @@ To run a project using a specific env spec, use the ``--env-spec`` option:
 
 .. code-block:: bash
 
-  conda kapsel run --env-spec myenvname
-
-https://github.com/Anaconda-Server/conda kapsel/issues/97
+  conda-kapsel run --env-spec myenvname
 
 If you have top level ``channels`` or ``packages`` sections in
 your ``kapsel.yml`` file (not in the ``env_specs:`` section),
@@ -227,7 +225,7 @@ Requiring environment variables to be set
 
 Anything in the ``variables:`` section of a ``kapsel.yml`` file
 is considered an environment variable needed by your project.
-When someone runs your project, ``conda kapsel`` asks
+When someone runs your project, ``conda-kapsel`` asks
 them to set these variables.
 
 For example:
@@ -249,7 +247,7 @@ Variables that contain credentials
 
 Variables that end in ``_PASSWORD``, ``_ENCRYPTED``,
 ``_SECRET_KEY``, or ``_SECRET`` are treated sensitively by
-default. This means that if ``conda kapsel`` stores a value
+default. This means that if ``conda-kapsel`` stores a value
 for them in ``kapsel.yml`` or ``kapsel-local.yml`` or elsewhere,
 that value is encrypted. NOTE: ``kapsel-local.yml`` stores and
 encrypts the value that you enter when prompted.
@@ -311,7 +309,7 @@ For example:
 Variables that are always set
 =============================
 
-``conda kapsel`` ensures that the following variables
+``conda-kapsel`` ensures that the following variables
 are always set:
 
  * ``KAPSEL_DIR`` is set to the top level directory of your
@@ -345,7 +343,7 @@ For example, you can add a services section to your ``kapsel.yml`` file:
   services:
     REDIS_URL: redis
 
-Now when someone else runs your project, ``conda kapsel``
+Now when someone else runs your project, ``conda-kapsel``
 offers to start a local instance of ``redis-server`` automatically.
 
 There is also a long form of the above service configuration:
@@ -401,7 +399,7 @@ This downloads to ``myfile.csv``, so if your project is in
 ``/home/mystuff/foo`` and the download succeeds, ``MYDATAFILE``
 is set to ``/home/mystuff/foo/myfile.csv``.
 
-If you do not specify a filename, ``conda kapsel`` picks a
+If you do not specify a filename, ``conda-kapsel`` picks a
 reasonable default based on the URL.
 
 To avoid the automated download, it's also possible for someone to
@@ -410,7 +408,7 @@ on Linux or Mac, that looks like:
 
 .. code-block:: bash
 
-  MYDATAFILE=/my/already/downloaded/file.csv conda kapsel run
+  MYDATAFILE=/my/already/downloaded/file.csv conda-kapsel run
 
 Conda can auto-unzip a zip file as it is downloaded.  This is the
 default if the the URL path ends in ".zip" unless the filename
@@ -456,25 +454,25 @@ You can also have an icon file, relative to the project directory:
 No need to edit ``kapsel.yml`` directly
 ========================================
 
-You can edit ``kapsel.yml`` with the ``conda kapsel`` command.
+You can edit ``kapsel.yml`` with the ``conda-kapsel`` command.
 
 To add a download to ``kapsel.yml``:
 
 .. code-block:: bash
 
-  conda kapsel add-download MYFILE http://example.com/myfile
+  conda-kapsel add-download MYFILE http://example.com/myfile
 
 To add a package:
 
 .. code-block:: bash
 
-  conda kapsel add-packages redis-py
+  conda-kapsel add-packages redis-py
 
 To ask for a running Redis instance:
 
 .. code-block:: bash
 
-  conda kapsel add-service redis
+  conda-kapsel add-service redis
 
 
 Fallback to meta.yaml
@@ -482,10 +480,10 @@ Fallback to meta.yaml
 
 If you package your project with conda, you may have some
 information already in ``conda.recipe/meta.yaml``;
-``conda kapsel`` uses some of this information too, so you
+``conda-kapsel`` uses some of this information too, so you
 do not need to duplicate this information in ``kapsel.yml``.
 
-``conda kapsel`` currently reads these fields in ``meta.yaml``:
+``conda-kapsel`` currently reads these fields in ``meta.yaml``:
 
  * `package: name:`
  * `app: entry:`
