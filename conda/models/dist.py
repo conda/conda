@@ -268,3 +268,7 @@ class Dist(Entity):
         if item.endswith(CONDA_TARBALL_EXTENSION):
             item = item[:-len(CONDA_TARBALL_EXTENSION)]
         return item in self.__str__()
+
+    @property
+    def fn(self):
+        return self.to_filename()
