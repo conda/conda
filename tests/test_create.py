@@ -968,3 +968,16 @@ class IntegrationTests(TestCase):
                 assert context.pkgs_dirs == [pkgs_dir]
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
+
+    def test_old_style_noarch_install(self):
+        with make_temp_env("-c bokeh pytest-selenium=1.6") as prefix:
+            pytest_selenium_tuple = get_conda_list_tuple(prefix, "pytest-selenium")
+            print(pytest_selenium_tuple)
+            assert pytest_selenium_tuple[1] == "1.6.0"  # if this line failes, that means something has changed at https://anaconda.org/bokeh/pytest-selenium/files
+            assert pytest_selenium_tuple[3] == "bokeh"
+
+            pyver = get_python_version_for_prefix(prefix)
+            site_packages = get_python_site_packages_short_path(pyver)
+
+
+
