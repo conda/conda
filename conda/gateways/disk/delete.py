@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EEXIST, ENOENT
 import json
 from logging import getLogger
-from os import listdir, makedirs, removedirs, rename, unlink, walk
+from os import access, listdir, makedirs, removedirs, rename, unlink, walk, W_OK, X_OK
 from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from uuid import uuid4
@@ -191,3 +191,10 @@ def remove_private_envs_meta(pkg):
     else:
         with open(context.private_envs_json_path, "w") as f:
             json.dump(private_envs_json, f)
+
+def is_deletable(path):
+    """
+    Test if path is removable by the user
+    """
+    parent = dirname(abspath(path))
+    return access(parent, W_OK) and access(parent, X_OK)
