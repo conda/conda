@@ -225,8 +225,8 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
-    def test_noarch_package(self):
-        with make_temp_env("-c scastellarin flask") as prefix:
+    def test_noarch_python_package(self):
+        with make_temp_env("-c conda-test flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/flask/__init__.py"
@@ -243,6 +243,10 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, py_file))
             assert not isfile(join(prefix, pyc_file))
             assert not isfile(exe_path)
+
+    def test_noarch_generic_package(self):
+        with make_temp_env("-c conda-test font-ttf-inconsolata") as prefix:
+            assert isfile(join(prefix, 'fonts', 'Inconsolata-Regular.ttf'))
 
     @pytest.mark.timeout(300)
     def test_create_empty_env(self):

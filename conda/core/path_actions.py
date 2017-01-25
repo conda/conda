@@ -14,7 +14,7 @@ from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, on_win, string_types
+from ..common.compat import iteritems, on_win
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
@@ -31,7 +31,7 @@ from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
 from ..models.dist import Dist
-from ..models.enums import LinkType, PathType
+from ..models.enums import LinkType, NoarchType, PathType
 from ..models.index_record import IndexRecord, Link
 
 try:
@@ -137,12 +137,11 @@ class LinkPathAction(CreateInPrefixPathAction):
                                  requested_link_type):
         def make_file_link_action(source_path_info):
             # TODO: this inner function is still kind of a mess
-            noarch = package_info.package_metadata and package_info.package_metadata.noarch
-            if noarch and noarch.type == 'python':
+            noarch = package_info.index_json_record.noarch
+            if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
                 target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
-            elif not noarch or noarch is True or (isinstance(noarch, string_types)
-                                                  and noarch == 'native'):
+            elif noarch is None or noarch == NoarchType.generic:
                 target_short_path = source_path_info.path
             else:
                 raise CondaUpgradeError(dals("""
@@ -340,7 +339,7 @@ class CompilePycAction(CreateInPrefixPathAction):
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
                        file_link_actions):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
-        if noarch and noarch.type == 'python':
+        if noarch is not None and noarch.type == NoarchType.python:
             py_ver = transaction_context['target_python_version']
             py_files = (axn.target_short_path for axn in file_link_actions
                         if axn.source_short_path.endswith('.py'))
@@ -383,7 +382,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             return target_short_path, module, func
 
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
-        if noarch and noarch.type == 'python':
+        if noarch is not None and noarch.type == NoarchType.python:
             actions = tuple(cls(transaction_context, package_info, target_prefix,
                                 *this_triplet(ep_def))
                             for ep_def in noarch.entry_points)
@@ -393,7 +392,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context, package_info, target_prefix,
                         requested_link_type, ep_def
-                    ) for ep_def in package_info.package_metadata.noarch.entry_points
+                    ) for ep_def in noarch.entry_points
                 )
 
             return actions
