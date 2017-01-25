@@ -8,13 +8,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import sys
 from collections import defaultdict
-from os import listdir, lstat, walk
+from os import access, listdir, lstat, walk, W_OK, X_OK
 from os.path import getsize, isdir, join
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
 from ..exceptions import ArgumentError
-from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.delete import is_deletable, rm_rf
 from ..utils import human_bytes
 from ..common.compat import CrossPlatformStLink
 
@@ -74,19 +74,18 @@ def configure_parser(sub_parsers):
 
 def find_tarballs():
     pkgs_dirs = defaultdict(list)
+    totalsize = 0
     for pkgs_dir in context.pkgs_dirs:
         if not isdir(pkgs_dir):
             continue
-        _, _, filenames = next(os.walk(pkgs_dir))
+        if not (access(pkgs_dir, W_OK) and access(pkgs_dir, X_OK)):
+            # This directory is untouchable to the user
+            continue
+        root, _, filenames = next(os.walk(pkgs_dir))
         for fn in filenames:
             if fn.endswith('.tar.bz2') or fn.endswith('.tar.bz2.part'):
                 pkgs_dirs[pkgs_dir].append(fn)
-
-    totalsize = 0
-    for pkgs_dir in pkgs_dirs:
-        for fn in pkgs_dirs[pkgs_dir]:
-            size = getsize(join(pkgs_dir, fn))
-            totalsize += size
+                totalsize += getsize(path)
 
     return pkgs_dirs, totalsize
 
@@ -124,7 +123,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
-            if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
+            if is_deletable(os.path.join(pkgs_dir, fn)):
                 if verbose:
                     print("Removing %s" % fn)
                 rm_rf(os.path.join(pkgs_dir, fn))
