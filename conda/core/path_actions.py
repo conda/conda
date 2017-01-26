@@ -509,15 +509,11 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
                                                               None, None, target_prefix,
                                                               target_short_path)
         self.linked_package_record = linked_package_record
-        self._record_written_to_disk = False
         self._linked_data_loaded = False
 
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
-
         write_linked_package_record(self.target_prefix, self.linked_package_record)
-        self._record_written_to_disk = True
-
         load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
                          self.linked_package_record)
         self._linked_data_loaded = True
@@ -527,10 +523,7 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         if self._linked_data_loaded:
             delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
                                delete=False)
-        if self._record_written_to_disk:
-            rm_rf(self.target_full_path)
-        else:
-            log.trace("record was not created %s", self.target_full_path)
+        rm_rf(self.target_full_path)
 
 
 class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):

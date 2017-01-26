@@ -22,7 +22,7 @@ from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.context import context
-from ...common.compat import on_win
+from ...common.compat import on_win, ensure_binary
 from ...common.path import win_path_ok
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
@@ -49,6 +49,14 @@ if __name__ == '__main__':
 """)
 
 
+def write_as_json_to_file(file_path, obj):
+    log.trace("writing json to file %s", file_path)
+    with open(file_path, str('wb')) as fo:
+        json_str = json.dumps(obj, indent=2, sort_keys=True, separators=(',', ': '),
+                              cls=EntityEncoder)
+        fo.write(ensure_binary(json_str))
+
+
 def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
     if lexists(target_full_path):
         maybe_raise(BasicClobberError(
@@ -58,7 +66,7 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
         ), context)
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
-    with open(target_full_path, 'w') as fo:
+    with open(target_full_path, str('w')) as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(pyscript)
     make_executable(target_full_path)
@@ -75,7 +83,7 @@ def create_windows_python_entry_point(target_full_path, module, func):
         ), context)
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
-    with open(target_full_path, 'w') as fo:
+    with open(target_full_path, str('w')) as fo:
         fo.write(pyscript)
 
     return target_full_path
@@ -113,11 +121,7 @@ def write_linked_package_record(prefix, record):
             target_path=conda_meta_full_path,
             context=context,
         ), context)
-    with open(conda_meta_full_path, 'w') as fo:
-        json_str = json.dumps(record, indent=2, sort_keys=True, cls=EntityEncoder)
-        if hasattr(json_str, 'decode'):
-            json_str = json_str.decode('utf-8')
-        fo.write(json_str)
+    write_as_json_to_file(conda_meta_full_path, record)
 
 
 def make_menu(prefix, file_path, remove=False):
@@ -287,8 +291,7 @@ def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
 
     private_envs_json = get_json_content(context.private_envs_json_path)
     private_envs_json[pkg] = private_env_prefix
-    with open(context.private_envs_json_path, "w") as f:
-        json.dump(private_envs_json, f)
+    write_as_json_to_file(context.private_envs_json_path, private_envs_json)
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
@@ -300,7 +303,7 @@ def create_private_pkg_entry_point(source_full_path, target_full_path, python_fu
         ), context)
 
     entry_point = application_entry_point_template % {"source_full_path": source_full_path}
-    with open(target_full_path, "w") as fo:
+    with open(target_full_path, str("w")) as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(entry_point)
     make_executable(target_full_path)
