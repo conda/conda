@@ -510,7 +510,6 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
                                                               None, None, target_prefix,
                                                               target_short_path)
         self.linked_package_record = linked_package_record
-        self._record_written_to_disk = False
         self._linked_data_loaded = False
 
     def execute(self):
