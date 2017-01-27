@@ -4,9 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 import signal
 
+from .subprocess import ACTIVE_SUBPROCESSES
 from .._vendor.auxlib.decorators import memoize
 from ..base.constants import INTERRUPT_SIGNALS
-from ..common.subprocess import ACTIVE_SUBPROCESSES
 from ..exceptions import CondaSignalInterrupt
 
 log = getLogger(__name__)

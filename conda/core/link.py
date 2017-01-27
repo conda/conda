@@ -26,12 +26,12 @@ from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
-from ..common.subprocess import subprocess_call
 from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
                           UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
+from ..gateways.subprocess import subprocess_call
 from ..models.dist import Dist
 from ..models.enums import LinkType
 

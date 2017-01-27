@@ -120,5 +120,5 @@ configparser = configparser
 from .compat import TemporaryDirectory  # NOQA
 TemporaryDirectory = TemporaryDirectory
 
-from .common.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
+from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
 ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call

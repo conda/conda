@@ -9,7 +9,6 @@ import os
 from os import makedirs
 from os.path import basename, isdir, isfile, islink, join, lexists
 import shutil
-from ...common.subprocess import subprocess_call
 import sys
 import tarfile
 import traceback
@@ -17,11 +16,12 @@ import traceback
 from .delete import rm_rf
 from .permissions import make_executable
 from .read import get_json_content
+from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.context import context
-from ...common.compat import on_win, ensure_binary
+from ...common.compat import ensure_binary, on_win
 from ...common.path import win_path_ok
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist

@@ -9,7 +9,8 @@ from shlex import split as shlex_split
 from subprocess import CalledProcessError, PIPE, Popen
 import sys
 
-from .compat import ensure_binary, ensure_text_type, iteritems, on_win, string_types, isiterable
+from ..common.compat import (ensure_binary, ensure_text_type, isiterable, iteritems, on_win,
+                             string_types)
 
 log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))
