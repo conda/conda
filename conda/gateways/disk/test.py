@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import W_OK, access, getpid
+from os import W_OK, X_OK, access, getpid
 from os.path import basename, isdir, isfile, islink, join, lexists
 
 from .create import create_link
@@ -36,14 +36,17 @@ def try_write(dir_path, heavy=False):
         try:
             with open(temp_filename, mode='wb') as fo:
                 fo.write(b'This is a test file.\n')
-            backoff_unlink(temp_filename)
             return True
         except (IOError, OSError):
             return False
         finally:
+            # This is executed before the return statements are executed.
+            # See https://docs.python.org/2.7/tutorial/errors.html#defining-clean-up-actions
             backoff_unlink(temp_filename)
     else:
-        return access(dir_path, W_OK)
+        # Need to check both write and execute permissions
+        # Write permisssions alone are not sufficient to remove files from dir_path
+        return access(dir_path, W_OK) and access(dir_path, X_OK)
 
 
 @memoize
