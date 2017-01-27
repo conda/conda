@@ -18,7 +18,10 @@ from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(key): IndexRecord(**value) for key, value in iteritems(json.load(fi))}
+    index = {}
+    for key, value in iteritems(json.load(fi)):
+        record = IndexRecord(**value)
+        index[record.pkey] = record
 
 r = Resolve(index)
 

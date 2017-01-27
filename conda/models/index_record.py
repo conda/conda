@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda._vendor.auxlib.decorators import memoizedproperty
+from conda.base.constants import UNKNOWN_CHANNEL
+
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, ImmutableEntity, IntegerField, ListField,
@@ -86,3 +89,24 @@ class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
 
     with_features_depends = MapField(required=False)
     preferred_env = StringField(default=None, required=False, nullable=True)
+
+    @memoizedproperty
+    def pkey(self):
+        if self.schannel:
+            dist = "%s::%s-%s-%s" % (self.schannel, self.name, self.version, self.build)
+        else:
+            dist = "%s-%s-%s" % (self.name, self.version, self.build)
+        if self.with_features_depends:
+            # TODO: might not be quite right
+            dist += "[%s]" % self.with_features_depends
+        return dist
+
+    @property
+    def dist_name(self):
+        return self.pkey.split('::')[-1]
+
+    def __hash__(self):
+        return hash(self.pkey)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.pkey == other.pkey

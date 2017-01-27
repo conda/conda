@@ -5,6 +5,8 @@ from collections import namedtuple
 from logging import getLogger
 import re
 
+from conda._vendor.auxlib.decorators import memoizedproperty
+
 from .channel import Channel
 from .index_record import IndexRecord
 from .package_info import PackageInfo
@@ -60,8 +62,6 @@ class Dist(Entity):
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
                  build_number=None, with_features_depends=None, base_url=None, platform=None):
-        # if name is None:
-        #     import pdb; pdb.set_trace()
         super(Dist, self).__init__(channel=channel,
                                    dist_name=dist_name,
                                    name=name,
@@ -71,6 +71,23 @@ class Dist(Entity):
                                    with_features_depends=with_features_depends,
                                    base_url=base_url,
                                    platform=platform)
+
+    @memoizedproperty
+    def pkey(self):
+        if self.schannel:
+            dist = "%s::%s-%s-%s" % (self.channel, self.name, self.version, self.build)
+        else:
+            dist = "%s-%s-%s" % (self.name, self.version, self.build)
+        if self.with_features_depends:
+            # TODO: might not be quite right
+            dist += "[%s]" % self.with_features_depends
+        return dist
+
+    def __hash__(self):
+        return hash(self.pkey)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.pkey == other.pkey
 
     @property
     def full_name(self):
@@ -238,12 +255,6 @@ class Dist(Entity):
     def __ge__(self, other):
         assert isinstance(other, self.__class__)
         return self.__key__() >= other.__key__()
-
-    def __hash__(self):
-        return hash(self.__key__())
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__key__() == other.__key__()
 
     def __ne__(self, other):
         return not self.__eq__(other)

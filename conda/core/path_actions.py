@@ -8,6 +8,8 @@ from logging import getLogger
 from os.path import dirname, join
 import re
 
+from conda.base.constants import CONDA_TARBALL_EXTENSION
+
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .. import CONDA_PACKAGE_ROOT
@@ -30,7 +32,6 @@ from ..gateways.disk.delete import remove_private_envs_meta, rm_rf, try_rmdir_al
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
-from ..models.dist import Dist
 from ..models.enums import LinkType, NoarchType, PathType
 from ..models.index_record import IndexRecord, Link
 
@@ -499,7 +500,8 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
                                                          link=link,
                                                          url=package_info.url)
 
-        target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
+        target_short_path = 'conda-meta/' + linked_package_record.fn
+        target_short_path = target_short_path.replace(CONDA_TARBALL_EXTENSION, '.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
                    linked_package_record),
 
@@ -653,7 +655,7 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
             meta_record = IndexRecord(**json.loads(fh.read()))
         log.trace("reloading cache entry %s", self.target_full_path)
         load_linked_data(self.target_prefix,
-                         Dist(self.linked_package_data).dist_name,
+                         meta_record.dist_name,
                          meta_record)
 
 
@@ -802,7 +804,10 @@ class ExtractPackageAction(PathAction):
         target_package_cache = PackageCache(self.target_pkgs_dir)
 
         recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
+
         dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
+
+
         package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, dist)
         target_package_cache[package_cache_entry.dist] = package_cache_entry
 

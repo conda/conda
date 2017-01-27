@@ -260,7 +260,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     for dist, info in iteritems(drecs):
         fkey = dist
         if fkey not in index:
-            index[fkey] = IndexRecord.from_objects(info, not_fetched=True)
+            record = IndexRecord.from_objects(info, not_fetched=True)
+            index[record.pkey] = record
             r = None
         urls[dist] = info['url']
 

@@ -51,7 +51,7 @@ fail_unknown_host = False
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 def supplement_index_with_prefix(index, prefix, channels):
-    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None  # NOQA
+    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None
     # supplement index with information from prefix/conda-meta
     assert prefix
     maxp = len(channels) + 1
@@ -62,7 +62,8 @@ def supplement_index_with_prefix(index, prefix, channels):
             # knows this package is installed.
             old_record = index[dist]
             link = info.get('link') or EMPTY_LINK
-            index[dist] = IndexRecord.from_objects(old_record, link=link)
+            record = IndexRecord.from_objects(old_record, link=link)
+            index[record.pkey] = record
         else:
             # If the package is not in the repodata, use the local data. If
             # the 'depends' field is not present, we need to set it; older
@@ -75,8 +76,8 @@ def supplement_index_with_prefix(index, prefix, channels):
             # it is in a channel we don't know about, assign it a value just
             # above the priority of all known channels.
             priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-            index[dist] = IndexRecord.from_objects(info, depends=depends,
-                                                   priority=priority)
+            record = IndexRecord.from_objects(info, depends=depends, priority=priority)
+            index[record.pkey] = record
 
 
 def supplement_index_with_cache(index, channels):
@@ -97,7 +98,7 @@ def supplement_index_with_cache(index, channels):
                                        schannel=dist.channel,
                                        priority=priority,
                                        url=dist.to_url())
-        index[dist] = rec
+        index[rec.pkey] = rec
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
@@ -467,7 +468,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
                                                priority=priority,
                                                url=join_url(channel_url, fn),
                                                auth=channel.auth)
-                result[Dist(rec)] = rec
+                result[rec.pkey] = rec
         return result
 
     index = make_index(repodatas)
@@ -495,9 +496,10 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 def add_pip_dependency(index):
     # TODO: discuss with @mcg1969 and document
-    for dist, info in iteritems(index):
+    for info in itervalues(index):
         if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-            index[dist] = IndexRecord.from_objects(info, depends=info['depends'] + ('pip',))
+            record = IndexRecord.from_objects(info, depends=info['depends'] + ('pip',))
+            index[record.pkey] = record
 
 
 def create_cache_dir():
@@ -510,4 +512,4 @@ def create_cache_dir():
 
 
 def dist_str_in_index(index, dist_str):
-    return Dist(dist_str) in index
+    return dist_str in index
