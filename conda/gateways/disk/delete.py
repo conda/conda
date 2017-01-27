@@ -191,10 +191,3 @@ def remove_private_envs_meta(pkg):
     else:
         with open(context.private_envs_json_path, "w") as f:
             json.dump(private_envs_json, f)
-
-def is_deletable(path):
-    """
-    Test if path is removable by the user
-    """
-    parent = dirname(abspath(path))
-    return access(parent, W_OK) and access(parent, X_OK)

@@ -14,7 +14,7 @@ from os.path import getsize, isdir, join
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
 from ..exceptions import ArgumentError
-from ..gateways.disk.delete import is_deletable, rm_rf
+from ..gateways.disk.delete import rm_rf
 from ..utils import human_bytes
 from ..common.compat import CrossPlatformStLink
 
@@ -123,10 +123,9 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
-            if is_deletable(os.path.join(pkgs_dir, fn)):
+            if rm_rf(os.path.join(pkg_dir, fn)):
                 if verbose:
-                    print("Removing %s" % fn)
-                rm_rf(os.path.join(pkgs_dir, fn))
+                    print("Removed %s" % fn)
             else:
                 if verbose:
                     print("WARNING: cannot remove, file permissions: %s" % fn)
