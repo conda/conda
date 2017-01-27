@@ -21,11 +21,15 @@ These API functions have argument names referring to:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import namedtuple
 import errno
 import functools
+from itertools import chain
 import json
 import logging
 import os
+from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
+                     normpath)
 import re
 import shlex
 import shutil
@@ -35,27 +39,20 @@ import subprocess
 import sys
 import tarfile
 import traceback
-from collections import namedtuple
 
-from conda.common.compat import ensure_text_type
 from enum import Enum
-from itertools import chain
-from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
-                     normpath)
 
 from . import CondaError
 from .base.constants import UTF8
 from .base.context import context
-from .common.disk import exp_backoff_fn, rm_rf
+from .common.compat import ensure_text_type
+from .common.disk import delete_trash, exp_backoff_fn, move_path_to_trash, move_to_trash, rm_rf
 from .common.url import path_to_url
-from .exceptions import CondaOSError, LinkError, PaddingError, CondaUpgradeError
+from .exceptions import CondaOSError, CondaUpgradeError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
 from .utils import on_win
-
-
-# conda-build compatibility
-from .common.disk import delete_trash, move_to_trash, move_path_to_trash  # NOQA
+delete_trash, move_to_trash, move_path_to_trash = delete_trash, move_to_trash, move_path_to_trash
 
 
 if on_win:
