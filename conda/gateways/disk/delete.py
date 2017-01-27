@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EEXIST, ENOENT
 import json
 from logging import getLogger
-from os import access, listdir, makedirs, removedirs, rename, unlink, walk, W_OK, X_OK
+from os import listdir, makedirs, removedirs, rename, unlink, walk
 from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
 from shutil import rmtree
 from uuid import uuid4
