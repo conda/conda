@@ -22,7 +22,7 @@ from .. import CondaMultiError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, on_win, text_type
+from ..common.compat import iteritems, itervalues, on_win, text_type, ensure_text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
@@ -437,13 +437,25 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ.copy()
 
     if action == 'pre-link':
+        is_old_noarch = False
+        try:
+            with open(path) as f:
+                script_text = ensure_text_type(f.read())
+            if "This is code that is added to noarch Python packages." in script_text:
+                is_old_noarch = True
+        except Exception as e:
+            import traceback
+            log.debug(e)
+            log.debug(traceback.format_exc())
+
         env['SOURCE_DIR'] = prefix
-        warnings.warn(dals("""
-        Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
-        This is because pre-link scripts have the ability to change the package contents in the
-        package cache, and therefore modify the underlying files for already-created conda
-        environments.  Future versions of conda may deprecate and ignore pre-link scripts.
-        """ % dist))
+        if not is_old_noarch:
+            warnings.warn(dals("""
+            Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
+            This is because pre-link scripts have the ability to change the package contents in the
+            package cache, and therefore modify the underlying files for already-created conda
+            environments.  Future versions of conda may deprecate and ignore pre-link scripts.
+            """ % dist))
 
     if on_win:
         try:
