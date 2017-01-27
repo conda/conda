@@ -8,11 +8,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import sys
 from collections import defaultdict
-from os import access, listdir, lstat, walk, W_OK, X_OK
+from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
+from ..core.package_cache import PackageCache
 from ..exceptions import ArgumentError
 from ..gateways.disk.delete import rm_rf
 from ..utils import human_bytes
@@ -75,11 +76,8 @@ def configure_parser(sub_parsers):
 def find_tarballs():
     pkgs_dirs = defaultdict(list)
     totalsize = 0
-    for pkgs_dir in context.pkgs_dirs:
+    for pkgs_dir in PackageCache.all_writable(context.pkgs_dirs):
         if not isdir(pkgs_dir):
-            continue
-        if not (access(pkgs_dir, W_OK) and access(pkgs_dir, X_OK)):
-            # This directory is untouchable to the user
             continue
         root, _, filenames = next(os.walk(pkgs_dir))
         for fn in filenames:
