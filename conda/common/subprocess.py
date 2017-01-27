@@ -14,6 +14,8 @@ from .compat import ensure_binary, ensure_text_type, iteritems, on_win, string_t
 log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))
 
+ACTIVE_SUBPROCESSES = set()
+
 
 def _split_on_unix(command):
     # I guess windows doesn't like shlex.split
@@ -25,9 +27,11 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     path = sys.prefix if path is None else abspath(path)
     p = Popen(_split_on_unix(command) if isinstance(command, string_types) else command,
               cwd=path, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+    ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
     stdout, stderr = p.communicate(input=stdin)
     rc = p.returncode
+    ACTIVE_SUBPROCESSES.remove(p)
     log.debug("{0} $  {1}\n"
               "  stdout: {2}\n"
               "  stderr: {3}\n"
