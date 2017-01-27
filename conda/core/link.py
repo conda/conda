@@ -5,7 +5,7 @@ from collections import defaultdict
 from logging import getLogger
 import os
 from os.path import join
-from subprocess import CalledProcessError, check_call
+from subprocess import CalledProcessError
 import sys
 from traceback import format_exc
 import warnings
@@ -14,10 +14,10 @@ from .linked_data import (get_python_version_for_prefix, linked_data as get_link
                           load_meta)
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
-                           CreateLinkedPackageRecordAction, CreatePrivateEnvMetaAction,
-                           CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           RemoveLinkedPackageRecordAction, RemoveMenuAction,
-                           RemovePrivateEnvMetaAction, UnlinkPathAction, CreateNonadminAction)
+                           CreateLinkedPackageRecordAction, CreateNonadminAction,
+                           CreatePrivateEnvMetaAction, CreatePythonEntryPointAction,
+                           LinkPathAction, MakeMenuAction, RemoveLinkedPackageRecordAction,
+                           RemoveMenuAction, RemovePrivateEnvMetaAction, UnlinkPathAction)
 from .. import CondaMultiError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -26,8 +26,9 @@ from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
-from ..exceptions import (KnownPackageClobberError, SharedLinkPathClobberError,
-                          UnknownPackageClobberError, maybe_raise, LinkError)
+from ..common.subprocess import subprocess_call
+from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
+                          UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
@@ -463,7 +464,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     try:
         log.debug("for %s at %s, executing script: $ %s",
                   dist, env['PREFIX'], ' '.join(command_args))
-        check_call(command_args, env={str(k): str(v) for k, v in iteritems(env)})
+        subprocess_call(command_args, env=env)
     except CalledProcessError:
         m = messages(prefix)
         if action in ('pre-link', 'post-link'):

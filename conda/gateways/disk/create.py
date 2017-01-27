@@ -8,9 +8,8 @@ from logging import getLogger
 import os
 from os import makedirs
 from os.path import basename, isdir, isfile, islink, join, lexists
-from shlex import split as shlex_split
 import shutil
-from subprocess import PIPE, Popen
+from ...common.subprocess import subprocess_call
 import sys
 import tarfile
 import traceback
@@ -247,27 +246,13 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         raise CondaError("Did not expect linktype=%r" % link_type)
 
 
-def _split_on_unix(command):
-    # I guess windows doesn't like shlex.split
-    return command if on_win else shlex_split(command)
-
-
 def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     if lexists(pyc_full_path):
         maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
     log.trace(command)
-    process = Popen(_split_on_unix(command), stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
-
-    rc = process.returncode
-    if rc != 0:
-        log.error("$ %s\n"
-                  "  stdout: %s\n"
-                  "  stderr: %s\n"
-                  "  rc: %d", command, stdout, stderr, rc)
-        raise RuntimeError()
+    subprocess_call(command)
 
     if not isfile(pyc_full_path):
         message = dals("""
