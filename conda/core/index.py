@@ -218,59 +218,63 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             if not url.endswith('/noarch'):
                 return None
             else:
-                # help_message = dals("""
-                # The remote server could not find the channel you requested.
-                #
-                # As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
-                # associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                # empty.
-                #
-                # You will need to adjust your conda configuration to proceed.
-                # Use `conda config --show` to view your configuration's current state.
-                # Further configuration help can be found at <%s>.
-                # """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-                help_message = dedent("""
-                WARNING: The remote server could not find the noarch directory for the requested
-                channel with url: %s
+                if context.allow_non_channel_urls:
+                    help_message = dedent("""
+                    WARNING: The remote server could not find the noarch directory for the requested
+                    channel with url: %s
 
-                It is possible you have given conda an invalid channel. Please double-check
-                your conda configuration using `conda config --show`.
+                    It is possible you have given conda an invalid channel. Please double-check
+                    your conda configuration using `conda config --show`.
 
-                If the requested url is in fact a valid conda channel, please request that the
-                channel administrator create `noarch/repodata.json` and associated
-                `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                """ % url)
-                stderrlog.warn(help_message)
-                return None
+                    If the requested url is in fact a valid conda channel, please request that the
+                    channel administrator create `noarch/repodata.json` and associated
+                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    """ % url)
+                    stderrlog.warn(help_message)
+                    return None
+                else:
+                    help_message = dals("""
+                    The remote server could not find the channel you requested.
+
+                    As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                    empty.
+
+                    You will need to adjust your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <%s>.
+                    """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 403:
             if not url.endswith('/noarch'):
                 return None
             else:
-                # help_message = dals("""
-                # The channel you requested is not available on the remote server.
-                #
-                # As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
-                # associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                # empty.
-                #
-                # You will need to adjust your conda configuration to proceed.
-                # Use `conda config --show` to view your configuration's current state.
-                # Further configuration help can be found at <%s>.
-                # """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-                help_message = dedent("""
-                WARNING: The remote server could not find the noarch directory for the requested
-                channel with url: %s
+                if context.allow_non_channel_urls:
+                    help_message = dedent("""
+                    WARNING: The remote server could not find the noarch directory for the requested
+                    channel with url: %s
 
-                It is possible you have given conda an invalid channel. Please double-check
-                your conda configuration using `conda config --show`.
+                    It is possible you have given conda an invalid channel. Please double-check
+                    your conda configuration using `conda config --show`.
 
-                If the requested url is in fact a valid conda channel, please request that the
-                channel administrator create `noarch/repodata.json` and associated
-                `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                """ % url)
-                stderrlog.warn(help_message)
-                return None
+                    If the requested url is in fact a valid conda channel, please request that the
+                    channel administrator create `noarch/repodata.json` and associated
+                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    """ % url)
+                    stderrlog.warn(help_message)
+                    return None
+                else:
+                    help_message = dals("""
+                    The channel you requested is not available on the remote server.
+
+                    As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                    empty.
+
+                    You will need to adjust your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <%s>.
+                    """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 401:
             channel = Channel(url)
