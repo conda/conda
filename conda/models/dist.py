@@ -9,7 +9,7 @@ from .channel import Channel
 from .index_record import IndexRecord
 from .package_info import PackageInfo
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
+from .._vendor.auxlib.entity import ImmutableEntity, EntityType, IntegerField, StringField
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
@@ -17,8 +17,6 @@ from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
 
 log = getLogger(__name__)
-DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
-                                         'dist_name'))
 
 
 class DistType(EntityType):
@@ -44,41 +42,41 @@ class DistType(EntityType):
 
 
 @with_metaclass(DistType)
-class Dist(Entity):
+class Dist(ImmutableEntity):
 
     channel = StringField(required=False, nullable=True, immutable=True)
-
     dist_name = StringField(immutable=True)
-    name = StringField(immutable=True)
-    version = StringField(immutable=True)
-    build_string = StringField(immutable=True)
-    build_number = IntegerField(immutable=True)
-
     with_features_depends = StringField(required=False, nullable=True, immutable=True)
-    base_url = StringField(required=False, nullable=True, immutable=True)
-    platform = StringField(required=False, nullable=True, immutable=True)
 
-    def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
-                 build_number=None, with_features_depends=None, base_url=None, platform=None):
+    def __init__(self, channel, dist_name=None, with_features_depends=None):
         # if name is None:
         #     import pdb; pdb.set_trace()
         super(Dist, self).__init__(channel=channel,
                                    dist_name=dist_name,
-                                   name=name,
-                                   version=version,
-                                   build_string=build_string,
-                                   build_number=build_number,
-                                   with_features_depends=with_features_depends,
-                                   base_url=base_url,
-                                   platform=platform)
+                                   with_features_depends=with_features_depends)
 
     @property
     def full_name(self):
         return self.__str__()
 
     @property
+    def name(self):
+        return self.quad[0]
+
+    @property
+    def version(self):
+        return self.quad[1]
+
+    @property
     def build(self):
-        return self.build_string
+        return self.quad[2]
+
+    @property
+    def build_number(self):
+        try:
+            return int(self.build.rsplit('_', 1)[-1])
+        except ValueError:
+            return 0
 
     @property
     def pair(self):
@@ -101,10 +99,6 @@ class Dist(Entity):
     def is_feature_package(self):
         return self.dist_name.endswith('@')
 
-    @property
-    def is_channel(self):
-        return bool(self.base_url and self.platform)
-
     def to_filename(self, extension='.tar.bz2'):
         if self.is_feature_package:
             return self.dist_name
@@ -123,10 +117,6 @@ class Dist(Entity):
 
         if string.endswith('@'):
             return cls(channel='@',
-                       name=string,
-                       version="",
-                       build_string="",
-                       build_number=0,
                        dist_name=string,
                        with_features_depends=None)
 
@@ -145,12 +135,8 @@ class Dist(Entity):
             channel = DEFAULTS_CHANNEL_NAME
 
         # enforce dist format
-        dist_details = cls.parse_dist_name(original_dist)
+        cls.parse_dist_name(original_dist)
         return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
                    dist_name=original_dist,
                    with_features_depends=w_f_d)
 
@@ -180,7 +166,7 @@ class Dist(Entity):
                                                      if build_string else '0')))
             build_number = int(build_number_as_string) if build_number_as_string else 0
 
-            return DistDetails(name, version, build_string, build_number, dist_name)
+            return dist_name
 
         except:
             raise CondaError("dist_name is not a valid conda package: %s" % original_string)
@@ -191,7 +177,7 @@ class Dist(Entity):
         if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
-        dist_details = cls.parse_dist_name(url)
+        dist_name = cls.parse_dist_name(url)
         if '::' in url:
             url_no_tarball = url.rsplit('::', 1)[0]
             platform = context.subdir
@@ -203,22 +189,7 @@ class Dist(Entity):
             base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
             channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 
-        return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
-                   dist_name=dist_details.dist_name,
-                   base_url=base_url,
-                   platform=platform)
-
-    def to_url(self):
-        if not self.base_url:
-            return None
-        filename = self.dist_name + CONDA_TARBALL_EXTENSION
-        return (join_url(self.base_url, self.platform, filename)
-                if self.platform
-                else join_url(self.base_url, filename))
+        return cls(channel=channel, dist_name=dist_name)
 
     def __key__(self):
         return self.channel, self.dist_name, self.with_features_depends
