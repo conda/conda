@@ -13,10 +13,10 @@ and run requirements resulted in a package that had python pinned to the version
 of Python used at build time (with a corresponding addition to the filename like
 py27). Similar support existed for numpy with the addition of an ``x.x`` pin in
 the recipe after `Conda-build PR
-573<https://github.com/conda/conda-build/pull/573>`_ was merged. However, there
+573 <https://github.com/conda/conda-build/pull/573>`_ was merged. However, there
 has not been general support until conda-build version 3.0, though there have
 been many proposals (`Conda-build issue
-1142<https://github.com/conda/conda-build/issues/1142>`_).
+1142 <https://github.com/conda/conda-build/issues/1142>`_).
 
 As of conda-build 3.0, a new configuration scheme has been added, dubbed
 "variants." Conceptually, this decouples pinning values from recipes, replacing
@@ -41,6 +41,7 @@ keys that behave differently and can be more nested:
 * ``extend_keys``: specifies keys that should be aggregated, rather than
   clobbered, by later variants. These are detailed below in the `Extended keys`_
   section.
+* ``runtimes``: detailed further in `Extra Jinja2 functions`_.
 
 Search order for these files is the following:
 
@@ -250,7 +251,7 @@ evaluating ``meta.yaml`` templates:
   the build environment, and writes compatible range pin for run and/or test
   requirements.  Presently primarily only a semver-based assumption:
   ``>=(current version),<(next minor version)``. This will be enhanced as time
-  goes on with information from `ABI Laboratory<https://abi-laboratory.pro/>`_
+  goes on with information from `ABI Laboratory <https://abi-laboratory.pro/>`_
 
 * ``compiler``: To be used in build requirements most commonly. Run or test as
   necessary. Takes language name argument. This is shorthand to facilitate cross
@@ -264,7 +265,9 @@ evaluating ``meta.yaml`` templates:
   runtime function depends on a map in the variant of compiler package name to
   runtime package name. There are limited defaults set in conda-build - for
   example ``g++`` as the compiler package on linux leads to runtime dependency
-  on the ``libstdc++`` package.
+  on the ``libstdc++`` package.  For any non-default, you need to add a mapping
+  from compiler package name to runtime package name (and possibly also version),
+  as shown below.
 
 .. code-block:: python
 
