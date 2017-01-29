@@ -16,6 +16,7 @@ from ..common.compat import ensure_text_type, string_types, text_type, with_meta
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
 
+
 log = getLogger(__name__)
 DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
                                          'dist_name'))
@@ -44,12 +45,14 @@ class DistType(type):
         else:
             return super(DistType, cls).__call__(*args, **kwargs)
 
+    def __new__(cls, name, bases, dct):
+         dct['__slots__'] = ('channel', 'dist_name', 'name', 'version', 'build_string',
+                             'build_number', 'with_features_depends', 'base_url', 'platform')
+         return type.__new__(cls, name, bases, dct)
+
 
 @with_metaclass(DistType)
 class Dist(object):
-
-    __fields__ = ('channel', 'dist_name', 'name', 'version', 'build_string', 'build_number',
-                  'with_features_depends', 'base_url', 'platform')
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
                  build_number=None, with_features_depends=None, base_url=None, platform=None):
@@ -89,11 +92,11 @@ class Dist(object):
             return base
 
     def __repr__(self):
-        args = ("%s=%s" % (s, getattr(self, s)) for s in self.__fields__)
+        args = ("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
         return "%s(%s)".format(self.__class__.__name__, ', '.join(args))
 
     def dump(self):
-        return {s: getattr(self, s) for s in self.__fields__}
+        return {s: getattr(self, s) for s in self.__slots__}
 
     def json(self):
         return json.dumps(self.dump())
