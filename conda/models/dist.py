@@ -46,7 +46,7 @@ class DistType(EntityType):
 @with_metaclass(DistType)
 class Dist(Entity):
     _lazy_validate = True
-    
+
     channel = StringField(required=False, nullable=True, immutable=True)
 
     dist_name = StringField(immutable=True)
