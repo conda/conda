@@ -161,7 +161,7 @@ def package_is_installed(prefix, package, exact=False):
     if '::' in package:
         packages = list(map(text_type, packages))
     else:
-        packages = list(map(lambda x: x.dist_name, packages))
+        packages = list(map(lambda x: text_type(x).split('::')[-1], packages))
     if exact:
         return package in packages
     return any(p.startswith(package) for p in packages)

@@ -18,9 +18,9 @@ from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import check_write, context
-from ..common.compat import on_win, text_type
+from ..common.compat import on_win, text_type, itervalues
 from ..core.index import get_index
-from ..core.linked_data import linked as install_linked
+from ..core.linked_data import linked as install_linked, linked_data
 from ..exceptions import (CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
@@ -145,8 +145,8 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
-    linked_dists = install_linked(prefix)
-    linked_names = tuple(ld.quad[0] for ld in linked_dists)
+    linked_records = set(record for record in itervalues(linked_data(prefix)))
+    linked_names = tuple(ld.name for ld in linked_records)
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
@@ -182,10 +182,10 @@ def install(args, parser, command='install'):
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
     elif getattr(args, 'all', False):
-        if not linked_dists:
+        if not linked_records:
             raise PackageNotFoundError('', "There are no packages installed in the "
                                        "prefix %s" % prefix)
-        specs.extend(d.quad[0] for d in linked_dists)
+        specs.extend(d.quad[0] for d in linked_records)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
     if isinstall and args.revision:

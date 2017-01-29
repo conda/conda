@@ -55,7 +55,7 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
-class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
+class IndexRecord(DictSafeMixin, Entity):  # rename to IndexRecord
     _lazy_validate = True
 
     arch = StringField(required=False, nullable=True)
@@ -109,4 +109,4 @@ class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
         return hash(self.pkey)
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.pkey == other.pkey
+        return hash(self) == hash(other)

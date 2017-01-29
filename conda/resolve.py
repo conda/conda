@@ -147,7 +147,7 @@ class Resolve(object):
         self.index = index = index.copy()
         if not processed:
             for dist, info in iteritems(index.copy()):
-                if dist.with_features_depends:
+                if Dist(dist).with_features_depends:
                     continue
                 for fstr in chain(info.get('features', '').split(),
                                   info.get('track_features', '').split(),
@@ -235,7 +235,6 @@ class Resolve(object):
             return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
 
         def v_fkey_(dist):
-            assert isinstance(dist, Dist)
             val = filter.get(dist)
             if val is None:
                 filter[dist] = True
@@ -494,15 +493,15 @@ class Resolve(object):
                 res = self.groups.get(ms.name, [])
             res = [p for p in res if self.match_fast(ms, p)]
             self.find_matches_[ms] = res
-        assert all(isinstance(d, Dist) for d in res)
+        res = tuple(self.index[d] for d in res)
         return res
 
     def ms_depends(self, dist):
         # type: (Dist) -> List[MatchSpec]
-        assert isinstance(dist, Dist)
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
+            dist = Dist(dist)
             if dist.with_features_depends:
                 f2, fstr = (Dist.from_string(dist.dist_name, channel_override=dist.channel),
                             dist.with_features_depends)
@@ -535,8 +534,10 @@ class Resolve(object):
         return depends_on_(MatchSpec(spec))
 
     def version_key(self, dist, vtype=None):
-        assert isinstance(dist, Dist)
-        rec = self.index[dist]
+        try:
+            rec = self.index[dist]
+        except:
+            import pdb; pdb.set_trace()
         cpri = rec.get('priority', 1)
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
@@ -595,7 +596,7 @@ class Resolve(object):
             elif not ms.is_simple():
                 m = C.from_name(self.push_MatchSpec(C, ms.name))
         if m is None:
-            libs = [dist.full_name for dist in libs]
+            libs = [dist.pkey for dist in libs]
             if ms.optional:
                 libs.append('!@s@'+ms.name)
             m = C.Any(libs)
@@ -605,7 +606,7 @@ class Resolve(object):
     def gen_clauses(self):
         C = Clauses()
         for name, group in iteritems(self.groups):
-            group = [dist.full_name for dist in group]
+            group = [dist.pkey for dist in group]
             # Create one variable for each package
             for fkey in group:
                 C.new_var(fkey)
@@ -616,7 +617,7 @@ class Resolve(object):
             C.Require(C.ExactlyOne, group + [C.Not(m)])
         # If a package is installed, its dependencies must be as well
         for dist in iterkeys(self.index):
-            nkey = C.Not(dist.full_name)
+            nkey = C.Not(dist.pkey)
             for ms in self.ms_depends(dist):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
@@ -637,7 +638,7 @@ class Resolve(object):
         for name, group in iteritems(self.groups):
             nf = [len(self.features(dist)) for dist in group]
             maxf = max(nf)
-            eq.update({dist.full_name: maxf-fc for dist, fc in zip(group, nf) if fc < maxf})
+            eq.update({dist.pkey: maxf-fc for dist, fc in zip(group, nf) if fc < maxf})
             total += maxf
         return eq, total
 
@@ -676,9 +677,9 @@ class Resolve(object):
                     ib += 1
 
                 if iv or include0:
-                    eqv[dist.full_name] = iv
+                    eqv[dist.pkey] = iv
                 if ib or include0:
-                    eqb[dist.full_name] = ib
+                    eqb[dist.pkey] = ib
                 pkey = version_key
 
         return eqv, eqb
@@ -831,9 +832,9 @@ class Resolve(object):
                 preserve.append(dist)
             elif ver:
                 specs.append(MatchSpec('%s >=%s' % (nm, ver), optional=True,
-                                       target=dist.full_name))
+                                       target=dist.pkey))
             else:
-                specs.append(MatchSpec(nm, optional=True, target=dist.full_name))
+                specs.append(MatchSpec(nm, optional=True, target=dist.pkey))
         return specs, preserve
 
     def remove(self, specs, installed):

@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
+import json
 from logging import getLogger
 import re
 
@@ -11,25 +12,27 @@ from .channel import Channel
 from .index_record import IndexRecord
 from .package_info import PackageInfo
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import ensure_text_type, text_type, with_metaclass
+from ..common.compat import ensure_text_type, string_types, text_type, with_metaclass
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
+
 
 log = getLogger(__name__)
 DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
                                          'dist_name'))
 
 
-class DistType(EntityType):
+class DistType(type):
 
     def __call__(cls, *args, **kwargs):
         if len(args) == 1 and not kwargs:
             value = args[0]
             if isinstance(value, Dist):
                 return value
+            elif isinstance(value, string_types):
+                return Dist.from_string(value)
             elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
                 return value.dist
             elif isinstance(value, IndexRecord):
@@ -38,43 +41,45 @@ class DistType(EntityType):
                 return Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)
             elif isinstance(value, Channel):
+                import pdb; pdb.set_trace()
                 return Dist.from_url(value.url())
             else:
                 return Dist.from_string(value)
         else:
             return super(DistType, cls).__call__(*args, **kwargs)
 
+    def __new__(cls, name, bases, dct):
+         dct['__slots__'] = ('channel', 'dist_name', 'name', 'version', 'build_string',
+                             'build_number', 'with_features_depends')  # , 'base_url', 'platform'
+         return type.__new__(cls, name, bases, dct)
+
 
 @with_metaclass(DistType)
-class Dist(Entity):
-
-    channel = StringField(required=False, nullable=True, immutable=True)
-
-    dist_name = StringField(immutable=True)
-    name = StringField(immutable=True)
-    version = StringField(immutable=True)
-    build_string = StringField(immutable=True)
-    build_number = IntegerField(immutable=True)
-
-    with_features_depends = StringField(required=False, nullable=True, immutable=True)
-    base_url = StringField(required=False, nullable=True, immutable=True)
-    platform = StringField(required=False, nullable=True, immutable=True)
+class Dist(object):
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
                  build_number=None, with_features_depends=None, base_url=None, platform=None):
-        super(Dist, self).__init__(channel=channel,
-                                   dist_name=dist_name,
-                                   name=name,
-                                   version=version,
-                                   build_string=build_string,
-                                   build_number=build_number,
-                                   with_features_depends=with_features_depends,
-                                   base_url=base_url,
-                                   platform=platform)
+        self.channel = channel
+        self.dist_name = dist_name
+        self.name = name
+        self.version = version
+        self.build_string = build_string
+        self.build_number = build_number
+        self.with_features_depends = with_features_depends
+        # self.base_url = base_url
+        # self.platform = platform
 
-    @memoizedproperty
+    @property
+    def base_url(self):
+        raise NotImplementedError()
+
+    @property
+    def platform(self):
+        raise NotImplementedError()
+
+    @property
     def pkey(self):
-        if self.schannel:
+        if self.channel and self.channel != UNKNOWN_CHANNEL:
             dist = "%s::%s-%s-%s" % (self.channel, self.name, self.version, self.build)
         else:
             dist = "%s-%s-%s" % (self.name, self.version, self.build)
@@ -87,7 +92,7 @@ class Dist(Entity):
         return hash(self.pkey)
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.pkey == other.pkey
+        return hash(self) == hash(other)
 
     @property
     def full_name(self):
@@ -113,6 +118,16 @@ class Dist(Entity):
             return "%s[%s]" % (base, self.with_features_depends)
         else:
             return base
+
+    def __repr__(self):
+        args = ("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
+        return "%s(%s)".format(self.__class__.__name__, ', '.join(args))
+
+    def dump(self):
+        return {s: getattr(self, s) for s in self.__slots__}
+
+    def json(self):
+        return json.dumps(self.dump())
 
     @property
     def is_feature_package(self):

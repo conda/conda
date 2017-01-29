@@ -16,7 +16,7 @@ from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
 from ..common.path import url_to_path, safe_basename
 from ..common.url import path_to_url
-from ..gateways.disk.read import compute_md5sum
+from ..gateways.disk.read import compute_md5sum, read_index_json
 from ..gateways.disk.test import try_write
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -70,19 +70,47 @@ class UrlsData(object):
 class PackageCacheEntry(object):
 
     @classmethod
-    def make_legacy(cls, pkgs_dir, dist):
-        # the dist object here should be created using a full url to the tarball
-        extracted_package_dir = join(pkgs_dir, dist.dist_name)
-        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
-        return cls(pkgs_dir, dist, package_tarball_full_path, extracted_package_dir)
+    def make_legacy(cls, pkgs_dir, url):
+        assert url.endswith(CONDA_TARBALL_EXTENSION)
+        fn = url.rsplit('/', 1)[-1]
+        package_tarball_full_path = join(pkgs_dir, fn)
+        extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
+        return cls(pkgs_dir, url, package_tarball_full_path, extracted_package_dir)
 
-    def __init__(self, pkgs_dir, dist, package_tarball_full_path, extracted_package_dir):
+    def __init__(self, pkgs_dir, url, package_tarball_full_path, extracted_package_dir):
         # the channel object here should be created using a full url to the tarball
         self.pkgs_dir = pkgs_dir
-        self.dist = dist
+        self.url = url
         self.package_tarball_full_path = package_tarball_full_path
         self.extracted_package_dir = extracted_package_dir
-        self.channel = Channel(dist.to_url()) if dist.is_channel else Channel(None)
+
+        channel = Channel(url)
+        if not channel.platform:
+            # this means the url actually isn't a channel
+            self.channel = UNKNOWN_CHANNEL
+        else:
+            self.channel = channel
+
+        self.index_json_record = read_index_json(extracted_package_dir)
+        self.index_json_record.fn = package_tarball_full_path.rsplit('/', 1)[-1]
+        self.index_json_record.url = url
+        self.index_json_record.schannel = channel.canonical_name
+
+    @property
+    def pkey(self):
+        rec = self.index_json_record
+        if self.channel != UNKNOWN_CHANNEL:
+            pkey = "%s::%s-%s-%s" % (self.channel.canonical_name, rec.name, rec.version, rec.build)
+        else:
+            pkey = "%s-%s-%s" % (rec.name, rec.version, rec.build)
+        return pkey
+
+    def __hash__(self):
+        return hash(self.pkey)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
 
     @property
     def is_fetched(self):
@@ -119,9 +147,8 @@ class PackageCacheEntry(object):
         return md5_file(self.package_tarball_full_path)
 
     def __repr__(self):
-        args = ('%s=%r' % (key, getattr(self, key))
-                for key in ('dist', 'package_tarball_full_path'))
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+        key = 'package_tarball_full_path'
+        return "%s(%s=%r)" % (self.__class__.__name__, key, getattr(self, key))
 
 
 class PackageCacheType(type):
@@ -139,8 +166,8 @@ class PackageCacheType(type):
             PackageCache._cache_[pkgs_dir] = package_cache_instance
             return package_cache_instance
 
-    def __getitem__(cls, dist):
-        return cls.get_entry_to_link(dist)
+    def __getitem__(cls, record):
+        return cls.get_entry_to_link(record)
 
 
 @with_metaclass(PackageCacheType)
@@ -149,7 +176,7 @@ class PackageCache(object):
 
     def __init__(self, pkgs_dir):
         self._packages_map = {}
-        # type: Dict[Dist, PackageCacheEntry]
+        # type: Dict[pkey, PackageCacheEntry]
 
         self.pkgs_dir = pkgs_dir
         self.urls_data = UrlsData(pkgs_dir)
@@ -270,11 +297,9 @@ class PackageCache(object):
                 self._remove_match(pkgs_dir_contents, base_name)
 
     def _add_entry(self, pkgs_dir, package_filename):
-        dist = first(self.urls_data, lambda x: safe_basename(x) == package_filename, apply=Dist)
-        if not dist:
-            dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
-        pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
-        self._packages_map[pc_entry.dist] = pc_entry
+        url = first(self.urls_data, lambda x: safe_basename(x) == package_filename)
+        pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, url)
+        self._packages_map[pc_entry] = pc_entry
 
     @property
     def cache_directory(self):

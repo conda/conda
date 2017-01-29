@@ -9,6 +9,7 @@ from os.path import dirname, join
 import re
 
 from conda.base.constants import CONDA_TARBALL_EXTENSION
+from conda.models.channel import Channel
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
@@ -516,14 +517,14 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
         write_linked_package_record(self.target_prefix, self.linked_package_record)
-        load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
+        load_linked_data(self.target_prefix, self.linked_package_record.fn[:-len(CONDA_TARBALL_EXTENSION)],
                          self.linked_package_record)
         self._linked_data_loaded = True
 
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
         if self._linked_data_loaded:
-            delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
+            delete_linked_data(self.target_prefix, self.linked_package_record,
                                delete=False)
         rm_rf(self.target_full_path)
 
@@ -646,7 +647,7 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
 
     def execute(self):
         super(RemoveLinkedPackageRecordAction, self).execute()
-        delete_linked_data(self.target_prefix, Dist(self.linked_package_data),
+        delete_linked_data(self.target_prefix, self.linked_package_data,
                            delete=False)
 
     def reverse(self):
@@ -725,8 +726,10 @@ class CacheUrlAction(PathAction):
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
                 origin_url = source_package_cache.urls_data.get_url(self.target_package_basename)
-                if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                if origin_url:
+                    if Channel(origin_url).platform:
+                        # this means origin_url actually is a channel
+                        target_package_cache.urls_data.add_url(origin_url)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
@@ -742,7 +745,8 @@ class CacheUrlAction(PathAction):
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
 
-                if origin_url and Dist(origin_url).is_channel:
+                if origin_url and Channel(origin_url).platform:
+                    # Channel(origin_url).platform means origin_url is a channel
                     target_package_cache.urls_data.add_url(origin_url)
                 else:
                     target_package_cache.urls_data.add_url(self.url)
@@ -805,10 +809,7 @@ class ExtractPackageAction(PathAction):
 
         recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
 
-        dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
-
-
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, dist)
+        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, recorded_url or path_to_url(self.source_full_path))
         target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
