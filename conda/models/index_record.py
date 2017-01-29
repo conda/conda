@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, ImmutableEntity, IntegerField, ListField,
+                                     EnumField, IntegerField, ListField,
                                      MapField, StringField)
 from ..common.compat import string_types
 
