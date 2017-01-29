@@ -30,7 +30,7 @@ conda_build_unit_test() {
     echo
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
     echo
-    python -m pytest --basetemp /tmp/cb tests
+    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v tests
     popd
 }
 
