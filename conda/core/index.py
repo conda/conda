@@ -56,15 +56,7 @@ def supplement_index_with_prefix(index, prefix, channels):
     assert prefix
     maxp = len(channels) + 1
     for dist, info in iteritems(linked_data(prefix)):
-        if dist in index:
-            # The downloaded repodata takes priority, so we do not overwrite.
-            # We do, however, copy the link information so that the solver
-            # knows this package is installed.
-            old_record = index[dist]
-            link = info.get('link') or EMPTY_LINK
-            record = IndexRecord.from_objects(old_record, link=link)
-            index[record.pkey] = record
-        else:
+        if dist not in index:
             # If the package is not in the repodata, use the local data. If
             # the 'depends' field is not present, we need to set it; older
             # installations are likely to have this.
@@ -81,7 +73,7 @@ def supplement_index_with_prefix(index, prefix, channels):
 
 
 def supplement_index_with_cache(index, channels):
-    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None  # NOQA
+    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None
     # supplement index with packages from the cache
     maxp = len(channels) + 1
     for pc_entry in PackageCache.get_all_extracted_entries():

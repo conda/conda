@@ -9,7 +9,7 @@ import re
 from conda._vendor.auxlib.decorators import memoizedproperty
 
 from .channel import Channel
-from .index_record import IndexRecord
+from .index_record import IndexRecord, LinkedPackageRecord
 from .package_info import PackageInfo
 from .. import CondaError
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -35,7 +35,7 @@ class DistType(type):
                 return Dist.from_string(value)
             elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
                 return value.dist
-            elif isinstance(value, IndexRecord):
+            elif isinstance(value, (IndexRecord, LinkedPackageRecord)):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,

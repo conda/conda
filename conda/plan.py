@@ -758,8 +758,9 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                    if not any(r.match(ms, dist) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
+        installed = tuple(Dist(record) for record in linked_data(prefix))
         nlinked = {r.package_name(dist): dist
-                   for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
+                   for dist in (Dist(fn) for fn in r.remove(specs, installed))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)

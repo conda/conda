@@ -34,28 +34,8 @@ class Link(DictSafeMixin, Entity):
 
 EMPTY_LINK = Link(source='')
 
-# TODO: eventually stop mixing Record with LinkedPackageData
-# class LinkedPackageRecord(DictSafeMixin, Entity):
-#     arch = EnumField(Arch, nullable=True)
-#     build = StringField()
-#     build_number = IntegerField()
-#     channel = StringField(required=False)
-#     date = StringField(required=False)
-#     depends = ListField(string_types)
-#     files = ListField(string_types, required=False)
-#     license = StringField(required=False)
-#     link = ComposableField(Link, required=False)
-#     md5 = StringField(required=False, nullable=True)
-#     name = StringField()
-#     platform = EnumField(Platform)
-#     requires = ListField(string_types, required=False)
-#     size = IntegerField(required=False)
-#     subdir = StringField(required=False)
-#     url = StringField(required=False)
-#     version = StringField()
 
-
-class IndexRecord(DictSafeMixin, Entity):  # rename to IndexRecord
+class IndexRecord(DictSafeMixin, Entity):
     _lazy_validate = True
 
     arch = StringField(required=False, nullable=True)
@@ -84,9 +64,6 @@ class IndexRecord(DictSafeMixin, Entity):  # rename to IndexRecord
     url = StringField(required=False, nullable=True)
     auth = StringField(required=False, nullable=True)
 
-    files = ListField(string_types, default=(), required=False)
-    link = ComposableField(Link, required=False)
-
     with_features_depends = MapField(required=False)
     preferred_env = StringField(default=None, required=False, nullable=True)
 
@@ -110,3 +87,8 @@ class IndexRecord(DictSafeMixin, Entity):  # rename to IndexRecord
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+
+class LinkedPackageRecord(IndexRecord):
+    files = ListField(string_types, default=(), required=False)
+    link = ComposableField(Link, required=False)
