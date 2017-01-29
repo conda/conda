@@ -52,7 +52,7 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
-class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
+class IndexRecord(DictSafeMixin, Entity):
     _lazy_validate = True
 
     arch = StringField(required=False, nullable=True)

@@ -80,7 +80,7 @@ def supplement_index_with_prefix(index, prefix, channels):
 
 
 def supplement_index_with_cache(index, channels):
-    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None  # NOQA
+    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None
     # supplement index with packages from the cache
     maxp = len(channels) + 1
     for pc_entry in PackageCache.get_all_extracted_entries():
@@ -89,15 +89,14 @@ def supplement_index_with_cache(index, channels):
             # The downloaded repodata takes priority
             continue
         pkg_dir = pc_entry.extracted_package_dir
-        meta = read_index_json(pkg_dir)
+        index_json_record = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
         priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-        rec = IndexRecord.from_objects(meta,
-                                       fn=dist.to_filename(),
-                                       schannel=dist.channel,
-                                       priority=priority,
-                                       url=dist.to_url())
-        index[dist] = rec
+        index_json_record.fn = dist.to_filename()
+        index_json_record.schannel = dist.channel
+        index_json_record.priority = priority
+        index_json_record.url = dist.to_url()
+        index[dist] = index_json_record
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
@@ -125,8 +124,6 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         supplement_index_with_prefix(index, prefix, known_channels)
     if unknown:
         supplement_index_with_cache(index, known_channels)
-    if context.add_pip_as_python_dependency:
-        add_pip_dependency(index)
     return index
 
 
@@ -446,6 +443,8 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     #   this is sorta a lie; actually more primitve types
 
+    add_pip = context.add_pip_as_python_dependency
+
     def make_index(repodatas):
         result = dict()
 
@@ -458,6 +457,11 @@ def fetch_index(channel_urls, use_cache=False, index=None):
             arch = repodata_info.get('arch')
             platform = repodata_info.get('platform')
             for fn, info in iteritems(repodata['packages']):
+                if add_pip and info['name'] == 'python':
+                    if info['version'].startswith(('2.', '3.')):
+                        # This version constraint is probably to support the April fools 1.0.1
+                        #   python package.  Is it worth it?
+                        info['depends'].append('pip')
                 rec = IndexRecord.from_objects(info,
                                                fn=fn,
                                                arch=arch,
@@ -491,13 +495,6 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
     value = resp.headers.get(http_key)
     if value:
         d[dict_key] = value
-
-
-def add_pip_dependency(index):
-    # TODO: discuss with @mcg1969 and document
-    for dist, info in iteritems(index):
-        if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-            index[dist] = IndexRecord.from_objects(info, depends=info['depends'] + ('pip',))
 
 
 def create_cache_dir():
