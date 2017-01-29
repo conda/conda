@@ -256,7 +256,7 @@ class History(object):
             if dists:
                 write_head(fo)
                 for dist in sorted(dists):
-                    fo.write('%s\n' % dist)
+                    fo.write('%s\n' % getattr(dist, 'pkey', dist))
 
     def write_changes(self, last_state, current_state):
         with open(self.path, 'a') as fo:

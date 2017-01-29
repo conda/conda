@@ -261,7 +261,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         fkey = dist
         if fkey not in index:
             record = IndexRecord.from_objects(info, not_fetched=True)
-            index[record.pkey] = record
+            index[record] = record
             r = None
         urls[dist] = info['url']
 

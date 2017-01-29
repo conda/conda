@@ -69,6 +69,8 @@ class IndexRecord(DictSafeMixin, Entity):
 
     @memoizedproperty
     def pkey(self):
+        if self.name.endswith('@'):
+            return self.name
         if self.schannel:
             dist = "%s::%s-%s-%s" % (self.schannel, self.name, self.version, self.build)
         else:

@@ -20,8 +20,8 @@ from tests.helpers import raises
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = {}
     for key, value in iteritems(json.load(fi)):
-        record = IndexRecord(**value)
-        index[record.pkey] = record
+        record = IndexRecord(fn=key, **value)
+        index[record] = record
 
 r = Resolve(index)
 

@@ -147,7 +147,8 @@ class Resolve(object):
         self.index = index = index.copy()
         if not processed:
             for dist, info in iteritems(index.copy()):
-                if Dist(dist).with_features_depends:
+                dist = Dist(dist)
+                if dist.with_features_depends:
                     continue
                 for fstr in chain(info.get('features', '').split(),
                                   info.get('track_features', '').split(),
@@ -525,10 +526,7 @@ class Resolve(object):
         return depends_on_(MatchSpec(spec))
 
     def version_key(self, dist, vtype=None):
-        try:
-            rec = self.index[dist]
-        except:
-            import pdb; pdb.set_trace()
+        rec = self.index[dist]
         cpri = rec.get('priority', 1)
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
@@ -546,6 +544,7 @@ class Resolve(object):
     def package_quad(self, dist):
         rec = self.index.get(dist, None)
         if rec is None:
+            import pdb; pdb.set_trace()
             return dist.quad
         else:
             return (rec['name'], rec['version'], rec['build'],
@@ -795,7 +794,7 @@ class Resolve(object):
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
             if update_deps:
-                spec = MatchSpec('%s (target=%s)' % (name, pkg))
+                spec = MatchSpec('%s (target=%s)' % (name, pkg.pkey))
             else:
                 spec = MatchSpec('%s %s %s' % (name, version, build))
             specs.append(spec)

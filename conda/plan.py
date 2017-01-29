@@ -255,10 +255,9 @@ def nothing_to_do(actions):
 
 
 def add_unlink(actions, dist):
-    assert isinstance(dist, Dist)
     if UNLINK not in actions:
         actions[UNLINK] = []
-    actions[UNLINK].append(dist)
+    actions[UNLINK].append(getattr(dist, 'pkey', dist))
 
 
 def add_checks(actions):
@@ -705,7 +704,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
     if actions[LINK]:
         actions[SYMLINK_CONDA] = [context.root_dir]
 
-    for dist in sorted(linked):
+    for dist in sorted(linked, key=r.version_key):
         dist = Dist(dist)
         name = r.package_name(dist)
         replace_existing = name in must_have and dist != must_have[name]
@@ -824,6 +823,7 @@ def revert_actions(prefix, revision=-1, index=None):
     for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
         dist = Dist(arg)
         if dist not in index:
+            import pdb; pdb.set_trace()
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 

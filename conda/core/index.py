@@ -69,7 +69,7 @@ def supplement_index_with_prefix(index, prefix, channels):
             # above the priority of all known channels.
             priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
             record = IndexRecord.from_objects(info, depends=depends, priority=priority)
-            index[record.pkey] = record
+            index[record] = record
 
 
 def supplement_index_with_cache(index, channels):
@@ -90,7 +90,7 @@ def supplement_index_with_cache(index, channels):
                                        schannel=dist.channel,
                                        priority=priority,
                                        url=dist.to_url())
-        index[rec.pkey] = rec
+        index[rec] = rec
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
@@ -460,7 +460,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
                                                priority=priority,
                                                url=join_url(channel_url, fn),
                                                auth=channel.auth)
-                result[rec.pkey] = rec
+                result[rec] = rec
         return result
 
     index = make_index(repodatas)
@@ -491,7 +491,7 @@ def add_pip_dependency(index):
     for info in itervalues(index):
         if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
             record = IndexRecord.from_objects(info, depends=info['depends'] + ('pip',))
-            index[record.pkey] = record
+            index[record] = record
 
 
 def create_cache_dir():

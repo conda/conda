@@ -35,39 +35,38 @@ class DistType(type):
                 return Dist.from_string(value)
             elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
                 return value.dist
-            elif isinstance(value, (IndexRecord, LinkedPackageRecord)):
+            elif isinstance(value, IndexRecord):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)
             elif isinstance(value, Channel):
-                import pdb; pdb.set_trace()
-                return Dist.from_url(value.url())
+                raise NotImplementedError()
             else:
                 return Dist.from_string(value)
         else:
             return super(DistType, cls).__call__(*args, **kwargs)
 
     def __new__(cls, name, bases, dct):
-         dct['__slots__'] = ('channel', 'dist_name', 'name', 'version', 'build_string',
-                             'build_number', 'with_features_depends')  # , 'base_url', 'platform'
+         dct['__slots__'] = ('channel', 'name', 'version', 'build_string', 'build_number', 'with_features_depends')
          return type.__new__(cls, name, bases, dct)
 
 
 @with_metaclass(DistType)
 class Dist(object):
 
-    def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
-                 build_number=None, with_features_depends=None, base_url=None, platform=None):
+    def __init__(self, channel, name=None, version=None, build_string=None, build_number=None,
+                 with_features_depends=None):
         self.channel = channel
-        self.dist_name = dist_name
         self.name = name
         self.version = version
         self.build_string = build_string
         self.build_number = build_number
         self.with_features_depends = with_features_depends
-        # self.base_url = base_url
-        # self.platform = platform
+
+    @property
+    def dist_name(self):
+        return "%s-%s-%s" % (self.name, self.version, self.build)
 
     @property
     def base_url(self):
@@ -79,6 +78,8 @@ class Dist(object):
 
     @property
     def pkey(self):
+        if self.name.endswith('@'):
+            return self.name
         if self.channel and self.channel != UNKNOWN_CHANNEL:
             dist = "%s::%s-%s-%s" % (self.channel, self.name, self.version, self.build)
         else:
@@ -131,7 +132,7 @@ class Dist(object):
 
     @property
     def is_feature_package(self):
-        return self.dist_name.endswith('@')
+        return self.name.endswith('@')
 
     @property
     def is_channel(self):
@@ -159,7 +160,6 @@ class Dist(object):
                        version="",
                        build_string="",
                        build_number=0,
-                       dist_name=string,
                        with_features_depends=None)
 
         REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
@@ -183,7 +183,6 @@ class Dist(object):
                    version=dist_details.version,
                    build_string=dist_details.build_string,
                    build_number=dist_details.build_number,
-                   dist_name=original_dist,
                    with_features_depends=w_f_d)
 
     @staticmethod
@@ -240,9 +239,7 @@ class Dist(object):
                    version=dist_details.version,
                    build_string=dist_details.build_string,
                    build_number=dist_details.build_number,
-                   dist_name=dist_details.dist_name,
-                   base_url=base_url,
-                   platform=platform)
+                   )
 
     def to_url(self):
         if not self.base_url:
