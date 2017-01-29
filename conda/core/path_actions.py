@@ -32,7 +32,7 @@ from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
 from ..models.dist import Dist
 from ..models.enums import LinkType, NoarchType, PathType
-from ..models.index_record import IndexRecord, Link
+from ..models.index_record import IndexRecord, Link, LinkedPackageRecord
 
 try:
     from cytoolz.itertoolz import concatv
@@ -493,11 +493,11 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         #   of the paths that will be removed when the package is unlinked
 
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        linked_package_record = IndexRecord.from_objects(package_info.repodata_record,
-                                                         package_info.index_json_record,
-                                                         files=all_target_short_paths,
-                                                         link=link,
-                                                         url=package_info.url)
+        linked_package_record = LinkedPackageRecord.from_objects(package_info.repodata_record,
+                                                                 package_info.index_json_record,
+                                                                 files=all_target_short_paths,
+                                                                 link=link,
+                                                                 url=package_info.url)
 
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,

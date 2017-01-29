@@ -6,7 +6,7 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .index_record import IndexRecord
+from .index_record import IndexRecord, LinkedPackageRecord
 from .package_info import PackageInfo
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
@@ -30,7 +30,7 @@ class DistType(EntityType):
                 return value
             elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
                 return value.dist
-            elif isinstance(value, IndexRecord):
+            elif isinstance(value, (IndexRecord, LinkedPackageRecord)):
                 return Dist.from_string(value.fn, channel_override=value.schannel)
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,
