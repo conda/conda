@@ -23,7 +23,7 @@ As of conda-build 3.0, a new configuration scheme has been added, dubbed
 them with Jinja2 template variables. It adds support for the notion of
 "compatible" pinnings, though that concept is currently still under heavy
 development, to be integrated with ABI compatibility databases, such as `ABI
-Laboratory<https://abi-laboratory.pro/>`_.
+Laboratory <https://abi-laboratory.pro/>`_.
 
 
 Creating conda-build variant input files
@@ -198,6 +198,42 @@ same rules as meta.yaml, except that selectors and Jinja2 templates are not
 Any contents in ``recipe_clobber.yaml`` will replace the contents of meta.yaml.
 This can be useful, for example, for replacing the source URL without copying
 the rest of the recipe into a fork.
+
+
+Differentiating packages built with different variants
+------------------------------------------------------
+
+
+With only a few things supported, we could just add things to the filename, such
+as py27 for python, or np111 for numpy. In the general case, which variants are
+meant to support, this is no longer an option. Instead, part of the recipe is
+hashed, and that hash is a unique identifier. The information that went into the
+hash is stored with the package, in a file at ``info/hash_input.json``.
+Currently, only the first 4 characters of the hash are stored. Output package
+names will keep the pyXY and npXYY for now, but have added the 4-character hash.
+Your package names will look like:
+
+``my-package-1.0-py27h3142_0.tar.bz2``
+
+Since conflicts only need to be prevented within one version of a package, we
+think this will be adequate. If you run into hash collisions with this limited
+subspace, please file an issue on the conda-build issue tracker.
+
+The information that goes into this hash is currently defined in conda-build's
+metadata.py module; the _get_hash_dictionary member function. This function
+captures the following information:
+
+* ``source`` section
+* ``requirements`` section
+* ``build`` section, except:
+  * ``number``
+  * ``string``
+
+All "falsey" values (e.g. empty list values) are removed.
+
+There is a CLI tool that just pretty-prints this json file for easy viewing:
+
+*TODO*: Before release, this tool should be added!
 
 
 Extra Jinja2 functions
