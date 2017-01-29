@@ -220,8 +220,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             else:
                 if context.allow_non_channel_urls:
                     help_message = dedent("""
-                    WARNING: The remote server could not find the noarch directory for the requested
-                    channel with url: %s
+                    WARNING: The remote server could not find the noarch directory for the
+                    requested channel with url: %s
 
                     It is possible you have given conda an invalid channel. Please double-check
                     your conda configuration using `conda config --show`.
@@ -251,8 +251,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             else:
                 if context.allow_non_channel_urls:
                     help_message = dedent("""
-                    WARNING: The remote server could not find the noarch directory for the requested
-                    channel with url: %s
+                    WARNING: The remote server could not find the noarch directory for the
+                    requested channel with url: %s
 
                     It is possible you have given conda an invalid channel. Please double-check
                     your conda configuration using `conda config --show`.
