@@ -88,6 +88,7 @@ def supplement_index_with_cache(index, channels):
         if dist in index:
             # The downloaded repodata takes priority
             continue
+        url = pc_entry.get_urls_txt_value()
         pkg_dir = pc_entry.extracted_package_dir
         meta = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
@@ -96,7 +97,7 @@ def supplement_index_with_cache(index, channels):
                                        fn=dist.to_filename(),
                                        schannel=dist.channel,
                                        priority=priority,
-                                       url=dist.to_url())
+                                       url=url)
         index[dist] = rec
 
 
