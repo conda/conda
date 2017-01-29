@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
+import json
 from logging import getLogger
 import re
 
@@ -9,10 +10,9 @@ from .channel import Channel
 from .index_record import IndexRecord
 from .package_info import PackageInfo
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import ensure_text_type, text_type, with_metaclass
+from ..common.compat import ensure_text_type, string_types, text_type, with_metaclass
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url, join_url
 
@@ -21,13 +21,15 @@ DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'bui
                                          'dist_name'))
 
 
-class DistType(EntityType):
+class DistType(type):
 
     def __call__(cls, *args, **kwargs):
         if len(args) == 1 and not kwargs:
             value = args[0]
             if isinstance(value, Dist):
                 return value
+            elif isinstance(value, string_types):
+                return Dist.from_string(value)
             elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
                 return value.dist
             elif isinstance(value, IndexRecord):
@@ -44,33 +46,22 @@ class DistType(EntityType):
 
 
 @with_metaclass(DistType)
-class Dist(Entity):
+class Dist(object):
 
-    channel = StringField(required=False, nullable=True, immutable=True)
-
-    dist_name = StringField(immutable=True)
-    name = StringField(immutable=True)
-    version = StringField(immutable=True)
-    build_string = StringField(immutable=True)
-    build_number = IntegerField(immutable=True)
-
-    with_features_depends = StringField(required=False, nullable=True, immutable=True)
-    base_url = StringField(required=False, nullable=True, immutable=True)
-    platform = StringField(required=False, nullable=True, immutable=True)
+    __fields__ = ('channel', 'dist_name', 'name', 'version', 'build_string', 'build_number',
+                  'with_features_depends', 'base_url', 'platform')
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
                  build_number=None, with_features_depends=None, base_url=None, platform=None):
-        # if name is None:
-        #     import pdb; pdb.set_trace()
-        super(Dist, self).__init__(channel=channel,
-                                   dist_name=dist_name,
-                                   name=name,
-                                   version=version,
-                                   build_string=build_string,
-                                   build_number=build_number,
-                                   with_features_depends=with_features_depends,
-                                   base_url=base_url,
-                                   platform=platform)
+        self.channel = channel
+        self.dist_name = dist_name
+        self.name = name
+        self.version = version
+        self.build_string = build_string
+        self.build_number = build_number
+        self.with_features_depends = with_features_depends
+        self.base_url = base_url
+        self.platform = platform
 
     @property
     def full_name(self):
@@ -96,6 +87,16 @@ class Dist(Entity):
             return "%s[%s]" % (base, self.with_features_depends)
         else:
             return base
+
+    def __repr__(self):
+        args = ("%s=%s" % (s, getattr(self, s)) for s in self.__fields__)
+        return "%s(%s)".format(self.__class__.__name__, ', '.join(args))
+
+    def dump(self):
+        return {s: getattr(self, s) for s in self.__fields__}
+
+    def json(self):
+        return json.dumps(self.dump())
 
     @property
     def is_feature_package(self):
