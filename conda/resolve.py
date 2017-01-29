@@ -174,14 +174,14 @@ class Resolve(object):
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
 
-    @property
-    def installed(self):
-        # type: () -> Set[Dist]
-        installed = set()
-        for dist, info in iteritems(self.index):
-            if 'link' in info and not dist.with_features_depends:
-                installed.add(dist)
-        return installed
+    # @property
+    # def installed(self):
+    #     # type: () -> Set[Dist]
+    #     installed = set()
+    #     for dist, info in iteritems(self.index):
+    #         if 'link' in info and not dist.with_features_depends:
+    #             installed.add(dist)
+    #     return installed
 
     def add_feature(self, feature_name, group=True):
         feature_dist = Dist(feature_name + '@')
