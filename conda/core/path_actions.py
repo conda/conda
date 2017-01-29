@@ -656,7 +656,7 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
             meta_record = IndexRecord(**json.loads(fh.read()))
         log.trace("reloading cache entry %s", self.target_full_path)
         load_linked_data(self.target_prefix,
-                         meta_record.dist_name,
+                         self.linked_package_data.fn[:-len(CONDA_TARBALL_EXTENSION)],
                          meta_record)
 
 
@@ -810,7 +810,7 @@ class ExtractPackageAction(PathAction):
         recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
 
         package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, recorded_url or path_to_url(self.source_full_path))
-        target_package_cache[package_cache_entry.dist] = package_cache_entry
+        target_package_cache[package_cache_entry] = package_cache_entry
 
     def reverse(self):
         if lexists(self.hold_path):

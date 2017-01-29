@@ -77,19 +77,19 @@ def supplement_index_with_cache(index, channels):
     # supplement index with packages from the cache
     maxp = len(channels) + 1
     for pc_entry in PackageCache.get_all_extracted_entries():
-        dist = pc_entry.dist
-        if dist in index:
+        if pc_entry in index:
             # The downloaded repodata takes priority
             continue
         pkg_dir = pc_entry.extracted_package_dir
         meta = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
-        priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
+        c = pc_entry.channel.canonical_name
+        priority = MAX_CHANNEL_PRIORITY if c in channels else maxp
         rec = IndexRecord.from_objects(meta,
-                                       fn=dist.to_filename(),
-                                       schannel=dist.channel,
+                                       fn=pc_entry.index_json_record.fn,
+                                       schannel=c,
                                        priority=priority,
-                                       url=dist.to_url())
+                                       url=pc_entry.url)
         index[rec] = rec
 
 

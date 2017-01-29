@@ -158,7 +158,7 @@ def execute_search(args, parser):
     from ..core.package_cache import PackageCache
 
     linked = linked_data(prefix)
-    extracted = set(pc_entry.dist.name for pc_entry in PackageCache.get_all_extracted_entries())
+    extracted = set(pc_entry.index_json_record.name for pc_entry in PackageCache.get_all_extracted_entries())
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''

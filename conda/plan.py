@@ -412,7 +412,10 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             log.debug('H1 %s' % name)
             continue
 
-        depends_on = {s for s in mspecs if r.depends_on(s, name)}
+        try:
+            depends_on = {s for s in mspecs if r.depends_on(s, name)}
+        except:
+            import pdb; pdb.set_trace()
         any_depends_on = bool(depends_on)
         log.debug('H2 %s %s' % (name, any_depends_on))
 

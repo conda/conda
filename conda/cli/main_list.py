@@ -11,6 +11,7 @@ import logging
 from os.path import isdir, isfile
 import re
 
+from conda.models.dist import Dist
 from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -113,7 +114,7 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.quad[0].lower()):
+    for dist in sorted(installed, key=lambda x: Dist(x).quad[0].lower()):
         name = dist.quad[0]
         if pat and pat.search(name) is None:
             continue

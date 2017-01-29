@@ -66,6 +66,8 @@ class Dist(object):
 
     @property
     def dist_name(self):
+        if self.is_feature_package:
+            return self.name
         return "%s-%s-%s" % (self.name, self.version, self.build)
 
     @property
