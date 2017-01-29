@@ -82,7 +82,7 @@ class PackageCacheEntry(object):
         self.dist = dist
         self.package_tarball_full_path = package_tarball_full_path
         self.extracted_package_dir = extracted_package_dir
-        self.channel = Channel(dist.to_url()) if dist.is_channel else Channel(None)
+        self.channel = Channel(dist.channel)
 
     @property
     def is_fetched(self):
@@ -411,7 +411,7 @@ class ProgressiveFetchExtract(object):
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         cache_axn = CacheUrlAction(
-            url=record.get('url') or dist.to_url(),
+            url=record.get('url'),
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=dist.to_filename(),
             md5sum=md5,

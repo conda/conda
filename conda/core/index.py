@@ -10,20 +10,21 @@ import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import getmtime, join
+from os.path import getmtime, join, isfile
 import re
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from textwrap import dedent
 from time import time
 import warnings
+import pickle
 
 from .linked_data import linked_data
 from .package_cache import PackageCache
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
+from ..base.constants import (CONDA_TARBALL_EXTENSION, CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
 from ..base.context import context
 from ..common.compat import ensure_text_type, ensure_unicode, iteritems, iterkeys, itervalues
 from ..common.url import join_url
@@ -92,11 +93,12 @@ def supplement_index_with_cache(index, channels):
         meta = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
         priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
+        url = pc_entry.get_urls_txt_value()
         rec = IndexRecord.from_objects(meta,
                                        fn=dist.to_filename(),
                                        schannel=dist.channel,
                                        priority=priority,
-                                       url=dist.to_url())
+                                       url=url)
         index[dist] = rec
 
 
@@ -331,10 +333,44 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                              getattr(e.response, 'elapsed', None))
 
 
-def read_local_repodata(cache_path):
+def process_repodata(url, repodata):
+    opackages = repodata.setdefault('packages', {})
+    if not opackages:
+        repodata
+    channel = Channel(url)
+    canonical_name = channel.canonical_name
+    repodata_info = repodata.get('info', {})
+    arch = repodata_info.get('arch')
+    platform = repodata_info.get('platform')
+    repodata_info = repodata_info.get('platform')
+    odict = dict(arch=arch,
+                 platform=platform,
+                 schannel=canonical_name,
+                 channel=url,
+                 auth=channel.auth)
+    packages = {}
+    nsuff = -len(CONDA_TARBALL_EXTENSION)
+    for fn, info in iteritems(opackages):
+        info.update(odict)
+        info['fn'] = fn
+        info['url'] = join_url(url, fn)
+        rec = IndexRecord(**info)
+        dist = Dist(channel=canonical_name, dist_name=fn[:nsuff])
+        packages[dist] = rec
+    repodata['packages'] = packages
+    return repodata
+
+
+def read_local_repodata(url, cache_path):
+    try:
+        with open(cache_path + '.q', 'rb') as f:
+            local_repodata = pickle.load(f)
+            return local_repodata
+    except:
+        pass
     with open(cache_path) as f:
         try:
-            local_repodata = json.load(f)
+            repodata = json.load(f)
         except ValueError as e:
             # ValueError: Expecting object: line 11750 column 6 (char 303397)
             log.debug("Error for cache path: '%s'\n%r", cache_path, e)
@@ -345,7 +381,13 @@ def read_local_repodata(cache_path):
             """)
             raise CondaError(message)
         else:
-            return local_repodata
+            repodata = process_repodata(url, repodata)
+            try:
+                with open(cache_path + '.q', 'wb') as fo:
+                    pickle.dump(repodata, fo)
+            except:
+                pass
+            return repodata
 
 
 @dotlog_on_return("fetching repodata:")
@@ -374,7 +416,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
-            return read_local_repodata(cache_path)
+            return read_local_repodata(url, cache_path)
 
         log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
@@ -386,12 +428,17 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
     except Response304ContentUnchanged:
         log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
         touch(cache_path)
-        return read_local_repodata(cache_path)
+        return read_local_repodata(url, cache_path)
 
     with open(cache_path, 'w') as fo:
         json.dump(fetched_repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
 
-    return fetched_repodata or None
+    fetched_repodata = process_repodata(url, fetched_repodata)
+
+    with open(cache_path + '.q', 'wb') as fo:
+        pickle.dump(fetched_repodata, fo)
+
+    return fetched_repodata
 
 
 def _collect_repodatas_serial(use_cache, urls):
@@ -450,24 +497,12 @@ def fetch_index(channel_urls, use_cache=False, index=None):
         result = dict()
 
         for channel_url, repodata in repodatas:
-            if not repodata or not repodata.get('packages', {}):
-                continue
-            canonical_name, priority = channel_urls[channel_url]
-            channel = Channel(channel_url)
-            repodata_info = repodata.get('info', {})
-            arch = repodata_info.get('arch')
-            platform = repodata_info.get('platform')
-            for fn, info in iteritems(repodata['packages']):
-                rec = IndexRecord.from_objects(info,
-                                               fn=fn,
-                                               arch=arch,
-                                               platform=platform,
-                                               schannel=canonical_name,
-                                               channel=channel_url,
-                                               priority=priority,
-                                               url=join_url(channel_url, fn),
-                                               auth=channel.auth)
-                result[Dist(rec)] = rec
+            if repodata and repodata.get('packages'):
+                _, priority = channel_urls[channel_url]
+                for dist, rec in iteritems(repodata['packages']):
+                    rec.priority = priority
+                    result[dist] = rec
+
         return result
 
     index = make_index(repodatas)
