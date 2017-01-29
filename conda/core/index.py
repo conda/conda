@@ -7,10 +7,11 @@ from contextlib import closing
 from functools import wraps
 import hashlib
 import json
+import pickle
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import getmtime, join
+from os.path import getmtime, join, isfile
 import re
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -25,7 +26,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
 from ..base.context import context
-from ..common.compat import ensure_text_type, ensure_unicode, iteritems, iterkeys, itervalues
+from ..common.compat import ensure_text_type, ensure_unicode, iteritems, itervalues
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
@@ -48,7 +49,10 @@ stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
 
+
+REPODATA_PICKLE_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
+
 
 def supplement_index_with_prefix(index, prefix, channels):
     # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None  # NOQA
@@ -328,7 +332,65 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                              getattr(e.response, 'elapsed', None))
 
 
-def read_local_repodata(cache_path):
+def write_pickled_repodata(cache_path, repodata):
+    # Don't bother to pickle empty channels
+    if not repodata.get('packages'):
+        return
+    try:
+        with open(cache_path + '.q', 'wb') as f:
+            pickle.dump(repodata, f)
+    except Exception as e:
+        import traceback
+        log.debug("Failed to dump pickled repodata.\n%s", traceback.format_exc())
+
+
+def read_pickled_repodata(cache_path, channel_url, schannel, priority):
+    pickle_path = cache_path + '.q'
+    # Don't trust pickled data if there is no accompanying json data
+    if not isfile(pickle_path) or not isfile(cache_path):
+        return None
+    try:
+        with open(cache_path + '.q', 'rb') as f:
+            repodata = pickle.load(f)
+    except Exception as e:
+        import traceback
+        log.debug("Failed to load pickled repodata.\n%s", traceback.format_exc())
+        return None
+    if repodata.get('_url') != channel_url:
+        return None
+    add_pip = context.add_pip_as_python_dependency
+    changed = False
+    # Safe changes to IndexRecord
+    if ((repodata['_add_pip'] != add_pip or
+         repodata['_priority'] != priority or
+         repodata['_schannel'] != schannel)):
+        repodata['_priority'] = priority
+        repodata['_add_pip'] = add_pip
+        changed = True
+        for rec in itervalues(repodata.get('packages', {})):
+            rec.priority = priority
+            rec.schannel = schannel
+            if rec.name == 'python' and rec.version.startswith(('2.', '3.')):
+                if add_pip:
+                    rec.depends = rec.depends + ('pip',)
+                elif rec.depends[-1] == 'pip':
+                    rec.depends = rec.depends[:-1]
+    # Safe changes to Dist
+    if repodata['_schannel'] != schannel:
+        repodata['_schannel'] = schannel
+        repodata['packages'] = {
+            Dist.from_string(dist.fn, channel_override=schannel): rec
+            for dist, rec in itervalues(repodata.get('packages', {}))}
+        changed = True
+    if changed:
+        write_pickled_repodata(cache_path, repodata)
+    return repodata
+
+
+def read_local_repodata(cache_path, channel_url, schannel, priority):
+    local_repodata = read_pickled_repodata(cache_path, channel_url, schannel, priority)
+    if local_repodata:
+        return local_repodata
     with open(cache_path) as f:
         try:
             local_repodata = json.load(f)
@@ -342,19 +404,16 @@ def read_local_repodata(cache_path):
             """)
             raise CondaError(message)
         else:
+            process_repodata(local_repodata, channel_url, schannel, priority)
+            write_pickled_repodata(cache_path, local_repodata)
             return local_repodata
 
 
-def process_repodata(channel_url, channel_map, repodata):
+def process_repodata(repodata, channel_url, schannel, priority):
     add_pip = context.add_pip_as_python_dependency
     opackages = repodata.setdefault('packages', {})
     if not opackages:
         return repodata
-    if channel_map and channel_url in channel_map:
-        schannel, priority = channel_map[channel_url]
-    else:
-        schannel = Channel(channel_url).canonical_name
-        priority = 0
     repodata_info = repodata.get('info', {})
     arch = repodata_info.get('arch')
     platform = repodata_info.get('platform')
@@ -362,6 +421,7 @@ def process_repodata(channel_url, channel_map, repodata):
     repodata['_schannel'] = schannel
     repodata['_priority'] = priority
     repodata['_add_pip'] = add_pip
+    repodata['_pversion'] = REPODATA_PICKLE_VERSION
     for fn, info in iteritems(opackages):
         info['fn'] = fn
         info['url'] = join_url(channel_url, fn)
@@ -379,10 +439,9 @@ def process_repodata(channel_url, channel_map, repodata):
 
 
 @dotlog_on_return("fetching repodata:")
-def fetch_repodata(url, cache_dir=None, use_cache=False,
-                   session=None, channel_map=None):
+def fetch_repodata(url, schannel, priority,
+                   cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
-    repodata = None
 
     try:
         mtime = getmtime(cache_path)
@@ -406,55 +465,53 @@ def fetch_repodata(url, cache_dir=None, use_cache=False,
         if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
-            repodata = read_local_repodata(cache_path)
+            return read_local_repodata(cache_path, url, schannel, priority)
 
         log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
-    if repodata is None:
-        try:
-            assert url is not None, url
-            repodata = fetch_repodata_remote_request(session, url,
-                                                     mod_etag_headers.get('_etag'),
-                                                     mod_etag_headers.get('_mod'))
-        except Response304ContentUnchanged:
-            log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
-            touch(cache_path)
-            repodata = read_local_repodata(cache_path)
-        else:
-            with open(cache_path, 'w') as fo:
-                json.dump(repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+    try:
+        assert url is not None, url
+        repodata = fetch_repodata_remote_request(session, url,
+                                                 mod_etag_headers.get('_etag'),
+                                                 mod_etag_headers.get('_mod'))
+    except Response304ContentUnchanged:
+        log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
+        touch(cache_path)
+        return read_local_repodata(cache_path, url, schannel, priority)
 
-    if not repodata:
-        return None
-    process_repodata(url, channel_map, repodata)
+    with open(cache_path, 'w') as fo:
+        json.dump(repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+    process_repodata(repodata, url, schannel, priority)
+    write_pickled_repodata(cache_path, repodata)
     return repodata
 
 
-def _collect_repodatas_serial(use_cache, urls, ch_map):
+def _collect_repodatas_serial(use_cache, tasks):
     # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     session = CondaSession()
-    repodatas = [(url, fetch_repodata(url, use_cache=use_cache,
-                                      session=session, channel_map=ch_map))
-                 for url in urls]
+    repodatas = [(url, fetch_repodata(url, schan, pri,
+                                      use_cache=use_cache,
+                                      session=session))
+                 for url, schan, pri in tasks]
     return repodatas
 
 
-def _collect_repodatas_concurrent(executor, use_cache, urls, ch_map):
-    futures = tuple(executor.submit(fetch_repodata, url,
-                                    channel_map=ch_map,
+def _collect_repodatas_concurrent(executor, use_cache, tasks):
+    futures = tuple(executor.submit(fetch_repodata, url, schan, pri,
                                     use_cache=use_cache,
-                                    session=CondaSession()) for url in urls)
-    repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+                                    session=CondaSession())
+                    for url, schan, pri in tasks)
+    repodatas = [(t[0], f.result()) for t, f in zip(tasks, futures)]
     return repodatas
 
 
-def _collect_repodatas(use_cache, urls, ch_map):
+def _collect_repodatas(use_cache, tasks):
     repodatas = executor = None
     if context.concurrent:
         try:
             import concurrent.futures
             executor = concurrent.futures.ThreadPoolExecutor(10)
-            repodatas = _collect_repodatas_concurrent(executor, use_cache, urls, ch_map)
+            repodatas = _collect_repodatas_concurrent(executor, use_cache, tasks)
         except (ImportError, RuntimeError) as e:
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
             # RuntimeError is thrown if number of threads are limited by OS
@@ -462,7 +519,7 @@ def _collect_repodatas(use_cache, urls, ch_map):
     if executor:
         executor.shutdown(wait=True)
     if repodatas is None:
-        repodatas = _collect_repodatas_serial(use_cache, urls, ch_map)
+        repodatas = _collect_repodatas_serial(use_cache, tasks)
     return repodatas
 
 
@@ -472,8 +529,8 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     if not context.json:
         stdoutlog.info("Fetching package metadata ...")
 
-    urls = tuple(iterkeys(channel_urls))
-    repodatas = _collect_repodatas(use_cache, urls, channel_urls)
+    tasks = [(url,) + cdata for url, cdata in iteritems(channel_urls)]
+    repodatas = _collect_repodatas(use_cache, tasks)
     # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     #   this is sorta a lie; actually more primitve types
 

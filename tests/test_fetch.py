@@ -36,7 +36,7 @@ class TestConnectionWithShortTimeouts(TestCase):
                     with pytest.raises(CondaHTTPError) as execinfo:
                         url = "http://240.0.0.0/channel/osx-64"
                         msg = "Connection error:"
-                        fetch_repodata(url)
+                        fetch_repodata(url, 'channel', 0)
                         assert msg in str(execinfo)
 
     def test_tmpDownload(self):
