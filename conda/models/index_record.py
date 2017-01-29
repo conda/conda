@@ -2,8 +2,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .enums import LinkType, NoarchType, Platform
-from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField,
+from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin,
+                                     Entity, EnumField, IntegerField, ListField,
                                      MapField, StringField)
 from ..common.compat import string_types
 
@@ -52,7 +52,11 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
+<<<<<<< HEAD
 class IndexRecord(DictSafeMixin, Entity):
+=======
+class IndexRecord(DictSafeMixin, Entity):  # rename to IndexRecord
+>>>>>>> Move IndexRecord generation into concurrent tasks
     _lazy_validate = True
 
     arch = StringField(required=False, nullable=True)

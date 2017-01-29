@@ -345,9 +345,44 @@ def read_local_repodata(cache_path):
             return local_repodata
 
 
+def process_repodata(channel_url, channel_map, repodata):
+    add_pip = context.add_pip_as_python_dependency
+    opackages = repodata.setdefault('packages', {})
+    if not opackages:
+        return repodata
+    if channel_map and channel_url in channel_map:
+        schannel, priority = channel_map[channel_url]
+    else:
+        schannel = Channel(channel_url).canonical_name
+        priority = 0
+    repodata_info = repodata.get('info', {})
+    arch = repodata_info.get('arch')
+    platform = repodata_info.get('platform')
+    packages = {}
+    repodata['_schannel'] = schannel
+    repodata['_priority'] = priority
+    repodata['_add_pip'] = add_pip
+    for fn, info in iteritems(opackages):
+        info['fn'] = fn
+        info['url'] = join_url(channel_url, fn)
+        info['arch'] = arch
+        info['platform'] = platform
+        info['channel'] = channel_url
+        info['schannel'] = schannel
+        info['priority'] = priority
+        if (add_pip and (info['name'] == 'python' and
+                         info['version'].startswith(('2.', '3.')))):
+            info['depends'].append('pip')
+        rec = IndexRecord(**info)
+        packages[Dist(rec)] = rec
+    repodata['packages'] = packages
+
+
 @dotlog_on_return("fetching repodata:")
-def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
+def fetch_repodata(url, cache_dir=None, use_cache=False,
+                   session=None, channel_map=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
+    repodata = None
 
     try:
         mtime = getmtime(cache_path)
@@ -371,64 +406,63 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
-            return read_local_repodata(cache_path)
+            repodata = read_local_repodata(cache_path)
 
         log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
-    try:
-        assert url is not None, url
-        fetched_repodata = fetch_repodata_remote_request(session, url,
-                                                         mod_etag_headers.get('_etag'),
-                                                         mod_etag_headers.get('_mod'))
-    except Response304ContentUnchanged:
-        log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
-        touch(cache_path)
-        return read_local_repodata(cache_path)
+    if repodata is None:
+        try:
+            assert url is not None, url
+            repodata = fetch_repodata_remote_request(session, url,
+                                                     mod_etag_headers.get('_etag'),
+                                                     mod_etag_headers.get('_mod'))
+        except Response304ContentUnchanged:
+            log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
+            touch(cache_path)
+            repodata = read_local_repodata(cache_path)
+        else:
+            with open(cache_path, 'w') as fo:
+                json.dump(repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
 
-    with open(cache_path, 'w') as fo:
-        json.dump(fetched_repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+    if not repodata:
+        return None
+    process_repodata(url, channel_map, repodata)
+    return repodata
 
-    return fetched_repodata or None
 
-
-def _collect_repodatas_serial(use_cache, urls):
+def _collect_repodatas_serial(use_cache, urls, ch_map):
     # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     session = CondaSession()
-    repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
+    repodatas = [(url, fetch_repodata(url, use_cache=use_cache,
+                                      session=session, channel_map=ch_map))
                  for url in urls]
     return repodatas
 
 
-def _collect_repodatas_concurrent(executor, use_cache, urls):
-    futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
+def _collect_repodatas_concurrent(executor, use_cache, urls, ch_map):
+    futures = tuple(executor.submit(fetch_repodata, url,
+                                    channel_map=ch_map,
+                                    use_cache=use_cache,
                                     session=CondaSession()) for url in urls)
     repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
     return repodatas
 
 
-def _collect_repodatas(use_cache, urls):
-    # TODO: there HAS to be a way to clean up this logic
+def _collect_repodatas(use_cache, urls, ch_map):
+    repodatas = executor = None
     if context.concurrent:
         try:
             import concurrent.futures
             executor = concurrent.futures.ThreadPoolExecutor(10)
+            repodatas = _collect_repodatas_concurrent(executor, use_cache, urls, ch_map)
         except (ImportError, RuntimeError) as e:
-            log.debug(repr(e))
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
             # RuntimeError is thrown if number of threads are limited by OS
-            repodatas = _collect_repodatas_serial(use_cache, urls)
-        else:
-            try:
-                repodatas = _collect_repodatas_concurrent(executor, use_cache, urls)
-            except RuntimeError as e:
-                # Cannot start new thread, then give up parallel execution
-                log.debug(repr(e))
-                repodatas = _collect_repodatas_serial(use_cache, urls)
-            finally:
-                executor.shutdown(wait=True)
-    else:
-        repodatas = _collect_repodatas_serial(use_cache, urls)
-
+            log.debug(repr(e))
+    if executor:
+        executor.shutdown(wait=True)
+    if repodatas is None:
+        repodatas = _collect_repodatas_serial(use_cache, urls, ch_map)
     return repodatas
 
 
@@ -439,42 +473,15 @@ def fetch_index(channel_urls, use_cache=False, index=None):
         stdoutlog.info("Fetching package metadata ...")
 
     urls = tuple(iterkeys(channel_urls))
-    repodatas = _collect_repodatas(use_cache, urls)
+    repodatas = _collect_repodatas(use_cache, urls, channel_urls)
     # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     #   this is sorta a lie; actually more primitve types
 
-    add_pip = context.add_pip_as_python_dependency
-
-    def make_index(repodatas):
-        result = dict()
-
-        for channel_url, repodata in repodatas:
-            if not repodata or not repodata.get('packages', {}):
-                continue
-            canonical_name, priority = channel_urls[channel_url]
-            channel = Channel(channel_url)
-            repodata_info = repodata.get('info', {})
-            arch = repodata_info.get('arch')
-            platform = repodata_info.get('platform')
-            for fn, info in iteritems(repodata['packages']):
-                if add_pip and info['name'] == 'python':
-                    if info['version'].startswith(('2.', '3.')):
-                        # This version constraint is probably to support the April fools 1.0.1
-                        #   python package.  Is it worth it?
-                        info['depends'].append('pip')
-                rec = IndexRecord.from_objects(info,
-                                               fn=fn,
-                                               arch=arch,
-                                               platform=platform,
-                                               schannel=canonical_name,
-                                               channel=channel_url,
-                                               priority=priority,
-                                               url=join_url(channel_url, fn),
-                                               auth=channel.auth)
-                result[Dist(rec)] = rec
-        return result
-
-    index = make_index(repodatas)
+    if index is None:
+        index = dict()
+    for _, repodata in repodatas:
+        if repodata:
+            index.update(repodata.get('packages', {}))
 
     if not context.json:
         stdoutlog.info('\n')
