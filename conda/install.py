@@ -21,11 +21,15 @@ These API functions have argument names referring to:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import namedtuple
 import errno
 import functools
+from itertools import chain
 import json
 import logging
 import os
+from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
+                     normpath)
 import re
 import shlex
 import shutil
@@ -35,25 +39,20 @@ import subprocess
 import sys
 import tarfile
 import traceback
-from collections import namedtuple
+
 from enum import Enum
-from itertools import chain
-from os.path import (abspath, basename, dirname, exists, isdir, isfile, islink, join, normcase,
-                     normpath)
 
 from . import CondaError
 from .base.constants import UTF8
 from .base.context import context
-from .common.disk import exp_backoff_fn, rm_rf
+from .common.compat import ensure_text_type
+from .common.disk import delete_trash, exp_backoff_fn, move_path_to_trash, move_to_trash, rm_rf
 from .common.url import path_to_url
-from .exceptions import CondaOSError, LinkError, PaddingError, CondaUpgradeError
+from .exceptions import CondaOSError, CondaUpgradeError, LinkError, PaddingError
 from .lock import DirectoryLock, FileLock
 from .models.channel import Channel
 from .utils import on_win
-
-
-# conda-build compatibility
-from .common.disk import delete_trash, move_to_trash, move_path_to_trash  # NOQA
+delete_trash, move_to_trash, move_path_to_trash = delete_trash, move_to_trash, move_path_to_trash
 
 
 if on_win:
@@ -490,11 +489,24 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env[str('PREFIX')] = str(env_prefix or prefix)
     env[str('PKG_NAME')], env[str('PKG_VERSION')], env[str('PKG_BUILDNUM')], _ = dist2quad(dist)
     if action == 'pre-link':
-        sys.stderr.write("""
-Package %s uses a pre-link script. Pre-link scripts are potentially dangerous  discouraged.
-This is because pre-link scripts have the ability to change the package contents in the
-package cache, and therefore modify the underlying files for already-created conda
-environments.  Future versions of conda may deprecate and ignore pre-link scripts.\n""" % dist)
+        is_old_noarch = False
+        try:
+            with open(path) as f:
+                script_text = ensure_text_type(f.read())
+            if "This is code that is added to noarch Python packages." in script_text:
+                is_old_noarch = True
+        except Exception as e:
+            import traceback
+            log.debug(e)
+            log.debug(traceback.format_exc())
+
+        if not is_old_noarch:
+            sys.stderr.write("""
+    Package %s uses a pre-link script. Pre-link scripts are potentially dangerous  discouraged.
+    This is because pre-link scripts have the ability to change the package contents in the
+    package cache, and therefore modify the underlying files for already-created conda
+    environments.  Future versions of conda may deprecate and ignore pre-link scripts.\n""" % dist)
+
         env[str('SOURCE_DIR')] = str(prefix)
     try:
         subprocess.check_call(args, env=env)
