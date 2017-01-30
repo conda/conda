@@ -477,7 +477,7 @@ class IntegrationTests(TestCase):
             assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
 
     @pytest.mark.timeout(300)
-    def test_clone_offline(self):
+    def test_clone_offline_simple(self):
         with make_temp_env("python flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')

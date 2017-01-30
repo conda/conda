@@ -493,7 +493,10 @@ class Resolve(object):
         # type: (Dist) -> List[MatchSpec]
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
-            rec = self.index[dist]
+            try:
+                rec = self.index[dist]
+            except:
+                import pdb; pdb.set_trace()
             # dist = Dist(dist)
             if rec.with_features_depends:
                 f2, fstr = (Dist.from_string(dist.dist_name, channel_override=dist.channel),

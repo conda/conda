@@ -145,6 +145,8 @@ class Dist(object):
         return self.triple + (self.channel or DEFAULTS_CHANNEL_NAME,)
 
     def __str__(self):
+        if self.is_feature_package:
+            return self.dist_name
         base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
         if self.with_features_depends:
             return "%s[%s]" % (base, self.with_features_depends)
@@ -163,7 +165,7 @@ class Dist(object):
 
     @property
     def is_feature_package(self):
-        return self.name.endswith('@')
+        return self.dist_name.endswith('@')
 
     def to_filename(self, extension='.tar.bz2'):
         if self.is_feature_package:
