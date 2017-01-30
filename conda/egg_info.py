@@ -87,7 +87,7 @@ def get_egg_info(prefix, all_pkgs=False):
             except UnicodeDecodeError:
                 dist = None
             if dist:
-                res.add(Dist(dist))
+                res.add(dist)
     return res
 
 
