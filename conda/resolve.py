@@ -101,9 +101,10 @@ class MatchSpec(object):
         return self.build.match(build) and self.version.match(version)
 
     def match(self, dist):
-        # type: (Dist) -> bool
-        assert isinstance(dist, Dist)
-        name, version, build, _ = dist.quad
+        if isinstance(dist, Dist):
+            name, version, build, _ = dist.quad
+        else:
+            name, version, build = dist.name, dist.version, dist.build
         if name != self.name:
             return False
         result = self.match_fast(version, build)
@@ -263,7 +264,6 @@ class Resolve(object):
             dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
             found = False
             for dist in dists:
-                assert isinstance(dist, Dist)
                 for m2 in self.ms_depends(dist):
                     for x in chains_(m2, names):
                         found = True
@@ -544,12 +544,13 @@ class Resolve(object):
 
     def package_quad(self, dist):
         rec = self.index.get(dist, None)
-        if rec is None:
-            import pdb; pdb.set_trace()
+        if rec is None and hasattr(rec, 'quad'):
             return dist.quad
-        else:
+        elif rec:
             return (rec['name'], rec['version'], rec['build'],
                     rec.get('schannel', DEFAULTS_CHANNEL_NAME))
+        else:
+            raise RuntimeError(dist)
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]

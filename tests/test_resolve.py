@@ -3,10 +3,15 @@ from __future__ import absolute_import, print_function
 import json
 import os
 import unittest
-from conda.base.constants import MAX_CHANNEL_PRIORITY
+
+from conda.common.url import join_url
+
+from conda.base.constants import MAX_CHANNEL_PRIORITY, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, \
+    CONDA_TARBALL_EXTENSION
 from conda.base.context import reset_context
-from conda.common.compat import iteritems, text_type
+from conda.common.compat import iteritems, text_type, string_types
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
+from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
@@ -17,13 +22,29 @@ import pytest
 from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
+
+SUBDIR_URL = Channel(DEFAULT_CHANNELS[0]).urls()[0]
+
 with open(join(dirname(__file__), 'index.json')) as fi:
     index = {}
     for key, value in iteritems(json.load(fi)):
-        record = IndexRecord(fn=key, **value)
+        record = IndexRecord(schannel=DEFAULTS_CHANNEL_NAME, fn=key,
+                             url=join_url(SUBDIR_URL, key), **value)
         index[record] = record
+    r = Resolve(index)
 
-r = Resolve(index)
+def make_record(dist):
+    assert isinstance(dist, string_types)
+    parts = dist.split("::", 1)
+    schannel = DEFAULTS_CHANNEL_NAME if len(parts) == 1 else parts[0]
+    name, version, build_string, build_number, dist_name = Dist.parse_dist_name(parts[-1])
+    fn = dist_name + CONDA_TARBALL_EXTENSION
+    url = join(Channel(schannel).urls()[0], fn)
+    return IndexRecord(schannel=schannel, fn=fn, url=url,
+                       name=name, version=version, build=build_string, build_number=build_number)
+
+
+
 
 f_mkl = set(['mkl'])
 
@@ -48,20 +69,20 @@ class TestMatchSpec(unittest.TestCase):
             ('python', False),
             ]:
             m = MatchSpec(spec)
-            self.assertEqual(m.match(Dist('numpy-1.7.1-py27_0.tar.bz2')), res)
+            self.assertEqual(m.match(make_record('numpy-1.7.1-py27_0.tar.bz2')), res)
 
         # both version numbers conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1').match(Dist('numpy-1.0.1a-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1').match(make_record('numpy-1.0.1a-0.tar.bz2')))
         # both version numbers non-conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2')))
         # one conforming, other non-conforming to PEP 440
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(Dist('numpy-1.0.1.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(Dist('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(Dist('numpy-1.0.1a-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a').match(Dist('numpy-1.0.1z-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match(Dist('numpy-1.0.1z-py27_1.tar.bz2')))
-        self.assertTrue(MatchSpec('blas * openblas').match(Dist('blas-1.0-openblas.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy <1.0.1').match(make_record('numpy-1.0.1.vc11-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy <1.0.1').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2')))
+        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(make_record('numpy-1.0.1a-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a').match(make_record('numpy-1.0.1z-0.tar.bz2')))
+        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match(make_record('numpy-1.0.1z-py27_1.tar.bz2')))
+        self.assertTrue(MatchSpec('blas * openblas').match(make_record('blas-1.0-openblas.tar.bz2')))
 
         self.assertTrue(MatchSpec('blas').is_simple())
         self.assertFalse(MatchSpec('blas').is_exact())
@@ -127,13 +148,13 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.explicit(['zlib 1.2.7']), None)
         # because zlib has no dependencies it is also explicit
         self.assertEqual(r.explicit(['zlib 1.2.7 0']),
-                         [Dist('zlib-1.2.7-0.tar.bz2')])
+                         [make_record('zlib-1.2.7-0.tar.bz2')])
 
     def test_explicit2(self):
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7 0']),
-                         [Dist('pycosat-0.6.0-py27_0.tar.bz2'),
-                          Dist('zlib-1.2.7-0.tar.bz2')])
+                         [make_record('pycosat-0.6.0-py27_0.tar.bz2'),
+                          make_record('zlib-1.2.7-0.tar.bz2')])
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7']), None)
 
@@ -197,19 +218,19 @@ class TestSolve(unittest.TestCase):
     def test_scipy_mkl(self):
         dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue(Dist('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
+        self.assertTrue(make_record('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
 
     def test_anaconda_nomkl(self):
         dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         self.assertEqual(len(dists), 107)
-        self.assertTrue(Dist('scipy-0.12.0-np17py27_0.tar.bz2') in dists)
+        self.assertTrue(make_record('scipy-0.12.0-np17py27_0.tar.bz2') in dists)
 
     def test_anaconda_mkl_2(self):
         # to test "with_features_depends"
         dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy', 'numexpr', 'scikit-learn'))
-        self.assertTrue(Dist('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
-        self.assertTrue(Dist('mkl-rt-11.0-p0.tar.bz2') in dists)
+        self.assertTrue(make_record('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
+        self.assertTrue(make_record('mkl-rt-11.0-p0.tar.bz2') in dists)
         self.assertEqual(len(dists), 108)
 
         dists2 = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl'])
@@ -220,14 +241,14 @@ class TestSolve(unittest.TestCase):
         # to test "with_features_depends"
         dists = r.install(['anaconda 1.5.0', 'python 3*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue(Dist('scipy-0.12.0-np17py33_p0.tar.bz2') in dists)
-        self.assertTrue(Dist('mkl-rt-11.0-p0.tar.bz2') in dists)
+        self.assertTrue(make_record('scipy-0.12.0-np17py33_p0.tar.bz2') in dists)
+        self.assertTrue(make_record('mkl-rt-11.0-p0.tar.bz2') in dists)
         self.assertEqual(len(dists), 61)
 
 
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[Dist(fn) for fn in [
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[make_record(fn) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'numpy-1.5.1-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -240,7 +261,7 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[Dist(fn) for fn in [
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[make_record(fn) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
         'numpy-1.5.1-py27_p4.tar.bz2',
@@ -257,8 +278,8 @@ def test_pseudo_boolean():
 
 def test_get_dists():
     dists = r.get_reduced_index(["anaconda 1.5.0"])
-    assert Dist('anaconda-1.5.0-np17py27_0.tar.bz2') in dists
-    assert Dist('dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
+    assert make_record('anaconda-1.5.0-np17py27_0.tar.bz2') in dists
+    assert make_record('dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
 
 
 def test_generate_eq():
@@ -274,8 +295,8 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
-    eqv = {Dist(key).to_filename(): value for key, value in iteritems(eqv)}
-    eqb = {Dist(key).to_filename(): value for key, value in iteritems(eqb)}
+    eqv = {make_record(key).to_filename(): value for key, value in iteritems(eqv)}
+    eqb = {make_record(key).to_filename(): value for key, value in iteritems(eqb)}
     assert eqv == {
         'anaconda-1.4.0-np15py26_0.tar.bz2': 1,
         'anaconda-1.4.0-np15py27_0.tar.bz2': 1,
@@ -503,46 +524,31 @@ def test_nonexistent():
 
 def test_nonexistent_deps():
     index2 = index.copy()
-    index2['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
-        'name': 'mypackage',
-        'requires': ['nose 1.2.1', 'python 3.3'],
-        'version': '1.0',
-    })
-    index2['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'python 3.3*'],
-        'name': 'mypackage',
-        'requires': ['nose 1.2.1', 'python 3.3'],
-        'version': '1.1',
-    })
-    index2['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'mypackage 1.1'],
-        'name': 'anotherpackage',
-        'requires': ['nose', 'mypackage 1.1'],
-        'version': '1.0',
-    })
-    index2['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'mypackage'],
-        'name': 'anotherpackage',
-        'requires': ['nose', 'mypackage'],
-        'version': '2.0',
-    })
-    index2 = {Dist(key): value for key, value in iteritems(index2)}
+
+    record = make_record('mypackage-1.0-py33_0')
+    record.depends = ['nose', 'python 3.3*', 'notarealpackage 2.0*']
+    index2[record] = record
+
+    record = make_record('mypackage-1.1-py33_0')
+    record.depends = ['nose', 'python 3.3*']
+    index2[record] = record
+
+    record = make_record('anotherpackage-1.0-py33_0')
+    record.depends = ['nose', 'mypackage 1.1']
+    index2[record] = record
+
+    record = make_record('anotherpackage-2.0-py33_0')
+    record.depends = ['nose', 'mypackage']
+    index2[record] = record
+
     r = Resolve(index2)
 
     assert set(r.find_matches(MatchSpec('mypackage'))) == {
-        Dist('mypackage-1.0-py33_0.tar.bz2'),
-        Dist('mypackage-1.1-py33_0.tar.bz2'),
+        make_record('mypackage-1.0-py33_0.tar.bz2'),
+        make_record('mypackage-1.1-py33_0.tar.bz2'),
     }
-    assert set(d.to_filename() for d in r.get_reduced_index(['mypackage']).keys()) == {
+
+    assert set(r.get_reduced_index(['mypackage']).keys()) == set(make_record(fn) for fn in {
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.1.2-py33_0.tar.bz2',
         'nose-1.2.1-py33_0.tar.bz2',
@@ -560,9 +566,9 @@ def test_nonexistent_deps():
         'system-5.8-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2'}
+        'zlib-1.2.7-0.tar.bz2'})
 
-    assert r.install(['mypackage']) == r.install(['mypackage 1.1']) == [Dist(dname) for dname in [
+    assert r.install(['mypackage']) == r.install(['mypackage 1.1']) == [make_record(dname) for dname in [
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -576,7 +582,7 @@ def test_nonexistent_deps():
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0']))
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
-    assert r.install(['anotherpackage 1.0']) == [Dist(dname) for dname in [
+    assert r.install(['anotherpackage 1.0']) == [make_record(dname) for dname in [
         'anotherpackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -589,7 +595,7 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]]
 
-    assert r.install(['anotherpackage']) == [Dist(dname) for dname in [
+    assert r.install(['anotherpackage']) == [make_record(dname) for dname in [
         'anotherpackage-2.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -604,46 +610,30 @@ def test_nonexistent_deps():
 
     # This time, the latest version is messed up
     index3 = index.copy()
-    index3['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
-        'name': 'mypackage',
-        'requires': ['nose 1.2.1', 'python 3.3'],
-        'version': '1.1',
-    })
-    index3['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'python 3.3*'],
-        'name': 'mypackage',
-        'requires': ['nose 1.2.1', 'python 3.3'],
-        'version': '1.0',
-    })
-    index3['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'mypackage 1.0'],
-        'name': 'anotherpackage',
-        'requires': ['nose', 'mypackage 1.0'],
-        'version': '1.0',
-    })
-    index3['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['nose', 'mypackage'],
-        'name': 'anotherpackage',
-        'requires': ['nose', 'mypackage'],
-        'version': '2.0',
-    })
-    index3 = {Dist(key): value for key, value in iteritems(index3)}
+
+    record = make_record('mypackage-1.1-py33_0')
+    record.depends = ['nose', 'python 3.3*', 'notarealpackage 2.0*']
+    index3[record] = record
+
+    record = make_record('mypackage-1.0-py33_0')
+    record.depends = ['nose', 'python 3.3*']
+    index3[record] = record
+
+    record = make_record('anotherpackage-1.0-py33_0')
+    record.depends = ['nose', 'mypackage 1.0']
+    index3[record] = record
+
+    record = make_record('anotherpackage-2.0-py33_0')
+    record.depends = ['nose', 'mypackage']
+    index3[record] = record
+
     r = Resolve(index3)
 
-    assert set(d.to_filename() for d in r.find_matches(MatchSpec('mypackage'))) == {
+    assert set(r.find_matches(MatchSpec('mypackage'))) == set(make_record(fn) for fn in {
         'mypackage-1.0-py33_0.tar.bz2',
         'mypackage-1.1-py33_0.tar.bz2',
-        }
-    assert set(d.to_filename() for d in r.get_reduced_index(['mypackage']).keys()) == {
+        })
+    assert set(r.get_reduced_index(['mypackage']).keys()) == set(make_record(fn) for fn in {
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.1.2-py33_0.tar.bz2',
         'nose-1.2.1-py33_0.tar.bz2',
@@ -661,9 +651,9 @@ def test_nonexistent_deps():
         'system-5.8-0.tar.bz2',
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2'}
+        'zlib-1.2.7-0.tar.bz2'})
 
-    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [Dist(dname) for dname in [
+    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [make_record(dname) for dname in [
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -676,7 +666,7 @@ def test_nonexistent_deps():
     ]]
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.1']))
 
-    assert r.install(['anotherpackage 1.0']) == [Dist(dname) for dname in [
+    assert r.install(['anotherpackage 1.0']) == [make_record(dname) for dname in [
         'anotherpackage-1.0-py33_0.tar.bz2',
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -691,7 +681,7 @@ def test_nonexistent_deps():
 
     # If recursive checking is working correctly, this will give
     # anotherpackage 2.0, not anotherpackage 1.0
-    assert r.install(['anotherpackage']) == [Dist(dname) for dname in [
+    assert r.install(['anotherpackage']) == [make_record(dname) for dname in [
         'anotherpackage-2.0-py33_0.tar.bz2',
         'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -707,24 +697,17 @@ def test_nonexistent_deps():
 
 def test_install_package_with_feature():
     index2 = index.copy()
-    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'featurepy33_0',
-        'build_number': 0,
-        'depends': ['python 3.3*'],
-        'name': 'mypackage',
-        'version': '1.0',
-        'features': 'feature',
-    })
-    index2['feature-1.0-py33_0.tar.bz2'] = IndexRecord(**{
-        'build': 'py33_0',
-        'build_number': 0,
-        'depends': ['python 3.3*'],
-        'name': 'feature',
-        'version': '1.0',
-        'track_features': 'feature',
-    })
 
-    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    record = make_record('mypackage-1.0-featurepy33_0')
+    record.depends = ['python 3.3*']
+    record.features = "feature"
+    index2[record] = record
+
+    record = make_record('feature-1.0-py33_0')
+    record.depends = ['python 3.3*']
+    record.track_features = "feature"
+    index2[record] = record
+
     r = Resolve(index2)
 
     # It should not raise
@@ -733,36 +716,28 @@ def test_install_package_with_feature():
 
 def test_circular_dependencies():
     index2 = index.copy()
-    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
-        'build': '0',
-        'build_number': 0,
-        'depends': ['package2'],
-        'name': 'package1',
-        'requires': ['package2'],
-        'version': '1.0',
-    })
-    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
-        'build': '0',
-        'build_number': 0,
-        'depends': ['package1'],
-        'name': 'package2',
-        'requires': ['package1'],
-        'version': '1.0',
-    })
-    index2 = {Dist(key): value for key, value in iteritems(index2)}
+
+    record = make_record('package1-1.0-0')
+    record.depends = ['package2']
+    index2[record] = record
+
+    record = make_record('package2-1.0-0')
+    record.depends = ['package1']
+    index2[record] = record
+
     r = Resolve(index2)
 
     assert set(r.find_matches(MatchSpec('package1'))) == {
-        Dist('package1-1.0-0.tar.bz2'),
+        make_record('package1-1.0-0.tar.bz2'),
     }
     assert set(r.get_reduced_index(['package1']).keys()) == {
-        Dist('package1-1.0-0.tar.bz2'),
-        Dist('package2-1.0-0.tar.bz2'),
+        make_record('package1-1.0-0.tar.bz2'),
+        make_record('package2-1.0-0.tar.bz2'),
     }
     assert r.install(['package1']) == r.install(['package2']) == \
         r.install(['package1', 'package2']) == [
-        Dist('package1-1.0-0.tar.bz2'),
-        Dist('package2-1.0-0.tar.bz2'),
+        make_record('package1-1.0-0.tar.bz2'),
+        make_record('package2-1.0-0.tar.bz2'),
     ]
 
 
