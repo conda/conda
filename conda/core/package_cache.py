@@ -439,7 +439,7 @@ class ProgressiveFetchExtract(object):
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         cache_axn = CacheUrlAction(
-            url=record.get('url') or dist.to_url(),
+            url=record.get('url'),
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=dist.to_filename(),
             md5sum=md5,

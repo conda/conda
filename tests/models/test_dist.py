@@ -52,8 +52,6 @@ class DistTests(TestCase):
         assert d.channel == 's3://some/bucket/name'
         assert d.quad[0] == "spyder-app"
         assert d.dist_name == "spyder-app-2.3.8-py27_0"
-        # assert d.to_url() == join_url("s3://some/bucket/name", context.subdir,
-        #                               "spyder-app-2.3.8-py27_0.tar.bz2")
 
 
 class UrlDistTests(TestCase):
@@ -67,9 +65,6 @@ class UrlDistTests(TestCase):
         assert d.version == '2.3.8'
         assert d.build_string == 'py27_0'
 
-        # assert d.to_url() == url
-        # assert d.is_channel is True
-
         # standard url channel
         url = "https://not.real.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
@@ -77,9 +72,6 @@ class UrlDistTests(TestCase):
         assert d.name == 'spyder-app'
         assert d.version == '2.3.8'
         assert d.build_string == 'py27_0'
-
-        # assert d.to_url() == url
-        # assert d.is_channel is True
 
         # another standard url channel
         url = "https://not.real.continuum.io/not/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
@@ -89,9 +81,6 @@ class UrlDistTests(TestCase):
         assert d.version == '2.3.8'
         assert d.build_string == 'py27_0'
 
-        # assert d.to_url() == url
-        # assert d.is_channel is True
-
         # local file url that is a named channel
         url = path_to_url(join_url(context.croot, 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2'))
         d = Dist(url)
@@ -100,9 +89,6 @@ class UrlDistTests(TestCase):
         assert d.version == '3.1.1'
         assert d.build_string == 'py35_2'
 
-        # assert d.to_url() == url
-        # assert d.is_channel is True
-
         # local file url that is not a named channel
         url = join_url('file:///some/location/on/disk', 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2')
         d = Dist(url)
@@ -110,9 +96,6 @@ class UrlDistTests(TestCase):
         assert d.name == 'bcrypt'
         assert d.version == '3.1.1'
         assert d.build_string == 'py35_2'
-
-        # assert d.to_url() == url
-        # assert d.is_channel is True
 
     def test_dist_with_non_channel_url(self):
         # contrived url
@@ -123,9 +106,6 @@ class UrlDistTests(TestCase):
         assert d.version == '1.9.1'
         assert d.build_string == 'py34_0'
 
-        # assert d.to_url() == url
-        # assert d.is_channel is False
-
         # file url that is not a channel
         url = path_to_url(join_url(context.croot, 'cffi-1.9.1-py34_0.tar.bz2'))
         d = Dist(url)
@@ -133,9 +113,6 @@ class UrlDistTests(TestCase):
         assert d.name == 'cffi'
         assert d.version == '1.9.1'
         assert d.build_string == 'py34_0'
-
-        # assert d.to_url() == url
-        # assert d.is_channel is False
 
         # file url that is a package cache
         # TODO: maybe this should look up the channel in urls.txt?  or maybe that's too coupled?
@@ -145,6 +122,3 @@ class UrlDistTests(TestCase):
         assert d.name == 'cffi'
         assert d.version == '1.9.1'
         assert d.build_string == 'py34_0'
-
-        # assert d.to_url() == url
-        # assert d.is_channel is False

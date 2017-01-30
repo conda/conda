@@ -1,28 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import namedtuple
 import json
 from logging import getLogger
 import re
 
-from conda._vendor.auxlib.decorators import memoizedproperty
-
 from .channel import Channel
-from .index_record import IndexRecord, LinkedPackageRecord
+from .index_record import IndexRecord
 from .package_info import PackageInfo
 from .. import CondaError
 from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from ..base.context import context
 from ..common.compat import ensure_text_type, string_types, text_type, with_metaclass
 from ..common.constants import NULL
-from ..common.url import has_platform, is_url, join_url
+from ..common.url import has_platform, is_url
 
 
 log = getLogger(__name__)
-DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
-                                         'dist_name'))
-
 
 class DistType(type):
 
@@ -46,27 +39,17 @@ class DistType(type):
             return super(DistType, cls).__call__(*args, **kwargs)
 
     def __new__(cls, name, bases, dct):
-         dct['__slots__'] = ('channel', 'name', 'version', 'build_string', 'build_number', 'with_features_depends')
+         dct['__slots__'] = ('channel', 'dist_name', 'with_features_depends')
          return type.__new__(cls, name, bases, dct)
 
 
 @with_metaclass(DistType)
 class Dist(object):
 
-    def __init__(self, channel, name=None, version=None, build_string=None, build_number=None,
-                 with_features_depends=None):
+    def __init__(self, channel, dist_name=None, with_features_depends=None):
         self.channel = channel
-        self.name = name
-        self.version = version
-        self.build_string = build_string
-        self.build_number = build_number
+        self.dist_name = dist_name
         self.with_features_depends = with_features_depends
-
-    @property
-    def dist_name(self):
-        if self.is_feature_package:
-            return self.name
-        return "%s-%s-%s" % (self.name, self.version, self.build)
 
     @property
     def base_url(self):
@@ -78,16 +61,7 @@ class Dist(object):
 
     @property
     def pkey(self):
-        if self.name.endswith('@'):
-            return self.name
-        if self.channel and self.channel != UNKNOWN_CHANNEL:
-            dist = "%s::%s-%s-%s" % (self.channel, self.name, self.version, self.build)
-        else:
-            dist = "%s-%s-%s" % (self.name, self.version, self.build)
-        # if self.with_features_depends:
-        #     # TODO: might not be quite right
-        #     dist += "[%s]" % self.with_features_depends
-        return dist
+        return self.__str__()
 
     def __hash__(self):
         return hash(self.pkey)
@@ -100,18 +74,41 @@ class Dist(object):
         return self.__str__()
 
     @property
-    def build(self):
-        return self.build_string
-
-    @property
     def pair(self):
         return self.channel or DEFAULTS_CHANNEL_NAME, self.dist_name
 
     @property
+    def triple(self):
+        res = self.dist_name.rsplit('-', 2) + ['', '']
+        return tuple(res[:3])
+
+    @property
+    def name(self):
+        return self.triple[0]
+
+    @property
+    def version(self):
+        return self.triple[1]
+
+    @property
+    def build(self):
+        return self.triple[2]
+
+    @property
+    def build_string(self):
+        return self.triple[2]
+
+    @property
+    def build_number(self):
+        try:
+            return int(self.build.rsplit('_', 1)[-1])
+        except ValueError:
+            return 0
+
+    @property
     def quad(self):
         # returns: name, version, build_string, channel
-        parts = self.dist_name.rsplit('-', 2) + ['', '']
-        return parts[0], parts[1], parts[2], self.channel or DEFAULTS_CHANNEL_NAME
+        return self.triple + (self.channel or DEFAULTS_CHANNEL_NAME,)
 
     def __str__(self):
         base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
@@ -134,10 +131,6 @@ class Dist(object):
     def is_feature_package(self):
         return self.name.endswith('@')
 
-    @property
-    def is_channel(self):
-        return bool(self.base_url and self.platform)
-
     def to_filename(self, extension='.tar.bz2'):
         if self.is_feature_package:
             return self.dist_name
@@ -156,10 +149,7 @@ class Dist(object):
 
         if string.endswith('@'):
             return cls(channel='@',
-                       name=string,
-                       version="",
-                       build_string="",
-                       build_number=0,
+                       dist_name=string,
                        with_features_depends=None)
 
         REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
@@ -176,13 +166,8 @@ class Dist(object):
         elif channel is None:
             channel = DEFAULTS_CHANNEL_NAME
 
-        # enforce dist format
-        dist_details = cls.parse_dist_name(original_dist)
         return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
+                   dist_name=original_dist,
                    with_features_depends=w_f_d)
 
     @staticmethod
@@ -201,18 +186,7 @@ class Dist(object):
             else:
                 dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
 
-            parts = dist_name.rsplit('-', 2)
-
-            name = parts[0]
-            version = parts[1]
-            build_string = parts[2] if len(parts) >= 3 else ''
-            build_number_as_string = ''.join(filter(lambda x: x.isdigit(),
-                                                    (build_string.rsplit('_')[-1]
-                                                     if build_string else '0')))
-            build_number = int(build_number_as_string) if build_number_as_string else 0
-
-            return DistDetails(name, version, build_string, build_number, dist_name)
-
+            return dist_name
         except:
             raise CondaError("dist_name is not a valid conda package: %s" % original_string)
 
@@ -222,10 +196,9 @@ class Dist(object):
         if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
-        dist_details = cls.parse_dist_name(url)
+        dist_name = cls.parse_dist_name(url)
         if '::' in url:
             url_no_tarball = url.rsplit('::', 1)[0]
-            platform = context.subdir
             base_url = url_no_tarball.split('::')[0]
             channel = text_type(Channel(base_url))
         else:
@@ -234,20 +207,7 @@ class Dist(object):
             base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
             channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 
-        return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
-                   )
-
-    def to_url(self):
-        if not self.base_url:
-            return None
-        filename = self.dist_name + CONDA_TARBALL_EXTENSION
-        return (join_url(self.base_url, self.platform, filename)
-                if self.platform
-                else join_url(self.base_url, filename))
+        return cls(channel=channel, dist_name=dist_name)
 
     def __key__(self):
         return self.channel, self.dist_name, self.with_features_depends
