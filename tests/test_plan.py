@@ -2,7 +2,10 @@ from __future__ import unicode_literals
 
 import os
 
-from conda.base.constants import DEFAULT_CHANNELS, DEFAULTS_CHANNEL_NAME, CONDA_TARBALL_EXTENSION
+from conda.version import VersionOrder
+
+from conda.base.constants import DEFAULT_CHANNELS, DEFAULTS_CHANNEL_NAME, CONDA_TARBALL_EXTENSION, \
+    MAX_CHANNEL_PRIORITY
 from conda.common.url import join_url
 
 from conda._vendor.boltons.setutils import IndexedSet
@@ -12,8 +15,8 @@ from conda.core import linked_data
 from conda.core.package_cache import ProgressiveFetchExtract
 from conda.exceptions import NoPackagesFoundError, InstallError
 from conda.models.channel import prioritize_channels, Channel
-from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.dist import Dist, parse_legacy_dist_str
+from conda.models.index_record import IndexRecord, LinkedPackageRecord
 
 from contextlib import contextmanager
 import sys
@@ -53,7 +56,7 @@ def make_record(dist):
     assert isinstance(dist, string_types)
     parts = dist.split("::", 1)
     schannel = DEFAULTS_CHANNEL_NAME if len(parts) == 1 else parts[0]
-    name, version, build_string, build_number, dist_name = Dist.parse_dist_name(parts[-1])
+    name, version, build_string, build_number, dist_name = parse_legacy_dist_str(parts[-1])
     fn = dist_name + CONDA_TARBALL_EXTENSION
     url = join(Channel(schannel).urls()[0], fn)
     return IndexRecord(schannel=schannel, fn=fn, url=url,
@@ -182,7 +185,9 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['defaults::python-3.3.2-0', 'defaults::readline-6.2-0',
+                                              'defaults::sqlite-3.7.13-0', 'defaults::tk-8.5.13-0',
+                                              'defaults::zlib-1.2.7-0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -215,8 +220,8 @@ The following packages will be REMOVED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
-    ['cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0'], 'UNLINK':
+    ['defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -240,9 +245,9 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
-        ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-1.5-py33_0', 'defaults::numpy-1.7.1-py33_0'], 'UNLINK':
+        ['defaults::cython-0.19-py33_0', 'defaults::dateutil-2.1-py33_1', 'defaults::pip-1.3.1-py33_1']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -266,9 +271,9 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
-            'dateutil-1.5-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-2.1-py33_1'], 'UNLINK':  ['defaults::cython-0.19-py33_0',
+            'defaults::dateutil-1.5-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -691,7 +696,7 @@ def test_display_actions_features():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -704,7 +709,7 @@ The following NEW packages will be INSTALLED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -717,7 +722,7 @@ The following packages will be REMOVED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -729,7 +734,7 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -741,7 +746,7 @@ The following packages will be UPDATED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -754,7 +759,7 @@ The following packages will be UPDATED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -768,7 +773,7 @@ The following packages will be UPDATED:
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -776,12 +781,12 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    cython: 0.19-py33_0   <unknown>
-    numpy:  1.7.1-py33_p0 <unknown> [mkl]
+    cython: 0.19-py33_0   defaults
+    numpy:  1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -789,12 +794,12 @@ The following NEW packages will be INSTALLED:
     assert c.stdout == """
 The following packages will be REMOVED:
 
-    cython: 0.19-py33_0   <unknown>
-    numpy:  1.7.1-py33_p0 <unknown> [mkl]
+    cython: 0.19-py33_0   defaults
+    numpy:  1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -802,11 +807,11 @@ The following packages will be REMOVED:
     assert c.stdout == """
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.0-py33_p0 <unknown> [mkl]
+    numpy: 1.7.1-py33_p0 defaults [mkl] --> 1.7.0-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -814,11 +819,11 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    numpy: 1.7.0-py33_p0 <unknown> [mkl] --> 1.7.1-py33_p0 <unknown> [mkl]
+    numpy: 1.7.0-py33_p0 defaults [mkl] --> 1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -827,11 +832,11 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_0 <unknown> --> 1.7.1-py33_p0 <unknown> [mkl]
+    numpy: 1.7.1-py33_0 defaults --> 1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -839,7 +844,7 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.1-py33_0 <unknown>
+    numpy: 1.7.1-py33_p0 defaults [mkl] --> 1.7.1-py33_0 defaults
 
 """
 
@@ -923,7 +928,7 @@ def generate_mocked_resolve(pkgs, install=None):
     mock_package = namedtuple("IndexRecord",
                               ["preferred_env", "name", "schannel", "version", "fn"])
     mock_resolve = namedtuple("Resolve", ["get_dists_for_spec", "index", "explicit", "install",
-                                          "package_name", "dependency_sort"])
+                                          "package_name", "dependency_sort", "version_key"])
 
     index = {}
     groups = defaultdict(list)
@@ -953,9 +958,19 @@ def generate_mocked_resolve(pkgs, install=None):
     def get_dependency_sort(specs):
         return tuple(spec for spec in specs.values())
 
+    def version_key(dist, vtype=None):
+        rec = index[dist]
+        cpri = rec.get('priority', 1)
+        valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
+        ver = VersionOrder((rec.get('version', '')))
+        bld = rec.get('build_number', 0)
+        bs = rec.get('build_string')
+        return ((valid, -cpri, ver, bld, bs) if context.channel_priority else
+                (valid, ver, -cpri, bld, bs))
+
     return mock_resolve(get_dists_for_spec=get_dists_for_spec, index=index, explicit=get_explicit,
                         install=get_install, package_name=get_package_name,
-                        dependency_sort=get_dependency_sort)
+                        dependency_sort=get_dependency_sort, version_key=version_key)
 
 
 def generate_mocked_record(dist_name):
@@ -1178,10 +1193,12 @@ class TestGetActionsForDist(unittest.TestCase):
         dists_for_prefix = plan.SpecsForPrefix(prefix="root/prefix", r=r,
                                                specs=["testspec2 <4.3", "testspec1 1.1*"])
 
-        test_link_data = {"root/prefix": {Dist("testspec1-0.9.1-py27_2"): True}}
+        lpr = LinkedPackageRecord.from_objects(make_record("testspec1-0.9.1-py27_2"))
+        test_link_data = {"root/prefix": {lpr: True}}
+        dists_for_prefix.r.index[lpr] = lpr
         with patch("conda.core.linked_data.linked_data_", test_link_data):
-            actions = plan.get_actions_for_dists(dists_for_prefix, None, self.res.index, None, False,
-                                             False, True, True)
+            actions = plan.get_actions_for_dists(dists_for_prefix, None, None, None, False,
+                                                 False, True, True)
 
         expected_output = defaultdict(list)
         expected_output["PREFIX"] = "root/prefix"

@@ -13,7 +13,7 @@ from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.index_record import IndexRecord
 from .toposort import toposort
-from .version import VersionSpec, normalized_version
+from .version import VersionSpec, normalized_version, VersionOrder
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -530,7 +530,7 @@ class Resolve(object):
         rec = self.index[dist]
         cpri = rec.get('priority', 1)
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
-        ver = normalized_version(rec.get('version', ''))
+        ver = VersionOrder(rec.get('version', ''))
         bld = rec.get('build_number', 0)
         bs = rec.get('build_string')
         return ((valid, -cpri, ver, bld, bs) if context.channel_priority else

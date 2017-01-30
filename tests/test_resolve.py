@@ -12,7 +12,7 @@ from conda.base.context import reset_context
 from conda.common.compat import iteritems, text_type, string_types
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.channel import Channel
-from conda.models.dist import Dist
+from conda.models.dist import Dist, parse_legacy_dist_str
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
 from os.path import dirname, join
@@ -33,16 +33,16 @@ with open(join(dirname(__file__), 'index.json')) as fi:
         index[record] = record
     r = Resolve(index)
 
+
 def make_record(dist):
     assert isinstance(dist, string_types)
     parts = dist.split("::", 1)
     schannel = DEFAULTS_CHANNEL_NAME if len(parts) == 1 else parts[0]
-    name, version, build_string, build_number, dist_name = Dist.parse_dist_name(parts[-1])
+    name, version, build_string, build_number, dist_name = parse_legacy_dist_str(parts[-1])
     fn = dist_name + CONDA_TARBALL_EXTENSION
     url = join(Channel(schannel).urls()[0], fn)
     return IndexRecord(schannel=schannel, fn=fn, url=url,
                        name=name, version=version, build=build_string, build_number=build_number)
-
 
 
 

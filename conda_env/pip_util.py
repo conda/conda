@@ -4,10 +4,13 @@ Functions related to core conda functionality that relates to pip
 NOTE: This modules used to in conda, as conda/pip.py
 """
 from __future__ import absolute_import, print_function
+
 from os.path import isfile, join
 import re
 import subprocess
 import sys
+
+from conda.models.dist import parse_legacy_dist_str
 
 
 def pip_args(prefix):
@@ -106,8 +109,7 @@ def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
     # TODO Refactor so installed is a real list of objects/dicts
     #      instead of strings allowing for direct comparison
     # split :: to get rid of channel info
-    from conda.models.dist import Dist
-    conda_names = {Dist.parse_dist_name(d).name for d in installed_pkgs}
+    conda_names = {parse_legacy_dist_str(d).name for d in installed_pkgs}
     for pip_pkg in installed(prefix, output=output):
         if pip_pkg['name'] in conda_names and 'path' not in pip_pkg:
             continue

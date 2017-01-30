@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import namedtuple
 import json
 from logging import getLogger
 import re
@@ -14,8 +15,41 @@ from ..common.compat import ensure_text_type, string_types, text_type, with_meta
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url
 
-
 log = getLogger(__name__)
+DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
+                                         'dist_name'))
+
+
+def parse_legacy_dist_str(string):
+    original_string = string
+    try:
+        string = ensure_text_type(string)
+
+        no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
+                             if string.endswith(CONDA_TARBALL_EXTENSION)
+                             else string)
+
+        # remove any directory or channel information
+        if '::' in no_tar_bz2_string:
+            dist_name = no_tar_bz2_string.rsplit('::', 1)[-1]
+        else:
+            dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
+
+        parts = dist_name.rsplit('-', 2)
+
+        name = parts[0]
+        version = parts[1]
+        build_string = parts[2] if len(parts) >= 3 else ''
+        build_number_as_string = ''.join(filter(lambda x: x.isdigit(),
+                                                (build_string.rsplit('_')[-1]
+                                                 if build_string else '0')))
+        build_number = int(build_number_as_string) if build_number_as_string else 0
+
+        return DistDetails(name, version, build_string, build_number, dist_name)
+
+    except:
+        raise CondaError("dist_name is not a valid conda package: %s" % original_string)
+
 
 class DistType(type):
 
@@ -27,10 +61,10 @@ class DistType(type):
             elif isinstance(value, string_types):
                 return Dist.from_string(value)
             elif isinstance(value, IndexRecord):
-                return Dist(value.schannel, value.name, value.version, value.build, value.build_number, value.with_features_depends)
+                return Dist(value.schannel, '-'.join((value.name, value.version, value.build)), value.with_features_depends)
             elif isinstance(value, PackageInfo):
                 v = value.repodata_record
-                return Dist(value.channel.canonical_name, v.name, v.version, v.build, v.build_number, v.with_features_depends)
+                return Dist(value.channel.canonical_name, '-'.join((v.name, v.version, v.build)), v.with_features_depends)
             elif isinstance(value, Channel):
                 raise NotImplementedError()
             else:

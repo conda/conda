@@ -11,7 +11,7 @@ import logging
 from os.path import isdir, isfile
 import re
 
-from conda.models.dist import Dist
+from conda.models.dist import Dist, parse_legacy_dist_str
 from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -114,7 +114,7 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    get_name = lambda d: Dist.parse_dist_name(d).name
+    get_name = lambda d: parse_legacy_dist_str(d).name
     pairs = sorted(((get_name(d), d) for d in installed), key=lambda x: x[0].lower())
     for name, dist in pairs:
         if pat and pat.search(name) is None:
@@ -131,7 +131,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(Dist.parse_dist_name(dist)[:3]))
+            result.append('='.join(parse_legacy_dist_str(dist)[:3]))
             continue
 
         try:
@@ -147,7 +147,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug("exception for dist %s:\n%r", dist, e)
-            result.append('%-25s %-15s %15s' % tuple(Dist.parse_dist_name(dist)[:3]))
+            result.append('%-25s %-15s %15s' % tuple(parse_legacy_dist_str(dist)[:3]))
 
     return res, result
 
