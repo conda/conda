@@ -48,7 +48,7 @@ from conda.core.package_cache import PackageCache
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import TRACE
-from conda.models.index_record import IndexRecord
+from conda.models.index_record import IndexRecord, IndexJsonRecord
 from conda.utils import on_win
 
 try:
@@ -310,7 +310,7 @@ class IntegrationTests(TestCase):
             flask_data = flask_data.dump()
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
-            repodata = {'info': {}, 'packages': {flask_fname: IndexRecord(**flask_data)}}
+            repodata = {'info': {}, 'packages': {flask_fname: IndexJsonRecord(**flask_data)}}
             with make_temp_env() as channel:
                 subchan = join(channel, context.subdir)
                 noarch_dir = join(channel, 'noarch')

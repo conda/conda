@@ -144,7 +144,8 @@ def execute(args, parser):
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
         actions = {inst.PREFIX: prefix}
-        for dist in sorted(iterkeys(index)):
+        r = Resolve(index)
+        for dist in sorted(iterkeys(index), key=r.version_key):
             plan.add_unlink(actions, dist)
         action_groups = actions,
     else:

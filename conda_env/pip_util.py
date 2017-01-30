@@ -106,7 +106,8 @@ def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
     # TODO Refactor so installed is a real list of objects/dicts
     #      instead of strings allowing for direct comparison
     # split :: to get rid of channel info
-    conda_names = {d.quad[0] for d in installed_pkgs}
+    from conda.models.dist import Dist
+    conda_names = {Dist.parse_dist_name(d).name for d in installed_pkgs}
     for pip_pkg in installed(prefix, output=output):
         if pip_pkg['name'] in conda_names and 'path' not in pip_pkg:
             continue

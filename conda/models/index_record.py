@@ -96,3 +96,5 @@ class IndexRecord(IndexJsonRecord):
 class LinkedPackageRecord(IndexRecord):
     files = ListField(string_types, default=(), required=False)
     link = ComposableField(Link, required=False)
+
+    url = StringField(required=False, nullable=True)

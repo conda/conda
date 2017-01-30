@@ -371,7 +371,6 @@ def plan_from_actions(actions, index):
 # supplying an index and setting force=True
 def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):
-    assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,

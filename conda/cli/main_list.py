@@ -114,11 +114,11 @@ def print_export_header():
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: Dist(x).quad[0].lower()):
-        name = dist.quad[0]
+    get_name = lambda d: Dist.parse_dist_name(d).name
+    pairs = sorted(((get_name(d), d) for d in installed), key=lambda x: x[0].lower())
+    for name, dist in pairs:
         if pat and pat.search(name) is None:
             continue
-
         yield dist
 
 
@@ -131,7 +131,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist.quad[:3]))
+            result.append('='.join(Dist.parse_dist_name(dist)[:3]))
             continue
 
         try:
@@ -147,7 +147,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug("exception for dist %s:\n%r", dist, e)
-            result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
+            result.append('%-25s %-15s %15s' % tuple(Dist.parse_dist_name(dist)[:3]))
 
     return res, result
 

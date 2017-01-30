@@ -241,7 +241,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         r = Resolve(index, sort=True)
         for dist in unknowns:
             name = dist.dist_name
-            fn = dist.to_filename()
+            fn = dist.fn
             fkeys = [d for d in r.index.keys() if r.index[d]['fn'] == fn]
             if fkeys:
                 del drecs[dist]

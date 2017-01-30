@@ -106,16 +106,16 @@ def dump_record(pkg):
 
 
 def pretty_package(dist, pkg):
+    # both dist and pkg are probably IndexRecords
     from conda.utils import human_bytes
-
     pkg = dump_record(pkg)
     d = OrderedDict([
-        ('file name', dist.to_filename()),
+        ('file name', dist.fn),
         ('name', pkg['name']),
         ('version', pkg['version']),
         ('build string', pkg['build']),
         ('build number', pkg['build_number']),
-        ('channel', dist.channel),
+        ('channel', dist.schannel),
         ('size', human_bytes(pkg['size'])),
     ])
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
