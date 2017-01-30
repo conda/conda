@@ -278,8 +278,8 @@ def test_pseudo_boolean():
 
 def test_get_dists():
     dists = r.get_reduced_index(["anaconda 1.5.0"])
-    assert make_record('anaconda-1.5.0-np17py27_0.tar.bz2') in dists
     assert make_record('dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
+    assert make_record('anaconda-1.5.0-np17py27_0.tar.bz2') in dists
 
 
 def test_generate_eq():
@@ -742,7 +742,7 @@ def test_circular_dependencies():
 
 
 def test_irrational_version():
-    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[Dist(fname) for fname in [
+    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[make_record(fname) for fname in [
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
         'pytz-2012d-py33_0.tar.bz2',
@@ -757,7 +757,7 @@ def test_irrational_version():
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
     assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
-        returnall=True) == [[Dist(fname) for fname in [
+        returnall=True) == [[make_record(fname) for fname in [
             'numpy-1.6.2-py26_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
             'python-2.6.8-6.tar.bz2',
@@ -770,7 +770,7 @@ def test_no_features():
             ]]]
 
     assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
-        returnall=True) == [[Dist(fname) for fname in [
+        returnall=True) == [[make_record(fname) for fname in [
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
             'openssl-1.0.1c-0.tar.bz2',
@@ -784,49 +784,23 @@ def test_no_features():
             ]]]
 
     index2 = index.copy()
-    index2["pandas-0.12.0-np16py27_0.tar.bz2"] = IndexRecord(**{
-            "build": "np16py27_0",
-            "build_number": 0,
-            "depends": [
-              "dateutil",
-              "numpy 1.6*",
-              "python 2.7*",
-              "pytz"
-            ],
-            "name": "pandas",
-            "requires": [
-              "dateutil 1.5",
-              "numpy 1.6",
-              "python 2.7",
-              "pytz"
-            ],
-            "version": "0.12.0"
-        })
-    # Make it want to choose the pro version by having it be newer.
-    index2["numpy-1.6.2-py27_p5.tar.bz2"] = IndexRecord(**{
-            "build": "py27_p5",
-            "build_number": 5,
-            "depends": [
-              "mkl-rt 11.0",
-              "python 2.7*"
-            ],
-            "features": "mkl",
-            "name": "numpy",
-            "pub_date": "2013-04-29",
-            "requires": [
-              "mkl-rt 11.0",
-              "python 2.7"
-            ],
-            "version": "1.6.2"
-        })
 
-    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    record = make_record('pandas-0.12.0-np16py27_0')
+    record.depends = ["dateutil", "numpy 1.6*", "python 2.7*", "pytz"]
+    index2[record] = record
+
+    # Make it want to choose the pro version by having it be newer.
+    record = make_record('numpy-1.6.2-py27_p5')
+    record.depends = ["mkl-rt 11.0", "python 2.7*"]
+    record.features = "mkl"
+    index2[record] = record
+
     r2 = Resolve(index2)
 
     # This should not pick any mkl packages (the difference here is that none
     # of the specs directly have mkl versions)
     assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*'],
-        returnall=True) == [[Dist(fname) for fname in [
+        returnall=True) == [[make_record(fname) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'numpy-1.6.2-py27_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
@@ -842,7 +816,7 @@ def test_no_features():
             ]]]
 
     assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', 'mkl@'],
-        returnall=True)[0] == [[Dist(fname) for fname in [
+        returnall=True)[0] == [[make_record(fname) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',           # This
             'numpy-1.6.2-py27_p5.tar.bz2',      # and this are different.
@@ -960,34 +934,49 @@ def test_remove():
 
 
 def test_channel_priority():
+    index2 = index.copy()
+
     fn1 = 'pandas-0.10.1-np17py27_0.tar.bz2'
     fn2 = 'other::' + fn1
-    spec = ['pandas', 'python 2.7*']
-    index2 = index.copy()
-    index2[Dist(fn2)] = index2[Dist(fn1)].copy()
-    index2 = {Dist(key): value for key, value in iteritems(index2)}
+
+    record = make_record(fn1)
+    index2[record] = record
+
+    record2 = make_record(fn2)
+    index2[record2] = record2
+
     r2 = Resolve(index2)
-    rec = r2.index[Dist(fn2)]
+    assert r2.index[record2]
 
     os.environ['CONDA_CHANNEL_PRIORITY'] = 'True'
     reset_context(())
 
-    r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=0)
+    spec = ['pandas', 'python 2.7*']
+
+    record2.priority = 0
     # Should select the "other", older package because it
     # has a lower channel priority number
     installed1 = r2.install(spec)
+    assert 'other::pandas-0.10.1-np17py27_0' in installed1
+    assert len([d for d in installed1 if d.name == 'pandas']) == 1
+
     # Should select the newer package because now the "other"
     # package has a higher priority number
-    r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=2)
+    record2.priority = 2
     installed2 = r2.install(spec)
-    # Should also select the newer package because we have
-    # turned off channel priority altogether
+    assert 'defaults::pandas-0.11.0-np17py27_1' in installed2
+    assert len([d for d in installed1 if d.name == 'pandas']) == 1
 
     os.environ['CONDA_CHANNEL_PRIORITY'] = 'False'
     reset_context(())
 
-    r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=0)
+    # Should also select the newer package because we have
+    # turned off channel priority altogether
+    record2.priority = 0
     installed3 = r2.install(spec)
+    assert 'defaults::pandas-0.11.0-np17py27_1' in installed3
+    assert len([d for d in installed1 if d.name == 'pandas']) == 1
+
     assert installed1 != installed2
     assert installed1 != installed3
     assert installed2 == installed3
