@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda._vendor.auxlib.decorators import memoizedproperty
-from conda.base.constants import UNKNOWN_CHANNEL
-
 from .enums import LinkType, NoarchType, Platform
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField,
                                      MapField, StringField)
@@ -58,6 +56,10 @@ class IndexJsonRecord(DictSafeMixin, Entity):
 
     with_features_depends = MapField(required=False)  # go back to hell
 
+    @property
+    def dist_name(self):
+        return "%s-%s-%s" % (self.name, self.version, self.build)
+
 
 class IndexRecord(IndexJsonRecord):
 
@@ -74,17 +76,13 @@ class IndexRecord(IndexJsonRecord):
         if self.name.endswith('@'):
             return self.name
         if self.schannel:
-            dist = "%s::%s-%s-%s" % (self.schannel, self.name, self.version, self.build)
+            dist = "%s::%s" % (self.schannel, self.dist_name)
         else:
-            dist = "%s-%s-%s" % (self.name, self.version, self.build)
+            dist = self.dist_name
         # if self.with_features_depends:
         #     # TODO: might not be quite right
         #     dist += "[%s]" % self.with_features_depends
         return dist
-
-    @property
-    def dist_name(self):
-        return self.pkey.split('::')[-1]
 
     def __hash__(self):
         return hash(self.pkey)
@@ -97,4 +95,6 @@ class LinkedPackageRecord(IndexRecord):
     files = ListField(string_types, default=(), required=False)
     link = ComposableField(Link, required=False)
 
+    # url is optional here for legacy support.
+    #   see tests/test_create.py test_dash_c_usage_replacing_python
     url = StringField(required=False, nullable=True)

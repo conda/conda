@@ -21,34 +21,38 @@ DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'bui
 
 
 def parse_legacy_dist_str(string):
-    original_string = string
-    try:
-        string = ensure_text_type(string)
+    if isinstance(string, string_types):
+        original_string = string
+        try:
+            string = ensure_text_type(string)
 
-        no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
-                             if string.endswith(CONDA_TARBALL_EXTENSION)
-                             else string)
+            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
+                                 if string.endswith(CONDA_TARBALL_EXTENSION)
+                                 else string)
 
-        # remove any directory or channel information
-        if '::' in no_tar_bz2_string:
-            dist_name = no_tar_bz2_string.rsplit('::', 1)[-1]
-        else:
-            dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
+            # remove any directory or channel information
+            if '::' in no_tar_bz2_string:
+                dist_name = no_tar_bz2_string.rsplit('::', 1)[-1]
+            else:
+                dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
 
-        parts = dist_name.rsplit('-', 2)
+            parts = dist_name.rsplit('-', 2)
 
-        name = parts[0]
-        version = parts[1]
-        build_string = parts[2] if len(parts) >= 3 else ''
-        build_number_as_string = ''.join(filter(lambda x: x.isdigit(),
-                                                (build_string.rsplit('_')[-1]
-                                                 if build_string else '0')))
-        build_number = int(build_number_as_string) if build_number_as_string else 0
+            name = parts[0]
+            version = parts[1]
+            build_string = parts[2] if len(parts) >= 3 else ''
+            build_number_as_string = ''.join(filter(lambda x: x.isdigit(),
+                                                    (build_string.rsplit('_')[-1]
+                                                     if build_string else '0')))
+            build_number = int(build_number_as_string) if build_number_as_string else 0
 
-        return DistDetails(name, version, build_string, build_number, dist_name)
+            return DistDetails(name, version, build_string, build_number, dist_name)
 
-    except:
-        raise CondaError("dist_name is not a valid conda package: %s" % original_string)
+        except:
+            raise CondaError("dist_name is not a valid conda package: %s" % original_string)
+    else:
+        s = string
+        return DistDetails(s.name, s.version, s.build, s.build_number, s.dist_name)
 
 
 class DistType(type):
