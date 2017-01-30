@@ -189,6 +189,7 @@ class Resolve(object):
             'build': '0',
             'depends': [],
             'track_features': feature_name,
+            'url': '',
         }
 
         self.index[feature_dist] = IndexRecord(**info)
@@ -493,8 +494,8 @@ class Resolve(object):
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
-            dist = Dist(dist)
-            if dist.with_features_depends:
+            # dist = Dist(dist)
+            if rec.with_features_depends:
                 f2, fstr = (Dist.from_string(dist.dist_name, channel_override=dist.channel),
                             dist.with_features_depends)
                 fdeps = {d.name: d for d in self.ms_depends(f2)}

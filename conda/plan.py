@@ -53,8 +53,8 @@ def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
-    for dist, extra in dists_extras:
-        name, version, build, _ = dist.quad
+    for record, extra in dists_extras:
+        name, version, build = record.name, record.version, record.build
         line = fmt % (name + '-' + version, build)
         if extra:
             line += extra
@@ -86,17 +86,16 @@ def display_actions(actions, index, show_channel_urls=None):
 
         disp_lst = []
         for dist in actions[FETCH]:
-            dist = Dist(dist)
-            info = index[dist]
-            extra = '%15s' % human_bytes(info['size'])
-            schannel = channel_filt(channel_str(info))
+            record = index[dist]
+            extra = '%15s' % human_bytes(record['size'])
+            schannel = channel_filt(channel_str(record))
             if schannel:
                 extra += '  ' + schannel
-            disp_lst.append((dist, extra))
+            disp_lst.append((record, extra))
         print_dists(disp_lst)
 
         if index and len(actions[FETCH]) > 1:
-            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
+            num_bytes = sum(index[dist]['size'] for dist in actions[FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -108,8 +107,7 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(LINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
+        rec = index[arg]
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
@@ -117,8 +115,7 @@ def display_actions(actions, index, show_channel_urls=None):
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(UNLINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
+        rec = index[arg]
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
@@ -412,10 +409,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             log.debug('H1 %s' % name)
             continue
 
-        try:
-            depends_on = {s for s in mspecs if r.depends_on(s, name)}
-        except:
-            import pdb; pdb.set_trace()
+        depends_on = {s for s in mspecs if r.depends_on(s, name)}
         any_depends_on = bool(depends_on)
         log.debug('H2 %s %s' % (name, any_depends_on))
 
@@ -826,7 +820,6 @@ def revert_actions(prefix, revision=-1, index=None):
     for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
         dist = Dist(arg)
         if dist not in index:
-            import pdb; pdb.set_trace()
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 

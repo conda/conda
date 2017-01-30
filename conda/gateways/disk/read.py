@@ -13,13 +13,15 @@ from os import X_OK, access, listdir
 from os.path import isdir, isfile, islink, join, lexists
 import shlex
 
+from conda._vendor.auxlib.collection import AttrDict
+
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import on_win
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexRecord
+from ...models.index_record import IndexRecord, IndexJsonRecord
 from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathDataV1, PathsData
 
 log = getLogger(__name__)
@@ -92,8 +94,7 @@ def read_package_info(record, extracted_package_directory):
 
 def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-        record = IndexRecord(**json.load(fi))  # TODO: change to LinkedPackageData
-    return record
+        return IndexJsonRecord(**json.load(fi))
 
 
 def read_icondata(extracted_package_directory):

@@ -6,6 +6,7 @@ from os import listdir
 from os.path import basename, isdir, isfile, islink, join
 from traceback import format_exc
 
+from conda.models.index_record import IndexRecord
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first
@@ -91,10 +92,12 @@ class PackageCacheEntry(object):
         else:
             self.channel = channel
 
-        self.index_json_record = read_index_json(extracted_package_dir)
-        self.index_json_record.fn = package_tarball_full_path.rsplit('/', 1)[-1]
-        self.index_json_record.url = url
-        self.index_json_record.schannel = channel.canonical_name
+        self.index_json_record = IndexRecord.from_objects(
+            read_index_json(extracted_package_dir),
+            fn=package_tarball_full_path.rsplit('/', 1)[-1],
+            url=url,
+            schannel=channel.canonical_name,
+        )
 
     @property
     def pkey(self):

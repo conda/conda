@@ -33,13 +33,11 @@ class DistType(type):
                 return value
             elif isinstance(value, string_types):
                 return Dist.from_string(value)
-            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
-                return value.dist
             elif isinstance(value, IndexRecord):
-                return Dist.from_string(value.fn, channel_override=value.schannel)
+                return Dist(value.schannel, value.name, value.version, value.build, value.build_number, value.with_features_depends)
             elif isinstance(value, PackageInfo):
-                return Dist.from_string(value.repodata_record.fn,
-                                        channel_override=value.channel.canonical_name)
+                v = value.repodata_record
+                return Dist(value.channel.canonical_name, v.name, v.version, v.build, v.build_number, v.with_features_depends)
             elif isinstance(value, Channel):
                 raise NotImplementedError()
             else:
@@ -86,9 +84,9 @@ class Dist(object):
             dist = "%s::%s-%s-%s" % (self.channel, self.name, self.version, self.build)
         else:
             dist = "%s-%s-%s" % (self.name, self.version, self.build)
-        if self.with_features_depends:
-            # TODO: might not be quite right
-            dist += "[%s]" % self.with_features_depends
+        # if self.with_features_depends:
+        #     # TODO: might not be quite right
+        #     dist += "[%s]" % self.with_features_depends
         return dist
 
     def __hash__(self):
@@ -123,8 +121,8 @@ class Dist(object):
             return base
 
     def __repr__(self):
-        args = ("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
-        return "%s(%s)".format(self.__class__.__name__, ', '.join(args))
+        args = tuple("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
+        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
     def dump(self):
         return {s: getattr(self, s) for s in self.__slots__}

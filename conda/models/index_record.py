@@ -35,7 +35,7 @@ class Link(DictSafeMixin, Entity):
 EMPTY_LINK = Link(source='')
 
 
-class IndexRecord(DictSafeMixin, Entity):
+class IndexJsonRecord(DictSafeMixin, Entity):
     _lazy_validate = True
 
     arch = StringField(required=False, nullable=True)
@@ -51,21 +51,23 @@ class IndexRecord(DictSafeMixin, Entity):
     name = StringField()
     noarch = NoarchField(NoarchType, required=False, nullable=True)
     platform = EnumField(Platform, required=False, nullable=True)
-    requires = ListField(string_types, required=False)
+    preferred_env = StringField(default=None, required=False, nullable=True)
     size = IntegerField(required=False)
     subdir = StringField(required=False)
     track_features = StringField(required=False)
     version = StringField()
 
-    fn = StringField(required=False, nullable=True)
+    with_features_depends = MapField(required=False)  # go back to hell
+
+
+class IndexRecord(IndexJsonRecord):
+
+    fn = StringField()
     schannel = StringField(required=False, nullable=True)
     channel = StringField(required=False, nullable=True)
     priority = IntegerField(required=False)
-    url = StringField(required=False, nullable=True)
+    url = StringField()
     auth = StringField(required=False, nullable=True)
-
-    with_features_depends = MapField(required=False)
-    preferred_env = StringField(default=None, required=False, nullable=True)
 
     @memoizedproperty
     def pkey(self):
@@ -75,9 +77,9 @@ class IndexRecord(DictSafeMixin, Entity):
             dist = "%s::%s-%s-%s" % (self.schannel, self.name, self.version, self.build)
         else:
             dist = "%s-%s-%s" % (self.name, self.version, self.build)
-        if self.with_features_depends:
-            # TODO: might not be quite right
-            dist += "[%s]" % self.with_features_depends
+        # if self.with_features_depends:
+        #     # TODO: might not be quite right
+        #     dist += "[%s]" % self.with_features_depends
         return dist
 
     @property

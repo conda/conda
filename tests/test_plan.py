@@ -1,11 +1,17 @@
+from __future__ import unicode_literals
+
 import os
+
+from conda.base.constants import DEFAULT_CHANNELS, DEFAULTS_CHANNEL_NAME, CONDA_TARBALL_EXTENSION
+from conda.common.url import join_url
+
 from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.cli import common
 from conda.core import linked_data
 from conda.core.package_cache import ProgressiveFetchExtract
 from conda.exceptions import NoPackagesFoundError, InstallError
-from conda.models.channel import prioritize_channels
+from conda.models.channel import prioritize_channels, Channel
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 
@@ -25,7 +31,7 @@ import conda.instructions as inst
 from conda.plan import display_actions
 from conda.resolve import Resolve, MatchSpec
 from conda.utils import on_win
-from conda.common.compat import iteritems
+from conda.common.compat import iteritems, string_types
 
 # FIXME This should be a relative import
 from tests.helpers import captured
@@ -39,8 +45,27 @@ try:
 except ImportError:
     from mock import patch
 
+
+SUBDIR_URL = Channel(DEFAULT_CHANNELS[0]).urls()[0]
+
+
+def make_record(dist):
+    assert isinstance(dist, string_types)
+    parts = dist.split("::", 1)
+    schannel = DEFAULTS_CHANNEL_NAME if len(parts) == 1 else parts[0]
+    name, version, build_string, build_number, dist_name = Dist.parse_dist_name(parts[-1])
+    fn = dist_name + CONDA_TARBALL_EXTENSION
+    url = join(Channel(schannel).urls()[0], fn)
+    return IndexRecord(schannel=schannel, fn=fn, url=url,
+                       name=name, version=version, build=build_string, build_number=build_number)
+
+
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(k): IndexRecord(**v) for k, v in iteritems(json.load(fi))}
+    index = {}
+    for key, value in iteritems(json.load(fi)):
+        record = IndexRecord(schannel=DEFAULTS_CHANNEL_NAME, fn=key,
+                             url=join_url(SUBDIR_URL, key), **value)
+        index[record] = record
     r = Resolve(index)
 
 
@@ -273,14 +298,15 @@ The following packages will be DOWNGRADED due to dependency conflicts:
 def test_display_actions_show_channel_urls():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
     reset_context(())
-    actions = defaultdict(list, {"FETCH": ['sympy-0.7.2-py27_0',
-        "numpy-1.7.1-py27_0"]})
+    actions = defaultdict(list, {"FETCH": ['defaults::sympy-0.7.2-py27_0',
+        "defaults::numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
-    d = Dist('sympy-0.7.2-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, size=4374752)
-    d = Dist('numpy-1.7.1-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, size=5994338)
-
+    d = make_record('sympy-0.7.2-py27_0')
+    d.size = 4374752
+    index[d] = d
+    d = make_record("numpy-1.7.1-py27_0")
+    d.size = 5994338
+    index[d] = d
     with captured() as c:
         display_actions(actions, index)
 
@@ -298,7 +324,7 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0', 'sqlite-3.7.13-0', 'tk-8.5.13-0', 'zlib-1.2.7-0']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['defaults::python-3.3.2-0', 'defaults::readline-6.2-0', 'defaults::sqlite-3.7.13-0', 'defaults::tk-8.5.13-0', 'defaults::zlib-1.2.7-0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -306,11 +332,11 @@ The following packages will be downloaded:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    python:   3.3.2-0  <unknown>
-    readline: 6.2-0    <unknown>
-    sqlite:   3.7.13-0 <unknown>
-    tk:       8.5.13-0 <unknown>
-    zlib:     1.2.7-0  <unknown>
+    python:   3.3.2-0  defaults
+    readline: 6.2-0    defaults
+    sqlite:   3.7.13-0 defaults
+    tk:       8.5.13-0 defaults
+    zlib:     1.2.7-0  defaults
 
 """
 
@@ -323,16 +349,16 @@ The following NEW packages will be INSTALLED:
     assert c.stdout == """
 The following packages will be REMOVED:
 
-    python:   3.3.2-0  <unknown>
-    readline: 6.2-0    <unknown>
-    sqlite:   3.7.13-0 <unknown>
-    tk:       8.5.13-0 <unknown>
-    zlib:     1.2.7-0  <unknown>
+    python:   3.3.2-0  defaults
+    readline: 6.2-0    defaults
+    sqlite:   3.7.13-0 defaults
+    tk:       8.5.13-0 defaults
+    zlib:     1.2.7-0  defaults
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
-    ['cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0'], 'UNLINK':
+    ['defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -340,7 +366,7 @@ The following packages will be REMOVED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    cython: 0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
+    cython: 0.19-py33_0 defaults --> 0.19.1-py33_0 defaults
 
 """
 
@@ -352,13 +378,13 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    cython: 0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
+    cython: 0.19.1-py33_0 defaults --> 0.19-py33_0 defaults
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
-        ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-1.5-py33_0', 'defaults::numpy-1.7.1-py33_0'], 'UNLINK':
+        ['defaults::cython-0.19-py33_0', 'defaults::dateutil-2.1-py33_1', 'defaults::pip-1.3.1-py33_1']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -366,25 +392,25 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0 <unknown>
+    numpy:    1.7.1-py33_0 defaults
 
 The following packages will be REMOVED:
 
-    pip:      1.3.1-py33_1 <unknown>
+    pip:      1.3.1-py33_1 defaults
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0  <unknown> --> 0.19.1-py33_0 <unknown>
+    cython:   0.19-py33_0  defaults --> 0.19.1-py33_0 defaults
 
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    dateutil: 2.1-py33_1   <unknown> --> 1.5-py33_0    <unknown>
+    dateutil: 2.1-py33_1   defaults --> 1.5-py33_0    defaults
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
-            'dateutil-1.5-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-2.1-py33_1'], 'UNLINK':  ['defaults::cython-0.19-py33_0',
+            'defaults::dateutil-1.5-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -392,8 +418,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
-    dateutil: 1.5-py33_0  <unknown> --> 2.1-py33_1    <unknown>
+    cython:   0.19-py33_0 defaults --> 0.19.1-py33_0 defaults
+    dateutil: 1.5-py33_0  defaults --> 2.1-py33_1    defaults
 
 """
 
@@ -405,17 +431,21 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    cython:   0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
-    dateutil: 2.1-py33_1    <unknown> --> 1.5-py33_0  <unknown>
+    cython:   0.19.1-py33_0 defaults --> 0.19-py33_0 defaults
+    dateutil: 2.1-py33_1    defaults --> 1.5-py33_0  defaults
 
 """
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    d = Dist('cython-0.19.1-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, channel='my_channel')
-    d = Dist('dateutil-1.5-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, channel='my_channel')
+    d = make_record('my_channel::cython-0.19.1-py33_0')
+    index[d] = d
+    d = make_record('my_channel::dateutil-1.5-py33_0')
+    index[d] = d
+
+    actions['UNLINK'] = ["defaults::cython-0.19-py33_0", "my_channel::dateutil-1.5-py33_0"]
+    actions['LINK'] = ["my_channel::cython-0.19.1-py33_0", "defaults::dateutil-2.1-py33_1"]
+
 
     with captured() as c:
         display_actions(actions, index)
@@ -423,8 +453,8 @@ The following packages will be DOWNGRADED due to dependency conflicts:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 <unknown>  --> 0.19.1-py33_0 my_channel
-    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    <unknown> \n\
+    cython:   0.19-py33_0 defaults   --> 0.19.1-py33_0 my_channel
+    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    defaults  \n\
 
 """
 
@@ -436,8 +466,8 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be DOWNGRADED due to dependency conflicts:
 
-    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown> \n\
-    dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel
+    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 defaults  \n\
+    dateutil: 2.1-py33_1    defaults   --> 1.5-py33_0  my_channel
 
 """
 
@@ -851,26 +881,25 @@ class PlanFromActionsTests(unittest.TestCase):
     py_ver = ''.join(str(x) for x in sys.version_info[:2])
 
     def test_plan_link_menuinst(self):
-        menuinst = Dist('menuinst-1.4.2-py27_0')
-        menuinst_record = IndexRecord.from_objects(menuinst)
-        ipython = Dist('ipython-5.1.0-py27_1')
-        ipython_record = IndexRecord.from_objects(ipython)
+        menuinst_record = make_record('menuinst-1.4.2-py27_0')
+        ipython_record = make_record('ipython-5.1.0-py27_1')
+
         actions = {
             'PREFIX': 'aprefix',
-            'LINK': [ipython, menuinst],
+            'LINK': [ipython_record, menuinst_record],
         }
 
         conda_plan = plan.plan_from_actions(actions, {
-            menuinst: menuinst_record,
-            ipython: ipython_record,
+            menuinst_record: menuinst_record,
+            ipython_record: ipython_record,
         })
 
         expected_plan = [
             ('PREFIX', 'aprefix'),
             ('PRINT', 'Linking packages ...'),
             # ('PROGRESS', '2'),
-            ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (ipython, menuinst))),
-            ('UNLINKLINKTRANSACTION', ((), (ipython), menuinst)),
+            ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (ipython_record, menuinst_record))),
+            ('UNLINKLINKTRANSACTION', ((), (ipython_record, menuinst_record))),
         ]
 
         if on_win:
@@ -879,8 +908,8 @@ class PlanFromActionsTests(unittest.TestCase):
                 ('PREFIX', 'aprefix'),
                 ('PRINT', 'Linking packages ...'),
                 # ('PROGRESS', '1'),
-                ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (menuinst, ipython))),
-                ('UNLINKLINKTRANSACTION', ((), (menuinst, ipython))),
+                ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (menuinst_record, ipython_record))),
+                ('UNLINKLINKTRANSACTION', ((), (menuinst_record, ipython_record))),
             ]
 
             # last_two = expected_plan[-2:]
