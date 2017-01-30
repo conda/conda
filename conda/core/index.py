@@ -35,7 +35,7 @@ from ..gateways.disk.read import read_index_json
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord
+from ..models.index_record import EMPTY_LINK, IndexRecord, Priority
 
 try:
     from cytoolz.itertoolz import take
@@ -369,8 +369,7 @@ def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod
         return None
 
     if repodata['_priority'] != priority:
-        for rec in itervalues(repodata.get('packages', {})):
-            rec.priority = priority
+        repodata['_priority']._priority = priority
 
     return repodata
 
@@ -405,7 +404,7 @@ def process_repodata(repodata, channel_url, schannel, priority):
 
     repodata['_add_pip'] = add_pip = context.add_pip_as_python_dependency
     repodata['_pickle_version'] = REPODATA_PICKLE_VERSION
-    repodata['_priority'] = priority
+    repodata['_priority'] = priority = Priority(priority)
     repodata['_schannel'] = schannel
 
     meta_in_common = {  # just need to make this once, then apply with .update()
