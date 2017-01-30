@@ -6,7 +6,7 @@ from conda.base.constants import UNKNOWN_CHANNEL
 
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, ImmutableEntity, IntegerField, ListField,
+                                     EnumField, IntegerField, ListField,
                                      MapField, StringField)
 from ..common.compat import string_types
 
