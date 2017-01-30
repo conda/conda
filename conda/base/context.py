@@ -98,6 +98,7 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
+    allow_non_channel_urls = PrimitiveParameter(True)
 
     # channels
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
