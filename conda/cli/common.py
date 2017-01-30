@@ -107,9 +107,9 @@ class InstalledPackages(Completer):
 
     @memoize
     def _get_items(self):
-        from conda.core.linked_data import linked
-        packages = linked(context.prefix_w_legacy_search)
-        return [dist.quad[0] for dist in packages]
+        from conda.core.linked_data import linked_data
+        packages = linked_data(context.prefix_w_legacy_search)
+        return [lpr.name for lpr in packages]
 
 def add_parser_help(p):
     """

@@ -53,7 +53,6 @@ class IndexJsonRecord(DictSafeMixin, Entity):
     platform = EnumField(Platform, required=False, nullable=True)
     preferred_env = StringField(default=None, required=False, nullable=True)
     size = IntegerField(required=False)
-    subdir = StringField(required=False)
     track_features = StringField(required=False)
     version = StringField()
 
@@ -68,6 +67,7 @@ class IndexRecord(IndexJsonRecord):
     priority = IntegerField(required=False)
     url = StringField()
     auth = StringField(required=False, nullable=True)
+    subdir = StringField(required=False)
 
     @memoizedproperty
     def pkey(self):
