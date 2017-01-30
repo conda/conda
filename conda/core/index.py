@@ -363,6 +363,7 @@ def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod
         yield repodata.get('_add_pip') == context.add_pip_as_python_dependency
         yield repodata.get('_mod') == mod_stamp
         yield repodata.get('_etag') == etag
+        yield repodata.get('_pickle_version') == REPODATA_PICKLE_VERSION
 
     if not all(_check_pickled_valid()):
         return None
