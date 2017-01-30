@@ -2,29 +2,30 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
-from conda import CondaError
 from contextlib import closing
 from functools import wraps
 import hashlib
 import json
-import pickle
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import getmtime, join, isfile
+from os.path import getmtime, isfile, join
+import pickle
 import re
-from requests.exceptions import ConnectionError, HTTPError, SSLError
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from textwrap import dedent
 from time import time
 import warnings
 
+from requests.exceptions import ConnectionError, HTTPError, SSLError
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 from .linked_data import linked_data
 from .package_cache import PackageCache
+from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
+from ..base.constants import CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import ensure_text_type, ensure_unicode, iteritems, itervalues
 from ..common.url import join_url
@@ -34,7 +35,7 @@ from ..gateways.disk.read import read_index_json
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord
+from ..models.index_record import EMPTY_LINK, IndexRecord, Priority
 
 try:
     from cytoolz.itertoolz import take
@@ -55,7 +56,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 
 def supplement_index_with_prefix(index, prefix, channels):
-    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None  # NOQA
+    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None
     # supplement index with information from prefix/conda-meta
     assert prefix
     maxp = len(channels) + 1
@@ -79,8 +80,7 @@ def supplement_index_with_prefix(index, prefix, channels):
             # it is in a channel we don't know about, assign it a value just
             # above the priority of all known channels.
             priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-            index[dist] = IndexRecord.from_objects(info, depends=depends,
-                                                   priority=priority)
+            index[dist] = IndexRecord.from_objects(info, depends=depends, priority=priority)
 
 
 def supplement_index_with_cache(index, channels):
@@ -344,7 +344,7 @@ def write_pickled_repodata(cache_path, repodata):
         log.debug("Failed to dump pickled repodata.\n%s", traceback.format_exc())
 
 
-def read_pickled_repodata(cache_path, channel_url, schannel, priority):
+def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod_stamp):
     pickle_path = cache_path + '.q'
     # Don't trust pickled data if there is no accompanying json data
     if not isfile(pickle_path) or not isfile(cache_path):
@@ -356,39 +356,26 @@ def read_pickled_repodata(cache_path, channel_url, schannel, priority):
         import traceback
         log.debug("Failed to load pickled repodata.\n%s", traceback.format_exc())
         return None
-    if repodata.get('_url') != channel_url:
+
+    def _check_pickled_valid():
+        yield repodata.get('_url') == channel_url
+        yield repodata.get('_schannel') == schannel
+        yield repodata.get('_add_pip') == context.add_pip_as_python_dependency
+        yield repodata.get('_mod') == mod_stamp
+        yield repodata.get('_etag') == etag
+
+    if not all(_check_pickled_valid()):
         return None
-    add_pip = context.add_pip_as_python_dependency
-    changed = False
-    # Safe changes to IndexRecord
-    if ((repodata['_add_pip'] != add_pip or
-         repodata['_priority'] != priority or
-         repodata['_schannel'] != schannel)):
-        repodata['_priority'] = priority
-        repodata['_add_pip'] = add_pip
-        changed = True
-        for rec in itervalues(repodata.get('packages', {})):
-            rec.priority = priority
-            rec.schannel = schannel
-            if rec.name == 'python' and rec.version.startswith(('2.', '3.')):
-                if add_pip:
-                    rec.depends = rec.depends + ('pip',)
-                elif rec.depends[-1] == 'pip':
-                    rec.depends = rec.depends[:-1]
-    # Safe changes to Dist
-    if repodata['_schannel'] != schannel:
-        repodata['_schannel'] = schannel
-        repodata['packages'] = {
-            Dist.from_string(dist.fn, channel_override=schannel): rec
-            for dist, rec in itervalues(repodata.get('packages', {}))}
-        changed = True
-    if changed:
-        write_pickled_repodata(cache_path, repodata)
+
+    if repodata['_priority'] != priority:
+        repodata['_priority']._priority = priority
+
     return repodata
 
 
-def read_local_repodata(cache_path, channel_url, schannel, priority):
-    local_repodata = read_pickled_repodata(cache_path, channel_url, schannel, priority)
+def read_local_repodata(cache_path, channel_url, schannel, priority, etag, mod_stamp):
+    local_repodata = read_pickled_repodata(cache_path, channel_url, schannel, priority,
+                                           etag, mod_stamp)
     if local_repodata:
         return local_repodata
     with open(cache_path) as f:
@@ -410,29 +397,29 @@ def read_local_repodata(cache_path, channel_url, schannel, priority):
 
 
 def process_repodata(repodata, channel_url, schannel, priority):
-    add_pip = context.add_pip_as_python_dependency
     opackages = repodata.setdefault('packages', {})
     if not opackages:
         return repodata
-    repodata_info = repodata.get('info', {})
-    arch = repodata_info.get('arch')
-    platform = repodata_info.get('platform')
-    packages = {}
+
+    repodata['_add_pip'] = add_pip = context.add_pip_as_python_dependency
+    repodata['_pickle_version'] = REPODATA_PICKLE_VERSION
+    repodata['_priority'] = priority = Priority(priority)
     repodata['_schannel'] = schannel
-    repodata['_priority'] = priority
-    repodata['_add_pip'] = add_pip
-    repodata['_pversion'] = REPODATA_PICKLE_VERSION
+
+    meta_in_common = {  # just need to make this once, then apply with .update()
+        'arch': repodata.get('info', {}).get('arch'),
+        'channel': channel_url,
+        'platform': repodata.get('info', {}).get('platform'),
+        'priority': priority,
+        'schannel': schannel,
+    }
+    packages = {}
     for fn, info in iteritems(opackages):
         info['fn'] = fn
         info['url'] = join_url(channel_url, fn)
-        info['arch'] = arch
-        info['platform'] = platform
-        info['channel'] = channel_url
-        info['schannel'] = schannel
-        info['priority'] = priority
-        if (add_pip and (info['name'] == 'python' and
-                         info['version'].startswith(('2.', '3.')))):
+        if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
             info['depends'].append('pip')
+        info.update(meta_in_common)
         rec = IndexRecord(**info)
         packages[Dist(rec)] = rec
     repodata['packages'] = packages
@@ -465,7 +452,8 @@ def fetch_repodata(url, schannel, priority,
         if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
-            return read_local_repodata(cache_path, url, schannel, priority)
+            return read_local_repodata(cache_path, url, schannel, priority,
+                                       mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod'))
 
         log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
@@ -477,7 +465,8 @@ def fetch_repodata(url, schannel, priority,
     except Response304ContentUnchanged:
         log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
         touch(cache_path)
-        return read_local_repodata(cache_path, url, schannel, priority)
+        return read_local_repodata(cache_path, url, schannel, priority,
+                                   mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod'))
 
     with open(cache_path, 'w') as fo:
         json.dump(repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
