@@ -72,8 +72,8 @@ miniconda_install() {
     export PATH=~/miniconda/bin:$PATH
     hash -r
     which -a conda
+    conda install -y -q pip conda python
     conda info
-    conda install -y -q pip
     which -a pip
     which -a python
     conda config --set auto_update_conda false
