@@ -2,18 +2,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import rename, utime
+from os import rename as os_rename, utime
 from os.path import lexists
 import re
 
 from conda._vendor.auxlib.path import expand
+from conda.gateways.disk.delete import rm_rf
 
 from . import exp_backoff_fn
 
 log = getLogger(__name__)
-
-# in the rest of conda's code, os.rename is preferably imported from here
-rename = rename
 
 SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
 
@@ -42,13 +40,18 @@ def update_file_in_place_as_binary(file_full_path, callback):
             fh.close()
 
 
-def backoff_rename(source_path, destination_path):
+def rename(source_path, destination_path, force=False):
+    if lexists(destination_path) and force:
+        rm_rf(destination_path)
     if lexists(source_path):
         log.trace("renaming %s => %s", source_path, destination_path)
-        exp_backoff_fn(rename, source_path, destination_path)
+        os_rename(source_path, destination_path)
     else:
         log.trace("cannot rename; source path does not exist '%s'", source_path)
-    return
+
+
+def backoff_rename(source_path, destination_path, force=False):
+    exp_backoff_fn(rename, source_path, destination_path, force)
 
 
 def touch(path):

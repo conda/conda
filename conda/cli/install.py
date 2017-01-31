@@ -91,15 +91,27 @@ def print_activate(arg):
         #
         """)
     else:
-        message = dals("""
-        #
-        # To activate this environment, use:
-        # > source activate %s
-        #
-        # To deactivate this environment, use:
-        # > source deactivate %s
-        #
-        """)
+        shell = os.path.split(os.environ.get('SHELL', ''))[-1]
+        if 'fish' == shell:
+            message = dals("""
+            #
+            # To activate this environment, use:
+            # > conda activate %s
+            #
+            # To deactivate this environment, use:
+            # > conda deactivate %s
+            #
+            """)
+        else:
+            message = dals("""
+            #
+            # To activate this environment, use:
+            # > source activate %s
+            #
+            # To deactivate this environment, use:
+            # > source deactivate %s
+            #
+            """)
 
     return message % (arg, arg)
 

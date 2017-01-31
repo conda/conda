@@ -72,8 +72,8 @@ miniconda_install() {
     export PATH=~/miniconda/bin:$PATH
     hash -r
     which -a conda
+    conda install -y -q pip conda 'python>=3.6'
     conda info
-    conda install -y -q pip
     which -a pip
     which -a python
     conda config --set auto_update_conda false
@@ -92,7 +92,7 @@ conda_build_install() {
     conda install -y -q -c conda-forge perl pytest-xdist
     conda install -y -q anaconda-client numpy
 
-    ~/miniconda/bin/python -m pip install pytest-capturelog pytest-mock
+    ~/miniconda/bin/python -m pip install pytest-catchlog pytest-mock
 
     conda config --set add_pip_as_python_dependency true
 
@@ -101,6 +101,7 @@ conda_build_install() {
 
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
+    rm -rf $(~/miniconda/bin/python -c "import site; print(site.getsitepackages()[0])")/conda_build
     pushd conda-build
     ~/miniconda/bin/pip install .
     hash -r

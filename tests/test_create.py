@@ -226,8 +226,8 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
-    def test_noarch_package(self):
-        with make_temp_env("-c scastellarin flask") as prefix:
+    def test_noarch_python_package(self):
+        with make_temp_env("-c conda-test flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
             py_file = sp_dir + "/flask/__init__.py"
@@ -244,6 +244,10 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, py_file))
             assert not isfile(join(prefix, pyc_file))
             assert not isfile(exe_path)
+
+    def test_noarch_generic_package(self):
+        with make_temp_env("-c conda-test font-ttf-inconsolata") as prefix:
+            assert isfile(join(prefix, 'fonts', 'Inconsolata-Regular.ttf'))
 
     @pytest.mark.timeout(300)
     def test_create_empty_env(self):
@@ -954,7 +958,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
         import conda.core.link
-        with patch.object(conda.core.link, 'check_call') as rs:
+        with patch.object(conda.core.link, 'subprocess_call') as rs:
             with make_temp_env("openssl=1.0.2j --no-deps") as prefix:
                 assert_package_is_installed(prefix, 'openssl-')
                 assert rs.call_count == 1
@@ -970,3 +974,27 @@ class IntegrationTests(TestCase):
                 assert context.pkgs_dirs == [pkgs_dir]
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
+
+    def test_conda_list_json(self):
+        def pkg_info(s):
+            # function from nb_conda/envmanager.py
+            if hasattr(s, 'rsplit'):  # proxy for isinstance(s, six.string_types)
+                name, version, build = s.rsplit('-', 2)
+                return {
+                    'name': name,
+                    'version': version,
+                    'build': build
+                }
+            else:
+                return {
+                    'name': s['name'],
+                    'version': s['version'],
+                    'build': s.get('build_string') or s['build']
+                }
+
+        with make_temp_env("python=3.5.2") as prefix:
+            stdout, stderr = run_command(Commands.LIST, prefix, '--json')
+            stdout_json = json.loads(stdout)
+            packages = [pkg_info(package) for package in stdout_json]
+            python_package = next((p for p in packages if p['name'] == 'python'), None)
+            assert python_package['version'] == '3.5.2'

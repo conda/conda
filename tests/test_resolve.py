@@ -8,8 +8,10 @@ from conda.base.context import reset_context
 from conda.common.compat import iteritems, text_type
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
+from conda.models.channel import Channel
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
+from conda.core.index import supplement_index_with_repodata, supplement_index_with_features
 from os.path import dirname, join
 
 import pytest
@@ -18,8 +20,12 @@ from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(key): IndexRecord(**value) for key, value in iteritems(json.load(fi))}
+    repodata = json.load(fi)
 
+index = {}
+channel = Channel('defaults')
+supplement_index_with_repodata(index, {'packages': repodata}, channel, 1)
+supplement_index_with_features(index, ('mkl',))
 r = Resolve(index)
 
 f_mkl = set(['mkl'])
@@ -913,35 +919,27 @@ def test_broken_install():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']]
 
-    # Add a fake package and an incompatible numpy
-    installed2 = list(installed)
-    installed2[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
-    installed2.append(Dist('notarealpackage-2.0-0.tar.bz2'))
-    assert r.install([], installed2) == installed2
-    installed3 = r.install(['numpy'], installed2)
-    installed4 = r.remove(['pandas'], installed2)
-    assert set(installed4) == set(installed2[:3] + installed2[4:])
+    # Add an incompatible numpy; installation should be untouched
+    installed1 = list(installed)
+    installed1[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
+    assert set(r.install([], installed1)) == set(installed1)
+    assert r.install(['numpy 1.6*'], installed1) == installed
 
-    # Remove the installed version of pandas from the index
-    index2 = index.copy()
-    d = Dist('pandas-0.11.0-np16py27_1.tar.bz2')
-    index2[d] = IndexRecord.from_objects(index2[d], priority=MAX_CHANNEL_PRIORITY)
-    r2 = Resolve(index2)
-    installed2 = r2.install(['pandas', 'python 2.7*', 'numpy 1.6*'], installed)
-    assert installed2 == [Dist(d) for d in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.6.2-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.10.1-np16py27_0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.11.0-np16py27_3.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']]
+    # Add an incompatible pandas; installation should be untouched, then fixed
+    installed2 = list(installed)
+    installed2[3] = Dist('pandas-0.11.0-np17py27_1.tar.bz2')
+    assert set(r.install([], installed2)) == set(installed2)
+    assert r.install(['pandas'], installed2) == installed
+
+    # Removing pandas should fix numpy, since pandas depends on it
+    installed3 = list(installed)
+    installed3[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
+    installed3[3] = Dist('pandas-0.11.0-np17py27_1.tar.bz2')
+    installed4 = r.remove(['pandas'], installed)
+    assert r.bad_installed(installed4, [])[0] is None
+
+    # Tests removed involving packages not in the index, because we
+    # always insure installed packages _are_ in the index
 
 
 def test_remove():
