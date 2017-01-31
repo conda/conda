@@ -276,7 +276,7 @@ class IntegrationTests(TestCase):
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<pip>") for line in stdout_lines
+            assert any(line.rstrip().endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
     @pytest.mark.timeout(300)
@@ -286,7 +286,7 @@ class IntegrationTests(TestCase):
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<pip>") for line in stdout_lines
+            assert any(line.rstrip().endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
             # regression test for #3433
