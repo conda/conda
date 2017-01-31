@@ -7,7 +7,7 @@
 ## 4.3.9 (2017-01-31)
 
 ### Improvements
-* improve repodata caching for performance (#4478)
+* improve repodata caching for performance (#4478, #4488)
 * expand scope of packages included by bad_installed (#4402)
 * silence pre-link warning for old noarch (#4451)
 * add configuration to optionally require noarch repodata (#4450)
