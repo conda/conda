@@ -240,8 +240,7 @@ class PaddingError(CondaError):
 
 class LinkError(CondaError):
     def __init__(self, message):
-        msg = 'Link error: %s ' % message
-        super(LinkError, self).__init__(msg)
+        super(LinkError, self).__init__(message)
 
 
 class CondaOSError(CondaError, OSError):
@@ -496,12 +495,6 @@ class CondaUpgradeError(CondaError):
 class CondaVerificationError(CondaError):
     def __init__(self, message):
         super(CondaVerificationError, self).__init__(message)
-
-
-class CondaUpgradeError(CondaError):
-    def __init__(self, message):
-        msg = "Conda upgrade error: %s" % message
-        super(CondaUpgradeError, self).__init__(msg)
 
 
 def print_conda_exception(exception):

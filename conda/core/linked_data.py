@@ -30,6 +30,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     meta_file = join(prefix, 'conda-meta', dist_name + '.json')
     if rec is None:
         try:
+            log.trace("loading linked data for %s", meta_file)
             with open(meta_file) as fi:
                 rec = json.load(fi)
         except IOError:

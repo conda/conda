@@ -2,40 +2,43 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
-from conda import CondaError
 from contextlib import closing
 from functools import wraps
-from itertools import chain
 import hashlib
+from itertools import chain
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import getmtime, join
+from os.path import getmtime, isfile, join
+import pickle
 import re
-from requests.exceptions import ConnectionError, HTTPError, SSLError
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from textwrap import dedent
 from time import time
 import warnings
 
+from requests.exceptions import ConnectionError, HTTPError, SSLError
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 from .linked_data import linked_data
 from .package_cache import PackageCache
+from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import (CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY)
+from ..base.constants import CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY
 from ..base.context import context
-from ..common.compat import ensure_text_type, ensure_unicode, iteritems, iterkeys, itervalues
+from ..common.compat import ensure_text_type, ensure_unicode, iteritems, itervalues
 from ..common.url import join_url
 from ..connection import CondaSession
-from ..resolve import MatchSpec
 from ..exceptions import CondaHTTPError, CondaRuntimeError
+from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import read_index_json
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord
+from ..models.index_record import EMPTY_LINK, IndexRecord, Priority
+from ..resolve import MatchSpec
 
 try:
     from cytoolz.itertoolz import take
@@ -50,10 +53,13 @@ stderrlog = getLogger('stderrlog')
 
 fail_unknown_host = False
 
+
+REPODATA_PICKLE_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
+
 def supplement_index_with_prefix(index, prefix, channels):
-    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None  # NOQA
+    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None
     # supplement index with information from prefix/conda-meta
     assert prefix
     maxp = len(channels) + 1
@@ -77,12 +83,11 @@ def supplement_index_with_prefix(index, prefix, channels):
             # it is in a channel we don't know about, assign it a value just
             # above the priority of all known channels.
             priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-            index[dist] = IndexRecord.from_objects(info, depends=depends,
-                                                   priority=priority)
+            index[dist] = IndexRecord.from_objects(info, depends=depends, priority=priority)
 
 
 def supplement_index_with_cache(index, channels):
-    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None  # NOQA
+    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None
     # supplement index with packages from the cache
     maxp = len(channels) + 1
     for pc_entry in PackageCache.get_all_extracted_entries():
@@ -91,15 +96,14 @@ def supplement_index_with_cache(index, channels):
             # The downloaded repodata takes priority
             continue
         pkg_dir = pc_entry.extracted_package_dir
-        meta = read_index_json(pkg_dir)
+        index_json_record = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
         priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-        rec = IndexRecord.from_objects(meta,
-                                       fn=dist.to_filename(),
-                                       schannel=dist.channel,
-                                       priority=priority,
-                                       url=dist.to_url())
-        index[dist] = rec
+        index_json_record.fn = dist.to_filename()
+        index_json_record.schannel = dist.channel
+        index_json_record.priority = priority
+        index_json_record.url = dist.to_url()
+        index[dist] = index_json_record
 
 
 def supplement_index_with_repodata(index, repodata, channel, priority):
@@ -177,8 +181,6 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         supplement_index_with_cache(index, known_channels)
     if context.track_features:
         supplement_index_with_features(index)
-    if context.add_pip_as_python_dependency:
-        add_pip_dependency(index)
     return index
 
 
@@ -270,59 +272,63 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             if not url.endswith('/noarch'):
                 return None
             else:
-                # help_message = dals("""
-                # The remote server could not find the channel you requested.
-                #
-                # As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
-                # associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                # empty.
-                #
-                # You will need to adjust your conda configuration to proceed.
-                # Use `conda config --show` to view your configuration's current state.
-                # Further configuration help can be found at <%s>.
-                # """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-                help_message = dedent("""
-                WARNING: The remote server could not find the noarch directory for the requested
-                channel with url: %s
+                if context.allow_non_channel_urls:
+                    help_message = dedent("""
+                    WARNING: The remote server could not find the noarch directory for the
+                    requested channel with url: %s
 
-                It is possible you have given conda an invalid channel. Please double-check
-                your conda configuration using `conda config --show`.
+                    It is possible you have given conda an invalid channel. Please double-check
+                    your conda configuration using `conda config --show`.
 
-                If the requested url is in fact a valid conda channel, please request that the
-                channel administrator create `noarch/repodata.json` and associated
-                `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                """ % url)
-                stderrlog.warn(help_message)
-                return None
+                    If the requested url is in fact a valid conda channel, please request that the
+                    channel administrator create `noarch/repodata.json` and associated
+                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    """ % url)
+                    stderrlog.warn(help_message)
+                    return None
+                else:
+                    help_message = dals("""
+                    The remote server could not find the channel you requested.
+
+                    As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                    empty.
+
+                    You will need to adjust your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <%s>.
+                    """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 403:
             if not url.endswith('/noarch'):
                 return None
             else:
-                # help_message = dals("""
-                # The channel you requested is not available on the remote server.
-                #
-                # As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
-                # associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                # empty.
-                #
-                # You will need to adjust your conda configuration to proceed.
-                # Use `conda config --show` to view your configuration's current state.
-                # Further configuration help can be found at <%s>.
-                # """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-                help_message = dedent("""
-                WARNING: The remote server could not find the noarch directory for the requested
-                channel with url: %s
+                if context.allow_non_channel_urls:
+                    help_message = dedent("""
+                    WARNING: The remote server could not find the noarch directory for the
+                    requested channel with url: %s
 
-                It is possible you have given conda an invalid channel. Please double-check
-                your conda configuration using `conda config --show`.
+                    It is possible you have given conda an invalid channel. Please double-check
+                    your conda configuration using `conda config --show`.
 
-                If the requested url is in fact a valid conda channel, please request that the
-                channel administrator create `noarch/repodata.json` and associated
-                `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                """ % url)
-                stderrlog.warn(help_message)
-                return None
+                    If the requested url is in fact a valid conda channel, please request that the
+                    channel administrator create `noarch/repodata.json` and associated
+                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    """ % url)
+                    stderrlog.warn(help_message)
+                    return None
+                else:
+                    help_message = dals("""
+                    The channel you requested is not available on the remote server.
+
+                    As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                    empty.
+
+                    You will need to adjust your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <%s>.
+                    """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 401:
             channel = Channel(url)
@@ -383,7 +389,57 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                              getattr(e.response, 'elapsed', None))
 
 
-def read_local_repodata(cache_path):
+def write_pickled_repodata(cache_path, repodata):
+    # Don't bother to pickle empty channels
+    if not repodata.get('packages'):
+        return
+    try:
+        with open(cache_path + '.q', 'wb') as f:
+            pickle.dump(repodata, f)
+    except Exception as e:
+        import traceback
+        log.debug("Failed to dump pickled repodata.\n%s", traceback.format_exc())
+
+
+def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod_stamp):
+    pickle_path = cache_path + '.q'
+    # Don't trust pickled data if there is no accompanying json data
+    if not isfile(pickle_path) or not isfile(cache_path):
+        return None
+    try:
+        if isfile(pickle_path):
+            log.debug("found pickle file %s", pickle_path)
+        with open(pickle_path, 'rb') as f:
+            repodata = pickle.load(f)
+    except Exception as e:
+        import traceback
+        log.debug("Failed to load pickled repodata.\n%s", traceback.format_exc())
+        rm_rf(pickle_path)
+        return None
+
+    def _check_pickled_valid():
+        yield repodata.get('_url') == channel_url
+        yield repodata.get('_schannel') == schannel
+        yield repodata.get('_add_pip') == context.add_pip_as_python_dependency
+        yield repodata.get('_mod') == mod_stamp
+        yield repodata.get('_etag') == etag
+        yield repodata.get('_pickle_version') == REPODATA_PICKLE_VERSION
+
+    if not all(_check_pickled_valid()):
+        return None
+
+    if int(repodata['_priority']) != priority:
+        log.debug("setting priority for %s to '%d'", repodata.get('_url'), priority)
+        repodata['_priority']._priority = priority
+
+    return repodata
+
+
+def read_local_repodata(cache_path, channel_url, schannel, priority, etag, mod_stamp):
+    local_repodata = read_pickled_repodata(cache_path, channel_url, schannel, priority,
+                                           etag, mod_stamp)
+    if local_repodata:
+        return local_repodata
     with open(cache_path) as f:
         try:
             local_repodata = json.load(f)
@@ -397,11 +453,43 @@ def read_local_repodata(cache_path):
             """)
             raise CondaError(message)
         else:
+            process_repodata(local_repodata, channel_url, schannel, priority)
+            write_pickled_repodata(cache_path, local_repodata)
             return local_repodata
 
 
+def process_repodata(repodata, channel_url, schannel, priority):
+    opackages = repodata.setdefault('packages', {})
+    if not opackages:
+        return repodata
+
+    repodata['_add_pip'] = add_pip = context.add_pip_as_python_dependency
+    repodata['_pickle_version'] = REPODATA_PICKLE_VERSION
+    repodata['_priority'] = priority = Priority(priority)
+    repodata['_schannel'] = schannel
+
+    meta_in_common = {  # just need to make this once, then apply with .update()
+        'arch': repodata.get('info', {}).get('arch'),
+        'channel': channel_url,
+        'platform': repodata.get('info', {}).get('platform'),
+        'priority': priority,
+        'schannel': schannel,
+    }
+    packages = {}
+    for fn, info in iteritems(opackages):
+        info['fn'] = fn
+        info['url'] = join_url(channel_url, fn)
+        if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
+            info['depends'].append('pip')
+        info.update(meta_in_common)
+        rec = IndexRecord(**info)
+        packages[Dist(rec)] = rec
+    repodata['packages'] = packages
+
+
 @dotlog_on_return("fetching repodata:")
-def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
+def fetch_repodata(url, schannel, priority,
+                   cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
 
     try:
@@ -426,64 +514,63 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         if (timeout > 0 or context.offline) and not url.startswith('file://'):
             log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                       url, cache_path, timeout)
-            return read_local_repodata(cache_path)
+            return read_local_repodata(cache_path, url, schannel, priority,
+                                       mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod'))
 
         log.debug("Locally invalidating cached repodata for %s at %s", url, cache_path)
 
     try:
         assert url is not None, url
-        fetched_repodata = fetch_repodata_remote_request(session, url,
-                                                         mod_etag_headers.get('_etag'),
-                                                         mod_etag_headers.get('_mod'))
+        repodata = fetch_repodata_remote_request(session, url,
+                                                 mod_etag_headers.get('_etag'),
+                                                 mod_etag_headers.get('_mod'))
     except Response304ContentUnchanged:
         log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk", url)
         touch(cache_path)
-        return read_local_repodata(cache_path)
+        return read_local_repodata(cache_path, url, schannel, priority,
+                                   mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod'))
 
     with open(cache_path, 'w') as fo:
-        json.dump(fetched_repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+        json.dump(repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+    process_repodata(repodata, url, schannel, priority)
+    write_pickled_repodata(cache_path, repodata)
+    return repodata
 
-    return fetched_repodata or None
 
-
-def _collect_repodatas_serial(use_cache, urls):
+def _collect_repodatas_serial(use_cache, tasks):
     # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     session = CondaSession()
-    repodatas = [(url, fetch_repodata(url, use_cache=use_cache, session=session))
-                 for url in urls]
+    repodatas = [(url, fetch_repodata(url, schan, pri,
+                                      use_cache=use_cache,
+                                      session=session))
+                 for url, schan, pri in tasks]
     return repodatas
 
 
-def _collect_repodatas_concurrent(executor, use_cache, urls):
-    futures = tuple(executor.submit(fetch_repodata, url, use_cache=use_cache,
-                                    session=CondaSession()) for url in urls)
-    repodatas = [(u, f.result()) for u, f in zip(urls, futures)]
+def _collect_repodatas_concurrent(executor, use_cache, tasks):
+    futures = tuple(executor.submit(fetch_repodata, url, schan, pri,
+                                    use_cache=use_cache,
+                                    session=CondaSession())
+                    for url, schan, pri in tasks)
+    repodatas = [(t[0], f.result()) for t, f in zip(tasks, futures)]
     return repodatas
 
 
-def _collect_repodatas(use_cache, urls):
-    # TODO: there HAS to be a way to clean up this logic
+def _collect_repodatas(use_cache, tasks):
+    repodatas = executor = None
     if context.concurrent:
         try:
             import concurrent.futures
             executor = concurrent.futures.ThreadPoolExecutor(10)
+            repodatas = _collect_repodatas_concurrent(executor, use_cache, tasks)
         except (ImportError, RuntimeError) as e:
-            log.debug(repr(e))
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
             # RuntimeError is thrown if number of threads are limited by OS
-            repodatas = _collect_repodatas_serial(use_cache, urls)
-        else:
-            try:
-                repodatas = _collect_repodatas_concurrent(executor, use_cache, urls)
-            except RuntimeError as e:
-                # Cannot start new thread, then give up parallel execution
-                log.debug(repr(e))
-                repodatas = _collect_repodatas_serial(use_cache, urls)
-            finally:
-                executor.shutdown(wait=True)
-    else:
-        repodatas = _collect_repodatas_serial(use_cache, urls)
-
+            log.debug(repr(e))
+    if executor:
+        executor.shutdown(wait=True)
+    if repodatas is None:
+        repodatas = _collect_repodatas_serial(use_cache, tasks)
     return repodatas
 
 
@@ -493,8 +580,8 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     if not context.json:
         stdoutlog.info("Fetching package metadata ...")
 
-    urls = tuple(iterkeys(channel_urls))
-    repodatas = _collect_repodatas(use_cache, urls)
+    tasks = [(url,) + cdata for url, cdata in iteritems(channel_urls)]
+    repodatas = _collect_repodatas(use_cache, tasks)
     # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     #   this is sorta a lie; actually more primitve types
 
@@ -524,13 +611,6 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
     value = resp.headers.get(http_key)
     if value:
         d[dict_key] = value
-
-
-def add_pip_dependency(index):
-    # TODO: discuss with @mcg1969 and document
-    for dist, info in iteritems(index):
-        if info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-            index[dist] = IndexRecord.from_objects(info, depends=info['depends'] + ('pip',))
 
 
 def create_cache_dir():

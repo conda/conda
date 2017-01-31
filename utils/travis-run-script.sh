@@ -24,7 +24,7 @@ main_test() {
     echo $PYTHONHASHSEED
 
     # basic unit tests
-    python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" conda tests
+    python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
     python utils/setup-testing.py --version
 }
 
@@ -55,7 +55,8 @@ conda_build_unit_test() {
     echo
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
     echo
-    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb tests || echo -e "\n>>>>> conda-build tests exited with code" $? "\n\n\n"
+    ~/miniconda/bin/python -m conda info
+    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 tests
     popd
 }
 
@@ -67,8 +68,6 @@ if [[ $FLAKE8 == true ]]; then
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
     conda_build_unit_test
-    # if [[ $CONDA_BUILD == 1.21.11 || $CONDA_BUILD == master ]]; then
-    # fi
 else
     main_test
     if [[ "$(uname -s)" == "Linux" ]]; then

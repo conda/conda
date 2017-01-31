@@ -700,27 +700,18 @@ class Resolve(object):
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
-        xtra = []  # List[Dist]
         dists = {}  # Dict[Dist, Record]
         specs = []
         for dist in installed:
-            rec = self.index.get(dist)
-            if rec is None:
-                xtra.append(dist)
-            else:
-                dists[dist] = rec
-                specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
-        if xtra:
-            log.debug('Packages missing from index: %s', xtra)
+            dist = Dist(dist)
+            rec = self.index[dist]
+            dists[dist] = rec
+            specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
         r2 = Resolve(dists, True, True)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
-        try:
-            solution = C.sat(constraints)
-        except TypeError:
-            log.debug('Package set caused an unexpected error, assuming a conflict')
-            solution = None
-        limit = None
+        solution = C.sat(constraints)
+        limit = xtra = None
         if not solution or xtra:
             def get_(name, snames):
                 if name not in snames:
@@ -728,14 +719,21 @@ class Resolve(object):
                     for fn in self.groups.get(name, []):
                         for ms in self.ms_depends(fn):
                             get_(ms.name, snames)
+            # New addition: find the largest set of installed packages that
+            # are consistent with each other, and include those in the
+            # list of packages to maintain consistency with
             snames = set()
+            eq_optional_c = r2.generate_removal_count(C, specs)
+            solution, _ = C.minimize(eq_optional_c, C.sat())
+            snames.update(dists[Dist(q)]['name']
+                          for q in (C.from_index(s) for s in solution)
+                          if q and q[0] != '!' and '@' not in q)
+            # Existing behavior: keep all specs and their dependencies
             for spec in new_specs:
                 get_(MatchSpec(spec).name, snames)
-            xtra = [x for x in xtra if x not in snames]
-            if xtra or not (solution or all(s.name in snames for s in specs)):
-                limit = set(s.name for s in specs if s.name in snames)
-                xtra = [dist for dist in (Dist(fn) for fn in installed)
-                        if self.package_name(dist) not in snames]
+            if len(snames) < len(dists):
+                limit = snames
+                xtra = [dist for dist, rec in iteritems(dists) if rec['name'] not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)
