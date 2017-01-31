@@ -26,7 +26,7 @@ matrix:
       os: linux
       language: python
     - os: osx
-      env: PYTHON_VERSION=3.5
+      env: PYTHON_VERSION=3.6
       language: generic
     - python: '3.5'
       env: CONDA_BUILD=2.1.2
