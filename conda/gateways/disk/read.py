@@ -13,6 +13,7 @@ from os import X_OK, access, listdir
 from os.path import isdir, isfile, islink, join, lexists
 import shlex
 
+from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import on_win
@@ -107,9 +108,14 @@ def read_icondata(extracted_package_directory):
 
 
 def read_package_metadata(extracted_package_directory):
-    package_metadata_path = join(extracted_package_directory, 'info', 'package_metadata.json')
-    if isfile(package_metadata_path):
-        with open(package_metadata_path, 'r') as f:
+    def _paths():
+        yield join(extracted_package_directory, 'info', 'link.json')
+        yield join(extracted_package_directory, 'info', 'package_metadata.json')
+    path = first(_paths(), key=isfile)
+    if not path:
+        return None
+    else:
+        with open(path, 'r') as f:
             package_metadata = PackageMetadata(**json.loads(f.read()))
             if package_metadata.package_metadata_version != 1:
                 raise CondaUpgradeError(dals("""
@@ -117,8 +123,6 @@ def read_package_metadata(extracted_package_directory):
                 only supports paths.json schema version 1.)  Please update conda to install
                 this package."""))
         return package_metadata
-    else:
-        return None
 
 
 def read_paths_json(extracted_package_directory):
