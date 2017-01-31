@@ -1,11 +1,40 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import total_ordering
+
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField,
-                                     MapField, StringField)
+                                     EnumField, Field, IntegerField, ListField, MapField,
+                                     StringField)
 from ..common.compat import string_types
+
+
+@total_ordering
+class Priority(object):
+    __slots__ = ('_priority',)
+
+    def __init__(self, priority):
+        self._priority = priority
+
+    def __int__(self):
+        return self._priority
+
+    def __lt__(self, other):
+        return self._priority < int(other)
+
+    def __eq__(self, other):
+        return self._priority == int(other)
+
+    def __repr__(self):
+        return "Priority(%d)" % self._priority
+
+
+class PriorityField(Field):
+    _type = (int, Priority)
+
+    def unbox(self, instance, instance_type, val):
+        return int(val)
 
 
 class LinkTypeField(EnumField):
@@ -77,7 +106,7 @@ class IndexRecord(DictSafeMixin, Entity):
     fn = StringField(required=False, nullable=True)
     schannel = StringField(required=False, nullable=True)
     channel = StringField(required=False, nullable=True)
-    priority = IntegerField(required=False)
+    priority = PriorityField(required=False)
     url = StringField(required=False, nullable=True)
     auth = StringField(required=False, nullable=True)
 
