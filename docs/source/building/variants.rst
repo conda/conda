@@ -25,23 +25,38 @@ them with Jinja2 template variables. It adds support for the notion of
 development, to be integrated with ABI compatibility databases, such as `ABI
 Laboratory <https://abi-laboratory.pro/>`_.
 
+Variant input is ultimately a dictionary. They're mostly very flat. Keys are
+made directly available in Jinja2 templates. As a result, keys in the dictionary
+(and in files read into dictionaries) must be valid jinja2 variable names (no -
+characters allowed). This example builds python 2.7 and 3.5 packages in one
+build command:
+
+
+.. code-block:: python
+
+   variants = {'python': ['2.7.*', '3.5.*']}
+
+
+meta.yaml contents like:
+
+.. code-block:: yaml
+
+   package:
+       name: compiled-code
+       version: 1.0
+
+   requirements:
+       build:
+           - python {{ python }}
+       run:
+           - python {{ python }}
 
 Creating conda-build variant input files
 ----------------------------------------
 
-Variant input files are yaml files. They're mostly very flat. Keys are made
-directly available in Jinja2 templates. As a result, keys in the yaml files must
-be valid jinja2 variable names (no - characters allowed). There are some special
-keys that behave differently and can be more nested:
+Variant input files are yaml files.
 
-* ``pin_run_as_build``: should be a list of package names. Any package listed
-  here, and occurring in both the build environment and the run requirements,
-  will be pinned in the output package to the version present in the build
-  environment. This is a generalization of the ``numpy x.x`` spec.
-* ``extend_keys``: specifies keys that should be aggregated, rather than
-  clobbered, by later variants. These are detailed below in the `Extended keys`_
-  section.
-* ``runtimes``: detailed further in `Extra Jinja2 functions`_.
+There are some special keys that behave differently and can be more nested:
 
 Search order for these files is the following:
 
@@ -76,6 +91,23 @@ API:
 2. Set the ``variant`` member of a Config object. This is just a simple
    dictionary. The values for fields should be strings, except "extended keys",
    which are documented in the `Extended keys`_ section below.
+
+
+Special variant keys
+--------------------
+
+
+* ``pin_run_as_build``: should be a list of package names. Any package listed
+  here, and occurring in both the build environment and the run requirements,
+  will be pinned in the output package to the version present in the build
+  environment. This is a generalization of the ``numpy x.x`` spec.
+* ``extend_keys``: specifies keys that should be aggregated, rather than
+  clobbered, by later variants. These are detailed below in the `Extended keys`_
+  section.
+* ``compatible``: should be a dictionary. Described further in `Customizing
+  compatibility`_.
+* ``runtimes``: detailed further in `Extra Jinja2 functions`_.
+
 
 CONDA_* variables and command line arguments to conda-build
 -----------------------------------------------------------
@@ -142,6 +174,8 @@ outputting package output names, etc.)
 If ``numpy`` had had two values instead of one, we'd end up with *four* output
 variants: 2 variants for ``python``, *times* two variants for ``numpy``:
 
+.. code-block:: python
+
     variants = [{'python': '3.4', 'numpy': '1.11'}, {'python': '3.5', 'numpy': '1.11'},
                 {'python': '3.4', 'numpy': '1.10'}, {'python': '3.5', 'numpy': '1.10'}]
 
@@ -173,6 +207,81 @@ set. These are used internally for tracking which requirements should be pinned,
 for example, with the ``pin_run_as_build`` key. You can add your own extended
 keys by passing in values for the ``extend_keys`` key for any variant.
 
+Customizing compatibility
+-------------------------
+
+By default, with the ``pin_compatible`` function, conda-build pins to your
+current version and less than the next major version. For projects that don't
+follow the philosophy of semantic versioning, you might want to restrict things
+more tightly. To do so, you can pass one of two arguments to the pin_compatible function.
+
+.. code-block:: python
+
+    variants = [{'numpy': '1.11'}]
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   requirements:
+       build:
+           - numpy {{ numpy }}
+       run:
+           - numpy {{ pin_compatible('numpy', pins=['p.p'] }}
+
+
+This would yield a pinning of ``>=1.11.2,<1.12``
+
+
+Pinning expressions are really only counting the number of things separated by
+the ``.`` character. What you put as the actual characters doesn't matter. We
+use ``p`` for convention.
+
+
+The syntax for the pins argument is an iterable (list or tuple) with 1 or 2
+pinning expressions. If only one is specified, the pinning expression applies
+only to the upper bound. If two are present, the first applies to the lower
+bound, and the latter to the upper bound.  An example of specifying both:
+
+
+.. code-block:: python
+
+    variants = [{'numpy': '1.11'}]
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   requirements:
+       build:
+           - numpy {{ numpy }}
+       run:
+           - numpy {{ pin_compatible('numpy', pins=['p.p', 'p.p'] }}
+
+
+This would yield a pinning of ``>=1.11,<1.12``
+
+
+You can also pass the maximum version directly. This argument supercedes the
+``pins`` argument and is thus mutually exclusive.
+
+
+.. code-block:: python
+
+    variants = [{'numpy': '1.11'}]
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   requirements:
+       build:
+           - numpy {{ numpy }}
+       run:
+           - numpy {{ pin_compatible('numpy', upper_bound='3.0' }}
+
+
+This would yield a pinning of ``>=1.11,<3.0``
 
 Appending to recipes
 --------------------
@@ -269,6 +378,48 @@ evaluating ``meta.yaml`` templates:
   from compiler package name to runtime package name (and possibly also version),
   as shown below.
 
+There are default "native" compilers that and runtimes that are used when no
+compiler is specified in any variant. These are defined in `conda-build's
+jinja_context.py file
+<https://github.com/conda/conda-build/blob/master/conda_build/jinja_context.py>`_.
+Most of the time, users will not need to provide compilers in their variants -
+just leave them empty, and conda-build will use the defaults appropriate for
+your system.
+
+
+Compiler packages
+-----------------
+
+
+On Mac and Linux, we can and do ship gcc packages.  These will become even more
+powerful with variants, since you can specify versions of your compiler much
+more explicitly, and build against different versions (or with different flags,
+set in the compiler package's activate.d scripts) if you'd like. On Windows,
+rather than providing the actual compilers in packages, we still use the
+compilers that are installed on the system. The analogous compiler packages on
+Windows run any compiler activation scripts and set compiler flags instead of
+actually installing anything.
+
+Over time, conda-build will require that all packages explicitly list their
+compiler requirements this way. This is to both simplify conda-build and improve
+the tracking of metadata associated with compilers - localize it to compiler
+packages, even if those packages are doing nothing more than activating an
+already-installed compiler (such as Visual Studio.)
+
+
+Cross-compiling
+---------------
+
+
+The compiler jinja2 function is written to support cross-compilers. This depends
+on setting at least two variant keys: ``(language)_compiler`` and
+``target_platform``. The target platform is appended to the value of
+``(language)_compiler`` with the ``_`` character. This leads to package names
+like ``g++_linux-64_linux-aarch64``. We recommend a convention for naming your
+compiler packages as: ``<compiler name>_<native_platform>_<target_platform>``
+
+Using a cross-compiler in a recipe would look like the following:
+
 .. code-block:: python
 
    variants = {'cxx_compiler': ['g++_linux-64'], 'target_platform': ['linux-64', 'linux-aarch64'],
@@ -288,21 +439,17 @@ and a meta.yaml file:
        run:
            - {{ runtime('cxx') }}
 
-There are default "native" compilers that are used when no compiler is specified
-in any variant.
-
 This assumes that you have created two compiler packages named
 ``g++_linux-64_linux-64`` and ``g++_linux-64_linux-aarch64`` - all conda-build
 is providing you with is a way to loop over appropriately named cross-compiler
 toolchains.
 
-Over time, conda-build will require that all packages explicitly list their
-compiler requirements this way. This is to both simplify conda-build and improve
-the tracking of metadata associated with compilers - localize it to compiler
-packages, even if those packages are doing nothing more than activating an
-already-installed compiler (such as Visual Studio.)
 
-The compiler function is how you could support a non-standard Visual Studio
+Self-consistent package ecosystems
+----------------------------------
+
+
+The compiler function is also how you could support a non-standard Visual Studio
 version, such as using VS 2015 to compile Python 2.7 and packages for Python
 2.7. To accomplish this, you need to add the ``{{ compiler('<language>') }}`` to
 each recipe that will make up the system.  Environment consistency is maintained
