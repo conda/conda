@@ -343,7 +343,25 @@ All "falsey" values (e.g. empty list values) are removed.
 
 There is a CLI tool that just pretty-prints this json file for easy viewing:
 
-*TODO*: Before release, this tool should be added!
+.. code-block:: shell
+
+   conda inspect hash-inputs <package path>
+
+This produces output such as:
+
+.. code-block:: shell
+
+   {'test_rm_rf_does_not_follow_links-1.0-h7330_0': {u'build': {u'script': u'python setup.py install --single-version-externally-managed --record=record.txt'},
+                                                  u'requirements': {u'build': [u'openssl 1.0.2k 0',
+                                                                               u'pip 9.0.1 py27_1',
+                                                                               u'python 2.7.13 0',
+                                                                               u'readline 6.2 2',
+                                                                               u'setuptools 27.2.0 py27_0',
+                                                                               u'sqlite 3.13.0 1',
+                                                                               u'tk 8.5.18 0',
+                                                                               u'wheel 0.29.0 py27_0',
+                                                                               u'zlib 1.2.8 3']},
+                                                  u'source': {u'path': u'/Users/msarahan/code/conda-build/tests/test-recipes/split-packages/_rm_rf_stays_within_prefix'}}}
 
 
 Extra Jinja2 functions
