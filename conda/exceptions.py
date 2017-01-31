@@ -240,8 +240,7 @@ class PaddingError(CondaError):
 
 class LinkError(CondaError):
     def __init__(self, message):
-        msg = 'Link error: %s ' % message
-        super(LinkError, self).__init__(msg)
+        super(LinkError, self).__init__(message)
 
 
 class CondaOSError(CondaError, OSError):
