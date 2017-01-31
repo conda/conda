@@ -450,6 +450,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         try:
             command_args = [os.environ[str('COMSPEC')], '/c', path]
         except KeyError:
+            log.info("failed to run %s for %s due to COMSPEC KeyError", action, dist)
             return False
     else:
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
