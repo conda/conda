@@ -13,6 +13,7 @@ from os.path import getsize, isdir, join
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.context import context
+from ..core.package_cache import PackageCache
 from ..exceptions import ArgumentError
 from ..gateways.disk.delete import rm_rf
 from ..utils import human_bytes
@@ -74,18 +75,15 @@ def configure_parser(sub_parsers):
 
 def find_tarballs():
     pkgs_dirs = defaultdict(list)
-    for pkgs_dir in context.pkgs_dirs:
+    totalsize = 0
+    for pkgs_dir in PackageCache.all_writable(context.pkgs_dirs):
         if not isdir(pkgs_dir):
             continue
-        for fn in os.listdir(pkgs_dir):
+        root, _, filenames = next(os.walk(pkgs_dir))
+        for fn in filenames:
             if fn.endswith('.tar.bz2') or fn.endswith('.tar.bz2.part'):
                 pkgs_dirs[pkgs_dir].append(fn)
-
-    totalsize = 0
-    for pkgs_dir in pkgs_dirs:
-        for fn in pkgs_dirs[pkgs_dir]:
-            size = getsize(join(pkgs_dir, fn))
-            totalsize += size
+                totalsize += getsize(path)
 
     return pkgs_dirs, totalsize
 
@@ -123,10 +121,9 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
-            if os.access(os.path.join(pkgs_dir, fn), os.W_OK):
+            if rm_rf(os.path.join(pkg_dir, fn)):
                 if verbose:
-                    print("Removing %s" % fn)
-                rm_rf(os.path.join(pkgs_dir, fn))
+                    print("Removed %s" % fn)
             else:
                 if verbose:
                     print("WARNING: cannot remove, file permissions: %s" % fn)
