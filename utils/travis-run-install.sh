@@ -72,7 +72,7 @@ miniconda_install() {
     export PATH=~/miniconda/bin:$PATH
     hash -r
     which -a conda
-    conda install -y -q pip conda python
+    conda install -y -q pip conda 'python>=3.6'
     conda info
     which -a pip
     which -a python
