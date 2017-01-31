@@ -369,7 +369,8 @@ def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod
         return None
 
     if repodata['_priority'] != priority:
-        repodata['_priority']._priority = priority
+        for rec in itervalues(repodata.get('packages', {})):
+            rec.priority = priority
 
     return repodata
 
