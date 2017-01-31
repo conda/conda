@@ -4,6 +4,31 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.9 (2017-01-31)
+
+### Improvements
+* improve repodata caching for performance (#4478)
+* expand scope of packages included by bad_installed (#4402)
+* silence pre-link warning for old noarch (#4451)
+* add configuration to optionally require noarch repodata (#4450)
+* improve conda subprocessing (#4447)
+* respect info/link.json (#4482)
+
+### Bug Fixes
+* fix #4398 'hard' was used for link type at one point (#4409)
+* fixed "No matches for wildcard '$activate_d/*.fish'" warning (#4415)
+* print correct activate/deactivate message for fish shell (#4423)
+* fix 'Dist' object has no attribute 'fn' (#4424)
+* fix noarch generic and add additional integration test (#4431)
+* fix #4425 unknown encoding (#4433)
+
+### Non-User-Facing Changes
+* fail CI on conda-build fail (#4405)
+* run doctests (#4414)
+* make index record mutable again (#4461)
+* additional test for conda list --json (#4480)
+
+
 ## 4.3.8 (2017-01-23)
 
 ### Bug Fixes
