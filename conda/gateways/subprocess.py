@@ -10,10 +10,8 @@ from subprocess import CalledProcessError, PIPE, Popen
 import sys
 
 from .logging import TRACE
-
 from .._vendor.auxlib.ish import dals
-
-from ..common.compat import (ensure_binary, ensure_text_type, isiterable, iteritems, on_win,
+from ..common.compat import (ensure_binary, ensure_text_type, iteritems, on_win,
                              string_types)
 
 log = getLogger(__name__)
