@@ -31,6 +31,7 @@ from ..common.compat import ensure_text_type, ensure_unicode, iteritems, iterval
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
+from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import read_index_json
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
@@ -354,11 +355,14 @@ def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod
     if not isfile(pickle_path) or not isfile(cache_path):
         return None
     try:
-        with open(cache_path + '.q', 'rb') as f:
+        if isfile(pickle_path):
+            log.debug("found pickle file %s", pickle_path)
+        with open(pickle_path, 'rb') as f:
             repodata = pickle.load(f)
     except Exception as e:
         import traceback
         log.debug("Failed to load pickled repodata.\n%s", traceback.format_exc())
+        rm_rf(pickle_path)
         return None
 
     def _check_pickled_valid():
@@ -372,9 +376,9 @@ def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod
     if not all(_check_pickled_valid()):
         return None
 
-    if repodata['_priority'] != priority:
-        for rec in itervalues(repodata.get('packages', {})):
-            rec.priority = priority
+    if int(repodata['_priority']) != priority:
+        log.debug("setting priority for %s to '%d'", repodata.get('_url'), priority)
+        repodata['_priority']._priority = priority
 
     return repodata
 

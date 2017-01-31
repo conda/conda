@@ -12,7 +12,6 @@ from ..common.compat import string_types
 
 @total_ordering
 class Priority(object):
-    __slots__ = ('_priority',)
 
     def __init__(self, priority):
         self._priority = priority
