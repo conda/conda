@@ -1,3 +1,12 @@
+## 4.2.17 (unreleased)
+
+## Improvements
+* silence pre-link warning for old noarch 4.2.x backport (#4453)
+
+### Non-User-Facing Changes
+* build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
+
+
 ## 4.2.16 (2017-01-20)
 
 ### Improvements
