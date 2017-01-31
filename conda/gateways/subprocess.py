@@ -9,6 +9,10 @@ from shlex import split as shlex_split
 from subprocess import CalledProcessError, PIPE, Popen
 import sys
 
+from .logging import TRACE
+
+from .._vendor.auxlib.ish import dals
+
 from ..common.compat import (ensure_binary, ensure_text_type, isiterable, iteritems, on_win,
                              string_types)
 
@@ -23,8 +27,23 @@ def _split_on_unix(command):
     return command if on_win else shlex_split(command)
 
 
+def _format_output(command, path, rc, stdout, stderr):
+    return dals("""
+    $ %s
+    ==> cwd: %s <==
+    ==> exit code: %d <==
+    ==> stdout <==
+    %s
+    ==> stderr <==
+    %s
+    """ % (' '.join(command), path, rc, stdout, stderr))
+
+
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True):
-    env = {str(k): str(v) for k, v in iteritems(iteritems(env) if env else os.environ)}
+    """This utility function should be preferred for all conda subprocessing.
+    It handles multiple tricky details.
+    """
+    env = {str(k): str(v) for k, v in iteritems(env if env else os.environ)}
     path = sys.prefix if path is None else abspath(path)
     p = Popen(_split_on_unix(command) if isinstance(command, string_types) else command,
               cwd=path, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
@@ -33,12 +52,11 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     stdout, stderr = p.communicate(input=stdin)
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
-    log.debug("{0} $  {1}\n"
-              "  stdout: {2}\n"
-              "  stderr: {3}\n"
-              "  rc: {4}"
-              .format(path, ' '.join(command) if isiterable(command) else command,
-                      stdout, stderr, rc))
+    if log.isEnabledFor(TRACE):
+        log.trace(_format_output(command, path, rc, stdout, stderr))
+    else:
+        log.debug("$ %s", ' '.join(command))
     if raise_on_error and rc != 0:
-        raise CalledProcessError(rc, command, "stdout: {0}\nstderr: {1}".format(stdout, stderr))
+        raise CalledProcessError(rc, command,
+                                 output=_format_output(command, path, rc, stdout, stderr))
     return Response(ensure_text_type(stdout), ensure_text_type(stderr), int(rc))

@@ -453,7 +453,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
             return False
     else:
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
-        command_args = [shell_path, path]
+        command_args = [shell_path, "-x", path]
 
     env['ROOT_PREFIX'] = context.root_prefix
     env['PREFIX'] = env_prefix or prefix
@@ -465,18 +465,20 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         log.debug("for %s at %s, executing script: $ %s",
                   dist, env['PREFIX'], ' '.join(command_args))
         subprocess_call(command_args, env=env)
-    except CalledProcessError:
+    except CalledProcessError as e:
         m = messages(prefix)
         if action in ('pre-link', 'post-link'):
-            if m:
-                raise LinkError("Error: %s failed for: %s\n%s" % (action, dist, m))
-            else:
-                raise LinkError("Error: %s failed for: %s" % (action, dist))
+            raise LinkError(dals("""
+            %s script failed for package %s
+            location of failed script: %s
+            %s
+            ==> script messages <==
+            %s
+            """ % (action, dist, path, e.output, m or "<None>")))
         else:
+            log.warn("%s script failed for package %s\n"
+                     "consider notifying the package maintainer", action, dist)
             return False
-    except:
-        messages(prefix)
-        return False
     else:
         messages(prefix)
         return True
