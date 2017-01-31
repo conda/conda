@@ -120,7 +120,7 @@ def read_package_metadata(extracted_package_directory):
             if package_metadata.package_metadata_version != 1:
                 raise CondaUpgradeError(dals("""
                 The current version of conda is too old to install this package. (This version
-                only supports paths.json schema version 1.)  Please update conda to install
+                only supports link.json schema version 1.)  Please update conda to install
                 this package."""))
         return package_metadata
 
