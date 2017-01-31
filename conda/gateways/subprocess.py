@@ -36,7 +36,7 @@ def _format_output(command, path, rc, stdout, stderr):
     %s
     ==> stderr <==
     %s
-    """ % (' '.join(command), path, rc, stdout, stderr))
+    """) % (' '.join(command), path, rc, stdout, stderr)
 
 
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True):
@@ -45,6 +45,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     """
     env = {str(k): str(v) for k, v in iteritems(env if env else os.environ)}
     path = sys.prefix if path is None else abspath(path)
+    log.debug("executing>> %s", ' '.join(command))
     p = Popen(_split_on_unix(command) if isinstance(command, string_types) else command,
               cwd=path, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
@@ -52,11 +53,11 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     stdout, stderr = p.communicate(input=stdin)
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
-    if log.isEnabledFor(TRACE):
-        log.trace(_format_output(command, path, rc, stdout, stderr))
-    else:
-        log.debug("$ %s", ' '.join(command))
     if raise_on_error and rc != 0:
+        log.info(_format_output(command, path, rc, stdout, stderr))
         raise CalledProcessError(rc, command,
                                  output=_format_output(command, path, rc, stdout, stderr))
+    if log.isEnabledFor(TRACE):
+        log.trace(_format_output(command, path, rc, stdout, stderr))
+
     return Response(ensure_text_type(stdout), ensure_text_type(stderr), int(rc))

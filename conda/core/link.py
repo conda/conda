@@ -469,13 +469,19 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     except CalledProcessError as e:
         m = messages(prefix)
         if action in ('pre-link', 'post-link'):
-            raise LinkError(dals("""
-            %s script failed for package %s
-            location of failed script: %s
-            %s
-            ==> script messages <==
-            %s
-            """ % (action, dist, path, e.output, m or "<None>")))
+            if 'openssl' in text_type(dist):
+                # this is a hack for conda-build string parsing in the conda_build/build.py
+                #   create_env function
+                message = "%s failed for: %s" % (action, dist)
+            else:
+                message = dals("""
+                %s script failed for package %s
+                running your command again with `-v` will provide additional information
+                location of failed script: %s
+                ==> script messages <==
+                %s
+                """) % (action, dist, path, m or "<None>")
+            raise LinkError(message)
         else:
             log.warn("%s script failed for package %s\n"
                      "consider notifying the package maintainer", action, dist)
