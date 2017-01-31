@@ -27,7 +27,6 @@ import logging
 import os
 from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
-import stat
 
 from .base.constants import PREFIX_PLACEHOLDER
 from .common.compat import on_win
