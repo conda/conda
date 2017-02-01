@@ -225,26 +225,6 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(len(dists), 107)
         self.assertTrue(make_record('scipy-0.12.0-np17py27_0.tar.bz2') in dists)
 
-    def test_anaconda_mkl_2(self):
-        # to test "with_features_depends"
-        dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
-        self.assert_have_mkl(dists, ('numpy', 'scipy', 'numexpr', 'scikit-learn'))
-        self.assertTrue(make_record('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
-        self.assertTrue(make_record('mkl-rt-11.0-p0.tar.bz2') in dists)
-        self.assertEqual(len(dists), 108)
-
-        dists2 = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl'])
-        self.assertTrue(set(dists) <= set(dists2))
-        self.assertEqual(len(dists2), 110)
-
-    def test_anaconda_mkl_3(self):
-        # to test "with_features_depends"
-        dists = r.install(['anaconda 1.5.0', 'python 3*', 'mkl@'])
-        self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue(make_record('scipy-0.12.0-np17py33_p0.tar.bz2') in dists)
-        self.assertTrue(make_record('mkl-rt-11.0-p0.tar.bz2') in dists)
-        self.assertEqual(len(dists), 61)
-
 
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
@@ -283,8 +263,8 @@ def test_get_dists():
 
 
 def test_generate_eq():
-    dists = r.get_reduced_index(['anaconda'])
-    r2 = Resolve(dists, True, True)
+    reduced_index = r.get_reduced_index(['anaconda'])
+    r2 = Resolve(reduced_index, True, True)
     C = r2.gen_clauses()
     eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
@@ -295,8 +275,8 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
-    eqv = {make_record(key).to_filename(): value for key, value in iteritems(eqv)}
-    eqb = {make_record(key).to_filename(): value for key, value in iteritems(eqb)}
+    eqv = {make_record(key).fn: value for key, value in iteritems(eqv)}
+    eqb = {make_record(key).fn: value for key, value in iteritems(eqb)}
     assert eqv == {
         'anaconda-1.4.0-np15py26_0.tar.bz2': 1,
         'anaconda-1.4.0-np15py27_0.tar.bz2': 1,
@@ -359,10 +339,8 @@ def test_generate_eq():
         'numpy-1.5.1-py27_3.tar.bz2': 3,
         'numpy-1.6.2-py26_3.tar.bz2': 2,
         'numpy-1.6.2-py26_4.tar.bz2': 2,
-        'numpy-1.6.2-py26_p4.tar.bz2': 2,
         'numpy-1.6.2-py27_3.tar.bz2': 2,
         'numpy-1.6.2-py27_4.tar.bz2': 2,
-        'numpy-1.6.2-py27_p4.tar.bz2': 2,
         'numpy-1.7.0-py26_0.tar.bz2': 1,
         'numpy-1.7.0-py27_0.tar.bz2': 1,
         'numpy-1.7.0-py33_0.tar.bz2': 1,
