@@ -232,8 +232,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     channel administrator create `noarch/repodata.json` and associated
                     `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
                     $ mkdir noarch
-                    $ echo '{}' > noarch/repodata,json
-                    $ bzip2 -k noarch/repodata,json
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
                     """ % url)
                     stderrlog.warn(help_message)
                     return None
@@ -246,8 +246,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     empty. please request that the channel administrator create
                     `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
                     $ mkdir noarch
-                    $ echo '{}' > noarch/repodata,json
-                    $ bzip2 -k noarch/repodata,json
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
 
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
@@ -270,8 +270,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     channel administrator create `noarch/repodata.json` and associated
                     `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
                     $ mkdir noarch
-                    $ echo '{}' > noarch/repodata,json
-                    $ bzip2 -k noarch/repodata,json
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
                     """ % url)
                     stderrlog.warn(help_message)
                     return None
@@ -284,8 +284,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     empty. please request that the channel administrator create
                     `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
                     $ mkdir noarch
-                    $ echo '{}' > noarch/repodata,json
-                    $ bzip2 -k noarch/repodata,json
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
 
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
