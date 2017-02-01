@@ -65,10 +65,10 @@ class DistType(type):
             elif isinstance(value, string_types):
                 return Dist.from_string(value)
             elif isinstance(value, IndexRecord):
-                return Dist(value.schannel, '-'.join((value.name, value.version, value.build)), value.with_features_depends)
+                return Dist(value.schannel, '-'.join((value.name, value.version, value.build)))
             elif isinstance(value, PackageInfo):
                 v = value.repodata_record
-                return Dist(value.channel.canonical_name, '-'.join((v.name, v.version, v.build)), v.with_features_depends)
+                return Dist(value.channel.canonical_name, '-'.join((v.name, v.version, v.build)))
             elif isinstance(value, Channel):
                 raise NotImplementedError()
             else:
@@ -77,17 +77,16 @@ class DistType(type):
             return super(DistType, cls).__call__(*args, **kwargs)
 
     def __new__(cls, name, bases, dct):
-         dct['__slots__'] = ('channel', 'dist_name', 'with_features_depends')
+         dct['__slots__'] = ('channel', 'dist_name')
          return type.__new__(cls, name, bases, dct)
 
 
 @with_metaclass(DistType)
 class Dist(object):
 
-    def __init__(self, channel, dist_name=None, with_features_depends=None):
+    def __init__(self, channel, dist_name=None):
         self.channel = channel
         self.dist_name = dist_name
-        self.with_features_depends = with_features_depends
 
     @property
     def base_url(self):
@@ -151,11 +150,7 @@ class Dist(object):
     def __str__(self):
         if self.is_feature_package:
             return self.dist_name
-        base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
-        if self.with_features_depends:
-            return "%s[%s]" % (base, self.with_features_depends)
-        else:
-            return base
+        return "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
 
     def __repr__(self):
         args = tuple("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
@@ -188,15 +183,12 @@ class Dist(object):
             return cls.from_url(string)
 
         if string.endswith('@'):
-            return cls(channel='@',
-                       dist_name=string,
-                       with_features_depends=None)
+            return cls(channel='@', dist_name=string)
 
         REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
                      r'([^\s\[\]]+)'               # 3.x dist
-                     r'(?:\[([a-zA-Z0-9_-]+)\])?'  # with_features_depends
                      )
-        channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
+        channel, original_dist= re.search(REGEX_STR, string).groups()
 
         if original_dist.endswith(CONDA_TARBALL_EXTENSION):
             original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION)]
@@ -206,9 +198,7 @@ class Dist(object):
         elif channel is None:
             channel = DEFAULTS_CHANNEL_NAME
 
-        return cls(channel=channel,
-                   dist_name=original_dist,
-                   with_features_depends=w_f_d)
+        return cls(channel=channel, dist_name=original_dist)
 
     @staticmethod
     def parse_dist_name(string):
@@ -250,7 +240,7 @@ class Dist(object):
         return cls(channel=channel, dist_name=dist_name)
 
     def __key__(self):
-        return self.channel, self.dist_name, self.with_features_depends
+        return self.channel, self.dist_name
 
     def __lt__(self, other):
         assert isinstance(other, self.__class__)

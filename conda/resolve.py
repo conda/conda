@@ -148,15 +148,9 @@ class Resolve(object):
         self.index = index = index.copy()
         if not processed:
             for dist, info in iteritems(index.copy()):
-                dist = Dist(dist)
-                if dist.with_features_depends:
-                    continue
                 for fstr in chain(info.get('features', '').split(),
                                   info.get('track_features', '').split(),
                                   context.track_features or ()):
-                    self.add_feature(fstr, group=False)
-                for fstr in iterkeys(info.get('with_features_depends', {})):
-                    index[Dist('%s[%s]' % (dist, fstr))] = info
                     self.add_feature(fstr, group=False)
 
         groups = {}
@@ -494,17 +488,7 @@ class Resolve(object):
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
-            # dist = Dist(dist)
-            if rec.with_features_depends:
-                f2, fstr = (Dist.from_string(dist.dist_name, channel_override=dist.channel),
-                            dist.with_features_depends)
-                fdeps = {d.name: d for d in self.ms_depends(f2)}
-                for dep in rec['with_features_depends'][fstr]:
-                    dep = MatchSpec(dep)
-                    fdeps[dep.name] = dep
-                deps = list(fdeps.values())
-            else:
-                deps = [MatchSpec(d) for d in rec.get('depends', [])]
+            deps = [MatchSpec(d) for d in rec.get('depends', [])]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
         # assert all(isinstance(ms, MatchSpec) for ms in deps)

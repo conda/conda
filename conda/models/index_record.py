@@ -54,8 +54,6 @@ class IndexJsonRecord(DictSafeMixin, Entity):
     track_features = StringField(required=False)
     version = StringField()
 
-    with_features_depends = MapField(required=False)  # go back to hell
-
     @property
     def dist_name(self):
         return "%s-%s-%s" % (self.name, self.version, self.build)
@@ -75,14 +73,7 @@ class IndexRecord(IndexJsonRecord):
     def pkey(self):
         if self.name.endswith('@'):
             return self.name
-        if self.schannel:
-            dist = "%s::%s" % (self.schannel, self.dist_name)
-        else:
-            dist = self.dist_name
-        # if self.with_features_depends:
-        #     # TODO: might not be quite right
-        #     dist += "[%s]" % self.with_features_depends
-        return dist
+        return "%s::%s" % (self.schannel, self.dist_name) if self.schannel else self.dist_name
 
     def __hash__(self):
         return hash(self.pkey)
