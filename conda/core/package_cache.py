@@ -92,12 +92,8 @@ class PackageCacheEntry(object):
         else:
             self.channel = channel
 
-        self.index_json_record = IndexRecord.from_objects(
-            read_index_json(extracted_package_dir),
-            fn=package_tarball_full_path.rsplit('/', 1)[-1],
-            url=url,
-            schannel=channel.canonical_name,
-        )
+        read_path = extracted_package_dir if self.is_extracted else package_tarball_full_path
+        self.index_json_record = read_index_json(read_path)
 
     @property
     def pkey(self):

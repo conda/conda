@@ -12,11 +12,12 @@ from logging import getLogger
 from os import X_OK, access, listdir
 from os.path import isdir, isfile, islink, join, lexists
 import shlex
+import tarfile
 
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
-from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import on_win
+from ...base.constants import PREFIX_PLACEHOLDER, CONDA_TARBALL_EXTENSION
+from ...common.compat import on_win, ensure_text_type
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
@@ -91,9 +92,18 @@ def read_package_info(record, extracted_package_directory):
 # functions supporting read_package_info()
 # ####################################################
 
-def read_index_json(extracted_package_directory):
-    with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-        return IndexJsonRecord(**json.load(fi))
+def read_index_json(path):
+    if isdir(path):
+        with open(join(path, 'info', 'index.json')) as fh:
+            return IndexJsonRecord(**json.load(fh))
+    elif isfile(path) and path.endswith(CONDA_TARBALL_EXTENSION):
+        with tarfile.open(path) as tf:
+            tar_info = tf.getmember('info/index.json')
+            fh = tf.extractfile(tar_info)
+            json_str = ensure_text_type(fh.read())
+            return IndexJsonRecord(**json.loads(json_str))
+    else:
+        raise RuntimeError()
 
 
 def read_icondata(extracted_package_directory):
