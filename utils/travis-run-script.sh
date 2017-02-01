@@ -55,7 +55,9 @@ conda_build_unit_test() {
     echo
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
     echo
-    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v tests
+    ~/miniconda/bin/python -m conda info
+    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
+    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
     popd
 }
 
@@ -67,8 +69,6 @@ if [[ $FLAKE8 == true ]]; then
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
     conda_build_unit_test
-    # if [[ $CONDA_BUILD == 1.21.11 || $CONDA_BUILD == master ]]; then
-    # fi
 else
     main_test
     if [[ "$(uname -s)" == "Linux" ]]; then

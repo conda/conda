@@ -72,8 +72,8 @@ miniconda_install() {
     export PATH=~/miniconda/bin:$PATH
     hash -r
     which -a conda
+    conda install -y -q pip conda 'python>=3.6'
     conda info
-    conda install -y -q pip
     which -a pip
     which -a python
     conda config --set auto_update_conda false
@@ -101,6 +101,7 @@ conda_build_install() {
 
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
+    rm -rf $(~/miniconda/bin/python -c "import site; print(site.getsitepackages()[0])")/conda_build
     pushd conda-build
     ~/miniconda/bin/pip install .
     hash -r

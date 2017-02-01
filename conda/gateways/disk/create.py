@@ -8,9 +8,7 @@ from logging import getLogger
 import os
 from os import makedirs
 from os.path import basename, isdir, isfile, islink, join, lexists
-from shlex import split as shlex_split
 import shutil
-from subprocess import PIPE, Popen
 import sys
 import tarfile
 import traceback
@@ -18,11 +16,12 @@ import traceback
 from .delete import rm_rf
 from .permissions import make_executable
 from .read import get_json_content
+from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.context import context
-from ...common.compat import on_win, ensure_binary
+from ...common.compat import ensure_binary, on_win
 from ...common.path import win_path_ok
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
@@ -247,27 +246,13 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         raise CondaError("Did not expect linktype=%r" % link_type)
 
 
-def _split_on_unix(command):
-    # I guess windows doesn't like shlex.split
-    return command if on_win else shlex_split(command)
-
-
 def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     if lexists(pyc_full_path):
         maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
     log.trace(command)
-    process = Popen(_split_on_unix(command), stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
-
-    rc = process.returncode
-    if rc != 0:
-        log.error("$ %s\n"
-                  "  stdout: %s\n"
-                  "  stderr: %s\n"
-                  "  rc: %d", command, stdout, stderr, rc)
-        raise RuntimeError()
+    subprocess_call(command)
 
     if not isfile(pyc_full_path):
         message = dals("""

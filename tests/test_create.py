@@ -956,7 +956,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
         import conda.core.link
-        with patch.object(conda.core.link, 'check_call') as rs:
+        with patch.object(conda.core.link, 'subprocess_call') as rs:
             with make_temp_env("openssl=1.0.2j --no-deps") as prefix:
                 assert_package_is_installed(prefix, 'openssl-')
                 assert rs.call_count == 1
@@ -972,3 +972,27 @@ class IntegrationTests(TestCase):
                 assert context.pkgs_dirs == [pkgs_dir]
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
+
+    def test_conda_list_json(self):
+        def pkg_info(s):
+            # function from nb_conda/envmanager.py
+            if hasattr(s, 'rsplit'):  # proxy for isinstance(s, six.string_types)
+                name, version, build = s.rsplit('-', 2)
+                return {
+                    'name': name,
+                    'version': version,
+                    'build': build
+                }
+            else:
+                return {
+                    'name': s['name'],
+                    'version': s['version'],
+                    'build': s.get('build_string') or s['build']
+                }
+
+        with make_temp_env("python=3.5.2") as prefix:
+            stdout, stderr = run_command(Commands.LIST, prefix, '--json')
+            stdout_json = json.loads(stdout)
+            packages = [pkg_info(package) for package in stdout_json]
+            python_package = next((p for p in packages if p['name'] == 'python'), None)
+            assert python_package['version'] == '3.5.2'
