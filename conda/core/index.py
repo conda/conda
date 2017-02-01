@@ -231,6 +231,9 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     If the requested url is in fact a valid conda channel, please request that the
                     channel administrator create `noarch/repodata.json` and associated
                     `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
                     """ % url)
                     stderrlog.warn(help_message)
                     return None
@@ -238,9 +241,13 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     help_message = dals("""
                     The remote server could not find the channel you requested.
 
-                    As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
                     associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                    empty.
+                    empty. please request that the channel administrator create
+                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
 
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
@@ -262,6 +269,9 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     If the requested url is in fact a valid conda channel, please request that the
                     channel administrator create `noarch/repodata.json` and associated
                     `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
                     """ % url)
                     stderrlog.warn(help_message)
                     return None
@@ -269,9 +279,13 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     help_message = dals("""
                     The channel you requested is not available on the remote server.
 
-                    As of conda 4.3, a valid channel *must* contain a `noarch/repodata.json` and
+                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
                     associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                    empty.
+                    empty. please request that the channel administrator create
+                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
 
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
