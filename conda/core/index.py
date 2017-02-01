@@ -9,7 +9,7 @@ import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import getmtime, isfile, join
+from os.path import getmtime, isfile, join, split as path_split
 import pickle
 import re
 from textwrap import dedent
@@ -342,7 +342,7 @@ def write_pickled_repodata(cache_path, repodata):
     if not repodata.get('packages'):
         return
     try:
-        with open(cache_path + '.q', 'wb') as f:
+        with open(get_pickle_path(cache_path), 'wb') as f:
             pickle.dump(repodata, f)
     except Exception as e:
         import traceback
@@ -350,7 +350,7 @@ def write_pickled_repodata(cache_path, repodata):
 
 
 def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod_stamp):
-    pickle_path = cache_path + '.q'
+    pickle_path = get_pickle_path(cache_path)
     # Don't trust pickled data if there is no accompanying json data
     if not isfile(pickle_path) or not isfile(cache_path):
         return None
@@ -552,6 +552,11 @@ def cache_fn_url(url):
     # assert subdir in PLATFORM_DIRECTORIES or context.subdir != context._subdir, subdir
     md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
     return '%s.json' % (md5[:8],)
+
+
+def get_pickle_path(cache_path):
+    cache_dir, cache_base = path_split(cache_path)
+    return join(cache_dir, cache_base.replace('.json', '.q'))
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):
