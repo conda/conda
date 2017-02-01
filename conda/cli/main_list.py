@@ -16,7 +16,7 @@ from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import text_type
+from ..common.compat import text_type, itervalues
 from ..core.linked_data import is_linked, linked, linked_data
 from ..egg_info import get_egg_info
 from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
@@ -164,7 +164,7 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         if format == 'export':
             print_export_header()
 
-    installed = linked(prefix)
+    installed = set(lpr for lpr in itervalues(linked_data(prefix)))
     log.debug("installed conda packages:\n%s", installed)
     if piplist and context.use_pip and format == 'human':
         other_python = get_egg_info(prefix)

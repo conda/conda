@@ -2,13 +2,14 @@ from conda.models.channel import Channel
 from conda.models.package_info import PackageInfo, PathData, PathType, Noarch, PathsData, \
     PackageMetadata
 from conda.models.enums import FileMode, PathType
-from conda.models.index_record import IndexRecord
+from conda.models.index_record import IndexRecord, IndexJsonRecord
 from unittest import TestCase
 
 
 class DefaultPackageInfo(TestCase):
     def test_package_info(self):
-        index_json_record = IndexRecord(build=0, build_number=0, name="test_foo", version=0)
+        index_json_record = IndexJsonRecord(build="0", build_number=0, name="test_foo", version=0)
+        repodata_record = IndexRecord.from_objects(index_json_record, url="https://some.url/somewhere/subdir/test_foo-0-0.tar.bz2", fn="test_foo-0-0.tar.bz2")
         icondata = "icondata"
         package_metadata = PackageMetadata(
             package_metadata_version=1,
@@ -25,7 +26,7 @@ class DefaultPackageInfo(TestCase):
         package_info = PackageInfo(
             extracted_package_dir='/some/path',
             channel=Channel('defaults'),
-            repodata_record=index_json_record,
+            repodata_record=repodata_record,
             url='https://some.com/place/file.tar.bz2',
 
             index_json_record=index_json_record,
@@ -35,6 +36,6 @@ class DefaultPackageInfo(TestCase):
         )
 
         self.assertIsInstance(package_info.paths_data.paths[0], PathData)
-        self.assertIsInstance(package_info.index_json_record, IndexRecord)
+        self.assertIsInstance(package_info.index_json_record, IndexJsonRecord)
         self.assertIsInstance(package_info.package_metadata.noarch, Noarch)
         self.assertEquals(package_info.paths_data.paths[0].path, "test/path/1")
