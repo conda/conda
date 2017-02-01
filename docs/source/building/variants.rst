@@ -27,7 +27,7 @@ Laboratory <https://abi-laboratory.pro/>`_.
 
 Variant input is ultimately a dictionary. They're mostly very flat. Keys are
 made directly available in Jinja2 templates. As a result, keys in the dictionary
-(and in files read into dictionaries) must be valid jinja2 variable names (no -
+(and in files read into dictionaries) must be valid jinja2 variable names (no ``-``
 characters allowed). This example builds python 2.7 and 3.5 packages in one
 build command:
 
@@ -97,16 +97,59 @@ Special variant keys
 --------------------
 
 
-* ``pin_run_as_build``: should be a list of package names. Any package listed
-  here, and occurring in both the build environment and the run requirements,
-  will be pinned in the output package to the version present in the build
-  environment. This is a generalization of the ``numpy x.x`` spec.
+* ``pin_run_as_build``: should be a dictionary. Keys are package names. Values
+  are "pinning expressions" - explained in more detail in `Customizing
+  compatibility`_. This is a generalization of the ``numpy x.x`` spec.
 * ``extend_keys``: specifies keys that should be aggregated, rather than
   clobbered, by later variants. These are detailed below in the `Extended keys`_
   section.
-* ``compatible``: should be a dictionary. Described further in `Customizing
-  compatibility`_.
 * ``runtimes``: detailed further in `Extra Jinja2 functions`_.
+* ``exclude_from_build_hash``: list of package names to exclude from
+  requirements/build when computing hash. Described further in `Avoiding
+  unnecessary builds`_.
+
+
+Avoiding unnecessary builds
+---------------------------
+
+
+To avoid building variants of packages where pinning does not necessitate having
+different builds, you can use the ``exclude_from_build_hash`` key in your
+variant. The way this works is that all variants are evaluated, but if any
+hashes are the same, then they are considered duplicates, and are deduplicated.
+By omitting some packages from the build dependencies, we can avoid creating
+unnecessarily unique hashes, and allow this deduplication.
+
+For example, let's consider a package that uses numpy in both run and build
+requirements, and a variant that includes two numpy versions:
+
+
+.. code-block:: python
+
+    variants = [{'numpy': ['1.10', '1.11']}]
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   requirements:
+       build:
+           - numpy {{ numpy }}
+       run:
+           - numpy
+
+Here, the variant says that we'll have two builds - one for each numpy version.
+However, since this recipe does not pin numpy's run requirement (because it
+doesn't utilize numpy's C API), it is unnecessary to build it against both numpy
+1.10 and 1.11. This example also assumes that numpy is not set in
+``pin_run_as_build``.
+
+Defaults for ``exclude_from_build_hash`` are ['numpy', 'mkl']. These result in
+just one build (probably done with the last 'numpy' list element in the variant,
+but that's more of an implementation detail that you should not depend on.
+
+Any pinning done in the run requirements will affect the hash, and thus builds will
+be done for each variant in the matrix.
 
 
 CONDA_* variables and command line arguments to conda-build
@@ -207,13 +250,97 @@ set. These are used internally for tracking which requirements should be pinned,
 for example, with the ``pin_run_as_build`` key. You can add your own extended
 keys by passing in values for the ``extend_keys`` key for any variant.
 
+
 Customizing compatibility
 -------------------------
+
+
+Pinning expressions
+~~~~~~~~~~~~~~~~~~~
+
+
+Pinning expressions are the syntax used to specify how many parts of the version
+to pin. They are strings containing arbitrary characters separated by ``.``. The
+number of version parts to pin is simply the number of things that are separated
+by ``.``. For example, ``"p.p"`` pins major and minor version. ``"p"`` pins only
+major version. Pinning expressions are really only counting the number of things
+separated by the ``.`` character. What you put as the actual characters doesn't
+matter. We use ``p`` for convention.
+
+Wherever pinning expressions are accepted, you can pass either a single pinning
+expression or a tuple/list of two pinning expressions. For the single
+expression, you'll end up customizing only the upper bound. For the tuple/list,
+you'll customize both bounds.
+
+
+.. code-block::
+    # produces pins like >=1.11.2,<1.12
+    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': 'p.p'}}]
+
+
+.. code-block::
+    # produces pins like >=1.11,<2
+    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': ('p.p', 'p')}}]
+
+
+Pinning at the variant level
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Conda-build will automatically pin run requirements to the versions present in
+the build environment when the follow conditions are met:
+
+1. The dependency is listed in the requirements/build section. It can be pinned,
+   but does not need to be.
+2. The dependency is listed by name (no pinning) in the requirements/run section
+3. The ``pin_run_as_build`` key in the variant has a value that is a dictionary,
+   containing a key that matches the dependency name listed in the run
+   requirements. The value should be a pinning expression, or a tuple of two pinning expressions to
+
+An example variant/recipe is shown here:
+
+
+.. code-block:: python
+
+    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': 'p.p'}}]
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   requirements:
+       build:
+           - numpy {{ numpy }}
+       run:
+           - numpy
+
+
+The result here is that the runtime numpy dependency will be pinned to
+``>=(current numpy 1.11.x version),<1.12``
+
+Numpy is an interesting example here. It actually would not make a good case for
+pinning at the variant level. Because you only need this kind of pinning for
+recipes that use Numpy's C API, it would actually be better to not pin numpy
+with ``pin_run_as_build``. Pinning it is over-constraining your requirements
+unnecessarily when you are not using Numpy's C API. Instead, we should customize
+it for each recipe that uses numpy. That's the next section.
+
+
+Pinning at the recipe level
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Pinning at the recipe level overrides pinning at the variant level, because run
+dependencies that have pinning values in meta.yaml (even as jinja variables) are
+ignored by the logic handling ``pin_run_as_build``. We expect that pinning at
+the recipe level will be used when some recipe's pinning is unusually stringent
+(or loose) relative to some standard pinning from the variant level.
 
 By default, with the ``pin_compatible`` function, conda-build pins to your
 current version and less than the next major version. For projects that don't
 follow the philosophy of semantic versioning, you might want to restrict things
-more tightly. To do so, you can pass one of two arguments to the pin_compatible function.
+more tightly. To do so, you can pass one of two arguments to the pin_compatible
+function.
 
 .. code-block:: python
 
@@ -231,12 +358,6 @@ meta.yaml:
 
 
 This would yield a pinning of ``>=1.11.2,<1.12``
-
-
-Pinning expressions are really only counting the number of things separated by
-the ``.`` character. What you put as the actual characters doesn't matter. We
-use ``p`` for convention.
-
 
 The syntax for the pins argument is an iterable (list or tuple) with 1 or 2
 pinning expressions. If only one is specified, the pinning expression applies
