@@ -809,7 +809,8 @@ class ExtractPackageAction(PathAction):
 
         recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
 
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, recorded_url or path_to_url(self.source_full_path))
+        package_cache_entry = PackageCacheEntry(recorded_url or path_to_url(self.source_full_path),
+                                                self.target_pkgs_dir)
         target_package_cache[package_cache_entry] = package_cache_entry
 
     def reverse(self):

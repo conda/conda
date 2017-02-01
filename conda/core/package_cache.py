@@ -70,20 +70,14 @@ class UrlsData(object):
 
 class PackageCacheEntry(object):
 
-    @classmethod
-    def make_legacy(cls, pkgs_dir, url):
+    def __init__(self, url, pkgs_dir):
         assert url.endswith(CONDA_TARBALL_EXTENSION)
-        fn = url.rsplit('/', 1)[-1]
-        package_tarball_full_path = join(pkgs_dir, fn)
-        extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
-        return cls(pkgs_dir, url, package_tarball_full_path, extracted_package_dir)
-
-    def __init__(self, pkgs_dir, url, package_tarball_full_path, extracted_package_dir):
-        # the channel object here should be created using a full url to the tarball
-        self.pkgs_dir = pkgs_dir
         self.url = url
-        self.package_tarball_full_path = package_tarball_full_path
-        self.extracted_package_dir = extracted_package_dir
+        self.pkgs_dir = pkgs_dir
+
+        fn = url.rsplit('/', 1)[-1]
+        self.package_tarball_full_path = join(pkgs_dir, fn)
+        self.extracted_package_dir = self.package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
 
         channel = Channel(url)
         if not channel.platform:
@@ -92,7 +86,7 @@ class PackageCacheEntry(object):
         else:
             self.channel = channel
 
-        read_path = extracted_package_dir if self.is_extracted else package_tarball_full_path
+        read_path = self.extracted_package_dir if self.is_extracted else self.package_tarball_full_path
         self.index_json_record = read_index_json(read_path)
 
     @property
@@ -297,7 +291,7 @@ class PackageCache(object):
 
     def _add_entry(self, pkgs_dir, package_filename):
         url = first(self.urls_data, lambda x: safe_basename(x) == package_filename)
-        pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, url)
+        pc_entry = PackageCacheEntry(url, pkgs_dir)
         self._packages_map[pc_entry] = pc_entry
 
     @property
