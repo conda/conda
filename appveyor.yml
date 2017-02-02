@@ -36,7 +36,6 @@ build: false
 
 test_script:
   - call .\utils\appveyor-script.bat
-g
 on_success:
   - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PYTHON_VERSION
