@@ -5,8 +5,7 @@ from functools import total_ordering
 
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, Field, IntegerField, ListField, MapField,
-                                     StringField)
+                                     EnumField, Field, IntegerField, ListField, StringField)
 from ..common.compat import string_types
 
 
