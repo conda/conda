@@ -145,8 +145,11 @@ doesn't utilize numpy's C API), it is unnecessary to build it against both numpy
 ``pin_run_as_build``.
 
 Defaults for ``exclude_from_build_hash`` are ['numpy', 'mkl']. These result in
-just one build (probably done with the last 'numpy' list element in the variant,
-but that's more of an implementation detail that you should not depend on.
+just one build. The actual build performed is probably done with the last
+'numpy' list element in the variant, but that's more of an implementation detail
+that you should not depend on. The order is considered unspecified behavior,
+because the output should be independent of the input versions. If the output is
+not independent of input versions, don't use this key!
 
 Any pinning done in the run requirements will affect the hash, and thus builds will
 be done for each variant in the matrix.
@@ -295,7 +298,8 @@ the build environment when the follow conditions are met:
 2. The dependency is listed by name (no pinning) in the requirements/run section
 3. The ``pin_run_as_build`` key in the variant has a value that is a dictionary,
    containing a key that matches the dependency name listed in the run
-   requirements. The value should be a pinning expression, or a tuple of two pinning expressions to
+   requirements. The value should be a pinning expression, or a tuple of two
+   pinning expressions to set precision for both lower and upper bounds
 
 An example variant/recipe is shown here:
 
