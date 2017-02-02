@@ -4,7 +4,6 @@ coverage:
   range: 60...100
 
 ignore:
-  - conda_env/.*
   - conda/_vendor/.*
   - conda/console.py
   - conda/cli/main_package.py

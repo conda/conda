@@ -7,7 +7,7 @@ PYTHONHASHSEED := $(shell python -c "import random as r; print(r.randint(0,42949
 PYTEST_VARS := PYTHONHASHSEED=$(PYTHONHASHSEED) PYTHON_MAJOR_VERSION=$(PYTHON_MAJOR_VERSION) TEST_PLATFORM=$(TEST_PLATFORM)
 PYTEST := $(PYTEST_VARS) $(PYTEST_EXE)
 
-ADD_COV := --cov-report xml --cov-report term-missing --cov-append --cov conda
+ADD_COV := --cov-report xml --cov-report term-missing --cov-append --cov conda --cov conda_env
 
 
 clean:
