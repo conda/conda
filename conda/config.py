@@ -53,7 +53,6 @@ rc_bool_keys = [
 ]
 
 rc_string_keys = [
-    'ssl_verify',
     'channel_alias',
     'client_ssl_cert',
     'client_ssl_cert_key',
