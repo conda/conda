@@ -9,12 +9,14 @@ from os.path import abspath, basename, expanduser, isdir, join, normpath, split 
 from platform import machine
 import sys
 
+from conda._vendor.appdirs import user_data_dir, user_cache_dir
+
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
                         PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
+from ..common.compat import NoneType, iteritems, itervalues, odict, string_types, on_win
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
@@ -266,12 +268,19 @@ class Context(Configuration):
     @property
     def pkgs_dirs(self):
         if self._pkgs_dirs:
-            return list(self._pkgs_dirs)
+            return self._pkgs_dirs
         else:
-            return tuple(expand(p) for p in concatv(
-                () if self.root_writable else ('~/.conda/pkgs',),
-                (join(self.root_prefix, 'pkgs'),),
+            return tuple(expand(p) for p in (
+                join(self.root_prefix, 'pkgs'),
+                self._user_pkgs_dir,
             ))
+
+    @property
+    def _user_pkgs_dir(self):
+        if on_win:
+            return join(user_data_dir(APP_NAME, APP_NAME), 'pkgs')
+        else:
+            return join('~', '.conda', 'pkgs')
 
     @property
     def private_envs_json_path(self):
