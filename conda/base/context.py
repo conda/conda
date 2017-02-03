@@ -270,17 +270,18 @@ class Context(Configuration):
         if self._pkgs_dirs:
             return self._pkgs_dirs
         else:
-            return tuple(expand(p) for p in (
-                join(self.root_prefix, 'pkgs'),
-                self._user_pkgs_dir,
+            cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
+            return tuple(expand(join(p, cache_dir_name)) for p in (
+                self.root_prefix,
+                self._user_data_dir,
             ))
 
     @property
-    def _user_pkgs_dir(self):
+    def _user_data_dir(self):
         if on_win:
-            return join(user_data_dir(APP_NAME, APP_NAME), 'pkgs')
+            return user_data_dir(APP_NAME, APP_NAME)
         else:
-            return join('~', '.conda', 'pkgs')
+            return expand(join('~', '.conda'))
 
     @property
     def private_envs_json_path(self):
@@ -421,13 +422,6 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     from ..models.channel import Channel
     Channel._reset_state()
     return context
-
-
-def pkgs_dir_from_envs_dir(envs_dir):
-    if abspath(envs_dir) == abspath(join(context.root_prefix, 'envs')):
-        return join(context.root_prefix, 'pkgs32' if context.force_32bit else 'pkgs')
-    else:
-        return join(envs_dir, '.pkgs')
 
 
 def get_help_dict():
