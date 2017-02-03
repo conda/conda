@@ -3,13 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import rename as os_rename, utime
-from os.path import lexists
+from os.path import dirname, isdir, lexists
 import re
 
-from conda._vendor.auxlib.path import expand
-from conda.gateways.disk.delete import rm_rf
-
 from . import exp_backoff_fn
+from .delete import rm_rf
+from ..._vendor.auxlib.path import expand
 
 log = getLogger(__name__)
 
@@ -64,5 +63,11 @@ def touch(path):
         utime(path, None)
         return True
     else:
-        open(path, 'a').close()
-        return False
+        assert isdir(dirname(path))
+        try:
+            fh = open(path, 'a')
+        except:
+            raise
+        else:
+            fh.close()
+            return False

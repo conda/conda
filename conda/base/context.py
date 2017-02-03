@@ -5,17 +5,15 @@ from collections import Sequence
 from itertools import chain
 from logging import getLogger
 import os
-from os.path import (abspath, basename, expanduser, isdir, join, normpath,
-                     split as path_split)
+from os.path import abspath, basename, expanduser, isdir, join, normpath, split as path_split
 from platform import machine
 import sys
 
-from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
-                        SEARCH_PATH)
+from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
+                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..base.constants import DEFAULTS_CHANNEL_NAME, PathConflict
 from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
@@ -254,8 +252,8 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from ..gateways.disk.test import try_write
-        return try_write(self.root_dir)
+        from ..gateways.disk.test import prefix_is_writable
+        return prefix_is_writable(self.root_dir)
 
     @property
     def envs_dirs(self):
@@ -537,20 +535,6 @@ def locate_prefix_by_name(ctx, name):
             return prefix
 
     raise CondaEnvironmentNotFoundError(name)
-
-
-def check_write(command, prefix, json=False):
-    if inroot_notwritable(prefix):
-        from conda.cli.help import root_read_only
-        root_read_only(command, prefix, json=json)
-
-
-def inroot_notwritable(prefix):
-    """
-    return True if the prefix is under root and root is not writeable
-    """
-    return (abspath(prefix).startswith(context.root_dir) and
-            not context.root_writable)
 
 
 try:

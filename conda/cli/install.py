@@ -6,18 +6,18 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from difflib import get_close_matches
 import errno
 import logging
 import os
-import re
-from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
+import re
 
 from . import common
 from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import check_write, context
+from ..base.context import context
 from ..common.compat import on_win, text_type
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
@@ -28,8 +28,8 @@ from ..exceptions import (CondaEnvironmentNotFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
-from ..plan import (display_actions, execute_actions, get_pinned_specs,
-                    is_root_prefix, nothing_to_do, revert_actions, install_actions_list)
+from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
+                    is_root_prefix, nothing_to_do, revert_actions)
 
 log = logging.getLogger(__name__)
 
@@ -383,3 +383,17 @@ def install(args, parser, command='install'):
 
         if context.json:
             common.stdout_json_success(actions=actions)
+
+
+def check_write(command, prefix, json=False):
+    if inroot_notwritable(prefix):
+        from conda.cli.help import root_read_only
+        root_read_only(command, prefix, json=json)
+
+
+def inroot_notwritable(prefix):
+    """
+    return True if the prefix is under root and root is not writeable
+    """
+    return (abspath(prefix).startswith(context.root_dir) and
+            not context.root_writable)

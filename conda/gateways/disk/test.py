@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from glob import glob
 from logging import getLogger
 from os import W_OK, access, getpid
-from os.path import basename, isdir, isfile, islink, join, lexists
+from os.path import basename, dirname, isdir, isfile, islink, join, lexists
 
 from .create import create_link
 from .delete import backoff_unlink, rm_rf
+from .update import touch
 from ..._vendor.auxlib.decorators import memoize
 from ...common.compat import on_win
 from ...models.enums import LinkType
@@ -44,6 +46,41 @@ def try_write(dir_path, heavy=False):
             backoff_unlink(temp_filename)
     else:
         return access(dir_path, W_OK)
+
+
+def file_path_is_writable(path):
+    if isdir(dirname(path)):
+        try:
+            touch(path)
+        except (IOError, OSError) as e:
+            log.debug(e)
+            return False
+        else:
+            return True
+    else:
+        # TODO: probably won't work well on Windows
+        return access(path, W_OK)
+
+
+def prefix_is_writable(prefix):
+    if isdir(prefix):
+        history_file = join(prefix, 'conda-meta', 'history')
+        if isfile(history_file):
+            return file_path_is_writable(history_file)
+        else:
+            # history file doesn't exist, we created it, but we still can't be sure
+            #  about the prefix
+            # this probably only happens for the root environment with old installers
+            # look at ownership of conda-*.json
+            conda_json_files = glob(join(prefix, 'conda-meta', 'conda-*.json'))
+            if conda_json_files:
+                return file_path_is_writable(conda_json_files[0])
+            else:
+                log.debug("probably not a conda prefix '%s'", prefix)
+                return try_write(prefix)
+    else:
+        # TODO: probably won't work well on Windows
+        return access(prefix, W_OK)
 
 
 @memoize
