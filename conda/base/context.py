@@ -253,14 +253,14 @@ class Context(Configuration):
     @property
     def root_writable(self):
         from ..gateways.disk.test import prefix_is_writable
-        return prefix_is_writable(self.root_dir)
+        return prefix_is_writable(self.root_prefix)
 
     @property
     def envs_dirs(self):
-        return tuple(abspath(expanduser(p)) for p in concatv(
+        return tuple(expand(p) for p in concatv(
             self._envs_dirs,
-            ('~/.conda/envs',) if not self.root_writable else (),
-            (join(self.root_dir, 'envs'),),
+            () if self.root_writable else ('~/.conda/envs',),
+            (join(self.root_prefix, 'envs'),),
         ))
 
     @property
@@ -268,7 +268,10 @@ class Context(Configuration):
         if self._pkgs_dirs:
             return list(self._pkgs_dirs)
         else:
-            return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
+            return tuple(expand(p) for p in concatv(
+                () if self.root_writable else ('~/.conda/pkgs',),
+                (join(self.root_prefix, 'pkgs'),),
+            ))
 
     @property
     def private_envs_json_path(self):
