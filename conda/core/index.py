@@ -9,7 +9,7 @@ import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import getmtime, isfile, join, split as path_split
+from os.path import getmtime, isfile, join, split as path_split, dirname
 import pickle
 import re
 from textwrap import dedent
@@ -234,12 +234,13 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     $ mkdir noarch
                     $ echo '{}' > noarch/repodata.json
                     $ bzip2 -k noarch/repodata.json
-                    """ % url)
+                    """) % dirname(url)
                     stderrlog.warn(help_message)
                     return None
                 else:
                     help_message = dals("""
-                    The remote server could not find the channel you requested.
+                    The remote server could not find the noarch directory for the
+                    requested channel with url: %s
 
                     As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
                     associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
@@ -252,7 +253,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
                     Further configuration help can be found at <%s>.
-                    """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                    """) % (dirname(url), join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 403:
             if not url.endswith('/noarch'):
@@ -272,12 +273,13 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     $ mkdir noarch
                     $ echo '{}' > noarch/repodata.json
                     $ bzip2 -k noarch/repodata.json
-                    """ % url)
+                    """)  % dirname(url)
                     stderrlog.warn(help_message)
                     return None
                 else:
                     help_message = dals("""
-                    The channel you requested is not available on the remote server.
+                    The remote server could not find the noarch directory for the
+                    requested channel with url: %s
 
                     As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
                     associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
@@ -290,7 +292,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
                     Further configuration help can be found at <%s>.
-                    """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                    """) % (dirname(url), join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 401:
             channel = Channel(url)
@@ -491,9 +493,12 @@ def fetch_repodata(url, schannel, priority,
         touch(cache_path)
         return read_local_repodata(cache_path, url, schannel, priority,
                                    mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod'))
+    if repodata is None:
+        return None
 
     with open(cache_path, 'w') as fo:
         json.dump(repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+
     process_repodata(repodata, url, schannel, priority)
     write_pickled_repodata(cache_path, repodata)
     return repodata
@@ -548,7 +553,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     #   this is sorta a lie; actually more primitve types
 
     if index is None:
-        index = dict()
+        index = {}
     for _, repodata in repodatas:
         if repodata:
             index.update(repodata.get('packages', {}))
