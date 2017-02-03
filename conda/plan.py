@@ -392,7 +392,7 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
 
 
 def is_root_prefix(prefix):
-    return abspath(prefix) == abspath(context.root_dir)
+    return abspath(prefix) == abspath(context.root_prefix)
 
 
 def add_defaults_to_specs(r, linked, specs, update=False):
@@ -540,7 +540,7 @@ def add_unlink_options_for_update(actions, required_solves, index):
                     else:
                         actions.append(remove_actions(context.root_prefix, matched_in_root, index))
         # If the solved prefix is root
-        elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
+        elif preferred_env_matches_prefix(None, solved.prefix, context.root_prefix):
             for spec in solved.specs:
                 spec_in_private_env = prefix_if_in_private_env(spec)
                 if spec_in_private_env:
@@ -583,8 +583,8 @@ def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_r
 
 
 def not_requires_private_env(prefix, preferred_envs):
-    if (context.prefix_specified is True or not context.prefix == context.root_dir or
-            all(preferred_env_matches_prefix(preferred_env, prefix, context.root_dir) for
+    if (context.prefix_specified is True or not context.prefix == context.root_prefix or
+            all(preferred_env_matches_prefix(preferred_env, prefix, context.root_prefix) for
                 preferred_env in preferred_envs)):
         return True
     return False
@@ -605,22 +605,22 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
         prefix_with_dists_no_deps_has_resolve = [SpecsForPrefix(prefix=prefix, r=r, specs=dists)]
     else:
         # Ensure that conda is working in the root dir
-        assert(context.prefix == context.root_dir)
+        assert(context.prefix == context.root_prefix)
 
         def get_r(preferred_env):
             # don't make r for the prefix where we already have it created
-            if preferred_env_matches_prefix(preferred_env, prefix, context.root_dir):
+            if preferred_env_matches_prefix(preferred_env, prefix, context.root_prefix):
                 return r
             else:
                 return get_resolve_object(index.copy(), preferred_env_to_prefix(
-                    preferred_env, context.root_dir, context.envs_dirs))
+                    preferred_env, context.root_prefix, context.envs_dirs))
 
         prefix_with_dists_no_deps_has_resolve = []
         for env in preferred_envs:
             dists = IndexedSet(d.spec for d in dists_for_envs if d.env == env)
             prefix_with_dists_no_deps_has_resolve.append(
                 SpecsForPrefix(
-                    prefix=preferred_env_to_prefix(env, context.root_dir, context.envs_dirs),
+                    prefix=preferred_env_to_prefix(env, context.root_prefix, context.envs_dirs),
                     r=get_r(env),
                     specs=dists)
             )
@@ -703,7 +703,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         force=force, always_copy=always_copy)
 
     if actions[LINK]:
-        actions[SYMLINK_CONDA] = [context.root_dir]
+        actions[SYMLINK_CONDA] = [context.root_prefix]
 
     for dist in sorted(linked):
         dist = Dist(dist)

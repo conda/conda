@@ -281,7 +281,7 @@ class Context(Configuration):
     def default_prefix(self):
         _default_env = os.getenv('CONDA_DEFAULT_ENV')
         if _default_env in (None, ROOT_ENV_NAME):
-            return self.root_dir
+            return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
         else:
@@ -415,8 +415,8 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
 
 def pkgs_dir_from_envs_dir(envs_dir):
-    if abspath(envs_dir) == abspath(join(context.root_dir, 'envs')):
-        return join(context.root_dir, 'pkgs32' if context.force_32bit else 'pkgs')
+    if abspath(envs_dir) == abspath(join(context.root_prefix, 'envs')):
+        return join(context.root_prefix, 'pkgs32' if context.force_32bit else 'pkgs')
     else:
         return join(envs_dir, '.pkgs')
 

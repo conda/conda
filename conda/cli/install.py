@@ -343,7 +343,7 @@ def install(args, parser, command='install'):
             # needed in the case of creating an empty env
             from ..instructions import LINK, UNLINK, SYMLINK_CONDA
             if not actions[LINK] and not actions[UNLINK]:
-                actions[SYMLINK_CONDA] = [context.root_dir]
+                actions[SYMLINK_CONDA] = [context.root_prefix]
 
         if command in {'install', 'update'}:
             check_write(command, prefix)
@@ -395,5 +395,5 @@ def inroot_notwritable(prefix):
     """
     return True if the prefix is under root and root is not writeable
     """
-    return (abspath(prefix).startswith(context.root_dir) and
+    return (abspath(prefix).startswith(context.root_prefix) and
             not context.root_writable)
