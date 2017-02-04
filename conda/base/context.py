@@ -271,18 +271,18 @@ class Context(Configuration):
                 join(self._user_data_dir, 'envs'),
                 join('~', '.conda', 'envs'),
             )
-        return IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs))
+        return tuple(IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs)))
 
     @property
     def pkgs_dirs(self):
         if self._pkgs_dirs:
-            return IndexedSet(self._pkgs_dirs)
+            return tuple(IndexedSet(self._pkgs_dirs))
         else:
             cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
-            return IndexedSet(expand(join(p, cache_dir_name)) for p in (
+            return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (
                 self.root_prefix,
                 self._user_data_dir,
-            ))
+            )))
 
     @property
     def _user_data_dir(self):
@@ -543,7 +543,7 @@ def locate_prefix_by_name(ctx, name):
         return ctx.root_dir
 
     # look for a directory named `name` in all envs_dirs AND in CWD
-    for envs_dir in chain(ctx.envs_dirs + (os.getcwd(),)):
+    for envs_dir in concatv(ctx.envs_dirs, (os.getcwd(),)):
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
