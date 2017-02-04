@@ -395,7 +395,7 @@ def is_root_prefix(prefix):
     return abspath(prefix) == abspath(context.root_dir)
 
 
-def add_defaults_to_specs(r, linked, specs, update=False):
+def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     # TODO: This should use the pinning mechanism. But don't change the API:
     # cas uses it.
     if r.explicit(specs):
@@ -403,6 +403,8 @@ def add_defaults_to_specs(r, linked, specs, update=False):
     log.debug('H0 specs=%r' % specs)
     names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
+    if is_private_env(prefix):
+        return
 
     for name, def_ver in [('python', context.default_python),
                           # Default version required, but only used for Python
@@ -638,7 +640,7 @@ def match_to_original_specs(str_specs, specs_for_prefix):
             matched = matches_any_spec(spec)
             if matched:
                 new_matches.append(matched)
-        add_defaults_to_specs(r, linked, new_matches)
+        add_defaults_to_specs(r, linked, new_matches, prefix=prefix_with_dists.prefix)
         matched_specs_for_prefix.append(SpecsForPrefix(
             prefix=prefix_with_dists.prefix, r=prefix_with_dists.r, specs=new_matches))
     return matched_specs_for_prefix

@@ -704,10 +704,11 @@ def test_set_rc_string():
         reset_context([rc])
         assert context.ssl_verify is False
 
-        stdout, stderr = run_conda_command('config', '--file', rc,
-                                           '--set', 'ssl_verify', 'test_string.crt')
-        assert stdout == ''
-        assert stderr == ''
+        with NamedTemporaryFile() as tf:
+            stdout, stderr = run_conda_command('config', '--file', rc,
+                                               '--set', 'ssl_verify', tf.name)
+            assert stdout == ''
+            assert stderr == ''
 
-        reset_context([rc])
-        assert context.ssl_verify == 'test_string.crt'
+            reset_context([rc])
+            assert context.ssl_verify == tf.name
