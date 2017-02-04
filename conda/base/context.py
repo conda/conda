@@ -6,7 +6,7 @@ from itertools import chain
 from logging import getLogger
 import os
 from os.path import (abspath, basename, expanduser, isdir, join, normpath,
-                     split as path_split)
+                     split as path_split, isfile)
 from platform import machine
 import sys
 
@@ -58,6 +58,14 @@ def channel_alias_validation(value):
     return True
 
 
+def ssl_verify_validation(value):
+    if isinstance(value, string_types):
+        if not isfile(value):
+            return ("ssl_verify value '%s' must be a boolean or a path to a "
+                    "certificate bundle." % value)
+    return True
+
+
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
@@ -86,7 +94,8 @@ class Context(Configuration):
     #   False/0: always fetch remote repodata (HTTP 304 responses respected)
 
     # remote connection details
-    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
+    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,),
+                                    validation=ssl_verify_validation)
     client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
     client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
     proxy_servers = MapParameter(string_types)
