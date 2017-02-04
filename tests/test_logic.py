@@ -184,6 +184,7 @@ def test_AMONE():
     assert x1 == x2 and C1.clauses == C2.clauses
 
 
+@pytest.mark.integration  # only because this test is slow
 def test_XONE():
     my_TEST(my_XONE, Clauses.ExactlyOne_NSQ, 0,3, True)
     my_TEST(my_XONE, Clauses.ExactlyOne_BDD, 0,3, True)
