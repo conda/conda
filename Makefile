@@ -1,10 +1,16 @@
+PYTHON ?= $(shell which python)
+BIN := $(shell dirname $(PYTHON))
+TEST_PLATFORM := $(shell python -c "import sys; print('win' if 'win' in sys.platform else 'unix')")
+PYTHON_MAJOR_VERSION := $(shell $(PYTHON) -c "import sys; print(sys.version_info[0])")
+PYTEST := PYTHON_MAJOR_VERSION=$(PYTHON_MAJOR_VERSION) TEST_PLATFORM=$(TEST_PLATFORM) $(BIN)/py.test
+
 clean:
 	find . -name \*.py[cod] -delete
 	find . -name __pycache__ -delete
 	rm -rf *.egg-info* .cache build
 	rm -f .coverage .coverage.* junit.xml tmpfile.rc conda/.version tempfile.rc coverage.xml
 	rm -rf auxlib bin conda/progressbar
-	rm -rf conda-forge\:\: file\: https\: local\:\: r\:\:
+	rm -rf conda-forge\:\: file\: https\: local\:\: r\:\: aprefix
 
 
 clean-all: clean
@@ -44,4 +50,10 @@ toolz:
 	rm -rf conda/_vendor/toolz/curried conda/_vendor/toolz/sandbox conda/_vendor/toolz/tests
 
 
-.PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib boltons toolz
+smoketest:
+	py.test tests/test_create.py::test_create_install_update_remove
+
+unit:
+	time $(PYTEST) -m "not integration"
+
+.PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib boltons toolz smoketest
