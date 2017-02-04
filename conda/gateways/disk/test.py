@@ -3,49 +3,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from glob import glob
 from logging import getLogger
-from os import W_OK, access, getpid
+from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, islink, join, lexists
 
 from .create import create_link
-from .delete import backoff_unlink, rm_rf
+from .delete import rm_rf
 from .update import touch
+from ... import CondaError
 from ..._vendor.auxlib.decorators import memoize
-from ...common.compat import on_win
 from ...models.enums import LinkType
 
 log = getLogger(__name__)
-
-
-@memoize
-def try_write(dir_path, heavy=False):
-    """Test write access to a directory.
-
-    Args:
-        dir_path (str): directory to test write access
-        heavy (bool): Actually create and delete a file, or do a faster os.access test.
-           https://docs.python.org/dev/library/os.html?highlight=xattr#os.access
-
-    Returns:
-        bool
-
-    """
-    log.trace('checking user write access for %s', dir_path)
-    if not isdir(dir_path):
-        return False
-    if on_win or heavy:
-        # try to create a file to see if `dir_path` is writable, see #2151
-        temp_filename = join(dir_path, '.conda-try-write-%d' % getpid())
-        try:
-            with open(temp_filename, mode='wb') as fo:
-                fo.write(b'This is a test file.\n')
-            backoff_unlink(temp_filename)
-            return True
-        except (IOError, OSError):
-            return False
-        finally:
-            backoff_unlink(temp_filename)
-    else:
-        return access(dir_path, W_OK)
 
 
 def file_path_is_writable(path):
@@ -76,8 +44,13 @@ def prefix_is_writable(prefix):
             if conda_json_files:
                 return file_path_is_writable(conda_json_files[0])
             else:
+                # let's just look at any/first .json file in the directory
+                all_json_files = glob(join(prefix, 'conda-meta', '*.json'))
                 log.debug("probably not a conda prefix '%s'", prefix)
-                return try_write(prefix)
+                if all_json_files:
+                    return file_path_is_writable(all_json_files[0])
+                else:
+                    raise CondaError("Unable to determine if prefix '%s' is writable." % prefix)
     else:
         # TODO: probably won't work well on Windows
         return access(prefix, W_OK)
