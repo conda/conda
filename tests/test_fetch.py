@@ -15,6 +15,7 @@ from conda.core.index import fetch_repodata
 from conda.core.package_cache import download
 
 
+@pytest.mark.integration
 class TestConnectionWithShortTimeouts(TestCase):
 
     def test_download_connectionerror(self):
