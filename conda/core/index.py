@@ -273,7 +273,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     $ mkdir noarch
                     $ echo '{}' > noarch/repodata.json
                     $ bzip2 -k noarch/repodata.json
-                    """)  % dirname(url)
+                    """) % dirname(url)
                     stderrlog.warn(help_message)
                     return None
                 else:
