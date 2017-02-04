@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import Sequence
-from itertools import chain
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, join, normpath, split as path_split
