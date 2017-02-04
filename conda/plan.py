@@ -605,7 +605,7 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
         prefix_with_dists_no_deps_has_resolve = [SpecsForPrefix(prefix=prefix, r=r, specs=dists)]
     else:
         # Ensure that conda is working in the root dir
-        assert(context.prefix == context.root_prefix)
+        assert context.prefix == context.root_prefix
 
         def get_r(preferred_env):
             # don't make r for the prefix where we already have it created
