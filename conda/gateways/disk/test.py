@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from glob import glob
 from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, islink, join, lexists
 
 from .create import create_link
 from .delete import rm_rf
+from .read import find_first_existing
 from .update import touch
 from ... import CondaError
 from ..._vendor.auxlib.decorators import memoize
+from ...common.path import get_python_short_path
 from ...models.enums import LinkType
 
 log = getLogger(__name__)
@@ -31,28 +32,35 @@ def file_path_is_writable(path):
 
 
 def prefix_is_writable(prefix):
+    """
+    Strategy:
+      We use specific key files, not directory permissions, to determine the ownership of a prefix.
+      (1) With conda constructor 1.5.4 and Anaconda and miniconda installers after 4.3, any prefix
+          created by conda or a conda installer should have a `conda-meta/history` file.
+      (2) If there is no `conda-meta/history` file, we look for a `conda-meta/conda-*.json` file,
+          which exists for installers 4.3 and earlier.
+      (3) If that doesn't exist, the prefix is probably one created by conda constructor that
+          doesn't have conda installed in it.  In this case, we look for the first
+          `conda-meta/*.json` file.
+      (4) If that doesn't exist, then the current execution context is probably using a python
+          interpreter that really isn't associated with a conda prefix.  We'll look at ownership
+          of the python interpreter itself.
+
+    """
     if isdir(prefix):
-        history_file = join(prefix, 'conda-meta', 'history')
-        if isfile(history_file):
-            return file_path_is_writable(history_file)
-        else:
-            # history file doesn't exist, we created it, but we still can't be sure
-            #  about the prefix
-            # this probably only happens for the root environment with old installers
-            # look at ownership of conda-*.json
-            conda_json_files = glob(join(prefix, 'conda-meta', 'conda-*.json'))
-            if conda_json_files:
-                return file_path_is_writable(conda_json_files[0])
-            else:
-                # let's just look at any/first .json file in the directory
-                all_json_files = glob(join(prefix, 'conda-meta', '*.json'))
-                log.debug("probably not a conda prefix '%s'", prefix)
-                if all_json_files:
-                    return file_path_is_writable(all_json_files[0])
-                else:
-                    raise CondaError("Unable to determine if prefix '%s' is writable." % prefix)
+        test_path = find_first_existing(
+            join(prefix, 'conda-meta', 'history'),  # (1)
+            join(prefix, 'conda-meta', 'conda-*.json'),  # (2)
+            join(prefix, 'conda-meta', '*.json'),  # (3)
+            join(prefix, get_python_short_path('*')),  # (4)
+        )
+        log.debug("testing write access for prefix '%s' using path '%s'", prefix, test_path)
+        if test_path is None:
+            raise CondaError("Unable to determine if prefix '%s' is writable." % prefix)
+        return file_path_is_writable(test_path)
     else:
         # TODO: probably won't work well on Windows
+        log.debug("testing write access for prefix '%s' using prefix directory", prefix)
         return access(prefix, W_OK)
 
 

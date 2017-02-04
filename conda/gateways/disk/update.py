@@ -57,6 +57,7 @@ def touch(path):
     # returns
     #   True if the file did not exist but was created
     #   False if the file already existed
+    # raises permissions errors such as EPERM and EACCES
     path = expand(path)
     log.trace("touching path %s", path)
     if lexists(path):
