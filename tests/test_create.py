@@ -191,6 +191,12 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
 
+            # regression test for #4513
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/not-a-channel")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json")
+            packages = json.loads(stdout)
+            assert len(packages) > 1
+
     @pytest.mark.timeout(900)
     def test_create_install_update_remove(self):
         with make_temp_env("python=3.5") as prefix:
