@@ -94,7 +94,8 @@ class Context(Configuration):
     #   False/0: always fetch remote repodata (HTTP 304 responses respected)
 
     # remote connection details
-    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,), validation=ssl_verify_validation)
+    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,),
+                                    validation=ssl_verify_validation)
     client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
     client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
     proxy_servers = MapParameter(string_types)
