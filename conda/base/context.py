@@ -9,6 +9,8 @@ from os.path import abspath, basename, expanduser, isdir, join, normpath, split 
 from platform import machine
 import sys
 
+from conda._vendor.boltons.setutils import IndexedSet
+
 from conda._vendor.appdirs import user_data_dir, user_cache_dir
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
@@ -259,19 +261,27 @@ class Context(Configuration):
 
     @property
     def envs_dirs(self):
-        return tuple(expand(p) for p in concatv(
-            self._envs_dirs,
-            () if self.root_writable else ('~/.conda/envs',),
-            (join(self.root_prefix, 'envs'),),
-        ))
+        if self.root_writable:
+            fixed_dirs = (
+                join(self.root_prefix, 'envs'),
+                join(self._user_data_dir, 'envs'),
+                join('~', '.conda', 'envs'),
+            )
+        else:
+            fixed_dirs = (
+                join(self.root_prefix, 'envs'),
+                join(self._user_data_dir, 'envs'),
+                join('~', '.conda', 'envs'),
+            )
+        return IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs))
 
     @property
     def pkgs_dirs(self):
         if self._pkgs_dirs:
-            return self._pkgs_dirs
+            return IndexedSet(self._pkgs_dirs)
         else:
             cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
-            return tuple(expand(join(p, cache_dir_name)) for p in (
+            return IndexedSet(expand(join(p, cache_dir_name)) for p in (
                 self.root_prefix,
                 self._user_data_dir,
             ))
