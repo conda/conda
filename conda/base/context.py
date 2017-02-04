@@ -9,16 +9,14 @@ from os.path import abspath, basename, expanduser, isdir, join, normpath, split 
 from platform import machine
 import sys
 
-from conda._vendor.boltons.setutils import IndexedSet
-
-from conda._vendor.appdirs import user_data_dir, user_cache_dir
-
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
                         PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..common.compat import NoneType, iteritems, itervalues, odict, string_types, on_win
+from .._vendor.boltons.setutils import IndexedSet
+from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
