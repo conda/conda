@@ -17,7 +17,6 @@ from conda.core.package_cache import download
 
 class TestConnectionWithShortTimeouts(TestCase):
 
-    @pytest.mark.timeout(6)
     def test_download_connectionerror(self):
         with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
             with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
@@ -28,7 +27,6 @@ class TestConnectionWithShortTimeouts(TestCase):
                         download(url, mktemp())
                         assert msg in str(execinfo)
 
-    @pytest.mark.timeout(6)
     def test_fetchrepodate_connectionerror(self):
         with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
             with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):

@@ -9,9 +9,9 @@ from .test_create import (Commands, PYTHON_BINARY, assert_package_is_installed, 
                           make_temp_prefix, run_command)
 
 
+@pytest.mark.integration
 class ExportIntegrationTests(TestCase):
 
-    @pytest.mark.timeout(900)
     def test_basic(self):
         with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))

@@ -219,7 +219,6 @@ class TestJson(unittest.TestCase):
         assert stderr == ''
         assert rc > 0
 
-    @pytest.mark.timeout(300)
     def test_search_0(self):
         with captured():
             res = capture_json_with_argv('conda search --json')
