@@ -111,9 +111,9 @@ PathType = PathType
 
 
 if PY3:
-    import configparser  # NOQA
+    import configparser  # NOQA  # pragma: py2 no cover
 else:
-    import ConfigParser as configparser  # NOQA
+    import ConfigParser as configparser  # NOQA  # pragma: py3 no cover
 configparser = configparser
 
 
