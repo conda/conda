@@ -12,6 +12,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 import mock
+import pytest
 
 from conda.cli import conda_argparse
 from conda.install import on_win
@@ -93,6 +94,7 @@ def assert_package_is_installed(prefix, package, exact=False):
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
+@pytest.mark.integration
 class IntegrationTests(TestCase):
 
     def setUp(self):

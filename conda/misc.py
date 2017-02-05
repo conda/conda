@@ -175,7 +175,7 @@ def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
     """
-    if on_win and exists(join(context.root_dir, '.nonadmin')):
+    if on_win and exists(join(context.root_prefix, '.nonadmin')):
         if not isdir(prefix):
             os.makedirs(prefix)
         with open(join(prefix, '.nonadmin'), 'w') as fo:
@@ -331,4 +331,4 @@ def list_prefixes():
                 prefix = join(envs_dir, dn)
                 yield prefix
 
-    yield context.root_dir
+    yield context.root_prefix

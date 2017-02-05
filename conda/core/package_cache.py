@@ -14,10 +14,10 @@ from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
-from ..common.path import url_to_path, safe_basename
+from ..common.path import safe_basename, url_to_path
 from ..common.url import path_to_url
 from ..gateways.disk.read import compute_md5sum
-from ..gateways.disk.test import try_write
+from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
 from ..utils import md5_file
@@ -284,7 +284,11 @@ class PackageCache(object):
     def is_writable(self):
         # lazy and cached
         if self._is_writable is None:
-            self._is_writable = try_write(self.pkgs_dir)
+            if isdir(self.pkgs_dir):
+                self._is_writable = file_path_is_writable(self.urls_data.urls_txt_path)
+            else:
+                log.debug("package cache directory '%s' does not exist", self.pkgs_dir)
+                self._is_writable = False
         return self._is_writable
 
     @staticmethod

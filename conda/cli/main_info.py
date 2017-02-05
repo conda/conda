@@ -144,9 +144,9 @@ def execute(args, parser):
 
     if args.root:
         if context.json:
-            stdout_json({'root_prefix': context.root_dir})
+            stdout_json({'root_prefix': context.root_prefix})
         else:
-            print(context.root_dir)
+            print(context.root_prefix)
         return
 
     if args.packages:
@@ -219,7 +219,7 @@ def execute(args, parser):
         conda_version=conda.__version__,
         conda_env_version=conda_env_version,
         conda_build_version=conda_build_version,
-        root_prefix=context.root_dir,
+        root_prefix=context.root_prefix,
         conda_prefix=context.conda_prefix,
         conda_private=context.conda_private,
         root_writable=context.root_writable,

@@ -7,6 +7,22 @@
 * eliminate index modification in Resolve.__init__ (#4333)
 
 
+## 4.3.10 (unreleased)
+
+### Improvements
+* remove .json from pickle path (#4498)
+* improve empty repodata noarch warning and error messages (#4499)
+* don't add python and lua as default specs for private envs (#4529, #4533)
+
+### Bug Fixes
+* fix #4513 null pointer exception for channel without noarch (#4518)
+* fix ssl_verify set type (#4517)
+* fix bug for windows multiuser (#4524)
+
+### Non-User-Facing Changes
+* separate integration tests with a marker (#4532)
+
+
 ## 4.3.9 (2017-01-31)
 
 ### Improvements

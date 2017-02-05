@@ -5,6 +5,7 @@ from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from functools import partial
+from glob import glob
 import hashlib
 from itertools import chain
 import json
@@ -68,6 +69,18 @@ def is_exe(path):
     return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))
 
 
+def find_first_existing(*globs):
+    for g in globs:
+        for path in glob(g):
+            if lexists(path):
+                return path
+    return None
+
+
+# ####################################################
+# functions supporting read_package_info()
+# ####################################################
+
 def read_package_info(record, extracted_package_directory):
     index_json_record = read_index_json(extracted_package_directory)
     icondata = read_icondata(extracted_package_directory)
@@ -86,10 +99,6 @@ def read_package_info(record, extracted_package_directory):
         paths_data=paths_data,
     )
 
-
-# ####################################################
-# functions supporting read_package_info()
-# ####################################################
 
 def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
