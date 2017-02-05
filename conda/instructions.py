@@ -242,7 +242,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     log.debug("executing plan %s", plan)
 
-    state = {'i': None, 'prefix': context.root_dir, 'index': index}
+    state = {'i': None, 'prefix': context.root_prefix, 'index': index}
 
     for instruction, arg in plan:
 

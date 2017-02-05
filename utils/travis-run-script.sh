@@ -56,7 +56,8 @@ conda_build_unit_test() {
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
     echo
     ~/miniconda/bin/python -m conda info
-    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 tests
+    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
+    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
     popd
 }
 

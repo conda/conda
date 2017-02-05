@@ -7,6 +7,12 @@ from .compat import iteritems
 
 
 def get_signal_name(signum):
+    """
+    Examples:
+        >>> get_signal_name(9)
+        'SIGKILL'
+
+    """
     return next((k for k, v in iteritems(signal.__dict__)
                  if v == signum and k.startswith('SIG') and not k.startswith('SIG_')),
                 None)
