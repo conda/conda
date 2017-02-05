@@ -92,7 +92,7 @@ default_python = conda.base.context.context.default_python
 envs_dirs = conda.base.context.context.envs_dirs
 pkgs_dirs = conda.base.context.context.pkgs_dirs
 platform = conda.base.context.context.platform
-root_dir = conda.base.context.context.root_dir
+root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
 from .models.channel import get_conda_build_local_url  # NOQA

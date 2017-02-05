@@ -165,7 +165,7 @@ def main():
         try:
             from conda.base.context import context
             import conda.install
-            conda.install.symlink_conda(prefix, context.root_dir, shell)
+            conda.install.symlink_conda(prefix, context.root_prefix, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}.\n"

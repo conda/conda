@@ -975,7 +975,7 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=3.5") as prefix:
             pkgs_dir = join(prefix, 'pkgs')
             with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
-                assert context.pkgs_dirs == [pkgs_dir]
+                assert context.pkgs_dirs == (pkgs_dir,)
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
 

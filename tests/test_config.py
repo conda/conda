@@ -14,7 +14,7 @@ from tempfile import mkstemp, NamedTemporaryFile
 
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
-from conda.base.context import (reset_context, pkgs_dir_from_envs_dir, context)
+from conda.base.context import reset_context, context
 from conda.common.configuration import LoadError
 from conda.common.yaml import yaml_load
 from conda.gateways.disk.delete import rm_rf
@@ -70,16 +70,6 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.subdir)
         self.assertTrue(config.arch_name)
         self.assertTrue(config.bits in (32, 64))
-
-    def test_pkgs_dir_from_envs_dir(self):
-        root_dir = context.root_dir
-        root_pkgs = join(root_dir, 'pkgs')
-        for pi, po in [
-            (join(root_dir, 'envs'), root_pkgs),
-            ('/usr/local/foo/envs' if context.platform != 'win' else 'C:\envs',
-                '/usr/local/foo/envs/.pkgs' if context.platform != 'win' else 'C:\envs\.pkgs'),
-            ]:
-            self.assertEqual(pkgs_dir_from_envs_dir(pi), po)
 
     # def test_proxy_settings(self):
     #     self.assertEqual(config.get_proxy_servers(),

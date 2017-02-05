@@ -27,7 +27,8 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY
 from ..base.context import context
-from ..common.compat import ensure_text_type, ensure_unicode, iteritems, itervalues
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
+                             itervalues)
 from ..common.url import join_url
 from ..connection import CondaSession
 from ..exceptions import CondaHTTPError, CondaRuntimeError
@@ -569,7 +570,7 @@ def cache_fn_url(url):
         url += '/'
     # subdir = url.rsplit('/', 1)[-1]
     # assert subdir in PLATFORM_DIRECTORIES or context.subdir != context._subdir, subdir
-    md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
+    md5 = hashlib.md5(ensure_binary(url)).hexdigest()
     return '%s.json' % (md5[:8],)
 
 
