@@ -2,10 +2,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from time import time
 from unittest import TestCase
 
-from conda.connection import CondaSession
+import pytest
 
 from conda.common.io import env_var
 
@@ -27,6 +26,7 @@ def platform_in_record(platform, record):
     return ("/%s/" % platform in record.url) or ("/noarch/" in record.url)
 
 
+@pytest.mark.integration
 class GetIndexIntegrationTests(TestCase):
 
     def test_get_index_no_platform_with_offline_cache(self):

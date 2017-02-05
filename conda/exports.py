@@ -89,8 +89,8 @@ binstar_upload = conda.base.context.context.binstar_upload
 bits = conda.base.context.context.bits
 default_prefix = conda.base.context.context.default_prefix
 default_python = conda.base.context.context.default_python
-envs_dirs = conda.base.context.context.envs_dirs
-pkgs_dirs = conda.base.context.context.pkgs_dirs
+envs_dirs = list(conda.base.context.context.envs_dirs)
+pkgs_dirs = list(conda.base.context.context.pkgs_dirs)
 platform = conda.base.context.context.platform
 root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
@@ -111,9 +111,9 @@ PathType = PathType
 
 
 if PY3:
-    import configparser  # NOQA
+    import configparser  # NOQA  # pragma: py2 no cover
 else:
-    import ConfigParser as configparser  # NOQA
+    import ConfigParser as configparser  # NOQA  # pragma: py3 no cover
 configparser = configparser
 
 

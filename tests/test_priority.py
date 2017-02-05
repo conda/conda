@@ -7,7 +7,8 @@ from .test_create import (make_temp_env, assert_package_is_installed,
                           run_command, Commands, get_conda_list_tuple)
 
 
-class PriorityTest(TestCase):
+@pytest.mark.integration
+class PriorityIntegrationTests(TestCase):
 
     def test_channel_order_channel_priority_true(self):
         with make_temp_env("python=3.5 pycosat==0.6.1") as prefix:
@@ -33,7 +34,6 @@ class PriorityTest(TestCase):
             pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
             assert pycosat_tuple[3] == 'conda-forge'
 
-    @pytest.mark.timeout(300)
     def test_channel_priority_update(self):
         """
             This case will fail now
