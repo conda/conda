@@ -2,6 +2,7 @@ import json
 
 import unittest
 
+from conda.gateways.disk.delete import rm_rf
 import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
@@ -67,6 +68,9 @@ class TestJson(unittest.TestCase):
     def assertJsonError(self, res):
         self.assertIsInstance(res, dict)
         self.assertIn('error', res)
+
+    def tearDown(self):
+        rm_rf('tempfile.rc')
 
     # def test_clean(self):
     #     res = capture_json_with_argv('conda', 'clean', '--index-cache', '--lock',

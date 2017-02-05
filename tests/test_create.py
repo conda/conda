@@ -534,21 +534,25 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "pandas")
 
     def test_package_pinning(self):
-        with make_temp_env("numpy=1.10.4 pandas=0.17") as prefix:
-            assert package_is_installed(prefix, "numpy-1.10.4")
-            assert package_is_installed(prefix, "pandas-0.17")
+        with make_temp_env("python=3.5 openssl=1.0.2g pytz=2015.7") as prefix:
+            assert package_is_installed(prefix, "openssl-1.0.2g")
+            assert package_is_installed(prefix, "python-3.5")
+            assert package_is_installed(prefix, "pytz-2015.7")
 
             with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
-                fh.write("numpy 1.10.4\n")
+                fh.write("openssl 1.0.2g\n")
 
             run_command(Commands.UPDATE, prefix, "--all")
-            assert package_is_installed(prefix, "numpy-1.10.4")
-            assert not package_is_installed(prefix, "pandas-0.17")
-            assert package_is_installed(prefix, "pandas")
+            assert package_is_installed(prefix, "openssl-1.0.2g")
+            # assert not package_is_installed(prefix, "python-3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
+            assert package_is_installed(prefix, "python-3.5")
+            assert not package_is_installed(prefix, "pytz-2015.7")
+            assert package_is_installed(prefix, "pytz-")
 
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
-            assert not package_is_installed(prefix, "numpy-1.10.4")
-            assert package_is_installed(prefix, "numpy")
+            assert package_is_installed(prefix, "python-3.5")
+            assert not package_is_installed(prefix, "openssl-1.0.2g")
+            assert package_is_installed(prefix, "openssl")
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):
