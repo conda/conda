@@ -525,17 +525,6 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'flask-0.11.1-py_0')
                 assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
-    def test_update_all(self):
-        with make_temp_env("numpy=1.10 pandas=0.17") as prefix:
-            assert package_is_installed(prefix, "numpy-1.10")
-            assert package_is_installed(prefix, "pandas-0.17")
-
-            run_command(Commands.UPDATE, prefix, "--all")
-            assert not package_is_installed(prefix, "numpy-1.10")
-            assert package_is_installed(prefix, "numpy")
-            assert not package_is_installed(prefix, "pandas-0.17")
-            assert package_is_installed(prefix, "pandas")
-
     def test_package_pinning(self):
         with make_temp_env("python=3.5 openssl=1.0.2g pytz=2015.7") as prefix:
             assert package_is_installed(prefix, "openssl-1.0.2g")
