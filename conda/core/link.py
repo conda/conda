@@ -18,18 +18,19 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreatePrivateEnvMetaAction, CreatePythonEntryPointAction,
                            LinkPathAction, MakeMenuAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, RemovePrivateEnvMetaAction, UnlinkPathAction)
-from .. import CondaMultiError
+from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, on_win, text_type, ensure_text_type
+from ..common.compat import ensure_text_type, iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
                           UnknownPackageClobberError, maybe_raise)
+from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import isfile, lexists, read_package_info
+from ..gateways.disk.read import isdir, isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.dist import Dist
@@ -254,6 +255,16 @@ class UnlinkLinkTransaction(object):
     def execute(self):
         if not self._verified:
             self.verify()
+
+        # make sure prefix directory exists
+        if not isdir(self.target_prefix):
+            try:
+                mkdir_p(self.target_prefix)
+            except (IOError, OSError) as e:
+                log.debug(repr(e))
+                raise CondaError("Unable to create prefix directory '%s'.\n"
+                                 "Check that you have sufficient permissions."
+                                 "" % self.target_prefix)
 
         pkg_idx = 0
         try:
