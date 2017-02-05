@@ -444,11 +444,6 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
-    def test_python2_pandas(self):
-        with make_temp_env("python=2 pandas") as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'numpy')
-
     def test_install_prune(self):
         with make_temp_env("python=2 decorator") as prefix:
             assert_package_is_installed(prefix, 'decorator')
@@ -697,12 +692,12 @@ class IntegrationTests(TestCase):
             assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
 
             assert not package_is_installed(prefix, 'python-2')
-            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'pytz')
             assert not package_is_installed(prefix, 'flask')
 
-            with make_temp_env("python=2", "numpy", "--no-default-packages", prefix=prefix):
+            with make_temp_env("python=2", "pytz", "--no-default-packages", prefix=prefix):
                 assert_package_is_installed(prefix, 'python-2')
-                assert_package_is_installed(prefix, 'numpy')
+                assert_package_is_installed(prefix, 'pytz')
                 assert not package_is_installed(prefix, 'flask')
 
         finally:
