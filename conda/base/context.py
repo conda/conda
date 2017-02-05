@@ -73,7 +73,7 @@ class Context(Configuration):
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(False)
+    concurrent = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
