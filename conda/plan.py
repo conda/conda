@@ -396,15 +396,12 @@ def is_root_prefix(prefix):
 
 
 def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
-    # TODO: This should use the pinning mechanism. But don't change the API:
-    # cas uses it.
-    if r.explicit(specs):
+    # TODO: This should use the pinning mechanism. But don't change the API because cas uses it
+    if r.explicit(specs) or is_private_env(prefix):
         return
     log.debug('H0 specs=%r' % specs)
     names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
-    if is_private_env(prefix):
-        return
 
     for name, def_ver in [('python', context.default_python),
                           # Default version required, but only used for Python
