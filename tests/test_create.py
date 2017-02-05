@@ -47,6 +47,7 @@ from conda.core.linked_data import get_python_version_for_prefix, \
 from conda.core.package_cache import PackageCache
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
@@ -482,10 +483,8 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                 assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
-    def test_clone_offline_multichannel_with_untracked(self):
+    def test_rpy_search(self):
         with make_temp_env("python=3.5") as prefix:
-
             run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
             run_command(Commands.CONFIG, prefix, "--remove channels defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
@@ -512,15 +511,19 @@ class IntegrationTests(TestCase):
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj['rpy2']) > 1
 
-            run_command(Commands.INSTALL, prefix, "rpy2")
-            assert_package_is_installed(prefix, 'rpy2')
-            run_command(Commands.LIST, prefix)
+    def test_clone_offline_multichannel_with_untracked(self):
+        with make_temp_env("python=3.5") as prefix:
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
 
+            run_command(Commands.INSTALL, prefix, "-c conda-test flask")
+
+            touch(join(prefix, 'test.file'))  # untracked file
             with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
                 assert context.offline
-                assert_package_is_installed(clone_prefix, 'python')
-                assert_package_is_installed(clone_prefix, 'rpy2')
-                assert isfile(join(clone_prefix, 'condarc'))  # untracked file
+                assert_package_is_installed(clone_prefix, 'python-3.5')
+                assert_package_is_installed(clone_prefix, 'flask-0.11.1-py_0')
+                assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_update_all(self):
         with make_temp_env("numpy=1.10 pandas=0.17") as prefix:
