@@ -403,7 +403,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
     def test_remove_features(self):
-        with make_temp_env("numpy nomkl") as prefix:
+        with make_temp_env("python=2 numpy nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
             assert_package_is_installed(prefix, 'nomkl')
@@ -670,12 +670,12 @@ class IntegrationTests(TestCase):
             assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
 
             assert not package_is_installed(prefix, 'python-2')
-            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'pytz')
             assert not package_is_installed(prefix, 'flask')
 
-            with make_temp_env("python=2", "numpy", prefix=prefix):
+            with make_temp_env("python=2", "pytz", prefix=prefix):
                 assert_package_is_installed(prefix, 'python-2')
-                assert_package_is_installed(prefix, 'numpy')
+                assert_package_is_installed(prefix, 'pytz')
                 assert_package_is_installed(prefix, 'flask')
 
         finally:
