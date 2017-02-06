@@ -12,9 +12,9 @@ import sys
 
 from .common import Completer, add_parser_json, stdout_json_success
 from .. import CondaError
-from .._vendor.auxlib.compat import isiterable, NoneType
+from .._vendor.auxlib.compat import isiterable
 from .._vendor.auxlib.entity import EntityEncoder
-from .._vendor.auxlib.type_coercion import boolify, typify
+from .._vendor.auxlib.type_coercion import boolify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import iteritems, string_types
@@ -293,7 +293,6 @@ def execute_config(args, parser):
                                            'create_default_packages',
                                            'debug',
                                            'default_channels',
-                                           'default_python',
                                            'disallow',
                                            'envs_dirs',
                                            'json',
