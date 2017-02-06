@@ -385,14 +385,14 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         if noarch is not None and noarch.type == NoarchType.python:
             actions = tuple(cls(transaction_context, package_info, target_prefix,
                                 *this_triplet(ep_def))
-                            for ep_def in noarch.entry_points)
+                            for ep_def in noarch.entry_points or ())
 
             if on_win:
                 actions += tuple(
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context, package_info, target_prefix,
                         requested_link_type, ep_def
-                    ) for ep_def in noarch.entry_points
+                    ) for ep_def in noarch.entry_points or ()
                 )
 
             return actions
