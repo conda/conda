@@ -20,12 +20,12 @@ class NoarchField(EnumField):
 
 class Noarch(Entity):
     type = NoarchField(NoarchType)
-    entry_points = ListField(string_types, required=False)
+    entry_points = ListField(string_types, required=False, nullable=True)
 
 
 class PreferredEnv(Entity):
     name = StringField()
-    executable_paths = ListField(string_types, required=False)
+    executable_paths = ListField(string_types, required=False, nullable=True)
 
 
 class PackageMetadata(Entity):
