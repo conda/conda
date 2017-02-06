@@ -403,7 +403,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
 
-    for name, def_ver in [('python', context.default_python),
+    for name, def_ver in [('python', context.default_python or None),
                           # Default version required, but only used for Python
                           ('lua', None)]:
         if any(s.name == name and not s.is_simple() for s in mspecs):
