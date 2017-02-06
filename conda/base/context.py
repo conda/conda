@@ -75,7 +75,8 @@ class Context(Configuration):
     changeps1 = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
     create_default_packages = SequenceParameter(string_types)
-    default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2], parameter_type=string_types + (NoneType,))
+    default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
+                                        parameter_type=string_types + (NoneType,))
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
