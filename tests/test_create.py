@@ -17,6 +17,8 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+import shutil
+
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
@@ -46,7 +48,9 @@ from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.core.package_cache import PackageCache
 from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
+from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
@@ -417,7 +421,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
     def test_remove_features(self):
-        with make_temp_env("numpy nomkl") as prefix:
+        with make_temp_env("python=2 numpy nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
             assert_package_is_installed(prefix, 'nomkl')
@@ -440,7 +444,7 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
                 assert_package_is_installed(clone_prefix, "decorator")
 
-            # Regression test for 2645
+            # Regression test for #2645
             fn = glob(join(prefix, 'conda-meta', 'python-3.5*.json'))[-1]
             with open(fn) as f:
                 data = json.load(f)
@@ -454,11 +458,6 @@ class IntegrationTests(TestCase):
             with make_temp_env("-c conda-forge --clone", prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
-
-    def test_python2_pandas(self):
-        with make_temp_env("python=2 pandas") as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'numpy')
 
     def test_install_prune(self):
         with make_temp_env("python=2 decorator") as prefix:
@@ -497,10 +496,8 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                 assert_package_is_installed(clone_prefix, 'python')
 
-    @pytest.mark.skipif(on_win, reason="r packages aren't prime-time on windows just yet")
-    def test_clone_offline_multichannel_with_untracked(self):
+    def test_rpy_search(self):
         with make_temp_env("python=3.5") as prefix:
-
             run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
             run_command(Commands.CONFIG, prefix, "--remove channels defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
@@ -527,43 +524,40 @@ class IntegrationTests(TestCase):
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj['rpy2']) > 1
 
-            run_command(Commands.INSTALL, prefix, "rpy2")
-            assert_package_is_installed(prefix, 'rpy2')
-            run_command(Commands.LIST, prefix)
+    def test_clone_offline_multichannel_with_untracked(self):
+        with make_temp_env("python=3.5") as prefix:
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--remove channels defaults")
 
+            run_command(Commands.INSTALL, prefix, "-c conda-test flask")
+
+            touch(join(prefix, 'test.file'))  # untracked file
             with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
                 assert context.offline
-                assert_package_is_installed(clone_prefix, 'python')
-                assert_package_is_installed(clone_prefix, 'rpy2')
-                assert isfile(join(clone_prefix, 'condarc'))  # untracked file
-
-    def test_update_all(self):
-        with make_temp_env("numpy=1.10 pandas=0.17") as prefix:
-            assert package_is_installed(prefix, "numpy-1.10")
-            assert package_is_installed(prefix, "pandas-0.17")
-
-            run_command(Commands.UPDATE, prefix, "--all")
-            assert not package_is_installed(prefix, "numpy-1.10")
-            assert package_is_installed(prefix, "numpy")
-            assert not package_is_installed(prefix, "pandas-0.17")
-            assert package_is_installed(prefix, "pandas")
+                assert_package_is_installed(clone_prefix, 'python-3.5')
+                assert_package_is_installed(clone_prefix, 'flask-0.11.1-py_0')
+                assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
-        with make_temp_env("numpy=1.10.4 pandas=0.17") as prefix:
-            assert package_is_installed(prefix, "numpy-1.10.4")
-            assert package_is_installed(prefix, "pandas-0.17")
+        with make_temp_env("python=3.5 openssl=1.0.2g pytz=2015.7") as prefix:
+            assert package_is_installed(prefix, "openssl-1.0.2g")
+            assert package_is_installed(prefix, "python-3.5")
+            assert package_is_installed(prefix, "pytz-2015.7")
 
             with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
-                fh.write("numpy 1.10.4\n")
+                fh.write("openssl 1.0.2g\n")
 
             run_command(Commands.UPDATE, prefix, "--all")
-            assert package_is_installed(prefix, "numpy-1.10.4")
-            assert not package_is_installed(prefix, "pandas-0.17")
-            assert package_is_installed(prefix, "pandas")
+            assert package_is_installed(prefix, "openssl-1.0.2g")
+            # assert not package_is_installed(prefix, "python-3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
+            assert package_is_installed(prefix, "python-3.5")
+            assert not package_is_installed(prefix, "pytz-2015.7")
+            assert package_is_installed(prefix, "pytz-")
 
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
-            assert not package_is_installed(prefix, "numpy-1.10.4")
-            assert package_is_installed(prefix, "numpy")
+            assert package_is_installed(prefix, "python-3.5")
+            assert not package_is_installed(prefix, "openssl-1.0.2g")
+            assert package_is_installed(prefix, "openssl")
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):
@@ -689,12 +683,12 @@ class IntegrationTests(TestCase):
             assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
 
             assert not package_is_installed(prefix, 'python-2')
-            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'pytz')
             assert not package_is_installed(prefix, 'flask')
 
-            with make_temp_env("python=2", "numpy", prefix=prefix):
+            with make_temp_env("python=2", "pytz", prefix=prefix):
                 assert_package_is_installed(prefix, 'python-2')
-                assert_package_is_installed(prefix, 'numpy')
+                assert_package_is_installed(prefix, 'pytz')
                 assert_package_is_installed(prefix, 'flask')
 
         finally:
@@ -713,12 +707,12 @@ class IntegrationTests(TestCase):
             assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
 
             assert not package_is_installed(prefix, 'python-2')
-            assert not package_is_installed(prefix, 'numpy')
+            assert not package_is_installed(prefix, 'pytz')
             assert not package_is_installed(prefix, 'flask')
 
-            with make_temp_env("python=2", "numpy", "--no-default-packages", prefix=prefix):
+            with make_temp_env("python=2", "pytz", "--no-default-packages", prefix=prefix):
                 assert_package_is_installed(prefix, 'python-2')
-                assert_package_is_installed(prefix, 'numpy')
+                assert_package_is_installed(prefix, 'pytz')
                 assert not package_is_installed(prefix, 'flask')
 
         finally:
@@ -862,9 +856,12 @@ class IntegrationTests(TestCase):
         assert not glob(join(index_cache_dir, "*.json"))
 
     def test_clean_tarballs_and_packages(self):
+        pkgs_dir = context.pkgs_dirs[0]
+        pkgs_dir_hold = pkgs_dir + '_hold'
+        shutil.move(pkgs_dir, pkgs_dir_hold)
+        mkdir_p(pkgs_dir)
         try:
             with make_temp_env("flask") as prefix:
-                pkgs_dir = context.pkgs_dirs[0]
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
                 pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
@@ -887,6 +884,8 @@ class IntegrationTests(TestCase):
             pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
             assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
         finally:
+            rm_rf(pkgs_dir)
+            shutil.move(pkgs_dir_hold, pkgs_dir)
             PackageCache.clear()
 
     def test_clean_source_cache(self):

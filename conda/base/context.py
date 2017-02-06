@@ -187,7 +187,7 @@ class Context(Configuration):
         elif self.root_writable:
             return join(self.root_prefix, 'conda-bld')
         else:
-            return abspath(expanduser('~/conda-bld'))
+            return expand('~/conda-bld')
 
     @property
     def src_cache(self):

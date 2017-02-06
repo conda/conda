@@ -11,10 +11,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict, namedtuple
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir, join
+from os.path import abspath, basename, exists, join
 import sys
 
-from . import CondaError, instructions as inst
+from . import instructions as inst
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
@@ -28,7 +28,6 @@ from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
                          InstallError, RemoveError)
-from .gateways.disk.create import mkdir_p
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -315,16 +314,6 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
-
-        # make sure prefix directory exists
-        if link_dists:
-            if not isdir(prefix):
-                try:
-                    mkdir_p(prefix)
-                except (IOError, OSError) as e:
-                    log.debug(repr(e))
-                    raise CondaError("Unable to create prefix directory '%s'.\n"
-                                     "Check that you have sufficient permissions." % prefix)
 
         # TODO: ideally we'd move these two lines before both the y/n confirmation and the --dry-run exit  # NOQA
         pfe = ProgressiveFetchExtract(index, link_dists)
