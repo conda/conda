@@ -56,6 +56,7 @@ rc_string_keys = [
     'channel_alias',
     'client_ssl_cert',
     'client_ssl_cert_key',
+    'default_python',
 ]
 
 # Not supported by conda config yet
