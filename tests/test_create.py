@@ -235,7 +235,7 @@ class IntegrationTests(TestCase):
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
             assert not package_is_installed(prefix, 'constructor')
 
-    def test_noarch_python_package(self):
+    def test_noarch_python_package_with_entry_points(self):
         with make_temp_env("-c conda-test flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
@@ -253,6 +253,21 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, py_file))
             assert not isfile(join(prefix, pyc_file))
             assert not isfile(exe_path)
+
+    def test_noarch_python_package_without_entry_points(self):
+        # regression test for #4546
+        with make_temp_env("-c conda-test itsdangerous") as prefix:
+            py_ver = get_python_version_for_prefix(prefix)
+            sp_dir = get_python_site_packages_short_path(py_ver)
+            py_file = sp_dir + "/itsdangerous.py"
+            pyc_file = pyc_path(py_file, py_ver)
+            assert isfile(join(prefix, py_file))
+            assert isfile(join(prefix, pyc_file))
+
+            run_command(Commands.REMOVE, prefix, "itsdangerous")
+
+            assert not isfile(join(prefix, py_file))
+            assert not isfile(join(prefix, pyc_file))
 
     def test_noarch_generic_package(self):
         with make_temp_env("-c conda-test font-ttf-inconsolata") as prefix:
