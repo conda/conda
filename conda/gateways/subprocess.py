@@ -25,7 +25,7 @@ def _split_on_unix(command):
     return command if on_win else shlex_split(command)
 
 
-def _format_output(command, path, rc, stdout, stderr):
+def _format_output(command_str, path, rc, stdout, stderr):
     return dals("""
     $ %s
     ==> cwd: %s <==
@@ -34,7 +34,7 @@ def _format_output(command, path, rc, stdout, stderr):
     %s
     ==> stderr <==
     %s
-    """) % (' '.join(command), path, rc, stdout, stderr)
+    """) % (command_str, path, rc, stdout, stderr)
 
 
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True):
@@ -43,19 +43,20 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     """
     env = {str(k): str(v) for k, v in iteritems(env if env else os.environ)}
     path = sys.prefix if path is None else abspath(path)
-    log.debug("executing>> %s", ' '.join(command))
-    p = Popen(_split_on_unix(command) if isinstance(command, string_types) else command,
-              cwd=path, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+    command_str = command if isinstance(command, string_types) else ' '.join(command)
+    command_arg = _split_on_unix(command) if isinstance(command, string_types) else command
+    log.debug("executing>> %s", command_str)
+    p = Popen(command_arg, cwd=path, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
     stdout, stderr = p.communicate(input=stdin)
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
     if raise_on_error and rc != 0:
-        log.info(_format_output(command, path, rc, stdout, stderr))
+        log.info(_format_output(command_str, path, rc, stdout, stderr))
         raise CalledProcessError(rc, command,
-                                 output=_format_output(command, path, rc, stdout, stderr))
+                                 output=_format_output(command_str, path, rc, stdout, stderr))
     if log.isEnabledFor(TRACE):
-        log.trace(_format_output(command, path, rc, stdout, stderr))
+        log.trace(_format_output(command_str, path, rc, stdout, stderr))
 
     return Response(ensure_text_type(stdout), ensure_text_type(stderr), int(rc))
