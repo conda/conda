@@ -75,6 +75,8 @@ class Context(Configuration):
     changeps1 = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
     create_default_packages = SequenceParameter(string_types)
+    default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
+                                        parameter_type=string_types + (NoneType,))
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
@@ -185,7 +187,7 @@ class Context(Configuration):
         elif self.root_writable:
             return join(self.root_prefix, 'conda-bld')
         else:
-            return abspath(expanduser('~/conda-bld'))
+            return expand('~/conda-bld')
 
     @property
     def src_cache(self):
@@ -210,11 +212,6 @@ class Context(Configuration):
         path = join(self.croot, 'svn_cache')
         conda_bld_ensure_dir(path)
         return path
-
-    @property
-    def default_python(self):
-        ver = sys.version_info
-        return '%d.%d' % (ver.major, ver.minor)
 
     @property
     def arch_name(self):

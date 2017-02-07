@@ -9,8 +9,9 @@ from .compat import iteritems
 def get_signal_name(signum):
     """
     Examples:
-        >>> get_signal_name(9)
-        'SIGKILL'
+        >>> from signal import SIGINT
+        >>> get_signal_name(SIGINT)
+        'SIGINT'
 
     """
     return next((k for k, v in iteritems(signal.__dict__)

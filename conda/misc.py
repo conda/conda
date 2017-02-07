@@ -96,7 +96,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     link_names = {index[d]['name'] for d in link_dists}
     actions[UNLINK].extend(d for d, r in iteritems(linked_data(prefix))
                            if r['name'] in link_names)
+
+    # need to get the install order right, especially to install python in the prefix
+    #  before python noarch packages
+    r = Resolve(index)
     actions[LINK].extend(link_dists)
+    actions[LINK] = r.dependency_sort({r.package_name(dist): dist for dist in actions[LINK]})
 
     execute_actions(actions, index, verbose=verbose)
     return actions
