@@ -12,7 +12,7 @@ from .._vendor.auxlib.decorators import memoize
 from .._vendor.auxlib.ish import dals
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
-from ..common.compat import on_win, PY2
+from ..common.compat import on_win
 from ..exceptions import CondaValueError
 
 try:
