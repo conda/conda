@@ -112,6 +112,13 @@ def is_ipv6_address(string_ip):
 
 
 def is_ipv6_address_win_py27(string_ip):
+    """
+    Examples:
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('::1', '1234:'*7+'1234')]
+        [True, True]
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
+        [False, False]
+    """
     # python 2.7 on windows does not have socket.inet_pton
     return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
                          r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
