@@ -101,16 +101,31 @@ def is_ipv6_address(string_ip):
         [False, False]
     """
     try:
-        pton = socket.inet_pton
+        inet_pton = socket.inet_pton
     except AttributeError:
-        # for python2.7 on Windows
-        pton = inet_pton
-
+        return is_ipv6_address_win_py27(string_ip)
     try:
-        pton(socket.AF_INET6, string_ip)
+        inet_pton(socket.AF_INET6, string_ip)
     except socket.error:
         return False
     return True
+
+
+def is_ipv6_address_win_py27(string_ip):
+    """
+    Examples:
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('::1', '1234:'*7+'1234')]
+        [True, True]
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
+        [False, False]
+    """
+    # python 2.7 on windows does not have socket.inet_pton
+    return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
+                         r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
+                         r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
+                         r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
+                         string_ip,
+                         flags=re.DOTALL | re.IGNORECASE))
 
 
 def is_ip_address(string_ip):
@@ -254,37 +269,6 @@ def maybe_add_auth(url, auth, force=False):
         return url
     url_parts['auth'] = auth
     return Url(**url_parts).url
-
-
-if on_win and PY2:
-    # source: https://gist.github.com/nnemkin/4966028
-    import ctypes  # NOQA
-
-    class sockaddr(ctypes.Structure):
-        _fields_ = [("sa_family", ctypes.c_short),
-                    ("__pad1", ctypes.c_ushort),
-                    ("ipv4_addr", ctypes.c_byte * 4),
-                    ("ipv6_addr", ctypes.c_byte * 16),
-                    ("__pad2", ctypes.c_ulong)]
-
-    WSAStringToAddressA = ctypes.windll.ws2_32.WSAStringToAddressA
-    WSAAddressToStringA = ctypes.windll.ws2_32.WSAAddressToStringA
-
-    def inet_pton(address_family, ip_string):
-        addr = sockaddr()
-        addr.sa_family = address_family
-        addr_size = ctypes.c_int(ctypes.sizeof(addr))
-
-        if WSAStringToAddressA(ip_string, address_family, None, ctypes.byref(addr),
-                               ctypes.byref(addr_size)) != 0:
-            raise socket.error(ctypes.FormatError())
-
-        if address_family == socket.AF_INET:
-            return ctypes.string_at(addr.ipv4_addr, 4)
-        if address_family == socket.AF_INET6:
-            return ctypes.string_at(addr.ipv6_addr, 16)
-
-        raise socket.error('unknown address family')
 
 
 if __name__ == "__main__":
