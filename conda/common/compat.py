@@ -6,12 +6,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
+from logging import getLogger
 from operator import methodcaller
 from os import chmod, lstat
 from os.path import islink
 import sys
-import chardet
 
+log = getLogger(__name__)
 on_win = bool(sys.platform == "win32")
 
 PY2 = sys.version_info[0] == 2
@@ -153,11 +154,15 @@ def ensure_binary(value):
 
 
 def ensure_text_type(value):
-    if isinstance(value, text_type):
-        encoding = 'utf-8'
+    if hasattr(value, 'decode'):
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            from requests.packages.chardet import detect
+            encoding = detect(value).get('encoding') or 'utf-8'
+            return value.decode(encoding)
     else:
-        encoding = chardet.detect(value).get('encoding') or 'utf-8'
-    return value.decode(encoding) if hasattr(value, 'decode') else value
+        return value
 
 
 def ensure_unicode(value):
