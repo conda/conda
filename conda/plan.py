@@ -427,7 +427,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
             specs.append(spec)
             continue
 
-        if name == 'python' and def_ver.startswith('3.'):
+        if name == 'python' and def_ver and def_ver.startswith('3.'):
             # Don't include Python 3 in the specs if this is the Python 3
             # version of conda.
             continue
