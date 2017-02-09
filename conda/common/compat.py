@@ -10,6 +10,7 @@ from operator import methodcaller
 from os import chmod, lstat
 from os.path import islink
 import sys
+import chardet
 
 on_win = bool(sys.platform == "win32")
 
@@ -152,7 +153,11 @@ def ensure_binary(value):
 
 
 def ensure_text_type(value):
-    return value.decode('utf-8') if hasattr(value, 'decode') else value
+    if isinstance(value, text_type):
+        encoding = 'utf-8'
+    else:
+        encoding = chardet.detect(value).get('encoding') or 'utf-8'
+    return value.decode(encoding) if hasattr(value, 'decode') else value
 
 
 def ensure_unicode(value):
