@@ -6,13 +6,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
-from logging import getLogger
 from operator import methodcaller
 from os import chmod, lstat
 from os.path import islink
 import sys
 
-log = getLogger(__name__)
 on_win = bool(sys.platform == "win32")
 
 PY2 = sys.version_info[0] == 2
