@@ -4,7 +4,7 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.10.1 (2017-02-09)
+## 4.3.11 (2017-02-09)
 
 ### Bug Fixes
 * fix attribute error in add_defaults_to_specs (#4577)
