@@ -22,7 +22,8 @@ def replace_first_api_with_conda(url):
 
 def _get_binstar_token_directory():
     if 'BINSTAR_CONFIG_DIR' in os.environ:
-        return EnvAppDirs('binstar', 'ContinuumIO', os.environ['BINSTAR_CONFIG_DIR']).user_data_dir
+        return EnvAppDirs('binstar', 'ContinuumIO',
+                          os.environ[str('BINSTAR_CONFIG_DIR')]).user_data_dir
     else:
         return AppDirs('binstar', 'ContinuumIO').user_data_dir
 

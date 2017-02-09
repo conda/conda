@@ -472,7 +472,7 @@ def ensure_name_or_prefix(args, command):
 
 
 def name_prefix(prefix):
-    if abspath(prefix) == context.root_dir:
+    if abspath(prefix) == context.root_prefix:
         return ROOT_ENV_NAME
     return basename(prefix)
 
@@ -593,6 +593,15 @@ def json_progress_bars(json=False):
 
 def stdout_json_success(success=True, **kwargs):
     result = {'success': success}
+
+    # this code reverts json output for plan back to previous behavior
+    #   relied on by Anaconda Navigator and nb_conda
+    actions = kwargs.get('actions', {})
+    if 'LINK' in actions:
+        actions['LINK'] = [str(d) for d in actions['LINK']]
+    if 'UNLINK' in actions:
+        actions['UNLINK'] = [str(d) for d in actions['UNLINK']]
+
     result.update(kwargs)
     stdout_json(result)
 
@@ -607,14 +616,14 @@ def handle_envs_list(acc, output=True):
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
         default = '*' if prefix == context.default_prefix else ' '
-        name = (ROOT_ENV_NAME if prefix == context.root_dir else
+        name = (ROOT_ENV_NAME if prefix == context.root_prefix else
                 basename(prefix))
         if output:
             print(fmt % (name, default, prefix))
 
     for prefix in misc.list_prefixes():
         disp_env(prefix)
-        if prefix != context.root_dir:
+        if prefix != context.root_prefix:
             acc.append(prefix)
 
     if output:
@@ -622,7 +631,7 @@ def handle_envs_list(acc, output=True):
 
 
 def get_private_envs_json():
-    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
+    path_to_private_envs = join(context.root_prefix, "conda-meta", "private_envs")
     if not isfile(path_to_private_envs):
         return None
     try:

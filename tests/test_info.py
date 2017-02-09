@@ -1,12 +1,15 @@
 from __future__ import print_function, absolute_import, division
 import json
 
+import pytest
+
 from conda import config
 from conda.cli import main_info
 
 from tests.helpers import run_conda_command, assert_in, assert_equals
 
 
+@pytest.mark.integration
 def test_info():
     conda_info_out, conda_info_err = run_conda_command('info')
     assert_equals(conda_info_err, '')
@@ -36,6 +39,7 @@ def test_info():
     assert_in(conda_info_s_out, conda_info_all_out)
 
 
+@pytest.mark.integration
 def test_info_package_json():
     out, err = run_conda_command("info", "--json", "numpy=1.11.0=py35_0")
     assert err == ""

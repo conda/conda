@@ -1,14 +1,111 @@
 ## 4.4.0 (unreleased)
 
 ### New Features
-* general support for all bourne- and c-based shells #3175
+* general support for all bourne- and c-based shells (#3175)
+
+### Non-User-Facing Changes
+* eliminate index modification in Resolve.__init__ (#4333)
 
 
-## 4.3.4 (unreleased)
+## 4.3.10 (2017-02-07)
+
+### Improvements
+* remove .json from pickle path (#4498)
+* improve empty repodata noarch warning and error messages (#4499)
+* don't add python and lua as default specs for private envs (#4529, #4533)
+* let default_python be None (#4547, #4550)
+
+### Bug Fixes
+* fix #4513 null pointer exception for channel without noarch (#4518)
+* fix ssl_verify set type (#4517)
+* fix bug for windows multiuser (#4524)
+* fix clone with noarch python packages (#4535)
+* fix ipv6 for python 2.7 on Windows (#4554)
+
+### Non-User-Facing Changes
+* separate integration tests with a marker (#4532)
+
+
+## 4.3.9 (2017-01-31)
+
+### Improvements
+* improve repodata caching for performance (#4478, #4488)
+* expand scope of packages included by bad_installed (#4402)
+* silence pre-link warning for old noarch (#4451)
+* add configuration to optionally require noarch repodata (#4450)
+* improve conda subprocessing (#4447)
+* respect info/link.json (#4482)
+
+### Bug Fixes
+* fix #4398 'hard' was used for link type at one point (#4409)
+* fixed "No matches for wildcard '$activate_d/*.fish'" warning (#4415)
+* print correct activate/deactivate message for fish shell (#4423)
+* fix 'Dist' object has no attribute 'fn' (#4424)
+* fix noarch generic and add additional integration test (#4431)
+* fix #4425 unknown encoding (#4433)
+
+### Non-User-Facing Changes
+* fail CI on conda-build fail (#4405)
+* run doctests (#4414)
+* make index record mutable again (#4461)
+* additional test for conda list --json (#4480)
+
+
+## 4.3.8 (2017-01-23)
+
+### Bug Fixes
+* fix #4309 ignore EXDEV error for directory renames (#4392)
+* fix #4393 by force-renaming certain backup files if the path already exists (#4397)
+
+
+## 4.3.7 (2017-01-20)
+
+### Bug Fixes
+* actually revert json output for leaky plan (#4383)
+* fix not raising on pre/post-link error (#4382)
+* fix find_commands and find_executable for symlinks (#4387)
+
+
+## 4.3.6 (2017-01-18)
+
+### Bug Fixes
+* fix 'Uncaught backoff with errno 41' warning on windows (#4366)
+* revert json output for leaky plan (#4349)
+* audit os.environ setting (#4360)
+* fix #4324 using old dist string instead of dist object (#4361)
+* fix #4351 infinite recursion via code in #4120 (#4370)
+* fix #4368 conda -h (#4367)
+* workaround for symlink race conditions on activate (#4346)
+
+
+## 4.3.5 (2017-01-17)
+
+### Improvements
+* add exception message for corrupt repodata (#4315)
+
+### Bug Fixes
+* fix package not being found in cache after download (#4297)
+* fix logic for Content-Length mismatch (#4311, #4326)
+* use unicode_escape after etag regex instead of utf-8 (#4325)
+* fix #4323 central condarc file being ignored (#4327)
+* fix #4316 a bug in deactivate (#4316)
+* pass target_prefix as env_prefix regardless of is_unlink (#4332)
+* pass positional argument 'context' to BasicClobberError (#4335)
+
+### Non-User-Facing Changes
+* additional package pinning tests (#4317)
+
+
+## 4.3.4 (2017-01-13)
+
+### Improvements
+* vendor url parsing from urllib3 (#4289)
 
 ### Bug Fixes
 * fix some bugs in windows multi-user support (#4277)
 * fix problems with channels of type <unknown> (#4290)
+* include aliases for first command-line argument (#4279)
+* fix for multi-line FTP status codes (#4276)
 
 ### Non-User-Facing Changes
 * make arch in IndexRecord a StringField instead of EnumField
@@ -155,7 +252,7 @@
 
 ### Improvements
 * create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
-* allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
+* allow conda to be installed with pip, but only when used as a library/dependency (#4028)
 * the 'r' channel is now part of defaults (#3677)
 * private environment support for conda (#3988)
 * support v1 info/paths.json file (#3927, #3943)
@@ -201,7 +298,7 @@
 * revert boto patch from #2380 (#3676)
 * move and update ROOT_NO_RM (#3697)
 * integration tests for conda clean (#3695, #3699)
-* disable coverage on s3 and ftp requests adapaters (#3696, #3701)
+* disable coverage on s3 and ftp requests adapters (#3696, #3701)
 * github repo hygiene (#3705, #3706)
 * major install refactor (#3712)
 * remove test timebombs (#4012)
@@ -212,16 +309,31 @@
 * context-dependent setup.py files (#4057)
 
 
-## 4.2.16 (unreleased)
+## 4.2.17 (unreleased)
+
+## Improvements
+* silence pre-link warning for old noarch 4.2.x backport (#4453)
+
+### Non-User-Facing Changes
+* build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
+
+
+## 4.2.16 (2017-01-20)
 
 ### Improvements
 * vendor url parsing from urllib3 (#4289)
+* workaround for symlink race conditions on activate (#4346)
 
 ### Bug Fixes
 * do not replace \ with / in file:// URLs on Windows (#4269)
 * include aliases for first command-line argument (#4279)
 * fix for multi-line FTP status codes (#4276)
 * fix errors with unknown type channels (#4291)
+* change sys.exit to raise UpgradeError when info/files not found (#4388)
+
+### Non-User-Facing Changes
+* start using doctests in test runs and coverage (#4304)
+* additional package pinning tests (#4312)
 
 
 ## 4.2.15 (2017-01-10)
@@ -367,7 +479,7 @@
 * conda-env version matches conda version (#3422)
 
 ### Bug Fixes
-* fix #3409 unsatisfiable dependecy error message (#3412)
+* fix #3409 unsatisfiable dependency error message (#3412)
 * fix #3408 quiet rm_rf (#3413)
 * fix #3407 padding error messaging (#3416)
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363 via #3420)
@@ -744,7 +856,7 @@
 * quiets some logging for package downloads under python 3, #2217
 * more urls for `conda list --explicit`, #1855
 * prefer more "latest builds" for more packages, #2227
-* fixes a bug with dependecy resolution and features, #2226
+* fixes a bug with dependency resolution and features, #2226
 
 
 ## 4.0.2 (2016-03-08)

@@ -56,8 +56,11 @@ def urlparse(url):
 
 
 def url_to_s3_info(url):
-    """
-    Convert a S3 url to a tuple of bucket and key
+    """Convert an s3 url to a tuple of bucket and key.
+
+    Examples:
+        >>> url_to_s3_info("s3://bucket-name.bucket/here/is/the/key")
+        ('bucket-name.bucket', '/here/is/the/key')
     """
     parsed_url = parse_url(url)
     assert parsed_url.scheme == 's3', "You can only use s3: urls (not %r)" % url
@@ -98,10 +101,31 @@ def is_ipv6_address(string_ip):
         [False, False]
     """
     try:
-        socket.inet_pton(socket.AF_INET6, string_ip)
+        inet_pton = socket.inet_pton
+    except AttributeError:
+        return is_ipv6_address_win_py27(string_ip)
+    try:
+        inet_pton(socket.AF_INET6, string_ip)
     except socket.error:
         return False
     return True
+
+
+def is_ipv6_address_win_py27(string_ip):
+    """
+    Examples:
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('::1', '1234:'*7+'1234')]
+        [True, True]
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
+        [False, False]
+    """
+    # python 2.7 on windows does not have socket.inet_pton
+    return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
+                         r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
+                         r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
+                         r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
+                         string_ip,
+                         flags=re.DOTALL | re.IGNORECASE))
 
 
 def is_ip_address(string_ip):
@@ -218,7 +242,7 @@ def split_conda_url_easy_parts(url):
 @memoize
 def get_proxy_username_and_pass(scheme):
     username = input("\n%s proxy username: " % scheme)
-    passwd = getpass("Password:")
+    passwd = getpass("Password: ")
     return username, passwd
 
 
@@ -229,7 +253,15 @@ def add_username_and_password(url, username, password):
 
 
 def maybe_add_auth(url, auth, force=False):
-    """add auth if the url doesn't currently have it"""
+    """Add auth if the url doesn't currently have it.
+
+    By default, does not replace auth if it already exists.  Setting ``force`` to ``True``
+    overrides this behavior.
+
+    Examples:
+        >>> maybe_add_auth("https://www.conda.io", "user:passwd")
+        'https://user:passwd@www.conda.io'
+    """
     if not auth:
         return url
     url_parts = urlparse(url)._asdict()

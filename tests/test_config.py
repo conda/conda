@@ -14,7 +14,7 @@ from tempfile import mkstemp, NamedTemporaryFile
 
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
-from conda.base.context import (reset_context, pkgs_dir_from_envs_dir, context)
+from conda.base.context import reset_context, context
 from conda.common.configuration import LoadError
 from conda.common.yaml import yaml_load
 from conda.gateways.disk.delete import rm_rf
@@ -70,16 +70,6 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.subdir)
         self.assertTrue(config.arch_name)
         self.assertTrue(config.bits in (32, 64))
-
-    def test_pkgs_dir_from_envs_dir(self):
-        root_dir = context.root_dir
-        root_pkgs = join(root_dir, 'pkgs')
-        for pi, po in [
-            (join(root_dir, 'envs'), root_pkgs),
-            ('/usr/local/foo/envs' if context.platform != 'win' else 'C:\envs',
-                '/usr/local/foo/envs/.pkgs' if context.platform != 'win' else 'C:\envs\.pkgs'),
-            ]:
-            self.assertEqual(pkgs_dir_from_envs_dir(pi), po)
 
     # def test_proxy_settings(self):
     #     self.assertEqual(config.get_proxy_servers(),
@@ -295,6 +285,7 @@ def _read_test_condarc(rc):
         return f.read()
 
 
+@pytest.mark.integration
 def test_invalid_config():
     condarc="""\
 fgddgh
@@ -315,6 +306,7 @@ channels:
 # Tests for the conda config command
 # FIXME This shoiuld be multiple individual tests
 @pytest.mark.slow
+@pytest.mark.integration
 def test_config_command_basics():
 
         # Test that creating the file adds the defaults channel
@@ -393,6 +385,7 @@ always_yes: true
 """
 
 
+@pytest.mark.integration
 def test_config_command_show():
     # test alphabetical yaml output
     with make_temp_condarc() as rc:
@@ -405,6 +398,7 @@ def test_config_command_show():
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
+@pytest.mark.integration
 def test_config_command_get():
     # Test --get
     condarc = """\
@@ -492,6 +486,7 @@ channel_alias: http://alpha.conda.anaconda.org
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
+@pytest.mark.integration
 def test_config_command_parser():
     # Now test the YAML "parser"
     # Channels is normal content.
@@ -596,6 +591,7 @@ disallow:
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
+@pytest.mark.integration
 def test_config_command_remove_force():
     # Finally, test --remove, --remove-key
     with make_temp_condarc() as rc:
@@ -636,6 +632,7 @@ def test_config_command_remove_force():
 
 # FIXME Break into multiple tests
 @pytest.mark.slow
+@pytest.mark.integration
 def test_config_command_bad_args():
     with make_temp_condarc() as rc:
         stdout, stderr = run_conda_command('config', '--file', rc, '--add',
@@ -663,6 +660,7 @@ def test_config_command_bad_args():
 #         assert _read_test_condarc(rc) == condarc
 
 
+@pytest.mark.integration
 def test_config_set():
     # Test the config set command
     # Make sure it accepts only boolean values for boolean keys and any value for string keys
@@ -681,6 +679,7 @@ def test_config_set():
         assert stderr == ''
 
 
+@pytest.mark.integration
 def test_set_rc_string():
     # Test setting string keys in .condarc
 
@@ -695,10 +694,11 @@ def test_set_rc_string():
         reset_context([rc])
         assert context.ssl_verify is False
 
-        stdout, stderr = run_conda_command('config', '--file', rc,
-                                           '--set', 'ssl_verify', 'test_string.crt')
-        assert stdout == ''
-        assert stderr == ''
+        with NamedTemporaryFile() as tf:
+            stdout, stderr = run_conda_command('config', '--file', rc,
+                                               '--set', 'ssl_verify', tf.name)
+            assert stdout == ''
+            assert stderr == ''
 
-        reset_context([rc])
-        assert context.ssl_verify == 'test_string.crt'
+            reset_context([rc])
+            assert context.ssl_verify == tf.name

@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from itertools import chain
 import logging
 import re
 
@@ -11,7 +10,6 @@ from .console import setup_handlers
 from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
-from .models.index_record import IndexRecord
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
 
@@ -144,18 +142,7 @@ class Resolve(object):
     def __init__(self, index, sort=False, processed=False):
         # assertion = lambda d, r: isinstance(d, Dist) and isinstance(r, IndexRecord)
         # assert all(assertion(d, r) for d, r in iteritems(index))
-        self.index = index = index.copy()
-        if not processed:
-            for dist, info in iteritems(index.copy()):
-                if dist.with_features_depends:
-                    continue
-                for fstr in chain(info.get('features', '').split(),
-                                  info.get('track_features', '').split(),
-                                  context.track_features or ()):
-                    self.add_feature(fstr, group=False)
-                for fstr in iterkeys(info.get('with_features_depends', {})):
-                    index[Dist('%s[%s]' % (dist, fstr))] = info
-                    self.add_feature(fstr, group=False)
+        self.index = index
 
         groups = {}
         trackers = {}
@@ -179,30 +166,9 @@ class Resolve(object):
         # type: () -> Set[Dist]
         installed = set()
         for dist, info in iteritems(self.index):
-            if 'link' in info and not dist.with_features_depends:
+            if 'link' in info:
                 installed.add(dist)
         return installed
-
-    def add_feature(self, feature_name, group=True):
-        feature_dist = Dist(feature_name + '@')
-        if feature_dist in self.index:
-            return
-        info = {
-            'name': feature_dist.dist_name,
-            'channel': '@',
-            'priority': 0,
-            'version': '0',
-            'build_number': 0,
-            'fn': feature_dist.to_filename(),
-            'build': '0',
-            'depends': [],
-            'track_features': feature_name,
-        }
-
-        self.index[feature_dist] = IndexRecord(**info)
-        if group:
-            self.groups[feature_dist.dist_name] = [feature_dist]
-            self.trackers[feature_name] = [feature_dist]
 
     def default_filter(self, features=None, filter=None):
         if filter is None:
@@ -263,7 +229,10 @@ class Resolve(object):
             A generator of tuples, empty if the MatchSpec is valid.
         """
         def chains_(spec, names):
-            if self.valid(spec, filter) or spec.name in names:
+            if spec.name in names:
+                return
+            names.add(spec.name)
+            if self.valid(spec, filter):
                 return
             dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
             found = False
@@ -294,7 +263,6 @@ class Resolve(object):
         for s in specs:
             ms = MatchSpec(s)
             if ms.name[-1] == '@':
-                self.add_feature(ms.name[:-1])
                 feats.add(ms.name[:-1])
             else:
                 spec2.append(ms)
@@ -500,16 +468,7 @@ class Resolve(object):
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
-            if dist.with_features_depends:
-                f2, fstr = (Dist.from_string(dist.dist_name, channel_override=dist.channel),
-                            dist.with_features_depends)
-                fdeps = {d.name: d for d in self.ms_depends(f2)}
-                for dep in rec['with_features_depends'][fstr]:
-                    dep = MatchSpec(dep)
-                    fdeps[dep.name] = dep
-                deps = list(fdeps.values())
-            else:
-                deps = [MatchSpec(d) for d in rec.get('depends', [])]
+            deps = [MatchSpec(d) for d in rec.get('depends', [])]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
         # assert all(isinstance(ms, MatchSpec) for ms in deps)
@@ -741,27 +700,18 @@ class Resolve(object):
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
-        xtra = []  # List[Dist]
         dists = {}  # Dict[Dist, Record]
         specs = []
         for dist in installed:
-            rec = self.index.get(dist)
-            if rec is None:
-                xtra.append(dist)
-            else:
-                dists[dist] = rec
-                specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
-        if xtra:
-            log.debug('Packages missing from index: %s', xtra)
+            dist = Dist(dist)
+            rec = self.index[dist]
+            dists[dist] = rec
+            specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
         r2 = Resolve(dists, True, True)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
-        try:
-            solution = C.sat(constraints)
-        except TypeError:
-            log.debug('Package set caused an unexpected error, assuming a conflict')
-            solution = None
-        limit = None
+        solution = C.sat(constraints)
+        limit = xtra = None
         if not solution or xtra:
             def get_(name, snames):
                 if name not in snames:
@@ -769,14 +719,21 @@ class Resolve(object):
                     for fn in self.groups.get(name, []):
                         for ms in self.ms_depends(fn):
                             get_(ms.name, snames)
+            # New addition: find the largest set of installed packages that
+            # are consistent with each other, and include those in the
+            # list of packages to maintain consistency with
             snames = set()
+            eq_optional_c = r2.generate_removal_count(C, specs)
+            solution, _ = C.minimize(eq_optional_c, C.sat())
+            snames.update(dists[Dist(q)]['name']
+                          for q in (C.from_index(s) for s in solution)
+                          if q and q[0] != '!' and '@' not in q)
+            # Existing behavior: keep all specs and their dependencies
             for spec in new_specs:
                 get_(MatchSpec(spec).name, snames)
-            xtra = [x for x in xtra if x not in snames]
-            if xtra or not (solution or all(s.name in snames for s in specs)):
-                limit = set(s.name for s in specs if s.name in snames)
-                xtra = [dist for dist in (Dist(fn) for fn in installed)
-                        if self.package_name(dist) not in snames]
+            if len(snames) < len(dists):
+                limit = snames
+                xtra = [dist for dist, rec in iteritems(dists) if rec['name'] not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)

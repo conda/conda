@@ -52,7 +52,7 @@ def download(url, target_full_path, md5sum):
     content_length = None
 
     if exists(target_full_path):
-        maybe_raise(BasicClobberError(target_full_path, url, context))
+        maybe_raise(BasicClobberError(target_full_path, url, context), context)
 
     if not context.ssl_verify:
         disable_ssl_verify_warning()
@@ -73,7 +73,9 @@ def download(url, target_full_path, md5sum):
                 with open(target_full_path, 'wb') as fh:
                     streamed_bytes = 0
                     for chunk in resp.iter_content(2 ** 14):
-                        streamed_bytes += len(chunk)
+                        # chunk could be the decompressed form of the real data
+                        # but we want the exact number of bytes read till now
+                        streamed_bytes = resp.raw.tell()
                         try:
                             fh.write(chunk)
                         except IOError as e:

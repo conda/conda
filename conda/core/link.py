@@ -5,7 +5,7 @@ from collections import defaultdict
 from logging import getLogger
 import os
 from os.path import join
-from subprocess import CalledProcessError, check_call
+from subprocess import CalledProcessError
 import sys
 from traceback import format_exc
 import warnings
@@ -14,23 +14,25 @@ from .linked_data import (get_python_version_for_prefix, linked_data as get_link
                           load_meta)
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
-                           CreateLinkedPackageRecordAction, CreatePrivateEnvMetaAction,
-                           CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           RemoveLinkedPackageRecordAction, RemoveMenuAction,
-                           RemovePrivateEnvMetaAction, UnlinkPathAction, CreateNonadminAction)
-from .. import CondaMultiError
+                           CreateLinkedPackageRecordAction, CreateNonadminAction,
+                           CreatePrivateEnvMetaAction, CreatePythonEntryPointAction,
+                           LinkPathAction, MakeMenuAction, RemoveLinkedPackageRecordAction,
+                           RemoveMenuAction, RemovePrivateEnvMetaAction, UnlinkPathAction)
+from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, on_win, text_type
+from ..common.compat import ensure_text_type, iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
-from ..exceptions import (KnownPackageClobberError, SharedLinkPathClobberError,
+from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
                           UnknownPackageClobberError, maybe_raise)
+from ..gateways.disk.create import mkdir_p
 from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.read import isfile, lexists, read_package_info
+from ..gateways.disk.read import isdir, isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
+from ..gateways.subprocess import subprocess_call
 from ..models.dist import Dist
 from ..models.enums import LinkType
 
@@ -114,7 +116,8 @@ class UnlinkLinkTransaction(object):
                   '\n    '.join(text_type(d) for d in unlink_dists),
                   '\n    '.join(text_type(d) for d in link_dists))
 
-        pkg_dirs_to_link = tuple(PackageCache[dist].extracted_package_dir for dist in link_dists)
+        pkg_dirs_to_link = tuple(PackageCache.get_entry_to_link(dist).extracted_package_dir
+                                 for dist in link_dists)
         assert all(pkg_dirs_to_link)
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
@@ -253,6 +256,16 @@ class UnlinkLinkTransaction(object):
         if not self._verified:
             self.verify()
 
+        # make sure prefix directory exists
+        if not isdir(self.target_prefix):
+            try:
+                mkdir_p(self.target_prefix)
+            except (IOError, OSError) as e:
+                log.debug(repr(e))
+                raise CondaError("Unable to create prefix directory '%s'.\n"
+                                 "Check that you have sufficient permissions."
+                                 "" % self.target_prefix)
+
         pkg_idx = 0
         try:
             for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
@@ -301,7 +314,7 @@ class UnlinkLinkTransaction(object):
             run_script(target_prefix if is_unlink else pkg_data.extracted_package_dir,
                        Dist(pkg_data),
                        'pre-unlink' if is_unlink else 'pre-link',
-                       target_prefix if is_unlink else None)
+                       target_prefix)
             for axn_idx, action in enumerate(actions):
                 action.execute()
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
@@ -436,22 +449,35 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env = os.environ.copy()
 
     if action == 'pre-link':
+        is_old_noarch = False
+        try:
+            with open(path) as f:
+                script_text = ensure_text_type(f.read())
+            if "This is code that is added to noarch Python packages." in script_text:
+                is_old_noarch = True
+        except Exception as e:
+            import traceback
+            log.debug(e)
+            log.debug(traceback.format_exc())
+
         env['SOURCE_DIR'] = prefix
-        warnings.warn(dals("""
-        Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
-        This is because pre-link scripts have the ability to change the package contents in the
-        package cache, and therefore modify the underlying files for already-created conda
-        environments.  Future versions of conda may deprecate and ignore pre-link scripts.
-        """ % dist))
+        if not is_old_noarch:
+            warnings.warn(dals("""
+            Package %s uses a pre-link script. Pre-link scripts are potentially dangerous.
+            This is because pre-link scripts have the ability to change the package contents in the
+            package cache, and therefore modify the underlying files for already-created conda
+            environments.  Future versions of conda may deprecate and ignore pre-link scripts.
+            """ % dist))
 
     if on_win:
         try:
-            command_args = [os.environ['COMSPEC'], '/c', path]
+            command_args = [os.environ[str('COMSPEC')], '/c', path]
         except KeyError:
+            log.info("failed to run %s for %s due to COMSPEC KeyError", action, dist)
             return False
     else:
         shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
-        command_args = [shell_path, path]
+        command_args = [shell_path, "-x", path]
 
     env['ROOT_PREFIX'] = context.root_prefix
     env['PREFIX'] = env_prefix or prefix
@@ -462,24 +488,39 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     try:
         log.debug("for %s at %s, executing script: $ %s",
                   dist, env['PREFIX'], ' '.join(command_args))
-        return _run_script(command_args, env)
-    finally:
-        messages(prefix)
-
-
-def _run_script(command_args, env):
-    try:
-        check_call(command_args, env={str(k): str(v) for k, v in iteritems(env)})
-    except CalledProcessError:
-        return False
+        subprocess_call(command_args, env=env)
+    except CalledProcessError as e:
+        m = messages(prefix)
+        if action in ('pre-link', 'post-link'):
+            if 'openssl' in text_type(dist):
+                # this is a hack for conda-build string parsing in the conda_build/build.py
+                #   create_env function
+                message = "%s failed for: %s" % (action, dist)
+            else:
+                message = dals("""
+                %s script failed for package %s
+                running your command again with `-v` will provide additional information
+                location of failed script: %s
+                ==> script messages <==
+                %s
+                """) % (action, dist, path, m or "<None>")
+            raise LinkError(message)
+        else:
+            log.warn("%s script failed for package %s\n"
+                     "consider notifying the package maintainer", action, dist)
+            return False
     else:
+        messages(prefix)
         return True
 
 
 def messages(prefix):
     path = join(prefix, '.messages.txt')
-    if isfile(path):
-        with open(path) as fi:
-            fh = sys.stderr if context.json else sys.stdout
-            fh.write(fi.read())
+    try:
+        if isfile(path):
+            with open(path) as fi:
+                m = fi.read()
+                print(m, file=sys.stderr if context.json else sys.stdout)
+                return m
+    finally:
         rm_rf(path)

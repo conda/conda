@@ -83,32 +83,11 @@ def generate_parser():
 def _main(*args):
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
-    from ..common.compat import on_win
+
     from ..gateways.logging import set_all_logger_level, set_verbosity
-    from ..exceptions import CommandNotFoundError
-    if not args:
-        args = sys.argv
-
-    if not args:
-        args = sys.argv
-
-    log.debug("conda.cli.main called with %s", args)
-    if len(args) > 1:
-        argv1 = args[1].strip()
-        if argv1 in ('..activate', '..deactivate', '..checkenv', '..changeps1'):
-            import conda.cli.activate as activate
-            activate.main()
-            return
-        if argv1 in ('activate', 'deactivate'):
-
-            message = "'%s' is not a conda command.\n" % argv1
-            if not on_win:
-                message += ' Did you mean "source %s" ?\n' % ' '.join(args[1:])
-
-            raise CommandNotFoundError(argv1, message)
 
     if len(args) == 1:
-        args.append('-h')
+        args = args + ('-h',)
 
     p, sub_parsers = generate_parser()
 
@@ -161,6 +140,29 @@ def _main(*args):
 
 
 def main(*args):
+    if not args:
+        args = sys.argv
+
+    if not args:
+        args = sys.argv
+
+    log.debug("conda.cli.main called with %s", args)
+    if len(args) > 1:
+        argv1 = args[1].strip()
+        if argv1.startswith('..'):
+            import conda.cli.activate as activate
+            activate.main()
+            return
+        if argv1 in ('activate', 'deactivate'):
+
+            message = "'%s' is not a conda command.\n" % argv1
+            from ..common.compat import on_win
+            if not on_win:
+                message += ' Did you mean "source %s" ?\n' % ' '.join(args[1:])
+
+            from ..exceptions import CommandNotFoundError
+            raise CommandNotFoundError(argv1, message)
+
     from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main, *args)
 

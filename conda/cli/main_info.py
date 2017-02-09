@@ -88,7 +88,7 @@ def get_user_site():
     else:
         if 'APPDATA' not in os.environ:
             return site_dirs
-        APPDATA = os.environ['APPDATA']
+        APPDATA = os.environ[str('APPDATA')]
         if exists(join(APPDATA, 'Python')):
             site_dirs = [join(APPDATA, 'Python', i) for i in
                          listdir(join(APPDATA, 'PYTHON'))]
@@ -144,9 +144,9 @@ def execute(args, parser):
 
     if args.root:
         if context.json:
-            stdout_json({'root_prefix': context.root_dir})
+            stdout_json({'root_prefix': context.root_prefix})
         else:
-            print(context.root_dir)
+            print(context.root_prefix)
         return
 
     if args.packages:
@@ -219,7 +219,7 @@ def execute(args, parser):
         conda_version=conda.__version__,
         conda_env_version=conda_env_version,
         conda_build_version=conda_build_version,
-        root_prefix=context.root_dir,
+        root_prefix=context.root_prefix,
         conda_prefix=context.conda_prefix,
         conda_private=context.conda_private,
         root_writable=context.root_writable,
@@ -245,7 +245,7 @@ def execute(args, parser):
         for option in options:
             setattr(args, option, True)
 
-    if args.all or all(not getattr(args, opt) for opt in options):
+    if (args.all or all(not getattr(args, opt) for opt in options)) and not context.json:
         for key in 'pkgs_dirs', 'envs_dirs', 'channels':
             info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
         info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else
