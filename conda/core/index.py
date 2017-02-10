@@ -53,7 +53,7 @@ stderrlog = getLogger('stderrlog')
 fail_unknown_host = False
 
 
-REPODATA_PICKLE_VERSION = 1
+REPODATA_PICKLE_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 
@@ -101,7 +101,7 @@ def supplement_index_with_cache(index, channels):
         index_json_record.fn = dist.to_filename()
         index_json_record.schannel = dist.channel
         index_json_record.priority = priority
-        index_json_record.url = dist.to_url()
+        index_json_record.url = pc_entry.get_urls_txt_value()
         index[dist] = index_json_record
 
 

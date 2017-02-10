@@ -15,8 +15,8 @@ from .common import (add_parser_help, add_parser_json, add_parser_prefix,
                      add_parser_show_channel_urls, disp_features, stdout_json)
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
-from ..common.compat import text_type
-from ..core.linked_data import is_linked, linked, linked_data
+from ..common.compat import text_type, iteritems
+from ..core.linked_data import linked_data
 from ..egg_info import get_egg_info
 from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
 
@@ -111,11 +111,10 @@ def print_export_header():
     print('# platform: %s' % context.subdir)
 
 
-def get_packages(installed, regex):
+def get_packages(installed, regex, index=None):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.quad[0].lower()):
-        name = dist.quad[0]
-        if pat and pat.search(name) is None:
+    for dist, info in iteritems(installed):
+        if pat and pat.search(info['name']) is None:
             continue
 
         yield dist
@@ -125,17 +124,23 @@ def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=context.show_channel_urls):
     res = 0
     result = []
-    for dist in get_packages(installed, regex):
+    for dist in sorted(get_packages(installed, regex)):
+        info = installed[dist]
         if format == 'canonical':
             result.append(dist)
             continue
+        if format == 'json':
+            result.append(info)
+            continue
         if format == 'export':
-            result.append('='.join(dist.quad[:3]))
+            fields = (info['name'], info['version'])
+            if info['build']:
+                fields += info['build'],
+            result.append('='.join(fields))
             continue
 
         try:
             # Returns None if no meta-file found (e.g. pip install)
-            info = is_linked(prefix, dist)
             features = set(info.get('features', '').split())
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
@@ -152,30 +157,36 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
-                   json=False, show_channel_urls=context.show_channel_urls):
+                   show_channel_urls=context.show_channel_urls):
     if not isdir(prefix):
         raise CondaEnvironmentNotFoundError(prefix)
 
-    if not json:
-        if format == 'human':
-            print('# packages in environment at %s:' % prefix)
-            print('#')
-        if format == 'export':
-            print_export_header()
+    if format == 'human':
+        print('# packages in environment at %s:' % prefix)
+        print('#')
+    if format == 'export':
+        print_export_header()
 
-    installed = linked(prefix)
-    log.debug("installed conda packages:\n%s", installed)
+    installed = linked_data(prefix)
+    log.debug("installed conda packages:\n%s", list(installed.keys()))
     if piplist and context.use_pip and format == 'human':
+        installed = installed.copy()
         other_python = get_egg_info(prefix)
         log.debug("other installed python packages:\n%s", other_python)
-        installed.update(other_python)
+        for dist in other_python:
+            installed[dist] = {
+                'name': dist.name,
+                'version': dist.version,
+                'build': dist.build,
+                'schannel': dist.channel,
+            }
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
-    if not json:
-        print('\n'.join(map(text_type, output)))
-    else:
+    if format == 'json':
         stdout_json(output)
+    else:
+        print('\n'.join(map(text_type, output)))
     return exitcode
 
 
@@ -215,16 +226,15 @@ def execute(args, parser):
         print_explicit(prefix, args.md5)
         return
 
-    if args.canonical:
+    if context.json:
+        format = 'json'
+    elif args.canonical:
         format = 'canonical'
     elif args.export:
         format = 'export'
     else:
         format = 'human'
-    if context.json:
-        format = 'canonical'
 
     exitcode = print_packages(prefix, regex, format, piplist=args.pip,
-                              json=context.json,
                               show_channel_urls=context.show_channel_urls)
     return exitcode

@@ -299,7 +299,7 @@ class IntegrationTests(TestCase):
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<pip>") for line in stdout_lines
+            assert any(line.rstrip().endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
     def test_list_with_pip_wheel(self):
@@ -308,7 +308,7 @@ class IntegrationTests(TestCase):
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<pip>") for line in stdout_lines
+            assert any(line.rstrip().endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
             # regression test for #3433

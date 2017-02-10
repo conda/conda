@@ -75,7 +75,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                     raise CondaFileNotFoundError(path)
                 pc_entry = PackageCache.tarball_file_in_cache(path)
                 dist = pc_entry.dist
-                url = dist.to_url() or pc_entry.get_urls_txt_value()
+                url = pc_entry.get_urls_txt_value()
                 md5sum = md5sum or pc_entry.md5sum
         dist = dist or Dist(url)
         fetch_recs[dist] = {'md5': md5sum, 'url': url}
