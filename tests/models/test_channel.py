@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 import os
+from tempfile import gettempdir
 
 from conda.common.io import env_var
 
@@ -10,8 +11,10 @@ from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
-from conda.common.url import join_url
+from conda.common.url import join_url, join
 from conda.common.yaml import yaml_load
+from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
 from logging import getLogger
@@ -233,7 +236,7 @@ class CustomConfigChannelTests(TestCase):
     """
 
     @classmethod
-    def setUpClass(cls):
+    def setUp(cls):
         string = dals("""
         custom_channels:
           darwin: https://some.url.somewhere/stuff
@@ -267,7 +270,7 @@ class CustomConfigChannelTests(TestCase):
                             ]
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDown(cls):
         reset_context()
 
     def test_pkgs_free(self):
@@ -456,29 +459,35 @@ class CustomConfigChannelTests(TestCase):
         ]
 
     def test_local_channel(self):
-        Channel._reset_state()
-        channel = Channel('local')
-        assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
-        assert channel.channel_name == "local"
-        assert channel.platform is None
-        assert channel.package_filename is None
-        assert channel.auth is None
-        assert channel.token is None
-        assert channel.scheme is None
-        assert channel.canonical_name == "local"
-        local_channel_first_subchannel = channel._channels[0].name
+        conda_bld_path = join(gettempdir(), 'conda-bld')
+        mkdir_p(conda_bld_path)
+        try:
+            with env_var('CONDA_CROOT', conda_bld_path, reset_context):
+                Channel._reset_state()
+                channel = Channel('local')
+                assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
+                assert channel.channel_name == "local"
+                assert channel.platform is None
+                assert channel.package_filename is None
+                assert channel.auth is None
+                assert channel.token is None
+                assert channel.scheme is None
+                assert channel.canonical_name == "local"
+                local_channel_first_subchannel = channel._channels[0].name
 
-        channel = Channel(local_channel_first_subchannel)
-        assert channel.channel_name == local_channel_first_subchannel
-        assert channel.platform is None
-        assert channel.package_filename is None
-        assert channel.auth is None
-        assert channel.token is None
-        assert channel.scheme == "file"
-        assert channel.canonical_name == "local"
+                channel = Channel(local_channel_first_subchannel)
+                assert channel.channel_name == local_channel_first_subchannel
+                assert channel.platform is None
+                assert channel.package_filename is None
+                assert channel.auth is None
+                assert channel.token is None
+                assert channel.scheme == "file"
+                assert channel.canonical_name == "local"
 
-        assert channel.urls() == Channel('local').urls()
-        assert channel.urls()[0].startswith('file:///')
+                assert channel.urls() == Channel('local').urls()
+                assert channel.urls()[0].startswith('file:///')
+        finally:
+            rm_rf(conda_bld_path)
 
     def test_defaults_channel(self):
         channel = Channel('defaults')

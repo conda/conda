@@ -14,17 +14,29 @@ def can_not_symlink():
     return on_win and context.default_python[0] == '2'
 
 
+def _make_file(path):
+    with open("test_file", "r") as fh:
+        fh.close()
+    return fh
+
+
 def _write_file(path, content):
-    with open(path, "w") as fh:
+    with open("test_file", "w") as fh:
         fh.write(content)
+        fh.close()
+    return fh
 
 
 def test_remove_file(tmpdir):
-    test_file = "test.txt"
-    path = join(text_type(tmpdir), test_file)
-    _write_file(path, "welcome to the ministry of silly walks")
-    assert rm_rf(path) is True
-
+    test_file = _make_file(tmpdir)
+    path = join(text_type(test_file), tmpdir)
+    try:
+        _write_file(test_file, "welcome to the ministry of silly walks")
+        assert rm_rf(path) is True
+        assert isfile(path) is False
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
 
 @pytest.mark.skipif(not on_win, reason="Testing case for windows is different then Unix")
 def test_remove_file_to_trash(tmpdir):
@@ -51,14 +63,16 @@ def test_remove_link_to_file(tmpdir):
     src_file = join(text_type(tmpdir), "test_file")
     _write_file(src_file, "welcome to the ministry of silly walks")
     os.symlink(src_file, dst_link)
-    assert isfile(src_file)
-    assert not islink(src_file)
-    assert islink(dst_link)
-    assert rm_rf(dst_link) is True
-    assert isfile(src_file)  # make sure the directory is still there
-    assert not isfile(dst_link)
-    assert not lexists(dst_link)
-
+    try:
+        assert not islink(src_file)
+        assert islink(dst_link)
+        assert rm_rf(dst_link) is True
+        assert os.path.exists(src_file) is False
+        assert not isfile(dst_link)
+        assert not lexists(dst_link)
+    finally:
+        if os.path.exists(dst_link):
+            os.remove(src_file)
 
 @pytest.mark.skipif(can_not_symlink(), reason="symlink function not available")
 def test_remove_link_to_dir(tmpdir):
