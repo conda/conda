@@ -453,7 +453,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         try:
             with open(path) as f:
                 script_text = ensure_text_type(f.read())
-            if "This is code that is added to noarch Python packages." in script_text:
+            if ((on_win and "%PREFIX%\\python.exe %SOURCE_DIR%\\link.py" in script_text)
+                    or "$PREFIX/bin/python $SOURCE_DIR/link.py" in script_text):
                 is_old_noarch = True
         except Exception as e:
             import traceback
@@ -467,7 +468,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
             This is because pre-link scripts have the ability to change the package contents in the
             package cache, and therefore modify the underlying files for already-created conda
             environments.  Future versions of conda may deprecate and ignore pre-link scripts.
-            """ % dist))
+            """) % dist)
 
     if on_win:
         try:
