@@ -5,6 +5,7 @@ import bz2
 from contextlib import closing
 from functools import wraps
 import hashlib
+from itertools import chain
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
@@ -38,6 +39,7 @@ from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord, Priority
+from ..resolve import MatchSpec
 
 try:
     from cytoolz.itertoolz import take
@@ -105,6 +107,54 @@ def supplement_index_with_cache(index, channels):
         index[dist] = index_json_record
 
 
+def supplement_index_with_repodata(index, repodata, channel, priority):
+    repodata_info = repodata.get('info', {})
+    arch = repodata_info.get('arch')
+    platform = repodata_info.get('platform')
+    schannel = channel.canonical_name
+    channel_url = channel.url()
+    auth = channel.auth
+    for fn, info in iteritems(repodata['packages']):
+        rec = IndexRecord.from_objects(info,
+                                       fn=fn,
+                                       arch=arch,
+                                       platform=platform,
+                                       schannel=schannel,
+                                       channel=channel_url,
+                                       priority=priority,
+                                       url=join_url(channel_url, fn),
+                                       auth=auth)
+        dist = Dist(rec)
+        index[dist] = rec
+        if 'with_features_depends' in info:
+            base_deps = info.get('depends', ())
+            base_feats = set(info.get('features', '').strip().split())
+            for feat, deps in iteritems(info['with_features_depends']):
+                feat = set(feat.strip().split())
+                snames = {MatchSpec(s).name for s in deps}
+                base2 = [s for s in base_deps if MatchSpec(s).name not in snames]
+                feat2 = ' '.join(sorted(base_feats | feat))
+                feat = ' '.join(sorted(feat))
+                deps2 = base2 + deps
+                dist = Dist.from_objects(dist, with_features_depends=feat)
+                rec2 = IndexRecord.from_objects(rec, features=feat2, depends=deps2)
+                index[dist] = rec2
+
+
+def supplement_index_with_features(index, features=()):
+    for feat in chain(context.track_features, features):
+        fname = feat + '@'
+        rec = IndexRecord(
+            name=fname,
+            version='0',
+            build='0',
+            schannel='defaults',
+            track_features=feat,
+            build_number=0,
+            fn=fname)
+        index[Dist(rec)] = rec
+
+
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     """
@@ -130,6 +180,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         supplement_index_with_prefix(index, prefix, known_channels)
     if unknown:
         supplement_index_with_cache(index, known_channels)
+    if context.track_features:
+        supplement_index_with_features(index)
     return index
 
 

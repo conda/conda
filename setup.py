@@ -46,7 +46,6 @@ install_requires = [
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
 
-
 setup(
     name=conda.__name__,
     version=conda.__version__,
