@@ -44,25 +44,7 @@ main_install() {
         *) ;;
     esac
 
-    python -m pip install psutil ruamel.yaml pycosat pycrypto requests==2.12.4 pyopenssl==16.2.0
-
-    case "${TRAVIS_PYTHON_VERSION:-PYTHON_VERSION}" in
-      '2.7')
-          python -m pip install -U enum34 futures
-          ;;
-      *) ;;
-    esac
-}
-
-
-flake8_extras() {
-    python -m pip install -U flake8
-}
-
-
-test_extras() {
-    python -m pip install -U mock pytest pytest-cov pytest-timeout radon \
-                             responses anaconda-client nbformat
+    python -m pip install -r utils/requirements.txt
 }
 
 
@@ -114,11 +96,11 @@ conda_build_install() {
 
 if [[ $FLAKE8 == true ]]; then
     main_install
-    flake8_extras
+    python -m pip install flake8
 elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
     conda_build_install
 else
     main_install
-    test_extras
+    python -m pip install -r utils/requirements-test.txt
 fi
