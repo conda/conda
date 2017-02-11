@@ -5,14 +5,12 @@ from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, islink, join, lexists
 
-from conda._vendor.auxlib.path import expand
-
 from .create import create_link
 from .delete import rm_rf
 from .read import find_first_existing
-from .update import touch
 from ... import CondaError
 from ..._vendor.auxlib.decorators import memoize
+from ..._vendor.auxlib.path import expand
 from ...common.path import get_python_short_path
 from ...models.enums import LinkType
 
