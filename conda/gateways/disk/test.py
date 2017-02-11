@@ -5,6 +5,8 @@ from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, islink, join, lexists
 
+from conda._vendor.auxlib.path import expand
+
 from .create import create_link
 from .delete import rm_rf
 from .read import find_first_existing
@@ -18,13 +20,19 @@ log = getLogger(__name__)
 
 
 def file_path_is_writable(path):
+    path = expand(path)
+    log.trace("checking path is writable %s", path)
     if isdir(dirname(path)):
+        path_existed = lexists(path)
         try:
-            touch(path)
+            fh = open(path, 'a+')
         except (IOError, OSError) as e:
             log.debug(e)
             return False
         else:
+            fh.close()
+            if not path_existed:
+                rm_rf(path)
             return True
     else:
         # TODO: probably won't work well on Windows
