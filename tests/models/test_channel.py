@@ -484,7 +484,7 @@ class CustomConfigChannelTests(TestCase):
                 assert channel.scheme == "file"
                 assert channel.canonical_name == "local"
 
-                assert channel.urls() == Channel('local').urls()
+                assert channel.urls() == Channel(local_channel_first_subchannel).urls()
                 assert channel.urls()[0].startswith('file:///')
         finally:
             rm_rf(conda_bld_path)
