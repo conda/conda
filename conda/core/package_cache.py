@@ -176,7 +176,7 @@ class PackageCache(object):
         if not writable_caches:
             # TODO: raise NoWritablePackageCacheError()
             raise CondaError("No writable package cache directories found in\n"
-                             "%s" % context.pkgs_dirs)
+                             "%s" % text_type(context.pkgs_dirs))
         return writable_caches
 
     @classmethod

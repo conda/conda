@@ -158,7 +158,7 @@ class Context(Configuration):
             errors.append(error)
         return errors
 
-    @memoizedproperty
+    @property
     def conda_build_local_paths(self):
         # does file system reads to make sure paths actually exist
         return tuple(unique(full_path for full_path in (
