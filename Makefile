@@ -7,7 +7,9 @@ PYTHONHASHSEED := $(shell python -c "import random as r; print(r.randint(0,42949
 PYTEST_VARS := PYTHONHASHSEED=$(PYTHONHASHSEED) PYTHON_MAJOR_VERSION=$(PYTHON_MAJOR_VERSION) TEST_PLATFORM=$(TEST_PLATFORM)
 PYTEST := $(PYTEST_VARS) $(PYTEST_EXE)
 
-ADD_COV := --cov-report xml --cov-report term-missing --cov-append --cov conda
+PYTEST_TIME := $(PYTEST_VARS) time $(PYTEST_EXE)
+
+ADD_COV := --cov-report xml --cov-report term-missing --cov-append --cov conda --cov conda_env
 
 
 clean:
@@ -64,15 +66,15 @@ smoketest:
 
 
 unit: clean
-	time $(PYTEST) $(ADD_COV) -m "not integration and not installed"
+	$(PYTEST_TIME) $(ADD_COV) -m "not integration and not installed"
 
 
 integration: clean pytest-version
-	time $(PYTEST) $(ADD_COV) -m "not installed"
+	$(PYTEST_TIME) $(ADD_COV) -m "not installed"
 
 
 test-installed:
-	time $(PYTEST) $(ADD_COV) -m "installed" --shell=bash --shell=zsh
+	$(PYTEST_TIME) $(ADD_COV) -m "installed" --shell=bash --shell=zsh
 
 
 .PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib boltons toolz \
