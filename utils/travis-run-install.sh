@@ -1,6 +1,9 @@
 set -e
 set -x
 
+export PATH="~/miniconda/bin:$PATH"
+
+
 osx_setup() {
     brew update || brew update
 
@@ -43,7 +46,6 @@ install_python() {
    curl -sSL $MINICONDA_URL -o ~/miniconda.sh
    chmod +x ~/miniconda.sh
    ~/miniconda.sh -bfp ~/miniconda
-   export PATH="~/miniconda/bin:$PATH"
    hash -r
    conda install -y -q python=$PYTHON_VERSION
    local site_packages=$(~/miniconda/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
