@@ -5,19 +5,23 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import sys
 from collections import defaultdict
+from logging import getLogger
+import os
 from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
+import sys
 
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
+from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
+from ..common.compat import CrossPlatformStLink
 from ..core.package_cache import PackageCache
 from ..exceptions import ArgumentError
 from ..gateways.disk.delete import rm_rf
 from ..utils import human_bytes
-from ..common.compat import CrossPlatformStLink
+
+log = getLogger(__name__)
 
 descr = """
 Remove unused packages and caches.
@@ -76,14 +80,15 @@ def configure_parser(sub_parsers):
 def find_tarballs():
     pkgs_dirs = defaultdict(list)
     totalsize = 0
+    part_ext = CONDA_TARBALL_EXTENSION + '.part'
     for pkgs_dir in PackageCache.all_writable(context.pkgs_dirs):
         if not isdir(pkgs_dir):
             continue
         root, _, filenames = next(os.walk(pkgs_dir))
         for fn in filenames:
-            if fn.endswith('.tar.bz2') or fn.endswith('.tar.bz2.part'):
+            if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
                 pkgs_dirs[pkgs_dir].append(fn)
-                totalsize += getsize(path)
+                totalsize += getsize(join(root, fn))
 
     return pkgs_dirs, totalsize
 
@@ -121,12 +126,18 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
 
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
-            if rm_rf(os.path.join(pkg_dir, fn)):
+            try:
+                if rm_rf(os.path.join(pkgs_dir, fn)):
+                    if verbose:
+                        print("Removed %s" % fn)
+                else:
+                    if verbose:
+                        print("WARNING: cannot remove, file permissions: %s" % fn)
+            except (IOError, OSError) as e:
                 if verbose:
-                    print("Removed %s" % fn)
-            else:
-                if verbose:
-                    print("WARNING: cannot remove, file permissions: %s" % fn)
+                    print("WARNING: cannot remove, file permissions: %s\n%r" % (fn, e))
+                else:
+                    log.info("%r", e)
 
 
 def find_pkgs():
