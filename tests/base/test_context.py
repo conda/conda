@@ -108,7 +108,7 @@ class ContextTests(TestCase):
         try:
             mkdir_p(conda_bld_path)
             with env_var('CONDA_BLD_PATH', conda_bld_path, reset_context):
-                assert len(context.conda_build_local_paths) == 2
+                assert len(context.conda_build_local_paths) >= 1
                 assert context.conda_build_local_paths[0] == conda_bld_path
 
                 channel = Channel('local')
