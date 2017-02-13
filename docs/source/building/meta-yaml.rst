@@ -395,9 +395,36 @@ Default is False.
 Architecture independent packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The conda build system allows you to specify "no architecture" when building a package, thus making it compatible
-with all platforms and architectures. Noarch packages can be installed on any platform.
+The conda build system allows you to specify "no architecture" when building a
+package, thus making it compatible with all platforms and architectures. Noarch
+packages can be installed on any platform.
 
+Starting with conda-build 2.1, and conda 4.3, there is a new syntax that
+supports different languages. Assigning the noarch key as ``generic`` tells
+conda to not try any manipulation of the contents.
+
+
+.. code-block:: yaml
+
+     build:
+       noarch: generic
+
+
+``noarch: generic`` is most useful for packages such as static javascript assets
+and source archives. For pure Python packages that can run on any Python
+version, you can use the ``noarch: python`` value instead:
+
+
+.. code-block:: yaml
+
+     build:
+       noarch: python
+
+
+The legacy syntax for ``noarch_python`` is still valid, and is what you should
+use if you need to be certain that your package will be installable where conda
+4.3 is not yet available. All other forms of noarch packages require conda >=4.3
+to install.
 
 .. code-block:: yaml
 
