@@ -9,7 +9,7 @@ from shutil import rmtree
 from contextlib import contextmanager
 from tempfile import mkdtemp, gettempdir
 from os.path import join, isfile, lexists
-from stat import S_IREAD, S_IRGRP, S_IROTH
+from stat import S_IRUSR, S_IRGRP, S_IROTH
 
 from conda.gateways.disk.update import touch
 from conda.utils import on_win
@@ -31,10 +31,7 @@ def tempdir():
 
 
 def _make_read_only(path):
-    if on_win:
-        os.chmod(path, stat.S_IRead | stat.SIRGRP | stat.IROTH)
-    else:
-        os.chmod(path, S_IREAD | S_IRGRP | S_IROTH)
+    os.chmod(path, S_IRUSR | S_IRGRP | S_IROTH)
 
 
 def _can_write_file(test, content):
