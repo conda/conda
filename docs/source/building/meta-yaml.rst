@@ -577,7 +577,7 @@ different package output type. Format is a list of mappings. Build strings for
 subpackages are determined by their runtime dependencies. This support was added
 in conda-build 2.1.0.
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: some-subpackage
@@ -603,7 +603,7 @@ Explicit file lists support glob expressions. Directory names are also
 supported, and will recursively include contents.
 
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: subpackage-name
@@ -618,7 +618,7 @@ Scripts that create or move files into the build prefix can be any kind of
 script. Known script types need only specify the script name. Currently the list
 of recognized extensions is ``py``, ``bat``, ``ps1``, ``sh``
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: subpackage-name
@@ -628,7 +628,7 @@ of recognized extensions is ``py``, ``bat``, ``ps1``, ``sh``
 The interpreter command must be specified if the file extension is not
 "recognized."
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: subpackage-name
@@ -654,7 +654,7 @@ supported, because subpackages are created after the build phase is complete. If
 you need a tool to accomplish subpackaging, put it in the top-level package
 requirements/build section.
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: subpackage-name
@@ -665,7 +665,7 @@ requirements/build section.
 Subpackage dependencies propagate to the top-level package if and only if the
 subpackage is listed as a requirement.
 
-.. code-block:: yaml
+.. code-block:: none
 
    requirements:
      run:
@@ -691,7 +691,7 @@ matches the top-level package/name, then conda-build will create a metapackage
 for you. This metapackage will have runtime requirements drawn from its
 dependency subpackages, for the sake of accurate build strings.
 
-.. code-block:: yaml
+.. code-block:: none
 
    package:
      name: subpackage-example
@@ -728,7 +728,7 @@ test section. These files support the same formats as the top-level run_test.*
 scripts: ``.py``, ``.pl``, ``.bat``, ``.sh``. These may be extended to support
 other script types in the future.
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: subpackage-name
@@ -739,7 +739,7 @@ other script types in the future.
 The run_test.* scripts apply only to the top-level package, by default. To apply
 them also to subpackages, they can be explicitly listed in the script section:
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: subpackage-name
@@ -751,7 +751,7 @@ Test requirements for subpackages are not supported. Instead, subpackage tests
 install their runtime requirements (but not the run requirements for the
 top-level package) and the test-time requirements of the top-level package.
 
-.. code-block:: yaml
+.. code-block:: none
 
    requirements:
      run:
@@ -781,7 +781,7 @@ that support includes only wheels. RPMs, .deb files, and others may come as
 demand appears.  If type is not specified, the default value is ``conda``.
 
 
-.. code-block:: yaml
+.. code-block:: none
 
    requirements:
      build:
@@ -797,7 +797,7 @@ requirements/build section in order to build wheels.
 When specifying type, the name field is optional, and defaults to the
 package/name field for the top-level recipe.
 
-.. code-block:: yaml
+.. code-block:: none
 
    requirements:
      build:
