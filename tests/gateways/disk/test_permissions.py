@@ -2,13 +2,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-import shutil
 import uuid
 import stat
+import pytest
+from shutil import rmtree
 from contextlib import contextmanager
 from tempfile import mkdtemp, gettempdir
-import pytest
-from os.path import join, isfile
+from os.path import join, isfile, lexists
 from stat import S_IREAD, S_IRGRP, S_IROTH
 
 from conda.gateways.disk.update import touch
@@ -26,13 +26,15 @@ def tempdir():
         os.makedirs(prefix)
         yield prefix
     finally:
-        shutil.rmtree(prefix)
+        if lexists(prefix):
+            rmtree(prefix)
 
 
-def _make_file(path):
-    with open(join(path, "test_file"), 'a') as fh:
-        fh.close()
-    return fh
+def _make_read_only(path):
+    if on_win:
+        os.chmod(path, stat.S_IRead | stat.SIRGRP | stat.IROTH)
+    else:
+        os.chmod(path, S_IREAD | S_IRGRP | S_IROTH)
 
 
 def _can_write_file(test, content):
@@ -60,7 +62,7 @@ def test_make_writable():
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
-        os.chmod(test_path, S_IREAD | S_IRGRP | S_IROTH)
+        _make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
         make_writable(test_path)
         _try_open(test_path)
@@ -76,7 +78,7 @@ def test_recursive_make_writable():
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
-        os.chmod(test_path, S_IREAD | S_IRGRP | S_IROTH)
+        _make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
         recursive_make_writable(test_path)
         _try_open(test_path)
