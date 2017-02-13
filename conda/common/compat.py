@@ -152,7 +152,15 @@ def ensure_binary(value):
 
 
 def ensure_text_type(value):
-    return value.decode('utf-8') if hasattr(value, 'decode') else value
+    if hasattr(value, 'decode'):
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            from requests.packages.chardet import detect
+            encoding = detect(value).get('encoding') or 'utf-8'
+            return value.decode(encoding)
+    else:
+        return value
 
 
 def ensure_unicode(value):
