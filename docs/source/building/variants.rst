@@ -302,12 +302,14 @@ expression, you'll end up customizing only the upper bound. For the tuple/list,
 you'll customize both bounds.
 
 
-.. code-block::
+.. code-block:: python
+
     # produces pins like >=1.11.2,<1.12
     variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': 'x.x'}}]
 
 
-.. code-block::
+.. code-block:: python
+
     # produces pins like >=1.11,<2
     variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': ('x.x', 'x')}}]
 
