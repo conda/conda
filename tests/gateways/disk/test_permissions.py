@@ -68,7 +68,6 @@ def test_make_writable():
         assert not isfile(test_path)
 
 
-@pytest.mark.skipif(on_win, reason="Testing case for windows is different then Unix")
 def test_recursive_make_writable():
     with tempdir() as td:
         test_path = join(td, 'test_path')
