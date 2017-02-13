@@ -24,8 +24,8 @@ main_test() {
     echo $PYTHONHASHSEED
 
     # basic unit tests
-    python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
-    python utils/setup-testing.py --version
+    ~/miniconda/bin/python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
+    ~/miniconda/bin/python utils/setup-testing.py --version
 }
 
 activate_test() {
@@ -34,15 +34,15 @@ activate_test() {
 #    ln -sf shell/deactivate $prefix/bin/deactivate
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
 
-    python utils/setup-testing.py develop
+    ~/miniconda/bin/python utils/setup-testing.py develop
     hash -r
     which conda
-    python -m conda info
-    python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
+    ~/miniconda/bin/python -m conda info
+    ~/miniconda/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
 
 flake8_test() {
-    python -m flake8 --statistics
+    ~/miniconda/bin/python -m flake8 --statistics
 }
 
 conda_build_smoke_test() {

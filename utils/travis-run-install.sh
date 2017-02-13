@@ -70,8 +70,8 @@ install_python() {
        $site_packages/pycosat*
    hash -r
    which -a python
-   python --version
-   pip --version
+   ~/miniconda/bin/python --version
+   ~/miniconda/bin/pip --version
 
 }
 
@@ -136,11 +136,11 @@ esac
 
 if [[ $FLAKE8 == true ]]; then
     install_python
-    pip install flake8
+    ~/miniconda/bin/pip install flake8
 elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
     conda_build_install
 else
     install_python
-    pip install -r utils/requirements-test.txt
+    ~/miniconda/bin/pip install -r utils/requirements-test.txt
 fi
