@@ -1,5 +1,5 @@
 set -e
-set +x
+set -x
 
 make_conda_entrypoint() {
     local filepath="$1"

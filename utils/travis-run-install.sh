@@ -119,11 +119,6 @@ conda_build_install() {
 }
 
 
-
-
-
-
-
 # Set global variables for this script
 case "$(uname -s)" in
     'Darwin')
