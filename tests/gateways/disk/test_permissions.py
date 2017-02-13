@@ -4,6 +4,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import uuid
 import stat
+from errno import ENOENT, EACCES
+
 import pytest
 from shutil import rmtree
 from contextlib import contextmanager
@@ -14,7 +16,11 @@ from stat import S_IRUSR, S_IRGRP, S_IROTH
 from conda.gateways.disk.update import touch
 from conda.utils import on_win
 from conda.common.compat import text_type
-from conda.gateways.disk.permissions import make_writable, recursive_make_writable
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 
 @contextmanager
@@ -54,6 +60,7 @@ def _try_open(path):
 
 
 def test_make_writable():
+    from conda.gateways.disk.permissions import make_writable
     with tempdir() as td:
         test_path = join(td, 'test_path')
         touch(test_path)
@@ -68,7 +75,24 @@ def test_make_writable():
         assert not isfile(test_path)
 
 
+def test_make_writable_doesnt_exist():
+    from conda.gateways.disk.permissions import make_writable
+    with pytest.raises((IOError, OSError)) as exc:
+        make_writable(join('some', 'path', 'that', 'definitely', 'doesnt', 'exist'))
+    assert exc.value.errno == ENOENT
+
+
+def test_make_writable_dir_EPERM():
+    import conda.gateways.disk.permissions
+    from conda.gateways.disk.permissions import make_writable
+    with patch.object(conda.gateways.disk.permissions, 'chmod') as chmod_mock:
+        chmod_mock.side_effect = IOError(EACCES, 'some message', 'foo')
+        with tempdir() as td:
+            assert not make_writable(td)
+
+
 def test_recursive_make_writable():
+    from conda.gateways.disk.permissions import recursive_make_writable
     with tempdir() as td:
         test_path = join(td, 'test_path')
         touch(test_path)

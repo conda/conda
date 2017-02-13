@@ -25,6 +25,7 @@ def make_writable(path):
             lchmod(path, S_IMODE(mode) | S_IWRITE)
         else:
             log.debug("path cannot be made writable: %s", path)
+        return True
     except Exception as e:
         eno = getattr(e, 'errno', None)
         if eno in (ENOENT,):
@@ -32,6 +33,7 @@ def make_writable(path):
             raise
         elif eno in (EACCES, EPERM):
             log.debug("tried make writable but failed: %s\n%r", path, e)
+            return False
         else:
             log.warn("Error making path writable: %s\n%r", path, e)
             raise
