@@ -31,10 +31,13 @@ made directly available in Jinja2 templates. As a result, keys in the dictionary
 characters allowed). This example builds python 2.7 and 3.5 packages in one
 build command:
 
+variant config file like:
 
-.. code-block:: python
+.. code-block:: yaml
 
-   variants = {'python': ['2.7.*', '3.5.*']}
+   python:
+       - 2.7
+       - 3.5
 
 
 meta.yaml contents like:
@@ -51,8 +54,10 @@ meta.yaml contents like:
        run:
            - python {{ python }}
 
-Creating conda-build variant input files
-----------------------------------------
+
+Creating conda-build variant config files
+-----------------------------------------
+
 
 Variant input files are yaml files.
 
@@ -60,10 +65,10 @@ There are some special keys that behave differently and can be more nested:
 
 Search order for these files is the following:
 
-1. a file named ``.conda_build_config.yaml`` in the user's HOME folder
+1. a file named ``conda_build_config.yaml`` in the user's HOME folder
 2. an arbitrarily named file specified as the value for the
    ``conda_build_config`` key in your .condarc file
-3. a file named ``.conda_build_config.yaml`` in the same folder as ``meta.yaml``
+3. a file named ``conda_build_config.yaml`` in the same folder as ``meta.yaml``
    with your recipe
 4. Any additional files specified on the command line with the
    ``--variant-config-files`` or ``-m`` command line flags, which can be passed
@@ -91,6 +96,28 @@ API:
 2. Set the ``variant`` member of a Config object. This is just a simple
    dictionary. The values for fields should be strings, except "extended keys",
    which are documented in the `Extended keys`_ section below.
+
+
+Again, with meta.yaml contents like:
+
+.. code-block:: yaml
+
+   package:
+       name: compiled-code
+       version: 1.0
+
+   requirements:
+       build:
+           - python {{ python }}
+       run:
+           - python {{ python }}
+
+You could supply a variant to build this recipe like so:
+
+.. code-block:: python
+
+   variants = {'python': ['2.7', '3.5']}
+   api.build(path_to_recipe, variants=variants)
 
 
 Special variant keys
@@ -141,14 +168,14 @@ meta.yaml:
 Here, the variant says that we'll have two builds - one for each numpy version.
 However, since this recipe does not pin numpy's run requirement (because it
 doesn't utilize numpy's C API), it is unnecessary to build it against both numpy
-1.10 and 1.11. This example also assumes that numpy is not set in
+1.10 and 1.11.  This example also assumes that numpy is not set in
 ``pin_run_as_build``.
 
-Defaults for ``exclude_from_build_hash`` are ['numpy', 'mkl']. These result in
-just one build. The actual build performed is probably done with the last
+Defaults for ``exclude_from_build_hash`` are ['numpy', 'mkl'].  These result in
+just one build.  The actual build performed is probably done with the last
 'numpy' list element in the variant, but that's more of an implementation detail
-that you should not depend on. The order is considered unspecified behavior,
-because the output should be independent of the input versions. If the output is
+that you should not depend on.  The order is considered unspecified behavior,
+because the output should be independent of the input versions.  If the output is
 not independent of input versions, don't use this key!
 
 Any pinning done in the run requirements will affect the hash, and thus builds will
@@ -197,7 +224,7 @@ For example, general input for ``variants`` could be something like:
     b = {'python': ['3.4', '3.5'], 'numpy': '1.11'}
 
 
-Here, let's say b is found after a, and thus has priority over a. Merging these
+Here, let's say ``b`` is found after ``a``, and thus has priority over ``a``. Merging these
 two variants yields:
 
 .. code-block:: python
@@ -257,18 +284,17 @@ keys by passing in values for the ``extend_keys`` key for any variant.
 Customizing compatibility
 -------------------------
 
+.. _pinning_expressions:
 
 Pinning expressions
 ~~~~~~~~~~~~~~~~~~~
 
 
 Pinning expressions are the syntax used to specify how many parts of the version
-to pin. They are strings containing arbitrary characters separated by ``.``. The
-number of version parts to pin is simply the number of things that are separated
-by ``.``. For example, ``"p.p"`` pins major and minor version. ``"p"`` pins only
-major version. Pinning expressions are really only counting the number of things
-separated by the ``.`` character. What you put as the actual characters doesn't
-matter. We use ``p`` for convention.
+to pin. They are by convention strings containing ``x`` characters separated by
+``.``. The number of version parts to pin is simply the number of things that
+are separated by ``.``. For example, ``"x.x"`` pins major and minor version.
+``"x"`` pins only major version.
 
 Wherever pinning expressions are accepted, you can pass either a single pinning
 expression or a tuple/list of two pinning expressions. For the single
@@ -278,12 +304,12 @@ you'll customize both bounds.
 
 .. code-block::
     # produces pins like >=1.11.2,<1.12
-    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': 'p.p'}}]
+    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': 'x.x'}}]
 
 
 .. code-block::
     # produces pins like >=1.11,<2
-    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': ('p.p', 'p')}}]
+    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': ('x.x', 'x')}}]
 
 
 Pinning at the variant level
@@ -303,10 +329,13 @@ the build environment when the follow conditions are met:
 
 An example variant/recipe is shown here:
 
+conda_build_config.yaml:
 
-.. code-block:: python
+.. code-block:: yaml
 
-    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': 'p.p'}}]
+    numpy: 1.11
+    pin_run_as_build:
+        numpy: x.x
 
 meta.yaml:
 
@@ -358,7 +387,7 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', pins=['p.p'] }}
+           - numpy {{ pin_compatible('numpy', pins=['x.x'] }}
 
 
 This would yield a pinning of ``>=1.11.2,<1.12``
@@ -381,7 +410,7 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', pins=['p.p', 'p.p'] }}
+           - numpy {{ pin_compatible('numpy', pins=['x.x', 'x.x'] }}
 
 
 This would yield a pinning of ``>=1.11,<1.12``
@@ -442,20 +471,20 @@ Differentiating packages built with different variants
 With only a few things supported, we could just add things to the filename, such
 as py27 for python, or np111 for numpy. In the general case, which variants are
 meant to support, this is no longer an option. Instead, part of the recipe is
-hashed, and that hash is a unique identifier. The information that went into the
-hash is stored with the package, in a file at ``info/hash_input.json``.
-Currently, only the first 4 characters of the hash are stored. Output package
-names will keep the pyXY and npXYY for now, but have added the 4-character hash.
-Your package names will look like:
+hashed using the sha1 algorithm, and that hash is a unique identifier. The
+information that went into the hash is stored with the package, in a file at
+``info/hash_input.json``. Currently, only the first 7 characters of the hash are
+stored. Output package names will keep the pyXY and npXYY for now, but have
+added the 7-character hash. Your package names will look like:
 
-``my-package-1.0-py27h3142_0.tar.bz2``
+``my-package-1.0-py27h3142afe_0.tar.bz2``
 
 Since conflicts only need to be prevented within one version of a package, we
 think this will be adequate. If you run into hash collisions with this limited
 subspace, please file an issue on the conda-build issue tracker.
 
 The information that goes into this hash is currently defined in conda-build's
-metadata.py module; the _get_hash_dictionary member function. This function
+metadata.py module; the _get_hash_contents member function. This function
 captures the following information:
 
 * ``source`` section
@@ -463,6 +492,8 @@ captures the following information:
 * ``build`` section, except:
   * ``number``
   * ``string``
+* any other recipe files, such as bld.bat, build.sh, etc. Every file other than
+  meta.yaml is part of the hash.
 
 All "falsey" values (e.g. empty list values) are removed.
 
@@ -489,6 +520,8 @@ This produces output such as:
                                                   u'source': {u'path': u'/Users/msarahan/code/conda-build/tests/test-recipes/split-packages/_rm_rf_stays_within_prefix'}}}
 
 
+.. _extra_jinja2:
+
 Extra Jinja2 functions
 ----------------------
 
@@ -505,21 +538,17 @@ evaluating ``meta.yaml`` templates:
   ``>=(current version),<(next minor version)``. This will be enhanced as time
   goes on with information from `ABI Laboratory <https://abi-laboratory.pro/>`_
 
+* ``pin_subpackage``: To be used as pin in run and/or test requirements. Takes
+  package name argument. Used to refer to particular versions of subpackages
+  built by parent recipe as dependencies elsewhere in that recipe. Can use
+  either pinning expressions, or exact (including build string).
+
 * ``compiler``: To be used in build requirements most commonly. Run or test as
   necessary. Takes language name argument. This is shorthand to facilitate cross
   compiler usage. This Jinja2 function ties together two variant variables,
   ``{language}_compiler`` and ``target_platform``, and outputs a single compiler
   package name. For example, this could be used to compile outputs targeting
   x86_64 and arm in one recipe, with a variant.
-
-* ``runtime``: To be used in run requirements most commonly. Adds the correct
-  runtime dependency based on similar logic to the compiler function. The
-  runtime function depends on a map in the variant of compiler package name to
-  runtime package name. There are limited defaults set in conda-build - for
-  example ``g++`` as the compiler package on linux leads to runtime dependency
-  on the ``libstdc++`` package.  For any non-default, you need to add a mapping
-  from compiler package name to runtime package name (and possibly also version),
-  as shown below.
 
 There are default "native" compilers that and runtimes that are used when no
 compiler is specified in any variant. These are defined in `conda-build's
@@ -548,6 +577,11 @@ compiler requirements this way. This is to both simplify conda-build and improve
 the tracking of metadata associated with compilers - localize it to compiler
 packages, even if those packages are doing nothing more than activating an
 already-installed compiler (such as Visual Studio.)
+
+Note also the ``pin_downstream`` key in meta.yaml. This is useful for compiler
+recipes to impose runtime constraints based on the versions of subpackages
+created by the compiler recipe. For more information, see the :ref:`pin_downstream`
+section of the docs.
 
 
 Cross-compiling
@@ -579,8 +613,7 @@ and a meta.yaml file:
    requirements:
        build:
            - {{ compiler('cxx') }}
-       run:
-           - {{ runtime('cxx') }}
+
 
 This assumes that you have created two compiler packages named
 ``g++_linux-64_linux-64`` and ``g++_linux-64_linux-aarch64`` - all conda-build
@@ -600,8 +633,8 @@ through dependencies - thus it is useful to have the runtime be a versioned
 package, with only one version being able to be installed at a time. For
 example, the ``vc`` package, originally created by Conda-Forge, is a versioned
 package (only one version can be installed at a time), and it installs the
-correct runtime package. By using this as the runtime on Windows, conda-build is
-able to use the ``{{ runtime('c') }}`` to pin and keep binary compatibility.
+correct runtime package. When the compiler package imposes such a runtime
+dependency, then the resultant ecosystem is self-consistent.
 
 Given these guidelines, a system of recipes using a variant like:
 
@@ -609,8 +642,19 @@ Given these guidelines, a system of recipes using a variant like:
 
    variants = {'cxx_compiler': ['vs2015']}
 
+with a compiler meta.yaml like:
 
-and meta.yaml contents like:
+.. code-block:: yaml
+
+   package:
+       name: vs2015
+       version: 14.0
+   build:
+       pin_downstream:
+           - vc 14
+
+
+and some compiler-using meta.yaml contents like:
 
 .. code-block:: yaml
 
@@ -623,11 +667,8 @@ and meta.yaml contents like:
            # these are the same (and thus redundant) on windows, but different elsewhere
            - {{ compiler('c') }}
            - {{ compiler('cxx') }}
-       run:
-           # these are the same (and thus redundant) on windows, but different elsewhere
-           - {{ runtime('c') }}
-           - {{ runtime('cxx') }}
 
 
 will create a system of packages that are all built with the VS 2015 compiler,
-rather than whatever default is associated with the python version.
+and which have the vc package matched at version 14, rather than whatever
+default is associated with the python version.

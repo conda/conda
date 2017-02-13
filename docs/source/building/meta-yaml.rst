@@ -392,6 +392,7 @@ Default is False.
   build:
     skip: True  # [not win]
 
+
 Architecture independent packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -464,6 +465,42 @@ If a listed environment variable is missing from the environment seen
 by the ``conda build`` process itself, then a ``UserWarning`` will be
 emitted during the build process and the variable will remain
 undefined.
+
+
+.. _pin_downstream:
+
+Pin downstream
+~~~~~~~~~~~~~~
+
+It is often of use to require a particular runtime library to be present at
+runtime when a particular library or package is used at build time. For example,
+if you use a C++ compiler to build a package with dynamic linkage, then it is
+likely that you also need to include the C++ runtime package corresponding to
+that compiler as a runtime requirement. Generally, these imposed pinnings should
+be added to the tool (compiler) or library (jpeg, bzip2, etc.) used at build
+time, rather than to the package using those tools or libraries.
+
+.. code-block:: yaml
+
+  build:
+    pin_downstream:
+      - libstdc++
+
+You can express version constraints directly, or use any of the jinja2 helper
+functions listed at :ref:`extra_jinja2`
+
+For example, you may use :ref:`pinning_expressions` to obtain flexible version
+pinning relative to versions present at build time:
+
+  build:
+    pin_downstream:
+      - libstdc++  {{ pin_compatible('g++', 'x') }}
+
+With this example, if g++ were version 5.3.0, this pinning expression would
+evaluate to ``>=5.3.0,<6``
+
+Note that ``pin_downstream`` can be specified both in the build section, and on
+a per-output basis for split packages.
 
 
 Requirements section
