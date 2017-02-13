@@ -96,7 +96,12 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     link_names = {index[d]['name'] for d in link_dists}
     actions[UNLINK].extend(d for d, r in iteritems(linked_data(prefix))
                            if r['name'] in link_names)
+
+    # need to get the install order right, especially to install python in the prefix
+    #  before python noarch packages
+    r = Resolve(index)
     actions[LINK].extend(link_dists)
+    actions[LINK] = r.dependency_sort({r.package_name(dist): dist for dist in actions[LINK]})
 
     execute_actions(actions, index, verbose=verbose)
     return actions
@@ -175,7 +180,7 @@ def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
     """
-    if on_win and exists(join(context.root_dir, '.nonadmin')):
+    if on_win and exists(join(context.root_prefix, '.nonadmin')):
         if not isdir(prefix):
             os.makedirs(prefix)
         with open(join(prefix, '.nonadmin'), 'w') as fo:
@@ -331,4 +336,4 @@ def list_prefixes():
                 prefix = join(envs_dir, dn)
                 yield prefix
 
-    yield context.root_dir
+    yield context.root_prefix

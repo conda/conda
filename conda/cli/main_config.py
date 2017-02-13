@@ -405,6 +405,8 @@ def execute_config(args, parser):
         elif key in set_strings:
             assert isinstance(item, string_types)
             rc_config[key] = item
+        elif key == 'ssl_verify':
+            rc_config[key] = boolify(item, return_string=True)
         else:
             raise CondaValueError("Error key must be one of %s, not %s" %
                                   (', '.join(set_bools | set_strings), key))

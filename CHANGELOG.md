@@ -7,6 +7,73 @@
 * eliminate index modification in Resolve.__init__ (#4333)
 
 
+## 4.3.12 (unreleased)
+
+### Bug Fixes
+* fix UnicodeDecodeError for ensure_text_type (#4585)
+* disable old python noarch warning (#4576)
+
+### Non-User-Facing Changes
+* fixes for tests when conda-bld directory doesn't exist (#4606)
+
+
+## 4.3.11 (2017-02-09)
+
+### Bug Fixes
+* fix attribute error in add_defaults_to_specs (#4577)
+
+
+## 4.3.10 (2017-02-07)
+
+### Improvements
+* remove .json from pickle path (#4498)
+* improve empty repodata noarch warning and error messages (#4499)
+* don't add python and lua as default specs for private envs (#4529, #4533)
+* let default_python be None (#4547, #4550)
+
+### Bug Fixes
+* fix #4513 null pointer exception for channel without noarch (#4518)
+* fix ssl_verify set type (#4517)
+* fix bug for windows multiuser (#4524)
+* fix clone with noarch python packages (#4535)
+* fix ipv6 for python 2.7 on Windows (#4554)
+
+### Non-User-Facing Changes
+* separate integration tests with a marker (#4532)
+
+
+## 4.3.9 (2017-01-31)
+
+### Improvements
+* improve repodata caching for performance (#4478, #4488)
+* expand scope of packages included by bad_installed (#4402)
+* silence pre-link warning for old noarch (#4451)
+* add configuration to optionally require noarch repodata (#4450)
+* improve conda subprocessing (#4447)
+* respect info/link.json (#4482)
+
+### Bug Fixes
+* fix #4398 'hard' was used for link type at one point (#4409)
+* fixed "No matches for wildcard '$activate_d/*.fish'" warning (#4415)
+* print correct activate/deactivate message for fish shell (#4423)
+* fix 'Dist' object has no attribute 'fn' (#4424)
+* fix noarch generic and add additional integration test (#4431)
+* fix #4425 unknown encoding (#4433)
+
+### Non-User-Facing Changes
+* fail CI on conda-build fail (#4405)
+* run doctests (#4414)
+* make index record mutable again (#4461)
+* additional test for conda list --json (#4480)
+
+
+## 4.3.8 (2017-01-23)
+
+### Bug Fixes
+* fix #4309 ignore EXDEV error for directory renames (#4392)
+* fix #4393 by force-renaming certain backup files if the path already exists (#4397)
+
+
 ## 4.3.7 (2017-01-20)
 
 ### Bug Fixes
@@ -255,6 +322,15 @@
 * make Record immutable (#3965)
 * project housekeeping (#3994, #4065)
 * context-dependent setup.py files (#4057)
+
+
+## 4.2.17 (unreleased)
+
+## Improvements
+* silence pre-link warning for old noarch 4.2.x backport (#4453)
+
+### Non-User-Facing Changes
+* build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
 
 
 ## 4.2.16 (2017-01-20)

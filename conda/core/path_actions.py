@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+from errno import EXDEV
 import json
 from logging import getLogger
 from os.path import dirname, join
@@ -13,7 +14,7 @@ from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, on_win, string_types
+from ..common.compat import iteritems, on_win
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
@@ -30,7 +31,7 @@ from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
 from ..models.dist import Dist
-from ..models.enums import LinkType, PathType
+from ..models.enums import LinkType, NoarchType, PathType
 from ..models.index_record import IndexRecord, Link
 
 try:
@@ -136,12 +137,11 @@ class LinkPathAction(CreateInPrefixPathAction):
                                  requested_link_type):
         def make_file_link_action(source_path_info):
             # TODO: this inner function is still kind of a mess
-            noarch = package_info.package_metadata and package_info.package_metadata.noarch
-            if noarch and noarch.type == 'python':
+            noarch = package_info.index_json_record.noarch
+            if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
                 target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
-            elif not noarch or noarch is True or (isinstance(noarch, string_types)
-                                                  and noarch == 'native'):
+            elif noarch is None or noarch == NoarchType.generic:
                 target_short_path = source_path_info.path
             else:
                 raise CondaUpgradeError(dals("""
@@ -314,7 +314,7 @@ class CreateNonadminAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        if on_win and lexists(join(context.root_dir, '.nonadmin')):
+        if on_win and lexists(join(context.root_prefix, '.nonadmin')):
             return cls(transaction_context, package_info, target_prefix),
         else:
             return ()
@@ -339,7 +339,7 @@ class CompilePycAction(CreateInPrefixPathAction):
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
                        file_link_actions):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
-        if noarch and noarch.type == 'python':
+        if noarch is not None and noarch.type == NoarchType.python:
             py_ver = transaction_context['target_python_version']
             py_files = (axn.target_short_path for axn in file_link_actions
                         if axn.source_short_path.endswith('.py'))
@@ -382,17 +382,17 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             return target_short_path, module, func
 
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
-        if noarch and noarch.type == 'python':
+        if noarch is not None and noarch.type == NoarchType.python:
             actions = tuple(cls(transaction_context, package_info, target_prefix,
                                 *this_triplet(ep_def))
-                            for ep_def in noarch.entry_points)
+                            for ep_def in noarch.entry_points or ())
 
             if on_win:
                 actions += tuple(
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context, package_info, target_prefix,
                         requested_link_type, ep_def
-                    ) for ep_def in package_info.package_metadata.noarch.entry_points
+                    ) for ep_def in noarch.entry_points or ()
                 )
 
             return actions
@@ -509,15 +509,11 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
                                                               None, None, target_prefix,
                                                               target_short_path)
         self.linked_package_record = linked_package_record
-        self._record_written_to_disk = False
         self._linked_data_loaded = False
 
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
-
         write_linked_package_record(self.target_prefix, self.linked_package_record)
-        self._record_written_to_disk = True
-
         load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
                          self.linked_package_record)
         self._linked_data_loaded = True
@@ -527,10 +523,7 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         if self._linked_data_loaded:
             delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
                                delete=False)
-        if self._record_written_to_disk:
-            rm_rf(self.target_full_path)
-        else:
-            log.trace("record was not created %s", self.target_full_path)
+        rm_rf(self.target_full_path)
 
 
 class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
@@ -600,12 +593,12 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
     def execute(self):
         if self.link_type != LinkType.directory:
             log.trace("renaming %s => %s", self.target_short_path, self.holding_short_path)
-            backoff_rename(self.target_full_path, self.holding_full_path)
+            backoff_rename(self.target_full_path, self.holding_full_path, force=True)
 
     def reverse(self):
         if self.link_type != LinkType.directory and lexists(self.holding_full_path):
             log.trace("reversing rename %s => %s", self.holding_short_path, self.target_short_path)
-            backoff_rename(self.holding_full_path, self.target_full_path)
+            backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
         if self.link_type == LinkType.directory:
@@ -717,7 +710,7 @@ class CacheUrlAction(PathAction):
                 # the source and destination are the same file, so we're done
                 return
             else:
-                backoff_rename(self.target_full_path, self.hold_path)
+                backoff_rename(self.target_full_path, self.hold_path, force=True)
 
         if self.url.startswith('file:/'):
             source_path = url_to_path(self.url)
@@ -759,8 +752,7 @@ class CacheUrlAction(PathAction):
     def reverse(self):
         if lexists(self.hold_path):
             log.trace("moving %s => %s", self.hold_path, self.target_full_path)
-            rm_rf(self.target_full_path)
-            backoff_rename(self.hold_path, self.target_full_path)
+            backoff_rename(self.hold_path, self.target_full_path, force=True)
 
     def cleanup(self):
         rm_rf(self.hold_path)
@@ -793,7 +785,18 @@ class ExtractPackageAction(PathAction):
         if lexists(self.hold_path):
             rm_rf(self.hold_path)
         if lexists(self.target_full_path):
-            backoff_rename(self.target_full_path, self.hold_path)
+            try:
+                backoff_rename(self.target_full_path, self.hold_path)
+            except (IOError, OSError) as e:
+                if e.errno == EXDEV:
+                    # OSError(18, 'Invalid cross-device link')
+                    # https://github.com/docker/docker/issues/25409
+                    # ignore, but we won't be able to roll back
+                    log.debug("Invalid cross-device link on rename %s => %s",
+                              self.target_full_path, self.hold_path)
+                    rm_rf(self.target_full_path)
+                else:
+                    raise
         extract_tarball(self.source_full_path, self.target_full_path)
 
         target_package_cache = PackageCache(self.target_pkgs_dir)

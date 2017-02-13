@@ -12,13 +12,13 @@ addons:
 
 matrix:
   include:
-    - python: '2.7'
+    - python: '3.6'
       os: linux
       language: python
     - python: '3.4'
       os: linux
       language: python
-    - python: '3.6'
+    - python: '2.7'
       os: linux
       language: python
     - python: '3.5'
@@ -26,14 +26,10 @@ matrix:
       os: linux
       language: python
     - os: osx
-      env: PYTHON_VERSION=3.5
+      env: PYTHON_VERSION=3.6
       language: generic
     - python: '3.5'
-      env: CONDA_BUILD=2.0.12
-      os: linux
-      language: python
-    - python: '3.5'
-      env: CONDA_BUILD=2.1.1
+      env: CONDA_BUILD=2.1.3
       os: linux
       language: python
 

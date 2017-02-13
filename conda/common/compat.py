@@ -21,7 +21,7 @@ PY3 = sys.version_info[0] == 3
 # equivalent commands
 # #############################
 
-if PY3:
+if PY3:  # pragma: py2 no cover
     string_types = str,
     integer_types = int,
     class_types = type,
@@ -30,7 +30,7 @@ if PY3:
     input = input
     range = range
 
-elif PY2:
+elif PY2:  # pragma: py3 no cover
     from types import ClassType
     string_types = basestring,
     integer_types = (int, long)
@@ -45,10 +45,10 @@ elif PY2:
 # equivalent imports
 # #############################
 
-if PY3:
+if PY3:  # pragma: py2 no cover
     from io import StringIO
     from itertools import zip_longest
-elif PY2:
+elif PY2:  # pragma: py3 no cover
     from cStringIO import StringIO
     from itertools import izip as zip, izip_longest as zip_longest
 
@@ -61,7 +61,7 @@ zip_longest = zip_longest
 # equivalent functions
 # #############################
 
-if PY3:
+if PY3:  # pragma: py2 no cover
     def iterkeys(d, **kw):
         return iter(d.keys(**kw))
 
@@ -89,7 +89,7 @@ if PY3:
     def isiterable(obj):
         return not isinstance(obj, string_types) and isinstance(obj, Iterable)
 
-elif PY2:
+elif PY2:  # pragma: py3 no cover
     def iterkeys(d, **kw):
         return d.iterkeys(**kw)
 
@@ -152,7 +152,15 @@ def ensure_binary(value):
 
 
 def ensure_text_type(value):
-    return value.decode('utf-8') if hasattr(value, 'decode') else value
+    if hasattr(value, 'decode'):
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            from requests.packages.chardet import detect
+            encoding = detect(value).get('encoding') or 'utf-8'
+            return value.decode(encoding)
+    else:
+        return value
 
 
 def ensure_unicode(value):

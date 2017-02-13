@@ -934,9 +934,9 @@ def generate_mocked_record(dist_name):
     return mocked_record(dist_name=dist_name)
 
 
-def generate_mocked_context(prefix, root_dir, envs_dirs):
-    mocked_context = namedtuple("Context", ["prefix", "root_dir", "envs_dirs"])
-    return mocked_context(prefix=prefix, root_dir=root_dir, envs_dirs=envs_dirs)
+def generate_mocked_context(prefix, root_prefix, envs_dirs):
+    mocked_context = namedtuple("Context", ["prefix", "root_prefix", "envs_dirs"])
+    return mocked_context(prefix=prefix, root_prefix=root_prefix, envs_dirs=envs_dirs)
 
 
 class TestDetermineAllEnvs(unittest.TestCase):
