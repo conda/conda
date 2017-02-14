@@ -336,7 +336,7 @@ def test_activate_symlinking(shell):
             commands = (shell_vars['command_setup'] + """
             mkdir -p "{prefix_bin_path}"
             chmod 444 "{prefix_bin_path}"
-            {source} activate "{env_dirs[2]}"
+            {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
             """).format(prefix_bin_path=prefix_bin_path, envs=envs,
                                 env_dirs=gen_test_env_paths(envs, shell),
                 **shell_vars)
