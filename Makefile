@@ -3,6 +3,8 @@ PYTHON_EXE ?= $(shell echo $(PYTEST_EXE) | xargs head -1 | sed 's/^\#!//')
 PYTHON_MAJOR_VERSION := $(shell $(PYTHON_EXE) -c "import sys; print(sys.version_info[0])")
 TEST_PLATFORM := $(shell $(PYTHON_EXE) -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
 PYTHONHASHSEED := $(shell python -c "import random as r; print(r.randint(0,4294967296))")
+TIME := $(shell which time)
+
 
 PYTEST_VARS := PYTHONHASHSEED=$(PYTHONHASHSEED) PYTHON_MAJOR_VERSION=$(PYTHON_MAJOR_VERSION) TEST_PLATFORM=$(TEST_PLATFORM)
 PYTEST := $(PYTEST_VARS) $(PYTEST_EXE)
@@ -68,15 +70,15 @@ smoketest:
 
 
 unit: clean
-	$(PYTEST) $(ADD_COV) -m "not integration and not installed"
+	$(TIME) $(PYTEST) $(ADD_COV) -m "not integration and not installed"
 
 
 integration: clean pytest-version
-	$(PYTEST) $(ADD_COV) -m "not installed"
+	$(TIME) $(PYTEST) $(ADD_COV) -m "not installed"
 
 
 test-installed:
-	$(PYTEST) $(ADD_COV) -m "installed" --shell=bash --shell=zsh
+	$(TIME) $(PYTEST) $(ADD_COV) -m "installed" --shell=bash --shell=zsh
 
 
 .PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib boltons toolz \
