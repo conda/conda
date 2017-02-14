@@ -345,7 +345,11 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             """)
 
         else:
-            help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
+            help_message = dals("""
+            An HTTP error occurred when trying to retrieve this URL.
+            HTTP errors are often intermittent, and a simple retry will get you on your way.
+            %r
+            """) % e
 
         raise CondaHTTPError(help_message,
                              getattr(e.response, 'url', None),
