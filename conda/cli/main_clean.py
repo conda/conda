@@ -81,7 +81,8 @@ def find_tarballs():
     pkgs_dirs = defaultdict(list)
     totalsize = 0
     part_ext = CONDA_TARBALL_EXTENSION + '.part'
-    for pkgs_dir in PackageCache.all_writable(context.pkgs_dirs):
+    for package_cache in PackageCache.all_writable(context.pkgs_dirs):
+        pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
         root, _, filenames = next(os.walk(pkgs_dir))
