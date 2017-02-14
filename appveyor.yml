@@ -68,7 +68,7 @@ install:
   - pip install flake8 pytest-cov pytest-timeout responses
   - python --version
   - python -c "import struct; print(struct.calcsize('P') * 8)"
-  - python setup.py install
+  - python utils\setup-testing.py install
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false

@@ -4,6 +4,16 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.12 (unreleased)
+
+### Bug Fixes
+* fix UnicodeDecodeError for ensure_text_type (#4585)
+* disable old python noarch warning (#4576)
+
+### Non-User-Facing Changes
+* fixes for tests when conda-bld directory doesn't exist (#4606)
+
+
 ## 4.3.11 (2017-02-09)
 
 ### Bug Fixes
