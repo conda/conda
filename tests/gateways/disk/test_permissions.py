@@ -3,16 +3,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import uuid
-from errno import ENOENT, EACCES
-
+import stat
 import pytest
+from errno import ENOENT, EACCES
 from shutil import rmtree
 from contextlib import contextmanager
 from tempfile import mkdtemp, gettempdir
-from os.path import join, isfile, lexists
+from os.path import join, isfile, lexists, isdir
 from stat import S_IRUSR, S_IRGRP, S_IROTH
+from stat import S_IMODE, S_IXUSR, S_IXGRP, S_IXOTH
 from conda.gateways.disk.update import touch
-
 
 try:
     from unittest.mock import patch
@@ -46,7 +46,6 @@ def _can_write_file(test, content):
             return False
         else:
             return True
-
     except Exception as e:
         eno = getattr(e, 'errono', None)
         if eno == 13:
@@ -63,7 +62,7 @@ def _try_open(path):
 
 
 def _can_execute(path):
-    return os.access(path, os.X_OK)
+    return bool(os.stat(path).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH ))
 
 
 def test_make_writable():
@@ -112,6 +111,7 @@ def test_recursive_make_writable():
         assert _can_write_file(test_path, "welcome to the ministry of silly walks")
         os.remove(test_path)
         assert not isfile(test_path)
+
 
 def test_make_executable():
     from conda.gateways.disk.permissions import make_executable
