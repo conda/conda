@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EEXIST
+from errno import EACCES, EEXIST, EPERM
 from io import open
 import json
 from logging import getLogger
@@ -16,6 +16,7 @@ import traceback
 from .delete import rm_rf
 from .permissions import make_executable
 from .read import get_json_content
+from .update import touch
 from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
@@ -292,3 +293,19 @@ def create_private_pkg_entry_point(source_full_path, target_full_path, python_fu
         fo.write('#!%s\n' % python_full_path)
         fo.write(entry_point)
     make_executable(target_full_path)
+
+
+def create_package_cache_directory(pkgs_dir):
+    # returns False if package cache directory cannot be created
+    try:
+        log.trace("creating package cache directory '%s'", pkgs_dir)
+        mkdir_p(pkgs_dir)
+        touch(join(pkgs_dir, 'urls'))
+        touch(join(pkgs_dir, 'urls.txt'))
+    except (IOError, OSError) as e:
+        if e.errno in (EACCES, EPERM):
+            log.trace("Cannot create package cache directory '%s'", pkgs_dir)
+            return False
+        else:
+            raise
+    return True
