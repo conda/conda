@@ -861,7 +861,6 @@ class IntegrationTests(TestCase):
         pkgs_dir_hold = pkgs_dir + '_hold'
         try:
             shutil.move(pkgs_dir, pkgs_dir_hold)
-            mkdir_p(pkgs_dir)
             with make_temp_env("flask") as prefix:
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
@@ -977,7 +976,6 @@ class IntegrationTests(TestCase):
     def test_toolz_cytoolz_package_cache_regression(self):
         with make_temp_env("python=3.5") as prefix:
             pkgs_dir = join(prefix, 'pkgs')
-            mkdir_p(pkgs_dir)
             with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
                 assert context.pkgs_dirs == (pkgs_dir,)
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
