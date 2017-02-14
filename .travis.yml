@@ -39,6 +39,6 @@ sudo: false
 
 after_success:
   - ~/miniconda/bin/pip install codecov coveralls scrutinizer-ocular
-  - codecov --env PY_VERSION
+  - codecov --env PYTHON_VERSION
   - coveralls || true
   - ocular || true
