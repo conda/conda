@@ -20,8 +20,6 @@ make_conda_entrypoint() {
 }
 
 main_test() {
-    export PYTHONHASHSEED=$(python -c "import random as r; print(r.randint(0,4294967296))")
-    echo $PYTHONHASHSEED
     export PYTEST_EXE="~/miniconda/bin/py.test"
 
     # basic unit tests
