@@ -35,8 +35,10 @@ activate_test() {
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
 
     ~/miniconda/bin/python utils/setup-testing.py develop
+    export PATH="~/miniconda/bin:$PATH"
     hash -r
-    which conda
+    ~/miniconda/bin/python -c "import conda; print(conda.__version__)"
+    which -a activate
     ~/miniconda/bin/python -m conda info
     ~/miniconda/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
