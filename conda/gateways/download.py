@@ -115,8 +115,11 @@ def download(url, target_full_path, md5sum):
                                    % (url, digest_builder.hexdigest(), md5sum))
 
     except (ConnectionError, HTTPError, SSLError) as e:
-        # status_code might not exist on SSLError
-        help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
+        help_message = dals("""
+        An HTTP error occurred when trying to retrieve this URL.
+        HTTP errors are often intermittent, and a simple retry will get you on your way.
+        %r
+        """) % e
         raise CondaHTTPError(help_message,
                              getattr(e.response, 'url', None),
                              getattr(e.response, 'status_code', None),
