@@ -368,7 +368,6 @@ class IntegrationTests(TestCase):
             assert not exists(prefix)
 
     @pytest.mark.skipif(on_win and bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.xfail(reason="pending resolution of #2926")
     @pytest.mark.timeout(600)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
@@ -385,7 +384,7 @@ class IntegrationTests(TestCase):
             fn = glob(join(prefix, 'conda-meta', 'python-3.5*.json'))[-1]
             with open(fn) as f:
                 data = json.load(f)
-            for field in ('url', 'channel', 'schannel'):
+            for field in ('url', 'channel', 'schannel', 'build_number'):
                 if field in data:
                     del data[field]
             with open(fn, 'w') as f:
