@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from logging import getLogger
 import os
-from os.path import join
+from os.path import dirname, join
 from subprocess import CalledProcessError
 import sys
 from traceback import format_exc
@@ -485,11 +485,12 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     env['PKG_NAME'] = dist.name
     env['PKG_VERSION'] = dist.version
     env['PKG_BUILDNUM'] = dist.build_number
+    env['PATH'] = os.pathsep.join((dirname(path), env.get('PATH', '')))
 
     try:
         log.debug("for %s at %s, executing script: $ %s",
                   dist, env['PREFIX'], ' '.join(command_args))
-        subprocess_call(command_args, env=env)
+        subprocess_call(command_args, env=env, path=dirname(path))
     except CalledProcessError as e:
         m = messages(prefix)
         if action in ('pre-link', 'post-link'):
