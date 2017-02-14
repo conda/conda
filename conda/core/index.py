@@ -586,7 +586,8 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 
 def create_cache_dir():
-    cache_dir = join(PackageCache.first_writable().pkgs_dir, 'cache')
+    cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
+    assert cache_dir == context.pkgs_dirs[0], (cache_dir, context.pkgs_dirs)
     try:
         makedirs(cache_dir)
     except OSError:
