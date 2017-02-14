@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import uuid
-import stat
 from errno import ENOENT, EACCES
 
 import pytest
@@ -12,10 +11,8 @@ from contextlib import contextmanager
 from tempfile import mkdtemp, gettempdir
 from os.path import join, isfile, lexists
 from stat import S_IRUSR, S_IRGRP, S_IROTH
-
 from conda.gateways.disk.update import touch
-from conda.utils import on_win
-from conda.common.compat import text_type
+
 
 try:
     from unittest.mock import patch
@@ -41,13 +38,19 @@ def _make_read_only(path):
 
 
 def _can_write_file(test, content):
-    with open(test, 'w+') as fh:
-        fh.write(content)
-        fh.close()
-    if os.stat(test).st_size == 0.0:
-        return False
-    else:
-        return True
+    try:
+        with open(test, 'w+') as fh:
+            fh.write(content)
+            fh.close()
+        if os.stat(test).st_size == 0.0:
+            return False
+        else:
+            return True
+
+    except Exception as e:
+        eno = getattr(e, 'errono', None)
+        if eno == 13:
+            return False
 
 
 def _try_open(path):
@@ -57,6 +60,10 @@ def _try_open(path):
         raise
     else:
         f.close()
+
+
+def _can_execute(path):
+    return os.access(path, os.X_OK)
 
 
 def test_make_writable():
@@ -105,3 +112,17 @@ def test_recursive_make_writable():
         assert _can_write_file(test_path, "welcome to the ministry of silly walks")
         os.remove(test_path)
         assert not isfile(test_path)
+
+def test_make_executable():
+    from conda.gateways.disk.permissions import make_executable
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        assert isfile(test_path)
+        _try_open(test_path)
+        _make_read_only(test_path)
+        assert not _can_write_file(test_path, "welcome to the ministry of silly walks")
+        assert not _can_execute(test_path)
+        make_executable(test_path)
+        assert _can_execute(test_path)
+        os.remove(test_path)
