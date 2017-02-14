@@ -859,10 +859,10 @@ class IntegrationTests(TestCase):
 
     def test_clean_tarballs_and_packages(self):
         pkgs_dir = context.pkgs_dirs[0]
-        pkgs_dir_hold = pkgs_dir + '_hold'
-        shutil.move(pkgs_dir, pkgs_dir_hold)
         mkdir_p(pkgs_dir)
+        pkgs_dir_hold = pkgs_dir + '_hold'
         try:
+            shutil.move(pkgs_dir, pkgs_dir_hold)
             with make_temp_env("flask") as prefix:
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]

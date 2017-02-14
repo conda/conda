@@ -206,7 +206,9 @@ def read_mod_and_etag(path):
                 match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
                 result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
-        except ValueError:
+        except (BufferError, ValueError):
+            # BufferError: cannot close exported pointers exist
+            #   https://github.com/conda/conda/issues/4592
             # ValueError: cannot mmap an empty file
             return {}
 
@@ -397,7 +399,11 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             """)
 
         else:
-            help_message = "An HTTP error occurred when trying to retrieve this URL.\n%r" % e
+            help_message = dals("""
+            An HTTP error occurred when trying to retrieve this URL.
+            HTTP errors are often intermittent, and a simple retry will get you on your way.
+            %r
+            """) % e
 
         raise CondaHTTPError(help_message,
                              getattr(e.response, 'url', None),
@@ -638,7 +644,9 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 
 def create_cache_dir():
-    cache_dir = join(context.pkgs_dirs[0], 'cache')
+    pkgs_dir = PackageCache.first_writable(context.pkgs_dirs).pkgs_dir
+    assert pkgs_dir == context.pkgs_dirs[0], (pkgs_dir, context.pkgs_dirs)
+    cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
     try:
         makedirs(cache_dir)
     except OSError:
