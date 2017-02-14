@@ -38,7 +38,6 @@ activate_test() {
     export PATH="~/miniconda/bin:$PATH"
     hash -r
     ~/miniconda/bin/python -c "import conda; print(conda.__version__)"
-    which -a activate
     ~/miniconda/bin/python -m conda info
     ~/miniconda/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
