@@ -68,15 +68,15 @@ smoketest:
 
 
 unit: clean
-	time $(PYTEST) $(ADD_COV) -m "not integration and not installed"
+	$(PYTEST) $(ADD_COV) -m "not integration and not installed"
 
 
 integration: clean pytest-version
-	time $(PYTEST) $(ADD_COV) -m "not installed"
+	$(PYTEST) $(ADD_COV) -m "not installed"
 
 
 test-installed:
-	time $(PYTEST) $(ADD_COV) -m "installed" --shell=bash --shell=zsh
+	$(PYTEST) $(ADD_COV) -m "installed" --shell=bash --shell=zsh
 
 
 .PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib boltons toolz \
