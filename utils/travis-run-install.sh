@@ -1,73 +1,82 @@
 set -e
 set -x
 
+export PATH="~/miniconda/bin:$PATH"
+
+
 osx_setup() {
     brew update || brew update
 
     brew outdated openssl || brew upgrade openssl
     brew install zsh
 
-    # install pyenv
-    git clone https://github.com/yyuu/pyenv.git ~/.pyenv
-    PYENV_ROOT="$HOME/.pyenv"
-    PATH="$PYENV_ROOT/bin:$PATH"
-    eval "$(pyenv init -)"
+#    # install pyenv
+#    git clone https://github.com/yyuu/pyenv.git ~/.pyenv
+#    PYENV_ROOT="$HOME/.pyenv"
+#    PATH="$PYENV_ROOT/bin:$PATH"
+#    eval "$(pyenv init -)"
+#
+#    case "$PYTHON_VERSION" in
+#        '2.7')
+#            curl -O https://bootstrap.pypa.io/get-pip.py
+#            python get-pip.py --user
+#            ;;
+#        '3.4')
+#            pyenv install 3.4.5
+#            pyenv global 3.4.5
+#            ;;
+#        '3.5')
+#            pyenv install 3.5.2
+#            pyenv global 3.5.2
+#            ;;
+#        '3.6')
+#            pyenv install 3.6.0
+#            pyenv global 3.6.0
+#            ;;
+#    esac
+#    pyenv rehash
+#    export PYTHON_EXE="$(pyenv which python)"
 
-    case "$PYTHON_VERSION" in
-        '2.7')
-            curl -O https://bootstrap.pypa.io/get-pip.py
-            python get-pip.py --user
-            ;;
-        '3.4')
-            pyenv install 3.4.5
-            pyenv global 3.4.5
-            ;;
-        '3.5')
-            pyenv install 3.5.2
-            pyenv global 3.5.2
-            ;;
-        '3.6')
-            pyenv install 3.6.0
-            pyenv global 3.6.0
-            ;;
-    esac
-    pyenv rehash
-    export PYTHON_EXE="$(pyenv which python)"
     rvm get head
 }
 
 
-main_install() {
-    case "$(uname -s)" in
-        'Darwin') osx_setup ;;
-        'Linux') export PYTHON_EXE="$(which python)" ;;
-        *) ;;
-    esac
+install_python() {
+    # strategy is to use Miniconda to install python, but then remove all vestiges of conda
+   curl -sSL $MINICONDA_URL -o ~/miniconda.sh
+   chmod +x ~/miniconda.sh
+   ~/miniconda.sh -bfp ~/miniconda
+   hash -r
+   conda install -y -q python=$PYTHON_VERSION
+   local site_packages=$(~/miniconda/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+   rm -rf ~/miniconda/bin/activate \
+       ~/miniconda/bin/conda \
+       ~/miniconda/bin/deactivate \
+       ~/miniconda/conda-meta/conda-*.json \
+       ~/miniconda/conda-meta/requests-*.json \
+       ~/miniconda/conda-meta/pyopenssl-*.json \
+       ~/miniconda/conda-meta/cryptography-*.json \
+       ~/miniconda/conda-meta/idna-*.json \
+       ~/miniconda/conda-meta/ruamel-*.json \
+       ~/miniconda/conda-meta/pycrypto-*.json \
+       ~/miniconda/conda-meta/pycosat-*.json \
+       $site_packages/conda* \
+       $site_packages/requests* \
+       $site_packages/pyopenssl* \
+       $site_packages/cryptography* \
+       $site_packages/idna* \
+       $site_packages/ruamel* \
+       $site_packages/pycrypto* \
+       $site_packages/pycosat*
+   hash -r
+   which -a python
+   ~/miniconda/bin/python --version
+   ~/miniconda/bin/pip --version
 
-    python -m pip install psutil ruamel.yaml pycosat pycrypto requests==2.12.4 pyopenssl==16.2.0
-
-    case "${TRAVIS_PYTHON_VERSION:-PYTHON_VERSION}" in
-      '2.7')
-          python -m pip install -U enum34 futures
-          ;;
-      *) ;;
-    esac
 }
-
-
-flake8_extras() {
-    python -m pip install -U flake8
-}
-
-
-test_extras() {
-    python -m pip install -U mock pytest pytest-cov pytest-timeout radon \
-                             responses anaconda-client nbformat
-}
-
 
 miniconda_install() {
-    curl -L http://repo.continuum.io/miniconda/Miniconda3-4.0.5-Linux-x86_64.sh -o ~/miniconda.sh
+    curl -L https://repo.continuum.io/miniconda/Miniconda3-4.0.5-Linux-x86_64.sh -o ~/miniconda.sh
     bash ~/miniconda.sh -bfp ~/miniconda
     export PATH=~/miniconda/bin:$PATH
     hash -r
@@ -112,13 +121,26 @@ conda_build_install() {
 }
 
 
+# Set global variables for this script
+case "$(uname -s)" in
+    'Darwin')
+        MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.2.12-MacOSX-x86_64.sh"
+        osx_setup
+        ;;
+    'Linux')
+        MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.2.12-Linux-x86_64.sh"
+        ;;
+    *)  ;;
+esac
+
+
 if [[ $FLAKE8 == true ]]; then
-    main_install
-    flake8_extras
+    install_python
+    ~/miniconda/bin/pip install flake8
 elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
     conda_build_install
 else
-    main_install
-    test_extras
+    install_python
+    ~/miniconda/bin/pip install -r utils/requirements-test.txt
 fi
