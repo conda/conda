@@ -22,10 +22,12 @@ make_conda_entrypoint() {
 main_test() {
     export PYTHONHASHSEED=$(python -c "import random as r; print(r.randint(0,4294967296))")
     echo $PYTHONHASHSEED
+    export PYTEST_EXE="~/miniconda/bin/py.test"
 
     # basic unit tests
-    ~/miniconda/bin/python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
-    ~/miniconda/bin/python utils/setup-testing.py --version
+    make conda-version
+    make integration
+#    ~/miniconda/bin/python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
 }
 
 activate_test() {
@@ -39,12 +41,13 @@ activate_test() {
     hash -r
     ~/miniconda/bin/python -c "import conda; print(conda.__version__)"
     ~/miniconda/bin/python -m conda info
-    ~/miniconda/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
+
+    export PYTEST_EXE="~/miniconda/bin/py.test"
+    make test-installed
+
+#    ~/miniconda/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
 
-flake8_test() {
-    ~/miniconda/bin/python -m flake8 --statistics
-}
 
 conda_build_smoke_test() {
     conda config --add channels conda-canary
@@ -62,11 +65,10 @@ conda_build_unit_test() {
     popd
 }
 
-which -a python
 env | sort
 
 if [[ $FLAKE8 == true ]]; then
-    flake8_test
+    ~/miniconda/bin/python -m flake8 --statistics
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
     conda_build_unit_test
@@ -76,3 +78,5 @@ else
         activate_test
     fi
 fi
+
+set +x

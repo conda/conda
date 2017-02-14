@@ -1,7 +1,7 @@
-PYTEST_EXE := $(shell which py.test)
-PYTEST_PYTHON := $(shell which py.test | xargs head -1 | sed 's/^\#!//')
-PYTHON_MAJOR_VERSION := $(shell $(PYTEST_PYTHON) -c "import sys; print(sys.version_info[0])")
-TEST_PLATFORM := $(shell $(PYTEST_PYTHON) -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+PYTEST_EXE ?= $(shell which py.test)
+PYTHON_EXE ?= $(shell echo $(PYTEST_EXE) | xargs head -1 | sed 's/^\#!//')
+PYTHON_MAJOR_VERSION := $(shell $(PYTHON_EXE) -c "import sys; print(sys.version_info[0])")
+TEST_PLATFORM := $(shell $(PYTHON_EXE) -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
 PYTHONHASHSEED := $(shell python -c "import random as r; print(r.randint(0,4294967296))")
 
 PYTEST_VARS := PYTHONHASHSEED=$(PYTHONHASHSEED) PYTHON_MAJOR_VERSION=$(PYTHON_MAJOR_VERSION) TEST_PLATFORM=$(TEST_PLATFORM)
@@ -57,6 +57,10 @@ toolz:
 
 pytest-version:
 	$(PYTEST) --version
+
+
+conda-version:
+	$(PYTHON) utils/setup-testing.py --version
 
 
 smoketest:
