@@ -8,9 +8,9 @@ from os.path import basename, dirname, isdir, isfile, islink, join, lexists
 from .create import create_link
 from .delete import rm_rf
 from .read import find_first_existing
-from .update import touch
 from ... import CondaError
 from ..._vendor.auxlib.decorators import memoize
+from ..._vendor.auxlib.path import expand
 from ...common.path import get_python_short_path
 from ...models.enums import LinkType
 
@@ -18,13 +18,19 @@ log = getLogger(__name__)
 
 
 def file_path_is_writable(path):
+    path = expand(path)
+    log.trace("checking path is writable %s", path)
     if isdir(dirname(path)):
+        path_existed = lexists(path)
         try:
-            touch(path)
+            fh = open(path, 'a+')
         except (IOError, OSError) as e:
             log.debug(e)
             return False
         else:
+            fh.close()
+            if not path_existed:
+                rm_rf(path)
             return True
     else:
         # TODO: probably won't work well on Windows

@@ -16,6 +16,7 @@ from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
 from ..common.path import safe_basename, url_to_path
 from ..common.url import path_to_url
+from ..gateways.disk.create import create_package_cache_directory
 from ..gateways.disk.read import compute_md5sum
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
@@ -283,12 +284,15 @@ class PackageCache(object):
     @property
     def is_writable(self):
         # lazy and cached
+        # This method takes the action of creating an empty package cache if it does not exist.
+        #   Logic elsewhere, both in conda and in code that depends on conda, seems to make that
+        #   assumption.
         if self._is_writable is None:
             if isdir(self.pkgs_dir):
                 self._is_writable = file_path_is_writable(self.urls_data.urls_txt_path)
             else:
                 log.debug("package cache directory '%s' does not exist", self.pkgs_dir)
-                self._is_writable = False
+                self._is_writable = create_package_cache_directory(self.pkgs_dir)
         return self._is_writable
 
     @staticmethod

@@ -10,14 +10,24 @@
 * eliminate index modification in Resolve.__init__ (#4333)
 
 
-## 4.3.12 (unreleased)
+## 4.3.12 (2017-02-14)
+
+### Improvements
+* prepare conda for uploading to pypi (#4619)
+* better general http error message (#4627)
+* disable old python noarch warning (#4576)
 
 ### Bug Fixes
 * fix UnicodeDecodeError for ensure_text_type (#4585)
-* disable old python noarch warning (#4576)
+* fix determination of if file path is writable (#4604)
+* fix #4592 BufferError cannot close exported pointers exist (#4628)
+* fix run_script current working directory (#4629)
+* fix pkgs_dirs permissions regression (#4626)
 
 ### Non-User-Facing Changes
 * fixes for tests when conda-bld directory doesn't exist (#4606)
+* use requirements.txt and Makefile for travis-ci setup (#4600, #4633)
+* remove hasattr use from compat functions (#4634)
 
 
 ## 4.3.11 (2017-02-09)

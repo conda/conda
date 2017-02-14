@@ -16,7 +16,6 @@ from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..common.compat import CrossPlatformStLink
-from ..core.package_cache import PackageCache
 from ..exceptions import ArgumentError
 from ..gateways.disk.delete import rm_rf
 from ..utils import human_bytes
@@ -78,6 +77,7 @@ def configure_parser(sub_parsers):
 
 
 def find_tarballs():
+    from ..core.package_cache import PackageCache
     pkgs_dirs = defaultdict(list)
     totalsize = 0
     part_ext = CONDA_TARBALL_EXTENSION + '.part'
@@ -230,9 +230,10 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
 
 
 def rm_index_cache():
-    from conda.install import rm_rf
-
-    rm_rf(join(context.pkgs_dirs[0], 'cache'))
+    from ..gateways.disk.delete import rm_rf
+    from ..core.package_cache import PackageCache
+    for package_cache in PackageCache.all_writable():
+        rm_rf(join(package_cache.pkgs_dir, 'cache'))
 
 
 def find_source_cache():
