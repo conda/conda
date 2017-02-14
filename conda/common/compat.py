@@ -148,23 +148,34 @@ primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool
 
 
 def ensure_binary(value):
-    return value.encode('utf-8') if hasattr(value, 'encode') else value
-
-
-def ensure_text_type(value):
-    if hasattr(value, 'decode'):
-        try:
-            return value.decode('utf-8')
-        except UnicodeDecodeError:
-            from requests.packages.chardet import detect
-            encoding = detect(value).get('encoding') or 'utf-8'
-            return value.decode(encoding)
-    else:
+    try:
+        return value.encode('utf-8')
+    except AttributeError:
+        # AttributeError: '<>' object has no attribute 'encode'
+        # In this case assume already binary type and do nothing
         return value
 
 
+def ensure_text_type(value):
+    try:
+        return value.decode('utf-8')
+    except AttributeError:
+        # AttributeError: '<>' object has no attribute 'decode'
+        # In this case assume already text_type and do nothing
+        return value
+    except UnicodeDecodeError:
+        from requests.packages.chardet import detect
+        encoding = detect(value).get('encoding') or 'utf-8'
+        return value.decode(encoding)
+
+
 def ensure_unicode(value):
-    return value.decode('unicode_escape') if hasattr(value, 'decode') else value
+    try:
+        return value.decode('unicode_escape')
+    except AttributeError:
+        # AttributeError: '<>' object has no attribute 'decode'
+        # In this case assume already unicode and do nothing
+        return value
 
 
 # TODO: move this somewhere else
