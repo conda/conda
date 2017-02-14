@@ -286,8 +286,8 @@ class Context(Configuration):
         else:
             cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
             return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (
-                self.root_prefix,
                 self._user_data_dir,
+                self.root_prefix,
             )))
 
     @property
