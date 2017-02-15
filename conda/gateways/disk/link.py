@@ -4,31 +4,44 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import link as os_link, symlink as os_symlink
+from os import chmod as os_chmod, link as os_link, symlink as os_symlink
 from os.path import islink as os_islink
 
-from ...common.compat import on_win
+from ...common.compat import PY2, on_win
 from ...exceptions import CondaOSError
+
+__all__ = ('islink', 'lchmod', 'link', 'symlink')
 
 log = getLogger(__name__)
 
 
-__all__ = ('islink', 'link', 'symlink')
+if PY2:  # pragma: py3 no cover
+    try:
+        from os import lchmod as os_lchmod
+        lchmod = os_lchmod
+    except ImportError:
+        def lchmod(path, mode):
+            # On systems that don't allow permissions on symbolic links, skip
+            # links entirely.
+            if not islink(path):
+                os_chmod(path, mode)
+else:  # pragma: py2 no cover
+    def lchmod(path, mode):
+        try:
+            os_chmod(path, mode, follow_symlinks=False)
+        except (TypeError, NotImplementedError, SystemError):
+            # On systems that don't allow permissions on symbolic links, skip
+            # links entirely.
+            if not islink(path):
+                os_chmod(path, mode)
 
-if not on_win:
-    islink = os_islink
+
+if not on_win:  # pragma: win no cover
     link = os_link
     symlink = os_symlink
 
-else:
-    from os import getcwd
-    from os.path import abspath, isdir
-    import sys
-    from ctypes import POINTER, Structure, byref, c_uint64, cast, windll, wintypes
-    import inspect
-    from ..._vendor.auxlib._vendor import six
-    builtins = six.moves.builtins
-
+else:  # pragma: unix no cover
+    from ctypes import windll, wintypes
     CreateHardLink = windll.kernel32.CreateHardLinkW
     CreateHardLink.restype = wintypes.BOOL
     CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
@@ -53,16 +66,24 @@ else:
         if not CreateSymbolicLink(dst, src, isdir(src)):
             raise CondaOSError('win32 soft link failed')
 
-    def islink(path):
-        """Determine if the given path is a symlink"""
-        return is_reparse_point(path) and is_symlink(path)
-
     link = win_hard_link
     symlink = win_soft_link
 
-    # #######################################################
-    # everything below is to support islink()
-    # #######################################################
+
+if not (on_win and PY2):
+    islink = os_islink
+else:  # pragma: unix no cover
+    from os import getcwd
+    from os.path import abspath, isdir
+    import sys
+    from ctypes import POINTER, Structure, byref, c_uint64, cast, windll, wintypes
+    import inspect
+    from ..._vendor.auxlib._vendor import six
+    builtins = six.moves.builtins
+
+    def islink(path):
+        """Determine if the given path is a symlink"""
+        return is_reparse_point(path) and is_symlink(path)
 
     MAX_PATH = 260
     IO_REPARSE_TAG_SYMLINK = 0xA000000C

@@ -31,7 +31,6 @@ listdir = listdir
 lexists, isdir, isfile, islink = lexists, isdir, isfile, islink
 
 
-
 def yield_lines(path):
     """Generator function for lines in file.  Empty generator if path does not exist.
 

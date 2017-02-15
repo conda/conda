@@ -26,10 +26,13 @@ specs_from_url = specs_from_url
 from .cli.conda_argparse import ArgumentParser  # NOQA
 ArgumentParser = ArgumentParser
 
-from .common.compat import PY3, StringIO,  input, iteritems, lchmod, string_types, text_type  # NOQA
-PY3, StringIO,  input, iteritems, lchmod, string_types, text_type = PY3, StringIO,  input, iteritems, lchmod, string_types, text_type  # NOQA
+from .common.compat import PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
+PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
 from .connection import CondaSession  # NOQA
 CondaSession = CondaSession
+
+from .gateways.disk.link import lchmod  # NOQA
+lchmod = lchmod()
 
 from .fetch import TmpDownload  # NOQA
 TmpDownload = TmpDownload

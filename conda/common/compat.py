@@ -7,8 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from itertools import chain
 from operator import methodcaller
-from os import chmod, lstat
-from os.path import islink
+from os import lstat
 import sys
 
 on_win = bool(sys.platform == "win32")
@@ -75,16 +74,6 @@ if PY3:  # pragma: py2 no cover
     viewvalues = methodcaller("values")
     viewitems = methodcaller("items")
 
-    def lchmod(path, mode):
-        try:
-            chmod(path, mode, follow_symlinks=False)
-        except (TypeError, NotImplementedError, SystemError):
-            # On systems that don't allow permissions on symbolic links, skip
-            # links entirely.
-            if not islink(path):
-                chmod(path, mode)
-
-
     from collections import Iterable
     def isiterable(obj):
         return not isinstance(obj, string_types) and isinstance(obj, Iterable)
@@ -102,16 +91,6 @@ elif PY2:  # pragma: py3 no cover
     viewkeys = methodcaller("viewkeys")
     viewvalues = methodcaller("viewvalues")
     viewitems = methodcaller("viewitems")
-
-    try:
-        from os import lchmod as os_lchmod
-        lchmod = os_lchmod
-    except ImportError:
-        def lchmod(path, mode):
-            # On systems that don't allow permissions on symbolic links, skip
-            # links entirely.
-            if not islink(path):
-                chmod(path, mode)
 
     def isiterable(obj):
         return (hasattr(obj, '__iter__')
