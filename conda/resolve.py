@@ -875,11 +875,10 @@ class Resolve(object):
             solution, obj7 = C.minimize(eq_optional_c, solution)
             log.debug('Package removal metric: %d', obj7)
 
-            # Requested packages: maximize versions, then builds
+            # Requested packages: maximize versions
             eq_req_v, eq_req_b = r2.generate_version_metrics(C, specr)
             solution, obj3 = C.minimize(eq_req_v, solution)
-            solution, obj4 = C.minimize(eq_req_b, solution)
-            log.debug('Initial package version/build metrics: %d/%d', obj3, obj4)
+            log.debug('Initial package version metric: %d', obj3)
 
             # Track features: minimize feature count
             eq_feature_count = r2.generate_feature_count(C)
@@ -892,7 +891,11 @@ class Resolve(object):
             obj2 = ftotal - obj2
             log.debug('Package feature count: %d', obj2)
 
-            # Dependencies: minimize the number that need upgrading
+            # Requested packages: maximize builds
+            solution, obj4 = C.minimize(eq_req_b, solution)
+            log.debug('Initial package build metric: %d', obj4)
+
+            # Dependencies: minimize the number of packages that need upgrading
             eq_u = r2.generate_update_count(C, speca)
             solution, obj50 = C.minimize(eq_u, solution)
             log.debug('Dependency update count: %d', obj50)
