@@ -14,7 +14,7 @@ import tarfile
 import traceback
 
 from .delete import rm_rf
-from .link import islink, link, symlink
+from .link import islink, link, readlink, symlink
 from .permissions import make_executable
 from .read import get_json_content
 from .update import touch
@@ -202,8 +202,8 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         symlink(src, dst)
     elif link_type == LinkType.copy:
         # copy relative symlinks as symlinks
-        if not on_win and islink(src) and not os.readlink(src).startswith('/'):
-            symlink(os.readlink(src), dst)
+        if not on_win and islink(src) and not readlink(src).startswith('/'):
+            symlink(readlink(src), dst)
         else:
             shutil.copy2(src, dst)
     else:

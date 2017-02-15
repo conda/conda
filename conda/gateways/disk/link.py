@@ -4,13 +4,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import chmod as os_chmod, link as os_link, symlink as os_symlink
+from os import chmod as os_chmod, link as os_link, readlink as os_readlink, symlink as os_symlink
 from os.path import islink as os_islink
 
 from ...common.compat import PY2, on_win
 from ...exceptions import CondaOSError
 
-__all__ = ('islink', 'lchmod', 'link', 'symlink')
+__all__ = ('islink', 'lchmod', 'link', 'readlink', 'symlink')
 
 log = getLogger(__name__)
 
@@ -72,11 +72,14 @@ else:  # pragma: unix no cover
 
 if not (on_win and PY2):
     islink = os_islink
+    readlink = os_readlink
+
 else:  # pragma: unix no cover
     from os import getcwd
     from os.path import abspath, isdir
     import sys
-    from ctypes import POINTER, Structure, byref, c_uint64, cast, windll, wintypes
+    from ctypes import (POINTER, Structure, byref, c_uint64, cast, create_unicode_buffer, windll,
+                        wintypes)
     import inspect
     from ..._vendor.auxlib._vendor import six
     builtins = six.moves.builtins
@@ -89,7 +92,9 @@ else:  # pragma: unix no cover
     IO_REPARSE_TAG_SYMLINK = 0xA000000C
     INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
     FILE_ATTRIBUTE_REPARSE_POINT = 0x400
-    
+    NULL = 0
+    ERROR_NO_MORE_FILES = 0x12
+
     class WIN32_FIND_DATA(Structure):
         _fields_ = [
             ('file_attributes', wintypes.DWORD),
@@ -114,7 +119,6 @@ else:  # pragma: unix no cover
     FindNextFile.argtypes = (wintypes.HANDLE, LPWIN32_FIND_DATA)
     FindNextFile.restype = wintypes.BOOLEAN
     INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
-    ERROR_NO_MORE_FILES = 0x12
     GetFileAttributes = windll.kernel32.GetFileAttributesW
     GetFileAttributes.restype = wintypes.DWORD
     GetFileAttributes.argtypes = wintypes.LPWSTR,
@@ -267,3 +271,82 @@ else:  # pragma: unix no cover
             res != INVALID_FILE_ATTRIBUTES
             and bool(res & FILE_ATTRIBUTE_REPARSE_POINT)
         )
+
+
+    FILE_SHARE_READ = 1
+    FILE_SHARE_WRITE = 2
+    FILE_SHARE_DELETE = 4
+    OPEN_EXISTING = 3
+    FILE_FLAG_BACKUP_SEMANTICS = 0x2000000
+    VOLUME_NAME_DOS = 0
+
+
+    class SECURITY_ATTRIBUTES(Structure):
+        _fields_ = (
+            ('length', wintypes.DWORD),
+            ('p_security_descriptor', wintypes.LPVOID),
+            ('inherit_handle', wintypes.BOOLEAN),
+        )
+    LPSECURITY_ATTRIBUTES = POINTER(SECURITY_ATTRIBUTES)
+
+    CreateFile = windll.kernel32.CreateFileW
+    CreateFile.argtypes = (
+        wintypes.LPWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        LPSECURITY_ATTRIBUTES,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    )
+    CreateFile.restype = wintypes.HANDLE
+
+    GetFinalPathNameByHandle = windll.kernel32.GetFinalPathNameByHandleW
+    GetFinalPathNameByHandle.argtypes = (
+        wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD,
+        wintypes.DWORD,
+    )
+    GetFinalPathNameByHandle.restype = wintypes.DWORD
+    CloseHandle = windll.kernel32.CloseHandle
+    CloseHandle.argtypes = (wintypes.HANDLE,)
+    CloseHandle.restype = wintypes.BOOLEAN
+
+
+    def get_final_path(path):
+        """
+        For a given path, determine the ultimate location of that path.
+        Useful for resolving symlink targets.
+        This functions wraps the GetFinalPathNameByHandle from the Windows
+        SDK.
+        Note, this function fails if a handle cannot be obtained (such as
+        for C:\Pagefile.sys on a stock windows system). Consider using
+        trace_symlink_target instead.
+        """
+        desired_access = NULL
+        share_mode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
+        security_attributes = LPSECURITY_ATTRIBUTES()  # NULL pointer
+        hFile = CreateFile(
+            path,
+            desired_access,
+            share_mode,
+            security_attributes,
+            OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS,
+            NULL,
+            )
+
+        if hFile == INVALID_HANDLE_VALUE:
+            raise WindowsError()
+
+        buf_size = GetFinalPathNameByHandle(hFile, wintypes.LPWSTR(), 0, VOLUME_NAME_DOS)
+        handle_nonzero_success(buf_size)
+        buf = create_unicode_buffer(buf_size)
+        result_length = GetFinalPathNameByHandle(hFile, buf, len(buf), VOLUME_NAME_DOS)
+
+        assert result_length < len(buf)
+        handle_nonzero_success(result_length)
+        handle_nonzero_success(CloseHandle(hFile))
+
+        return buf[:result_length]
+
+    readlink = get_final_path
