@@ -3,10 +3,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import W_OK, access
-from os.path import basename, dirname, isdir, isfile, islink, join, lexists
+from os.path import basename, dirname, isdir, isfile, join, lexists
 
 from .create import create_link
 from .delete import rm_rf
+from .link import islink
 from .read import find_first_existing
 from ... import CondaError
 from ..._vendor.auxlib.decorators import memoize

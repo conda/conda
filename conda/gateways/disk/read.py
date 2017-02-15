@@ -11,9 +11,10 @@ from itertools import chain
 import json
 from logging import getLogger
 from os import X_OK, access, listdir
-from os.path import isdir, isfile, islink, join, lexists
+from os.path import isdir, isfile, join, lexists
 import shlex
 
+from .link import islink
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
@@ -28,6 +29,7 @@ log = getLogger(__name__)
 
 listdir = listdir
 lexists, isdir, isfile, islink = lexists, isdir, isfile, islink
+
 
 
 def yield_lines(path):
@@ -120,6 +122,7 @@ def read_package_metadata(extracted_package_directory):
     def _paths():
         yield join(extracted_package_directory, 'info', 'link.json')
         yield join(extracted_package_directory, 'info', 'package_metadata.json')
+
     path = first(_paths(), key=isfile)
     if not path:
         return None
@@ -167,6 +170,7 @@ def read_paths_json(extracted_package_directory):
                 else:
                     path_info["path_type"] = PathType.hardlink
                 yield PathData(**path_info)
+
         paths_data = PathsData(
             paths_version=0,
             paths=read_files_file(),
@@ -197,6 +201,7 @@ def read_has_prefix(path):
             return ParseResult(parts[0], FileMode(parts[1]), parts[2])
         else:
             raise RuntimeError("Invalid has_prefix file at path: %s" % path)
+
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 

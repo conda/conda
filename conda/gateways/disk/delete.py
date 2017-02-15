@@ -5,11 +5,12 @@ from errno import EEXIST, ENOENT
 import json
 from logging import getLogger
 from os import listdir, makedirs, removedirs, rename, unlink, walk
-from os.path import abspath, dirname, isdir, isfile, islink, join, lexists
+from os.path import abspath, dirname, isdir, isfile, join, lexists
 from shutil import rmtree
 from uuid import uuid4
 
 from . import MAX_TRIES, exp_backoff_fn
+from .link import islink
 from .permissions import make_writable, recursive_make_writable
 from .read import get_json_content
 from ...base.context import context
