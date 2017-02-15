@@ -599,10 +599,10 @@ NOTE: Python or Perl .py/.pl scripts are only valid as part of Python/Perl packa
 Outputs section
 ---------------
 
-Explicitly specify packaging steps. Supports multiple outputs, as well as
-different package output type. Format is a list of mappings. Build strings for
-subpackages are determined by their runtime dependencies. This support was added
-in conda-build 2.1.0.
+The outputs section is used to explicitly specify packaging steps. It supports
+multiple outputs, as well as different package output types. The format is a
+list of mappings. Build strings for subpackages are determined by their runtime
+dependencies. This support was added in conda-build 2.1.0.
 
 .. code-block:: none
 
@@ -611,7 +611,7 @@ in conda-build 2.1.0.
      - name: some-other-subpackage
 
 
-NOTE: if any output is specified in the outputs section, the default packaging
+NOTE: If any output is specified in the outputs section, the default packaging
 behavior of conda-build is bypassed. In other words, if any subpackage is
 specified, then you will not get the normal top-level build for this recipe
 without explicitly defining a subpackage for it. This is an alternative to the
@@ -622,8 +622,8 @@ section below for more information.
 Specifying files to include in output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Files to be included in the package can be specified one of two ways: explicit
-file lists, or scripts that move files into the build prefix.
+Files to be included in the package can be specified in either of two ways:
+explicit file lists, or scripts that move files into the build prefix.
 
 Explicit file lists are relative paths from the root of the build prefix.
 Explicit file lists support glob expressions. Directory names are also
@@ -643,7 +643,7 @@ supported, and will recursively include contents.
 
 Scripts that create or move files into the build prefix can be any kind of
 script. Known script types need only specify the script name. Currently the list
-of recognized extensions is ``py``, ``bat``, ``ps1``, ``sh``
+of recognized extensions is ``py``, ``bat``, ``ps1``, and ``sh``.
 
 .. code-block:: none
 
@@ -663,9 +663,9 @@ The interpreter command must be specified if the file extension is not
        script_interpreter: program plus arguments to run script
 
 
- For scripts that move or create files, a fresh copy of the working directory is
- provided at the start of each script execution. Results between scripts are
- thus independent of one another.
+For scripts that move or create files, a fresh copy of the working directory is
+provided at the start of each script execution. This ensures results between
+scripts are independent of one another.
 
 Note that for either the file list or the script approach, having more than one
 package contain a given file is not explicitly forbidden, but may prevent
@@ -836,7 +836,7 @@ package/name field for the top-level recipe.
 Conda-build currently only knows how to test conda packages. Conda-build does
 support using Twine to upload packages to PyPI. See the conda-build help output
 for the list of arguments accepted that will be passed through to Twine. Note
-that you must install twine (via pip) in order for this to work.
+that you must use pip to install Twine in order for this to work.
 
 
 .. _about:
