@@ -262,42 +262,12 @@ class Channel(object):
                for c in concatv((context.channel_alias,), context.migrated_channel_aliases)):
             return self.name
 
-        # if self.scheme == 'file' and self.package_filename:
-        #     # at this point, the url isn't included in any known local channel names
-        #     return self.get_channel_from_package_cache(self).canonical_name
-
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
             return "%s://%s" % (self.scheme, join_url(self.location, self.name))
         else:
             return join_url(self.location, self.name).lstrip('/')
-
-    # @staticmethod
-    # def get_channel_from_package_cache(channel):
-    #     assert channel.scheme == 'file', channel.scheme
-    #     assert channel.platform is None, channel.platform
-    #     assert channel.package_filename
-    #
-    #     local_file_dir = join_url(channel.location, channel.name)
-    #
-    #     if win_path_ok(local_file_dir) in context.pkgs_dirs:
-    #         from ..core.package_cache import PackageCache
-    #         package_cache = PackageCache(local_file_dir)
-    #         recorded_url = package_cache.urls_data.get_url(channel.package_filename)
-    #         if recorded_url.startswith('file:/'):
-    #             # make sure path actually is a channel
-    #             _, platform = split_platform(recorded_url)
-    #             if platform:
-    #                 return Channel(recorded_url)
-    #             else:
-    #                 return Channel(None)
-    #         else:
-    #             return Channel(recorded_url)
-    #     else:
-    #         # we can't use the channel name 'local' because that's already taken by conda-build
-    #         #   maybe the path really doesn't have a channel name
-    #         return Channel(None)
 
     def urls(self, with_credentials=False, platform=None):
         if self.canonical_name == UNKNOWN_CHANNEL:

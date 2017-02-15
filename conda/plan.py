@@ -322,8 +322,6 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
 
-        # plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
-        # don't filter LINK and UNLINK, just don't do anything with them
     return plan
 
 
