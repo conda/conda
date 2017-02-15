@@ -372,7 +372,7 @@ class CrossPlatformStLink(object):
         return lstat(path).st_nlink
 
     @classmethod
-    def _windows_st_nlink(cls, path):
+    def _windows_st_nlink(cls, path):  # pragma: unix no cover
         st_nlink = cls._standard_st_nlink(path)
         if st_nlink != 0:
             return st_nlink
@@ -400,7 +400,7 @@ class CrossPlatformStLink(object):
     def _initialize(cls):
         if not on_win:
             cls._st_nlink = cls._standard_st_nlink
-        else:
+        else:  # pragma: unix no cover
             # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
             import ctypes
             from ctypes import POINTER
