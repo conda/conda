@@ -311,7 +311,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
 
                 Use `conda config --show` to view your configuration's current state.
                 Further configuration help can be found at <%s>.
-               """ % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')))
+               """) % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
             elif context.channel_alias.location in url:
                 # Note, this will not trigger if the binstar configured url does
@@ -325,7 +325,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                   (b) provide conda with a valid token directly.
 
                 Further configuration help can be found at <%s>.
-               """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+               """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
 
             else:
                 help_message = dals("""
@@ -334,7 +334,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                 You will need to modify your conda configuration to proceed.
                 Use `conda config --show` to view your configuration's current state.
                 Further configuration help can be found at <%s>.
-                """ % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = dals("""
@@ -357,7 +357,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                              getattr(e.response, 'url', None),
                              status_code,
                              getattr(e.response, 'reason', None),
-                             getattr(e.response, 'elapsed', None))
+                             getattr(e.response, 'elapsed', None),
+                             e.response)
 
 
 def write_pickled_repodata(cache_path, repodata):

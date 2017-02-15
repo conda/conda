@@ -321,18 +321,24 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message, url, status_code, reason, elapsed_time):
+    def __init__(self, message, url, status_code, reason, elapsed_time, response=None):
         message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
+        %(response_details)s
 
         """) + message
+
+        from ._vendor.auxlib.logz import stringify
+        response_details = (stringify(response) or '') if response else ''
+
         if isinstance(elapsed_time, timedelta):
             elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
         if isinstance(reason, string_types):
             reason = reason.upper()
         super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
-                                             reason=reason, elapsed_time=elapsed_time)
+                                             reason=reason, elapsed_time=elapsed_time,
+                                             response_details=response_details)
 
 
 class CondaRevisionError(CondaError):
