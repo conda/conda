@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import chmod as os_chmod, link as os_link, readlink as os_readlink, symlink as os_symlink
+from os import chmod as os_chmod
 from os.path import islink as os_islink
 
 from ...common.compat import PY2, on_win
@@ -37,8 +37,9 @@ else:  # pragma: py2 no cover
 
 
 if not on_win:  # pragma: win no cover
-    link = os_link
-    symlink = os_symlink
+    from os import link, symlink
+    link = link
+    symlink = symlink
 
 else:  # pragma: unix no cover
     from ctypes import windll, wintypes
@@ -71,8 +72,9 @@ else:  # pragma: unix no cover
 
 
 if not (on_win and PY2):
+    from os import readlink
     islink = os_islink
-    readlink = os_readlink
+    readlink = readlink
 
 else:  # pragma: unix no cover
     from os import getcwd
