@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import chmod as os_chmod
+from os import chmod as os_chmod, lstat
 from os.path import islink as os_islink
 
 from ...common.compat import PY2, on_win
@@ -108,7 +108,7 @@ else:  # pragma: unix no cover
             ('filename', wintypes.WCHAR*MAX_PATH),
             ('alternate_filename', wintypes.WCHAR*14),
         ]
-    
+
         @property
         def file_size(self):
             return cast(self.file_size_words, POINTER(c_uint64)).contents
@@ -137,7 +137,7 @@ else:  # pragma: unix no cover
         # first some flags used by FormatMessageW
         ALLOCATE_BUFFER = 0x100
         FROM_SYSTEM = 0x1000
-    
+
         # Let FormatMessageW allocate the buffer (we'll free it below)
         # Also, let it know we want a system error message.
         flags = ALLOCATE_BUFFER | FROM_SYSTEM
@@ -155,7 +155,7 @@ else:  # pragma: unix no cover
             byref(result_buffer),
             buffer_size,
             arguments,
-            )
+        )
         # note the following will cause an infinite loop if GetLastError
         #  repeatedly returns an error that cannot be formatted, although
         #  this should not happen.
@@ -165,29 +165,29 @@ else:  # pragma: unix no cover
         return message
 
     class WindowsError(builtins.WindowsError):
-        "more info about errors at http://msdn.microsoft.com/en-us/library/ms681381(VS.85).aspx"
-    
+        # more info about errors at http://msdn.microsoft.com/en-us/library/ms681381(VS.85).aspx
+
         def __init__(self, value=None):
             if value is None:
                 value = windll.kernel32.GetLastError()
             strerror = format_system_message(value)
-            if sys.version_info > (3,3):
+            if sys.version_info > (3, 3):
                 args = 0, strerror, None, value
             else:
                 args = value, strerror
             super(WindowsError, self).__init__(*args)
-    
+
         @property
         def message(self):
             return self.strerror
-    
+
         @property
         def code(self):
             return self.winerror
-    
+
         def __str__(self):
             return self.message
-    
+
         def __repr__(self):
             return '{self.__class__.__name__}({self.winerror})'.format(**vars())
 
@@ -257,7 +257,8 @@ else:  # pragma: unix no cover
                 error = WindowsError()
                 if error.code == ERROR_NO_MORE_FILES:
                     break
-                else: raise error
+                else:
+                    raise error
         # todo: how to close handle when generator is destroyed?
         # hint: catch GeneratorExit
         windll.kernel32.FindClose(handle)
@@ -274,14 +275,12 @@ else:  # pragma: unix no cover
             and bool(res & FILE_ATTRIBUTE_REPARSE_POINT)
         )
 
-
     FILE_SHARE_READ = 1
     FILE_SHARE_WRITE = 2
     FILE_SHARE_DELETE = 4
     OPEN_EXISTING = 3
     FILE_FLAG_BACKUP_SEMANTICS = 0x2000000
     VOLUME_NAME_DOS = 0
-
 
     class SECURITY_ATTRIBUTES(Structure):
         _fields_ = (
@@ -313,7 +312,6 @@ else:  # pragma: unix no cover
     CloseHandle.argtypes = (wintypes.HANDLE,)
     CloseHandle.restype = wintypes.BOOLEAN
 
-
     def get_final_path(path):
         """
         For a given path, determine the ultimate location of that path.
@@ -335,7 +333,7 @@ else:  # pragma: unix no cover
             OPEN_EXISTING,
             FILE_FLAG_BACKUP_SEMANTICS,
             NULL,
-            )
+        )
 
         if hFile == INVALID_HANDLE_VALUE:
             raise WindowsError()
@@ -352,3 +350,95 @@ else:  # pragma: unix no cover
         return buf[:result_length]
 
     readlink = get_final_path
+
+
+# work-around for python bug on Windows prior to python 3.2
+# https://bugs.python.org/issue10027
+# Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
+class CrossPlatformStLink(object):
+    _st_nlink = None
+
+    def __call__(self, path):
+        return self.st_nlink(path)
+
+    @classmethod
+    def st_nlink(cls, path):
+        if cls._st_nlink is None:
+            cls._initialize()
+        return cls._st_nlink(path)
+
+    @classmethod
+    def _standard_st_nlink(cls, path):
+        return lstat(path).st_nlink
+
+    @classmethod
+    def _windows_st_nlink(cls, path):
+        st_nlink = cls._standard_st_nlink(path)
+        if st_nlink != 0:
+            return st_nlink
+        else:
+            # cannot trust python on Windows when st_nlink == 0
+            # get value using windows libraries to be sure of its true value
+            # Adapted from the ntfsutils package, Copyright (c) 2012, the Mozilla Foundation
+            GENERIC_READ = 0x80000000
+            FILE_SHARE_READ = 0x00000001
+            OPEN_EXISTING = 3
+            hfile = cls.CreateFile(path, GENERIC_READ, FILE_SHARE_READ, None,
+                                   OPEN_EXISTING, 0, None)
+            if hfile is None:
+                from ctypes import WinError
+                raise WinError()
+            info = cls.BY_HANDLE_FILE_INFORMATION()
+            rv = cls.GetFileInformationByHandle(hfile, info)
+            cls.CloseHandle(hfile)
+            if rv == 0:
+                from ctypes import WinError
+                raise WinError()
+            return info.nNumberOfLinks
+
+    @classmethod
+    def _initialize(cls):
+        if not on_win:
+            cls._st_nlink = cls._standard_st_nlink
+        else:
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
+            import ctypes
+            from ctypes import POINTER
+            from ctypes.wintypes import DWORD, HANDLE, BOOL
+
+            cls.CreateFile = ctypes.windll.kernel32.CreateFileW
+            cls.CreateFile.argtypes = [ctypes.c_wchar_p, DWORD, DWORD, ctypes.c_void_p,
+                                       DWORD, DWORD, HANDLE]
+            cls.CreateFile.restype = HANDLE
+
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/ms724211
+            cls.CloseHandle = ctypes.windll.kernel32.CloseHandle
+            cls.CloseHandle.argtypes = [HANDLE]
+            cls.CloseHandle.restype = BOOL
+
+            class FILETIME(ctypes.Structure):
+                _fields_ = [("dwLowDateTime", DWORD),
+                            ("dwHighDateTime", DWORD)]
+
+            class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
+                _fields_ = [("dwFileAttributes", DWORD),
+                            ("ftCreationTime", FILETIME),
+                            ("ftLastAccessTime", FILETIME),
+                            ("ftLastWriteTime", FILETIME),
+                            ("dwVolumeSerialNumber", DWORD),
+                            ("nFileSizeHigh", DWORD),
+                            ("nFileSizeLow", DWORD),
+                            ("nNumberOfLinks", DWORD),
+                            ("nFileIndexHigh", DWORD),
+                            ("nFileIndexLow", DWORD)]
+            cls.BY_HANDLE_FILE_INFORMATION = BY_HANDLE_FILE_INFORMATION
+
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa364952
+            cls.GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
+            cls.GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
+            cls.GetFileInformationByHandle.restype = BOOL
+
+            cls._st_nlink = cls._windows_st_nlink
+
+
+stat_nlink = CrossPlatformStLink()

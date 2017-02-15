@@ -179,8 +179,9 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
     try:
         log.trace("Attempting to remove directory %s", dirpath)
         exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
-    except (IOError, OSError):
-        pass
+    except (IOError, OSError) as e:
+        # this function only guarantees trying, so we just swallow errors
+        log.trace('%r', e)
 
 
 def remove_private_envs_meta(pkg):

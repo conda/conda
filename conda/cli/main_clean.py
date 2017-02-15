@@ -15,9 +15,9 @@ import sys
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import CrossPlatformStLink
 from ..exceptions import ArgumentError
 from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.link import CrossPlatformStLink
 from ..utils import human_bytes
 
 log = getLogger(__name__)

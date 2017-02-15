@@ -104,7 +104,7 @@ get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
 from .exceptions import PaddingError  # NOQA
 PaddingError = PaddingError
-from .common.compat import CrossPlatformStLink     # NOQA
+from .gateways.disk.link import CrossPlatformStLink  # NOQA
 CrossPlatformStLink = CrossPlatformStLink
 
 from .models.enums import FileMode  # NOQA
