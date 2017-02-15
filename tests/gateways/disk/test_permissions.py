@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from tempfile import mkdtemp, gettempdir
 from os.path import join, isfile, lexists, isdir
 from stat import S_IRUSR, S_IRGRP, S_IROTH
-from stat import S_IMODE, S_IXUSR, S_IXGRP, S_IXOTH
+from stat import S_IXUSR, S_IXGRP, S_IXOTH
 from conda.gateways.disk.update import touch
 
 try:
@@ -62,7 +62,7 @@ def _try_open(path):
 
 
 def _can_execute(path):
-    return bool(os.stat(path).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH ))
+    return bool(os.stat(path).st_mode & (S_IXUSR | S_IXGRP | S_IXOTH ))
 
 
 def test_make_writable():
