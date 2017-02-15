@@ -32,7 +32,7 @@ from .connection import CondaSession  # NOQA
 CondaSession = CondaSession
 
 from .gateways.disk.link import lchmod  # NOQA
-lchmod = lchmod()
+lchmod = lchmod
 
 from .fetch import TmpDownload  # NOQA
 TmpDownload = TmpDownload
