@@ -2,6 +2,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+
+from conda.models.enums import LinkType
 import pytest
 from errno import ENOENT
 from os.path import join, isdir, islink, lexists, isfile
@@ -14,6 +16,7 @@ from test_permissions import tempdir, _try_open, _make_read_only
 
 from conda.common.compat import text_type
 from conda.compat import TemporaryDirectory
+from conda.gateways.disk.create import create_link
 from conda.gateways.disk.delete import rm_rf
 
 from conda.utils import on_win
@@ -115,7 +118,9 @@ def test_rm_rf_does_not_follow_symlinks():
         subdir = os.path.join(tmp, 'subfolder')
         os.makedirs(subdir)
         # link to the file in the subfolder
-        os.symlink(real_file, os.path.join(subdir, 'file_link'))
+        link_path = join(subdir, 'file_link')
+        create_link(real_file, link_path, link_type=LinkType.softlink)
+        assert islink(link_path)
         # rm_rf the subfolder
         rm_rf(subdir)
         # assert that the file still exists in the root folder
