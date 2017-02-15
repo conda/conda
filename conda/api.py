@@ -1,2 +1,2 @@
 from .core.index import get_index
-get_index_ = get_index  # suppress flake8
+get_index_ = get_index

@@ -174,12 +174,12 @@ if on_win:
         CreateSymbolicLink = None
 
     def win_hard_link(src, dst):
-        "Equivalent to os.link, using the win32 CreateHardLink call."
+        """Equivalent to os.link, using the win32 CreateHardLink call."""
         if not CreateHardLink(dst, src, None):
             raise CondaOSError('win32 hard link failed')
 
     def win_soft_link(src, dst):
-        "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
+        """Equivalent to os.symlink, using the win32 CreateSymbolicLink call."""
         if CreateSymbolicLink is None:
             raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
