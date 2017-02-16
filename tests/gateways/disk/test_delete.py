@@ -7,7 +7,8 @@ from conda.base.context import context
 from conda.common.compat import text_type
 from conda.gateways.disk.delete import rm_rf
 from conda.utils import on_win
-from os.path import join, isdir, islink, lexists, isfile
+from os.path import join, isdir, lexists, isfile
+from conda.gateways.disk.link import islink
 
 
 def can_not_symlink():
