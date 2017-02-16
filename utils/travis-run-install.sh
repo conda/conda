@@ -116,7 +116,9 @@ elif [[ $SUDO == true ]]; then
     export INSTALL_PREFIX="~/miniconda"
     export PATH=$INSTALL_PREFIX/bin:$PATH
     export -f install_python
-    sudo -E -u root install_python
+    sudo -E -u root env | sort || true
+    sudo -E -u root bash -c "env | sort" || true
+    sudo -E -u root install_python || true
 elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
     conda_build_install
