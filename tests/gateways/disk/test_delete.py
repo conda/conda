@@ -11,11 +11,6 @@ from conda.gateways.disk.update import touch
 from test_permissions import tempdir, _try_open, _make_read_only
 from conda.utils import on_win
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
-
 
 def can_not_symlink():
     return on_win and context.default_python[0] == '2'
