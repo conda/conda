@@ -1,5 +1,5 @@
 PYTEST_EXE ?= $(shell which py.test)
-PYTHON_EXE ?= $(shell echo $(PYTEST_EXE) | xargs head -1 | sed 's/^\#!//')
+PYTHON_EXE ?= $(shell cat $(PYTEST_EXE) | xargs head -1 | sed 's/^\#!//')
 PYTHON_MAJOR_VERSION := $(shell $(PYTHON_EXE) -c "import sys; print(sys.version_info[0])")
 TEST_PLATFORM := $(shell $(PYTHON_EXE) -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
 PYTHONHASHSEED := $(shell python -c "import random as r; print(r.randint(0,4294967296))")
