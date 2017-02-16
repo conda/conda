@@ -63,7 +63,9 @@ class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
         assert lexists(path2_symlink)
         assert islink(path2_symlink)
 
-        assert readlink(path2_symlink) == path1_real_file
+        assert readlink(path2_symlink).endswith(path1_real_file)
+        # for win py27, readlink actually gives something that starts with \??\
+        # \??\c:\users\appveyor\appdata\local\temp\1\c571cb0c\path1_real_file
 
         assert stat_nlink(path1_real_file) == stat_nlink(path2_symlink) == 1
 
