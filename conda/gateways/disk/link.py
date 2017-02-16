@@ -386,15 +386,9 @@ else:  # pragma: unix no cover
         readlink(link) -> target
         Return a string representing the path to which the symbolic link points.
         """
-        handle = CreateFile(
-            link,
-            0,
-            0,
-            None,
-            OPEN_EXISTING,
-            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
-            None,
-            )
+        handle = CreateFile(link, 0, 0, None, OPEN_EXISTING,
+                            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+                            None)
 
         if handle == INVALID_HANDLE_VALUE:
             raise WindowsError()
@@ -448,8 +442,6 @@ else:  # pragma: unix no cover
         handle_nonzero_success(res)
         handle_nonzero_success(returned_bytes)
         return out_buffer[:returned_bytes.value]
-
-
 
 
 # work-around for python bug on Windows prior to python 3.2
