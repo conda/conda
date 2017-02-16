@@ -201,11 +201,14 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     elif link_type == LinkType.softlink:
         symlink(src, dst)
     elif link_type == LinkType.copy:
-        # copy relative symlinks as symlinks
-        if not on_win and islink(src) and not readlink(src).startswith('/'):
-            symlink(readlink(src), dst)
-        else:
-            shutil.copy2(src, dst)
+        # on unix, make sure relative symlinks stay symlinks
+        if not on_win and islink(src):
+            src_points_to = readlink(src)
+            if not src_points_to.startswith('/'):
+                # copy relative symlinks as symlinks
+                symlink(src_points_to, dst)
+                return
+        shutil.copy2(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
 

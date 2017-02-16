@@ -19,7 +19,7 @@ def make_test_file(target_dir):
     fn = str(uuid4())[:8]
     full_path = join(target_dir, fn)
     with open(full_path, 'w') as fh:
-        fh.write(uuid4())
+        fh.write(str(uuid4()))
     return full_path
 
 
@@ -59,15 +59,33 @@ class PathActionsTests(TestCase):
         # axn = CompilePycAction(transaction_context, package_info, target_prefix, source_short_path, target_short_path)
         pass
 
-    def test_simple_LinkPathAction(self):
-        # transaction_context, package_info, extracted_package_dir, source_short_path, target_prefix, target_short_path, link_type
-        # extracted_package_dir, source_short_path, target_prefix, target_short_path, link_type
-
+    def test_simple_LinkPathAction_hardlink(self):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
-
         axn = LinkPathAction({}, None, self.pkgs_dir, source_short_path, self.prefix,
                              target_short_path, LinkType.hardlink)
+
+        assert axn.target_full_path == join(self.prefix, target_short_path)
+        axn.verify()
+        axn.execute()
+        assert isfile(axn.target_full_path)
+        # assert not islink(axn.target_full_path)
+
+        axn.reverse()
+        assert not lexists(axn.target_full_path)
+
+    def test_simple_LinkPathAction_softlink(self):
+        pass
+
+    def test_simple_LinkPathAction_directory(self):
+        pass
+
+    def test_simple_LinkPathAction_copy(self):
+        source_full_path = make_test_file(self.pkgs_dir)
+        target_short_path = source_short_path = basename(source_full_path)
+        axn = LinkPathAction({}, None, self.pkgs_dir, source_short_path, self.prefix,
+                             target_short_path, LinkType.copy)
+
         assert axn.target_full_path == join(self.prefix, target_short_path)
         axn.verify()
         axn.execute()
