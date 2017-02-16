@@ -9,16 +9,22 @@ from uuid import uuid4
 
 import sys
 
+from conda import CONDA_PACKAGE_ROOT
+
+from conda._vendor.toolz.itertoolz import groupby
+
 from conda._vendor.auxlib.collection import AttrDict
+from conda.base.context import context
 
 from conda.common.path import get_python_site_packages_short_path, get_python_noarch_target_path, \
-    get_python_short_path, pyc_path
-from conda.core.path_actions import LinkPathAction, CompilePycAction
+    get_python_short_path, pyc_path, parse_entry_point_def, get_bin_directory_short_path
+from conda.core.path_actions import LinkPathAction, CompilePycAction, CreatePythonEntryPointAction
 from conda.gateways.disk.create import mkdir_p, create_link
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.read import is_exe, compute_md5sum
+from conda.gateways.disk.link import islink, stat_nlink
 from conda.models.enums import LinkType, NoarchType
-from conda.common.compat import PY2
-
+from conda.common.compat import PY2, on_win
 
 log = getLogger(__name__)
 
@@ -134,15 +140,73 @@ class PathActionsTests(TestCase):
         axn.reverse()
         assert not isfile(axn.target_full_path)
 
+    def test_CreatePythonEntryPointAction_generic(self):
+        package_info = AttrDict(package_metadata=None)
+        axns = CreatePythonEntryPointAction.create_actions({}, package_info, self.prefix, None)
+        assert axns == ()
 
-    def test_CreatePythonEntryPointAction(self):
-        pass
+    def test_CreatePythonEntryPointAction_noarch_python(self):
+        target_python_version = '%d.%d' % sys.version_info[:2]
+        transaction_context = {
+            'target_python_version': target_python_version,
+        }
+        package_info = AttrDict(package_metadata=AttrDict(noarch=AttrDict(
+            type=NoarchType.python,
+            entry_points=(
+                'command1=some.module:main',
+                'command2=another.somewhere:go',
+            ),
+        )))
 
+        axns = CreatePythonEntryPointAction.create_actions(transaction_context, package_info,
+                                                           self.prefix, LinkType.hardlink)
+        grouped_axns = groupby(lambda ax: isinstance(ax, LinkPathAction), axns)
+        windows_exe_axns = grouped_axns.get(True, ())
+        assert len(windows_exe_axns) == (2 if on_win else 0)
+        py_ep_axns = grouped_axns.get(False, ())
+        assert len(py_ep_axns) == 2
 
+        py_ep_axn = py_ep_axns[0]
 
+        command, module, func = parse_entry_point_def('command1=some.module:main')
+        assert command == 'command1'
+        target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+        assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
+        assert py_ep_axn.module == module == 'some.module'
+        assert py_ep_axn.func == func == 'main'
 
+        mkdir_p(dirname(py_ep_axn.target_full_path))
+        py_ep_axn.execute()
+        assert isfile(py_ep_axn.target_full_path)
+        assert is_exe(py_ep_axn.target_full_path)
+        with open(py_ep_axn.target_full_path) as fh:
+            lines = fh.readlines()
+            first_line = lines[0].strip()
+            last_line = lines[-1].strip()
+        if not on_win:
+            python_full_path = join(self.prefix, get_python_short_path(target_python_version))
+            assert first_line == "#!%s" % python_full_path
+        assert last_line == "exit(%s())" % func
 
+        py_ep_axn.reverse()
+        assert not isfile(py_ep_axn.target_full_path)
 
+        if on_win:
+            windows_exe_axn = windows_exe_axns[0]
+            target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
+            assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
+
+            mkdir_p(dirname(windows_exe_axn.target_full_path))
+            windows_exe_axn.verify()
+            windows_exe_axn.execute()
+            assert isfile(windows_exe_axn.target_full_path)
+            assert is_exe(windows_exe_axn.target_full_path)
+
+            src = compute_md5sum(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits))
+            assert src == compute_md5sum(windows_exe_axn.target_full_path)
+
+            windows_exe_axn.reverses()
+            assert not isfile(windows_exe_axn.target_full_path)
 
     def test_simple_LinkPathAction_hardlink(self):
         source_full_path = make_test_file(self.pkgs_dir)
@@ -154,16 +218,42 @@ class PathActionsTests(TestCase):
         axn.verify()
         axn.execute()
         assert isfile(axn.target_full_path)
-        # assert not islink(axn.target_full_path)
+        assert not islink(axn.target_full_path)
+        assert stat_nlink(axn.target_full_path) == 2
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
 
     def test_simple_LinkPathAction_softlink(self):
-        pass
+        source_full_path = make_test_file(self.pkgs_dir)
+        target_short_path = source_short_path = basename(source_full_path)
+        axn = LinkPathAction({}, None, self.pkgs_dir, source_short_path, self.prefix,
+                             target_short_path, LinkType.softlink)
+
+        assert axn.target_full_path == join(self.prefix, target_short_path)
+        axn.verify()
+        axn.execute()
+        assert isfile(axn.target_full_path)
+        assert islink(axn.target_full_path)
+        assert stat_nlink(axn.target_full_path) == 1
+
+        axn.reverse()
+        assert not lexists(axn.target_full_path)
+        assert lexists(source_full_path)
 
     def test_simple_LinkPathAction_directory(self):
-        pass
+        target_short_path = join('a', 'nested', 'directory')
+        axn = LinkPathAction({}, None, None, None, self.prefix,
+                             target_short_path, LinkType.directory)
+        axn.verify()
+        axn.execute()
+
+        assert isdir(join(self.prefix, target_short_path))
+
+        axn.reverse()
+        assert not lexists(axn.target_full_path)
+        assert not lexists(dirname(axn.target_full_path))
+        assert not lexists(dirname(dirname(axn.target_full_path)))
 
     def test_simple_LinkPathAction_copy(self):
         source_full_path = make_test_file(self.pkgs_dir)
@@ -175,7 +265,8 @@ class PathActionsTests(TestCase):
         axn.verify()
         axn.execute()
         assert isfile(axn.target_full_path)
-        # assert not islink(axn.target_full_path)
+        assert not islink(axn.target_full_path)
+        assert stat_nlink(axn.target_full_path) == 1
 
         axn.reverse()
         assert not lexists(axn.target_full_path)

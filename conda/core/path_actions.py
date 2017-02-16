@@ -375,20 +375,20 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        def this_triplet(entry_point_def):
-            command, module, func = parse_entry_point_def(entry_point_def)
-            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
-            if on_win:
-                target_short_path += "-script.py"
-            return target_short_path, module, func
-
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
+            def this_triplet(entry_point_def):
+                command, module, func = parse_entry_point_def(entry_point_def)
+                target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+                if on_win:
+                    target_short_path += "-script.py"
+                return target_short_path, module, func
+
             actions = tuple(cls(transaction_context, package_info, target_prefix,
                                 *this_triplet(ep_def))
                             for ep_def in noarch.entry_points or ())
 
-            if on_win:
+            if on_win:  # pragma: unix no cover
                 actions += tuple(
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context, package_info, target_prefix,
