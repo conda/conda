@@ -23,8 +23,11 @@ main_test() {
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
     echo "$PYTEST_EXE"
     ls -al "$INSTALL_PREFIX/bin"
-    cat "$INSTALL_PREFIX/bin/py.test" || true
-    cat "$INSTALL_PREFIX/bin/pytest" || true
+#    cat "$INSTALL_PREFIX/bin/py.test" || true
+#    cat "$INSTALL_PREFIX/bin/pytest" || true
+    cat "$HOME/miniconda/bin/pytest" || true
+    cat "/home/$USER/miniconda/bin/pytest" || true
+    ls -al /home/$USER/miniconda/bin/pytest
 
     # basic unit tests
     make conda-version
