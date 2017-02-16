@@ -23,21 +23,29 @@ main_test() {
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
     echo "$PYTEST_EXE"
 
-    # works
-    ls -al "$INSTALL_PREFIX/bin" || true
-    cat "$INSTALL_PREFIX/bin/py.test" || true
-    cat "$INSTALL_PREFIX/bin/pytest" || true
+    $PYTEST_EXE --version || true
+    ~/miniconda/bin/py.test --version || true
+    $HOME/miniconda/bin/py.test --version || true
+    /home/travis/miniconda/bin/py.test --version || true
 
-    # doesn't work
-    cat "$HOME/miniconda/bin/pytest" || true
-    cat "/home/$USER/miniconda/bin/pytest" || true
-    ls -al /home/$USER/miniconda/bin/pytest || true
+    test $HOME = ~ && echo 'yes' || echo 'no'
+    test $HOME = ~/ && echo 'yes' || echo 'no'
 
-    ls -al / || true
-    ls -al /home || true
-    ls -al /home/travis || true
-    ls -al /home/$USER/miniconda || true
-    ls -al ~ || true
+#    # works
+#    ls -al "$INSTALL_PREFIX/bin" || true
+#    cat "$INSTALL_PREFIX/bin/py.test" || true
+#    cat "$INSTALL_PREFIX/bin/pytest" || true
+#
+#    # doesn't work
+#    cat "$HOME/miniconda/bin/pytest" || true
+#    cat "/home/$USER/miniconda/bin/pytest" || true
+#    ls -al /home/$USER/miniconda/bin/pytest || true
+#
+#    ls -al / || true
+#    ls -al /home || true
+#    ls -al /home/travis || true
+#    ls -al /home/$USER/miniconda || true
+#    ls -al ~ || true
 
 
     # basic unit tests
