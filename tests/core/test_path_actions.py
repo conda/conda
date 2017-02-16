@@ -197,7 +197,7 @@ class PathActionsTests(TestCase):
 
         if on_win:
             windows_exe_axn = windows_exe_axns[0]
-            target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
+            target_short_path = "%s\\%s.exe" % (get_bin_directory_short_path(), command)
             assert windows_exe_axn.target_full_path == join(self.prefix, target_short_path)
 
             mkdir_p(dirname(windows_exe_axn.target_full_path))
