@@ -53,6 +53,9 @@ activate_test() {
     # make test-installed
     $PYTEST_EXE $ADD_COV -m "installed"
 
+    $INSTALL_PREFIX/bin/pip install codecov
+    $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
+
 #    $INSTALL_PREFIX/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
 

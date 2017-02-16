@@ -45,7 +45,6 @@ install_python() {
        $site_packages/pycrypto* \
        $site_packages/pycosat*
    hash -r
-   which -a python
    $INSTALL_PREFIX/bin/python --version
    $INSTALL_PREFIX/bin/pip --version
 
@@ -56,11 +55,8 @@ miniconda_install() {
     bash ~/miniconda.sh -bfp ~/miniconda
     export PATH=$INSTALL_PREFIX/bin:$PATH
     hash -r
-    which -a conda
     conda install -y -q pip conda 'python>=3.6'
     conda info
-    which -a pip
-    which -a python
     conda config --set auto_update_conda false
 }
 
