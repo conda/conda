@@ -113,6 +113,8 @@ elif [[ $SUDO == true ]]; then
     sudo -E -u root bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     export INSTALL_PREFIX="/usr/local"
     export PATH=$INSTALL_PREFIX/bin:$PATH
+    sudo -E -u root chown -R root:root ./conda
+    ls -al ./conda
 elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
     conda_build_install
