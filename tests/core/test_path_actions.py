@@ -70,7 +70,18 @@ class PathActionsTests(TestCase):
         rm_rf(self.pkgs_dir)
         assert not lexists(self.pkgs_dir)
 
-    def test_CompilePycAction(self):
+    def test_CompilePycAction_generic(self):
+        package_info = AttrDict(package_metadata=AttrDict(noarch=AttrDict(type=NoarchType.generic)))
+        noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        assert noarch.type == NoarchType.generic
+        axns = CompilePycAction.create_actions({}, package_info, self.prefix, None, ())
+        assert axns == ()
+
+        package_info = AttrDict(package_metadata=None)
+        axns = CompilePycAction.create_actions({}, package_info, self.prefix, None, ())
+        assert axns == ()
+
+    def test_CompilePycAction_noarch_python(self):
         target_python_version = '%d.%d' % sys.version_info[:2]
         sp_dir = get_python_site_packages_short_path(target_python_version)
         transaction_context = {
@@ -116,8 +127,22 @@ class PathActionsTests(TestCase):
         assert not isfile(axn.source_full_path)
 
         if (3, ) > sys.version_info >= (3, 5):
+            # we're probably dropping py34 support soon enough anyway
             imported_pyc_file = load_python_file(axn.target_full_path)
             assert imported_pyc_file.value == 42
+
+        axn.reverse()
+        assert not isfile(axn.target_full_path)
+
+
+    def test_CreatePythonEntryPointAction(self):
+        pass
+
+
+
+
+
+
 
     def test_simple_LinkPathAction_hardlink(self):
         source_full_path = make_test_file(self.pkgs_dir)
