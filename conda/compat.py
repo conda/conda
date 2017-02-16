@@ -16,6 +16,10 @@ else:
 configparser = configparser
 
 
+from .gateways.disk.link import lchmod  # NOQA
+lchmod = lchmod
+
+
 class TemporaryDirectory(object):
     """Create and return a temporary directory.  This has the same
     behavior as mkdtemp but can be used as a context manager.  For
