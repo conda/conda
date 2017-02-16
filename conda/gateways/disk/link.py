@@ -241,7 +241,7 @@ else:  # pragma: unix no cover
         True
         >>> root_files[0].filename == root_files[1].filename
         False
-        This test might fail on a non-standard installation
+        >>> # This test might fail on a non-standard installation
         >>> 'Windows' in (fd.filename for fd in root_files)
         True
         """
@@ -275,12 +275,16 @@ else:  # pragma: unix no cover
             and bool(res & FILE_ATTRIBUTE_REPARSE_POINT)
         )
 
-    FILE_SHARE_READ = 1
-    FILE_SHARE_WRITE = 2
-    FILE_SHARE_DELETE = 4
+    # FILE_SHARE_READ = 1
+    # FILE_SHARE_WRITE = 2
+    # FILE_SHARE_DELETE = 4
     OPEN_EXISTING = 3
+    FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
     FILE_FLAG_BACKUP_SEMANTICS = 0x2000000
-    VOLUME_NAME_DOS = 0
+    FSCTL_GET_REPARSE_POINT = 0x900a8
+    LPDWORD = POINTER(wintypes.DWORD)
+    LPOVERLAPPED = wintypes.LPVOID
+    # VOLUME_NAME_DOS = 0
 
     class SECURITY_ATTRIBUTES(Structure):
         _fields_ = (
@@ -302,54 +306,151 @@ else:  # pragma: unix no cover
     )
     CreateFile.restype = wintypes.HANDLE
 
-    GetFinalPathNameByHandle = windll.kernel32.GetFinalPathNameByHandleW
-    GetFinalPathNameByHandle.argtypes = (
-        wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD,
-        wintypes.DWORD,
-    )
-    GetFinalPathNameByHandle.restype = wintypes.DWORD
+    # GetFinalPathNameByHandle = windll.kernel32.GetFinalPathNameByHandleW
+    # GetFinalPathNameByHandle.argtypes = (
+    #     wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD,
+    #     wintypes.DWORD,
+    # )
+    # GetFinalPathNameByHandle.restype = wintypes.DWORD
     CloseHandle = windll.kernel32.CloseHandle
     CloseHandle.argtypes = (wintypes.HANDLE,)
     CloseHandle.restype = wintypes.BOOLEAN
 
-    def get_final_path(path):
-        """
-        For a given path, determine the ultimate location of that path.
-        Useful for resolving symlink targets.
-        This functions wraps the GetFinalPathNameByHandle from the Windows
-        SDK.
-        Note, this function fails if a handle cannot be obtained (such as
-        for C:\Pagefile.sys on a stock windows system). Consider using
-        trace_symlink_target instead.
-        """
-        desired_access = NULL
-        share_mode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
-        security_attributes = LPSECURITY_ATTRIBUTES()  # NULL pointer
-        hFile = CreateFile(
-            path,
-            desired_access,
-            share_mode,
-            security_attributes,
-            OPEN_EXISTING,
-            FILE_FLAG_BACKUP_SEMANTICS,
-            NULL,
-        )
+    from ctypes import Array, create_string_buffer, c_byte, c_ulong, c_ushort, sizeof
 
-        if hFile == INVALID_HANDLE_VALUE:
+    class REPARSE_DATA_BUFFER(Structure):
+        _fields_ = [
+            ('tag', c_ulong),
+            ('data_length', c_ushort),
+            ('reserved', c_ushort),
+            ('substitute_name_offset', c_ushort),
+            ('substitute_name_length', c_ushort),
+            ('print_name_offset', c_ushort),
+            ('print_name_length', c_ushort),
+            ('flags', c_ulong),
+            ('path_buffer', c_byte * 1),
+        ]
+
+        def get_print_name(self):
+            wchar_size = sizeof(wintypes.WCHAR)
+            arr_typ = wintypes.WCHAR * (self.print_name_length // wchar_size)
+            data = byref(self.path_buffer, self.print_name_offset)
+            return cast(data, POINTER(arr_typ)).contents.value
+
+        def get_substitute_name(self):
+            wchar_size = sizeof(wintypes.WCHAR)
+            arr_typ = wintypes.WCHAR * (self.substitute_name_length // wchar_size)
+            data = byref(self.path_buffer, self.substitute_name_offset)
+            return cast(data, POINTER(arr_typ)).contents.value
+    #
+    # def get_final_path(path):
+    #     """
+    #     For a given path, determine the ultimate location of that path.
+    #     Useful for resolving symlink targets.
+    #     This functions wraps the GetFinalPathNameByHandle from the Windows
+    #     SDK.
+    #     Note, this function fails if a handle cannot be obtained (such as
+    #     for C:\Pagefile.sys on a stock windows system). Consider using
+    #     trace_symlink_target instead.
+    #     """
+    #     desired_access = NULL
+    #     share_mode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
+    #     security_attributes = LPSECURITY_ATTRIBUTES()  # NULL pointer
+    #     hFile = CreateFile(
+    #         path,
+    #         desired_access,
+    #         share_mode,
+    #         security_attributes,
+    #         OPEN_EXISTING,
+    #         FILE_FLAG_BACKUP_SEMANTICS,
+    #         NULL,
+    #     )
+    #
+    #     if hFile == INVALID_HANDLE_VALUE:
+    #         raise WindowsError()
+    #
+    #     buf_size = GetFinalPathNameByHandle(hFile, wintypes.LPWSTR(), 0, VOLUME_NAME_DOS)
+    #     handle_nonzero_success(buf_size)
+    #     buf = create_unicode_buffer(buf_size)
+    #     result_length = GetFinalPathNameByHandle(hFile, buf, len(buf), VOLUME_NAME_DOS)
+    #
+    #     assert result_length < len(buf)
+    #     handle_nonzero_success(result_length)
+    #     handle_nonzero_success(CloseHandle(hFile))
+    #
+    #     return buf[:result_length]
+    #
+    # readlink = get_final_path
+
+    def readlink(link):
+        """
+        readlink(link) -> target
+        Return a string representing the path to which the symbolic link points.
+        """
+        handle = CreateFile(
+            link,
+            0,
+            0,
+            None,
+            OPEN_EXISTING,
+            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+            None,
+            )
+
+        if handle == INVALID_HANDLE_VALUE:
             raise WindowsError()
 
-        buf_size = GetFinalPathNameByHandle(hFile, wintypes.LPWSTR(), 0, VOLUME_NAME_DOS)
-        handle_nonzero_success(buf_size)
-        buf = create_unicode_buffer(buf_size)
-        result_length = GetFinalPathNameByHandle(hFile, buf, len(buf), VOLUME_NAME_DOS)
+        res = reparse_DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, None, 10240)
 
-        assert result_length < len(buf)
-        handle_nonzero_success(result_length)
-        handle_nonzero_success(CloseHandle(hFile))
+        bytes = create_string_buffer(res)
+        p_rdb = cast(bytes, POINTER(REPARSE_DATA_BUFFER))
+        rdb = p_rdb.contents
+        if not rdb.tag == IO_REPARSE_TAG_SYMLINK:
+            raise RuntimeError("Expected IO_REPARSE_TAG_SYMLINK, but got %d" % rdb.tag)
 
-        return buf[:result_length]
+        handle_nonzero_success(CloseHandle(handle))
+        return rdb.get_substitute_name()
 
-    readlink = get_final_path
+    DeviceIoControl = windll.kernel32.DeviceIoControl
+    DeviceIoControl.argtypes = [
+        wintypes.HANDLE,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        LPDWORD,
+        LPOVERLAPPED,
+    ]
+    DeviceIoControl.restype = wintypes.BOOL
+
+    def reparse_DeviceIoControl(device, io_control_code, in_buffer, out_buffer, overlapped=None):
+        if overlapped is not None:
+            raise NotImplementedError("overlapped handles not yet supported")
+
+        if isinstance(out_buffer, int):
+            out_buffer = create_string_buffer(out_buffer)
+
+        in_buffer_size = len(in_buffer) if in_buffer is not None else 0
+        out_buffer_size = len(out_buffer)
+        assert isinstance(out_buffer, Array)
+
+        returned_bytes = wintypes.DWORD()
+
+        res = DeviceIoControl(
+            device,
+            io_control_code,
+            in_buffer, in_buffer_size,
+            out_buffer, out_buffer_size,
+            returned_bytes,
+            overlapped,
+        )
+
+        handle_nonzero_success(res)
+        handle_nonzero_success(returned_bytes)
+        return out_buffer[:returned_bytes.value]
+
+
 
 
 # work-around for python bug on Windows prior to python 3.2
