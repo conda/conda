@@ -16,20 +16,20 @@ log = getLogger(__name__)
 
 
 if PY2:  # pragma: py3 no cover
-    try:
-        from os import lchmod as os_lchmod
-        lchmod = os_lchmod
-    except ImportError:
-        def lchmod(path, mode):
+    def lchmod(path, mode):
+        try:
+            os_chmod(path, mode, follow_symlinks=False)
+        except (TypeError, NotImplementedError, SystemError):
             # On systems that don't allow permissions on symbolic links, skip
             # links entirely.
             if not islink(path):
                 os_chmod(path, mode)
 else:  # pragma: py2 no cover
-    def lchmod(path, mode):
-        try:
-            os_chmod(path, mode, follow_symlinks=False)
-        except (TypeError, NotImplementedError, SystemError):
+    try:
+        from os import lchmod as os_lchmod
+        lchmod = os_lchmod
+    except ImportError:
+        def lchmod(path, mode):
             # On systems that don't allow permissions on symbolic links, skip
             # links entirely.
             if not islink(path):
