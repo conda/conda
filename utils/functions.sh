@@ -82,4 +82,6 @@ install_conda_dev() {
     hash -r
     $INSTALL_PREFIX/bin/pip install -r utils/requirements-test.txt
     $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
+    mkdir -p $INSTALL_PREFIX/conda-meta
+    touch $INSTALL_PREFIX/conda-meta/history
 }

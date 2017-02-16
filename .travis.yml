@@ -31,8 +31,6 @@ matrix:
   allow_failures:
     - env: PYTHON_VERSION=3.6 SUDO=true
 
-
-
 install:
   - which -a python
   - env | sort

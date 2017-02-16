@@ -79,7 +79,7 @@ conda_build_unit_test() {
 env | sort
 
 if [[ $FLAKE8 == true ]]; then
-    $INSTALL_PREFIX/bin/python -m flake8 --statistics
+    flake8 --statistics
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
     conda_build_unit_test

@@ -111,8 +111,6 @@ if [[ $FLAKE8 == true ]]; then
     $INSTALL_PREFIX/bin/pip install flake8
 elif [[ $SUDO == true ]]; then
     sudo -E -u root bash -c "source utils/functions.sh && install_conda_dev /usr/local"
-    ls -al /usr/local
-    ls -al /usr/local/bin
     export INSTALL_PREFIX="/usr/local"
     export PATH=$INSTALL_PREFIX/bin:$PATH
 elif [[ -n $CONDA_BUILD ]]; then
