@@ -21,37 +21,20 @@ make_conda_entrypoint() {
 
 main_test() {
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
-    echo "$PYTEST_EXE"
+    export PYTHON_EXE=$(sed 's/^\#!//' $(PYTEST_EXE) | head -1 | sed "s|$HOME|~|")
+    export PYTHON_MAJOR_VERSION=$($PYTHON_EXE -c "import sys; print(sys.version_info[0])")
+    export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+    export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
 
-    $PYTEST_EXE --version || true
-    ~/miniconda/bin/py.test --version || true
-    $HOME/miniconda/bin/py.test --version || true
-    /home/travis/miniconda/bin/py.test --version || true
+    export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
 
-    test $HOME = ~ && echo 'yes' || echo 'no'
-    test $HOME = ~/ && echo 'yes' || echo 'no'
+    # make conda-version
+    $PYTHON_EXE utils/setup-testing.py --version
 
-#    # works
-#    ls -al "$INSTALL_PREFIX/bin" || true
-#    cat "$INSTALL_PREFIX/bin/py.test" || true
-#    cat "$INSTALL_PREFIX/bin/pytest" || true
-#
-#    # doesn't work
-#    cat "$HOME/miniconda/bin/pytest" || true
-#    cat "/home/$USER/miniconda/bin/pytest" || true
-#    ls -al /home/$USER/miniconda/bin/pytest || true
-#
-#    ls -al / || true
-#    ls -al /home || true
-#    ls -al /home/travis || true
-#    ls -al /home/$USER/miniconda || true
-#    ls -al ~ || true
+    # make integration
+    $PYTEST_EXE $ADD_COV -m "not integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "integration and not installed"
 
-
-    # basic unit tests
-    make conda-version
-    make integration
-#    $INSTALL_PREFIX/bin/python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
 }
 
 activate_test() {
@@ -67,7 +50,8 @@ activate_test() {
     $INSTALL_PREFIX/bin/python -m conda info
 
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
-    make test-installed
+    # make test-installed
+    $PYTEST_EXE $ADD_COV -m "installed"
 
 #    $INSTALL_PREFIX/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
