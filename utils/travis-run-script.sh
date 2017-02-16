@@ -22,12 +22,23 @@ make_conda_entrypoint() {
 main_test() {
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
     echo "$PYTEST_EXE"
+
+    # works
     ls -al "$INSTALL_PREFIX/bin"
-#    cat "$INSTALL_PREFIX/bin/py.test" || true
-#    cat "$INSTALL_PREFIX/bin/pytest" || true
+    cat "$INSTALL_PREFIX/bin/py.test" || true
+    cat "$INSTALL_PREFIX/bin/pytest" || true
+
+    # doesn't work
     cat "$HOME/miniconda/bin/pytest" || true
     cat "/home/$USER/miniconda/bin/pytest" || true
     ls -al /home/$USER/miniconda/bin/pytest
+
+    ls -al / || true
+    ls -al /home || true
+    ls -al /home/travis || true
+    ls -al /home/$USER/miniconda || true
+    ls -al ~ || true
+
 
     # basic unit tests
     make conda-version
