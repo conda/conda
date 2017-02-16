@@ -171,8 +171,11 @@ class PathActionsTests(TestCase):
 
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
-        target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
-        assert py_ep_axn.target_full_path == join(self.prefix, win_path_ok(target_short_path))
+        if on_win:
+            target_short_path = "%s\\%s-script.py" % (get_bin_directory_short_path(), command)
+        else:
+            target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
+        assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
 
