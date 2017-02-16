@@ -32,8 +32,8 @@ main_test() {
     $PYTHON_EXE utils/setup-testing.py --version
 
     # make integration
-    $PYTEST_EXE $ADD_COV -m "not integration and not installed"
-    $PYTEST_EXE $ADD_COV -m "integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "not integration and not installed" --shell=bash --shell=zsh
+    $PYTEST_EXE $ADD_COV -m "integration and not installed" --shell=bash --shell=zsh
 
 }
 
@@ -51,11 +51,8 @@ activate_test() {
 
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
     # make test-installed
-    $PYTEST_EXE $ADD_COV -m "installed"
+    $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
 
-    $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
-
-#    $INSTALL_PREFIX/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
 
 
@@ -75,8 +72,6 @@ conda_build_unit_test() {
     popd
 }
 
-env | sort
-
 if [[ $FLAKE8 == true ]]; then
     flake8 --statistics
 elif [[ -n $CONDA_BUILD ]]; then
@@ -87,6 +82,7 @@ else
     if [[ "$(uname -s)" == "Linux" ]]; then
         activate_test
     fi
+    $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
 fi
 
 set +x
