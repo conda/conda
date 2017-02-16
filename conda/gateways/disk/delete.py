@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EEXIST, ENOENT
+from errno import ENOENT
 import json
 from logging import getLogger
-from os import listdir, makedirs, removedirs, rename, unlink, walk
+from os import listdir, removedirs, rename, unlink, walk
 from os.path import abspath, dirname, isdir, isfile, join, lexists
 from shutil import rmtree
 from uuid import uuid4
