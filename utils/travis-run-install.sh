@@ -2,7 +2,7 @@ set -e
 set -x
 
 export INSTALL_PREFIX="~/miniconda"
-export PATH="$INSTALL_PREFIX/bin:$PATH"
+export PATH=$INSTALL_PREFIX/bin:$PATH
 
 
 osx_setup() {
@@ -19,7 +19,8 @@ install_python() {
     # strategy is to use Miniconda to install python, but then remove all vestiges of conda
    curl -sSL $MINICONDA_URL -o ~/miniconda.sh
    chmod +x ~/miniconda.sh
-   ~/miniconda.sh -bfp "$INSTALL_PREFIX"
+   mkdir -p $INSTALL_PREFIX
+   ~/miniconda.sh -bfp $INSTALL_PREFIX
    hash -r
    $INSTALL_PREFIX/bin/conda install -y -q python=$PYTHON_VERSION
    local site_packages=$($INSTALL_PREFIX/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
