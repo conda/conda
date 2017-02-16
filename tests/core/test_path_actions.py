@@ -209,7 +209,7 @@ class PathActionsTests(TestCase):
             src = compute_md5sum(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits))
             assert src == compute_md5sum(windows_exe_axn.target_full_path)
 
-            windows_exe_axn.reverses()
+            windows_exe_axn.reverse()
             assert not isfile(windows_exe_axn.target_full_path)
 
     def test_simple_LinkPathAction_hardlink(self):
