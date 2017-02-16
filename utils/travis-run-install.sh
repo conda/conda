@@ -26,6 +26,7 @@ install_python() {
    local site_packages=$($INSTALL_PREFIX/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
    rm -rf $INSTALL_PREFIX/bin/activate \
        $INSTALL_PREFIX/bin/conda \
+       $INSTALL_PREFIX/bin/conda-env \
        $INSTALL_PREFIX/bin/deactivate \
        $INSTALL_PREFIX/conda-meta/conda-*.json \
        $INSTALL_PREFIX/conda-meta/requests-*.json \
@@ -113,11 +114,11 @@ if [[ $FLAKE8 == true ]]; then
     install_python
     $INSTALL_PREFIX/bin/pip install flake8
 elif [[ $SUDO == true ]]; then
-    # export INSTALL_PREFIX="~/miniconda"
-    # export PATH=$INSTALL_PREFIX/bin:$PATH
-    sudo -E -u root bash -c "source utils/functions.sh && install_python /usr/local"
+    sudo -E -u root bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     ls -al /usr/local
     ls -al /usr/local/bin
+    export INSTALL_PREFIX="/usr/local"
+    export PATH=$INSTALL_PREFIX/bin:$PATH
 elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
     conda_build_install
