@@ -17,7 +17,8 @@ from conda._vendor.auxlib.collection import AttrDict
 from conda.base.context import context
 
 from conda.common.path import get_python_site_packages_short_path, get_python_noarch_target_path, \
-    get_python_short_path, pyc_path, parse_entry_point_def, get_bin_directory_short_path
+    get_python_short_path, pyc_path, parse_entry_point_def, get_bin_directory_short_path, \
+    win_path_ok
 from conda.core.path_actions import LinkPathAction, CompilePycAction, CreatePythonEntryPointAction
 from conda.gateways.disk.create import mkdir_p, create_link
 from conda.gateways.disk.delete import rm_rf
@@ -112,8 +113,8 @@ class PathActionsTests(TestCase):
 
         assert len(axns) == 1
         axn = axns[0]
-        assert axn.source_full_path == join(self.prefix, get_python_noarch_target_path('site-packages/something.py', sp_dir))
-        assert axn.target_full_path == join(self.prefix, pyc_path(get_python_noarch_target_path('site-packages/something.py', sp_dir), target_python_version))
+        assert axn.source_full_path == join(self.prefix, win_path_ok(get_python_noarch_target_path('site-packages/something.py', sp_dir)))
+        assert axn.target_full_path == join(self.prefix, win_path_ok(pyc_path(get_python_noarch_target_path('site-packages/something.py', sp_dir), target_python_version)))
 
         # make .py file in prefix that will be compiled
         mkdir_p(dirname(axn.source_full_path))
@@ -171,7 +172,7 @@ class PathActionsTests(TestCase):
         command, module, func = parse_entry_point_def('command1=some.module:main')
         assert command == 'command1'
         target_short_path = "%s/%s" % (get_bin_directory_short_path(), command)
-        assert py_ep_axn.target_full_path == join(self.prefix, target_short_path)
+        assert py_ep_axn.target_full_path == join(self.prefix, win_path_ok(target_short_path))
         assert py_ep_axn.module == module == 'some.module'
         assert py_ep_axn.func == func == 'main'
 
