@@ -2,6 +2,8 @@ set -e
 set -x
 
 export INSTALL_PREFIX="~/miniconda"
+export PATH="$INSTALL_PREFIX/bin:$PATH"
+
 
 osx_setup() {
     brew update || brew update
