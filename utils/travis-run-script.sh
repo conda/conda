@@ -21,7 +21,7 @@ make_conda_entrypoint() {
 
 main_test() {
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
-    export PYTHON_EXE=$(sed 's/^\#!//' $(PYTEST_EXE) | head -1 | sed "s|$HOME|~|")
+    export PYTHON_EXE=$(sed 's/^\#!//' $PYTEST_EXE | head -1 | sed "s|$HOME|~|")
     export PYTHON_MAJOR_VERSION=$($PYTHON_EXE -c "import sys; print(sys.version_info[0])")
     export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
     export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
