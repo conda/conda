@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import chmod as os_chmod, lstat
-from os.path import islink as os_islink
+from os.path import abspath, isdir, islink as os_islink
 
 from ...common.compat import PY2, on_win
 from ...exceptions import CondaOSError
@@ -78,9 +78,8 @@ if not (on_win and PY2):
 
 else:  # pragma: unix no cover
     from os import getcwd
-    from os.path import abspath, isdir
     import sys
-    from ctypes import (POINTER, Structure, byref, c_uint64, cast, create_unicode_buffer, windll,
+    from ctypes import (POINTER, Structure, byref, c_uint64, cast, windll,
                         wintypes)
     import inspect
     from ..._vendor.auxlib._vendor import six
