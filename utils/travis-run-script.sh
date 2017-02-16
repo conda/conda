@@ -21,7 +21,9 @@ make_conda_entrypoint() {
 
 main_test() {
     export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
+    echo "$PYTEST_EXE"
     ls -al "$INSTALL_PREFIX/bin"
+    cat /home/travis/miniconda/bin/py.test
 
     # basic unit tests
     make conda-version
