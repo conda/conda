@@ -20,12 +20,12 @@ make_conda_entrypoint() {
 }
 
 main_test() {
-    export PYTEST_EXE="~/miniconda/bin/py.test"
+    export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
 
     # basic unit tests
     make conda-version
     make integration
-#    ~/miniconda/bin/python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
+#    $INSTALL_PREFIX/bin/python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
 }
 
 activate_test() {
@@ -34,16 +34,16 @@ activate_test() {
 #    ln -sf shell/deactivate $prefix/bin/deactivate
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
 
-    ~/miniconda/bin/python utils/setup-testing.py develop
-    export PATH="~/miniconda/bin:$PATH"
+    $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
+    export PATH="$INSTALL_PREFIX/bin:$PATH"
     hash -r
-    ~/miniconda/bin/python -c "import conda; print(conda.__version__)"
-    ~/miniconda/bin/python -m conda info
+    $INSTALL_PREFIX/bin/python -c "import conda; print(conda.__version__)"
+    $INSTALL_PREFIX/bin/python -m conda info
 
-    export PYTEST_EXE="~/miniconda/bin/py.test"
+    export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
     make test-installed
 
-#    ~/miniconda/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
+#    $INSTALL_PREFIX/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
 
 
@@ -57,16 +57,16 @@ conda_build_unit_test() {
     echo
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
     echo
-    ~/miniconda/bin/python -m conda info
-    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
-    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
+    $INSTALL_PREFIX/bin/python -m conda info
+    $INSTALL_PREFIX/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
+    $INSTALL_PREFIX/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
     popd
 }
 
 env | sort
 
 if [[ $FLAKE8 == true ]]; then
-    ~/miniconda/bin/python -m flake8 --statistics
+    $INSTALL_PREFIX/bin/python -m flake8 --statistics
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
     conda_build_unit_test
