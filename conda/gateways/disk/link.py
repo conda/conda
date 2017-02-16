@@ -10,7 +10,7 @@ from os.path import abspath, isdir, islink as os_islink
 from ...common.compat import PY2, on_win
 from ...exceptions import CondaOSError
 
-__all__ = ('islink', 'lchmod', 'link', 'readlink', 'symlink')
+__all__ = ('islink', 'lchmod', 'link', 'readlink', 'stat_nlink', 'symlink')
 
 log = getLogger(__name__)
 
