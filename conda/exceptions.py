@@ -7,10 +7,10 @@ from logging import getLogger
 import sys
 from traceback import format_exc
 
-from conda.base.constants import PathConflict
-from . import CondaError, CondaExitZero, text_type, CondaMultiError
+from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
+from .base.constants import PathConflict
 from .common.compat import iteritems, iterkeys, string_types
 from .common.signals import get_signal_name
 
@@ -321,18 +321,24 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message, url, status_code, reason, elapsed_time):
+    def __init__(self, message, url, status_code, reason, elapsed_time, response=None):
         message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
+        %(response_details)s
 
         """) + message
+
+        from ._vendor.auxlib.logz import stringify
+        response_details = (stringify(response) or '') if response else ''
+
         if isinstance(elapsed_time, timedelta):
             elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
         if isinstance(reason, string_types):
             reason = reason.upper()
         super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
-                                             reason=reason, elapsed_time=elapsed_time)
+                                             reason=reason, elapsed_time=elapsed_time,
+                                             response_details=response_details)
 
 
 class CondaRevisionError(CondaError):
@@ -346,7 +352,7 @@ class AuthenticationError(CondaError):
 
 
 class NoPackagesFoundError(CondaError, RuntimeError):
-    '''An exception to report that requested packages are missing.
+    """An exception to report that requested packages are missing.
 
     Args:
         bad_deps: a list of tuples of MatchSpecs, assumed to be dependency
@@ -355,7 +361,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
     Returns:
         Raises an exception with a formatted message detailing the
         missing packages and/or dependencies.
-    '''
+    """
     def __init__(self, bad_deps):
         from .resolve import dashlist
         from .base.context import context
@@ -374,7 +380,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
 
 
 class UnsatisfiableError(CondaError, RuntimeError):
-    '''An exception to report unsatisfiable dependencies.
+    """An exception to report unsatisfiable dependencies.
 
     Args:
         bad_deps: a list of tuples of objects (likely MatchSpecs).
@@ -385,7 +391,7 @@ class UnsatisfiableError(CondaError, RuntimeError):
     Returns:
         Raises an exception with a formatted message detailing the
         unsatisfiable specifications.
-    '''
+    """
     def __init__(self, bad_deps, chains=True):
         from .resolve import dashlist, MatchSpec
 
@@ -504,11 +510,6 @@ def print_conda_exception(exception):
     stderrlogger = getLogger('stderr')
     if context.json:
         import json
-        # stdoutlogger.info('https://anaconda.org/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('https://hello.world.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('https://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('http://helloworld.com/t/fjffjelk3jl4TGEGGjl343/username/package/')
-        # stdoutlogger.info('http://helloworld.com:8888/t/fjffjelk3jl4TGEGGjl343/username/package/')
         stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
                                      cls=EntityEncoder))
     else:
@@ -561,33 +562,6 @@ conda GitHub issue tracker at:
         stderrlogger.info("`$ {0}`".format(command))
         stderrlogger.info('\n')
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
-
-
-# def delete_lock(extra_path=None):
-#     """
-#         Delete lock on exception accoding to pid
-#         log warning when delete fails
-#
-#         Args:
-#             extra_path : The extra path that you want to search and
-#             delete locks
-#     """
-#     from .cli.main_clean import find_lock
-#     from .lock import LOCK_EXTENSION
-#     from .common.disk import rm_rf
-#     file_end = "%s.%s" % (os.getpid(), LOCK_EXTENSION)
-#     locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
-#     failed_delete = []
-#     for path in locks:
-#         try:
-#             rm_rf(path)
-#         except (OSError, IOError) as e:
-#             failed_delete.append(path)
-#             log.warn("%r Cannot unlink %s.", e, path)
-#
-#     if failed_delete:
-#         log.warn("Unable to remove all for this processlocks.\n"
-#                  "Please run `conda clean --lock`.")
 
 
 def maybe_raise(error, context):

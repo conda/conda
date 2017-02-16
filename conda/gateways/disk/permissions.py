@@ -9,7 +9,7 @@ from os.path import isdir, isfile, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from . import MAX_TRIES, exp_backoff_fn
-from ...common.compat import lchmod
+from .link import lchmod
 
 log = getLogger(__name__)
 

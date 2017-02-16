@@ -7,13 +7,14 @@ import json
 from logging import getLogger
 import os
 from os import makedirs
-from os.path import basename, isdir, isfile, islink, join, lexists
+from os.path import basename, isdir, isfile, join, lexists
 import shutil
 import sys
 import tarfile
 import traceback
 
 from .delete import rm_rf
+from .link import islink, link, readlink, symlink
 from .permissions import make_executable
 from .read import get_json_content
 from .update import touch
@@ -157,35 +158,6 @@ def mkdir_p(path):
             raise
 
 
-if on_win:
-    import ctypes
-    from ctypes import wintypes
-
-    CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
-    CreateHardLink.restype = wintypes.BOOL
-    CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                               wintypes.LPVOID]
-    try:
-        CreateSymbolicLink = ctypes.windll.kernel32.CreateSymbolicLinkW
-        CreateSymbolicLink.restype = wintypes.BOOL
-        CreateSymbolicLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                                       wintypes.DWORD]
-    except AttributeError:
-        CreateSymbolicLink = None
-
-    def win_hard_link(src, dst):
-        "Equivalent to os.link, using the win32 CreateHardLink call."
-        if not CreateHardLink(dst, src, None):
-            raise CondaOSError('win32 hard link failed')
-
-    def win_soft_link(src, dst):
-        "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
-        if CreateSymbolicLink is None:
-            raise CondaOSError('win32 soft link not supported')
-        if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise CondaOSError('win32 soft link failed')
-
-
 def create_hard_link_or_copy(src, dst):
     if islink(src):
         message = dals("""
@@ -200,10 +172,7 @@ def create_hard_link_or_copy(src, dst):
 
     try:
         log.trace("creating hard link %s => %s", src, dst)
-        if on_win:
-            win_hard_link(src, dst)
-        else:
-            os.link(src, dst)
+        link(src, dst)
     except (IOError, OSError):
         log.info('hard link failed, so copying %s => %s', src, dst)
         shutil.copy2(src, dst)
@@ -228,21 +197,18 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.hardlink:
         if isdir(src):
             raise CondaError("Cannot hard link a directory. %s" % src)
-        if on_win:
-            win_hard_link(src, dst)
-        else:
-            os.link(src, dst)
+        link(src, dst)
     elif link_type == LinkType.softlink:
-        if on_win:
-            win_soft_link(src, dst)
-        else:
-            os.symlink(src, dst)
+        symlink(src, dst)
     elif link_type == LinkType.copy:
-        # copy relative symlinks as symlinks
-        if not on_win and islink(src) and not os.readlink(src).startswith('/'):
-            os.symlink(os.readlink(src), dst)
-        else:
-            shutil.copy2(src, dst)
+        # on unix, make sure relative symlinks stay symlinks
+        if not on_win and islink(src):
+            src_points_to = readlink(src)
+            if not src_points_to.startswith('/'):
+                # copy relative symlinks as symlinks
+                symlink(src_points_to, dst)
+                return
+        shutil.copy2(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
 

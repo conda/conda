@@ -6,8 +6,8 @@ import os
 from os.path import basename, dirname, join, split, splitext
 import re
 
-from conda import CondaError
 from .compat import on_win, string_types
+from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 
 try:

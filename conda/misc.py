@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 import os
-from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink, join,
+from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, join,
                      relpath)
 import re
 import shutil
@@ -21,6 +21,7 @@ from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
 from .exceptions import CondaFileNotFoundError, CondaRuntimeError, ParseError
 from .gateways.disk.delete import rm_rf
+from .gateways.disk.link import islink
 from .instructions import LINK, UNLINK
 from .models.dist import Dist
 from .models.index_record import IndexRecord
@@ -316,9 +317,6 @@ def make_icon_url(info):
     if info.get('channel') and info.get('icon'):
         base_url = dirname(info['channel'])
         icon_fn = info['icon']
-        # icon_cache_path = join(pkgs_dir, 'cache', icon_fn)
-        # if isfile(icon_cache_path):
-        #    return url_path(icon_cache_path)
         return '%s/icons/%s' % (base_url, icon_fn)
     return ''
 

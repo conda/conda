@@ -282,7 +282,7 @@ class Context(Configuration):
     @property
     def pkgs_dirs(self):
         if self._pkgs_dirs:
-            return tuple(IndexedSet(self._pkgs_dirs))
+            return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
             cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
             return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (
