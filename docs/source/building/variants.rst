@@ -31,7 +31,7 @@ made directly available in Jinja2 templates. As a result, keys in the dictionary
 characters allowed). This example builds python 2.7 and 3.5 packages in one
 build command:
 
-variant config file like:
+conda_build_config.yaml like:
 
 .. code-block:: yaml
 
@@ -53,6 +53,129 @@ meta.yaml contents like:
            - python {{ python }}
        run:
            - python {{ python }}
+
+
+General pinning examples
+------------------------
+
+There are a few characteristic use cases for pinning.  Please consider this a map for the content below.
+
+1. Shared library providing a binary interface. All uses of this library use the
+   binary interface.  It is convenient to apply the same pin to all of your builds.
+   Example: boost
+
+
+conda_build_config.yaml in your HOME folder:
+
+.. code-block:: yaml
+
+  boost:
+    - 1.61
+    - 1.63
+  pin_run_as_build:
+    boost: x.x
+
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   package:
+       name: compiled-code
+       version: 1.0
+
+   requirements:
+       build:
+           - boost
+       run:
+           - boost
+
+This example demonstrates several features:
+  * site-wide configuration with a specifically named config file
+    (conda_build_config.yaml in your home folder). More options below in
+    `Creating conda-build variant config files`_.
+  * building against multiple versions of a single library (set versions
+    installed at build time)
+  * pinning runtime requirements to the version used at build time. More
+    information below at `Pinning at the variant level`_.
+  * specify granularity of pinning. ``x.x`` pins major and minor version. More
+    information at `Pinning expressions`_.
+
+
+2. Python package with externally accessible binary component. Not all uses of
+   this library use the binary interface (some only use pure python). Example:
+   numpy
+
+conda_build_config.yaml in your recipe folder (alongside meta.yaml:
+
+.. code-block:: yaml
+
+  numpy:
+    - 1.11
+    - 1.12
+
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   package:
+       name: numpy_using_thing
+       version: 1.0
+
+   requirements:
+       build:
+           - numpy
+       run:
+           - numpy
+
+This example demonstrates a particular feature: reduction of builds when pins
+are unnecessary. There's more information at `Avoiding unnecessary builds`_. To
+actually pin numpy in this recipe (and only in this recipe, so that other
+recipes don't unnecessarily build lots of variants), it is sufficient to add a
+pin to numpy. You can use the variant key directly in meta.yaml:
+
+.. code-block:: yaml
+
+   package:
+       name: numpy_using_thing
+       version: 1.0
+
+   requirements:
+       build:
+           - numpy
+       run:
+           - numpy  {{ numpy }}
+
+
+There are also more flexible ways to pin, using the `Pinning expressions`_. See
+`Pinning at the recipe level`_ for examples.
+
+
+3. One recipe splits into multiple packages, and package dependencies need to be
+   dynamically pinned among one another. Example:
+   GCC/libgcc/libstdc++/gfortran/etc.
+
+The dynamic pinning is the tricky part.  Conda-build provides new ways to refer to other subpackages within a single recipe.
+
+.. code-block:: yaml
+
+   package:
+       name: dynamic_supackage
+       version: 1.0
+
+   requirements:
+       run:
+           - {{ pin_subpackage('my_awesome_subpackage') }}
+
+   outputs:
+     - name: my_awesome_subpackage
+       version: 2.0
+
+by referring to subpackages this way, you don't need to worry about what the end
+version of my_awesome_subpackage will be. Update it independently and just let
+conda build figure it out and keep things consistent. There's more information
+below in the `Referencing subpackages`_ section below.
 
 
 Creating conda-build variant config files
@@ -93,9 +216,9 @@ API:
    lists of versions to iterate over. These are aggregated as detailed in the
    Aggregation of multiple variants section below.
 
-2. Set the ``variant`` member of a Config object. This is just a simple
-   dictionary. The values for fields should be strings, except "extended keys",
-   which are documented in the `Extended keys`_ section below.
+2. Set the ``variant`` member of a Config object. This is just a dictionary. The
+   values for fields should be strings or lists of strings, except "extended
+   keys", which are documented in the `Extended keys`_ section below.
 
 
 Again, with meta.yaml contents like:
@@ -145,7 +268,7 @@ different builds, you can use the ``exclude_from_build_hash`` key in your
 variant. The way this works is that all variants are evaluated, but if any
 hashes are the same, then they are considered duplicates, and are deduplicated.
 By omitting some packages from the build dependencies, we can avoid creating
-unnecessarily unique hashes, and allow this deduplication.
+unnecessarily specific hashes, and allow this deduplication.
 
 For example, let's consider a package that uses numpy in both run and build
 requirements, and a variant that includes two numpy versions:
@@ -280,6 +403,60 @@ set. These are used internally for tracking which requirements should be pinned,
 for example, with the ``pin_run_as_build`` key. You can add your own extended
 keys by passing in values for the ``extend_keys`` key for any variant.
 
+For example, if you wanted to collect some aggregate trait from multiple
+conda_build_config.yaml files, you could do something like this:
+
+HOME/conda_build_config.yaml:
+
+.. code-block:: yaml
+
+   some_trait:
+     - dog
+   extend_keys:
+     - some_trait
+
+
+recipe/conda_build_config.yaml:
+
+.. code-block:: yaml
+
+   some_trait:
+     - pony
+   extend_keys:
+     - some_trait
+
+Note that *both* of the conda_build_config.yaml files need to list the trait as
+an ``extend_keys`` entry.  If you list it in only one of them, an error will be
+raised, to avoid confusion with one conda_build_config.yaml file that would add
+entries to the build matrix, and another which would not. For example, this
+should raise an error:
+
+.. code-block:: yaml
+
+   some_trait:
+     - dog
+
+
+recipe/conda_build_config.yaml:
+
+.. code-block:: yaml
+
+   some_trait:
+     - pony
+   extend_keys:
+     - some_trait
+
+
+When our two proper yaml config files are combined, ordinarily the recipe-local
+variant would clobber the site-wide variant, yielding ``{'some_trait':
+'pony'}``. However, with the extend_keys entry, we end up with what we've always
+wanted: a dog *and* pony show: ``{'some_trait': ['dog', 'pony'])}``
+
+Again, mostly an internal implementation detail - unless you find a use for it.
+Internally, it is used to aggregate the ``pin_run_as_build`` and
+``exclude_from_build_hash`` entries from any of your conda_build_config.yaml
+files.
+
 
 Customizing compatibility
 -------------------------
@@ -335,9 +512,9 @@ conda_build_config.yaml:
 
 .. code-block:: yaml
 
-    numpy: 1.11
+    boost: 1.63
     pin_run_as_build:
-        numpy: x.x
+        boost: x.x
 
 meta.yaml:
 
@@ -345,20 +522,23 @@ meta.yaml:
 
    requirements:
        build:
-           - numpy {{ numpy }}
+           - boost {{ boost }}
        run:
-           - numpy
+           - boost
 
 
 The result here is that the runtime numpy dependency will be pinned to
-``>=(current numpy 1.11.x version),<1.12``
+``>=(current boost 1.63.x version),<1.64``
 
-Numpy is an interesting example here. It actually would not make a good case for
-pinning at the variant level. Because you only need this kind of pinning for
-recipes that use Numpy's C API, it would actually be better to not pin numpy
-with ``pin_run_as_build``. Pinning it is over-constraining your requirements
-unnecessarily when you are not using Numpy's C API. Instead, we should customize
-it for each recipe that uses numpy. That's the next section.
+Note that there are some packages that you should not use ``pin_run_as_build``
+for. Packages that don't *always* need to be pinned should be pinned on a
+per-recipe basis (described in the next section).  Numpy is an interesting
+example here. It actually would not make a good case for pinning at the variant
+level. Because you only need this kind of pinning for recipes that use Numpy's C
+API, it would actually be better to not pin numpy with ``pin_run_as_build``.
+Pinning it is over-constraining your requirements unnecessarily when you are not
+using Numpy's C API. Instead, we should customize it for each recipe that uses
+numpy.  See also the `Avoiding unnecessary builds`_ section above.
 
 
 Pinning at the recipe level
@@ -371,7 +551,7 @@ ignored by the logic handling ``pin_run_as_build``. We expect that pinning at
 the recipe level will be used when some recipe's pinning is unusually stringent
 (or loose) relative to some standard pinning from the variant level.
 
-By default, with the ``pin_compatible`` function, conda-build pins to your
+By default, with the ``pin_compatible('package_name')`` function, conda-build pins to your
 current version and less than the next major version. For projects that don't
 follow the philosophy of semantic versioning, you might want to restrict things
 more tightly. To do so, you can pass one of two arguments to the pin_compatible
@@ -533,24 +713,27 @@ incompatibilities are ways of specifying such compatibility, and of explicitly
 expressing the compiler to be used. Three new Jinja2 functions are available when
 evaluating ``meta.yaml`` templates:
 
-* ``pin_compatible``: To be used as pin in run and/or test requirements. Takes
-  package name argument. Looks up compatibility of named package installed in
-  the build environment, and writes compatible range pin for run and/or test
-  requirements.  Presently primarily only a semver-based assumption:
-  ``>=(current version),<(next minor version)``. This will be enhanced as time
-  goes on with information from `ABI Laboratory <https://abi-laboratory.pro/>`_
+* ``pin_compatible('package_name', pins='x')``: To be used as pin in run and/or
+  test requirements. Takes package name argument. Looks up compatibility of
+  named package installed in the build environment, and writes compatible range
+  pin for run and/or test requirements. Defaults to a semver-based assumption:
+  ``>=(current version),<(next major version)``. Pass pins either a `Pinning
+  expressions`_ or a tuple/list of 2 `Pinning expressions`_ to customize this
+  behavior. This will be enhanced as time goes on with information from `ABI
+  Laboratory <https://abi-laboratory.pro/>`_
 
-* ``pin_subpackage``: To be used as pin in run and/or test requirements. Takes
-  package name argument. Used to refer to particular versions of subpackages
-  built by parent recipe as dependencies elsewhere in that recipe. Can use
-  either pinning expressions, or exact (including build string).
+* ``pin_subpackage('package_name', pins='x', exact=False)``: To be used as pin
+  in run and/or test requirements. Takes package name argument. Used to refer to
+  particular versions of subpackages built by parent recipe as dependencies
+  elsewhere in that recipe. Can use either pinning expressions, or exact
+  (including build string).
 
-* ``compiler``: To be used in build requirements most commonly. Run or test as
-  necessary. Takes language name argument. This is shorthand to facilitate cross
-  compiler usage. This Jinja2 function ties together two variant variables,
-  ``{language}_compiler`` and ``target_platform``, and outputs a single compiler
-  package name. For example, this could be used to compile outputs targeting
-  x86_64 and arm in one recipe, with a variant.
+* ``compiler('language')``: To be used in build requirements most commonly.
+  Run or test as necessary. Takes language name argument. This is shorthand to
+  facilitate cross compiler usage. This Jinja2 function ties together two
+  variant variables, ``{language}_compiler`` and ``target_platform``, and
+  outputs a single compiler package name. For example, this could be used to
+  compile outputs targeting x86_64 and arm in one recipe, with a variant.
 
 There are default "native" compilers that and runtimes that are used when no
 compiler is specified in any variant. These are defined in `conda-build's
@@ -559,6 +742,58 @@ jinja_context.py file
 Most of the time, users will not need to provide compilers in their variants -
 just leave them empty, and conda-build will use the defaults appropriate for
 your system.
+
+
+.. _referencing_subpackages:
+
+Referencing subpackages
+-----------------------
+
+Conda-build 2.1 brought in the ability to build multiple output packages from a
+single recipe. This is useful in cases where you have a big build that outputs a
+lot of things at once, but those things really belong in their own packages. For
+example, building gcc outputs not only gcc, but also gfortran, g++, and runtime
+libraries for gcc, gfotran and g++. Each of those should be their own package to
+make things as clean as possible. Unfortunately, if there are separate recipes
+to repack the different pieces from a larger whole package, it can be hard to
+keep them in sync. That's where variants come in. Variants, or more
+specifically, the ``pin_subpackage(name)`` function give you a way to refer to
+the subpackage with control over how tightly the subpackage version relationship
+should be in relation to other subpackages or the parent package.
+
+meta.yaml:
+
+.. code-block:: yaml
+
+   package:
+     name: subpackage_demo
+     version: 1.0
+
+   requirements:
+     run:
+       - {{ pin_subpackage('subpackage_1') }}
+       - {{ pin_subpackage('subpackage_2', pins='x.x') }}
+       - {{ pin_subpackage('subpackage_3', pins=('x.x', 'x.x')) }}
+       - {{ pin_subpackage('subpackage_4', exact=True) }}
+
+
+   outputs:
+     - name: subpackage_1
+       version: 1.0.0
+     - name: subpackage_2
+       version: 2.0.0
+     - name: subpackage_3
+       version: 3.0.0
+     - name: subpackage_4
+       version: 4.0.0
+
+Here, the parent package will have the following different runtime dependencies:
+
+* subpackage_1 >=1.0.0,<2 (default uses pins='x', pins to major version with
+  default >= current version lower bound)
+* subpackage_2 >=2.0.0,<2.1 (more stringent upper bound)
+* subpackage_3 >=3.0,<3.1 (less stringent lower bound, more stringent upper bound)
+* subpackage_4 4.0.0 h81241af (exact pinning - version plus build string)
 
 
 Compiler packages
@@ -583,7 +818,7 @@ already-installed compiler (such as Visual Studio.)
 Note also the ``pin_downstream`` key in meta.yaml. This is useful for compiler
 recipes to impose runtime constraints based on the versions of subpackages
 created by the compiler recipe. For more information, see the :ref:`pin_downstream`
-section of the docs.
+section of the meta.yaml docs.
 
 
 Cross-compiling

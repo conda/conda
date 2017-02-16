@@ -645,7 +645,9 @@ dependencies. This support was added in conda-build 2.1.0.
 
    outputs:
      - name: some-subpackage
+       version: 1.0
      - name: some-other-subpackage
+       version: 2.0
 
 
 NOTE: If any output is specified in the outputs section, the default packaging
@@ -653,7 +655,9 @@ behavior of conda-build is bypassed. In other words, if any subpackage is
 specified, then you will not get the normal top-level build for this recipe
 without explicitly defining a subpackage for it. This is an alternative to the
 existing behavior, not an addition to it. See the :ref:`implicit_metapackages`
-section below for more information.
+section below for more information. Each output may have its own version and
+requirements. Additionally, subpackages may impose downstream pinning similarly
+to `Pin downstream`_ to help keep your packages aligned.
 
 
 Specifying files to include in output
@@ -725,23 +729,25 @@ requirements/build section.
        requirements:
          - some-dep
 
-
-Subpackage dependencies propagate to the top-level package if and only if the
-subpackage is listed as a requirement.
+You can also impose runtime dependencies whenever a given (sub)package is
+installed as a build dependency. For example, if we had an overarching
+"compilers" package, and within that, had ``gcc`` and ``libgcc`` outputs, we
+could force recipes that use gcc to include a matching libgcc runtime
+requirement:
 
 .. code-block:: none
 
-   requirements:
-     run:
-       - some-dep-that-will-propagate
-
    outputs:
-     - name: some-dep-that-will-propagate
-       requirements:
-         - some-dep
+     - name: gcc
+       pin_downstream:
+         - libgcc 2.*
+     - name: libgcc
 
-In this instance, the top-level package will depend on both
-``some-dep-that-will-propagate`` and ``some-dep`` as runtime requirements.
+
+Note: variant expressions are very powerful here. You can express the version
+requirement in the pin_downstream entry as a jinja function to insert values
+based on the actual version of libgcc produced by the recipe. Read more about
+them at :ref:`referencing_subpackages`.
 
 .. _implicit_metapackages:
 
