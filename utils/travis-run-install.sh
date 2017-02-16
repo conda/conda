@@ -113,7 +113,10 @@ if [[ $FLAKE8 == true ]]; then
     install_python
     $INSTALL_PREFIX/bin/pip install flake8
 elif [[ $SUDO == true ]]; then
-    echo 'hello world'
+    export INSTALL_PREFIX="~/miniconda"
+    export PATH=$INSTALL_PREFIX/bin:$PATH
+    export -f install_python
+    sudo -E -u root install_python
 elif [[ -n $CONDA_BUILD ]]; then
     miniconda_install
     conda_build_install
