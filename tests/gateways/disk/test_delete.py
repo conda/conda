@@ -4,15 +4,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import uuid
 import pytest
-from shutil import rmtree
+from errno import ENOENT, EACCES
 from os.path import join, isdir, islink, lexists, isfile
 from tempfile import mkdtemp, gettempdir
 from conda.base.context import context
 from conda.common.compat import text_type
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf, move_to_trash
 from conda.gateways.disk.update import touch
 from test_permissions import tempdir, _try_open, _make_read_only
 from conda.utils import on_win
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 
 def can_not_symlink():
@@ -98,3 +103,55 @@ def test_remove_link_to_dir():
         assert not isdir(src_dir)
         assert not islink(src_dir)
         assert not lexists(dst_link)
+
+
+def test_move_to_trash():
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        _try_open(test_path)
+        assert isdir(td)
+        assert isfile(test_path)
+        move_to_trash(td, test_path)
+        assert not isfile(test_path)
+
+
+def test_move_path_to_trash_couldnt():
+    from conda.gateways.disk.delete import move_path_to_trash
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        _try_open(test_path)
+        assert isdir(td)
+        assert isfile(test_path)
+        assert move_path_to_trash(test_path)
+
+
+def test_backoff_unlink():
+    from conda.gateways.disk.delete import backoff_rmdir
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        _try_open(test_path)
+        assert isdir(td)
+        backoff_rmdir(td)
+        assert not isdir(td)
+
+
+def test_backoff_unlink_doesnt_exist():
+    from conda.gateways.disk.delete import backoff_rmdir
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        try:
+            backoff_rmdir(join(test_path, 'some', 'path', 'in', 'utopia'))
+        except Exception as e:
+            assert e.value.errno == ENOENT
+
+
+def test_try_rmdir_all_empty_doesnt_exist():
+    from conda.gateways.disk.delete import try_rmdir_all_empty
+    with tempdir() as td:
+        assert isdir(td)
+        try_rmdir_all_empty(td)
+        assert not isdir(td)

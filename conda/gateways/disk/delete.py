@@ -96,31 +96,17 @@ def move_to_trash(prefix, f, tempdir=None):
 
 
 def move_path_to_trash(path, preclean=True):
-    """
-    Move a path to the trash
-    """
-    for pkg_dir in context.pkgs_dirs:
-        trash_dir = join(pkg_dir, '.trash')
-
-        try:
-            makedirs(trash_dir)
-        except (IOError, OSError) as e1:
-            if e1.errno != EEXIST:
-                continue
-
-        trash_file = join(trash_dir, text_type(uuid4()))
-
-        try:
-            rename(path, trash_file)
-        except (IOError, OSError) as e:
-            log.trace("Could not move %s to %s.\n%r", path, trash_file, e)
-        else:
-            log.trace("Moved to trash: %s", path)
-            from ...core.linked_data import delete_prefix_from_linked_data
-            delete_prefix_from_linked_data(path)
-            return True
-
-    return False
+    trash_file = join(context.trash_dir, text_type(uuid4()))
+    try:
+        rename(path, trash_file)
+    except (IOError, OSError) as e:
+        log.trace("Could not move %s to %s.\n%r", path, trash_file, e)
+        return False
+    else:
+        log.trace("Moved to trash: %s", path)
+        from ...core.linked_data import delete_prefix_from_linked_data
+        delete_prefix_from_linked_data(path)
+        return True
 
 
 def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):

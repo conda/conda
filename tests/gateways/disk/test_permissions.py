@@ -3,13 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import uuid
-import stat
 import pytest
 from errno import ENOENT, EACCES
 from shutil import rmtree
 from contextlib import contextmanager
-from tempfile import mkdtemp, gettempdir
-from os.path import join, isfile, lexists, isdir
+from tempfile import gettempdir
+from os.path import join, isfile, lexists
 from stat import S_IRUSR, S_IRGRP, S_IROTH
 from stat import S_IXUSR, S_IXGRP, S_IXOTH
 from conda.gateways.disk.update import touch

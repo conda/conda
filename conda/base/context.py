@@ -290,6 +290,16 @@ class Context(Configuration):
                 self._user_data_dir,
             )))
 
+    @memoizedproperty
+    def trash_dir(self):
+        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
+        from ..core.package_cache import PackageCache
+        pkgs_dir = PackageCache.first_writable().pkgs_dir
+        trash_dir = join(pkgs_dir, '.trash')
+        from ..gateways.disk.create import mkdir_p
+        mkdir_p(trash_dir)
+        return trash_dir
+
     @property
     def _user_data_dir(self):
         if on_win:
