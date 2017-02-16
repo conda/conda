@@ -21,7 +21,7 @@ install_python() {
    chmod +x ~/miniconda.sh
    ~/miniconda.sh -bfp "$INSTALL_PREFIX"
    hash -r
-   conda install -y -q python=$PYTHON_VERSION
+   $INSTALL_PREFIX/bin/conda install -y -q python=$PYTHON_VERSION
    local site_packages=$($INSTALL_PREFIX/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
    rm -rf $INSTALL_PREFIX/bin/activate \
        $INSTALL_PREFIX/bin/conda \
