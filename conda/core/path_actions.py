@@ -340,9 +340,10 @@ class CompilePycAction(CreateInPrefixPathAction):
                        file_link_actions):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
+            noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
             py_ver = transaction_context['target_python_version']
             py_files = (axn.target_short_path for axn in file_link_actions
-                        if axn.source_short_path.endswith('.py'))
+                        if noarch_py_file_re.match(axn.source_short_path))
             return tuple(cls(transaction_context, package_info, target_prefix,
                              pf, pyc_path(pf, py_ver))
                          for pf in py_files)

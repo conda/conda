@@ -2,25 +2,51 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os.path import basename, isdir, join, lexists, isfile
+from os.path import basename, isdir, join, lexists, isfile, dirname
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda.core.path_actions import LinkPathAction
-from conda.gateways.disk.create import mkdir_p
+import sys
+
+from conda._vendor.auxlib.collection import AttrDict
+
+from conda.common.path import get_python_site_packages_short_path, get_python_noarch_target_path, \
+    get_python_short_path, pyc_path
+from conda.core.path_actions import LinkPathAction, CompilePycAction
+from conda.gateways.disk.create import mkdir_p, create_link
 from conda.gateways.disk.delete import rm_rf
-from conda.models.enums import LinkType
+from conda.models.enums import LinkType, NoarchType
+from conda.common.compat import PY2
+
 
 log = getLogger(__name__)
 
 
-def make_test_file(target_dir):
+def make_test_file(target_dir, suffix=''):
+    if not isdir(target_dir):
+        mkdir_p(target_dir)
     fn = str(uuid4())[:8]
-    full_path = join(target_dir, fn)
+    full_path = join(target_dir, fn + suffix)
     with open(full_path, 'w') as fh:
         fh.write(str(uuid4()))
     return full_path
+
+
+def load_python_file(py_file_full_path):
+    if PY2:
+        import imp
+        return imp.load_compiled("module.name", py_file_full_path)
+    elif sys.version_info < (3, 5):
+        raise RuntimeError("this doesn't work for .pyc files")
+        from importlib.machinery import SourceFileLoader
+        return SourceFileLoader("module.name", py_file_full_path).load_module()
+    else:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("module.name", py_file_full_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
 
 class PathActionsTests(TestCase):
@@ -45,19 +71,53 @@ class PathActionsTests(TestCase):
         assert not lexists(self.pkgs_dir)
 
     def test_CompilePycAction(self):
-        # transaction_context = dict()
-        # python_version = UnlinkLinkTransaction.get_python_version(self.target_prefix,
-        #                                          self.linked_packages_data_to_unlink,
-        #                                          self.packages_info_to_link)
-        # transaction_context['target_python_version'] = python_version
-        # sp = get_python_site_packages_short_path(python_version)
-        # transaction_context['target_site_packages_short_path'] = sp
+        target_python_version = '%d.%d' % sys.version_info[:2]
+        sp_dir = get_python_site_packages_short_path(target_python_version)
+        transaction_context = {
+            'target_python_version': target_python_version,
+            'target_site_packages_short_path': sp_dir,
+        }
+        package_info = AttrDict(package_metadata=AttrDict(noarch=AttrDict(type=NoarchType.python)))
 
+        file_link_actions = [
+            AttrDict(
+                source_short_path='site-packages/something.py',
+                target_short_path=get_python_noarch_target_path('site-packages/something.py', sp_dir),
+            ),
+            AttrDict(
+                # this one shouldn't get compiled
+                source_short_path='something.py',
+                target_short_path=get_python_noarch_target_path('something.py', sp_dir),
+            ),
+        ]
+        axns = CompilePycAction.create_actions(transaction_context, package_info, self.prefix,
+                                               None, file_link_actions)
 
-        # # transaction_context, package_info, target_prefix, requested_link_type, file_link_actions
-        # axns = CompilePycAction.create_actions(transaction_context, package_info, target_prefix, requested_link_type, file_link_actions)
-        # axn = CompilePycAction(transaction_context, package_info, target_prefix, source_short_path, target_short_path)
-        pass
+        assert len(axns) == 1
+        axn = axns[0]
+        assert axn.source_full_path == join(self.prefix, get_python_noarch_target_path('site-packages/something.py', sp_dir))
+        assert axn.target_full_path == join(self.prefix, pyc_path(get_python_noarch_target_path('site-packages/something.py', sp_dir), target_python_version))
+
+        # make .py file in prefix that will be compiled
+        mkdir_p(dirname(axn.source_full_path))
+        with open(axn.source_full_path, 'w') as fh:
+            fh.write("value = 42\n")
+
+        # symlink the current python
+        python_full_path = join(self.prefix, get_python_short_path(target_python_version))
+        mkdir_p(dirname(python_full_path))
+        create_link(sys.executable, python_full_path, LinkType.softlink)
+
+        axn.execute()
+        assert isfile(axn.target_full_path)
+
+        # remove the source .py file so we're sure we're importing the pyc file below
+        rm_rf(axn.source_full_path)
+        assert not isfile(axn.source_full_path)
+
+        if (3, ) > sys.version_info >= (3, 5):
+            imported_pyc_file = load_python_file(axn.target_full_path)
+            assert imported_pyc_file.value == 42
 
     def test_simple_LinkPathAction_hardlink(self):
         source_full_path = make_test_file(self.pkgs_dir)
