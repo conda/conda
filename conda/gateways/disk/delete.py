@@ -46,8 +46,7 @@ def rm_rf(path, max_retries=5, trash=True):
                 backoff_unlink(path)
                 return True
             except (OSError, IOError) as e:
-                log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
-                if trash:
+2                if trash:
                     move_result = move_path_to_trash(path)
                     if move_result:
                         return True

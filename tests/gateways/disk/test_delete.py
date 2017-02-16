@@ -2,13 +2,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-import uuid
 import pytest
-from errno import ENOENT, EACCES
+from errno import ENOENT
 from os.path import join, isdir, islink, lexists, isfile
-from tempfile import mkdtemp, gettempdir
 from conda.base.context import context
-from conda.common.compat import text_type
 from conda.gateways.disk.delete import rm_rf, move_to_trash
 from conda.gateways.disk.update import touch
 from test_permissions import tempdir, _try_open, _make_read_only
