@@ -24,14 +24,14 @@ main_test() {
     echo "$PYTEST_EXE"
 
     # works
-    ls -al "$INSTALL_PREFIX/bin"
+    ls -al "$INSTALL_PREFIX/bin" || true
     cat "$INSTALL_PREFIX/bin/py.test" || true
     cat "$INSTALL_PREFIX/bin/pytest" || true
 
     # doesn't work
     cat "$HOME/miniconda/bin/pytest" || true
     cat "/home/$USER/miniconda/bin/pytest" || true
-    ls -al /home/$USER/miniconda/bin/pytest
+    ls -al /home/$USER/miniconda/bin/pytest || true
 
     ls -al / || true
     ls -al /home || true
