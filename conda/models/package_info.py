@@ -31,8 +31,8 @@ class PreferredEnv(Entity):
 class PackageMetadata(Entity):
     # from info/package_metadata.json
     package_metadata_version = IntegerField()
-    noarch = ComposableField(Noarch, required=False)
-    preferred_env = ComposableField(PreferredEnv, required=False)
+    noarch = ComposableField(Noarch, required=False, nullable=True)
+    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True)
 
 
 class PathData(Entity):
