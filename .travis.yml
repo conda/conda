@@ -10,7 +10,7 @@ addons:
 
 matrix:
   include:
-    - env: PYTHON_VERSION=3.6
+    - env: PYTHON_VERSION=3.6 SUDO=true
       sudo: true
       language: generic
       os: linux
