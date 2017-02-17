@@ -73,9 +73,7 @@ conda_build_unit_test() {
 }
 
 if [[ $FLAKE8 == true ]]; then
-    ls -al $INSTALL_PREFIX/bin
-    ls -al .
-    $INSTALL_PREFIX/bin/flake8 --statistics -v
+    flake8 --statistics
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
     conda_build_unit_test
