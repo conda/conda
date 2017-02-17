@@ -343,7 +343,8 @@ def load_file_configs(search_path):
         yield fullpath, YamlRawParameter.make_raw_parameters_from_file(fullpath)
 
     def _dir_yaml_loader(fullpath):
-        for filepath in glob(join(fullpath, "*.yml")):
+        for filepath in sorted(concatv(glob(join(fullpath, "*.yml")),
+                                       glob(join(fullpath, "*.yaml")))):
             yield filepath, YamlRawParameter.make_raw_parameters_from_file(filepath)
 
     # map a stat result to a file loader or a directory loader

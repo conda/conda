@@ -2,6 +2,7 @@ import json
 
 import unittest
 
+from conda.base.context import context
 from conda.gateways.disk.delete import rm_rf
 import pytest
 
@@ -85,8 +86,9 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda config --get channels --json')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda config --get channels --system --json')
-        self.assertJsonSuccess(res)
+        if context.root_writable:
+            res = capture_json_with_argv('conda config --get channels --system --json')
+            self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda config --get channels --file tempfile.rc --json')
         self.assertJsonSuccess(res)

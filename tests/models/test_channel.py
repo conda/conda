@@ -35,8 +35,8 @@ class DefaultConfigChannelTests(TestCase):
     def setUpClass(cls):
         reset_context()
         cls.platform = context.subdir
-        cls.DEFAULT_URLS = ['https://repo.continuum.io/pkgs/free/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/free/noarch',
+        cls.DEFAULT_URLS = ['https://repo.continuum.io/pkgs/anaconda/%s' % cls.platform,
+                            'https://repo.continuum.io/pkgs/anaconda/noarch',
                             'https://repo.continuum.io/pkgs/r/%s' % cls.platform,
                             'https://repo.continuum.io/pkgs/r/noarch',
                             'https://repo.continuum.io/pkgs/pro/%s' % cls.platform,
@@ -87,19 +87,19 @@ class DefaultConfigChannelTests(TestCase):
         assert dc.urls() == self.DEFAULT_URLS
 
     def test_url_channel_w_platform(self):
-        channel = Channel('https://repo.continuum.io/pkgs/free/osx-64')
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda/osx-64')
 
         assert channel.scheme == "https"
         assert channel.location == "repo.continuum.io"
         assert channel.platform == 'osx-64'
-        assert channel.name == 'pkgs/free'
+        assert channel.name == 'pkgs/anaconda'
 
-        assert channel.base_url == 'https://repo.continuum.io/pkgs/free'
+        assert channel.base_url == 'https://repo.continuum.io/pkgs/anaconda'
         assert channel.canonical_name == 'defaults'
-        assert channel.url() == 'https://repo.continuum.io/pkgs/free/osx-64'
+        assert channel.url() == 'https://repo.continuum.io/pkgs/anaconda/osx-64'
         assert channel.urls() == [
-            'https://repo.continuum.io/pkgs/free/osx-64',
-            'https://repo.continuum.io/pkgs/free/noarch',
+            'https://repo.continuum.io/pkgs/anaconda/osx-64',
+            'https://repo.continuum.io/pkgs/anaconda/noarch',
         ]
 
     def test_bare_channel(self):
@@ -231,7 +231,7 @@ class AnacondaServerChannelTests(TestCase):
 class CustomConfigChannelTests(TestCase):
     """
     Some notes about the tests in this class:
-      * The 'pkgs/free' channel is 'migrated' while the 'pkgs/pro' channel is not.
+      * The 'pkgs/anaconda' channel is 'migrated' while the 'pkgs/pro' channel is not.
         Thus test_pkgs_free and test_pkgs_pro have substantially different behavior.
     """
 
@@ -241,16 +241,16 @@ class CustomConfigChannelTests(TestCase):
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://user1:pass2@another.url:8080/t/tk-1234/with/path
-          pkgs/free: http://192.168.0.15:8080
+          pkgs/anaconda: http://192.168.0.15:8080
         migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
-          pkgs/free: https://repo.continuum.io
+          pkgs/anaconda: https://repo.continuum.io
         migrated_channel_aliases:
           - https://conda.anaconda.org
         channel_alias: ftp://new.url:8082
         default_channels:
-          - http://192.168.0.15:8080/pkgs/free
+          - http://192.168.0.15:8080/pkgs/anaconda
           - http://192.168.0.15:8080/pkgs/pro
           - http://192.168.0.15:8080/pkgs/msys2
         """)
@@ -261,8 +261,8 @@ class CustomConfigChannelTests(TestCase):
 
         cls.platform = context.subdir
 
-        cls.DEFAULT_URLS = ['http://192.168.0.15:8080/pkgs/free/%s' % cls.platform,
-                            'http://192.168.0.15:8080/pkgs/free/noarch',
+        cls.DEFAULT_URLS = ['http://192.168.0.15:8080/pkgs/anaconda/%s' % cls.platform,
+                            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
                             'http://192.168.0.15:8080/pkgs/pro/%s' % cls.platform,
                             'http://192.168.0.15:8080/pkgs/pro/noarch',
                             'http://192.168.0.15:8080/pkgs/msys2/%s' % cls.platform,
@@ -274,49 +274,49 @@ class CustomConfigChannelTests(TestCase):
         reset_context()
 
     def test_pkgs_free(self):
-        channel = Channel('pkgs/free')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('pkgs/anaconda')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/%s' % self.platform,
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/%s' % self.platform,
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/noarch')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda/noarch')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/label/dev')
-        assert channel.channel_name == "pkgs/free/label/dev"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda/label/dev')
+        assert channel.channel_name == "pkgs/anaconda/label/dev"
         assert channel.channel_location == "192.168.0.15:8080"
-        assert channel.canonical_name == "pkgs/free/label/dev"
+        assert channel.canonical_name == "pkgs/anaconda/label/dev"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/label/dev/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/free/label/dev/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/label/dev/%s' % self.platform,
+            'http://192.168.0.15:8080/pkgs/anaconda/label/dev/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/noarch/flask-1.0.tar.bz2')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda/noarch/flask-1.0.tar.bz2')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
     def test_pkgs_pro(self):
@@ -552,7 +552,7 @@ class ChannelAuthTokenPriorityTests(TestCase):
           - https://conda.anaconda.cloud/t/tk-12-token/minnie
           - http://dont-do:this@4.3.2.1/daffy/label/main
         default_channels:
-          - http://192.168.0.15:8080/pkgs/free
+          - http://192.168.0.15:8080/pkgs/anaconda
           - donald/label/main
           - http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r
         """)
@@ -709,16 +709,16 @@ class ChannelAuthTokenPriorityTests(TestCase):
         assert channel.url() is None
         assert channel.url(True) is None
         assert channel.urls() == [
-            "http://192.168.0.15:8080/pkgs/free/%s" % self.platform,
-            "http://192.168.0.15:8080/pkgs/free/noarch",
+            "http://192.168.0.15:8080/pkgs/anaconda/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
             "ftp://new.url:8082/donald/label/main/%s" % self.platform,
             "ftp://new.url:8082/donald/label/main/noarch",
             "http://192.168.0.15:8080/pkgs/r/%s" % self.platform,
             "http://192.168.0.15:8080/pkgs/r/noarch",
         ]
         assert channel.urls(True) == [
-            "http://192.168.0.15:8080/pkgs/free/%s" % self.platform,
-            "http://192.168.0.15:8080/pkgs/free/noarch",
+            "http://192.168.0.15:8080/pkgs/anaconda/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
             "ftp://nm:ps@new.url:8082/t/zyx-wvut/donald/label/main/%s" % self.platform,
             "ftp://nm:ps@new.url:8082/t/zyx-wvut/donald/label/main/noarch",
             "http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r/%s" % self.platform,

@@ -8,7 +8,7 @@ import json
 from json import loads as json_loads
 from logging import DEBUG, getLogger
 import os
-from os.path import basename, exists, isdir, isfile, join, relpath
+from os.path import basename, exists, isdir, isfile, join, relpath, dirname
 from shlex import split
 from shutil import copyfile, rmtree
 from subprocess import check_call
@@ -44,7 +44,7 @@ from conda.common.io import captured, disable_logger, replace_log_streams, stder
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
-from conda.core.index import create_cache_dir
+from conda.core.repodata import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.core.package_cache import PackageCache
@@ -326,7 +326,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
-            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+            tar_old_path = join(PackageCache.first_writable().pkgs_dir, flask_fname)
 
             # Regression test for #2812
             # install from local channel
@@ -355,7 +355,7 @@ class IntegrationTests(TestCase):
 
                 # Regression test for 2970
                 # install from build channel as a tarball
-                conda_bld = join(sys.prefix, 'conda-bld')
+                conda_bld = join(dirname(PackageCache.first_writable().pkgs_dir), 'conda-bld')
                 conda_bld_sub = join(conda_bld, context.subdir)
                 if not isdir(conda_bld_sub):
                     os.makedirs(conda_bld_sub)
@@ -374,7 +374,8 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
-            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+            tar_old_path = join(PackageCache.first_writable().pkgs_dir, flask_fname)
+
             assert isfile(tar_old_path)
 
             # regression test for #2886 (part 1 of 2)
@@ -858,7 +859,7 @@ class IntegrationTests(TestCase):
         assert not glob(join(index_cache_dir, "*.json"))
 
     def test_clean_tarballs_and_packages(self):
-        pkgs_dir = context.pkgs_dirs[0]
+        pkgs_dir = PackageCache.first_writable().pkgs_dir
         mkdir_p(pkgs_dir)
         pkgs_dir_hold = pkgs_dir + '_hold'
         try:

@@ -36,9 +36,7 @@ build: false
 
 test_script:
   - call .\utils\appveyor-script.bat
-g
+
 on_success:
   - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PYTHON_VERSION
-  # - coveralls && exit 0  # coveralls is a piece of crap and doesn't merge tests runs from Appveyor and Travis CI with the same commit hashes
-  # - ocular && exit 0
