@@ -16,7 +16,7 @@ from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win
 from .common.path import url_to_path, win_path_ok
 from .common.url import is_url, join_url, path_to_url
-from .core.index import get_index, supplement_index_with_cache
+from .core.index import get_index, _supplement_index_with_cache
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
 from .exceptions import CondaFileNotFoundError, CondaRuntimeError, ParseError
@@ -91,7 +91,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
     # Now get the index---but the only index we need is the package cache
     index = {}
-    supplement_index_with_cache(index, ())
+    _supplement_index_with_cache(index, ())
 
     # unlink any installed packages with same package name
     link_names = {index[d]['name'] for d in link_dists}
