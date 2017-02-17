@@ -260,24 +260,6 @@ def add_unlink(actions, dist):
     actions[UNLINK].append(dist)
 
 
-def add_checks(actions):
-    """
-    Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
-    has a LINK action, add a CHECK_LINK, which will check if permissions are
-    suitable for linking.
-
-    Args:
-        actions: a defaultdict(list) of actions that are to be performed, e.g. FETCH
-
-    Returns:
-        the actions dict with the appropriate checks added
-    """
-    if FETCH in actions:
-        actions.setdefault(CHECK_FETCH, [True])
-    if EXTRACT in actions:
-        actions.setdefault(CHECK_EXTRACT, [True])
-
-
 def handle_menuinst(unlink_dists, link_dists):
     if not on_win:
         return unlink_dists, link_dists
