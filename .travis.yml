@@ -13,8 +13,6 @@ addons:
       - zsh
 
 matrix:
-  allow_failures:
-    - os: osx
   include:
     - env: PYTHON_VERSION=3.6
       sudo: true
@@ -26,6 +24,8 @@ matrix:
     - env: PYTHON_VERSION=3.6
       os: osx
     - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.3
+  allow_failures:
+    - os: osx
 
 install:
   - which -a python
