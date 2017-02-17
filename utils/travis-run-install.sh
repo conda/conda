@@ -106,7 +106,7 @@ esac
 
 if [[ $FLAKE8 == true ]]; then
     pip install flake8
-elif [[ $SUDO == true ]]; then
+elif [[ $TRAVIS_SUDO == true ]]; then
     sudo -E -u root bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     export INSTALL_PREFIX="/usr/local"
     export PATH=$INSTALL_PREFIX/bin:$PATH
