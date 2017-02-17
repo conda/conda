@@ -1233,7 +1233,7 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
         expected_output = [action, aug_action_root]
         self.assertEquals(actions, expected_output)
 
-    @patch("conda.cli.common.get_private_envs_json", return_value=
+    @patch("conda.gateways.disk.read.get_private_envs_json", return_value=
         {"test3-1.2.0": "some/prefix/envs/_env_", "test4-2.1.0-22": "some/prefix/envs/_env_"})
     def test_update_in_root_env(self, prefix_if_in_private_env):
         required_solves = [plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3", "test4"],

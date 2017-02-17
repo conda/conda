@@ -6,13 +6,11 @@ from unittest import TestCase
 
 import pytest
 
-from conda.common.io import env_var
-
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
-from conda.core.index import get_index, read_mod_and_etag, cache_fn_url, \
-    Response304ContentUnchanged
+from conda.common.io import env_var
+from conda.core.index import Response304ContentUnchanged, cache_fn_url, get_index, read_mod_and_etag
 
 try:
     from unittest.mock import patch

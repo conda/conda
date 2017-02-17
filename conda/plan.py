@@ -556,10 +556,9 @@ def determine_all_envs(r, specs, channel_priority_map=None):
 
 
 def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root):
-    # type: List[DistForEnv], List[(Dist, Record)] -> ()
     for dist_env in dists_for_envs:
         # If trying to install a package in root that is already in a private env
-        if dist_env.env is None and conda.plan.prefix_if_in_private_env(dist_env.spec) is not None:
+        if dist_env.env is None and prefix_if_in_private_env(dist_env.spec) is not None:
             raise InstallError("Package %s is already installed in a private env %s" %
                                (dist_env.spec, dist_env.env))
         # If trying to install a package in a private env that is already in root
@@ -816,6 +815,23 @@ def revert_actions(prefix, revision=-1, index=None):
     return actions
 
 
+def pkg_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    pkgs = tuple(pkg for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
+    pkg = pkgs[0] if len(pkgs) > 0 else None
+    return pkg
+
+
+def prefix_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    if not private_envs_json:
+        return None
+    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if
+                     pkg.startswith(spec))
+    prefix = prefixes[0] if len(prefixes) > 0 else None
+    return prefix
+
+
 # ---------------------------- EXECUTION --------------------------
 
 def execute_actions(actions, index, verbose=False):
@@ -848,23 +864,6 @@ def execute_plan(old_plan, index=None, verbose=False):
     """
     plan = update_old_plan(old_plan)
     execute_instructions(plan, index, verbose)
-
-
-def pkg_if_in_private_env(spec):
-    private_envs_json = get_private_envs_json()
-    pkgs = tuple(pkg for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
-    pkg = pkgs[0] if len(pkgs) > 0 else None
-    return pkg
-
-
-def prefix_if_in_private_env(spec):
-    private_envs_json = get_private_envs_json()
-    if not private_envs_json:
-        return None
-    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if
-                     pkg.startswith(spec))
-    prefix = prefixes[0] if len(prefixes) > 0 else None
-    return prefix
 
 
 if __name__ == '__main__':

@@ -657,7 +657,11 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
                          meta_record)
 
 
-class RemovePrivateEnvMetaAction(UnlinkPathAction):                                                         target_prefix, target_short_path)
+class RemovePrivateEnvMetaAction(UnlinkPathAction):
+    def __init__(self, transaction_context, linked_package_data, target_prefix):
+        target_short_path = "conda-meta/private_envs"
+        super(RemovePrivateEnvMetaAction, self).__init__(transaction_context, linked_package_data,
+                                                         target_prefix, target_short_path)
 
     def execute(self):
         log.trace("removing private env '%s' from %s", self.linked_package_data.name,
