@@ -20,6 +20,7 @@ matrix:
 #    - env: PYTHON_VERSION=2.7
 #      os: linux
     - env: FLAKE8=true
+      language: python
       python: '3.5'
       os: linux
 #    - env: PYTHON_VERSION=3.6
