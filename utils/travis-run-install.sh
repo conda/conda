@@ -1,7 +1,7 @@
 set -e
 set -x
 
-export INSTALL_PREFIX="~/miniconda"
+export INSTALL_PREFIX=~/miniconda
 export PATH=$INSTALL_PREFIX/bin:$PATH
 
 
@@ -52,33 +52,31 @@ install_python() {
 
 miniconda_install() {
     curl -L https://repo.continuum.io/miniconda/Miniconda3-4.0.5-Linux-x86_64.sh -o ~/miniconda.sh
-    bash ~/miniconda.sh -bfp ~/miniconda
-    export PATH=$INSTALL_PREFIX/bin:$PATH
+    bash ~/miniconda.sh -bfp $INSTALL_PREFIX
     hash -r
-    conda install -y -q pip conda 'python>=3.6'
-    conda info
-    conda config --set auto_update_conda false
+    $INSTALL_PREFIX/bin/conda install -y -q pip conda 'python>=3.6'
+    $INSTALL_PREFIX/bin/conda info
+    $INSTALL_PREFIX/bin/conda config --set auto_update_conda false
 }
 
 
 conda_build_install() {
     # install conda
-    rm -rf $($INSTALL_PREFIX/bin/python -c "import site; print(site.getsitepackages()[0])")/conda
+    $INSTALL_PREFIX/bin/pip install -r utils/requirements-test.txt
     $INSTALL_PREFIX/bin/python utils/setup-testing.py install
-    hash -r
-    conda info
+    $INSTALL_PREFIX/bin/conda info
 
     # install conda-build test dependencies
-    conda install -y -q pytest pytest-cov pytest-timeout mock
-    conda install -y -q -c conda-forge perl pytest-xdist
-    conda install -y -q anaconda-client numpy
+    $INSTALL_PREFIX/bin/conda install -y -q pytest pytest-cov pytest-timeout mock
+    $INSTALL_PREFIX/bin/conda install -y -q -c conda-forge perl pytest-xdist
+    $INSTALL_PREFIX/bin/conda install -y -q anaconda-client numpy
 
-    $INSTALL_PREFIX/bin/python -m pip install pytest-catchlog pytest-mock
+    $INSTALL_PREFIX/bin/pip install pytest-catchlog pytest-mock
 
-    conda config --set add_pip_as_python_dependency true
+    $INSTALL_PREFIX/bin/conda config --set add_pip_as_python_dependency true
 
     # install conda-build runtime dependencies
-    conda install -y -q filelock jinja2 patchelf conda-verify setuptools contextlib2 pkginfo
+    $INSTALL_PREFIX/bin/conda install -y -q filelock jinja2 patchelf conda-verify setuptools contextlib2 pkginfo
 
     # install conda-build
     git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
@@ -115,6 +113,8 @@ elif [[ $SUDO == true ]]; then
     sudo -E -u root chown -R root:root ./conda
     ls -al ./conda
 elif [[ -n $CONDA_BUILD ]]; then
+    install_python
+
     miniconda_install
     conda_build_install
 else
