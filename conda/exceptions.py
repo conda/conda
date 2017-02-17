@@ -322,12 +322,13 @@ class PackageNotFoundError(CondaError):
 
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None):
-        message = dals("""
+        _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
-        %(response_details)s
-
-        """) + message
+        """)
+        cf_ray = getattr(response, 'headers', {}).get('CF-RAY')
+        _message += "CF-RAY: %s\n\n" % cf_ray if cf_ray else "\n"
+        message = _message + message
 
         from ._vendor.auxlib.logz import stringify
         response_details = (stringify(response) or '') if response else ''
