@@ -114,8 +114,6 @@ elif [[ $SUDO == true ]]; then
     ls -al ./conda
 elif [[ -n $CONDA_BUILD ]]; then
     install_python
-
-    miniconda_install
     conda_build_install
 else
     install_python
