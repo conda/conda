@@ -3,6 +3,10 @@
 ### New Features
 * general support for all bourne- and c-based shells (#3175)
 
+### Deprecations/Breaking Changes
+* The default channel repo.continuum.io/pkgs/free is moved to
+  repo.continuum.io/pkgs/anaconda (#4635)
+
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
 
