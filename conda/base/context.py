@@ -103,7 +103,7 @@ class Context(Configuration):
     proxy_servers = MapParameter(string_types)
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
-    remote_max_retries = PrimitiveParameter(0)
+    remote_max_retries = PrimitiveParameter(3)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
