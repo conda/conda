@@ -9,18 +9,16 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
 from collections import defaultdict, namedtuple
 from logging import getLogger
 from os.path import abspath, basename, exists, join
-import sys
 
 from . import instructions as inst
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .cli import common
-from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
-from .common.compat import odict, on_win
+from .common.compat import iteritems, odict, on_win
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import supplement_index_with_prefix
@@ -28,6 +26,7 @@ from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
                          InstallError, RemoveError)
+from .gateways.disk.read import get_private_envs_json
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -560,7 +559,7 @@ def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_r
     # type: List[DistForEnv], List[(Dist, Record)] -> ()
     for dist_env in dists_for_envs:
         # If trying to install a package in root that is already in a private env
-        if dist_env.env is None and common.prefix_if_in_private_env(dist_env.spec) is not None:
+        if dist_env.env is None and conda.plan.prefix_if_in_private_env(dist_env.spec) is not None:
             raise InstallError("Package %s is already installed in a private env %s" %
                                (dist_env.spec, dist_env.env))
         # If trying to install a package in a private env that is already in root
@@ -849,6 +848,23 @@ def execute_plan(old_plan, index=None, verbose=False):
     """
     plan = update_old_plan(old_plan)
     execute_instructions(plan, index, verbose)
+
+
+def pkg_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    pkgs = tuple(pkg for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
+    pkg = pkgs[0] if len(pkgs) > 0 else None
+    return pkg
+
+
+def prefix_if_in_private_env(spec):
+    private_envs_json = get_private_envs_json()
+    if not private_envs_json:
+        return None
+    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if
+                     pkg.startswith(spec))
+    prefix = prefixes[0] if len(prefixes) > 0 else None
+    return prefix
 
 
 if __name__ == '__main__':

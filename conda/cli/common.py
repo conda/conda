@@ -2,18 +2,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import contextlib
-from functools import partial
-import json
 import os
-from os.path import abspath, basename, isfile, join
 import re
 import sys
+from functools import partial
+from os.path import abspath, basename
 
+from conda.plan import prefix_if_in_private_env
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
-from ..common.compat import iteritems
 from ..common.constants import NULL
 from ..common.path import is_private_env, prefix_to_env_name
 from ..core.linked_data import linked_data
@@ -628,35 +627,6 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
-
-
-def get_private_envs_json():
-    path_to_private_envs = join(context.root_prefix, "conda-meta", "private_envs")
-    if not isfile(path_to_private_envs):
-        return None
-    try:
-        with open(path_to_private_envs, "r") as f:
-            private_envs_json = json.load(f)
-    except json.decoder.JSONDecodeError:
-        private_envs_json = {}
-    return private_envs_json
-
-
-def prefix_if_in_private_env(spec):
-    private_envs_json = get_private_envs_json()
-    if not private_envs_json:
-        return None
-    prefixes = tuple(prefix for pkg, prefix in iteritems(private_envs_json) if
-                     pkg.startswith(spec))
-    prefix = prefixes[0] if len(prefixes) > 0 else None
-    return prefix
-
-
-def pkg_if_in_private_env(spec):
-    private_envs_json = get_private_envs_json()
-    pkgs = tuple(pkg for pkg, prefix in iteritems(private_envs_json) if pkg.startswith(spec))
-    pkg = pkgs[0] if len(pkgs) > 0 else None
-    return pkg
 
 
 def create_prefix_spec_map_with_deps(r, specs, default_prefix):

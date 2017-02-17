@@ -13,6 +13,7 @@ import os
 from os.path import abspath, basename, exists, isdir, join
 import re
 
+import conda.plan
 from . import common
 from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
@@ -150,7 +151,7 @@ def install(args, parser, command='install'):
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in linked_names and common.prefix_if_in_private_env(name) is None:
+            if name not in linked_names and conda.plan.prefix_if_in_private_env(name) is None:
                 raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
                                            (name, prefix))
 
