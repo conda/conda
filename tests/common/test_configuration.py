@@ -270,7 +270,6 @@ class ConfigurationTests(TestCase):
                 pprint(val)
             assert config.channels == ('wile', 'porky', 'bugs', 'elmer', 'daffy',
                                        'tweety', 'foghorn')
-
         finally:
             rmtree(tempdir, ignore_errors=True)
 
