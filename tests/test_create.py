@@ -324,7 +324,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
-            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+            tar_old_path = join(PackageCache.first_writable().pkgs_dir, flask_fname)
 
             # Regression test for #2812
             # install from local channel
@@ -372,7 +372,8 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
-            tar_old_path = join(context.pkgs_dirs[0], flask_fname)
+            tar_old_path = join(PackageCache.first_writable().pkgs_dir, flask_fname)
+
             assert isfile(tar_old_path)
 
             # regression test for #2886 (part 1 of 2)
@@ -856,7 +857,7 @@ class IntegrationTests(TestCase):
         assert not glob(join(index_cache_dir, "*.json"))
 
     def test_clean_tarballs_and_packages(self):
-        pkgs_dir = context.pkgs_dirs[0]
+        pkgs_dir = join(PackageCache.first_writable().pkgs_dir, 'pkgs')
         mkdir_p(pkgs_dir)
         pkgs_dir_hold = pkgs_dir + '_hold'
         try:
