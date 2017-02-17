@@ -74,10 +74,10 @@ install:
 build: false
 
 test_script:
-  - py.test --cov conda --cov-report term-missing conda tests --shell=cmd.exe --shell=bash.exe
+  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "not integration and not installed"
+  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "integration and not installed"
+  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "installed" --shell=cmd.exe --shell=bash.exe
 
 on_success:
   - pip install codecov coveralls scrutinizer-ocular
   - codecov --env PYTHON_VERSION
-  # - coveralls && exit 0  # coveralls is a piece of crap and doesn't merge tests runs from Appveyor and Travis CI with the same commit hashes
-  # - ocular && exit 0

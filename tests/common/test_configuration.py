@@ -263,9 +263,13 @@ class ConfigurationTests(TestCase):
             assert raw_data[f2]['proxy_servers'].value(None)['http'] == "marv"
 
             config = SampleConfiguration(search_path)
+
+            from pprint import pprint
+            for key, val in config.collect_all().items():
+                print(key)
+                pprint(val)
             assert config.channels == ('wile', 'porky', 'bugs', 'elmer', 'daffy',
                                        'tweety', 'foghorn')
-
         finally:
             rmtree(tempdir, ignore_errors=True)
 

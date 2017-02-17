@@ -414,6 +414,7 @@ def test_PS1(shell, bash_profile):
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
 
+@pytest.mark.installed
 def test_PS1_no_changeps1(shell, bash_profile):
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
@@ -557,6 +558,7 @@ def test_activate_from_env(shell):
         assert_equals(stdout.rstrip(), env_dirs[1], stderr)
 
 
+@pytest.mark.installed
 def test_deactivate_from_env(shell):
     """Tests whether the deactivate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
@@ -667,6 +669,7 @@ def test_activate_has_extra_env_vars(shell):
 
 
 @pytest.mark.slow
+@pytest.mark.installed
 def test_activate_keeps_PATH_order(shell):
     if not on_win or shell != "cmd.exe":
         pytest.xfail("test only implemented for cmd.exe on win")
@@ -681,6 +684,7 @@ def test_activate_keeps_PATH_order(shell):
         assert stdout.startswith("somepath;" + sys.prefix)
 
 @pytest.mark.slow
+@pytest.mark.installed
 def test_deactivate_placeholder(shell):
     if not on_win or shell != "cmd.exe":
         pytest.xfail("test only implemented for cmd.exe on win")

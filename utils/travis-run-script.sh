@@ -20,12 +20,21 @@ make_conda_entrypoint() {
 }
 
 main_test() {
-    export PYTEST_EXE="~/miniconda/bin/py.test"
+    export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
+    export PYTHON_EXE=$(sed 's/^\#!//' $PYTEST_EXE | head -1)
+    export PYTHON_MAJOR_VERSION=$($PYTHON_EXE -c "import sys; print(sys.version_info[0])")
+    export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+    export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
 
-    # basic unit tests
-    make conda-version
-    make integration
-#    ~/miniconda/bin/python -m pytest --cov-report xml --shell=bash --shell=zsh -m "not installed" --doctest-modules conda tests
+    export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+
+    # make conda-version
+    $PYTHON_EXE utils/setup-testing.py --version
+
+    # make integration
+    $PYTEST_EXE $ADD_COV -m "not integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "integration and not installed"
+
 }
 
 activate_test() {
@@ -34,16 +43,21 @@ activate_test() {
 #    ln -sf shell/deactivate $prefix/bin/deactivate
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
 
-    ~/miniconda/bin/python utils/setup-testing.py develop
-    export PATH="~/miniconda/bin:$PATH"
+    if [[ $TRAVIS_SUDO == true ]]; then
+        sudo $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
+    else
+        $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
+    fi
+
+    export PATH="$INSTALL_PREFIX/bin:$PATH"
     hash -r
-    ~/miniconda/bin/python -c "import conda; print(conda.__version__)"
-    ~/miniconda/bin/python -m conda info
+    $INSTALL_PREFIX/bin/python -c "import conda; print(conda.__version__)"
+    $INSTALL_PREFIX/bin/python -m conda info
 
-    export PYTEST_EXE="~/miniconda/bin/py.test"
-    make test-installed
+    export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
+    # make test-installed
+    $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
 
-#    ~/miniconda/bin/python -m pytest --cov-report term-missing --cov-report xml --cov-append --shell=bash --shell=zsh -m "installed" tests
 }
 
 
@@ -57,16 +71,14 @@ conda_build_unit_test() {
     echo
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
     echo
-    ~/miniconda/bin/python -m conda info
-    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
-    ~/miniconda/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
+    $INSTALL_PREFIX/bin/python -m conda info
+    $INSTALL_PREFIX/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
+    $INSTALL_PREFIX/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
     popd
 }
 
-env | sort
-
 if [[ $FLAKE8 == true ]]; then
-    ~/miniconda/bin/python -m flake8 --statistics
+    flake8 --statistics
 elif [[ -n $CONDA_BUILD ]]; then
     conda_build_smoke_test
     conda_build_unit_test
@@ -75,6 +87,7 @@ else
     if [[ "$(uname -s)" == "Linux" ]]; then
         activate_test
     fi
+    $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
 fi
 
 set +x

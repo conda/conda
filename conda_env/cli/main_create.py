@@ -1,22 +1,18 @@
 from __future__ import print_function
+
 from argparse import RawDescriptionHelpFormatter
 import os
 import sys
 import textwrap
 
-
-from conda.cli import common
-from conda.cli import install as cli_install
+from conda.cli import common, install as cli_install
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 from conda.plan import is_root_prefix
 
-from ..installers.base import get_installer, InvalidInstaller
-from .. import exceptions
-from .. import specs
-
-# for conda env import
-from conda_env.cli.common import get_prefix
+from .common import get_prefix
+from .. import exceptions, specs
+from ..installers.base import InvalidInstaller, get_installer
 
 description = """
 Create an environment based on an environment file
