@@ -8,7 +8,7 @@ import json
 from json import loads as json_loads
 from logging import DEBUG, getLogger
 import os
-from os.path import basename, exists, isdir, isfile, join, relpath
+from os.path import basename, exists, isdir, isfile, join, relpath, dirname
 from shlex import split
 from shutil import copyfile, rmtree
 from subprocess import check_call
@@ -353,7 +353,7 @@ class IntegrationTests(TestCase):
 
                 # Regression test for 2970
                 # install from build channel as a tarball
-                conda_bld = join(sys.prefix, 'conda-bld')
+                conda_bld = join(dirname(PackageCache.first_writable().pkgs_dir), 'conda-bld')
                 conda_bld_sub = join(conda_bld, context.subdir)
                 if not isdir(conda_bld_sub):
                     os.makedirs(conda_bld_sub)
