@@ -23,7 +23,7 @@ from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
 from .common.compat import odict, on_win
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
-from .core.index import supplement_index_with_prefix
+from .core.index import _supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
@@ -541,7 +541,7 @@ def add_unlink_options_for_update(actions, required_solves, index):
 
 def get_resolve_object(index, prefix):
     # instantiate resolve object
-    supplement_index_with_prefix(index, prefix, {})
+    _supplement_index_with_prefix(index, prefix, {})
     r = Resolve(index)
     return r
 
