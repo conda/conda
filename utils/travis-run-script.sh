@@ -32,8 +32,8 @@ main_test() {
     $PYTHON_EXE utils/setup-testing.py --version
 
     # make integration
-    $PYTEST_EXE $ADD_COV -m "not integration and not installed" --shell=bash --shell=zsh
-    $PYTEST_EXE $ADD_COV -m "integration and not installed" --shell=bash --shell=zsh
+    $PYTEST_EXE $ADD_COV -m "not integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "integration and not installed"
 
 }
 
