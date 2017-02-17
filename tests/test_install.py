@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from datetime import datetime
+
 from conda.base.context import context
 from conda.common.compat import text_type
 from conda.core.package_cache import download
@@ -76,6 +78,7 @@ class TestBinaryReplace(unittest.TestCase):
         self.assertRaises(_PaddingError, binary_replace,
                           b'aaaacaaaa\x00', b'aaaa', b'bbbbb')
 
+    @pytest.mark.integration
     @pytest.mark.skipif(not on_win, reason="exe entry points only necessary on win")
     def test_windows_entry_point(self):
         """
@@ -87,7 +90,7 @@ class TestBinaryReplace(unittest.TestCase):
         chdir(tmp_dir)
         original_prefix = "C:\\BogusPrefix\\python.exe"
         try:
-            url = 'https://bitbucket.org/vinay.sajip/pyzzer/downloads/pyzzerw.pyz'
+            url = 'https://s3.amazonaws.com/conda-dev/pyzzerw.pyz'
             download(url, 'pyzzerw.pyz')
             url = 'https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz'
             download(url, 'conda-4.1.6.tar.gz')

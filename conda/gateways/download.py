@@ -124,7 +124,8 @@ def download(url, target_full_path, md5sum):
                              getattr(e.response, 'url', None),
                              getattr(e.response, 'status_code', None),
                              getattr(e.response, 'reason', None),
-                             getattr(e.response, 'elapsed', None))
+                             getattr(e.response, 'elapsed', None),
+                             e.response)
 
     finally:
         if content_length:

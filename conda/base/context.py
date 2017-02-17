@@ -4,19 +4,21 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import Sequence
 from logging import getLogger
 import os
-from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
+from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
                         PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+from .. import CondaError
 from .._vendor.appdirs import user_data_dir
+from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from .._vendor.boltons.setutils import IndexedSet
-from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
+from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types, text_type
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
@@ -282,7 +284,7 @@ class Context(Configuration):
     @property
     def pkgs_dirs(self):
         if self._pkgs_dirs:
-            return tuple(IndexedSet(self._pkgs_dirs))
+            return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
             cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
             return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (
@@ -525,11 +527,21 @@ def get_prefix(ctx, args, search=True):
         if search:
             return locate_prefix_by_name(ctx, args.name)
         else:
-            return join(ctx.envs_dirs[0], args.name)
+            # need first writable envs_dir
+            envs_dir = first(ctx.envs_dirs, envs_dir_has_writable_pkg_cache)
+            if not envs_dir:
+                raise CondaError("No writable package envs directories found in\n"
+                                 "%s" % text_type(context.envs_dirs))
+            return join(envs_dir, args.name)
     elif getattr(args, 'prefix', None):
         return abspath(expanduser(args.prefix))
     else:
         return ctx.default_prefix
+
+
+def envs_dir_has_writable_pkg_cache(envs_dir):
+    from ..core.package_cache import PackageCache
+    return PackageCache(join(dirname(envs_dir), 'pkgs')).is_writable
 
 
 def locate_prefix_by_name(ctx, name):

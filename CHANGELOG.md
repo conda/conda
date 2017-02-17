@@ -14,6 +14,24 @@
 * eliminate index modification in Resolve.__init__ (#4333)
 
 
+## 4.3.13 (2017-02-17)
+
+### Improvements
+* resolve #4636 environment variable expansion for pkgs_dirs (#4637)
+* link, symlink, islink, and readlink for Windows (#4652, #4661)
+* add extra information to CondaHTTPError (#4638, #4672)
+
+### Bug Fixes
+* maximize requested builds after feature determination (#4647)
+* fix #4649 incorrect assert statement concerning package cache directory (#4651)
+* multi-user mode bug fixes (#4663)
+
+### Non-User-Facing Changes
+* path_actions unit tests (#4654)
+* remove dead code (#4369, #4655, #4660)
+* separate repodata logic from index into a new core/repodata.py module (#4669)
+
+
 ## 4.3.12 (2017-02-14)
 
 ### Improvements

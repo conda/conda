@@ -8,3 +8,4 @@ radon
 responses
 anaconda-client
 nbformat
+codecov
