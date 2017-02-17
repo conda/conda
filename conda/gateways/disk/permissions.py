@@ -61,6 +61,6 @@ def make_executable(path):
     if isfile(path):
         mode = lstat(path).st_mode
         log.trace('chmod +x %s', path)
-        lchmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
+        chmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
     else:
         log.error("Cannot make path '%s' executable", path)
