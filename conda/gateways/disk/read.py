@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import hashlib
+import json
+import shlex
 from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from functools import partial
 from glob import glob
-import hashlib
 from itertools import chain
-import json
 from logging import getLogger
 from os import X_OK, access, listdir
 from os.path import isdir, isfile, islink, join, lexists
-import shlex
 
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
+from ...base.context import context
 from ...common.compat import on_win
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
@@ -236,3 +237,15 @@ def get_json_content(path_to_json):
     else:
         json_content = {}
     return json_content
+
+
+def get_private_envs_json():
+    path_to_private_envs = join(context.root_prefix, "conda-meta", "private_envs")
+    if not isfile(path_to_private_envs):
+        return None
+    try:
+        with open(path_to_private_envs, "r") as f:
+            private_envs_json = json.load(f)
+    except json.decoder.JSONDecodeError:
+        private_envs_json = {}
+    return private_envs_json
