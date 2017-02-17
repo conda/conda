@@ -1000,6 +1000,9 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
 
+    def test_preferred_env(self):
+        pass
+
     def test_conda_list_json(self):
         def pkg_info(s):
             # function from nb_conda/envmanager.py

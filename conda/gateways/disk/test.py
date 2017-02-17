@@ -5,6 +5,7 @@ from logging import getLogger
 from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join, lexists
 
+from conda.base.constants import PREFIX_MAGIC_FILE
 from .create import create_link
 from .delete import rm_rf
 from .link import islink
@@ -56,7 +57,7 @@ def prefix_is_writable(prefix):
     """
     if isdir(prefix):
         test_path = find_first_existing(
-            join(prefix, 'conda-meta', 'history'),  # (1)
+            join(prefix, PREFIX_MAGIC_FILE),  # (1)
             join(prefix, 'conda-meta', 'conda-*.json'),  # (2)
             join(prefix, 'conda-meta', '*.json'),  # (3)
             join(prefix, get_python_short_path('*')),  # (4)

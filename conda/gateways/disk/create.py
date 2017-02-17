@@ -13,6 +13,7 @@ import sys
 import tarfile
 import traceback
 
+from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE, ENVS_DIR_MAGIC_FILE
 from .delete import rm_rf
 from .link import islink, link, readlink, symlink
 from .permissions import make_executable
@@ -301,10 +302,25 @@ def create_package_cache_directory(pkgs_dir):
         log.trace("creating package cache directory '%s'", pkgs_dir)
         mkdir_p(pkgs_dir)
         touch(join(pkgs_dir, 'urls'))
-        touch(join(pkgs_dir, 'urls.txt'))
+        touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
     except (IOError, OSError) as e:
         if e.errno in (EACCES, EPERM):
-            log.trace("Cannot create package cache directory '%s'", pkgs_dir)
+            log.trace("cannot create package cache directory '%s'", pkgs_dir)
+            return False
+        else:
+            raise
+    return True
+
+
+def create_envs_directory(envs_dir):
+    # returns False if envs directory cannot be created
+    try:
+        log.trace("creating envs directory '%s'", envs_dir)
+        mkdir_p(envs_dir)
+        touch(join(envs_dir, ENVS_DIR_MAGIC_FILE))
+    except (IOError, OSError) as e:
+        if e.errno in (EACCES, EPERM):
+            log.trace("cannot create envs directory '%s'", envs_dir)
             return False
         else:
             raise

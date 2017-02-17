@@ -8,6 +8,8 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from os.path import join
+
 from enum import Enum
 import sys
 
@@ -98,3 +100,9 @@ class PathConflict(Enum):
 
     def __str__(self):
         return self.value
+
+
+# Magic files for permissions determination
+PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
+ENVS_DIR_MAGIC_FILE = 'catalog.json'
+PREFIX_MAGIC_FILE = join('conda-meta', 'history')
