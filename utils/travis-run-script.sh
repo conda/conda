@@ -43,7 +43,12 @@ activate_test() {
 #    ln -sf shell/deactivate $prefix/bin/deactivate
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
 
-    $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
+    if [[ $TRAVIS_SUDO == true ]]; then
+        sudo $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
+    else
+        $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
+    fi
+
     export PATH="$INSTALL_PREFIX/bin:$PATH"
     hash -r
     $INSTALL_PREFIX/bin/python -c "import conda; print(conda.__version__)"
