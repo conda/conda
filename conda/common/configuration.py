@@ -24,6 +24,7 @@ from logging import getLogger
 from os import environ, stat
 from os.path import basename, join
 from stat import S_IFDIR, S_IFMT, S_IFREG
+import threading
 
 from enum import Enum
 
@@ -36,6 +37,7 @@ from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
+from .._vendor.boltons.setutils import IndexedSet
 
 try:
     from cytoolz.dicttoolz import merge
@@ -423,7 +425,7 @@ class Parameter(object):
         # a match is a raw parameter instance
         matches = []
         multikey_exceptions = []
-        for filepath, raw_parameters in iteritems(instance.raw_data):
+        for filepath, raw_parameters in iteritems(instance._raw_data):
             match, error = self._raw_parameters_from_single_source(raw_parameters)
             if match is not None:
                 matches.append(match)
@@ -690,11 +692,15 @@ class ConfigurationType(type):
 
 @with_metaclass(ConfigurationType)
 class Configuration(object):
+    _reset_callbacks = frozenset()
+
+    def __new__(cls, *args, **kwargs):
+        # keep state in per-thread local storage
+        instance = super(Configuration, cls).__new__(cls, *args, **kwargs)
+        instance._thread_local = threading.local()
+        return instance
 
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
-        self.raw_data = odict()
-        self._cache_ = dict()
-        self._reset_callbacks = set()  # TODO: make this a boltons ordered set
         self._validation_errors = defaultdict(list)
 
         if not hasattr(self, '_search_path') and search_path is not None:
@@ -719,10 +725,11 @@ class Configuration(object):
             # we need to make sure old data doesn't stick around if we are resetting
             #   easiest solution is to completely clear raw_data and re-load other sources
             #   if raw_data holds contents
-            raw_data_held_contents = bool(self.raw_data)
+            raw_data_held_contents = bool(self._raw_data)
             if raw_data_held_contents:
-                self.raw_data = odict()
+                self._raw_data.clear()
 
+            # this is where we load the contents of all configuration files into memory
             self._set_raw_data(load_file_configs(search_path))
 
             if raw_data_held_contents:
@@ -739,7 +746,7 @@ class Configuration(object):
             self._app_name = app_name
         if getattr(self, '_app_name', None):
             erp = EnvRawParameter
-            self.raw_data[erp.source] = erp.make_raw_parameters(self._app_name)
+            self._raw_data[erp.source] = erp.make_raw_parameters(self._app_name)
         self._reset_cache()
         return self
 
@@ -761,30 +768,54 @@ class Configuration(object):
                                            if v is not NULL)
 
         source = ArgParseRawParameter.source
-        self.raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
+        self._raw_data[source] = ArgParseRawParameter.make_raw_parameters(self._argparse_args)
         self._reset_cache()
         return self
 
     def _set_raw_data(self, raw_data):
-        self.raw_data.update(raw_data)
+        self._raw_data.update(raw_data)
         self._reset_cache()
         return self
 
     def _reset_cache(self):
-        self._cache_ = dict()
+        self._cache_.clear()
         for callback in self._reset_callbacks:
             callback()
         return self
 
-    def register_reset_callaback(self, callback):
-        self._reset_callbacks.add(callback)
+    @property
+    def _raw_data(self):
+        try:
+            return self._thread_local._raw_data
+        except AttributeError:
+            # AttributeError: 'thread._local' object has no attribute '_raw_data'
+            self._thread_local._raw_data = odict()
+            return self._thread_local._raw_data
+
+    @property
+    def _cache_(self):
+        try:
+            return self._thread_local._cache_
+        except AttributeError:
+            # AttributeError: 'thread._local' object has no attribute '_cache_'
+            self._thread_local._cache_ = dict()
+            return self._thread_local._cache_
+
+    @classmethod
+    def register_reset_callaback(cls, callback):
+        try:
+            cls._reset_callbacks.add(callback)
+        except AttributeError:
+            # 'frozenset' object has no attribute 'add'
+            cls._reset_callbacks = IndexedSet()
+            cls._reset_callbacks.add(callback)
 
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__
         # I haven't yet found a way to make it more DRY though
         typed_values = {}
         validation_errors = []
-        raw_parameters = self.raw_data[source]
+        raw_parameters = self._raw_data[source]
         for key in self.parameter_names:
             parameter = self.__class__.__dict__[key]
             match, multikey_error = parameter._raw_parameters_from_single_source(raw_parameters)
@@ -812,7 +843,7 @@ class Configuration(object):
 
     def validate_all(self):
         validation_errors = list(chain.from_iterable(self.check_source(source)[1]
-                                                     for source in self.raw_data))
+                                                     for source in self._raw_data))
         raise_errors(validation_errors)
         self.validate_configuration()
 
@@ -836,7 +867,7 @@ class Configuration(object):
     def collect_all(self):
         typed_values = odict()
         validation_errors = odict()
-        for source in self.raw_data:
+        for source in self._raw_data:
             typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
         return odict((k, v) for k, v in iteritems(typed_values) if v)
