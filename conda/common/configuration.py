@@ -694,6 +694,9 @@ class ConfigurationType(type):
 class Configuration(object):
     _reset_callbacks = frozenset()
 
+    _search_path = None
+    _app_name = None
+
     def __new__(cls, *args, **kwargs):
         # keep state in per-thread local storage
         instance = super(Configuration, cls).__new__(cls, *args, **kwargs)
@@ -703,25 +706,19 @@ class Configuration(object):
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
         self._validation_errors = defaultdict(list)
 
-        if not hasattr(self, '_search_path') and search_path is not None:
-            # we only set search_path once; we never change it
+        # we only set search_path and app_name once; we never change them
+        if self._search_path is None and search_path is not None:
             self._search_path = search_path
-
-        if not hasattr(self, '_app_name') and app_name is not None:
-            # we only set app_name once; we never change it
+        if self._app_name is None and app_name is not None:
             self._app_name = app_name
 
+    def _load_raw_data(self):
         self._set_search_path(search_path)
         self._set_env_vars(app_name)
         self._set_argparse_args(argparse_args)
 
-    def _set_search_path(self, search_path):
-        if not hasattr(self, '_search_path') and search_path is not None:
-            # we only set search_path once; we never change it
-            self._search_path = search_path
-
-        if getattr(self, '_search_path', None):
-
+    def _set_file_sources(self):
+        if self._search_path:
             # we need to make sure old data doesn't stick around if we are resetting
             #   easiest solution is to completely clear raw_data and re-load other sources
             #   if raw_data holds contents
@@ -739,6 +736,32 @@ class Configuration(object):
 
         self._reset_cache()
         return self
+
+    # # TODO: get rid of _set_search_path
+    # def _set_search_path(self, search_path):
+    #     # we only set search_path once; we never change it
+    #     if self._search_path is None and search_path is not None:
+    #         self._search_path = search_path
+    #
+    #     if self._search_path:
+    #         # we need to make sure old data doesn't stick around if we are resetting
+    #         #   easiest solution is to completely clear raw_data and re-load other sources
+    #         #   if raw_data holds contents
+    #         raw_data_held_contents = bool(self._raw_data)
+    #         if raw_data_held_contents:
+    #             self._raw_data.clear()
+    #
+    #         # this is where we load the contents of all configuration files into memory
+    #         self._set_raw_data(load_file_configs(search_path))
+    #
+    #         if raw_data_held_contents:
+    #             # this should only be triggered on re-initialization / reset
+    #             self._set_env_vars(getattr(self, '_app_name', None))
+    #             self._set_argparse_args(self._argparse_args)
+    #
+    #     self._reset_cache()
+    #     return self
+
 
     def _set_env_vars(self, app_name=None):
         if not hasattr(self, '_app_name') and app_name is not None:
@@ -785,12 +808,7 @@ class Configuration(object):
 
     @property
     def _raw_data(self):
-        try:
-            return self._thread_local._raw_data
-        except AttributeError:
-            # AttributeError: 'thread._local' object has no attribute '_raw_data'
-            self._thread_local._raw_data = odict()
-            return self._thread_local._raw_data
+        return self._cache_['_raw_data']
 
     @property
     def _cache_(self):
@@ -799,6 +817,7 @@ class Configuration(object):
         except AttributeError:
             # AttributeError: 'thread._local' object has no attribute '_cache_'
             self._thread_local._cache_ = dict()
+            # need to load _raw_data into _cache_
             return self._thread_local._cache_
 
     @classmethod
