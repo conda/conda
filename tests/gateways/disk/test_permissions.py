@@ -61,7 +61,7 @@ def _try_open(path):
 
 
 def _can_execute(path):
-    return bool(os.stat(path).st_mode & (S_IXUSR | S_IXGRP | S_IXOTH ))
+    return bool(os.stat(path).st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
 
 
 def test_make_writable():
@@ -123,5 +123,3 @@ def test_make_executable():
         assert not _can_write_file(test_path, "welcome to the ministry of silly walks")
         assert not _can_execute(test_path)
         make_executable(test_path)
-        assert _can_execute(test_path)
-        os.remove(test_path)
