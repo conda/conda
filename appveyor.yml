@@ -74,8 +74,8 @@ install:
 build: false
 
 test_script:
-  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "not integration and not installed" --shell=cmd.exe --shell=bash.exe
-  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "integration and not installed" --shell=cmd.exe --shell=bash.exe
+  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "not integration and not installed"
+  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "integration and not installed"
   - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "installed" --shell=cmd.exe --shell=bash.exe
 
 on_success:

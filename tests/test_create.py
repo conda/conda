@@ -857,7 +857,7 @@ class IntegrationTests(TestCase):
         assert not glob(join(index_cache_dir, "*.json"))
 
     def test_clean_tarballs_and_packages(self):
-        pkgs_dir = join(PackageCache.first_writable().pkgs_dir, 'pkgs')
+        pkgs_dir = PackageCache.first_writable().pkgs_dir
         mkdir_p(pkgs_dir)
         pkgs_dir_hold = pkgs_dir + '_hold'
         try:

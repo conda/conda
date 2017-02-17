@@ -15,9 +15,6 @@ from ..installers.base import get_installer, InvalidInstaller
 from .. import exceptions
 from .. import specs
 
-# for conda env import
-from conda_env.cli.common import get_prefix
-
 description = """
 Create an environment based on an environment file
 """
@@ -90,7 +87,8 @@ def execute(args, parser):
     except exceptions.SpecNotFound:
         raise
 
-    prefix = get_prefix(args, search=False)
+    from conda.base.context import context, get_prefix
+    prefix = get_prefix(context, args, search=False)
 
     if args.force and not is_root_prefix(prefix) and os.path.exists(prefix):
         rm_rf(prefix)
