@@ -1,11 +1,10 @@
-from os.path import abspath, join, isdir, expanduser
 import os
+from os.path import isdir, join
 import sys
 
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context, get_prefix as context_get_prefix
-from conda.config import root_dir, default_prefix
-from conda.exceptions import CondaValueError
+from conda.config import root_dir
 
 root_env_name = 'root'
 
