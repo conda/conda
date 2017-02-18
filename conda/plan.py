@@ -146,6 +146,7 @@ def display_actions(actions, index, show_channel_urls=None):
 
     updated = set()
     downgraded = set()
+    unchanneled = set()
     channeled = set()
     oldfmt = {}
     newfmt = {}
@@ -192,18 +193,14 @@ def display_actions(actions, index, show_channel_urls=None):
             oldver = P0.version > P1.version
         oldbld = P0.build_number > P1.build_number
         newbld = P0.build_number < P1.build_number
-        if context.channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
-            channeled.add(pkg)
-        elif newver:
-            updated.add(pkg)
-        elif pri1 < pri0 and (oldver or not newver and oldbld):
-            channeled.add(pkg)
-        elif oldver:
-            downgraded.add(pkg)
-        elif not oldbld:
-            updated.add(pkg)
+        if pri1 == pri0:
+            (downgraded if oldver or not newver and oldbld else updated).add(pkg)
+        elif not context.channel_priority:
+            (downgraded if oldver or not newver and pri1 < pri0 else updated).add(pkg)
+        elif pri1 > pri0:
+            (channeled if oldver else updated).add(pkg)
         else:
-            downgraded.add(pkg)
+            unchanneled.add(pkg)
 
     arrow = ' --> '
     lead = ' ' * 4
@@ -232,6 +229,11 @@ def display_actions(actions, index, show_channel_urls=None):
     if channeled:
         print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
         for pkg in sorted(channeled):
+            print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
+
+    if unchanneled:
+        print("\nThe following packages will be REPLACED from a lower-priority channel\ndue to dependency conflicts:\n")
+        for pkg in sorted(unchanneled):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if downgraded:
