@@ -3,6 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import uuid
+
+import errno
 import pytest
 from errno import ENOENT, EACCES
 from shutil import rmtree
@@ -10,6 +12,7 @@ from contextlib import contextmanager
 from tempfile import gettempdir
 from os.path import join, isfile, lexists
 from stat import S_IRUSR, S_IRGRP, S_IROTH
+from stat import S_IRWXG, S_IRWXO, S_IRWXU
 from stat import S_IXUSR, S_IXGRP, S_IXOTH
 from conda.gateways.disk.update import touch
 
@@ -29,7 +32,16 @@ def tempdir():
         yield prefix
     finally:
         if lexists(prefix):
-            rmtree(prefix)
+            rmtree(prefix, ignore_errors=False, onerror=_remove_read_only)
+
+
+def _remove_read_only(func, path, exc):
+    excvalue = exc[1]
+    if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
+        os.chmod(path, S_IRWXU| S_IRWXG| S_IRWXO)
+        func(path)
+    else:
+        pass
 
 
 def _make_read_only(path):
