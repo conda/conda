@@ -70,6 +70,14 @@ NOTE: Replace "filename" with the actual path and name of the downloaded package
 
 **Windows:**
 
+Open a PowerShell console (requires PowerShell V4 or later); verify the file as follows:
+
+``Get-FileHash filename -Algorithm MD5`` or ``Get-FileHash filename -Algorithm SHA256``
+
+NOTE: Replace "filename" with the actual path and name of the downloaded package file.
+
+If you don't have PowerShell V4 or later:
+
 Use the free online verifier tool on the Microsoft website: https://gallery.technet.microsoft.com/PowerShell-File-Checksum-e57dcd67
 
 Download and extract the file, then open a Command Prompt window. 
