@@ -123,7 +123,13 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
             else:
                 if url.endswith('/noarch/'): # noarch directory might not exist
                     return None
-                msg = 'Could not find URL: %s' % config.remove_binstar_tokens(url)
+                else:
+                    msg = ('\nIgnoring channel URL: {0}\n'
+                           'HTTP 404 returned for {1}\n'
+                           .format(config.remove_binstar_tokens(url), resp.url))
+                    warnings.warn(msg)
+                    return None
+
         elif e.response.status_code == 403 and url.endswith('/noarch/'):
             return None
 
