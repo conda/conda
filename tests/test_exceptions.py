@@ -64,9 +64,9 @@ class ExceptionTests(TestCase):
         assert c.stderr.strip() == dals("""
         MD5MismatchError: Conda detected a mismatch between the expected content and downloaded content
         for url 'https://download.url/path/to/file.tar.bz2'.
-        Conda saved the downloaded file to '/some/path/on/disk/another-name.tar.bz2'.
-        Expected md5 sum: abc123
-        Actual md5 sum: deadbeef
+          download saved to: /some/path/on/disk/another-name.tar.bz2
+          expected md5 sum: abc123
+          actual md5 sum: deadbeef
         """).strip()
 
 
