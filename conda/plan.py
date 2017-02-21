@@ -440,17 +440,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     """
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
-    str_specs = specs
-    specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
-
-    linked_in_root = linked_data(context.root_prefix)
-
-    # Ensure that there is only one prefix to install into
-    dists_for_envs = determine_all_envs(r, specs)
-    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
-    # preferred_envs = set(d.env for d in dists_for_envs)
-    # assert len(preferred_envs) == 1, preferred_envs
+    str_specs = specs
 
     specs_for_prefix = SpecsForPrefix(
         prefix=prefix, specs=tuple(str_specs), r=r
