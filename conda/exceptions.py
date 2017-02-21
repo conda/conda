@@ -312,9 +312,9 @@ class MD5MismatchError(CondaError):
         message = dals("""
         Conda detected a mismatch between the expected content and downloaded content
         for url '%(url)s'.
-        Conda saved the downloaded file to '%(target_full_path)s'.
-        Expected md5 sum: %(expected_md5sum)s
-        Actual md5 sum: %(actual_md5sum)s
+          download saved to: %(target_full_path)s
+          expected md5 sum: %(expected_md5sum)s
+          actual md5 sum: %(actual_md5sum)s
         """)
         super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
                                                expected_md5sum=expected_md5sum,
