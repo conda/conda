@@ -88,7 +88,7 @@ install_conda_build() {
     $prefix/bin/conda config --set add_pip_as_python_dependency true
 
     # install conda-build
-    git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
+    git clone -b $CONDA_BUILD --single-branch --depth 100 https://github.com/conda/conda-build.git
     local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf $site_packages/conda_build
     pushd conda-build
@@ -159,7 +159,7 @@ conda_activate_test() {
 #    local prefix=$(python -c "import sys; print(sys.prefix)")
 #    ln -sf shell/activate $prefix/bin/activate
 #    ln -sf shell/deactivate $prefix/bin/deactivate
-#    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
+#    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python $(pwd)
 
     if [[ $SUDO == true ]]; then
         sudo $prefix/bin/python utils/setup-testing.py develop
@@ -167,13 +167,12 @@ conda_activate_test() {
         $prefix/bin/python utils/setup-testing.py develop
     fi
 
-    export PATH="$INSTALL_PREFIX/bin:$PATH"
-    hash -r
-    $INSTALL_PREFIX/bin/python -c "import conda; print(conda.__version__)"
-    $INSTALL_PREFIX/bin/python -m conda info
+    $prefix/bin/python -c "import conda; print(conda.__version__)"
+    $prefix/bin/python -m conda info
 
-    export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
     # make test-installed
+    which conda
+    which activate
     $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
 
 }
@@ -181,8 +180,10 @@ conda_activate_test() {
 
 
 conda_build_smoke_test() {
-    conda config --add channels conda-canary
-    conda build conda.recipe
+    local prefix=${1:-$INSTALL_PREFIX}
+
+    $prefix/bin/conda config --add channels conda-canary
+    $prefix/bin/conda build conda.recipe
 }
 
 

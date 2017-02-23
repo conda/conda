@@ -8,6 +8,9 @@ addons:
     packages:
       - zsh
 
+git:
+  depth: 100
+
 matrix:
   include:
     - env: PYTHON_VERSION=3.6 SUDO=true
