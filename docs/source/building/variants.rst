@@ -6,7 +6,7 @@ The nature of binary compatibility (or lack thereof) means that unfortunately,
 we need to build binary packages (and any package containing binaries) with
 potentially several variants to support different usage environments. For
 example, using Numpy's C API means that a package must be used with the same
-version of Numpy as runtime that was used at build time.
+version of Numpy at runtime that was used at build time.
 
 There has been limited support for this for a long time: Python in both build
 and run requirements resulted in a package that had python pinned to the version
@@ -473,22 +473,20 @@ to pin. They are by convention strings containing ``x`` characters separated by
 are separated by ``.``. For example, ``"x.x"`` pins major and minor version.
 ``"x"`` pins only major version.
 
-Wherever pinning expressions are accepted, you can pass either a single pinning
-expression or a tuple/list of two pinning expressions. For the single
-expression, you'll end up customizing only the upper bound. For the tuple/list,
-you'll customize both bounds.
+Wherever pinning expressions are accepted, you can customize both lower and
+upper bounds.
 
 
 .. code-block:: python
 
     # produces pins like >=1.11.2,<1.12
-    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': 'x.x'}}]
+    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': {'max_pin': 'x.x'}}}]
 
 
 .. code-block:: python
 
     # produces pins like >=1.11,<2
-    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': ('x.x', 'x')}}]
+    variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': {'min_pin': 'x.x', 'max_pin': 'x'}}}]
 
 
 Pinning at the variant level
@@ -503,8 +501,10 @@ the build environment when the follow conditions are met:
 2. The dependency is listed by name (no pinning) in the requirements/run section
 3. The ``pin_run_as_build`` key in the variant has a value that is a dictionary,
    containing a key that matches the dependency name listed in the run
-   requirements. The value should be a pinning expression, or a tuple of two
-   pinning expressions to set precision for both lower and upper bounds
+   requirements. The value should be a dictionary with up to 4 keys:
+   ``min_pin``, ``max_pin``, ``lower_bound``, ``upper_bound``. The first two are
+   pinning expressions. The latter two are version numbers, overriding detection
+   of current version. (defaulting to None).
 
 An example variant/recipe is shown here:
 
@@ -514,7 +514,8 @@ conda_build_config.yaml:
 
     boost: 1.63
     pin_run_as_build:
-        boost: x.x
+        boost:
+          max_pin: x.x
 
 meta.yaml:
 
@@ -569,15 +570,13 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', pins=['x.x'] }}
+           - numpy {{ pin_compatible('numpy', max_pin='x.x'] }}
 
 
 This would yield a pinning of ``>=1.11.2,<1.12``
 
-The syntax for the pins argument is an iterable (list or tuple) with 1 or 2
-pinning expressions. If only one is specified, the pinning expression applies
-only to the upper bound. If two are present, the first applies to the lower
-bound, and the latter to the upper bound.  An example of specifying both:
+The syntax for the ``min_pin`` and ``max_pin`` is a string pinning expression.
+Each can be passed independently of the other. An example of specifying both:
 
 
 .. code-block:: python
@@ -592,14 +591,14 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', pins=['x.x', 'x.x'] }}
+           - numpy {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x'] }}
 
 
 This would yield a pinning of ``>=1.11,<1.12``
 
 
-You can also pass the maximum version directly. This argument supercedes the
-``pins`` argument and is thus mutually exclusive.
+You can also pass the minimum or maximum version directly. These arguments supercede the
+``min_pin`` and ``max_pin`` arguments and are thus mutually exclusive.
 
 
 .. code-block:: python
@@ -614,10 +613,10 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', upper_bound='3.0' }}
+           - numpy {{ pin_compatible('numpy', lower_bound='1.10', upper_bound='3.0') }}
 
 
-This would yield a pinning of ``>=1.11,<3.0``
+This would yield a pinning of ``>=1.10,<3.0``
 
 Appending to recipes
 --------------------
@@ -713,20 +712,20 @@ incompatibilities are ways of specifying such compatibility, and of explicitly
 expressing the compiler to be used. Three new Jinja2 functions are available when
 evaluating ``meta.yaml`` templates:
 
-* ``pin_compatible('package_name', pins='x')``: To be used as pin in run and/or
-  test requirements. Takes package name argument. Looks up compatibility of
-  named package installed in the build environment, and writes compatible range
-  pin for run and/or test requirements. Defaults to a semver-based assumption:
-  ``>=(current version),<(next major version)``. Pass pins either a `Pinning
-  expressions`_ or a tuple/list of 2 `Pinning expressions`_ to customize this
-  behavior. This will be enhanced as time goes on with information from `ABI
-  Laboratory <https://abi-laboratory.pro/>`_
+* ``pin_compatible('package_name', min_pin='x.x.x.x.x.x', max_pin='x',
+  lower_bound=None, upper_bound=None)``: To be used as pin in run and/or test
+  requirements. Takes package name argument. Looks up compatibility of named
+  package installed in the build environment, and writes compatible range pin
+  for run and/or test requirements. Defaults to a semver-based assumption:
+  ``>=(current version),<(next major version)``. Pass ``min_pin`` or ``max_pin``
+  a `Pinning expressions`_ . This will be enhanced as time goes on with
+  information from `ABI Laboratory <https://abi-laboratory.pro/>`_
 
-* ``pin_subpackage('package_name', pins='x', exact=False)``: To be used as pin
-  in run and/or test requirements. Takes package name argument. Used to refer to
-  particular versions of subpackages built by parent recipe as dependencies
-  elsewhere in that recipe. Can use either pinning expressions, or exact
-  (including build string).
+* ``pin_subpackage('package_name', min_pin='x.x.x.x.x.x', max_pin='x',
+  exact=False)``: To be used as pin in run and/or test requirements. Takes
+  package name argument. Used to refer to particular versions of subpackages
+  built by parent recipe as dependencies elsewhere in that recipe. Can use
+  either pinning expressions, or exact (including build string).
 
 * ``compiler('language')``: To be used in build requirements most commonly.
   Run or test as necessary. Takes language name argument. This is shorthand to
@@ -772,8 +771,8 @@ meta.yaml:
    requirements:
      run:
        - {{ pin_subpackage('subpackage_1') }}
-       - {{ pin_subpackage('subpackage_2', pins='x.x') }}
-       - {{ pin_subpackage('subpackage_3', pins=('x.x', 'x.x')) }}
+       - {{ pin_subpackage('subpackage_2', max_pin='x.x') }}
+       - {{ pin_subpackage('subpackage_3', min_pin='x.x', max_pin='x.x') }}
        - {{ pin_subpackage('subpackage_4', exact=True) }}
 
 
@@ -789,8 +788,9 @@ meta.yaml:
 
 Here, the parent package will have the following different runtime dependencies:
 
-* subpackage_1 >=1.0.0,<2 (default uses pins='x', pins to major version with
-  default >= current version lower bound)
+* subpackage_1 >=1.0.0,<2 (default uses ``min_pin='x.x.x.x.x.x``,
+  ``max_pin='x'``, pins to major version with default >= current version lower
+  bound)
 * subpackage_2 >=2.0.0,<2.1 (more stringent upper bound)
 * subpackage_3 >=3.0,<3.1 (less stringent lower bound, more stringent upper bound)
 * subpackage_4 4.0.0 h81241af (exact pinning - version plus build string)
