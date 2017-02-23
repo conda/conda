@@ -102,9 +102,8 @@ install_conda_build() {
 
 
 usr_local_install() {
-    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     export INSTALL_PREFIX="/usr/local"
-    export PATH=$INSTALL_PREFIX/bin:$PATH
+    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     sudo chown -R root:root ./conda
     ls -al ./conda
 }
@@ -229,6 +228,7 @@ run_setup() {
     set -e
     set -x
 
+    export INSTALL_PREFIX=~/miniconda
 
     case "$(uname -s)" in
         'Darwin')
@@ -239,6 +239,8 @@ run_setup() {
             ;;
         *)  ;;
     esac
+
+    export PATH="$INSTALL_PREFIX:$PATH"
 }
 
 
