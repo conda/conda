@@ -191,10 +191,10 @@ class LinkPathAction(CreateInPrefixPathAction):
     def create_python_entry_point_windows_exe_action(cls, transaction_context, package_info,
                                                      target_prefix, requested_link_type,
                                                      entry_point_def):
-        source_directory = CONDA_PACKAGE_ROOT
-        source_short_path = 'resources/cli-%d.exe' % context.bits
+        source_directory = context.conda_prefix
+        source_short_path = 'Scripts/conda.exe'
         command, _, _ = parse_entry_point_def(entry_point_def)
-        target_short_path = "%s/%s.exe" % (get_bin_directory_short_path(), command)
+        target_short_path = "Scripts/%s.exe" % command
         return cls(transaction_context, package_info, source_directory,
                    source_short_path, target_prefix, target_short_path,
                    requested_link_type)
