@@ -11,7 +11,7 @@ from itertools import chain
 import json
 from logging import getLogger
 from os import listdir
-from os.path import isdir, isfile, islink, join, lexists
+from os.path import isdir, isfile, join, lexists
 import shlex
 
 from .link import islink
@@ -27,7 +27,7 @@ from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathD
 log = getLogger(__name__)
 
 listdir = listdir
-lexists, isdir, isfile, islink = lexists, isdir, isfile, islink
+lexists, isdir, isfile = lexists, isdir, isfile
 
 
 def yield_lines(path):
