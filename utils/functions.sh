@@ -51,7 +51,7 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-    $prefix/bin/conda install -y -q python=$python_version
+    $prefix/bin/conda install -y -q python=$python_version setuptools pip
     remove_conda $prefix
 
     which python
@@ -80,8 +80,8 @@ install_conda_build() {
 
     # install conda-build test dependencies
     $prefix/bin/conda install -y -q \
-        pytest pytest-cov pytest-timeout mock anaconda-client numpy \  # test dependencies
-        filelock jinja2 patchelf conda-verify setuptools contextlib2 pkginfo  # runtime dependencies
+        pytest pytest-cov pytest-timeout mock anaconda-client numpy \
+        filelock jinja2 patchelf conda-verify contextlib2 pkginfo
     $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
     $prefix/bin/pip install pytest-catchlog pytest-mock
 
