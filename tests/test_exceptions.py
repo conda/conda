@@ -1,17 +1,12 @@
 import json
-import random
 from unittest import TestCase
 
+from conda import text_type
 from conda._vendor.auxlib.ish import dals
-
-from conda.common.compat import text_type
-
 from conda.base.context import reset_context
-from conda.common.io import env_var, captured, replace_log_streams
-
-import conda
-from conda.exceptions import CondaAssertionError, CondaCorruptEnvironmentError, MD5MismatchError, \
-    conda_exception_handler
+from conda.common.io import captured, env_var, replace_log_streams
+from conda.exceptions import CommandNotFoundError, CondaAssertionError, CondaCorruptEnvironmentError, MD5MismatchError, \
+    conda_exception_handler, CondaHTTPError
 
 
 def test_conda_assertion_error():
@@ -40,7 +35,6 @@ class ExceptionTests(TestCase):
         expected_md5sum = "abc123"
         actual_md5sum = "deadbeef"
         exc = MD5MismatchError(url, target_full_path, expected_md5sum, actual_md5sum)
-
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
@@ -50,7 +44,7 @@ class ExceptionTests(TestCase):
         assert json_obj['exception_type'] == "<class 'conda.exceptions.MD5MismatchError'>"
         assert json_obj['exception_name'] == 'MD5MismatchError'
         assert json_obj['message'] == text_type(exc)
-        assert json_obj['error'] ==  repr(exc)
+        assert json_obj['error'] == repr(exc)
         assert json_obj['url'] == url
         assert json_obj['target_full_path'] == target_full_path
         assert json_obj['expected_md5sum'] == expected_md5sum
@@ -68,6 +62,73 @@ class ExceptionTests(TestCase):
           expected md5 sum: abc123
           actual md5 sum: deadbeef
         """).strip()
+
+
+    def test_CondaHTTPError(self):
+        url = "https://download.url/path/to/groot.tar.gz"
+        status_code = 1104
+        reason = "Could not connect"
+        elapsed_time = 1.24
+        response_detail = "Groot is down"
+        exc = CondaHTTPError(url, status_code, reason, elapsed_time)
+
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+            json_obj = json.loads(c.stdout)
+            assert not c.stderr
+            assert json_obj['exception_type'] == "<class 'conda.exceptions.CondaHTTPError'>"
+            assert json_obj['exception_name'] == 'CondaHTTPError'
+            assert json_obj['message'] == text_type(exc)
+            assert json_obj['error'] == repr(exc)
+            assert json_obj['url'] == url
+            assert json_obj['status_code'] == status_code
+            assert json_obj['reason'] == reason
+            assert json_obj['elapsed_time'] == elapsed_time
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == dals("""
+                CondaHTTPError
+                HTTP Groots Could not connect for https://download.url/path/to/groot.tar.gz
+                Elapsed: 1.24ms
+                """).strip()
+
+    def test_CommandNotFoundError(self):
+        cmd = "instate"
+        message = "hello"
+        exc = CommandNotFoundError(cmd)
+
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exception.CommandNotFoundError'>"
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == dals("""
+        Conda could not find the command: '%s'. %(command)
+        """).strip()
+
+
+
+
+
+
+
+
 
 
 # class InvalidInstructionTestCase(unittest.TestCase):

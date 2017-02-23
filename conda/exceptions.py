@@ -165,26 +165,20 @@ class SharedLinkPathClobberError(ClobberError):
         )
 
 
-class CommandError(CondaError):
-    def __init__(self, command, message):
+class CommandNotFoundError(CondaError):
+    def __init__(self, command):
         self.command = command
-        extra_info = ' '.join(text_type(arg) for arg in self.args)
-        msg = "Command Error: error with command '%s'. %s %s" % (command, message, extra_info)
-        super(CommandError, self).__init__(msg)
-
-
-class CommandNotFoundError(CommandError):
-    def __init__(self, command, message):
-        self.command = command
-        msg = "Command not found: '%s'. %s" % (command, message)
-        super(CommandNotFoundError, self).__init__(command, msg)
+        message = dals("""
+        Conda could not find the command: '%s'. %(command)
+        """)
+        super(CommandNotFoundError, self).__init__(message=message)
 
 
 class CondaFileNotFoundError(CondaError, OSError):
     def __init__(self, filename, *args):
         self.filename = filename
-        msg = "File not found: '%s'." % filename
-        super(CondaFileNotFoundError, self).__init__(msg, *args)
+        message = "File not found: '%s'." % filename
+        super(CondaFileNotFoundError, self).__init__(message, *args)
 
 
 class DirectoryNotFoundError(CondaError):
@@ -329,17 +323,18 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
+    def __init__(self, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
         from .common.url import unquote_plus
         url = unquote_plus(url) if url else url
         _message = dals("""
-        HTTP %(status_code)s %(reason)s for url <%(url)s>
+        CondaHTTPError
+        HTTP %(status_code)s %(reason) for url <%(url)s>
         Elapsed: %(elapsed_time)s
         """)
         cf_ray = getattr(response, 'headers', {}).get('CF-RAY')
         _message += "CF-RAY: %s\n\n" % cf_ray if cf_ray else "\n"
-        message = _message + message
+        message = _message
 
         from ._vendor.auxlib.logz import stringify
         response_details = (stringify(response) or '') if response else ''
