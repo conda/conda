@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 import json
+from logging import getLogger
 import os
 from os import listdir
 from os.path import exists, expanduser, join
@@ -19,6 +20,8 @@ from ..common.compat import itervalues, on_win, iteritems
 from ..common.url import mask_anaconda_token
 from ..config import rc_path, sys_rc_path, user_rc_path
 from ..models.channel import prioritize_channels
+
+log = getLogger(__name__)
 
 help = "Display information about current conda install."
 
@@ -80,18 +83,21 @@ def configure_parser(sub_parsers):
 python_re = re.compile('python\d\.\d')
 def get_user_site():
     site_dirs = []
-    if not on_win:
-        if exists(expanduser('~/.local/lib')):
-            for path in listdir(expanduser('~/.local/lib/')):
-                if python_re.match(path):
-                    site_dirs.append("~/.local/lib/%s" % path)
-    else:
-        if 'APPDATA' not in os.environ:
-            return site_dirs
-        APPDATA = os.environ[str('APPDATA')]
-        if exists(join(APPDATA, 'Python')):
-            site_dirs = [join(APPDATA, 'Python', i) for i in
-                         listdir(join(APPDATA, 'PYTHON'))]
+    try:
+        if not on_win:
+            if exists(expanduser('~/.local/lib')):
+                for path in listdir(expanduser('~/.local/lib/')):
+                    if python_re.match(path):
+                        site_dirs.append("~/.local/lib/%s" % path)
+        else:
+            if 'APPDATA' not in os.environ:
+                return site_dirs
+            APPDATA = os.environ[str('APPDATA')]
+            if exists(join(APPDATA, 'Python')):
+                site_dirs = [join(APPDATA, 'Python', i) for i in
+                             listdir(join(APPDATA, 'PYTHON'))]
+    except (IOError, OSError) as e:
+        log.debug('Error accessing user site directory.\n%r', e)
     return site_dirs
 
 
