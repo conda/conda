@@ -47,7 +47,8 @@ libraries. Conda is written entirely in Python, and is BSD licensed open
 source.
 
 
-### Installation
+Installation
+############
 
 **WARNING:** Using ``pip install conda`` or ``easy_install conda`` will not
 give you conda as a standalone application.  Currently supported install
