@@ -229,6 +229,7 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
           pyc_full_path: %()s\n
         """)
         log.info(message, python_exe_full_path, py_full_path, pyc_full_path)
+        return None
 
     return pyc_full_path
 
