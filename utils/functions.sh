@@ -9,29 +9,31 @@ case "$(uname -s)" in
     *)  ;;
 esac
 
-install_python() {
-    INSTALL_PREFIX=${1:-~/miniconda}
 
-    # strategy is to use Miniconda to install python, but then remove all vestiges of conda
+install_miniconda() {
+    local prefix=${1:-$INSTALL_PREFIX}
     curl -sSL $MINICONDA_URL -o ~/miniconda.sh
     chmod +x ~/miniconda.sh
-    mkdir -p $INSTALL_PREFIX
-    ~/miniconda.sh -bfp $INSTALL_PREFIX
-    hash -r
-    $INSTALL_PREFIX/bin/conda install -y -q python=$PYTHON_VERSION
-    local site_packages=$($INSTALL_PREFIX/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
-    rm -rf $INSTALL_PREFIX/bin/activate \
-       $INSTALL_PREFIX/bin/conda \
-       $INSTALL_PREFIX/bin/conda-env \
-       $INSTALL_PREFIX/bin/deactivate \
-       $INSTALL_PREFIX/conda-meta/conda-*.json \
-       $INSTALL_PREFIX/conda-meta/requests-*.json \
-       $INSTALL_PREFIX/conda-meta/pyopenssl-*.json \
-       $INSTALL_PREFIX/conda-meta/cryptography-*.json \
-       $INSTALL_PREFIX/conda-meta/idna-*.json \
-       $INSTALL_PREFIX/conda-meta/ruamel-*.json \
-       $INSTALL_PREFIX/conda-meta/pycrypto-*.json \
-       $INSTALL_PREFIX/conda-meta/pycosat-*.json \
+    mkdir -p $prefix
+    ~/miniconda.sh -bfp $prefix
+}
+
+
+remove_conda() {
+    local prefix=${1:-$INSTALL_PREFIX}
+    local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    rm -rf $prefix/bin/activate \
+       $prefix/bin/conda \
+       $prefix/bin/conda-env \
+       $prefix/bin/deactivate \
+       $prefix/conda-meta/conda-*.json \
+       $prefix/conda-meta/requests-*.json \
+       $prefix/conda-meta/pyopenssl-*.json \
+       $prefix/conda-meta/cryptography-*.json \
+       $prefix/conda-meta/idna-*.json \
+       $prefix/conda-meta/ruamel-*.json \
+       $prefix/conda-meta/pycrypto-*.json \
+       $prefix/conda-meta/pycosat-*.json \
        $site_packages/conda* \
        $site_packages/requests* \
        $site_packages/pyopenssl* \
@@ -41,47 +43,69 @@ install_python() {
        $site_packages/pycrypto* \
        $site_packages/pycosat*
     hash -r
-    which -a python
-    $INSTALL_PREFIX/bin/python --version
-    $INSTALL_PREFIX/bin/pip --version
+}
 
+
+install_python() {
+    local prefix=${1:-$INSTALL_PREFIX}
+    local python_version=${2:-$PYTHON_VERSION}
+
+    install_miniconda $prefix
+    $prefix/bin/conda install -y -q python=$python_version
+    remove_conda $prefix
+
+    which python
+    $prefix/bin/python --version
+    $prefix/bin/pip --version
 }
 
 
 install_conda_dev() {
+    local prefix=${1:-$INSTALL_PREFIX}
+    install_python $prefix
 
-    INSTALL_PREFIX=${1:-~/miniconda}
+    $prefix/bin/pip install -r utils/requirements-test.txt
+    $prefix/bin/python utils/setup-testing.py develop
+    mkdir -p $prefix/conda-meta
+    touch $prefix/conda-meta/history
 
-    curl -sSL $MINICONDA_URL -o ~/miniconda.sh
-    chmod +x ~/miniconda.sh
-    mkdir -p $INSTALL_PREFIX
-    ~/miniconda.sh -bfp $INSTALL_PREFIX
-    hash -r
-    $INSTALL_PREFIX/bin/conda install -y -q python=$PYTHON_VERSION
-    local site_packages=$($INSTALL_PREFIX/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
-    rm -rf $INSTALL_PREFIX/bin/activate \
-       $INSTALL_PREFIX/bin/conda \
-       $INSTALL_PREFIX/bin/conda-env \
-       $INSTALL_PREFIX/bin/deactivate \
-       $INSTALL_PREFIX/conda-meta/conda-*.json \
-       $INSTALL_PREFIX/conda-meta/requests-*.json \
-       $INSTALL_PREFIX/conda-meta/pyopenssl-*.json \
-       $INSTALL_PREFIX/conda-meta/cryptography-*.json \
-       $INSTALL_PREFIX/conda-meta/idna-*.json \
-       $INSTALL_PREFIX/conda-meta/ruamel-*.json \
-       $INSTALL_PREFIX/conda-meta/pycrypto-*.json \
-       $INSTALL_PREFIX/conda-meta/pycosat-*.json \
-       $site_packages/conda* \
-       $site_packages/requests* \
-       $site_packages/pyopenssl* \
-       $site_packages/cryptography* \
-       $site_packages/idna* \
-       $site_packages/ruamel* \
-       $site_packages/pycrypto* \
-       $site_packages/pycosat*
-    hash -r
-    $INSTALL_PREFIX/bin/pip install -r utils/requirements-test.txt
-    $INSTALL_PREFIX/bin/python utils/setup-testing.py develop
-    mkdir -p $INSTALL_PREFIX/conda-meta
-    touch $INSTALL_PREFIX/conda-meta/history
+    $prefix/bin/conda info
 }
+
+
+install_conda_build() {
+    local prefix=${1:-$INSTALL_PREFIX}
+
+    install_conda_dev $prefix
+
+    # install conda-build test dependencies
+    $prefix/bin/conda install -y -q \
+        pytest pytest-cov pytest-timeout mock anaconda-client numpy \  # test dependencies
+        filelock jinja2 patchelf conda-verify setuptools contextlib2 pkginfo  # runtime dependencies
+    $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
+    $prefix/bin/pip install pytest-catchlog pytest-mock
+
+    $prefix/bin/conda config --set add_pip_as_python_dependency true
+
+    # install conda-build
+    git clone -b $CONDA_BUILD --single-branch --depth 1000 https://github.com/conda/conda-build.git
+    local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    rm -rf $site_packages/conda_build
+    pushd conda-build
+    $prefix/bin/pip install .
+    popd
+
+    git clone https://github.com/conda/conda_build_test_recipe.git
+
+    $prefix/bin/conda info
+}
+
+
+usr_local_install() {
+    sudo -E -u root bash -c "source utils/functions.sh && install_conda_dev /usr/local"
+    export INSTALL_PREFIX="/usr/local"
+    export PATH=$INSTALL_PREFIX/bin:$PATH
+    sudo -E -u root chown -R root:root ./conda
+    ls -al ./conda
+}
+

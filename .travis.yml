@@ -39,7 +39,6 @@ matrix:
     - os: osx
 
 install:
-  - which -a python
   - env | sort
   - source ./utils/travis-run-install.sh
 
