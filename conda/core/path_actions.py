@@ -10,7 +10,6 @@ import re
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
-from .. import CONDA_PACKAGE_ROOT
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
