@@ -40,7 +40,8 @@ matrix:
 
 install:
   - env | sort
-  - source ./utils/travis-run-install.sh
+  - source utils/functions.sh
+  - run_setup
 
 script:
-  - source ./utils/travis-run-script.sh
+  - run_tests

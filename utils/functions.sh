@@ -78,12 +78,12 @@ install_conda_build() {
 
     install_conda_dev $prefix
 
-    # install conda-build test dependencies
+    # install conda-build dependencies (runtime and test)
+    $prefix/bin/conda install -y -q -c conda-forge perl
     $prefix/bin/conda install -y -q \
-        pytest pytest-cov pytest-timeout mock anaconda-client numpy \
+        anaconda-client numpy \
         filelock jinja2 patchelf conda-verify contextlib2 pkginfo
-    $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
-    $prefix/bin/pip install pytest-catchlog pytest-mock
+    $prefix/bin/pip install pytest-catchlog pytest-mock pytest-xdist
 
     $prefix/bin/conda config --set add_pip_as_python_dependency true
 
@@ -102,10 +102,161 @@ install_conda_build() {
 
 
 usr_local_install() {
-    sudo -E -u root bash -c "source utils/functions.sh && install_conda_dev /usr/local"
+    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     export INSTALL_PREFIX="/usr/local"
     export PATH=$INSTALL_PREFIX/bin:$PATH
-    sudo -E -u root chown -R root:root ./conda
+    sudo chown -R root:root ./conda
     ls -al ./conda
 }
+
+
+set_test_vars() {
+    local prefix=${1:-$INSTALL_PREFIX}
+
+    export PYTEST_EXE="$prefix/bin/py.test"
+    export PYTHON_EXE=$(sed 's/^\#!//' $PYTEST_EXE | head -1)
+    export PYTHON_MAJOR_VERSION=$($PYTHON_EXE -c "import sys; print(sys.version_info[0])")
+    export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+    export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
+
+    export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+}
+
+
+conda_main_test() {
+    # make conda-version
+    $PYTHON_EXE utils/setup-testing.py --version
+
+    # make integration
+    $PYTEST_EXE $ADD_COV -m "not integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "integration and not installed"
+}
+
+
+
+make_conda_entrypoint() {
+    local filepath="$1"
+    local pythonpath="$2"
+    local workingdir="$3"
+    ls -al $filepath
+    rm -rf $filepath
+	cat <<- EOF > $filepath
+	#!$pythonpath
+	if __name__ == '__main__':
+	   import sys
+	   sys.path.insert(0, '$workingdir')
+	   import conda.cli.main
+	   sys.exit(conda.cli.main.main())
+	EOF
+    chmod +x $filepath
+    cat $filepath
+}
+
+
+
+
+conda_activate_test() {
+    local prefix=${1:-$INSTALL_PREFIX}
+#    local prefix=$(python -c "import sys; print(sys.prefix)")
+#    ln -sf shell/activate $prefix/bin/activate
+#    ln -sf shell/deactivate $prefix/bin/deactivate
+#    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python pwd
+
+    if [[ $SUDO == true ]]; then
+        sudo $prefix/bin/python utils/setup-testing.py develop
+    else
+        $prefix/bin/python utils/setup-testing.py develop
+    fi
+
+    export PATH="$INSTALL_PREFIX/bin:$PATH"
+    hash -r
+    $INSTALL_PREFIX/bin/python -c "import conda; print(conda.__version__)"
+    $INSTALL_PREFIX/bin/python -m conda info
+
+    export PYTEST_EXE="$INSTALL_PREFIX/bin/py.test"
+    # make test-installed
+    $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
+
+}
+
+
+
+conda_build_smoke_test() {
+    conda config --add channels conda-canary
+    conda build conda.recipe
+}
+
+
+conda_build_unit_test() {
+    local prefix=${1:-$INSTALL_PREFIX}
+
+    pushd conda-build
+    echo
+    echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
+    echo
+    $prefix/bin/python -m conda info
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
+    popd
+}
+
+
+osx_setup() {
+    # brew update || brew update
+    # brew outdated openssl || brew upgrade openssl
+    brew install zsh
+
+    # rvm get head
+
+    install_conda_dev
+}
+
+
+linux_setup() {
+    if [[ $FLAKE8 == true ]]; then
+        pip install flake8
+    elif [[ $SUDO == true ]]; then
+        usr_local_install
+    elif [[ -n $CONDA_BUILD ]]; then
+        install_conda_build
+    else
+        install_conda_dev
+    fi
+}
+
+
+run_setup() {
+    set -e
+    set -x
+
+
+    case "$(uname -s)" in
+        'Darwin')
+            osx_setup
+            ;;
+        'Linux')
+            linux_setup
+            ;;
+        *)  ;;
+    esac
+}
+
+
+run_tests() {
+    if [[ $FLAKE8 == true ]]; then
+        flake8 --statistics
+    elif [[ -n $CONDA_BUILD ]]; then
+        set_test_vars
+        conda_build_smoke_test
+        conda_build_unit_test
+    else
+        set_test_vars
+        conda_main_test
+        if [[ "$(uname -s)" == "Linux" ]]; then
+            conda_activate_test
+        fi
+        $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
+    fi
+}
+
 
