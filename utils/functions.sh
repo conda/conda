@@ -197,7 +197,7 @@ conda_build_unit_test() {
 
     export PATH="~/miniconda/bin:$PATH"  # cheating
     conda info
-    
+
     $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
     $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
     popd
