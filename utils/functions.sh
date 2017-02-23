@@ -171,8 +171,6 @@ conda_activate_test() {
     $prefix/bin/python -m conda info
 
     # make test-installed
-    which conda
-    which activate
     $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
 
 }
