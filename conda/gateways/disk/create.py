@@ -138,8 +138,8 @@ def make_menu(prefix, file_path, remove=False):
         log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
-    import menuinst
     try:
+        import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except:
         stdoutlog.error("menuinst Exception:")
