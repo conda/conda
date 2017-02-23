@@ -167,11 +167,8 @@ class SharedLinkPathClobberError(ClobberError):
 
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
-        self.command = command
-        message = dals("""
-        Conda could not find the command: '%s'. %(command)
-        """)
-        super(CommandNotFoundError, self).__init__(message=message)
+        message = "Conda could not find the command '%(command)s'"
+        super(CommandNotFoundError, self).__init__(message, command=command)
 
 
 class CondaFileNotFoundError(CondaError, OSError):
@@ -326,7 +323,7 @@ class CondaHTTPError(CondaError):
     def __init__(self, url, status_code, reason, elapsed_time, response=None):
         _message = dals("""
         CondaHTTPError
-        HTTP %(status_code)s %(reason) for url <%(url)s>
+        HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
         """)
         cf_ray = getattr(response, 'headers', {}).get('CF-RAY')
