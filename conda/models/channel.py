@@ -9,8 +9,8 @@ from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFA
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
-from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url, split_conda_url_easy_parts,
-                          split_scheme_auth_token, urlparse)
+from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
+                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
 
 try:
     from cytoolz.functoolz import excepts
