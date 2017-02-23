@@ -8,6 +8,9 @@ addons:
     packages:
       - zsh
 
+git:
+  depth: 100
+
 matrix:
   include:
     - env: PYTHON_VERSION=3.6 SUDO=true
@@ -39,9 +42,9 @@ matrix:
     - os: osx
 
 install:
-  - which -a python
   - env | sort
-  - source ./utils/travis-run-install.sh
+  - source utils/functions.sh
+  - run_setup
 
 script:
-  - source ./utils/travis-run-script.sh
+  - run_tests
