@@ -10,15 +10,14 @@ import hashlib
 from itertools import chain
 import json
 from logging import getLogger
-from os import X_OK, access, listdir
-from os.path import isdir, isfile, join, lexists
+from os import listdir
+from os.path import isdir, isfile, islink, join, lexists
 import shlex
 
 from .link import islink
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import on_win
 from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
@@ -64,10 +63,6 @@ def compute_md5sum(file_full_path):
         for chunk in iter(partial(fh.read, 4096), b''):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
-
-def is_exe(path):
-    return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))
 
 
 def find_first_existing(*globs):
