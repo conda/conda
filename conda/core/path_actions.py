@@ -440,13 +440,16 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
         preferred_env = package_info.repodata_record.preferred_env
         if (preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix)
                 and target_prefix != context.root_prefix):
-            exe_paths = package_info.package_metadata.preferred_env.executable_paths or ()
+            exe_paths = (package_info.package_metadata
+                         and package_info.package_metadata.preferred_env
+                         and package_info.package_metadata.preferred_env.executable_paths
+                         or ())
 
             # target_prefix for the instantiated path action is the root prefix, not the same
             #   as target_prefix for the larger transaction
             return tuple(
                 cls(transaction_context, package_info, target_prefix, executable_short_path,
-                    target_prefix, '../../' + executable_short_path)
+                    context.root_prefix, executable_short_path)
                 for executable_short_path in exe_paths
             )
         else:
