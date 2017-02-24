@@ -775,15 +775,14 @@ class UrlChannelTests(TestCase):
         ]
 
     def test_env_var_file_urls(self):
-        channels = ("file://\\\\network_share\\shared_folder\\path\\conda,"
-                    "https://some.url/ch_name,"
-                    "file:///some/place/on/my/machine")
+        channels = ("file://\\\\network_share\\shared_folder\\path\\conda",
+                    "https://some.url/ch_name",
+                    "file:///some/place/on/my/machine",)
         with env_var("CONDA_CHANNELS", channels, reset_context):
             assert context.channels == (
                 "file://\\\\network_share\\shared_folder\\path\\conda",
                 "https://some.url/ch_name,",
-                "file:///some/place/on/my/machine",
-            )
+                "file:///some/place/on/my/machine",)
 
             prioritized = prioritize_channels(context.channels)
             assert prioritized == OrderedDict((

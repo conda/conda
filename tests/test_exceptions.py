@@ -6,7 +6,7 @@ from conda._vendor.auxlib.ish import dals
 from conda.base.context import reset_context
 from conda.common.io import captured, env_var, replace_log_streams
 from conda.exceptions import CommandNotFoundError, CondaAssertionError, CondaCorruptEnvironmentError, MD5MismatchError, \
-    conda_exception_handler, CondaHTTPError
+    conda_exception_handler, CondaHTTPError, PackageNotFoundError
 
 
 def test_conda_assertion_error():
@@ -62,6 +62,29 @@ class ExceptionTests(TestCase):
           expected md5 sum: abc123
           actual md5 sum: deadbeef
         """).strip()
+
+
+    def PackageNotFoundError(self):
+        package_name = "Groot"
+        exc = PackageNotFoundError(package_name)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.PackageNotFoundError'>"
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['package_name'] == package_name
+        assert json_obj['error'] == repr(exc)
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == "Package not found: Conda could not find Groot"
+
 
 
     def test_CondaHTTPError(self):

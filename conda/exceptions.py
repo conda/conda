@@ -313,10 +313,10 @@ class MD5MismatchError(CondaError):
 
 
 class PackageNotFoundError(CondaError):
-    def __init__(self, package_name, message, *args):
+    def __init__(self, package_name, *args):
         self.package_name = package_name
-        msg = "Package not found: '%s' %s" % (package_name, message)
-        super(PackageNotFoundError, self).__init__(msg)
+        message = "Package not found: Conda could not find '%(package_name)s"
+        super(PackageNotFoundError, self).__init__(message, package_name=package_name)
 
 
 class CondaHTTPError(CondaError):
