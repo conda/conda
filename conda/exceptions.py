@@ -167,7 +167,7 @@ class SharedLinkPathClobberError(ClobberError):
 
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
-        message = "Conda could not find the command '%(command)s'"
+        message = "Conda could not find the command: '%(command)s'"
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
@@ -322,7 +322,6 @@ class PackageNotFoundError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, url, status_code, reason, elapsed_time, response=None):
         _message = dals("""
-        CondaHTTPError
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
         """)
