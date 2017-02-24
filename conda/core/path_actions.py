@@ -358,6 +358,10 @@ class CompilePycAction(CreateInPrefixPathAction):
         self._execute_successful = False
 
     def execute(self):
+        # compile_pyc is sometimes expected to fail, for example a python 3.6 file
+        #   installed into a python 2 environment, but no code paths actually importing it
+        # technically then, this file should be removed from the manifest in conda-meta, but
+        #   at the time of this writing that's not currently happening
         log.trace("compiling %s", self.target_full_path)
         target_python_version = self.transaction_context['target_python_version']
         python_short_path = get_python_short_path(target_python_version)
