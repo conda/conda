@@ -128,7 +128,6 @@ def download(url, target_full_path, md5sum):
                              getattr(e.response, 'elapsed', None),
                              e.response,
                              caused_by=e)
-
     finally:
         if content_length:
             getLogger('fetch.stop').info(None)

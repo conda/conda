@@ -66,10 +66,9 @@ class ExceptionTests(TestCase):
 
     def test_CondaHTTPError(self):
         url = "https://download.url/path/to/groot.tar.gz"
-        status_code = 1104
-        reason = "Could not connect"
+        status_code = "Groot"
+        reason = "COULD NOT CONNECT"
         elapsed_time = 1.24
-        response_detail = "Groot is down"
         exc = CondaHTTPError(url, status_code, reason, elapsed_time)
 
         with env_var("CONDA_JSON", "yes", reset_context):
@@ -93,10 +92,10 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-                CondaHTTPError
-                HTTP Groots Could not connect for https://download.url/path/to/groot.tar.gz
-                Elapsed: 1.24ms
+                CondaHTTPError: HTTP Groot COULD NOT CONNECT for url <https://download.url/path/to/groot.tar.gz>
+                Elapsed: 1.24
                 """).strip()
+
 
     def test_CommandNotFoundError(self):
         cmd = "instate"
@@ -109,7 +108,7 @@ class ExceptionTests(TestCase):
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exception.CommandNotFoundError'>"
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.CommandNotFoundError'>"
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
@@ -118,17 +117,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
-        Conda could not find the command: '%s'. %(command)
-        """).strip()
-
-
-
-
-
-
-
-
+        assert c.stderr.strip() == "CommandNotFoundError: Conda could not find the command: 'instate'"
 
 
 # class InvalidInstructionTestCase(unittest.TestCase):
