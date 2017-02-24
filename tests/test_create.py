@@ -1001,8 +1001,27 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(prefix, 'toolz-')
 
     def test_preferred_env(self):
-        pass
+        preferred_env = "_spiffy-test-app_"
+        pkgs_dirs = ','.join(context.pkgs_dirs)
 
+        with make_temp_env() as prefix:
+            with env_var('CONDA_PATH_CONFLICT', 'prevent', reset_context):
+                with env_var('CONDA_ROOT_PREFIX', prefix, reset_context):
+                    with env_var('CONDA_PKGS_DIRS', pkgs_dirs, reset_context):
+                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app")
+                        assert not package_is_installed(prefix, "spiffy-test-app")
+                        assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+                        assert package_is_installed(join(prefix, 'envs', preferred_env), "spiffy-test-app")
+
+                        run_command(Commands.INSTALL, prefix, "-c conda-test uses-spiffy-test-app")
+                        assert not package_is_installed(prefix, "uses-spiffy-test-app")
+                        assert package_is_installed(join(prefix, 'envs', preferred_env), "uses-spiffy-test-app")
+
+                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
+                        assert package_is_installed(prefix, "spiffy-test-app")
+                        assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+                        assert not package_is_installed(join(prefix, 'envs', preferred_env), "spiffy-test-app")
+g
     def test_conda_list_json(self):
         def pkg_info(s):
             # function from nb_conda/envmanager.py

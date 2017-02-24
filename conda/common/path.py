@@ -206,7 +206,7 @@ def prefix_to_env_name(prefix, root_prefix):
 def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     # type: (str, str, str) -> bool
     if preferred_env is None:
-        return True
+        return False
     prefix_dir = dirname(prefix)
     if prefix_dir != join(root_dir, 'envs'):
         return False

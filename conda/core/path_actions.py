@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 import json
 from logging import getLogger
-from os.path import dirname, join
+from os.path import dirname, join, basename
 import re
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
@@ -17,7 +17,7 @@ from ..common.compat import iteritems, on_win
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
-                           win_path_ok)
+                           win_path_ok, preferred_env_matches_prefix)
 from ..common.url import path_to_url
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
@@ -437,26 +437,20 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
-            def package_executable_short_paths():
-                exe_paths = (package_info.package_metadata
-                             and package_info.package_metadata.preferred_env
-                             and package_info.package_metadata.preferred_env.executable_paths
-                             or ())
-                for axn in exe_paths:
-                    yield axn.target_short_path
+        preferred_env = package_info.repodata_record.preferred_env
+        if (preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix)
+                and target_prefix != context.root_prefix):
+            exe_paths = (package_info.package_metadata
+                         and package_info.package_metadata.preferred_env
+                         and package_info.package_metadata.preferred_env.executable_paths
+                         or ())
 
-            private_env_prefix = preferred_env_to_prefix(
-                package_info.repodata_record.preferred_env,
-                context.root_prefix, context.envs_dirs
-            )
-            assert private_env_prefix == target_prefix, (private_env_prefix, target_prefix)
-
-            # target_prefix here is not the same as target_prefix for the larger transaction
+            # target_prefix for the instantiated path action is the root prefix, not the same
+            #   as target_prefix for the larger transaction
             return tuple(
-                cls(transaction_context, package_info, private_env_prefix, executable_short_path,
+                cls(transaction_context, package_info, target_prefix, executable_short_path,
                     context.root_prefix, executable_short_path)
-                for executable_short_path in package_executable_short_paths()
+                for executable_short_path in exe_paths
             )
         else:
             return ()

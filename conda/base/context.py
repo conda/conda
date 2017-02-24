@@ -88,7 +88,7 @@ class Context(Configuration):
     use_pip = PrimitiveParameter(True)
     skip_safety_checks = PrimitiveParameter(False)
 
-    _root_dir = PrimitiveParameter("", aliases=('root_dir',))
+    _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
@@ -354,8 +354,8 @@ class Context(Configuration):
 
     @property
     def root_prefix(self):
-        if self._root_dir:
-            return abspath(expanduser(self._root_dir))
+        if self._root_prefix:
+            return abspath(expanduser(self._root_prefix))
         elif conda_in_private_env():
             return normpath(join(self.conda_prefix, '..', '..'))
         else:
