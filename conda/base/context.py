@@ -73,7 +73,7 @@ class Context(Configuration):
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(True)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
-    clobber = PrimitiveParameter(False)
+    _clobber = PrimitiveParameter(False, aliases=('clobber',))
     changeps1 = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
     create_default_packages = SequenceParameter(string_types)
@@ -435,6 +435,10 @@ class Context(Configuration):
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
         return self._channels
+
+    @property
+    def clobber(self):
+        return self._clobber or self.force
 
 
 def conda_in_private_env():
