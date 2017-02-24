@@ -81,7 +81,7 @@ class Context(Configuration):
                                         parameter_type=string_types + (NoneType,))
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
-    path_conflict = PrimitiveParameter(PathConflict.clobber)
+    path_conflict = PrimitiveParameter(PathConflict.prevent)
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
