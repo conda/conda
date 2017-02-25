@@ -10,9 +10,6 @@ import os
 from os.path import dirname
 import sys
 
-from conda.exceptions import CondaSignalInterrupt
-from conda.gateways.subprocess import ACTIVE_SUBPROCESSES
-
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import iteritems, text_type
 
@@ -83,6 +80,9 @@ class CondaExitZero(CondaError):
     pass
 
 
+ACTIVE_SUBPROCESSES = set()
+
+
 def conda_signal_handler(signum, frame):
     # This function is in the base __init__.py so that it can be monkey-patched by other code
     #   if downstream conda users so choose.  The biggest danger of monkey-patching is that
@@ -92,4 +92,6 @@ def conda_signal_handler(signum, frame):
     for p in ACTIVE_SUBPROCESSES:
         if p.poll() is None:
             p.send_signal(signum)
+
+    from .exceptions import CondaSignalInterrupt
     raise CondaSignalInterrupt(signum)

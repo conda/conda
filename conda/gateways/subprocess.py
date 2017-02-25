@@ -10,14 +10,13 @@ from subprocess import CalledProcessError, PIPE, Popen
 import sys
 
 from .logging import TRACE
+from .. import ACTIVE_SUBPROCESSES
 from .._vendor.auxlib.ish import dals
-from ..common.compat import (ensure_binary, ensure_text_type, iteritems, on_win,
-                             string_types)
+from ..common.compat import ensure_binary, ensure_text_type, iteritems, on_win, string_types
 
 log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))
 
-ACTIVE_SUBPROCESSES = set()
 
 
 def _split_on_unix(command):
