@@ -13,11 +13,10 @@ import sys
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import iteritems, text_type
 
-__all__ = [
-    "__name__", "__version__", "__author__",
-    "__email__", "__license__", "__copyright__",
-    "__summary__", "__url__",
-]
+__all__ = (
+    "__name__", "__version__", "__author__", "__email__", "__license__", "__summary__", "__url__",
+    "CONDA_PACKAGE_ROOT", "CondaError", "CondaMultiError", "CondaExitZero", "conda_signal_handler",
+)
 
 __name__ = "conda"
 __version__ = get_version(__file__)
