@@ -278,8 +278,8 @@ class UnlinkLinkTransaction(object):
                 rollback_excs = []
                 if context.rollback_enabled:
                     failed_pkg_idx = pkg_idx
-                    reverse_actions = self.all_actions[:failed_pkg_idx]
-                    for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
+                    reverse_actions = reversed(tuple(enumerate(self.all_actions[:failed_pkg_idx])))
+                    for pkg_idx, (pkg_data, actions) in reverse_actions:
                         excs = self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
                                                      pkg_idx, pkg_data, actions)
                         rollback_excs.extend(excs)

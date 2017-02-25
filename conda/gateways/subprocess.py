@@ -18,7 +18,6 @@ log = getLogger(__name__)
 Response = namedtuple('Response', ('stdout', 'stderr', 'rc'))
 
 
-
 def _split_on_unix(command):
     # I guess windows doesn't like shlex.split
     return command if on_win else shlex_split(command)
