@@ -18,8 +18,3 @@ $PYTHON conda.recipe/setup.py --version > __conda_version__.txt
 # fish setup
 mkdir -p $PREFIX/etc/fish/conf.d/
 cp $SRC_DIR/shell/conda.fish $PREFIX/etc/fish/conf.d/
-
-
-# resources directory
-mkdir -p $SP_DIR/conda/resources/
-find $SRC_DIR/conda/resources ! -name "*.exe" ! -name "*.bat" -type f -exec cp {} $SP_DIR/conda/resources/ \;
