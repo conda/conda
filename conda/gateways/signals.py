@@ -4,19 +4,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 import signal
 
-from .subprocess import ACTIVE_SUBPROCESSES
+from .. import conda_signal_handler
 from .._vendor.auxlib.decorators import memoize
 from ..base.constants import INTERRUPT_SIGNALS
-from ..exceptions import CondaSignalInterrupt
 
 log = getLogger(__name__)
-
-
-def conda_signal_handler(signum, frame):
-    for p in ACTIVE_SUBPROCESSES:
-        if p.poll() is None:
-            p.send_signal(signum)
-    raise CondaSignalInterrupt(signum)
 
 
 @memoize
