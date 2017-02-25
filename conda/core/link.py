@@ -290,7 +290,6 @@ class UnlinkLinkTransaction(object):
                      else (execute_multi_exc,)),
                     rollback_excs,
                 )))
-
             else:
                 for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
                     for axn_idx, action in enumerate(actions):

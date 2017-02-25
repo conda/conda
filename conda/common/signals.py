@@ -2,9 +2,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
+from logging import getLogger
 import signal
 
 from .compat import iteritems
+
+log = getLogger(__name__)
 
 INTERRUPT_SIGNALS = (
     'SIGABRT',
@@ -34,10 +37,12 @@ def signal_handler(handler):
     for signame in INTERRUPT_SIGNALS:
         sig = getattr(signal, signame, None)
         if sig:
+            log.debug("registering handler for %s", signame)
             prev_handler = signal.signal(sig, handler)
             previous_handlers.append((sig, prev_handler))
     try:
         yield
     finally:
         for sig, previous_handler in previous_handlers:
+            log.debug("de-registering handler for %s", signame)
             signal.signal(sig, previous_handler)
