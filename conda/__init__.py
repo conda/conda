@@ -86,8 +86,6 @@ def conda_signal_handler(signum, frame):
     # This function is in the base __init__.py so that it can be monkey-patched by other code
     #   if downstream conda users so choose.  The biggest danger of monkey-patching is that
     #   unlink/link transactions don't get rolled back if interrupted mid-transaction.
-    # Conda code actively registers signal handlers with conda.gateways is first imported.
-    # That's also the point conda initializes all of its logging configuration.
     for p in ACTIVE_SUBPROCESSES:
         if p.poll() is None:
             p.send_signal(signum)
