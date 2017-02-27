@@ -15,9 +15,8 @@ from .linked_data import (get_python_version_for_prefix, linked_data as get_link
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateLinkedPackageRecordAction, CreateNonadminAction,
-                           CreatePrivateEnvMetaAction, CreatePythonEntryPointAction,
-                           LinkPathAction, MakeMenuAction, RemoveLinkedPackageRecordAction,
-                           RemoveMenuAction, RemovePrivateEnvMetaAction, UnlinkPathAction)
+                           CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
+                           RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
