@@ -1021,7 +1021,7 @@ class IntegrationTests(TestCase):
                         assert package_is_installed(prefix, "spiffy-test-app")
                         assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
                         assert not package_is_installed(join(prefix, 'envs', preferred_env), "spiffy-test-app")
-g
+
     def test_conda_list_json(self):
         def pkg_info(s):
             # function from nb_conda/envmanager.py

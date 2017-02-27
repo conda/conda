@@ -122,7 +122,7 @@ class UnlinkLinkTransaction(object):
         assert all(pkg_dirs_to_link)
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
-
+        import pdb; pdb.set_trace()
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
                                      packages_info_to_link)
 
@@ -224,11 +224,11 @@ class UnlinkLinkTransaction(object):
                         key=lambda lpr: path in lpr.files
                     )
                     if colliding_linked_package_record:
-                        yield KnownPackageClobberError(Dist(axn.linked_package_record), path,
+                        yield KnownPackageClobberError(path, Dist(axn.linked_package_record),
                                                        Dist(colliding_linked_package_record),
                                                        context)
                     else:
-                        yield UnknownPackageClobberError(Dist(axn.linked_package_record), path,
+                        yield UnknownPackageClobberError(path, Dist(axn.linked_package_record),
                                                          context)
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:

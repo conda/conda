@@ -449,7 +449,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
             #   as target_prefix for the larger transaction
             return tuple(
                 cls(transaction_context, package_info, target_prefix, executable_short_path,
-                    context.root_prefix, executable_short_path)
+                    target_prefix, '../../' + executable_short_path)
                 for executable_short_path in exe_paths
             )
         else:
