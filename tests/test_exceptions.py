@@ -136,11 +136,12 @@ class ExceptionTests(TestCase):
         assert c.stderr.strip() == "Package not found: Conda could not find Groot"
 
     def test_CondaHTTPError(self):
+        msg = "groot"
         url = "https://download.url/path/to/groot.tar.gz"
         status_code = "Groot"
         reason = "COULD NOT CONNECT"
         elapsed_time = 1.24
-        exc = CondaHTTPError(url, status_code, reason, elapsed_time)
+        exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time)
 
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c, replace_log_streams():

@@ -311,7 +311,7 @@ class PackageNotFoundError(CondaError):
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, url, status_code, reason, elapsed_time, response=None,
+    def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
         from .common.url import unquote_plus
         url = unquote_plus(url) if url else url
