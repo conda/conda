@@ -46,15 +46,6 @@ class CondaSignalInterrupt(CondaError):
                                                    signal_name=signal_name,
                                                    signum=signum)
 
-#
-# class ArgumentNotFoundError(ArgumentError):
-#     def __init__(self, argument, *args):
-#         self.argument = argument
-#         msg = 'Argument not found: %s. %s' \
-#               % (argument, ' '.join(text_type(arg) for arg in self.args))
-#         super(ArgumentNotFoundError, self).__init__(msg)
-#
-
 class TooManyArgumentsError(ArgumentError):
     def __init__(self, expected, received, offending_arguments, optional_message='',
                  *args):
