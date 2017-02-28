@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
 from contextlib import contextmanager
@@ -9,6 +9,7 @@ from json import loads as json_loads
 from logging import DEBUG, getLogger
 import os
 from os.path import basename, exists, isdir, isfile, join, relpath, dirname
+from random import sample
 from shlex import split
 from shutil import copyfile, rmtree
 from subprocess import check_call
@@ -37,7 +38,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.compat import itervalues, text_type
+from conda.common.compat import itervalues, text_type, PY2
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level, \
     env_var
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
@@ -66,6 +67,7 @@ TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 
+UINCODE_CHARACTERS = u"ōγђ家固한"
 
 def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
@@ -73,8 +75,12 @@ def escape_for_winpath(p):
 
 def make_temp_prefix(name=None, create_directory=True):
     tempdir = gettempdir()
-    dirname = str(uuid4())[:8] if name is None else name
-    prefix = join(tempdir, dirname)
+    if PY2:
+        dirpath = str(uuid4())[:8] if name is None else name
+    else:
+        random_unicode = ''.join(sample(UINCODE_CHARACTERS ,len(UINCODE_CHARACTERS)))
+        dirpath = str(uuid4())[:4] + random_unicode if name is None else name
+    prefix = join(tempdir, dirpath)
     os.makedirs(prefix)
     if create_directory:
         assert isdir(prefix)
