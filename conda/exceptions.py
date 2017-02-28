@@ -46,14 +46,14 @@ class CondaSignalInterrupt(CondaError):
                                                    signal_name=signal_name,
                                                    signum=signum)
 
-
-class ArgumentNotFoundError(ArgumentError):
-    def __init__(self, argument, *args):
-        self.argument = argument
-        msg = 'Argument not found: %s. %s' \
-              % (argument, ' '.join(text_type(arg) for arg in self.args))
-        super(ArgumentNotFoundError, self).__init__(msg)
-
+#
+# class ArgumentNotFoundError(ArgumentError):
+#     def __init__(self, argument, *args):
+#         self.argument = argument
+#         msg = 'Argument not found: %s. %s' \
+#               % (argument, ' '.join(text_type(arg) for arg in self.args))
+#         super(ArgumentNotFoundError, self).__init__(msg)
+#
 
 class TooManyArgumentsError(ArgumentError):
     def __init__(self, expected, received, offending_arguments, optional_message='',
@@ -64,7 +64,7 @@ class TooManyArgumentsError(ArgumentError):
         self.optional_message = optional_message
 
         suffix = 's' if received - expected > 1 else ''
-        msg = ('Too many arguments: %s. Got %s argument%s (%s) and expected %s.' %
+        msg = ('Too many arguments: %s Got %s argument%s (%s) but expected %s.' %
                (optional_message, received, suffix, ', '.join(offending_arguments), expected))
         super(TooManyArgumentsError, self).__init__(msg, *args)
 
@@ -75,7 +75,7 @@ class TooFewArgumentsError(ArgumentError):
         self.received = received
         self.optional_message = optional_message
 
-        msg = ('Too few arguments: %s. Got %s arguments and expected %s.' %
+        msg = ('Too few arguments: %s Got %s arguments but expected %s.' %
                (optional_message, received, expected))
         super(TooFewArgumentsError, self).__init__(msg, *args)
 

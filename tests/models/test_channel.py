@@ -5,10 +5,11 @@ from collections import OrderedDict
 import os
 from tempfile import gettempdir
 
+from conda.base.constants import APP_NAME
 from conda.common.io import env_var
 
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, Context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.url import join_url, join
@@ -778,13 +779,14 @@ class UrlChannelTests(TestCase):
         channels = ("file://\\\\network_share\\shared_folder\\path\\conda",
                     "https://some.url/ch_name",
                     "file:///some/place/on/my/machine",)
-        with env_var("CONDA_CHANNELS", channels, reset_context):
-            assert context.channels == (
+        with env_var("CONDA_CHANNELS", ','.join(channels)):
+            new_context = Context((), APP_NAME)
+            assert new_context.channels == (
                 "file://\\\\network_share\\shared_folder\\path\\conda",
-                "https://some.url/ch_name,",
+                "https://some.url/ch_name",
                 "file:///some/place/on/my/machine",)
 
-            prioritized = prioritize_channels(context.channels)
+            prioritized = prioritize_channels(new_context.channels)
             assert prioritized == OrderedDict((
                 ("file://network_share/shared_folder/path/conda/%s" % context.subdir, ("file://network_share/shared_folder/path/conda", 0)),
                 ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 0)),

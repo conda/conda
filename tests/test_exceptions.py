@@ -3,20 +3,21 @@ from unittest import TestCase
 
 from conda import text_type
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import reset_context
+from conda.base.context import reset_context, context
 from conda.common.io import captured, env_var, replace_log_streams
 from conda.exceptions import CommandNotFoundError, CondaAssertionError, CondaCorruptEnvironmentError, MD5MismatchError, \
-    conda_exception_handler, CondaHTTPError, PackageNotFoundError
+    conda_exception_handler, CondaHTTPError, PackageNotFoundError, BasicClobberError, TooManyArgumentsError, \
+    TooFewArgumentsError
 
 
-def test_conda_assertion_error():
+def test_CondaAssertionError():
     try:
         raise CondaAssertionError("message", 1, 2)
     except CondaAssertionError as err:
         assert str(err) == "Assertion error: message expected 1 and got 2"
 
 
-def test_conda_corrupt_environment_exception():
+def test_CondaCorruptEnvironmentException():
     try:
         raise CondaCorruptEnvironmentError("Oh noes corrupt environment")
     except CondaCorruptEnvironmentError as err:
@@ -28,6 +29,56 @@ def _raise_helper(exception):
 
 
 class ExceptionTests(TestCase):
+
+    def test_TooManyArgumentsError(self):
+        expected = 2
+        received = 5
+        offending_arguments = "groot"
+        exc = TooManyArgumentsError(expected, received, offending_arguments)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.TooManyArgumentsError'>"
+        assert json_obj['exception_name'] == 'TooManyArgumentsError'
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+        assert json_obj['expected'] == 2
+        assert json_obj['received'] == 5
+        assert json_obj['offending_arguments'] == "groot"
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == "TooManyArgumentsError: Too many arguments:  Got 5 arguments (g, r, o, o, t) but expected 2."
+
+    def test_TooFewArgumentsError(self):
+        expected = 5
+        received = 2
+        exc = TooFewArgumentsError(expected, received)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.TooFewArgumentsError'>"
+        assert json_obj['exception_name'] == 'TooFewArgumentsError'
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+        assert json_obj['expected'] == 5
+        assert json_obj['received'] == 2
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == "TooFewArgumentsError: Too few arguments:  Got 2 arguments but expected 5."
 
     def test_MD5MismatchError(self):
         url = "https://download.url/path/to/file.tar.bz2"
@@ -63,10 +114,9 @@ class ExceptionTests(TestCase):
           actual md5 sum: deadbeef
         """).strip()
 
-
     def PackageNotFoundError(self):
-        package_name = "Groot"
-        exc = PackageNotFoundError(package_name)
+        package = "Groot"
+        exc = PackageNotFoundError(package)
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
@@ -75,7 +125,7 @@ class ExceptionTests(TestCase):
         assert not c.stderr
         assert json_obj['exception_type'] == "<class 'conda.exceptions.PackageNotFoundError'>"
         assert json_obj['message'] == text_type(exc)
-        assert json_obj['package_name'] == package_name
+        assert json_obj['package_name'] == package
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
@@ -84,8 +134,6 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == "Package not found: Conda could not find Groot"
-
-
 
     def test_CondaHTTPError(self):
         url = "https://download.url/path/to/groot.tar.gz"
@@ -119,10 +167,8 @@ class ExceptionTests(TestCase):
                 Elapsed: 1.24
                 """).strip()
 
-
     def test_CommandNotFoundError(self):
         cmd = "instate"
-        message = "hello"
         exc = CommandNotFoundError(cmd)
 
         with env_var("CONDA_JSON", "yes", reset_context):
