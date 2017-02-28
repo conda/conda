@@ -35,9 +35,10 @@ CONDA_PACKAGE_ROOT = dirname(__file__)
 
 
 class CondaError(Exception):
-    def __init__(self, message, **kwargs):
+    def __init__(self, message, caused_by=None, **kwargs):
         self.message = message
         self._kwargs = kwargs
+        self._caused_by = caused_by
         super(CondaError, self).__init__(message)
 
     def __repr__(self):
@@ -52,6 +53,7 @@ class CondaError(Exception):
                       exception_name=self.__class__.__name__,
                       message=text_type(self),
                       error=repr(self),
+                      caused_by=repr(self._caused_by),
                       **self._kwargs)
         return result
 
