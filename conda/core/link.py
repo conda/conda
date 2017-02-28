@@ -240,6 +240,10 @@ class UnlinkLinkTransaction(object):
         if not self._prepared:
             self.prepare()
 
+        if context.skip_safety_checks:
+            self._verified = True
+            return
+
         exceptions = tuple(exc for exc in concatv(
             self._verify_individual_level(self.all_actions),
             self._verify_transaction_level(self.target_prefix, self.all_actions,

@@ -85,6 +85,7 @@ class Context(Configuration):
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
+    skip_safety_checks = PrimitiveParameter(False)
 
     _root_dir = PrimitiveParameter("", aliases=('root_dir',))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
