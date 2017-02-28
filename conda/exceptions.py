@@ -324,7 +324,7 @@ class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
         from .common.url import unquote_plus
-        url = unquote_plus(url)
+        url = unquote_plus(url) if url else url
         _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
