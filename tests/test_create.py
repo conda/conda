@@ -66,8 +66,8 @@ TRACE, DEBUG = TRACE, DEBUG  # these are so the imports aren't cleared, but it's
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
-
 UINCODE_CHARACTERS = u"ōγђ家固한"
+
 
 def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
@@ -78,7 +78,7 @@ def make_temp_prefix(name=None, create_directory=True):
     if PY2:
         dirpath = str(uuid4())[:8] if name is None else name
     else:
-        random_unicode = ''.join(sample(UINCODE_CHARACTERS ,len(UINCODE_CHARACTERS)))
+        random_unicode = ''.join(sample(UINCODE_CHARACTERS, len(UINCODE_CHARACTERS)))
         dirpath = str(uuid4())[:4] + random_unicode if name is None else name
     prefix = join(tempdir, dirpath)
     os.makedirs(prefix)
