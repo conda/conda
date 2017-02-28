@@ -179,9 +179,7 @@ class ExceptionTests(TestCase):
         assert not c.stderr
         assert json_obj['exception_type'] == "<class 'conda.exceptions.CommandNotFoundError'>"
         assert json_obj['message'] == text_type(exc)
-        assert json_obj['error'] =
-
-        = repr(exc)
+        assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
             with captured() as c, replace_log_streams():
