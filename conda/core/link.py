@@ -122,7 +122,6 @@ class UnlinkLinkTransaction(object):
         assert all(pkg_dirs_to_link)
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
-        import pdb; pdb.set_trace()
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
                                      packages_info_to_link)
 

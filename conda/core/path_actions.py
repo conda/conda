@@ -440,10 +440,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
         preferred_env = package_info.repodata_record.preferred_env
         if (preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix)
                 and target_prefix != context.root_prefix):
-            exe_paths = (package_info.package_metadata
-                         and package_info.package_metadata.preferred_env
-                         and package_info.package_metadata.preferred_env.executable_paths
-                         or ())
+            exe_paths = package_info.package_metadata.preferred_env.executable_paths or ()
 
             # target_prefix for the instantiated path action is the root prefix, not the same
             #   as target_prefix for the larger transaction
@@ -477,6 +474,8 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
         create_private_pkg_entry_point(self.source_full_path, self.target_full_path,
                                        conda_python_full_path)
         self._execute_successful = True
+
+        add_leased_path(source_prefix, source_short_path, target_prefix, target_path)
 
     def reverse(self):
         if self._execute_successful:
@@ -527,40 +526,40 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         rm_rf(self.target_full_path)
 
 
-class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
-
-    @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
-            return cls(transaction_context, package_info, target_prefix),
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, private_env_prefix):
-        # source is the private env (which is the target of the overall transaction)
-        # the target of this action is context.root_prefix/conda-meta/private_envs
-        source_prefix = private_env_prefix
-        target_short_path = 'conda-meta/private_envs'
-        self.private_env_prefix = private_env_prefix
-        super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
-                                                         source_prefix, None,
-                                                         context.root_prefix, target_short_path)
-        self._execute_successful = False
-
-    def execute(self):
-        log.trace("creating private env entry for '%s' in %s",
-                  self.package_info.repodata_record.name, self.target_full_path)
-        # TODO: need to capture old env entry if it was there, so that it can be reversed
-        name = "%s-%s" % (self.package_info.repodata_record.name,
-                          self.package_info.repodata_record.version)
-        create_private_envs_meta(name, context.root_prefix, self.target_prefix)
-        self._execute_successful = True
-
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing private env entry for '%s' in %s",
-                      self.package_info.repodata_record.name, self.target_full_path)
-            remove_private_envs_meta(self.package_info.repodata_record.name)
+# class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+#         if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
+#             return cls(transaction_context, package_info, target_prefix),
+#         else:
+#             return ()
+#
+#     def __init__(self, transaction_context, package_info, private_env_prefix):
+#         # source is the private env (which is the target of the overall transaction)
+#         # the target of this action is context.root_prefix/conda-meta/private_envs
+#         source_prefix = private_env_prefix
+#         target_short_path = 'conda-meta/private_envs'
+#         self.private_env_prefix = private_env_prefix
+#         super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
+#                                                          source_prefix, None,
+#                                                          context.root_prefix, target_short_path)
+#         self._execute_successful = False
+#
+#     def execute(self):
+#         log.trace("creating private env entry for '%s' in %s",
+#                   self.package_info.repodata_record.name, self.target_full_path)
+#         # TODO: need to capture old env entry if it was there, so that it can be reversed
+#         name = "%s-%s" % (self.package_info.repodata_record.name,
+#                           self.package_info.repodata_record.version)
+#         create_private_envs_meta(name, context.root_prefix, self.target_prefix)
+#         self._execute_successful = True
+#
+#     def reverse(self):
+#         if self._execute_successful:
+#             log.trace("reversing private env entry for '%s' in %s",
+#                       self.package_info.repodata_record.name, self.target_full_path)
+#             remove_private_envs_meta(self.package_info.repodata_record.name)
 
 
 # ######################################################
@@ -658,23 +657,23 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
                          meta_record)
 
 
-class RemovePrivateEnvMetaAction(UnlinkPathAction):
-    def __init__(self, transaction_context, linked_package_data, target_prefix):
-        target_short_path = "conda-meta/private_envs"
-        super(RemovePrivateEnvMetaAction, self).__init__(transaction_context, linked_package_data,
-                                                         target_prefix, target_short_path)
-
-    def execute(self):
-        log.trace("removing private env '%s' from %s", self.linked_package_data.name,
-                  self.target_full_path)
-        remove_private_envs_meta(self.linked_package_data.name)
-
-    def reverse(self):
-        log.trace("adding back private env '%s' to %s", self.linked_package_data.name,
-                  self.target_full_path)
-        name = "%s-%s" % (self.package_info.repodata_record.name,
-                          self.package_info.repodata_record.version)
-        create_private_envs_meta(name, context.root_prefix, self.target_prefix)
+# class RemovePrivateEnvMetaAction(UnlinkPathAction):
+#     def __init__(self, transaction_context, linked_package_data, target_prefix):
+#         target_short_path = "conda-meta/private_envs"
+#         super(RemovePrivateEnvMetaAction, self).__init__(transaction_context, linked_package_data,
+#                                                          target_prefix, target_short_path)
+#
+#     def execute(self):
+#         log.trace("removing private env '%s' from %s", self.linked_package_data.name,
+#                   self.target_full_path)
+#         remove_private_envs_meta(self.linked_package_data.name)
+#
+#     def reverse(self):
+#         log.trace("adding back private env '%s' to %s", self.linked_package_data.name,
+#                   self.target_full_path)
+#         name = "%s-%s" % (self.package_info.repodata_record.name,
+#                           self.package_info.repodata_record.version)
+#         create_private_envs_meta(name, context.root_prefix, self.target_prefix)
 
 
 # ######################################################

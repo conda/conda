@@ -250,7 +250,6 @@ class Context(Configuration):
 
     @property
     def local_build_root(self):
-        # TODO: import from conda_build, and fall back to something incredibly simple
         if self.bld_path:
             return expand(self.bld_path)
         elif self.root_writable:

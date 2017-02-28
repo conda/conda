@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import json
 from logging import getLogger
 from os import getcwd
-from os.path import isdir, join
+from os.path import isdir, join, isfile, basename
+
+from conda._vendor.auxlib.entity import EntityEncoder
+from conda._vendor.auxlib.ish import dals
+from conda.common.path import win_path_ok, win_path_backout
 
 from .. import CondaError
 from .._vendor.auxlib.path import expand
@@ -27,7 +32,28 @@ class EnvsDirectory(object):
 
     def __init__(self, envs_dir):
         self.envs_dir = envs_dir
+        self.root_dir = basename(envs_dir)
         self.catalog_file = join(envs_dir, ENVS_DIR_MAGIC_FILE)
+
+        self._init_dir()
+
+    def _init_dir(self):
+        self._envs_dir_data = self._read_raw_data()
+
+    def _read_raw_data(self):
+        if isfile(self.catalog_file):
+            with open(self.catalog_file) as fh:
+                return json.loads(fh.read().strip())
+        else:
+            return {}
+
+    def _write_raw_data(self):
+        if not self.is_writable:
+            raise RuntimeError()
+
+        with open(self.catalog_file, 'w') as fh:
+            fh.write(json.dumps(self._envs_dir_data, indent=2, sort_keys=True,
+                                separators=(',', ': '), cls=EntityEncoder))
 
     @property
     def is_writable(self):
@@ -70,6 +96,45 @@ class EnvsDirectory(object):
                 return prefix
 
         raise CondaEnvironmentNotFoundError(name)
+
+    def assert_path_not_leased(self, target_short_path):
+        leased_paths = self._envs_dir_data.get('leased_paths', ())
+        current_lp = next((lp for lp in leased_paths if lp['_path'] == target_short_path), None)
+        if current_lp:
+            message = dals("""
+            A path in '%(root_prefix)s'
+            is already in use by another environment.
+              path: %(target_short_path)s
+              current prefix: %(current_prefix)s
+            """)
+            current_prefix = current_lp['target_prefix']
+            raise CondaError(message,
+                             root_prefix=self.root_dir,
+                             target_short_path=target_short_path,
+                             current_prefix=current_prefix)
+
+
+    def add_leased_path(self, target_env_name, target_short_path):
+        self.assert_path_not_leased(target_short_path)
+
+        target_prefix = join(self.root_dir, 'envs', target_env_name)
+        leased_path_entry = {
+            "_path": target_short_path,
+            "target_path": join(target_prefix, win_path_ok(target_short_path)),
+            "target_prefix": target_prefix,
+            "target_env_name": target_env_name,
+        }
+
+        self._envs_dir_data['leased_paths'].append(leased_path_entry)
+        self._write_raw_data()
+
+    def remove_leased_path(self, target_short_path):
+        leased_paths = self._envs_dir_data['leased_paths']
+        self._envs_dir_data['leased_paths'] = [lp for lp in leased_paths
+                                               if lp['_path'] != target_short_path]
+        self._write_raw_data()
+
+
 
 
 def get_prefix(ctx, args, search=True):

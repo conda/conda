@@ -269,16 +269,16 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     return pyc_full_path
 
 
-def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
-    # type: (str, str, str) -> ()
-    path_to_conda_meta = join(root_prefix, "conda-meta")
-
-    if not isdir(path_to_conda_meta):
-        mkdir_p(path_to_conda_meta)
-
-    private_envs_json = get_json_content(context.private_envs_json_path)
-    private_envs_json[pkg] = private_env_prefix
-    write_as_json_to_file(context.private_envs_json_path, private_envs_json)
+# def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
+#     # type: (str, str, str) -> ()
+#     path_to_conda_meta = join(root_prefix, "conda-meta")
+#
+#     if not isdir(path_to_conda_meta):
+#         mkdir_p(path_to_conda_meta)
+#
+#     private_envs_json = get_json_content(context.private_envs_json_path)
+#     private_envs_json[pkg] = private_env_prefix
+#     write_as_json_to_file(context.private_envs_json_path, private_envs_json)
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
