@@ -86,7 +86,13 @@ the ``channel_alias`` key as explained below. The default is just ``defaults``.
     - http://some.custom/channel
     - file:///some/local/directory
     - defaults
-    
+
+To select channels for a single environment, put a ``.condarc`` file in the root 
+directory of that environment. If you have installed Miniconda with Python 3 in 
+your home directory and the environment is named "flowers", the path may be 
+``~/miniconda3/envs/flowers/.condarc``, and for other conda installations the 
+path will be similar.
+
 
 Update conda automatically (auto_update_conda)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

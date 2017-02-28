@@ -447,6 +447,10 @@ NOTE: It may be necessary to add the "force" option ``-f`` to the following comm
 
       conda config --remove-key channels
 
+#. How can I configure channels and their priority for just one environment?
+
+Make a ``.condarc`` file in the :ref:`root directory of that environment <config-channels>`.
+
 
 Conda build and recipes
 =======================
