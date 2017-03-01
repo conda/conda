@@ -230,7 +230,7 @@ run_setup() {
     set -e
     set -x
 
-    export INSTALL_PREFIX=~/miniconda
+    export INSTALL_PREFIX=~/μini\ conδa
 
     case "$(uname -s)" in
         'Darwin')
