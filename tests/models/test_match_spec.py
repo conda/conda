@@ -139,8 +139,8 @@ class MatchSpecTests(unittest.TestCase):
         g = MatchSpec('foo1 >=1.3 (optional,target=burg,build_number=2)')
         assert a != f
         assert f == g
-        assert a.to_string() == "foo1 >=1.3 2 (optional,target=burg)"
-        assert g.to_string() == "foo1 >=1.3 (build_number=2,optional,target=burg)"
+        assert a._to_string() == "foo1 >=1.3 2 (optional,target=burg)"
+        assert g._to_string() == "foo1 >=1.3 (build_number=2,optional,target=burg)"
         self.assertRaises(ValueError, MatchSpec, 'blas (optional')
         self.assertRaises(ValueError, MatchSpec, 'blas (optional,test=)')
         self.assertRaises(ValueError, MatchSpec, 'blas (optional,invalid="1")')

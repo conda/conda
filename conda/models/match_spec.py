@@ -8,6 +8,7 @@ import sys
 from .dist import Dist
 from .index_record import IndexRecord
 from .version import VersionSpec
+from .._vendor.auxlib.collection import frozendict
 from ..common.compat import iteritems, string_types, text_type
 from ..exceptions import CondaValueError
 
@@ -64,7 +65,7 @@ class MatchSpec(object):
 
         normalize = kwargs.pop('normalize', False)
         self = object.__new__(cls)
-        self._specs_map = _specs_map = {}
+        _specs_map = {}
 
         if isinstance(spec, string_types):
             spec, _, oparts = spec.partition('(')
@@ -76,15 +77,19 @@ class MatchSpec(object):
                        ('version', version),
                        ('build', build))
 
-            if normalize and (self.exact_field('version') is not None and
-                                      self.exact_field('build') is None and
-                                      self.exact_field('name') is not None):
-                # When someone supplies 'foo=a.b' on the command line, we
-                # want to append an asterisk; e.g., 'foo=a.b.*', but only
-                # if there is not also an exact build and name. In that
-                # case we assume the user is looking for an exact match.
-                ver = self.exact_field('version')
-                _specs_map['version'] = VersionSpec(ver + '*')
+            def _exact_field(field_name):
+                # duplicated self.exact_field(), but for the local _specs_map
+                v = _specs_map.get(field_name)
+                return None if v is None or hasattr(v, 'match') else v
+
+            if normalize and _exact_field('build') is None:
+                if _exact_field('name') is not None and _exact_field('version') is not None:
+                    # When someone supplies 'foo=a.b' on the command line, we
+                    # want to append an asterisk; e.g., 'foo=a.b.*', but only
+                    # if there is not also an exact build and name. In that
+                    # case we assume the user is looking for an exact match.
+                    ver = _exact_field('version')
+                    _specs_map['version'] = VersionSpec(ver + '*')
             if oparts:
                 if oparts.strip()[-1] != ')':
                     raise CondaValueError("Invalid MatchSpec: %s" % spec)
@@ -132,19 +137,21 @@ class MatchSpec(object):
         self._push(_specs_map, *iteritems(kwargs))
 
         # assign attributes to self
+        self._specs_map = frozendict(_specs_map)
         self.target = _target
         self.optional = _optional
         return self
 
     @staticmethod
     def _push(specs_map, *args):
-        for field, value in args:
+        # format each (field_name, value) arg pair, and add it to specs_map
+        for field_name, value in args:
             if value in ('*', None):
-                if field in specs_map:
-                    del specs_map[field]
+                if field_name in specs_map:
+                    del specs_map[field_name]
                 continue
-            elif field not in IndexRecord.__fields__:
-                raise CondaValueError('Cannot match on field %s' % (field,))
+            elif field_name not in IndexRecord.__fields__:
+                raise CondaValueError('Cannot match on field %s' % (field_name,))
             elif isinstance(value, string_types):
                 value = text_type(value)
 
@@ -154,7 +161,7 @@ class MatchSpec(object):
                 pass
             elif value.startswith('^') and value.endswith('$'):
                 value = re.compile(value)
-            elif field == 'version':
+            elif field_name == 'version':
                 value = VersionSpec(value)
             elif '*' in value:
                 value = re.compile(r'^(?:%s)$' % value.replace('*', r'.*'))
@@ -162,7 +169,7 @@ class MatchSpec(object):
             if isinstance(value, VersionSpec) and value.is_exact():
                 value = value.spec
 
-            specs_map[field] = value
+            specs_map[field_name] = value
 
     def exact_field(self, field_name):
         v = self._specs_map.get(field_name)
@@ -176,7 +183,7 @@ class MatchSpec(object):
 
     def match(self, rec):
         """
-        Accepts an `IndexRecord` or dictionary, and matches can pull from any field
+        Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
         for f, v in iteritems(self._specs_map):
@@ -186,14 +193,19 @@ class MatchSpec(object):
         return True
 
     def to_filename(self):
-        tmp = self.exact_field('fn')
-        if tmp:
-            return tmp
-        vals = [self.exact_field(x) for x in ('name', 'version', 'build')]
+        # WARNING: this is potentially unreliable and use should probably be limited
+        #   returns None if a filename can't be constructed
+        fn_field = self.exact_field('fn')
+        if fn_field:
+            return fn_field
+        vals = tuple(self.exact_field(x) for x in ('name', 'version', 'build'))
         if not any(x is None for x in vals):
-            return '%s-%s-%s.tar.bz2' % tuple(map(str, vals))
+            return '%s-%s-%s.tar.bz2' % vals
+        else:
+            return None
 
     def to_dict(self, args=True):
+        # arg=True adds 'optional' and 'target' fields to the dict
         res = self._specs_map.copy()
         if args and self.optional:
             res['optional'] = bool(self.optional)
@@ -201,7 +213,8 @@ class MatchSpec(object):
             res['target'] = self.target
         return res
 
-    def to_string(self, args=True, base=True):
+    def _to_string(self, args=True, base=True):
+        # arg=True adds 'optional' and 'target' fields to the dict
         nf = (3 if 'build' in self._specs_map else
               (2 if 'version' in self._specs_map else 1)) if base else 0
         flds = ('name', 'version', 'build')[:nf]
@@ -220,10 +233,15 @@ class MatchSpec(object):
         else:
             return base
 
+    def _eq_key(self):
+        return self._specs_map, self.optional, self.target
+
     def __eq__(self, other):
-        if isinstance(other, MatchSpec):
-            return ((self._specs_map, self.optional, self.target) ==
-                    (other._specs_map, other.optional, other.target))
+        return isinstance(other, MatchSpec) and self._eq_key() == other._eq_key()
+
+    def __hash__(self):
+        # TODO: optional and target should not hash
+        return hash(self._specs_map)
 
     if sys.version_info[0] == 2:
         def __ne__(self, other):
@@ -231,14 +249,10 @@ class MatchSpec(object):
             return equal if equal is NotImplemented else not equal
 
     def __repr__(self):
-        return "MatchSpec(%s)" % (self.to_string(args=True, base=False),)
+        return "MatchSpec(%s)" % (self._to_string(args=True, base=False),)
 
     def __str__(self):
-        return self.to_string(args=True, base=True)
-
-    # optional and target should not hash
-    def __hash__(self):
-        return hash(frozenset(iteritems(self._specs_map)))
+        return self._to_string(args=True, base=True)
 
     # Needed for back compatibility with conda-build and even some code
     # within conda itself. Do not remove without coordination with the
@@ -265,4 +279,4 @@ class MatchSpec(object):
 
     @property
     def spec(self):
-        return self.to_string(args=False, base=True)
+        return self._to_string(args=False, base=True)
