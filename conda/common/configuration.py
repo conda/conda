@@ -660,10 +660,10 @@ class MapParameter(Parameter):
         important_maps = tuple(dict((k, v)
                                     for k, v in iteritems(match.value(self))
                                     if key_is_important(match, k))
-                               for match in relevant_matches)
+                               for match in relevant_matches if match is not None)
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m.value(self) for m in relevant_matches),
+        return merge(concatv((m.value(self) for m in relevant_matches if m is not None),
                              reversed(important_maps)))
 
     def repr_raw(self, raw_parameter):
