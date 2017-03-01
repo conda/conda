@@ -4,6 +4,29 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.14 (unreleased)
+
+### Improvements
+* use cPickle in place of pickle for repodata (#4717)
+* ignore pyc compile failure (#4719)
+* use conda.exe for windows entry point executable (#4716, #4720)
+* localize use of conda_signal_handler (#4730)
+
+### Bug Fixes
+* fix #4703 menuinst PathNotFoundException (#4709)
+* ignore permissions error if user_site can't be read (#4710)
+* fix #4694 don't import requests directly in models (#4711)
+* fix #4715 include resources directory in recipe (#4716)
+* fix CondaHttpError for URLs that contain '%' (#4769)
+* bug fixes for preferred envs (#4678)
+
+### Non-User-Facing Changes
+* test coverage improvement (#4607)
+* CI configuration improvements (#4713)
+* allow sha256 to be None (#4759)
+* add cache_fn_url to exports (#4729)
+
+
 ## 4.3.13 (2017-02-17)
 
 ### Improvements
