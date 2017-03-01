@@ -125,3 +125,6 @@ TemporaryDirectory = TemporaryDirectory
 
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
 ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
+
+from .core.repodata import cache_fn_url  # NOQA
+cache_fn_url = cache_fn_url
