@@ -138,8 +138,8 @@ def make_menu(prefix, file_path, remove=False):
         log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
-    import menuinst
     try:
+        import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except:
         stdoutlog.error("menuinst Exception:")
@@ -219,17 +219,17 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
 
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
     log.trace(command)
-    subprocess_call(command)
+    subprocess_call(command, raise_on_error=False)
 
     if not isfile(pyc_full_path):
         message = dals("""
         pyc file failed to compile successfully
-          python_exe_full_path: %(python_exe_full_path)s\n
-          py_full_path: %(py_full_path)s\n
-          pyc_full_path: %(pyc_full_path)s\n
+          python_exe_full_path: %()s\n
+          py_full_path: %()s\n
+          pyc_full_path: %()s\n
         """)
-        raise CondaError(message, python_exe_full_path=python_exe_full_path,
-                         py_full_path=py_full_path, pyc_full_path=pyc_full_path)
+        log.info(message, python_exe_full_path, py_full_path, pyc_full_path)
+        return None
 
     return pyc_full_path
 

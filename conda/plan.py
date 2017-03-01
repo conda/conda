@@ -260,24 +260,6 @@ def add_unlink(actions, dist):
     actions[UNLINK].append(dist)
 
 
-def add_checks(actions):
-    """
-    Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
-    has a LINK action, add a CHECK_LINK, which will check if permissions are
-    suitable for linking.
-
-    Args:
-        actions: a defaultdict(list) of actions that are to be performed, e.g. FETCH
-
-    Returns:
-        the actions dict with the appropriate checks added
-    """
-    if FETCH in actions:
-        actions.setdefault(CHECK_FETCH, [True])
-    if EXTRACT in actions:
-        actions.setdefault(CHECK_EXTRACT, [True])
-
-
 def handle_menuinst(unlink_dists, link_dists):
     if not on_win:
         return unlink_dists, link_dists
@@ -451,20 +433,15 @@ SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False):
+                    channel_priority_map=None, is_update=False):  # pragma: no cover
+    """
+    This function ignores preferred_env.  It's currently used extensively by conda-build, but
+    it is no longer used within the conda code.  Instead, we now use `install_actions_list()`.
+    """
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
-    str_specs = specs
-    specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
-
-    linked_in_root = linked_data(context.root_prefix)
-
-    # Ensure that there is only one prefix to install into
-    dists_for_envs = determine_all_envs(r, specs)
-    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
-    preferred_envs = set(d.env for d in dists_for_envs)
-    assert len(preferred_envs) == 1
+    str_specs = specs
 
     specs_for_prefix = SpecsForPrefix(
         prefix=prefix, specs=tuple(str_specs), r=r

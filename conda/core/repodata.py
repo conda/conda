@@ -11,7 +11,6 @@ from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
 from os.path import dirname, join, split as path_split
-import pickle
 import re
 from textwrap import dedent
 from time import time
@@ -42,6 +41,11 @@ try:
     from cytoolz.itertoolz import take
 except ImportError:
     from .._vendor.toolz.itertoolz import take
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 __all__ = ('collect_all_repodata',)
 

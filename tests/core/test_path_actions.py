@@ -206,7 +206,7 @@ class PathActionsTests(TestCase):
             assert isfile(windows_exe_axn.target_full_path)
             assert is_exe(windows_exe_axn.target_full_path)
 
-            src = compute_md5sum(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits))
+            src = compute_md5sum(join(context.conda_prefix, 'Scripts/conda.exe'))
             assert src == compute_md5sum(windows_exe_axn.target_full_path)
 
             windows_exe_axn.reverse()

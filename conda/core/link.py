@@ -18,7 +18,7 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreatePrivateEnvMetaAction, CreatePythonEntryPointAction,
                            LinkPathAction, MakeMenuAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, RemovePrivateEnvMetaAction, UnlinkPathAction)
-from .. import CondaError, CondaMultiError
+from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
@@ -26,6 +26,7 @@ from ..common.compat import ensure_text_type, iteritems, itervalues, on_win, tex
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
                            get_python_site_packages_short_path)
+from ..common.signals import signal_handler
 from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
                           UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk.create import mkdir_p
@@ -239,6 +240,10 @@ class UnlinkLinkTransaction(object):
         if not self._prepared:
             self.prepare()
 
+        if context.skip_safety_checks:
+            self._verified = True
+            return
+
         exceptions = tuple(exc for exc in concatv(
             self._verify_individual_level(self.all_actions),
             self._verify_transaction_level(self.target_prefix, self.all_actions,
@@ -266,33 +271,33 @@ class UnlinkLinkTransaction(object):
                                  "Check that you have sufficient permissions."
                                  "" % self.target_prefix)
 
-        pkg_idx = 0
-        try:
-            for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
-                self._execute_actions(self.target_prefix, self.num_unlink_pkgs, pkg_idx,
-                                      pkg_data, actions)
-        except Exception as execute_multi_exc:
-            # reverse all executed packages except the one that failed
-            rollback_excs = []
-            if context.rollback_enabled:
-                failed_pkg_idx = pkg_idx
-                reverse_actions = self.all_actions[:failed_pkg_idx]
-                for pkg_idx, (pkg_data, actions) in reversed(tuple(enumerate(reverse_actions))):
-                    excs = self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
-                                                 pkg_idx, pkg_data, actions)
-                    rollback_excs.extend(excs)
+        with signal_handler(conda_signal_handler):
+            pkg_idx = 0
+            try:
+                for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
+                    self._execute_actions(self.target_prefix, self.num_unlink_pkgs, pkg_idx,
+                                          pkg_data, actions)
+            except Exception as execute_multi_exc:
+                # reverse all executed packages except the one that failed
+                rollback_excs = []
+                if context.rollback_enabled:
+                    failed_pkg_idx = pkg_idx
+                    reverse_actions = reversed(tuple(enumerate(self.all_actions[:failed_pkg_idx])))
+                    for pkg_idx, (pkg_data, actions) in reverse_actions:
+                        excs = self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
+                                                     pkg_idx, pkg_data, actions)
+                        rollback_excs.extend(excs)
 
-            raise CondaMultiError(tuple(concatv(
-                (execute_multi_exc.errors
-                 if isinstance(execute_multi_exc, CondaMultiError)
-                 else (execute_multi_exc,)),
-                rollback_excs,
-            )))
-
-        else:
-            for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
-                for axn_idx, action in enumerate(actions):
-                    action.cleanup()
+                raise CondaMultiError(tuple(concatv(
+                    (execute_multi_exc.errors
+                     if isinstance(execute_multi_exc, CondaMultiError)
+                     else (execute_multi_exc,)),
+                    rollback_excs,
+                )))
+            else:
+                for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
+                    for axn_idx, action in enumerate(actions):
+                        action.cleanup()
 
     @staticmethod
     def _execute_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions):
