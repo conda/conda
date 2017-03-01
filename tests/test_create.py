@@ -67,6 +67,7 @@ TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UINCODE_CHARACTERS = u"ōγђ家固한"
+UINCODE_CHARACTERS = u"áêñßôç"
 
 
 def escape_for_winpath(p):
@@ -79,7 +80,7 @@ def make_temp_prefix(name=None, create_directory=True):
         dirpath = str(uuid4())[:8] if name is None else name
     else:
         random_unicode = ''.join(sample(UINCODE_CHARACTERS, len(UINCODE_CHARACTERS)))
-        dirpath = str(uuid4())[:4] + random_unicode if name is None else name
+        dirpath = (str(uuid4())[:4] + random_unicode) if name is None else name
     prefix = join(tempdir, dirpath)
     os.makedirs(prefix)
     if create_directory:
@@ -493,7 +494,7 @@ class IntegrationTests(TestCase):
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
 
-    def test_clone_offline(self):
+    def test_clone_offline_simple(self):
         with make_temp_env("python flask=0.10.1") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')

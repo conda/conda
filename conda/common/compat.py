@@ -109,8 +109,13 @@ from io import open as io_open  # NOQA
 
 
 def open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True):
-    return io_open(ensure_fs_path_encoding(file), str(mode), buffering, encoding, errors,
-                   newline, closefd)
+    if 'b' in mode:
+        return io_open(ensure_fs_path_encoding(file), str(mode), buffering=buffering,
+                       errors=errors, newline=newline, closefd=closefd)
+    else:
+        return io_open(ensure_fs_path_encoding(file), str(mode), buffering=buffering,
+                       encoding=encoding or 'utf-8', errors=errors, newline=newline,
+                       closefd=closefd)
 
 
 def with_metaclass(Type, skip_attrs=set(('__dict__', '__weakref__'))):
