@@ -26,10 +26,13 @@ specs_from_url = specs_from_url
 from .cli.conda_argparse import ArgumentParser  # NOQA
 ArgumentParser = ArgumentParser
 
-from .common.compat import PY3, StringIO,  input, iteritems, lchmod, string_types, text_type  # NOQA
-PY3, StringIO,  input, iteritems, lchmod, string_types, text_type = PY3, StringIO,  input, iteritems, lchmod, string_types, text_type  # NOQA
+from .common.compat import PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
+PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
 from .connection import CondaSession  # NOQA
 CondaSession = CondaSession
+
+from .gateways.disk.link import lchmod  # NOQA
+lchmod = lchmod
 
 from .fetch import TmpDownload  # NOQA
 TmpDownload = TmpDownload
@@ -91,7 +94,7 @@ default_python = conda.base.context.context.default_python
 envs_dirs = conda.base.context.context.envs_dirs
 pkgs_dirs = conda.base.context.context.pkgs_dirs
 platform = conda.base.context.context.platform
-root_dir = conda.base.context.context.root_dir
+root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
 from .models.channel import get_conda_build_local_url  # NOQA
@@ -100,7 +103,7 @@ get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
 from .exceptions import PaddingError  # NOQA
 PaddingError = PaddingError
-from .common.compat import CrossPlatformStLink     # NOQA
+from .gateways.disk.link import CrossPlatformStLink  # NOQA
 CrossPlatformStLink = CrossPlatformStLink
 
 from .models.enums import FileMode  # NOQA
@@ -110,11 +113,14 @@ PathType = PathType
 
 
 if PY3:
-    import configparser  # NOQA
+    import configparser  # NOQA  # pragma: py2 no cover
 else:
-    import ConfigParser as configparser  # NOQA
+    import ConfigParser as configparser  # NOQA  # pragma: py3 no cover
 configparser = configparser
 
 
 from .compat import TemporaryDirectory  # NOQA
 TemporaryDirectory = TemporaryDirectory
+
+from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
+ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call

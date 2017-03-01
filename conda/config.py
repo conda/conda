@@ -53,10 +53,10 @@ rc_bool_keys = [
 ]
 
 rc_string_keys = [
-    'ssl_verify',
     'channel_alias',
     'client_ssl_cert',
     'client_ssl_cert_key',
+    'default_python',
 ]
 
 # Not supported by conda config yet
@@ -104,7 +104,7 @@ def get_rc_path():
 
 rc_path = get_rc_path()
 
-pkgs_dirs = context.pkgs_dirs
+pkgs_dirs = list(context.pkgs_dirs)
 default_prefix = context.default_prefix
 subdir = context.subdir
 arch_name = context.arch_name

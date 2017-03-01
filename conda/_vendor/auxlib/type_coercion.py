@@ -231,6 +231,9 @@ def typify(value, type_hint=None):
             return boolify(value, nullable=True)
         elif not (type_hint - (STRING_TYPES_SET | {bool})):
             return boolify(value, return_string=True)
+        elif not (type_hint - (STRING_TYPES_SET | {NoneType})):
+            value = typify_str_no_hint(text_type(value))
+            return None if value is None else text_type(value)
         elif not (type_hint - {bool, int}):
             return typify_str_no_hint(text_type(value))
         else:

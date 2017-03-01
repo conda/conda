@@ -3,8 +3,110 @@
 ### New Features
 * general support for all bourne- and c-based shells (#3175)
 
+### Deprecations/Breaking Changes
+* The default channel repo.continuum.io/pkgs/free is moved to
+  repo.continuum.io/pkgs/anaconda (#4635)
+
+### Improvements
+* filter out unwritable package caches from conda clean command (#4620)
+
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
+
+
+## 4.3.13 (2017-02-17)
+
+### Improvements
+* resolve #4636 environment variable expansion for pkgs_dirs (#4637)
+* link, symlink, islink, and readlink for Windows (#4652, #4661)
+* add extra information to CondaHTTPError (#4638, #4672)
+
+### Bug Fixes
+* maximize requested builds after feature determination (#4647)
+* fix #4649 incorrect assert statement concerning package cache directory (#4651)
+* multi-user mode bug fixes (#4663)
+
+### Non-User-Facing Changes
+* path_actions unit tests (#4654)
+* remove dead code (#4369, #4655, #4660)
+* separate repodata logic from index into a new core/repodata.py module (#4669)
+
+
+## 4.3.12 (2017-02-14)
+
+### Improvements
+* prepare conda for uploading to pypi (#4619)
+* better general http error message (#4627)
+* disable old python noarch warning (#4576)
+
+### Bug Fixes
+* fix UnicodeDecodeError for ensure_text_type (#4585)
+* fix determination of if file path is writable (#4604)
+* fix #4592 BufferError cannot close exported pointers exist (#4628)
+* fix run_script current working directory (#4629)
+* fix pkgs_dirs permissions regression (#4626)
+
+### Non-User-Facing Changes
+* fixes for tests when conda-bld directory doesn't exist (#4606)
+* use requirements.txt and Makefile for travis-ci setup (#4600, #4633)
+* remove hasattr use from compat functions (#4634)
+
+
+## 4.3.11 (2017-02-09)
+
+### Bug Fixes
+* fix attribute error in add_defaults_to_specs (#4577)
+
+
+## 4.3.10 (2017-02-07)
+
+### Improvements
+* remove .json from pickle path (#4498)
+* improve empty repodata noarch warning and error messages (#4499)
+* don't add python and lua as default specs for private envs (#4529, #4533)
+* let default_python be None (#4547, #4550)
+
+### Bug Fixes
+* fix #4513 null pointer exception for channel without noarch (#4518)
+* fix ssl_verify set type (#4517)
+* fix bug for windows multiuser (#4524)
+* fix clone with noarch python packages (#4535)
+* fix ipv6 for python 2.7 on Windows (#4554)
+
+### Non-User-Facing Changes
+* separate integration tests with a marker (#4532)
+
+
+## 4.3.9 (2017-01-31)
+
+### Improvements
+* improve repodata caching for performance (#4478, #4488)
+* expand scope of packages included by bad_installed (#4402)
+* silence pre-link warning for old noarch (#4451)
+* add configuration to optionally require noarch repodata (#4450)
+* improve conda subprocessing (#4447)
+* respect info/link.json (#4482)
+
+### Bug Fixes
+* fix #4398 'hard' was used for link type at one point (#4409)
+* fixed "No matches for wildcard '$activate_d/*.fish'" warning (#4415)
+* print correct activate/deactivate message for fish shell (#4423)
+* fix 'Dist' object has no attribute 'fn' (#4424)
+* fix noarch generic and add additional integration test (#4431)
+* fix #4425 unknown encoding (#4433)
+
+### Non-User-Facing Changes
+* fail CI on conda-build fail (#4405)
+* run doctests (#4414)
+* make index record mutable again (#4461)
+* additional test for conda list --json (#4480)
+
+
+## 4.3.8 (2017-01-23)
+
+### Bug Fixes
+* fix #4309 ignore EXDEV error for directory renames (#4392)
+* fix #4393 by force-renaming certain backup files if the path already exists (#4397)
 
 
 ## 4.3.7 (2017-01-20)
@@ -255,6 +357,15 @@
 * make Record immutable (#3965)
 * project housekeeping (#3994, #4065)
 * context-dependent setup.py files (#4057)
+
+
+## 4.2.17 (unreleased)
+
+## Improvements
+* silence pre-link warning for old noarch 4.2.x backport (#4453)
+
+### Non-User-Facing Changes
+* build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
 
 
 ## 4.2.16 (2017-01-20)

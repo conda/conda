@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 import os
-from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, islink, join,
+from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, join,
                      relpath)
 import re
 import shutil
@@ -16,11 +16,12 @@ from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win
 from .common.path import url_to_path, win_path_ok
 from .common.url import is_url, join_url, path_to_url
-from .core.index import get_index, supplement_index_with_cache
+from .core.index import get_index, _supplement_index_with_cache
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
 from .exceptions import CondaFileNotFoundError, CondaRuntimeError, ParseError
 from .gateways.disk.delete import rm_rf
+from .gateways.disk.link import islink
 from .instructions import LINK, UNLINK
 from .models.dist import Dist
 from .models.index_record import IndexRecord
@@ -90,13 +91,18 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
 
     # Now get the index---but the only index we need is the package cache
     index = {}
-    supplement_index_with_cache(index, ())
+    _supplement_index_with_cache(index, ())
 
     # unlink any installed packages with same package name
     link_names = {index[d]['name'] for d in link_dists}
     actions[UNLINK].extend(d for d, r in iteritems(linked_data(prefix))
                            if r['name'] in link_names)
+
+    # need to get the install order right, especially to install python in the prefix
+    #  before python noarch packages
+    r = Resolve(index)
     actions[LINK].extend(link_dists)
+    actions[LINK] = r.dependency_sort({r.package_name(dist): dist for dist in actions[LINK]})
 
     execute_actions(actions, index, verbose=verbose)
     return actions
@@ -175,7 +181,7 @@ def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
     """
-    if on_win and exists(join(context.root_dir, '.nonadmin')):
+    if on_win and exists(join(context.root_prefix, '.nonadmin')):
         if not isdir(prefix):
             os.makedirs(prefix)
         with open(join(prefix, '.nonadmin'), 'w') as fo:
@@ -311,9 +317,6 @@ def make_icon_url(info):
     if info.get('channel') and info.get('icon'):
         base_url = dirname(info['channel'])
         icon_fn = info['icon']
-        # icon_cache_path = join(pkgs_dir, 'cache', icon_fn)
-        # if isfile(icon_cache_path):
-        #    return url_path(icon_cache_path)
         return '%s/icons/%s' % (base_url, icon_fn)
     return ''
 
@@ -331,4 +334,4 @@ def list_prefixes():
                 prefix = join(envs_dir, dn)
                 yield prefix
 
-    yield context.root_dir
+    yield context.root_prefix

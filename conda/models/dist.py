@@ -45,6 +45,7 @@ class DistType(EntityType):
 
 @with_metaclass(DistType)
 class Dist(Entity):
+    _lazy_validate = True
 
     channel = StringField(required=False, nullable=True, immutable=True)
 
@@ -60,8 +61,6 @@ class Dist(Entity):
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
                  build_number=None, with_features_depends=None, base_url=None, platform=None):
-        # if name is None:
-        #     import pdb; pdb.set_trace()
         super(Dist, self).__init__(channel=channel,
                                    dist_name=dist_name,
                                    name=name,
@@ -268,3 +267,7 @@ class Dist(Entity):
         if item.endswith(CONDA_TARBALL_EXTENSION):
             item = item[:-len(CONDA_TARBALL_EXTENSION)]
         return item in self.__str__()
+
+    @property
+    def fn(self):
+        return self.to_filename()

@@ -38,19 +38,16 @@ items in the preceding sets.
 
         for dep in sorted(data.values()):
             dep -= set(ordered)
-#         data = {item: (dep - ordered)
-#                 for item, dep in data.items()
-#                     if item not in ordered}
 
     if len(data) != 0:
         msg = 'Cyclic dependencies exist among these items: {}'
         raise CondaValueError(msg.format(' -> '.join(repr(x) for x in data.keys())))
 
 def pop_key(data):
-    '''
+    """
     Pop an item from the graph that has the fewest dependencies in the case of a tie
     The winners will be sorted alphabetically
-    '''
+    """
     items = sorted(data.items(), key=lambda item: (len(item[1]), item[0]))
     key = items[0][0]
 

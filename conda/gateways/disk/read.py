@@ -5,14 +5,17 @@ from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
 from functools import partial
+from glob import glob
 import hashlib
 from itertools import chain
 import json
 from logging import getLogger
 from os import X_OK, access, listdir
-from os.path import isdir, isfile, islink, join, lexists
+from os.path import isdir, isfile, join, lexists
 import shlex
 
+from .link import islink
+from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import on_win
@@ -67,6 +70,18 @@ def is_exe(path):
     return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))
 
 
+def find_first_existing(*globs):
+    for g in globs:
+        for path in glob(g):
+            if lexists(path):
+                return path
+    return None
+
+
+# ####################################################
+# functions supporting read_package_info()
+# ####################################################
+
 def read_package_info(record, extracted_package_directory):
     index_json_record = read_index_json(extracted_package_directory)
     icondata = read_icondata(extracted_package_directory)
@@ -86,10 +101,6 @@ def read_package_info(record, extracted_package_directory):
     )
 
 
-# ####################################################
-# functions supporting read_package_info()
-# ####################################################
-
 def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
         record = IndexRecord(**json.load(fi))  # TODO: change to LinkedPackageData
@@ -107,18 +118,22 @@ def read_icondata(extracted_package_directory):
 
 
 def read_package_metadata(extracted_package_directory):
-    package_metadata_path = join(extracted_package_directory, 'info', 'package_metadata.json')
-    if isfile(package_metadata_path):
-        with open(package_metadata_path, 'r') as f:
+    def _paths():
+        yield join(extracted_package_directory, 'info', 'link.json')
+        yield join(extracted_package_directory, 'info', 'package_metadata.json')
+
+    path = first(_paths(), key=isfile)
+    if not path:
+        return None
+    else:
+        with open(path, 'r') as f:
             package_metadata = PackageMetadata(**json.loads(f.read()))
             if package_metadata.package_metadata_version != 1:
                 raise CondaUpgradeError(dals("""
                 The current version of conda is too old to install this package. (This version
-                only supports paths.json schema version 1.)  Please update conda to install
+                only supports link.json schema version 1.)  Please update conda to install
                 this package."""))
         return package_metadata
-    else:
-        return None
 
 
 def read_paths_json(extracted_package_directory):
@@ -154,6 +169,7 @@ def read_paths_json(extracted_package_directory):
                 else:
                     path_info["path_type"] = PathType.hardlink
                 yield PathData(**path_info)
+
         paths_data = PathsData(
             paths_version=0,
             paths=read_files_file(),
@@ -184,6 +200,7 @@ def read_has_prefix(path):
             return ParseResult(parts[0], FileMode(parts[1]), parts[2])
         else:
             raise RuntimeError("Invalid has_prefix file at path: %s" % path)
+
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 

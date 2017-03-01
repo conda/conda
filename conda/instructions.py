@@ -5,7 +5,7 @@ from functools import reduce
 from logging import getLogger
 from operator import add
 import os
-from os.path import basename, isdir, isfile, islink, join
+from os.path import basename, isdir, isfile, join
 import tarfile
 
 from .base.context import context
@@ -13,6 +13,7 @@ from .common.compat import on_win
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
+from .gateways.disk.link import islink
 from .install import symlink_conda
 from .models.dist import Dist
 
@@ -69,24 +70,12 @@ def EXTRACT_CMD(state, arg):
 
 
 def RM_EXTRACTED_CMD(state, dist):
-    # temporary hack for conda-build compatibility
-    # dist = Dist(dist)
-    # assert dist.dist_name.split('::')[0] == 'local', dist
-    # pc_entry = PackageCache(context.croot).get(dist)
-    #
-    # if pc_entry and pc_entry.is_extracted:
-    #     rm_rf(pc_entry.extracted_package_dir)
+    # TODO: check conda-build to see if we can remove this
     return None
 
 
 def RM_FETCHED_CMD(state, dist):
-    # temporary hack for conda-build compatibility
-    # dist = Dist(dist)
-    # assert dist.dist_name.split('::')[0] == 'local', dist
-    # pc_entry = PackageCache(context.croot).get(dist)
-    #
-    # if pc_entry and pc_entry.is_fetched:
-    #     rm_rf(pc_entry.package_tarball_full_path)
+    # TODO: check conda-build to see if we can remove this
     return None
 
 
@@ -242,7 +231,7 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
 
     log.debug("executing plan %s", plan)
 
-    state = {'i': None, 'prefix': context.root_dir, 'index': index}
+    state = {'i': None, 'prefix': context.root_prefix, 'index': index}
 
     for instruction, arg in plan:
 

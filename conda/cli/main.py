@@ -121,10 +121,7 @@ def _main(*args):
     context.__init__(SEARCH_PATH, 'conda', args)
 
     if getattr(args, 'json', False):
-        # # Silence logging info to avoid interfering with JSON output
-        # for logger in Logger.manager.loggerDict:
-        #     if logger not in ('fetch', 'progress'):
-        #         getLogger(logger).setLevel(CRITICAL + 1)
+        # Silence logging info to avoid interfering with JSON output
         for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 

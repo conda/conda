@@ -2,18 +2,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import rename, utime
-from os.path import lexists
+from os import rename as os_rename, utime
+from os.path import dirname, isdir, lexists
 import re
 
-from conda._vendor.auxlib.path import expand
-
 from . import exp_backoff_fn
+from .delete import rm_rf
+from ..._vendor.auxlib.path import expand
 
 log = getLogger(__name__)
-
-# in the rest of conda's code, os.rename is preferably imported from here
-rename = rename
 
 SHEBANG_REGEX = re.compile(br'^(#!((?:\\ |[^ \n\r])+)(.*))')
 
@@ -42,24 +39,36 @@ def update_file_in_place_as_binary(file_full_path, callback):
             fh.close()
 
 
-def backoff_rename(source_path, destination_path):
+def rename(source_path, destination_path, force=False):
+    if lexists(destination_path) and force:
+        rm_rf(destination_path)
     if lexists(source_path):
         log.trace("renaming %s => %s", source_path, destination_path)
-        exp_backoff_fn(rename, source_path, destination_path)
+        os_rename(source_path, destination_path)
     else:
         log.trace("cannot rename; source path does not exist '%s'", source_path)
-    return
+
+
+def backoff_rename(source_path, destination_path, force=False):
+    exp_backoff_fn(rename, source_path, destination_path, force)
 
 
 def touch(path):
     # returns
     #   True if the file did not exist but was created
     #   False if the file already existed
+    # raises permissions errors such as EPERM and EACCES
     path = expand(path)
     log.trace("touching path %s", path)
     if lexists(path):
         utime(path, None)
         return True
     else:
-        open(path, 'a').close()
-        return False
+        assert isdir(dirname(path))
+        try:
+            fh = open(path, 'a')
+        except:
+            raise
+        else:
+            fh.close()
+            return False

@@ -2,21 +2,23 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import Sequence
-from itertools import chain
 from logging import getLogger
 import os
-from os.path import (abspath, basename, expanduser, isdir, join, normpath,
+from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
 
-from .constants import (APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ROOT_ENV_NAME,
-                        SEARCH_PATH)
+from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
+                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+from .. import CondaError
+from .._vendor.appdirs import user_data_dir
+from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
-from ..base.constants import DEFAULTS_CHANNEL_NAME, PathConflict
-from ..common.compat import NoneType, iteritems, itervalues, odict, string_types
+from .._vendor.boltons.setutils import IndexedSet
+from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types, text_type
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
@@ -74,6 +76,14 @@ def default_python_validation(value):
     return "default_python value '%s' not of the form '[23].[0-9]'" % value
 
 
+def ssl_verify_validation(value):
+    if isinstance(value, string_types):
+        if not isfile(value):
+            return ("ssl_verify value '%s' must be a boolean or a path to a "
+                    "certificate bundle." % value)
+    return True
+
+
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
@@ -83,6 +93,8 @@ class Context(Configuration):
     changeps1 = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(False)
     create_default_packages = SequenceParameter(string_types)
+    default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
+                                        parameter_type=string_types + (NoneType,))
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
@@ -102,7 +114,8 @@ class Context(Configuration):
     #   False/0: always fetch remote repodata (HTTP 304 responses respected)
 
     # remote connection details
-    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,))
+    ssl_verify = PrimitiveParameter(True, parameter_type=string_types + (bool,),
+                                    validation=ssl_verify_validation)
     client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
     client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
     proxy_servers = MapParameter(string_types)
@@ -114,6 +127,7 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
+    allow_non_channel_urls = PrimitiveParameter(True)
 
     # channels
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
@@ -164,7 +178,7 @@ class Context(Configuration):
             errors.append(error)
         return errors
 
-    @memoizedproperty
+    @property
     def conda_build_local_paths(self):
         # does file system reads to make sure paths actually exist
         return tuple(unique(full_path for full_path in (
@@ -193,7 +207,7 @@ class Context(Configuration):
         elif self.root_writable:
             return join(self.root_prefix, 'conda-bld')
         else:
-            return abspath(expanduser('~/conda-bld'))
+            return expand('~/conda-bld')
 
     @property
     def src_cache(self):
@@ -266,23 +280,42 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from ..gateways.disk.test import try_write
-        return try_write(self.root_dir)
+        from ..gateways.disk.test import prefix_is_writable
+        return prefix_is_writable(self.root_prefix)
 
     @property
     def envs_dirs(self):
-        return tuple(abspath(expanduser(p)) for p in concatv(
-            self._envs_dirs,
-            ('~/.conda/envs',) if not self.root_writable else (),
-            (join(self.root_dir, 'envs'),),
-        ))
+        if self.root_writable:
+            fixed_dirs = (
+                join(self.root_prefix, 'envs'),
+                join(self._user_data_dir, 'envs'),
+                join('~', '.conda', 'envs'),
+            )
+        else:
+            fixed_dirs = (
+                join(self.root_prefix, 'envs'),
+                join(self._user_data_dir, 'envs'),
+                join('~', '.conda', 'envs'),
+            )
+        return tuple(IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs)))
 
     @property
     def pkgs_dirs(self):
         if self._pkgs_dirs:
-            return list(self._pkgs_dirs)
+            return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
-            return [pkgs_dir_from_envs_dir(envs_dir) for envs_dir in self.envs_dirs]
+            cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
+            return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (
+                self.root_prefix,
+                self._user_data_dir,
+            )))
+
+    @property
+    def _user_data_dir(self):
+        if on_win:
+            return user_data_dir(APP_NAME, APP_NAME)
+        else:
+            return expand(join('~', '.conda'))
 
     @property
     def private_envs_json_path(self):
@@ -292,7 +325,7 @@ class Context(Configuration):
     def default_prefix(self):
         _default_env = os.getenv('CONDA_DEFAULT_ENV')
         if _default_env in (None, ROOT_ENV_NAME):
-            return self.root_dir
+            return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
         else:
@@ -425,13 +458,6 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     return context
 
 
-def pkgs_dir_from_envs_dir(envs_dir):
-    if abspath(envs_dir) == abspath(join(context.root_dir, 'envs')):
-        return join(context.root_dir, 'pkgs32' if context.force_32bit else 'pkgs')
-    else:
-        return join(envs_dir, '.pkgs')
-
-
 def get_help_dict():
     # this is a function so that most of the time it's not evaluated and loaded into memory
     return {
@@ -525,11 +551,21 @@ def get_prefix(ctx, args, search=True):
         if search:
             return locate_prefix_by_name(ctx, args.name)
         else:
-            return join(ctx.envs_dirs[0], args.name)
+            # need first writable envs_dir
+            envs_dir = first(ctx.envs_dirs, envs_dir_has_writable_pkg_cache)
+            if not envs_dir:
+                raise CondaError("No writable package envs directories found in\n"
+                                 "%s" % text_type(context.envs_dirs))
+            return join(envs_dir, args.name)
     elif getattr(args, 'prefix', None):
         return abspath(expanduser(args.prefix))
     else:
         return ctx.default_prefix
+
+
+def envs_dir_has_writable_pkg_cache(envs_dir):
+    from ..core.package_cache import PackageCache
+    return PackageCache(join(dirname(envs_dir), 'pkgs')).is_writable
 
 
 def locate_prefix_by_name(ctx, name):
@@ -549,26 +585,12 @@ def locate_prefix_by_name(ctx, name):
         return ctx.root_dir
 
     # look for a directory named `name` in all envs_dirs AND in CWD
-    for envs_dir in chain(ctx.envs_dirs + (os.getcwd(),)):
+    for envs_dir in concatv(ctx.envs_dirs, (os.getcwd(),)):
         prefix = join(envs_dir, name)
         if isdir(prefix):
             return prefix
 
     raise CondaEnvironmentNotFoundError(name)
-
-
-def check_write(command, prefix, json=False):
-    if inroot_notwritable(prefix):
-        from conda.cli.help import root_read_only
-        root_read_only(command, prefix, json=json)
-
-
-def inroot_notwritable(prefix):
-    """
-    return True if the prefix is under root and root is not writeable
-    """
-    return (abspath(prefix).startswith(context.root_dir) and
-            not context.root_writable)
 
 
 try:
