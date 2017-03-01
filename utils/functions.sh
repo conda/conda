@@ -8,6 +8,7 @@ case "$(uname -s)" in
         ;;
     *)  ;;
 esac
+export INSTALL_PREFIX=~/miniconda
 
 
 install_miniconda() {
@@ -171,7 +172,8 @@ conda_activate_test() {
     $prefix/bin/python -m conda info
 
     # make test-installed
-    $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
+    # $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
+    $PYTEST_EXE $ADD_COV -m "installed" --shell=bash
 
 }
 
@@ -229,8 +231,7 @@ linux_setup() {
 run_setup() {
     set -e
     set -x
-
-    export INSTALL_PREFIX=~/miniconda
+    env | sort
 
     case "$(uname -s)" in
         'Darwin')
@@ -243,10 +244,18 @@ run_setup() {
     esac
 
     export PATH="$INSTALL_PREFIX:$PATH"
+
+    set +e
+    set +x
 }
 
 
 run_tests() {
+    set -e
+    set -x
+    env | sort
+
+
     if [[ $FLAKE8 == true ]]; then
         flake8 --statistics
     elif [[ -n $CONDA_BUILD ]]; then
@@ -261,6 +270,9 @@ run_tests() {
         fi
         $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
     fi
+
+    set +e
+    set +x
 }
 
 
