@@ -92,21 +92,6 @@ def gnu_get_libc_version():
     return result
 
 
-def hashsum_file(path, mode='md5'):
-    h = hashlib.new(mode)
-    with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def md5_file(path):
-    return hashsum_file(path, 'md5')
-
-
 def path_identity(path):
     """Used as a dummy path converter where no conversion necessary"""
     return path

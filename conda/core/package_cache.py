@@ -22,7 +22,6 @@ from ..gateways.disk.read import compute_md5sum
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
-from ..utils import md5_file
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, remove
@@ -119,7 +118,7 @@ class PackageCacheEntry(object):
     @memoizemethod
     def _calculate_md5sum(self):
         assert self.is_fetched
-        return md5_file(self.package_tarball_full_path)
+        return compute_md5sum(self.package_tarball_full_path)
 
     def __repr__(self):
         args = ('%s=%r' % (key, getattr(self, key))
