@@ -5,6 +5,8 @@ machine:
     PYTHON_VERSION: 3.6
 
 dependencies:
+  pre:
+    - sudo apt-get install zsh
   cache_directories:
     - "~/miniconda/pkgs"
     - "~/.conda/pkgs"
