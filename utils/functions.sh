@@ -8,6 +8,7 @@ case "$(uname -s)" in
         ;;
     *)  ;;
 esac
+export INSTALL_PREFIX=~/miniconda
 
 
 install_miniconda() {
@@ -230,8 +231,6 @@ run_setup() {
     set -e
     set -x
     env | sort
-
-    export INSTALL_PREFIX=~/miniconda
 
     case "$(uname -s)" in
         'Darwin')
