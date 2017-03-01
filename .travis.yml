@@ -11,6 +11,12 @@ addons:
 git:
   depth: 100
 
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+
 matrix:
   include:
     - env: PYTHON_VERSION=3.6 SUDO=true
