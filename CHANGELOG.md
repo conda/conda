@@ -22,7 +22,7 @@
 
 ### Non-User-Facing Changes
 * test coverage improvement (#4607)
-* CI configuration improvements (#4713)
+* CI configuration improvements (#4713, #4773)
 * allow sha256 to be None (#4759)
 * add cache_fn_url to exports (#4729)
 
