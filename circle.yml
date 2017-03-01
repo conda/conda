@@ -1,0 +1,32 @@
+machine:
+  timezone:
+    Etc/UTC
+  environment:
+    PYTHON_VERSION: 3.6
+
+dependencies:
+#  cache_directories:
+#    - "assets/cache"    # relative to the build directory
+#    - "~/assets/output" # relative to the user's home directory
+  override:
+    - source utils/functions.sh && run_setup
+
+test:
+  override:
+    - source utils/functions.sh && run_tests
+
+
+#general:
+#  branches:
+#    only:
+#      - master # list of branches to build
+#      - /feature-.*/ # or regexes
+#  artifacts:
+#    - "selenium/screenshots" # relative to the build directory
+#    - "~/simplecov" # relative to the user's home directory
+#    - "test.txt" # a single file, relative to the build directory
+
+
+
+
+

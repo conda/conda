@@ -229,6 +229,7 @@ linux_setup() {
 run_setup() {
     set -e
     set -x
+    env | sort
 
     export INSTALL_PREFIX=~/miniconda
 
@@ -243,10 +244,18 @@ run_setup() {
     esac
 
     export PATH="$INSTALL_PREFIX:$PATH"
+
+    set +e
+    set +x
 }
 
 
 run_tests() {
+    set -e
+    set -x
+    env | sort
+
+
     if [[ $FLAKE8 == true ]]; then
         flake8 --statistics
     elif [[ -n $CONDA_BUILD ]]; then
@@ -261,6 +270,9 @@ run_tests() {
         fi
         $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
     fi
+
+    set +e
+    set +x
 }
 
 
