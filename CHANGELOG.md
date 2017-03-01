@@ -11,6 +11,7 @@
 * ignore pyc compile failure (#4719)
 * use conda.exe for windows entry point executable (#4716, #4720)
 * localize use of conda_signal_handler (#4730)
+* add skip_safety_checks configuration parameter (#4767)
 
 ### Bug Fixes
 * fix #4703 menuinst PathNotFoundException (#4709)
@@ -19,10 +20,11 @@
 * fix #4715 include resources directory in recipe (#4716)
 * fix CondaHttpError for URLs that contain '%' (#4769)
 * bug fixes for preferred envs (#4678)
+* fix #4745 check for info/index.json with package is_extracted (#4776)
 
 ### Non-User-Facing Changes
 * test coverage improvement (#4607)
-* CI configuration improvements (#4713, #4773)
+* CI configuration improvements (#4713, #4773, #4775)
 * allow sha256 to be None (#4759)
 * add cache_fn_url to exports (#4729)
 
