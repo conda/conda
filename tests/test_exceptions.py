@@ -7,7 +7,7 @@ from conda.base.context import reset_context, context
 from conda.common.io import captured, env_var, replace_log_streams
 from conda.exceptions import CommandNotFoundError, CondaAssertionError, CondaCorruptEnvironmentError, MD5MismatchError, \
     conda_exception_handler, CondaHTTPError, PackageNotFoundError, BasicClobberError, TooManyArgumentsError, \
-    TooFewArgumentsError
+    TooFewArgumentsError, CondaFileNotFoundError, DirectoryNotFoundError, CondaRevisionError
 
 
 def test_CondaAssertionError():
@@ -23,6 +23,12 @@ def test_CondaCorruptEnvironmentException():
     except CondaCorruptEnvironmentError as err:
         assert str(err) == "Corrupt environment error: Oh noes corrupt environment"
 
+def test_CondaRevisionError():
+    message = "Groot"
+    try:
+        raise CondaRevisionError(message)
+    except CondaRevisionError as err:
+        assert str(err) == "Revision Error: Groot."
 
 def _raise_helper(exception):
     raise exception
@@ -79,6 +85,50 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == "TooFewArgumentsError: Too few arguments:  Got 2 arguments but expected 5."
+
+    def test_CondaFileNotFoundError(self):
+        filename = "Groot"
+        exc = CondaFileNotFoundError(filename)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.CondaFileNotFoundError'>"
+        assert json_obj['exception_name'] == 'CondaFileNotFoundError'
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == "CondaFileNotFoundError: File not found: 'Groot'."
+
+    def test_DirectoryNotFoundError(self):
+        directory = "Groot"
+        exc = DirectoryNotFoundError(directory)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.DirectoryNotFoundError'>"
+        assert json_obj['exception_name'] == 'DirectoryNotFoundError'
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+        assert json_obj['directory'] == "Groot"
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == "DirectoryNotFoundError: Directory not found: 'Groot'."
+
 
     def test_MD5MismatchError(self):
         url = "https://download.url/path/to/file.tar.bz2"

@@ -83,7 +83,7 @@ class ClobberError(CondaError):
 
 
 class BasicClobberError(ClobberError):
-    def __init__(self, source_path, target_path, context):
+    def __init__(self, source_path, target_path, context=None):
         message = dals("""
         Conda was asked to clobber an existing path.
           source path:      %(source_path)s
@@ -170,9 +170,9 @@ class CondaFileNotFoundError(CondaError, OSError):
 
 
 class DirectoryNotFoundError(CondaError):
-    def __init__(self, directory, message, *args):
+    def __init__(self, directory):
         self.directory = directory
-        msg = 'Directory not found: %s' % directory
+        msg = "Directory not found: '%s'." % directory
         super(DirectoryNotFoundError, self).__init__(msg)
 
 
@@ -338,7 +338,7 @@ class CondaHTTPError(CondaError):
 
 class CondaRevisionError(CondaError):
     def __init__(self, message):
-        msg = 'Revision Error :%s' % message
+        msg = "Revision Error: %s." % message
         super(CondaRevisionError, self).__init__(msg)
 
 
