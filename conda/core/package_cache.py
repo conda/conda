@@ -7,7 +7,7 @@ from os.path import basename, isdir, isfile, islink, join
 from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
-from .. import CondaError, CondaMultiError
+from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.path import expand
@@ -15,6 +15,7 @@ from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
 from ..common.path import safe_basename, url_to_path
+from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
 from ..gateways.disk.read import compute_md5sum
@@ -470,8 +471,9 @@ class ProgressiveFetchExtract(object):
         if not self._prepared:
             self.prepare()
 
-        for action in concatv(self.cache_actions, self.extract_actions):
-            self._execute_action(action)
+        with signal_handler(conda_signal_handler):
+            for action in concatv(self.cache_actions, self.extract_actions):
+                self._execute_action(action)
 
     @staticmethod
     def _execute_action(action):

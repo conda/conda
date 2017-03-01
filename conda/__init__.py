@@ -13,11 +13,10 @@ import sys
 from ._vendor.auxlib.packaging import get_version
 from .common.compat import iteritems, text_type
 
-__all__ = [
-    "__name__", "__version__", "__author__",
-    "__email__", "__license__", "__copyright__",
-    "__summary__", "__url__",
-]
+__all__ = (
+    "__name__", "__version__", "__author__", "__email__", "__license__", "__summary__", "__url__",
+    "CONDA_PACKAGE_ROOT", "CondaError", "CondaMultiError", "CondaExitZero", "conda_signal_handler",
+)
 
 __name__ = "conda"
 __version__ = get_version(__file__)
@@ -80,3 +79,18 @@ class CondaMultiError(CondaError):
 
 class CondaExitZero(CondaError):
     pass
+
+
+ACTIVE_SUBPROCESSES = set()
+
+
+def conda_signal_handler(signum, frame):
+    # This function is in the base __init__.py so that it can be monkey-patched by other code
+    #   if downstream conda users so choose.  The biggest danger of monkey-patching is that
+    #   unlink/link transactions don't get rolled back if interrupted mid-transaction.
+    for p in ACTIVE_SUBPROCESSES:
+        if p.poll() is None:
+            p.send_signal(signum)
+
+    from .exceptions import CondaSignalInterrupt
+    raise CondaSignalInterrupt(signum)
