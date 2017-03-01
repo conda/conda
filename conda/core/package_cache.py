@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import listdir
-from os.path import basename, isdir, isfile, islink, join
+from os.path import basename, join
 from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
@@ -18,7 +18,7 @@ from ..common.path import safe_basename, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
-from ..gateways.disk.read import compute_md5sum
+from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -150,7 +150,7 @@ class PackageCache(object):
     _cache_ = {}
 
     def __init__(self, pkgs_dir):
-        self._packages_map = {}
+        self.__packages_map = None
         # type: Dict[Dist, PackageCacheEntry]
 
         self.pkgs_dir = pkgs_dir
@@ -158,8 +158,6 @@ class PackageCache(object):
 
         # caching object for is_writable property
         self._is_writable = None
-
-        self._init_dir()
 
     # ##########################################################################################
     # these class methods reach across all package cache directories (usually context.pkgs_dirs)
@@ -225,12 +223,6 @@ class PackageCache(object):
             return pc_entry
         raise CondaError("No package '%s' found in cache directories." % dist)
 
-    def scan_for_dist_no_channel(self, dist):
-        # type: (Dist) -> PackageCacheEntry
-        return next((pc_entry for this_dist, pc_entry in iteritems(self)
-                     if this_dist.dist_name == dist.dist_name),
-                    None)
-
     @classmethod
     def tarball_file_in_cache(cls, tarball_path, md5sum=None):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
@@ -252,7 +244,18 @@ class PackageCache(object):
                                          and pce.tarball_matches_md5(md5sum))  # NOQA
         return pc_entry
 
-    def _init_dir(self):
+    @property
+    def _packages_map(self):
+        # don't actually populate _packages_map until we need it
+        return self.__packages_map or self._init_packages_map()
+
+    def _init_packages_map(self):
+        # This method and _add_entry use the private __packages_map, rather
+        #   than _packages_map.  Everywhere else, the _pacakges_map property
+        #   should be used.
+        if self.__packages_map is not None:
+            return self.__packages_map
+        self.__packages_map = {}
         pkgs_dir = self.pkgs_dir
         if not isdir(pkgs_dir):
             return
@@ -265,18 +268,22 @@ class PackageCache(object):
             elif isdir(full_path) and isfile(join(full_path, 'info', 'index.json')):
                 package_filename = base_name + CONDA_TARBALL_EXTENSION
                 self._add_entry(pkgs_dir, package_filename)
-                self._remove_match(pkgs_dir_contents, base_name)
+                PackageCache._remove_match(pkgs_dir_contents, base_name)
             elif isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION):
                 package_filename = base_name
                 self._add_entry(pkgs_dir, package_filename)
-                self._remove_match(pkgs_dir_contents, base_name)
+                PackageCache._remove_match(pkgs_dir_contents, base_name)
+        return self.__packages_map
 
     def _add_entry(self, pkgs_dir, package_filename):
+        # This method and _init_packages_map use the private __packages_map, rather
+        #   than _packages_map.  Everywhere else, the _pacakges_map property should
+        #   be used.
         dist = first(self.urls_data, lambda x: safe_basename(x) == package_filename, apply=Dist)
         if not dist:
             dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
         pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
-        self._packages_map[pc_entry.dist] = pc_entry
+        self.__packages_map[pc_entry.dist] = pc_entry
 
     @property
     def cache_directory(self):
@@ -317,6 +324,12 @@ class PackageCache(object):
             md5sum = compute_md5sum(tarball_full_path)
 
         return tarball_full_path, md5sum
+
+    def scan_for_dist_no_channel(self, dist):
+        # type: (Dist) -> PackageCacheEntry
+        return next((pc_entry for this_dist, pc_entry in iteritems(self)
+                     if this_dist.dist_name == dist.dist_name),
+                    None)
 
     def __getitem__(self, dist):
         return self._packages_map[dist]
