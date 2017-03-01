@@ -7,7 +7,6 @@ machine:
 dependencies:
   cache_directories:
     - "~/miniconda/pkgs"
-    - "~/.conda/pkgs"
   override:
     - source utils/functions.sh && run_setup
 
