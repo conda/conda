@@ -1,0 +1,16 @@
+machine:
+  timezone:
+    Etc/UTC
+  environment:
+    PYTHON_VERSION: 3.6
+
+dependencies:
+  cache_directories:
+    - "~/miniconda/pkgs"
+    - "~/.cache/pip"
+  override:
+    - source utils/functions.sh && run_setup
+
+test:
+  override:
+    - source utils/functions.sh && run_tests

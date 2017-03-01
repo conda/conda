@@ -87,14 +87,6 @@ CONDA_TARBALL_EXTENSION = '.tar.bz2'
 
 UNKNOWN_CHANNEL = "<unknown>"
 
-INTERRUPT_SIGNALS = (
-    'SIGABRT',
-    'SIGINT',
-    'SIGTERM',
-    'SIGQUIT',
-    'SIGBREAK',
-)
-
 
 class PathConflict(Enum):
     clobber = 'clobber'

@@ -16,6 +16,17 @@ addons:
       - ksh
 
 
+git:
+  depth: 100
+
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+before_cache:
+  - rm -f $HOME/.cache/pip/log/debug.log
+
+
 matrix:
   include:
     - env: PYTHON_VERSION=3.6 SUDO=true
