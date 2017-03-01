@@ -92,7 +92,8 @@ class PackageCacheEntry(object):
 
     @property
     def is_extracted(self):
-        return isdir(self.extracted_package_dir)
+        epd = self.extracted_package_dir
+        return isdir(epd) and isfile(join(epd, 'info', 'index.json'))
 
     @property
     def tarball_basename(self):
