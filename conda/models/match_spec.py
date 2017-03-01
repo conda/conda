@@ -7,9 +7,9 @@ import sys
 
 from .dist import Dist
 from .index_record import IndexRecord
+from .version import VersionSpec
 from ..common.compat import iteritems, string_types, text_type
 from ..exceptions import CondaValueError
-from ..version import VersionSpec
 
 
 class MatchSpec(object):

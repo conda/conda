@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import operator as op
 import re
 
-from .common.compat import string_types, zip, zip_longest
-from .exceptions import CondaRuntimeError, CondaValueError
+from ..common.compat import string_types, zip, zip_longest
+from ..exceptions import CondaRuntimeError, CondaValueError
 
 
 # normalized_version() is needed by conda-env
@@ -22,8 +23,9 @@ version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
 version_cache = {}
 
+
 class VersionOrder(object):
-    '''
+    """
     This class implements an order relation between version strings.
     Version strings can contain the usual alphanumeric characters
     (A-Za-z0-9), separated into components by dots and underscores. Empty
@@ -130,7 +132,7 @@ class VersionOrder(object):
     this problem by appending a dash to plain version numbers:
 
       1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
-    '''
+    """
 
     def __new__(cls, vstr):
         if isinstance(vstr, cls):

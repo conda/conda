@@ -1,7 +1,9 @@
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import, print_function
+
 import unittest
 
-from conda.version import ver_eval, VersionSpec, VersionOrder, normalized_version
+from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval
+
 
 class TestVersionSpec(unittest.TestCase):
 
@@ -196,7 +198,7 @@ class TestVersionSpec(unittest.TestCase):
             ('1.6.*|^0.*$|1.7.1', True), ('^0.*$|1.7.1', True),
             ('1.6.*|^.*\.7\.1$|0.7.1', True), ('*', True), ('1.*.1', True),
             ('1.5*|>1.7,<1.8', True), ('1.5*|>1.7,<1.7.1', False)
-            ]:
+        ]:
             m = VersionSpec(vspec)
             assert VersionSpec(m) is m
             assert str(m) == vspec
