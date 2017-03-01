@@ -254,7 +254,6 @@ class CondaFileIOError(CondaIOError):
 class CondaKeyError(CondaError, KeyError):
     def __init__(self, key, message, *args):
         self.key = key
-
         self.msg = "Error with key '%s': %s" % (key, message)
         super(CondaKeyError, self).__init__(self.msg, *args)
 
@@ -469,22 +468,10 @@ class CondaTypeError(CondaError, TypeError):
         super(CondaTypeError, self).__init__(msg)
 
 
-class CondaAssertionError(CondaError, AssertionError):
-    def __init__(self, message, expected, actual):
-        msg = "Assertion error: %s expected %s and got %s" % (message, expected, actual)
-        super(CondaAssertionError, self).__init__(msg)
-
-
 class CondaHistoryError(CondaError):
     def __init__(self, message):
         msg = 'History error: %s' % message
         super(CondaHistoryError, self).__init__(msg)
-
-
-class CondaCorruptEnvironmentError(CondaError):
-    def __init__(self, message):
-        msg = "Corrupt environment error: %s" % message
-        super(CondaCorruptEnvironmentError, self).__init__(msg)
 
 
 class CondaUpgradeError(CondaError):

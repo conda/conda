@@ -3,32 +3,12 @@ from unittest import TestCase
 
 from conda import text_type
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import reset_context, context
+from conda.base.context import reset_context
 from conda.common.io import captured, env_var, replace_log_streams
-from conda.exceptions import CommandNotFoundError, CondaAssertionError, CondaCorruptEnvironmentError, MD5MismatchError, \
-    conda_exception_handler, CondaHTTPError, PackageNotFoundError, BasicClobberError, TooManyArgumentsError, \
-    TooFewArgumentsError, CondaFileNotFoundError, DirectoryNotFoundError, CondaRevisionError
+from conda.exceptions import CommandNotFoundError, CondaFileNotFoundError, CondaHTTPError, CondaKeyError, \
+    CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
+    TooManyArgumentsError, conda_exception_handler
 
-
-def test_CondaAssertionError():
-    try:
-        raise CondaAssertionError("message", 1, 2)
-    except CondaAssertionError as err:
-        assert str(err) == "Assertion error: message expected 1 and got 2"
-
-
-def test_CondaCorruptEnvironmentException():
-    try:
-        raise CondaCorruptEnvironmentError("Oh noes corrupt environment")
-    except CondaCorruptEnvironmentError as err:
-        assert str(err) == "Corrupt environment error: Oh noes corrupt environment"
-
-def test_CondaRevisionError():
-    message = "Groot"
-    try:
-        raise CondaRevisionError(message)
-    except CondaRevisionError as err:
-        assert str(err) == "Revision Error: Groot."
 
 def _raise_helper(exception):
     raise exception
@@ -129,7 +109,6 @@ class ExceptionTests(TestCase):
         assert not c.stdout
         assert c.stderr.strip() == "DirectoryNotFoundError: Directory not found: 'Groot'."
 
-
     def test_MD5MismatchError(self):
         url = "https://download.url/path/to/file.tar.bz2"
         target_full_path = "/some/path/on/disk/another-name.tar.bz2"
@@ -184,6 +163,50 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == "Package not found: Conda could not find Groot"
+
+    def test_CondaRevisionError(self):
+        message = "Groot"
+        exc = CondaRevisionError(message)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.CondaRevisionError'>"
+        assert json_obj['exception_name'] == 'CondaRevisionError'
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == "CondaRevisionError: Revision Error: Groot."
+
+    def test_CondaKeyError(self):
+        key = "Groot"
+        message = "Groot is not a key."
+        exc = CondaKeyError(key, message)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.CondaKeyError'>"
+        assert json_obj['exception_name'] == 'CondaKeyError'
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+        assert json_obj['key'] == "Groot"
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == "CondaKeyError: Error with key 'Groot': Groot is not a key."
 
     def test_CondaHTTPError(self):
         msg = "groot"
