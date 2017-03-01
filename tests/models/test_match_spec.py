@@ -1,12 +1,12 @@
 from __future__ import absolute_import, print_function
 
-import pytest
+import re
 import unittest
-from conda.match import MatchSpec
+
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
-from collections import namedtuple
-import re
+from conda.models.match_spec import MatchSpec
+
 
 def DPkg(s):
     d = Dist(s)
@@ -18,10 +18,11 @@ def DPkg(s):
         build_number=int(d.build_string.rsplit('_', 1)[-1]),
         schannel=d.channel)
 
-class TestMatchSpec(unittest.TestCase):
+
+class MatchSpecTests(unittest.TestCase):
 
     def test_match(self):
-        for spec, res in [
+        for spec, result in [
             ('numpy 1.7*', True),          ('numpy 1.7.1', True),
             ('numpy 1.7', False),          ('numpy 1.5*', False),
             ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
@@ -36,9 +37,9 @@ class TestMatchSpec(unittest.TestCase):
             ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
             ('numpy 1.7.1 py26_0', False), ('numpy >1.7.1a', True),
             ('python', False),
-            ]:
+        ]:
             m = MatchSpec(spec)
-            assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == res
+            assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
 
         # both version numbers conforming to PEP 440
         assert not MatchSpec('numpy >=1.0.1').match(DPkg('numpy-1.0.1a-0.tar.bz2'))

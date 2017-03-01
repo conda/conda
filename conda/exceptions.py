@@ -7,10 +7,10 @@ from logging import getLogger
 import sys
 from traceback import format_exc
 
-from conda.base.constants import PathConflict
-from . import CondaError, CondaExitZero, text_type, CondaMultiError
+from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
+from .base.constants import PathConflict
 from .common.compat import iteritems, iterkeys, string_types
 from .common.signals import get_signal_name
 
@@ -388,8 +388,8 @@ class UnsatisfiableError(CondaError, RuntimeError):
         unsatisfiable specifications.
     '''
     def __init__(self, bad_deps, chains=True):
+        from .models.match_spec import MatchSpec
         from .resolve import dashlist
-        from .match import MatchSpec
 
         bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
         if chains:

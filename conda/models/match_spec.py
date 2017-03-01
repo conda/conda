@@ -1,15 +1,51 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .models.dist import Dist
-from .models.index_record import IndexRecord
-from .common.compat import string_types, text_type, iteritems
-from .version import VersionSpec
-from .exceptions import CondaValueError
 from ast import literal_eval
 import re
 import sys
 
+from .dist import Dist
+from .index_record import IndexRecord
+from ..common.compat import iteritems, string_types, text_type
+from ..exceptions import CondaValueError
+from ..version import VersionSpec
+
+
 class MatchSpec(object):
+    """
+    The easiest way to build `MatchSpec` objects that match to arbitrary fields is to
+    use a keyword syntax.  For instance,
+
+        MatchSpec(name='foo', build='py2*', channel='conda-forge')
+
+    matches any package named `foo` built with a Python 2 build string in the
+    `conda-forge` channel.
+
+    Strings are interpreted using the following conventions:
+      - If the string begins with `^` and ends with `$`, it is converted to a regex.
+      - For the `version` field, non-regex strings are processed by `VersionSpec`.
+      - If the string contains an asterisk (`*`), it is transformed from a glob to a regex.
+      - Otherwise, an exact match to the string is sought.
+
+    The `.match()` method accepts an `IndexRecord` or dictionary, and matches can pull
+    from any field in that record.
+
+    For now, non-string fields (e.g., `build_number`) allow only exact matches.
+    However, fully custom matching on a single field is possible simply by feeding
+    in an object with a `match` method (which, conveniently, includes regexes and
+    `VersionSpec` objects). There is no way to match on a combination of fields in
+    a single function, and the tests are combined using logical `and`.
+
+    Great pain has been taken to preserve back-compatibility with the standard
+    `name version build` syntax. But strictly speaking it is not necessary. Now, the
+    following are all equivalent:
+      - `MatchSpec('foo 1.0 py27_0 (optional)')`
+      - `MatchSpec("* (name='foo',version='1.0',build='py27_0')", optional=True)`
+      - `MatchSpec("foo (version='1.0',optional,build='py27_0')")`
+      - `MatchSpec(name='foo', optional=True, version='1.0', build='py27_0')`
+
+    """
 
     def __new__(cls, *specs, **kwargs):
         if len(specs) == 1 and not kwargs and isinstance(specs[0], cls):
@@ -113,7 +149,10 @@ class MatchSpec(object):
         return len(self.specs) == 1 and self.exact_field('name') is not None
 
     def match(self, rec):
-        # type: (IndexRecord) -> bool
+        """
+        Accepts an `IndexRecord` or dictionary, and matches can pull from any field
+        in that record.  Returns True for a match, and False for no match.
+        """
         for f, v in iteritems(self.specs):
             val = getattr(rec, f)
             if not (v.match(val) if hasattr(v, 'match') else v == val):

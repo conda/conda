@@ -9,9 +9,9 @@ from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
+from .models.match_spec import MatchSpec
 from .toposort import toposort
 from .version import normalized_version
-from .match import MatchSpec
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
