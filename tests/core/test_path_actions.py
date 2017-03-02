@@ -22,6 +22,7 @@ from conda.common.path import get_python_site_packages_short_path, get_python_no
 from conda.core.path_actions import LinkPathAction, CompilePycAction, CreatePythonEntryPointAction
 from conda.gateways.disk.create import mkdir_p, create_link
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.link import symlink
 from conda.gateways.disk.read import compute_md5sum
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.link import islink, stat_nlink
@@ -125,7 +126,7 @@ class PathActionsTests(TestCase):
         # symlink the current python
         python_full_path = join(self.prefix, get_python_short_path(target_python_version))
         mkdir_p(dirname(python_full_path))
-        create_link(sys.executable, python_full_path, LinkType.softlink)
+        symlink(sys.executable, python_full_path)
 
         axn.execute()
         assert isfile(axn.target_full_path)
