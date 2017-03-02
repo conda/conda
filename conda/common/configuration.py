@@ -561,17 +561,11 @@ class SequenceParameter(Parameter):
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(SequenceParameter, self).collect_errors(instance, value)
-
-        if isiterable(value):
-            element_type = self._element_type
-            for idx, element in enumerate(value):
-                if not isinstance(element, element_type):
-                    errors.append(InvalidElementTypeError(self.name, element, source,
-                                                          type(element), element_type, idx))
-        elif typify(value) is None:
-            errors.append(InvalidTypeError(self.name, value, source, type(value), Sequence))
-        else:
-            raise RuntimeError("unanticipated value for %s\n%s" % (self.name, locals()))
+        element_type = self._element_type
+        for idx, element in enumerate(value):
+            if not isinstance(element, element_type):
+                errors.append(InvalidElementTypeError(self.name, element, source,
+                                                      type(element), element_type, idx))
         return errors
 
     def _merge(self, matches):
@@ -653,10 +647,7 @@ class MapParameter(Parameter):
             errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
                                                   element_type, key)
                           for key, val in iteritems(value) if not isinstance(val, element_type))
-        elif typify(value) is None:
-            errors.append(InvalidTypeError(self.name, value, source, type(value), Mapping))
-        else:
-            raise RuntimeError("unanticipated value for %s\n%s" % (self.name, locals()))
+
         return errors
 
     def _merge(self, matches):
