@@ -17,7 +17,7 @@ Limitations:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod
-from collections import Mapping, defaultdict
+from collections import Mapping, Sequence, defaultdict
 from glob import glob
 from itertools import chain
 from logging import getLogger
@@ -35,7 +35,7 @@ from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
-from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
+from .._vendor.auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 
 try:
     from cytoolz.dicttoolz import merge
@@ -562,11 +562,16 @@ class SequenceParameter(Parameter):
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(SequenceParameter, self).collect_errors(instance, value)
 
-        element_type = self._element_type
-        for idx, element in enumerate(value):
-            if not isinstance(element, element_type):
-                errors.append(InvalidElementTypeError(self.name, element, source,
-                                                      type(element), element_type, idx))
+        if isiterable(value):
+            element_type = self._element_type
+            for idx, element in enumerate(value):
+                if not isinstance(element, element_type):
+                    errors.append(InvalidElementTypeError(self.name, element, source,
+                                                          type(element), element_type, idx))
+        elif typify(value) is None:
+            errors.append(InvalidTypeError(self.name, value, source, type(value), Sequence))
+        else:
+            raise RuntimeError("unanticipated value for %s\n%s" % (self.name, locals()))
         return errors
 
     def _merge(self, matches):
@@ -616,9 +621,10 @@ class SequenceParameter(Parameter):
     def _get_all_matches(self, instance):
         # this is necessary to handle argparse `action="append"`, which can't be set to a
         #   default value of NULL
-        matches, multikey_exceptions = super(SequenceParameter, self)._get_all_matches(instance)
+        # it also config settings like `channels: ~`
+        matches, exceptions = super(SequenceParameter, self)._get_all_matches(instance)
         matches = tuple(m for m in matches if m._raw_value is not None)
-        return matches, multikey_exceptions
+        return matches, exceptions
 
 
 class MapParameter(Parameter):
@@ -647,6 +653,10 @@ class MapParameter(Parameter):
             errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
                                                   element_type, key)
                           for key, val in iteritems(value) if not isinstance(val, element_type))
+        elif typify(value) is None:
+            errors.append(InvalidTypeError(self.name, value, source, type(value), Mapping))
+        else:
+            raise RuntimeError("unanticipated value for %s\n%s" % (self.name, locals()))
         return errors
 
     def _merge(self, matches):
@@ -660,10 +670,10 @@ class MapParameter(Parameter):
         important_maps = tuple(dict((k, v)
                                     for k, v in iteritems(match.value(self))
                                     if key_is_important(match, k))
-                               for match in relevant_matches if match is not None)
+                               for match in relevant_matches)
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m.value(self) for m in relevant_matches if m is not None),
+        return merge(concatv((m.value(self) for m in relevant_matches),
                              reversed(important_maps)))
 
     def repr_raw(self, raw_parameter):
@@ -675,6 +685,12 @@ class MapParameter(Parameter):
             lines.append("  %s: %s%s" % (valuekey, self._str_format_value(value),
                                          self._str_format_flag(valueflag)))
         return '\n'.join(lines)
+
+    def _get_all_matches(self, instance):
+        # it also config settings like `proxy_servers: ~`
+        matches, exceptions = super(MapParameter, self)._get_all_matches(instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, exceptions
 
 
 class ConfigurationType(type):

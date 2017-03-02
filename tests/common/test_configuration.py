@@ -125,6 +125,7 @@ test_yaml_raw = {
           an_int: 2
           a_float: 1.2
           a_complex: 1+2j
+        proxy_servers:
     """),
 
 }
@@ -411,3 +412,9 @@ class ConfigurationTests(TestCase):
         with env_var("MYAPP_CHANGEPS1", "false"):
             config.__init__(app_name=appname)
             assert config.changeps1 is False
+
+    def test_empty_map_parameter(self):
+        # regression test for #4757
+        config = SampleConfiguration()._set_raw_data(load_from_string_data('bad_boolean_map'))
+        config.check_source('bad_boolean_map')
+
