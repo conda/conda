@@ -17,7 +17,7 @@ Limitations:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod
-from collections import Mapping, Sequence, defaultdict
+from collections import Mapping, defaultdict
 from glob import glob
 from itertools import chain
 from logging import getLogger
@@ -35,7 +35,7 @@ from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
-from .._vendor.auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
+from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
 
 try:
     from cytoolz.dicttoolz import merge
