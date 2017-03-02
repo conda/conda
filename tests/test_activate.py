@@ -12,7 +12,7 @@ import sys
 from datetime import datetime
 import pytest
 
-from conda.compat import TemporaryDirectory
+from conda.compat import TemporaryDirectory, PY2
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
 from conda.utils import path_identity, shells, on_win, translate_stream
@@ -20,7 +20,8 @@ from conda.cli.activate import binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
 
-ENVS_PREFIX = "envsßôç"
+
+ENVS_PREFIX = "envs" if PY2 else "envsßôç"
 
 
 def gen_test_env_paths(envs, shell, num_test_folders=5):
