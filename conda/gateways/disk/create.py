@@ -6,7 +6,7 @@ from io import open
 import json
 from logging import getLogger
 import os
-from os import makedirs
+from os import X_OK, access, makedirs
 from os.path import basename, isdir, isfile, join, lexists
 import shutil
 import sys
@@ -15,7 +15,7 @@ import traceback
 
 from .delete import rm_rf
 from .link import islink, link, readlink, symlink
-from .permissions import is_executable, make_executable
+from .permissions import make_executable
 from .read import get_json_content
 from .update import touch
 from ..subprocess import subprocess_call
@@ -178,10 +178,15 @@ def create_hard_link_or_copy(src, dst):
         shutil.copy2(src, dst)
 
 
+def _is_unix_executable_using_ORIGIN(path):
+    if on_win:
+        return False
+    else:
+        return isfile(path) and not islink(path) and access(path, X_OK)
+
+
 def _do_softlink(src, dst):
-    if islink(src):
-        symlink(src, dst)
-    elif is_executable(src):
+    if _is_unix_executable_using_ORIGIN(src):
         # for extra details, see https://github.com/conda/conda/pull/4625#issuecomment-280696371
         # We only need to do this copy for executables which have an RPATH containing $ORIGIN
         #   on Linux, so `is_executable()` is currently overly aggressive.
