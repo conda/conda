@@ -184,7 +184,8 @@ class PathActionsTests(TestCase):
         mkdir_p(dirname(py_ep_axn.target_full_path))
         py_ep_axn.execute()
         assert isfile(py_ep_axn.target_full_path)
-        assert is_executable(py_ep_axn.target_full_path)
+        if not on_win:
+            assert is_executable(py_ep_axn.target_full_path)
         with open(py_ep_axn.target_full_path) as fh:
             lines = fh.readlines()
             first_line = lines[0].strip()
