@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
 from contextlib import contextmanager
@@ -73,8 +73,9 @@ def escape_for_winpath(p):
 
 def make_temp_prefix(name=None, create_directory=True):
     tempdir = gettempdir()
-    dirname = str(uuid4())[:8] if name is None else name
-    prefix = join(tempdir, dirname)
+    if name is None:
+        name = str(uuid4())[:4] + u"-miνiconδa"
+    prefix = join(tempdir, name)
     os.makedirs(prefix)
     if create_directory:
         assert isdir(prefix)
