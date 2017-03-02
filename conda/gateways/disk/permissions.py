@@ -68,4 +68,6 @@ def make_executable(path):
 
 
 def is_executable(path):
-    return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))
+    if isfile(path):  # for now, leave out `and not islink(path)`
+        return path.endswith(('.exe', '.bat')) if on_win else access(path, X_OK)
+    return False
