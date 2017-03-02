@@ -83,7 +83,7 @@ class ClobberError(CondaError):
 
 
 class BasicClobberError(ClobberError):
-    def __init__(self, source_path, target_path, context=None):
+    def __init__(self, source_path, target_path, context):
         message = dals("""
         Conda was asked to clobber an existing path.
           source path:      %(source_path)s

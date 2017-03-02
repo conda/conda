@@ -459,9 +459,8 @@ def fetch_repodata(url, schannel, priority,
 def _collect_repodatas_serial(use_cache, tasks):
     # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     session = CondaSession()
-    repodatas = [(unquote_plus(url), fetch_repodata(unquote_plus(url), schan, pri,
-                                      use_cache=use_cache,
-                                      session=session))
+    repodatas = [(unquote_plus(url), fetch_repodata(unquote_plus(url),
+                                                    schan, pri, use_cache=use_cache, session=session))
                  for url, schan, pri in tasks]
     return repodatas
 

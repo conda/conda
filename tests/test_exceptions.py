@@ -3,11 +3,11 @@ from unittest import TestCase
 
 from conda import text_type
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import reset_context
+from conda.base.context import reset_context, context
 from conda.common.io import captured, env_var, replace_log_streams
 from conda.exceptions import CommandNotFoundError, CondaFileNotFoundError, CondaHTTPError, CondaKeyError, \
     CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
-    TooManyArgumentsError, conda_exception_handler
+    TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError
 
 
 def _raise_helper(exception):
