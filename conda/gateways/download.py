@@ -123,7 +123,7 @@ def download(url, target_full_path, md5sum):
         HTTP errors are often intermittent, and a simple retry will get you on your way.
         """)
         raise CondaHTTPError(help_message,
-                             getattr(e.response, 'url', None),
+                             url,
                              getattr(e.response, 'status_code', None),
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None),

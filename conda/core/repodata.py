@@ -296,7 +296,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             """) % e
 
         raise CondaHTTPError(help_message,
-                             getattr(e.response, 'url', None),
+                             join_url(url, filename),
                              status_code,
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None),
