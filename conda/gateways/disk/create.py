@@ -179,7 +179,9 @@ def create_hard_link_or_copy(src, dst):
 
 
 def _do_softlink(src, dst):
-    if is_executable(src):
+    if islink(src):
+        symlink(src, dst)
+    elif is_executable(src):
         # for extra details, see https://github.com/conda/conda/pull/4625#issuecomment-280696371
         # We only need to do this copy for executables which have an RPATH containing $ORIGIN
         #   on Linux, so `is_executable()` is currently overly aggressive.

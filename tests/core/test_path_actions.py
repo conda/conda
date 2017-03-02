@@ -126,7 +126,11 @@ class PathActionsTests(TestCase):
         # symlink the current python
         python_full_path = join(self.prefix, get_python_short_path(target_python_version))
         mkdir_p(dirname(python_full_path))
-        symlink(sys.executable, python_full_path)
+        create_link(sys.executable, python_full_path, LinkType.softlink)
+        # if on_win:
+        #     copy()
+        # else:
+        #     symlink(sys.executable, python_full_path)
 
         axn.execute()
         assert isfile(axn.target_full_path)
