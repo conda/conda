@@ -7,7 +7,8 @@ from conda.base.context import reset_context, context
 from conda.common.io import captured, env_var, replace_log_streams
 from conda.exceptions import CommandNotFoundError, CondaFileNotFoundError, CondaHTTPError, CondaKeyError, \
     CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
-    TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError
+    TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
+    UnknownPackageClobberError, SharedLinkPathClobberError
 
 
 def _raise_helper(exception):
@@ -65,6 +66,72 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == "TooFewArgumentsError: Too few arguments:  Got 2 arguments but expected 5."
+
+    def test_BasicClobberError(self):
+        source_path = "some/path/on/goodwin.ave"
+        target_path = "some/path/to/wright.st"
+        exc = BasicClobberError(source_path, target_path, context)
+        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == dals("""
+        ClobberError: Conda was asked to clobber an existing path.
+          source path: some/path/on/goodwin.ave
+          target path: some/path/to/wright.st
+        """).strip()
+
+    def test_KnownPackageClobberError(self):
+        target_path = "some/where/on/goodwin.ave"
+        colliding_dist_being_linked = "Groot"
+        colliding_linked_dist = "Liquid"
+        exc = KnownPackageClobberError(target_path, colliding_dist_being_linked, colliding_linked_dist, context)
+        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == dals("""
+        ClobberError: The package 'Groot' cannot be installed due to a
+        path collision for 'some/where/on/goodwin.ave'.
+        This path already exists in the target prefix, and it won't be removed by
+        an uninstall action in this transaction. The path appears to be coming from
+        the package 'Liquid', which is already installed in the prefix.
+        """).strip()
+
+    def test_UnknownPackageClobberError(self):
+        target_path = "siebel/center/for/c.s"
+        colliding_dist_being_linked = "Groot"
+        exc = UnknownPackageClobberError(target_path, colliding_dist_being_linked, context)
+        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == dals("""
+        ClobberError: The package 'Groot' cannot be installed due to a
+        path collision for 'siebel/center/for/c.s'.
+        This path already exists in the target prefix, and it won't be removed
+        by an uninstall action in this transaction. The path is one that conda
+        doesn't recognize. It may have been created by another package manager.
+        """).strip()
+
+    def test_SharedLinkPathClobberError(self):
+        target_path = "some/where/in/shampoo/banana"
+        incompatible_package_dists = "Groot"
+        exc = SharedLinkPathClobberError(target_path, incompatible_package_dists, context)
+        with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == dals("""
+        ClobberError: This transaction has incompatible packages due to a shared path.
+          packages: G, r, o, o, t
+          path: 'some/where/in/shampoo/banana'
+        """).strip()
+
 
     def test_CondaFileNotFoundError(self):
         filename = "Groot"
@@ -209,7 +276,7 @@ class ExceptionTests(TestCase):
         assert c.stderr.strip() == "CondaKeyError: Error with key 'Groot': Groot is not a key."
 
     def test_CondaHTTPError(self):
-        msg = "groot"
+        msg = "Groot"
         url = "https://download.url/path/to/groot.tar.gz"
         status_code = "Groot"
         reason = "COULD NOT CONNECT"
@@ -239,6 +306,8 @@ class ExceptionTests(TestCase):
         assert c.stderr.strip() == dals("""
                 CondaHTTPError: HTTP Groot COULD NOT CONNECT for url <https://download.url/path/to/groot.tar.gz>
                 Elapsed: 1.24
+
+                Groot
                 """).strip()
 
     def test_CommandNotFoundError(self):

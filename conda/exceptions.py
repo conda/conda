@@ -86,14 +86,14 @@ class BasicClobberError(ClobberError):
     def __init__(self, source_path, target_path, context):
         message = dals("""
         Conda was asked to clobber an existing path.
-          source path:      %(source_path)s
-          destination path: %(target_path)s
+          source path: %(source_path)s
+          target path: %(target_path)s
         """)
         if context.path_conflict == PathConflict.prevent:
             message += ("Conda no longer clobbers existing paths without the use of the "
                         "--clobber option\n.")
         super(BasicClobberError, self).__init__(message, context.path_conflict,
-                                                destination_path=target_path,
+                                                target_path=target_path,
                                                 source_path=source_path)
 
 
@@ -144,7 +144,7 @@ class SharedLinkPathClobberError(ClobberError):
         message = dals("""
         This transaction has incompatible packages due to a shared path.
           packages: %(incompatible_packages)s
-          path: %(target_path)s
+          path: '%(target_path)s'
         """)
         if context.path_conflict == PathConflict.prevent:
             message += ("If you'd like to proceed anyway, re-run the command with "
@@ -320,7 +320,7 @@ class CondaHTTPError(CondaError):
         """)
         cf_ray = getattr(response, 'headers', {}).get('CF-RAY')
         _message += "CF-RAY: %s\n\n" % cf_ray if cf_ray else "\n"
-        message = _message
+        message = _message + message
 
         from ._vendor.auxlib.logz import stringify
         response_details = (stringify(response) or '') if response else ''

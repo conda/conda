@@ -116,7 +116,6 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
     if not context.ssl_verify:
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
-    url = unquote_plus(url) if url else url
     session = session or CondaSession()
 
     headers = {}
@@ -407,7 +406,6 @@ def fetch_repodata(url, schannel, priority,
                    cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
 
-    url = unquote_plus(url) if url else url
     try:
         mtime = getmtime(cache_path)
     except (IOError, OSError):
@@ -459,14 +457,14 @@ def fetch_repodata(url, schannel, priority,
 def _collect_repodatas_serial(use_cache, tasks):
     # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     session = CondaSession()
-    repodatas = [(unquote_plus(url), fetch_repodata(unquote_plus(url),
+    repodatas = [(url, fetch_repodata(url,
                                                     schan, pri, use_cache=use_cache, session=session))
                  for url, schan, pri in tasks]
     return repodatas
 
 
 def _collect_repodatas_concurrent(executor, use_cache, tasks):
-    futures = tuple(executor.submit(fetch_repodata, unquote_plus(url), schan, pri,
+    futures = tuple(executor.submit(fetch_repodata, url, schan, pri,
                                     use_cache=use_cache,
                                     session=CondaSession())
                     for url, schan, pri in tasks)
@@ -477,7 +475,6 @@ def _collect_repodatas_concurrent(executor, use_cache, tasks):
 
 def cache_fn_url(url):
     # url must be right-padded with '/' to not invalidate any existing caches
-    url = unquote_plus(url) if url else url
     if not url.endswith('/'):
         url += '/'
     md5 = hashlib.md5(ensure_binary(url)).hexdigest()
