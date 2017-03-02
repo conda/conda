@@ -14,7 +14,7 @@ from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
-from ..common.path import safe_basename, url_to_path
+from ..common.path import url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
@@ -65,7 +65,7 @@ class UrlsData(object):
         package_path = basename(package_path)
         if not package_path.endswith(CONDA_TARBALL_EXTENSION):
             package_path += CONDA_TARBALL_EXTENSION
-        return first(self, lambda url: safe_basename(url) == package_path)
+        return first(self, lambda url: basename(url) == package_path)
 
 
 class PackageCacheEntry(object):
@@ -250,15 +250,30 @@ class PackageCache(object):
         return self.__packages_map or self._init_packages_map()
 
     def _init_packages_map(self):
-        # This method and _add_entry use the private __packages_map, rather
-        #   than _packages_map.  Everywhere else, the _pacakges_map property
-        #   should be used.
         if self.__packages_map is not None:
             return self.__packages_map
-        self.__packages_map = {}
+        self.__packages_map = __packages_map = {}
         pkgs_dir = self.pkgs_dir
         if not isdir(pkgs_dir):
-            return
+            return __packages_map
+
+        def _add_entry(__packages_map, pkgs_dir, package_filename):
+            dist = first(self.urls_data, lambda x: basename(x) == package_filename,
+                         apply=Dist)
+            if not dist:
+                dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
+            pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
+            __packages_map[pc_entry.dist] = pc_entry
+
+        def _remove_match(pkg_dir_contents, base_name):
+            # remove any associated tarball/directory from pkgs_dir_contents
+            try:
+                pkg_dir_contents.remove(base_name[:-len(CONDA_TARBALL_EXTENSION)]
+                                        if base_name.endswith(CONDA_TARBALL_EXTENSION)
+                                        else base_name + CONDA_TARBALL_EXTENSION)
+            except ValueError:
+                pass
+
         pkgs_dir_contents = listdir(pkgs_dir)
         while pkgs_dir_contents:
             base_name = pkgs_dir_contents.pop(0)
@@ -267,23 +282,14 @@ class PackageCache(object):
                 continue
             elif isdir(full_path) and isfile(join(full_path, 'info', 'index.json')):
                 package_filename = base_name + CONDA_TARBALL_EXTENSION
-                self._add_entry(pkgs_dir, package_filename)
-                PackageCache._remove_match(pkgs_dir_contents, base_name)
+                _add_entry(__packages_map, pkgs_dir, package_filename)
+                _remove_match(pkgs_dir_contents, base_name)
             elif isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION):
                 package_filename = base_name
-                self._add_entry(pkgs_dir, package_filename)
-                PackageCache._remove_match(pkgs_dir_contents, base_name)
-        return self.__packages_map
+                _add_entry(__packages_map, pkgs_dir, package_filename)
+                _remove_match(pkgs_dir_contents, base_name)
 
-    def _add_entry(self, pkgs_dir, package_filename):
-        # This method and _init_packages_map use the private __packages_map, rather
-        #   than _packages_map.  Everywhere else, the _pacakges_map property should
-        #   be used.
-        dist = first(self.urls_data, lambda x: safe_basename(x) == package_filename, apply=Dist)
-        if not dist:
-            dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
-        pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
-        self.__packages_map[pc_entry.dist] = pc_entry
+        return __packages_map
 
     @property
     def cache_directory(self):
@@ -302,17 +308,6 @@ class PackageCache(object):
                 log.debug("package cache directory '%s' does not exist", self.pkgs_dir)
                 self._is_writable = create_package_cache_directory(self.pkgs_dir)
         return self._is_writable
-
-    @staticmethod
-    def _remove_match(pkg_dir_contents, base_name):
-        # pop and return the matching tarball or directory to base_name
-        #   if not match, return None
-        try:
-            pkg_dir_contents.remove(base_name[:-len(CONDA_TARBALL_EXTENSION)]
-                                    if base_name.endswith(CONDA_TARBALL_EXTENSION)
-                                    else base_name + CONDA_TARBALL_EXTENSION)
-        except ValueError:
-            pass
 
     @staticmethod
     def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
