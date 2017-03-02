@@ -21,7 +21,8 @@ from conda.cli.activate import binpath_from_arg
 from tests.helpers import assert_equals, assert_in, assert_not_in
 
 
-ENVS_PREFIX = "envs" if PY2 else "envsßôç"
+# ENVS_PREFIX = "envs" if PY2 else "envsßôç"
+ENVS_PREFIX = "envs"
 
 
 def gen_test_env_paths(envs, shell, num_test_folders=5):
