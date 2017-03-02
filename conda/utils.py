@@ -1,13 +1,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import collections
-import hashlib
+from functools import partial
 import logging
+from os.path import dirname
 import re
 import sys
 import threading
-from functools import partial
-from os.path import dirname
 
 from .common.compat import on_win
 from .common.url import path_to_url
