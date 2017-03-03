@@ -3,23 +3,20 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-import os
-
-from conda.cli.python_api import run_command, Commands
-import pytest
-import unittest
-from conda.models.channel import Channel
 from contextlib import contextmanager
-from datetime import datetime
-from os.path import join, dirname
-from tempfile import mkstemp, NamedTemporaryFile
+import os
+from os.path import dirname, join
+from tempfile import NamedTemporaryFile
+import unittest
 
 from conda import config
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS
-from conda.base.context import reset_context, context
+from conda.base.context import context, reset_context
+from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import LoadError
 from conda.common.yaml import yaml_load
 from conda.gateways.disk.delete import rm_rf
+from conda.models.channel import Channel
 
 # use condarc from source tree to run these tests against
 
@@ -286,7 +283,6 @@ def _read_test_condarc(rc):
         return f.read()
 
 
-@pytest.mark.integration
 def test_invalid_config():
     condarc="""\
 fgddgh
@@ -305,8 +301,6 @@ channels:
 
 # Tests for the conda config command
 # FIXME This shoiuld be multiple individual tests
-@pytest.mark.slow
-@pytest.mark.integration
 def test_config_command_basics():
 
         # Test that creating the file adds the defaults channel
@@ -387,7 +381,6 @@ always_yes: true
 """
 
 
-@pytest.mark.integration
 def test_config_command_show():
     # test alphabetical yaml output
     with make_temp_condarc() as rc:
@@ -399,8 +392,6 @@ def test_config_command_show():
 
 
 # FIXME Break into multiple tests
-@pytest.mark.slow
-@pytest.mark.integration
 def test_config_command_get():
     # Test --get
     condarc = """\
@@ -487,8 +478,6 @@ channel_alias: http://alpha.conda.anaconda.org
 
 
 # FIXME Break into multiple tests
-@pytest.mark.slow
-@pytest.mark.integration
 def test_config_command_parser():
     # Now test the YAML "parser"
     # Channels is normal content.
@@ -592,8 +581,6 @@ disallow:
 
 
 # FIXME Break into multiple tests
-@pytest.mark.slow
-@pytest.mark.integration
 def test_config_command_remove_force():
     # Finally, test --remove, --remove-key
     with make_temp_condarc() as rc:
@@ -633,8 +620,6 @@ def test_config_command_remove_force():
 
 
 # FIXME Break into multiple tests
-@pytest.mark.slow
-@pytest.mark.integration
 def test_config_command_bad_args():
     with make_temp_condarc() as rc:
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
@@ -664,7 +649,6 @@ def test_config_command_bad_args():
 #         assert _read_test_condarc(rc) == condarc
 
 
-@pytest.mark.integration
 def test_config_set():
     # Test the config set command
     # Make sure it accepts only boolean values for boolean keys and any value for string keys
@@ -683,7 +667,6 @@ def test_config_set():
         assert stderr == ''
 
 
-@pytest.mark.integration
 def test_set_rc_string():
     # Test setting string keys in .condarc
 
