@@ -63,11 +63,13 @@ from .signature import KEYS, KEYS_DIR, hash_file, verify  # NOQA
 KEYS, KEYS_DIR = KEYS, KEYS_DIR
 hash_file, verify = hash_file, verify
 
-from .utils import (human_bytes, hashsum_file, md5_file, memoized, unix_path_to_win,  # NOQA
-                         win_path_to_unix, url_path)  # NOQA
-human_bytes, hashsum_file, md5_file = human_bytes, hashsum_file, md5_file
+from .utils import hashsum_file, human_bytes, memoized, unix_path_to_win, win_path_to_unix, url_path  # NOQA
+hashsum_file, human_bytes = hashsum_file, human_bytes
 memoized, unix_path_to_win = memoized, unix_path_to_win
 win_path_to_unix, url_path = win_path_to_unix, url_path
+
+from .gateways.disk.read import compute_md5sum  # NOQA
+md5_file = compute_md5sum
 
 from .config import sys_rc_path  # NOQA
 sys_rc_path = sys_rc_path

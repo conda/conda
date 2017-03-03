@@ -561,7 +561,6 @@ class SequenceParameter(Parameter):
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(SequenceParameter, self).collect_errors(instance, value)
-
         element_type = self._element_type
         for idx, element in enumerate(value):
             if not isinstance(element, element_type):
@@ -616,9 +615,10 @@ class SequenceParameter(Parameter):
     def _get_all_matches(self, instance):
         # this is necessary to handle argparse `action="append"`, which can't be set to a
         #   default value of NULL
-        matches, multikey_exceptions = super(SequenceParameter, self)._get_all_matches(instance)
+        # it also config settings like `channels: ~`
+        matches, exceptions = super(SequenceParameter, self)._get_all_matches(instance)
         matches = tuple(m for m in matches if m._raw_value is not None)
-        return matches, multikey_exceptions
+        return matches, exceptions
 
 
 class MapParameter(Parameter):
@@ -647,6 +647,7 @@ class MapParameter(Parameter):
             errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
                                                   element_type, key)
                           for key, val in iteritems(value) if not isinstance(val, element_type))
+
         return errors
 
     def _merge(self, matches):
@@ -675,6 +676,12 @@ class MapParameter(Parameter):
             lines.append("  %s: %s%s" % (valuekey, self._str_format_value(value),
                                          self._str_format_flag(valueflag)))
         return '\n'.join(lines)
+
+    def _get_all_matches(self, instance):
+        # it also config settings like `proxy_servers: ~`
+        matches, exceptions = super(MapParameter, self)._get_all_matches(instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, exceptions
 
 
 class ConfigurationType(type):

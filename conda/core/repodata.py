@@ -27,7 +27,7 @@ from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
-from ..common.url import join_url
+from ..common.url import join_url, maybe_unquote
 from ..connection import CondaSession
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaHTTPError, CondaRuntimeError
@@ -179,7 +179,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     $ mkdir noarch
                     $ echo '{}' > noarch/repodata.json
                     $ bzip2 -k noarch/repodata.json
-                    """) % dirname(url)
+                    """) % maybe_unquote(dirname(url))
                     stderrlog.warn(help_message)
                     return None
                 else:
@@ -198,7 +198,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
                     Further configuration help can be found at <%s>.
-                    """) % (dirname(url), join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                    """) % (maybe_unquote(dirname(url)),
+                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 403:
             if not url.endswith('/noarch'):
@@ -218,7 +219,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     $ mkdir noarch
                     $ echo '{}' > noarch/repodata.json
                     $ bzip2 -k noarch/repodata.json
-                    """) % dirname(url)
+                    """) % maybe_unquote(dirname(url))
                     stderrlog.warn(help_message)
                     return None
                 else:
@@ -237,7 +238,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
                     You will need to adjust your conda configuration to proceed.
                     Use `conda config --show` to view your configuration's current state.
                     Further configuration help can be found at <%s>.
-                    """) % (dirname(url), join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                    """) % (maybe_unquote(dirname(url)),
+                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
 
         elif status_code == 401:
             channel = Channel(url)
@@ -292,11 +294,11 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
             help_message = dals("""
             An HTTP error occurred when trying to retrieve this URL.
             HTTP errors are often intermittent, and a simple retry will get you on your way.
-            %r
-            """) % e
+            %s
+            """) % maybe_unquote(repr(e))
 
         raise CondaHTTPError(help_message,
-                             getattr(e.response, 'url', None),
+                             join_url(url, filename),
                              status_code,
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None),
@@ -457,9 +459,7 @@ def fetch_repodata(url, schannel, priority,
 def _collect_repodatas_serial(use_cache, tasks):
     # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
     session = CondaSession()
-    repodatas = [(url, fetch_repodata(url, schan, pri,
-                                      use_cache=use_cache,
-                                      session=session))
+    repodatas = [(url, fetch_repodata(url, schan, pri, use_cache=use_cache, session=session))
                  for url, schan, pri in tasks]
     return repodatas
 
@@ -469,6 +469,7 @@ def _collect_repodatas_concurrent(executor, use_cache, tasks):
                                     use_cache=use_cache,
                                     session=CondaSession())
                     for url, schan, pri in tasks)
+
     repodatas = [(t[0], f.result()) for t, f in zip(tasks, futures)]
     return repodatas
 

@@ -6,7 +6,7 @@ from io import open
 import json
 from logging import getLogger
 import os
-from os import makedirs
+from os import X_OK, access, makedirs
 from os.path import basename, isdir, isfile, join, lexists
 import shutil
 import sys
@@ -178,6 +178,35 @@ def create_hard_link_or_copy(src, dst):
         shutil.copy2(src, dst)
 
 
+def _is_unix_executable_using_ORIGIN(path):
+    if on_win:
+        return False
+    else:
+        return isfile(path) and not islink(path) and access(path, X_OK)
+
+
+def _do_softlink(src, dst):
+    if _is_unix_executable_using_ORIGIN(src):
+        # for extra details, see https://github.com/conda/conda/pull/4625#issuecomment-280696371
+        # We only need to do this copy for executables which have an RPATH containing $ORIGIN
+        #   on Linux, so `is_executable()` is currently overly aggressive.
+        # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
+        _do_copy(src, dst)
+    else:
+        symlink(src, dst)
+
+
+def _do_copy(src, dst):
+    # on unix, make sure relative symlinks stay symlinks
+    if not on_win and islink(src):
+        src_points_to = readlink(src)
+        if not src_points_to.startswith('/'):
+            # copy relative symlinks as symlinks
+            symlink(src_points_to, dst)
+            return
+    shutil.copy2(src, dst)
+
+
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.directory:
         # A directory is technically not a link.  So link_type is a misnomer.
@@ -199,16 +228,9 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             raise CondaError("Cannot hard link a directory. %s" % src)
         link(src, dst)
     elif link_type == LinkType.softlink:
-        symlink(src, dst)
+        _do_softlink(src, dst)
     elif link_type == LinkType.copy:
-        # on unix, make sure relative symlinks stay symlinks
-        if not on_win and islink(src):
-            src_points_to = readlink(src)
-            if not src_points_to.startswith('/'):
-                # copy relative symlinks as symlinks
-                symlink(src_points_to, dst)
-                return
-        shutil.copy2(src, dst)
+        _do_copy(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
 

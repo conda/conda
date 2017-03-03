@@ -13,7 +13,6 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
 from ..common.compat import on_win
-from ..exceptions import CondaValueError
 
 try:  # pragma: py2 no cover
     # Python 3
@@ -40,6 +39,7 @@ def path_to_url(path):
         Empty argument to `path_to_url()` not allowed.
         path cannot be '%r'
         """ % path)
+        from ..exceptions import CondaValueError
         raise CondaValueError(message)
     if path.startswith('file:/'):
         return path
@@ -285,6 +285,10 @@ def maybe_add_auth(url, auth, force=False):
         return url
     url_parts['auth'] = auth
     return Url(**url_parts).url
+
+
+def maybe_unquote(url):
+    return unquote_plus(url) if url else url
 
 
 if __name__ == "__main__":

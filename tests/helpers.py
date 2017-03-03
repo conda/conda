@@ -44,27 +44,6 @@ def raises(exception, func, string=None):
     raise Exception("did not raise, gave %s" % a)
 
 
-def run_conda_command(*args):
-    # used in tests_config (31 times) and test_info (6 times)
-    # anything that uses this function is an integration test
-    env = {str(k): str(v) for k, v in iteritems(os.environ)}
-    p = subprocess.Popen((sys.executable, "-m", "conda") + args, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, env=env)
-
-    stdout, stderr = [stream.strip()
-                          .decode('utf-8')
-                          .replace('\r\n', '\n')
-                          .replace('\\\\', '\\')
-                          .replace("Using Anaconda API: https://api.anaconda.org\n", "")
-                      for stream in p.communicate()]
-    print(stdout)
-    print(stderr, file=sys.stderr)
-    # assert p.returncode == 0, p.returncode
-    if args[0] == 'config':
-        reset_context([args[2]])
-    return stdout, strip_expected(stderr)
-
-
 class CapturedText(object):
     pass
 
@@ -103,8 +82,6 @@ def captured(disallow_stderr=True):
 
 
 def capture_json_with_argv(command, **kwargs):
-    # used in test_config (6 times), test_info (2 times), test_list (5 times), and test_search (10 times)
-    # anything that uses this function is an integration test
     stdout, stderr, exit_code = run_inprocess_conda_command(command)
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
