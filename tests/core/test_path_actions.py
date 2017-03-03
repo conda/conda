@@ -64,7 +64,7 @@ class PathActionsTests(TestCase):
     def setUp(self):
         tempdirdir = gettempdir()
 
-        prefix_dirname = str(uuid4())[:8]
+        prefix_dirname = str(uuid4())[:4] + ' ' + str(uuid4())[:4]
         self.prefix = join(tempdirdir, prefix_dirname)
         mkdir_p(self.prefix)
         assert isdir(self.prefix)
