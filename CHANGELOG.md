@@ -4,7 +4,7 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.14 (unreleased)
+## 4.3.14 (2017-03-02)
 
 ### Improvements
 * use cPickle in place of pickle for repodata (#4717)
@@ -33,7 +33,7 @@
 * allow sha256 to be None (#4759)
 * add cache_fn_url to exports (#4729)
 * add unicode paths for PY3 integration tests (#4760)
-* additional unit tests for exceptions (#4728)
+* additional unit tests (#4728, #4783)
 
 
 ## 4.3.13 (2017-02-17)
