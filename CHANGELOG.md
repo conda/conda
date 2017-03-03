@@ -4,7 +4,7 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.14 (2017-03-02)
+## 4.3.14 (2017-03-03)
 
 ### Improvements
 * use cPickle in place of pickle for repodata (#4717)
@@ -34,6 +34,7 @@
 * add cache_fn_url to exports (#4729)
 * add unicode paths for PY3 integration tests (#4760)
 * additional unit tests (#4728, #4783)
+* fix conda-build compatibility and tests (#4785)
 
 
 ## 4.3.13 (2017-02-17)
