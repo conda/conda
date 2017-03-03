@@ -63,24 +63,10 @@ from .signature import KEYS, KEYS_DIR, hash_file, verify  # NOQA
 KEYS, KEYS_DIR = KEYS, KEYS_DIR
 hash_file, verify = hash_file, verify
 
-from .utils import human_bytes, memoized, unix_path_to_win, win_path_to_unix, url_path  # NOQA
-human_bytes = human_bytes
+from .utils import hashsum_file, human_bytes, memoized, unix_path_to_win, win_path_to_unix, url_path  # NOQA
+hashsum_file, human_bytes = hashsum_file, human_bytes
 memoized, unix_path_to_win = memoized, unix_path_to_win
 win_path_to_unix, url_path = win_path_to_unix, url_path
-
-import hashlib  # NOQA
-
-
-def hashsum_file(path, mode='md5'):
-    h = hashlib.new(mode)
-    with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
-
 
 from .gateways.disk.read import compute_md5sum  # NOQA
 md5_file = compute_md5sum

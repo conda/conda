@@ -10,6 +10,7 @@ import threading
 
 from .common.compat import on_win
 from .common.url import path_to_url
+from .gateways.disk.read import compute_md5sum
 
 log = logging.getLogger(__name__)
 
@@ -282,6 +283,20 @@ else:
 
 # put back because of conda build
 urlpath = url_path = path_to_url
+md5_file = compute_md5sum
+
+import hashlib  # NOQA
+
+
+def hashsum_file(path, mode='md5'):
+    h = hashlib.new(mode)
+    with open(path, 'rb') as fi:
+        while True:
+            chunk = fi.read(262144)  # process chunks of 256KB
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 @memoized
