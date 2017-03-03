@@ -71,6 +71,8 @@ install_conda_dev() {
     touch $prefix/conda-meta/history
 
     $prefix/bin/conda info
+
+    $prefix/bin/conda config --set auto_update_conda false
 }
 
 
