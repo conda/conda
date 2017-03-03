@@ -16,7 +16,7 @@
 * set activate.bat codepage to CP_ACP (#4558)
 
 ### Bug Fixes
-* fix #4777 package cache initialization speed *#4778)
+* fix #4777 package cache initialization speed (#4778)
 * fix #4703 menuinst PathNotFoundException (#4709)
 * ignore permissions error if user_site can't be read (#4710)
 * fix #4694 don't import requests directly in models (#4711)
@@ -26,6 +26,7 @@
 * fix #4745 check for info/index.json with package is_extracted (#4776)
 * make sure url gets included in CondaHTTPError (#4779)
 * fix #4757 map-type configs set to None (#4774)
+* fix #4788 partial package extraction (#4789)
 
 ### Non-User-Facing Changes
 * test coverage improvement (#4607)
