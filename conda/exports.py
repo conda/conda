@@ -16,9 +16,8 @@ compat, plan = compat, plan
 from .api import get_index  # NOQA
 get_index = get_index
 
-from .cli.common import (Completer, InstalledPackages, add_parser_channels, add_parser_prefix,  # NOQA
-                              specs_from_args, spec_from_line, specs_from_url)  # NOQA
-Completer, InstalledPackages = Completer, InstalledPackages
+from .cli.common import (add_parser_channels, add_parser_prefix, specs_from_args, spec_from_line,
+                         specs_from_url)  # NOQA
 add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix
 specs_from_args, spec_from_line = specs_from_args, spec_from_line
 specs_from_url = specs_from_url
@@ -129,3 +128,6 @@ ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
 
 from .core.repodata import cache_fn_url  # NOQA
 cache_fn_url = cache_fn_url
+
+class Completer(object): pass
+class InstalledPackages(object): pass

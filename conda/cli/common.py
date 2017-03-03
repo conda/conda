@@ -16,8 +16,6 @@ from ..common.compat import itervalues
 from ..common.constants import NULL
 from ..exceptions import CondaFileIOError, CondaSystemExit, CondaValueError, DryRunExit
 from ..resolve import MatchSpec
-from ..utils import memoize
-
 
 get_prefix = partial(context_get_prefix, context)
 
@@ -34,78 +32,6 @@ class NullCountAction(argparse._CountAction):
         new_count = self._ensure_value(namespace, self.dest, 0) + 1
         setattr(namespace, self.dest, new_count)
 
-
-class Completer(object):
-    """
-    Subclass this class to get tab completion from argcomplete
-
-    There are two ways to use this. One is to subclass and define `_get_items(self)`
-    to return a list of all possible completions, and put that as the choices
-    in the add_argument. If you do that, you will probably also want to set
-    metavar to something, so that the argparse help doesn't show all possible
-    choices.
-
-    Another option is to define `_get_items(self)` in the same way, but also
-    define `__init__(self, prefix, parsed_args, **kwargs)` (I'm not sure what
-    goes in kwargs).  The prefix will be the parsed arguments so far, and
-    `parsed_args` will be an argparse args object. Then use
-
-    p.add_argument('argname', ...).completer = TheSubclass
-
-    Use this second option if the set of completions depends on the command
-    line flags (e.g., the list of completed packages to install changes if -c
-    flags are used).
-    """
-    @memoize
-    def get_items(self):
-        return self._get_items()
-
-    def __contains__(self, item):
-        # This generally isn't all possibilities, and even if it is, we want
-        # to give better error messages than argparse
-        return True
-
-    def __iter__(self):
-        return iter(self.get_items())
-
-class Environments(Completer):
-    def _get_items(self):
-        res = []
-        for dir in context.envs_dirs:
-            try:
-                res.extend(os.listdir(dir))
-            except OSError:
-                pass
-        return res
-
-class Packages(Completer):
-    def __init__(self, prefix, parsed_args, **kwargs):
-        self.prefix = prefix
-        self.parsed_args = parsed_args
-
-    def _get_items(self):
-        # TODO: Include .tar.bz2 files for local installs.
-        from ..core.index import get_index
-        args = self.parsed_args
-        call_dict = dict(channel_urls=args.channel or (),
-                         use_cache=True,
-                         prepend=not args.override_channels,
-                         unknown=args.unknown)
-        if hasattr(args, 'platform'):  # in search
-            call_dict['platform'] = args.platform
-        index = get_index(**call_dict)
-        return [record.name for record in index]
-
-class InstalledPackages(Completer):
-    def __init__(self, prefix, parsed_args, **kwargs):
-        self.prefix = prefix
-        self.parsed_args = parsed_args
-
-    @memoize
-    def _get_items(self):
-        from ..core.linked_data import linked
-        packages = linked(context.prefix_w_legacy_search)
-        return [dist.quad[0] for dist in packages]
 
 def add_parser_help(p):
     """
@@ -127,7 +53,6 @@ def add_parser_prefix(p):
         action="store",
         help="Name of environment (in %s)." % os.pathsep.join(context.envs_dirs),
         metavar="ENVIRONMENT",
-        choices=Environments(),
     )
     npgroup.add_argument(
         '-p', "--prefix",
@@ -330,7 +255,7 @@ def add_parser_install(p):
             action="store",
             nargs='*',
             help="Packages to update in the conda environment.",
-        ).completer = InstalledPackages
+        )
     else:  # create or install
         # Same as above except the completer is not only installed packages
         p.add_argument(
@@ -339,7 +264,7 @@ def add_parser_install(p):
             action="store",
             nargs='*',
             help="Packages to install into the conda environment.",
-        ).completer = Packages
+        )
 
 def add_parser_use_local(p):
     p.add_argument(

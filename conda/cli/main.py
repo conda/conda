@@ -43,9 +43,9 @@ def generate_parser():
     from argparse import SUPPRESS
 
     from .. import __version__
-    from ..cli import conda_argparse
+    from ..cli.conda_argparse import ArgumentParser
 
-    p = conda_argparse.ArgumentParser(
+    p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
                     ' environments and packages.',
     )
@@ -104,10 +104,6 @@ def _main(*args):
 
     from .find_commands import find_commands
 
-    def completer(prefix, **kwargs):
-        return [i for i in list(sub_parsers.choices) + find_commands()
-                if i.startswith(prefix)]
-
     # when using sys.argv, first argument is generally conda or __main__.py.  Ignore it.
     if (any(sname in args[0] for sname in ('conda', 'conda.exe', '__main__.py', 'conda-script.py'))
         and (args[1] in list(sub_parsers.choices.keys()) + find_commands()
@@ -115,7 +111,6 @@ def _main(*args):
         log.debug("Ignoring first argument (%s), as it is not a subcommand", args[0])
         args = args[1:]
 
-    sub_parsers.completer = completer
     args = p.parse_args(args)
 
     context.__init__(SEARCH_PATH, 'conda', args)

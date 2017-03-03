@@ -13,7 +13,7 @@ from os.path import join
 import sys
 from textwrap import wrap
 
-from .common import Completer, add_parser_json, stdout_json_success
+from .common import add_parser_json, stdout_json_success
 from .. import CondaError
 from .._vendor.auxlib.compat import isiterable
 from .._vendor.auxlib.entity import EntityEncoder
@@ -66,24 +66,22 @@ Set the output verbosity to level 3 (highest):
 """ % CONDA_HOMEPAGE_URL
 
 
-class SingleValueKey(Completer):
-    def _get_items(self):
-        return rc_bool_keys + \
-               rc_string_keys + \
-               ['yes', 'no', 'on', 'off', 'true', 'false']
+# Note, the formatting of this is designed to work well with help2man
+example = """
+Examples:
 
+Get the channels defined in the system .condarc:
 
-class ListKey(Completer):
-    def _get_items(self):
-        return rc_list_keys
+    conda config --get channels --system
 
+Add the 'foo' Binstar channel:
 
-class BoolOrListKey(Completer):
-    def __contains__(self, other):
-        return other in self.get_items()
+    conda config --add channels foo
 
-    def _get_items(self):
-        return rc_list_keys + rc_bool_keys
+Disable the 'show_channel_urls' option:
+
+    conda config --set show_channel_urls no
+"""
 
 
 def configure_parser(sub_parsers):
@@ -151,7 +149,6 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="Get a configuration value.",
         default=None,
         metavar='KEY',
-        choices=BoolOrListKey()
     )
     action.add_argument(
         "--append",
@@ -159,7 +156,6 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         action="append",
         help="""Add one configuration value to the end of a list key.""",
         default=[],
-        choices=ListKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
@@ -168,7 +164,6 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         action="append",
         help="""Add one configuration value to the beginning of a list key.""",
         default=[],
-        choices=ListKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
@@ -177,7 +172,6 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         action="append",
         help="""Set a boolean or string key""",
         default=[],
-        choices=SingleValueKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(

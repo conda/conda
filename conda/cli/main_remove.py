@@ -12,7 +12,7 @@ import logging
 from os.path import abspath, join
 import sys
 
-from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
+from .common import (add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes, confirm_yn,
@@ -99,7 +99,7 @@ def configure_parser(sub_parsers, name='remove'):
         action="store",
         nargs='*',
         help="Package names to %s from the environment." % name,
-    ).completer = InstalledPackages
+    )
     p.set_defaults(func=execute)
 
 
