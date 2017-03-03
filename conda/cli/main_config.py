@@ -430,8 +430,9 @@ def execute_config(args, parser):
         del rc_config[key]
 
     # config.rc_keys
-    with open(rc_path, 'w') as rc:
-        rc.write(yaml_dump(rc_config))
+    if not args.get:
+        with open(rc_path, 'w') as rc:
+            rc.write(yaml_dump(rc_config))
 
     if context.json:
         stdout_json_success(
