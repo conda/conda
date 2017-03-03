@@ -123,7 +123,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     parser_config[command](sub_parsers)
 
     if command is Commands.CONFIG:
-        arguments.append("--file {0}".format(join(prefix, 'condarc')))
+        arguments.append("--file '{0}'".format(join(prefix, 'condarc')))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE):
         arguments.append("-p '{0}'".format(prefix))
