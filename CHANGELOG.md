@@ -12,8 +12,11 @@
 * use conda.exe for windows entry point executable (#4716, #4720)
 * localize use of conda_signal_handler (#4730)
 * add skip_safety_checks configuration parameter (#4767)
+* never symlink executables using ORIGIN (#4625)
+* set activate.bat codepage to CP_ACP (#4558)
 
 ### Bug Fixes
+* fix #4777 package cache initialization speed *#4778)
 * fix #4703 menuinst PathNotFoundException (#4709)
 * ignore permissions error if user_site can't be read (#4710)
 * fix #4694 don't import requests directly in models (#4711)
@@ -21,12 +24,16 @@
 * fix CondaHttpError for URLs that contain '%' (#4769)
 * bug fixes for preferred envs (#4678)
 * fix #4745 check for info/index.json with package is_extracted (#4776)
+* make sure url gets included in CondaHTTPError (#4779)
+* fix #4757 map-type configs set to None (#4774)
 
 ### Non-User-Facing Changes
 * test coverage improvement (#4607)
 * CI configuration improvements (#4713, #4773, #4775)
 * allow sha256 to be None (#4759)
 * add cache_fn_url to exports (#4729)
+* add unicode paths for PY3 integration tests (#4760)
+* additional unit tests for exceptions (#4728)
 
 
 ## 4.3.13 (2017-02-17)
