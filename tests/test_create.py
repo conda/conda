@@ -125,7 +125,7 @@ def run_command(command, prefix, *arguments, **kwargs):
         arguments.append("--file {0}".format(join(prefix, 'condarc')))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE):
-        arguments.append("-p {0}".format(prefix))
+        arguments.append("-p {0}". format(prefix))
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
