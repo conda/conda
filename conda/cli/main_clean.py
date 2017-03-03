@@ -158,8 +158,6 @@ def find_pkgs():
         for pkg in pkgs:
             breakit = False
             for root, dir, files in walk(join(pkgs_dir, pkg)):
-                if breakit:
-                    break
                 for fn in files:
                     try:
                         st_nlink = cross_platform_st_nlink(join(root, fn))
@@ -170,6 +168,9 @@ def find_pkgs():
                         # print('%s is installed: %s' % (pkg, join(root, fn)))
                         breakit = True
                         break
+                        
+                if breakit:
+                    break
             else:
                 pkgs_dirs[pkgs_dir].append(pkg)
 
