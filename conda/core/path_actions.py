@@ -811,6 +811,7 @@ class ExtractPackageAction(PathAction):
         target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
+        rm_rf(self.target_full_path)
         if lexists(self.hold_path):
             log.trace("moving %s => %s", self.hold_path, self.target_full_path)
             rm_rf(self.target_full_path)
