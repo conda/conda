@@ -13,6 +13,7 @@ from ._vendor.auxlib.ish import dals
 from .base.constants import PathConflict
 from .common.compat import iteritems, iterkeys, string_types
 from .common.signals import get_signal_name
+from .common.url import maybe_unquote
 
 try:
     from cytoolz.itertoolz import groupby
@@ -297,6 +298,7 @@ class MD5MismatchError(CondaError):
           expected md5 sum: %(expected_md5sum)s
           actual md5 sum: %(actual_md5sum)s
         """)
+        url = maybe_unquote(url)
         super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
                                                expected_md5sum=expected_md5sum,
                                                actual_md5sum=actual_md5sum)
@@ -312,8 +314,6 @@ class PackageNotFoundError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
-        from .common.url import unquote_plus
-        url = unquote_plus(url) if url else url
         _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
@@ -325,6 +325,7 @@ class CondaHTTPError(CondaError):
         from ._vendor.auxlib.logz import stringify
         response_details = (stringify(response) or '') if response else ''
 
+        url = maybe_unquote(url)
         if isinstance(elapsed_time, timedelta):
             elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
         if isinstance(reason, string_types):
