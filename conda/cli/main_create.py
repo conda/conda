@@ -13,10 +13,12 @@ from ..common.constants import NULL
 from ..gateways.disk.delete import delete_trash
 
 help = "Create a new conda environment from a list of specified packages. "
-descr = (help +
-         "To use the created environment, use 'source activate "
-         "envname' look in that directory first.  This command requires either "
-         "the -n NAME or -p PREFIX option.")
+descr = help + """
+
+To use the created environment, use 'source activate  envname' look in that
+directory first.  This command requires either the -n NAME or -p PREFIX
+option.
+"""
 
 example = """
 Examples:
@@ -65,5 +67,16 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    context.validate_configuration()
+
+    if newenv:
+        common.ensure_name_or_prefix(args, command)
+
+    prefix = context.prefix if newenv or args.mkdir else context.prefix_w_legacy_search
+
+    if newenv:
+        check_prefix(prefix, json=context.json)
+
+
     install(args, parser, 'create')
     delete_trash()

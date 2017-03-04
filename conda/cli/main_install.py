@@ -77,5 +77,8 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    context.validate_configuration()
+
+
     install(args, parser, 'install')
     delete_trash()
