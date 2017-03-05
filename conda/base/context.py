@@ -44,6 +44,7 @@ _platform_map = {
     'win32': 'win',
 }
 non_x86_linux_machines = {
+    'aarch64',
     'armv6l',
     'armv7l',
     'ppc64le',
@@ -220,6 +221,8 @@ class Context(Configuration):
     def arch_name(self):
         m = machine()
         if self.platform == 'linux' and m in non_x86_linux_machines:
+            if m == 'aarch64':
+                return 'armv7l'
             return m
         else:
             return _arch_names[self.bits]
@@ -234,7 +237,7 @@ class Context(Configuration):
             return self._subdir
         m = machine()
         if m in non_x86_linux_machines:
-            return 'linux-%s' % m
+            return 'linux-%s' % self.arch_name
         else:
             return '%s-%d' % (self.platform, self.bits)
 
