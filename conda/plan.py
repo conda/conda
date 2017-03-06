@@ -26,7 +26,7 @@ from .common.path import (is_private_env, preferred_env_matches_prefix,
 from .core.index import _supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
-from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
+from .exceptions import (ArgumentError, CondaIndexError,
                          InstallError, RemoveError)
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
@@ -738,7 +738,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             continue
         if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
-            raise CondaRuntimeError(msg % old_dist.to_filename())
+            raise RemoveError(msg % old_dist.to_filename())
         if context.conda_in_root and name == 'conda' and name not in nlinked and not context.force:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")

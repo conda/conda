@@ -1,5 +1,4 @@
 from conda import CondaError
-from conda.exceptions import CondaRuntimeError
 
 
 class CondaEnvException(CondaError):

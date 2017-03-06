@@ -451,12 +451,6 @@ class CondaIndexError(CondaError, IndexError):
         super(CondaIndexError, self).__init__(msg)
 
 
-class CondaRuntimeError(CondaError, RuntimeError):
-    def __init__(self, message):
-        msg = 'Runtime error: %s' % message
-        super(CondaRuntimeError, self).__init__(msg)
-
-
 class CondaValueError(CondaError, ValueError):
     def __init__(self, message, *args):
         msg = 'Value error: %s' % message
@@ -580,7 +574,7 @@ def conda_exception_handler(func, *args, **kwargs):
             return return_value
     except CondaExitZero:
         return 0
-    except CondaRuntimeError as e:
+    except CondaIOError as e:
         print_unexpected_error_message(e)
         return 1
     except CondaError as e:
