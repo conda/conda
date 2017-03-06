@@ -17,8 +17,8 @@ from ..common.compat import iteritems
 from ..common.constants import NULL
 from ..common.path import is_private_env, prefix_to_env_name
 from ..core.linked_data import linked_data
-from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
-                          DryRunExit)
+from ..exceptions import (CondaFileIOError, CondaSystemExit, CondaValueError,
+                          DryRunExit, CondaDependencyError)
 from ..resolve import MatchSpec
 from ..utils import memoize
 
@@ -405,8 +405,9 @@ def ensure_use_local(args):
     try:
         from conda_build.config import croot  # noqa
     except ImportError as e:
-        raise CondaRuntimeError("%s: you need to have 'conda-build >= 1.7.1' installed"
-                                " to use the --use-local option." % e)
+        raise CondaDependencyError("%s: you need to have 'conda-build >= 1.7.1' installed"
+                                   " to use the --use-local option." % e)
+
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
@@ -416,6 +417,7 @@ def ensure_override_channels_requires_channel(args, dashc=True):
         else:
             raise CondaValueError('--override-channels requires --channel'
                                   'or --use-local')
+
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default

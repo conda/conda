@@ -1,6 +1,7 @@
 from __future__ import print_function, absolute_import
 import unittest
 
+from conda.exceptions import CondaDependencyError
 from conda.version import ver_eval, VersionSpec, VersionOrder, normalized_version
 
 class TestVersionSpec(unittest.TestCase):
@@ -157,9 +158,9 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.4+5*'), False)
 
     def test_ver_eval_errors(self):
-        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
-        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!!2.4.5')
-        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!')
+        self.assertRaises(CondaDependencyError, ver_eval, '3.0.0', '><2.4.5')
+        self.assertRaises(CondaDependencyError, ver_eval, '3.0.0', '!!2.4.5')
+        self.assertRaises(CondaDependencyError, ver_eval, '3.0.0', '!')
 
     def test_match(self):
         for vspec, res in [

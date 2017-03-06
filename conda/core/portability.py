@@ -8,7 +8,7 @@ import struct
 
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..common.compat import on_win
-from ..exceptions import CondaRuntimeError
+from ..exceptions import CondaRevisionError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
 
@@ -60,7 +60,7 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
                           'new_prefix': new_prefix,
                           'placeholder': placeholder,
                           })
-            raise CondaRuntimeError(message)
+            raise CondaRevisionError(message)
 
         return data
 

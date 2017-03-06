@@ -23,7 +23,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-class LockError(CondaError, RuntimeError):
+class LockError(CondaError):
     def __init__(self, message):
         msg = "Lock error: %s" % message
         super(LockError, self).__init__(msg)
@@ -484,6 +484,11 @@ class CondaUpgradeError(CondaError):
 class CondaVerificationError(CondaError):
     def __init__(self, message):
         super(CondaVerificationError, self).__init__(message)
+
+
+class CondaDependencyError(CondaError):
+    def __init__(self, message):
+        super(CondaDependencyError, self).__init__(message)
 
 
 def print_conda_exception(exception):
