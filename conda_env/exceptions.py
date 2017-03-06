@@ -8,11 +8,6 @@ class CondaEnvException(CondaError):
         super(CondaEnvException, self).__init__(msg, *args, **kwargs)
 
 
-class CondaEnvRuntimeError(CondaRuntimeError):
-    def __init__(self, msg, *args, **kwargs):
-        super(CondaEnvRuntimeError, self).__init__(msg, *args, **kwargs)
-
-
 class EnvironmentFileNotFound(CondaEnvException):
     def __init__(self, filename, *args, **kwargs):
         msg = '{} file not found'.format(filename)
@@ -20,32 +15,32 @@ class EnvironmentFileNotFound(CondaEnvException):
         super(EnvironmentFileNotFound, self).__init__(msg, *args, **kwargs)
 
 
-class NoBinstar(CondaEnvRuntimeError):
+class NoBinstar(CondaError):
     def __init__(self):
         msg = 'The anaconda-client cli must be installed to perform this action'
         super(NoBinstar, self).__init__(msg)
 
 
-class AlreadyExist(CondaEnvRuntimeError):
+class AlreadyExist(CondaError):
     def __init__(self):
         msg = 'The environment path already exists'
         super(AlreadyExist, self).__init__(msg)
 
 
-class EnvironmentAlreadyInNotebook(CondaEnvRuntimeError):
+class EnvironmentAlreadyInNotebook(CondaError):
     def __init__(self, notebook, *args, **kwargs):
         msg = "The notebook {} already has an environment"
         super(EnvironmentAlreadyInNotebook, self).__init__(msg, *args, **kwargs)
 
 
-class EnvironmentFileDoesNotExist(CondaEnvRuntimeError):
+class EnvironmentFileDoesNotExist(CondaError):
     def __init__(self, handle, *args, **kwargs):
         self.handle = handle
         msg = "{} does not have an environment definition".format(handle)
         super(EnvironmentFileDoesNotExist, self).__init__(msg, *args, **kwargs)
 
 
-class EnvironmentFileNotDownloaded(CondaEnvRuntimeError):
+class EnvironmentFileNotDownloaded(CondaError):
     def __init__(self, username, packagename, *args, **kwargs):
         msg = '{}/{} file not downloaded'.format(username, packagename)
         self.username = username
@@ -53,7 +48,7 @@ class EnvironmentFileNotDownloaded(CondaEnvRuntimeError):
         super(EnvironmentFileNotDownloaded, self).__init__(msg, *args, **kwargs)
 
 
-class SpecNotFound(CondaEnvRuntimeError):
+class SpecNotFound(CondaError):
     def __init__(self, msg, *args, **kwargs):
         super(SpecNotFound, self).__init__(msg, *args, **kwargs)
 
@@ -64,7 +59,7 @@ class InvalidLoader(Exception):
         super(InvalidLoader, self).__init__(msg)
 
 
-class NBFormatNotInstalled(CondaEnvRuntimeError):
+class NBFormatNotInstalled(CondaError):
     def __init__(self):
         msg = """nbformat is not installed. Install it with:
         conda install nbformat
