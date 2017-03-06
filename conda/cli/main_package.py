@@ -21,6 +21,7 @@ from conda.core.linked_data import is_linked, linked_data
 from conda.core.linked_data import linked
 from os.path import basename, dirname, isfile, islink, join, abspath, isdir
 
+from conda.exceptions import CondaVerificationError
 from ..base.context import context, get_prefix
 
 from .common import add_parser_prefix
@@ -261,7 +262,7 @@ def which_package(path):
     path = abspath(path)
     prefix = which_prefix(path)
     if prefix is None:
-        raise RuntimeError("could not determine conda prefix from: %s" % path)
+        raise CondaVerificationError("could not determine conda prefix from: %s" % path)
     for dist in linked(prefix):
         meta = is_linked(prefix, dist)
         if any(abspath(join(prefix, f)) == path for f in meta['files']):

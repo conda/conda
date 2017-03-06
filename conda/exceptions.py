@@ -47,6 +47,7 @@ class CondaSignalInterrupt(CondaError):
                                                    signal_name=signal_name,
                                                    signum=signum)
 
+
 class TooManyArgumentsError(ArgumentError):
     def __init__(self, expected, received, offending_arguments, optional_message='',
                  *args):
@@ -346,7 +347,7 @@ class AuthenticationError(CondaError):
     pass
 
 
-class NoPackagesFoundError(CondaError, RuntimeError):
+class NoPackagesFoundError(CondaError):
     """An exception to report that requested packages are missing.
 
     Args:
@@ -374,7 +375,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
         self.pkgs = deps
 
 
-class UnsatisfiableError(CondaError, RuntimeError):
+class UnsatisfiableError(CondaError):
     """An exception to report unsatisfiable dependencies.
 
     Args:
@@ -496,6 +497,7 @@ def print_conda_exception(exception):
                                      cls=EntityEncoder))
     else:
         stderrlogger.info("\n\n%r", exception)
+
 
 def get_info():
     from conda.cli import conda_argparse

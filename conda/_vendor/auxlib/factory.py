@@ -3,6 +3,7 @@ for various types of data gateways.
 """
 from __future__ import absolute_import, division, print_function
 
+from conda.exceptions import CondaVerificationError
 from .compat import with_metaclass
 from .exceptions import InitializationError
 
@@ -17,7 +18,7 @@ class FactoryBase(object):
         cls._default_provider = (default_provider.__name__ if isinstance(default_provider, type)
                                  else str(default_provider))
         if not cls.is_registered_provider(cls._default_provider):
-            raise RuntimeError("{0} is not a registered provider for "
+            raise CondaVerificationError("{0} is not a registered provider for "
                                "{1}".format(cls._default_provider, cls.__name__))
 
     @classmethod

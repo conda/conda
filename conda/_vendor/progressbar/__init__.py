@@ -47,6 +47,8 @@ import signal
 import sys
 import time
 
+from conda.exceptions import ArgumentError
+
 try:
     from fcntl import ioctl
     from array import array
@@ -274,7 +276,7 @@ class ProgressBar(object):
 
         if not self._need_update(): return
         if self.start_time is None:
-            raise RuntimeError('You must call "start" before calling "update"')
+            raise ArgumentError('You must call "start" before calling "update"')
 
         now = time.time()
         self.seconds_elapsed = now - self.start_time

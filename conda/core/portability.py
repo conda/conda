@@ -8,7 +8,7 @@ import struct
 
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..common.compat import on_win
-from ..exceptions import CondaRevisionError
+from ..exceptions import CondaRevisionError, CondaIOError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
 
@@ -73,7 +73,7 @@ def replace_prefix(mode, data, placeholder, new_prefix):
     elif mode == FileMode.binary:
         data = binary_replace(data, placeholder.encode('utf-8'), new_prefix.encode('utf-8'))
     else:
-        raise RuntimeError("Invalid mode: %r" % mode)
+        raise CondaIOError("Invalid mode: %r" % mode)
     return data
 
 
