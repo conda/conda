@@ -38,7 +38,7 @@ class PriorityIntegrationTests(TestCase):
         """
             This case will fail now
         """
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5.3=0") as prefix:
             assert_package_is_installed(prefix, 'python')
 
             # add conda-forge channel
