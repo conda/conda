@@ -6,7 +6,7 @@ from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 
-from conda.exceptions import CondaDependencyError
+from ..exceptions import CondaDependencyError
 from ..base.constants import UNKNOWN_CHANNEL
 from ..common.compat import itervalues, odict
 from ..gateways.disk.delete import rm_rf

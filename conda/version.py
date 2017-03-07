@@ -4,7 +4,7 @@ import operator as op
 import re
 
 from .common.compat import string_types, zip, zip_longest
-from .exceptions import CondaValueError, CondaDependencyError
+from .exceptions import CondaValueError, InvalidSpecError
 
 
 # normalized_version() is needed by conda-env
@@ -21,6 +21,7 @@ def ver_eval(vtest, spec):
 version_check_re = re.compile(r'^[\*\.\+!_0-9a-z]+$')
 version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
 version_cache = {}
+
 
 class VersionOrder(object):
     """
@@ -341,7 +342,7 @@ class VersionSpec(object):
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
-                raise CondaDependencyError('Invalid version spec: %s' % spec)
+                raise InvalidSpecError(spec)
             op, b = m.groups()
             self.op = opdict[op]
             self.cmp = VersionOrder(b)

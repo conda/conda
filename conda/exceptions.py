@@ -486,6 +486,30 @@ class CondaDependencyError(CondaError):
         super(CondaDependencyError, self).__init__(message)
 
 
+class PrefixReplacementError(CondaError):
+    def __init__(self, message, new_data_length, original_data_length, new_prefix,
+                 path, placeholder):
+        message = dals("""
+        Refusing to replace data of length '%(new_data_length)d' with
+        data of length '%(original_data_length)d' for binary file
+        New Data Length:      %(new_data_length)d
+        Original data Length:  %(original_data_length)d
+        path: %(path)s
+        new prefix: %(new_prefix)s
+        placeholder: %(placeholder)s
+
+        """)
+        super(PrefixReplacementError, self).__init__(message, new_data_length=new_data_length,
+                                                     original_data_length=original_data_length,
+                                                     new_prefix=new_prefix, path=path, placeholder=placeholder)
+
+
+class InvalidSpecError(CondaError):
+    def __init__(self, invalid_spec):
+        message = "Invalid spec: %(invalid_spec)s"
+        super(InvalidSpecError, self).__init__(message, invalid_spec=invalid_spec)
+
+
 def print_conda_exception(exception):
     from conda.base.context import context
 
@@ -576,9 +600,6 @@ def conda_exception_handler(func, *args, **kwargs):
             return return_value
     except CondaExitZero:
         return 0
-    except CondaIOError as e:
-        print_unexpected_error_message(e)
-        return 1
     except CondaError as e:
         from conda.base.context import context
         if context.debug or context.verbosity > 0:

@@ -3,7 +3,6 @@ for various types of data gateways.
 """
 from __future__ import absolute_import, division, print_function
 
-from conda.exceptions import CondaVerificationError
 from .compat import with_metaclass
 from .exceptions import InitializationError
 

@@ -64,7 +64,7 @@ def collect_all_repodata(use_cache, tasks):
             import concurrent.futures
             executor = concurrent.futures.ThreadPoolExecutor(10)
             repodatas = _collect_repodatas_concurrent(executor, use_cache, tasks)
-        except ImportError as e:
+        except (ImportError, RuntimeError)as e:
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
             # RuntimeError is thrown if number of threads are limited by OS
             log.debug(repr(e))

@@ -21,10 +21,10 @@ from ..base.context import context
 from ..common.compat import on_win, text_type
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..exceptions import CondaEnvironmentNotFoundError, CondaHistoryError, CondaIOError, \
-    CondaImportError, CondaOSError, CondaSystemExit, CondaValueError, DirectoryNotFoundError, \
-    DryRunExit, LockError, NoPackagesFoundError, PackageNotFoundError, TooManyArgumentsError, \
-    UnsatisfiableError
+from ..exceptions import (CondaEnvironmentNotFoundError, CondaHistoryError, CondaIOError,
+                            CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
+                            DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
+                            PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
@@ -366,7 +366,6 @@ def install(args, parser, command='install'):
                         else:
                             raise CondaIOError("Can't write the history file", e)
 
-            except LockError as e:
                 if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
                     raise LockError('Already locked: %s' % text_type(e))
                 else:

@@ -18,7 +18,7 @@ from ..common.constants import NULL
 from ..common.path import is_private_env, prefix_to_env_name
 from ..core.linked_data import linked_data
 from ..exceptions import (CondaFileIOError, CondaSystemExit, CondaValueError,
-                          DryRunExit, CondaDependencyError)
+                          DryRunExit)
 from ..resolve import MatchSpec
 from ..utils import memoize
 
@@ -402,11 +402,6 @@ def add_parser_create_install_update(p):
 def ensure_use_local(args):
     if not args.use_local:
         return
-    try:
-        from conda_build.config import croot  # noqa
-    except ImportError as e:
-        raise CondaDependencyError("%s: you need to have 'conda-build >= 1.7.1' installed"
-                                   " to use the --use-local option." % e)
 
 
 def ensure_override_channels_requires_channel(args, dashc=True):
