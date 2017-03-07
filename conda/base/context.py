@@ -276,8 +276,8 @@ class Context(Configuration):
             )
         else:
             fixed_dirs = (
-                join(self.root_prefix, 'envs'),
                 join(self._user_data_dir, 'envs'),
+                join(self.root_prefix, 'envs'),
                 join('~', '.conda', 'envs'),
             )
         return tuple(IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs)))
