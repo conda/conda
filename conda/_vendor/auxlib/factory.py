@@ -18,7 +18,7 @@ class FactoryBase(object):
         cls._default_provider = (default_provider.__name__ if isinstance(default_provider, type)
                                  else str(default_provider))
         if not cls.is_registered_provider(cls._default_provider):
-            raise CondaVerificationError("{0} is not a registered provider for "
+            raise RuntimeError("{0} is not a registered provider for "
                                "{1}".format(cls._default_provider, cls.__name__))
 
     @classmethod
