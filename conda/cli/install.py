@@ -21,10 +21,10 @@ from ..base.context import context
 from ..common.compat import on_win, text_type
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..exceptions import (CondaEnvironmentNotFoundError, CondaHistoryError, CondaIOError,
-                            CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
-                            DirectoryNotFoundError, DryRunExit, NoPackagesFoundError,
-                            PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
+from ..exceptions import (CondaEnvironmentNotFoundError, CondaIOError, CondaImportError,
+                          CondaValueError, DirectoryNotFoundError, DryRunExit,
+                          TooManyArgumentsError, UnsatisfiableError, CondaOSError,
+                          PackageNotFoundError, NoPackagesFoundError, CondaSystemExit)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,

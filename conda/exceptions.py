@@ -501,7 +501,8 @@ class PrefixReplacementError(CondaError):
         """)
         super(PrefixReplacementError, self).__init__(message, new_data_length=new_data_length,
                                                      original_data_length=original_data_length,
-                                                     new_prefix=new_prefix, path=path, placeholder=placeholder)
+                                                     new_prefix=new_prefix, path=path,
+                                                     placeholder=placeholder)
 
 
 class InvalidSpecError(CondaError):
