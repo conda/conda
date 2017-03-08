@@ -8,7 +8,7 @@ import struct
 
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..common.compat import on_win
-from ..exceptions import CondaIOError, PrefixReplacementError
+from ..exceptions import CondaIOError, BinaryPrefixReplacementError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
 
@@ -49,8 +49,7 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         # Step 4. if we have a binary file, make sure the byte size is the same before
         #         and after the update
         if mode == FileMode.binary and len(data) != len(original_data):
-            message = "PrefixReplacementError"
-            raise PrefixReplacementError(message, len(original_data), len(data), new_prefix,
+            raise BinaryPrefixReplacementError(len(original_data), len(data), new_prefix,
                                          path, placeholder)
 
         return data

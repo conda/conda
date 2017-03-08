@@ -8,7 +8,7 @@ from conda.common.io import captured, env_var, replace_log_streams
 from conda.exceptions import CommandNotFoundError, CondaFileNotFoundError, CondaHTTPError, CondaKeyError, \
     CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
     TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
-    UnknownPackageClobberError, SharedLinkPathClobberError
+    UnknownPackageClobberError, SharedLinkPathClobberError, BinaryPrefixReplacementError, BinaryPrefixReplacementError
 
 
 def _raise_helper(exception):
@@ -330,3 +330,43 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == "CommandNotFoundError: Conda could not find the command: 'instate'"
+
+    def test_BinaryPrefixReplacementError(self):
+        new_data_length = 1104
+        original_data_length = 1404
+        new_prefix = "some/where/on/goodwin.ave"
+        path = "some/where/by/boneyard/creek"
+        placeholder = "save/my/spot/in/374"
+        exc = BinaryPrefixReplacementError(new_data_length, original_data_length, new_prefix,
+                                     path, placeholder)
+        with env_var("CONDA_JSON", "yes", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        json_obj = json.loads(c.stdout)
+        assert not c.stderr
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.BinaryPrefixReplacementError'>"
+        assert json_obj['exception_name'] == 'BinaryPrefixReplacementError'
+        assert json_obj['message'] == text_type(exc)
+        assert json_obj['error'] == repr(exc)
+        assert json_obj['new_data_length'] == 1104
+        assert json_obj['original_data_length'] == 1404
+        assert json_obj['new_prefix'] == new_prefix
+        assert json_obj['path'] == path
+        assert json_obj['placeholder'] == placeholder
+
+        with env_var("CONDA_JSON", "no", reset_context):
+            with captured() as c, replace_log_streams():
+                conda_exception_handler(_raise_helper, exc)
+
+        assert not c.stdout
+        assert c.stderr.strip() == dals("""
+        BinaryPrefixReplacementError: Refusing to replace data of length '1104' with
+        data of length '1404' for binary file
+        new Data Length: 1104
+        original data Length: 1404
+        path: some/where/by/boneyard/creek
+        new prefix: some/where/on/goodwin.ave
+        placeholder: save/my/spot/in/374
+        """).strip()
+
