@@ -27,7 +27,8 @@ from ...common.compat import ensure_binary, on_win
 from ...common.path import win_path_ok
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
-from ...models.enums import LinkType
+from ...models.enums import LinkType, FileMode
+from ...core.portability import replace_long_shebang
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
@@ -68,7 +69,13 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
     with open(target_full_path, str('w')) as fo:
-        fo.write('#!%s\n' % python_full_path)
+        shebang = '#!%s\n' % python_full_path
+        if hasattr(shebang, 'encode'):
+            shebang = shebang.encode()
+        shebang = replace_long_shebang(FileMode.text, shebang)
+        if hasattr(shebang, 'decode'):
+            shebang = shebang.decode()
+        fo.write(shebang)
         fo.write(pyscript)
     make_executable(target_full_path)
 
