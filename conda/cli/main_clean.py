@@ -168,7 +168,7 @@ def find_pkgs():
                         # print('%s is installed: %s' % (pkg, join(root, fn)))
                         breakit = True
                         break
-                        
+
                 if breakit:
                     break
             else:
