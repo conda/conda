@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+/#!/usr/bin/env bash
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -271,7 +271,10 @@ unset IS_ENV_CONDA_ENVNAME
 # customize the PS1 to show what environment has been activated           #
 if [ "$(conda "..changeps1")" = "1" ] && [ -n "${PS1+x}" ]; then
     CONDA_PS1_BACKUP="${PS1}"
-    PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
+    # Do not customize PS1 in case of powerline
+    if ! $(grep -q "POWERLINE" <<<$PS1); then
+        PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
+    fi
     export CONDA_PS1_BACKUP
     export PS1
 fi
