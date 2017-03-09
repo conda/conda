@@ -2,10 +2,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+from copy import deepcopy
 from errno import EXDEV
 import json
 from logging import getLogger
-from os.path import dirname, join, basename
+from os.path import dirname, join
 import re
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
@@ -15,17 +16,16 @@ from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems, on_win
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
-                           get_python_noarch_target_path, get_python_short_path,
-                           parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
-                           win_path_ok, preferred_env_matches_prefix)
+                           get_python_noarch_target_path, get_python_short_path, is_private_env,
+                           parse_entry_point_def, preferred_env_matches_prefix, pyc_path,
+                           url_to_path, win_path_ok)
 from ..common.url import path_to_url
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
-                                    create_private_envs_meta, create_private_pkg_entry_point,
-                                    create_unix_python_entry_point,
-                                    create_windows_python_entry_point, extract_tarball,
-                                    make_menu, write_linked_package_record)
-from ..gateways.disk.delete import remove_private_envs_meta, rm_rf, try_rmdir_all_empty
+                                    create_private_pkg_entry_point, create_unix_python_entry_point,
+                                    create_windows_python_entry_point, extract_tarball, make_menu,
+                                    write_linked_package_record)
+from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
@@ -447,9 +447,11 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
             # target_prefix for the instantiated path action is the root prefix, not the same
             #   as target_prefix for the larger transaction
+            assert is_private_env(target_prefix)
+            root_prefix = dirname(dirname(target_prefix))
             return tuple(
                 cls(transaction_context, package_info, target_prefix, executable_short_path,
-                    target_prefix, '../../' + executable_short_path)
+                    root_prefix, executable_short_path)
                 for executable_short_path in exe_paths
             )
         else:
@@ -478,8 +480,6 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                                        conda_python_full_path)
         self._execute_successful = True
 
-        add_leased_path(source_prefix, source_short_path, target_prefix, target_path)
-
     def reverse(self):
         if self._execute_successful:
             log.trace("reversing application entry point creation %s", self.target_full_path)
@@ -491,7 +491,7 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       all_target_short_paths):
+                       all_target_short_paths, leased_paths):
         # 'all_target_short_paths' is especially significant here, because it is the record
         #   of the paths that will be removed when the package is unlinked
 
@@ -500,7 +500,8 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
                                                          package_info.index_json_record,
                                                          files=all_target_short_paths,
                                                          link=link,
-                                                         url=package_info.url)
+                                                         url=package_info.url,
+                                                         leased_paths=leased_paths)
 
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
@@ -529,40 +530,131 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         rm_rf(self.target_full_path)
 
 
-# class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
-#
-#     @classmethod
-#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-#         if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
-#             return cls(transaction_context, package_info, target_prefix),
-#         else:
-#             return ()
-#
-#     def __init__(self, transaction_context, package_info, private_env_prefix):
-#         # source is the private env (which is the target of the overall transaction)
-#         # the target of this action is context.root_prefix/conda-meta/private_envs
-#         source_prefix = private_env_prefix
-#         target_short_path = 'conda-meta/private_envs'
-#         self.private_env_prefix = private_env_prefix
-#         super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
-#                                                          source_prefix, None,
-#                                                          context.root_prefix, target_short_path)
-#         self._execute_successful = False
-#
-#     def execute(self):
-#         log.trace("creating private env entry for '%s' in %s",
-#                   self.package_info.repodata_record.name, self.target_full_path)
-#         # TODO: need to capture old env entry if it was there, so that it can be reversed
-#         name = "%s-%s" % (self.package_info.repodata_record.name,
-#                           self.package_info.repodata_record.version)
-#         create_private_envs_meta(name, context.root_prefix, self.target_prefix)
-#         self._execute_successful = True
-#
-#     def reverse(self):
-#         if self._execute_successful:
-#             log.trace("reversing private env entry for '%s' in %s",
-#                       self.package_info.repodata_record.name, self.target_full_path)
-#             remove_private_envs_meta(self.package_info.repodata_record.name)
+class SetEnvsDirectoryCatalogAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       leased_paths):
+        return cls(transaction_context, package_info, target_prefix, leased_paths),
+
+    def __init__(self, transaction_context, package_info, target_prefix, leased_paths):
+        super(SetEnvsDirectoryCatalogAction, self).__init__(transaction_context, package_info,
+                                                            None, None,
+                                                            target_prefix, None)
+        self.leased_paths = leased_paths or ()
+        from .envs_manager import EnvsDirectory
+        self.envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
+        self._execute_successful = False
+
+
+        # if target_prefix == context.root_prefix:
+        #     env_name = ROOT_ENV_NAME
+        #     self.envs_directory_path = join(target_prefix, 'envs')
+        #     assert not leased_paths
+        # elif basename(dirname(target_prefix)) == 'envs':
+        #     env_name = basename(target_prefix)
+        #     self.envs_directory_path = dirname(target_prefix)
+        #     root_prefix = dirname(self.envs_directory_path)
+        # else:
+        #     env_name = basename(target_prefix)
+        #     from .envs_manager import EnvsDirectory
+        #     self.envs_directory_path = EnvsDirectory.first_writable().envs_dir
+        #     root_prefix = dirname(self.envs_directory_path)
+        #
+        # self.registered_envs_entry = frozendict(
+        #     name=env_name,
+        #     location=self.target_prefix
+        # )
+        #
+        # def make_leased_path_entry(leased_short_path):
+        #     return frozendict(
+        #         _path=leased_short_path,
+        #         target_prefix=target_prefix,
+        #         target_path=join(target_prefix, win_path_ok(leased_short_path)),
+        #         leased_path=join(root_prefix, win_path_ok(leased_short_path)),
+        #     )
+        #
+        # self.leased_paths_entries = tuple(make_leased_path_entry(lsp)
+        #                                   for lsp in leased_paths or ())
+
+
+    def verify(self):
+        from .envs_manager import EnvsDirectory
+        envs_directory = EnvsDirectory(self.envs_directory_path)
+        if not envs_directory.is_writable:
+            raise
+        if self.leased_paths:
+            assert is_private_env(self.target_prefix)
+        self._verified = True
+
+    def execute(self):
+        log.trace("setting envs directory catalog for %s", self.target_prefix)
+
+        # touches env prefix entry in catalog.json
+        # updates leased_paths
+        from .envs_manager import EnvsDirectory
+        envs_directory = EnvsDirectory(self.envs_directory_path)
+
+        self.envs_dir_state = deepcopy(envs_directory._envs_dir_data)  # TODO: find a better way
+        root_prefix = dirname(dirname(self.target_prefix))
+
+        envs_directory.register_env(self.target_prefix)
+        for leased_path in self.leased_paths:
+            envs_directory.add_leased_path(self.target_prefix, leased_path, root_prefix)
+
+        envs_directory.write_to_disk()
+        self._execute_successful = True
+
+    def reverse(self):
+        if self._execute_successful:
+            log.trace("reversing envs directory catalog set for %s", self.target_prefix)
+            from .envs_manager import EnvsDirectory
+            envs_directory = EnvsDirectory(self.envs_directory_path)
+            envs_directory._envs_dir_data = self.envs_dir_state
+
+
+
+class UnsetEnvsDirectoryCatalogAction():
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       leased_paths):
+        return cls(transaction_context, package_info, target_prefix, leased_paths),
+
+    def __init__(self, transaction_context, package_info, target_prefix, leased_paths):
+        super(UnsetEnvsDirectoryCatalogAction, self).__init__(transaction_context, package_info,
+                                                            None, None,
+                                                            target_prefix, None)
+        self.leased_paths = leased_paths or ()
+        from .envs_manager import EnvsDirectory
+        self.envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
+        self._execute_successful = False
+
+    def execute(self):
+        log.trace("unsetting envs directory catalog for %s", self.target_prefix)
+
+        # touches env prefix entry in catalog.json
+        # updates leased_paths
+        from .envs_manager import EnvsDirectory
+        envs_directory = EnvsDirectory(self.envs_directory_path)
+
+        self.envs_dir_state = deepcopy(envs_directory._envs_dir_data)  # TODO: find a better way
+        root_prefix = dirname(dirname(self.target_prefix))
+
+        # TODO: figure out how to clean up env registration for deleted envs
+
+        for leased_path in self.leased_paths:
+            envs_directory.remove_leased_path(self.target_prefix, leased_path, root_prefix)
+
+        envs_directory.write_to_disk()
+        self._execute_successful = True
+
+    def reverse(self):
+        if self._execute_successful:
+            log.trace("reversing envs directory catalog unset for %s", self.target_prefix)
+            from .envs_manager import EnvsDirectory
+            envs_directory = EnvsDirectory(self.envs_directory_path)
+            envs_directory._envs_dir_data = self.envs_dir_state
 
 
 # ######################################################
@@ -658,25 +750,6 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
         load_linked_data(self.target_prefix,
                          Dist(self.linked_package_data).dist_name,
                          meta_record)
-
-
-# class RemovePrivateEnvMetaAction(UnlinkPathAction):
-#     def __init__(self, transaction_context, linked_package_data, target_prefix):
-#         target_short_path = "conda-meta/private_envs"
-#         super(RemovePrivateEnvMetaAction, self).__init__(transaction_context, linked_package_data,
-#                                                          target_prefix, target_short_path)
-#
-#     def execute(self):
-#         log.trace("removing private env '%s' from %s", self.linked_package_data.name,
-#                   self.target_full_path)
-#         remove_private_envs_meta(self.linked_package_data.name)
-#
-#     def reverse(self):
-#         log.trace("adding back private env '%s' to %s", self.linked_package_data.name,
-#                   self.target_full_path)
-#         name = "%s-%s" % (self.package_info.repodata_record.name,
-#                           self.package_info.repodata_record.version)
-#         create_private_envs_meta(name, context.root_prefix, self.target_prefix)
 
 
 # ######################################################

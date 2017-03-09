@@ -10,19 +10,17 @@ import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
                         PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
-from .. import CondaError
 from .._vendor.appdirs import user_data_dir
-from .._vendor.auxlib.collection import first, frozendict
+from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from .._vendor.boltons.setutils import IndexedSet
-from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types, text_type
+from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 try:
     from cytoolz.itertoolz import concat, concatv, unique
@@ -681,35 +679,8 @@ def get_help_dict():
 
 
 def get_prefix(ctx, args, search=True):
-    """Get the prefix to operate in
-
-    Args:
-        ctx: the context of conda
-        args: the argparse args from the command line
-        search: whether search for prefix
-
-    Returns: the prefix
-    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
-    """
-    if getattr(args, 'name', None):
-        if '/' in args.name:
-            raise CondaValueError("'/' not allowed in environment name: %s" %
-                                  args.name, getattr(args, 'json', False))
-        if args.name == ROOT_ENV_NAME:
-            return ctx.root_dir
-        if search:
-            return locate_prefix_by_name(ctx, args.name)
-        else:
-            # need first writable envs_dir
-            envs_dir = first(ctx.envs_dirs, envs_dir_has_writable_pkg_cache)
-            if not envs_dir:
-                raise CondaError("No writable package envs directories found in\n"
-                                 "%s" % text_type(context.envs_dirs))
-            return join(envs_dir, args.name)
-    elif getattr(args, 'prefix', None):
-        return abspath(expanduser(args.prefix))
-    else:
-        return ctx.default_prefix
+    from ..core.envs_manager import get_prefix
+    return get_prefix(ctx, args, search)
 
 
 def envs_dir_has_writable_pkg_cache(envs_dir):
@@ -718,28 +689,8 @@ def envs_dir_has_writable_pkg_cache(envs_dir):
 
 
 def locate_prefix_by_name(ctx, name):
-    """ Find the location of a prefix given a conda env name.
-
-    Args:
-        ctx (Context): the context object
-        name (str): the name of prefix to find
-
-    Returns:
-        str: the location of the prefix found, or CondaValueError will raise if not found
-
-    Raises:
-        CondaValueError: when no prefix is found
-    """
-    if name == ROOT_ENV_NAME:
-        return ctx.root_dir
-
-    # look for a directory named `name` in all envs_dirs AND in CWD
-    for envs_dir in concatv(ctx.envs_dirs, (os.getcwd(),)):
-        prefix = join(envs_dir, name)
-        if isdir(prefix):
-            return prefix
-
-    raise CondaEnvironmentNotFoundError(name)
+    from ..core.envs_manager import EnvsDirectory
+    return EnvsDirectory.locate_prefix_by_name(name, ctx.envs_dirs)
 
 
 try:

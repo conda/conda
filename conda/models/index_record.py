@@ -112,3 +112,6 @@ class IndexRecord(DictSafeMixin, Entity):
     link = ComposableField(Link, required=False)
 
     preferred_env = StringField(default=None, required=False, nullable=True)
+
+    # this is only for LinkedPackageRecord
+    leased_paths = ListField(string_types, required=False, nullable=True)

@@ -215,9 +215,11 @@ def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     return prefix_name == padded_preferred_env
 
 
-def is_private_env(env):
-    if env is not None:
-        env_name = basename(env)
+def is_private_env(env_path):
+    if env_path is not None:
+        envs_directory, env_name = split(env_path)
+        if basename(envs_directory) != "envs":
+            return False
         if env_name.startswith("_") and env_name.endswith("_"):
             return True
     return False

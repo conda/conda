@@ -84,8 +84,7 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
         unlink_app_entry_point = UnlinkPathAction(transaction_context, linked_package_data,
                                                   context.root_prefix, app_entry_point_short_path),
         unlink_path_actions = unlink_path_actions + unlink_app_entry_point
-        private_envs_meta_action = RemovePrivateEnvMetaAction(
-            transaction_context, linked_package_data, target_prefix),
+        private_envs_meta_action = ()
     else:
         private_envs_meta_action = ()
 
@@ -195,6 +194,9 @@ class UnlinkLinkTransaction(object):
         # for each path we are creating in link_actions, we need to make sure
         #   1. each path either doesn't already exist in the prefix, or will be unlinked
         #   2. there's only a single instance of each path
+        #   3. if the target is a private env, leased paths need to be verified
+        #   4. make sure conda-meta/history file is writable
+        #   5. make sure envs/catalog.json is writable
 
         # paths are case-insensitive on windows apparently
         lower_on_win = lambda p: p.lower() if on_win else p
@@ -413,16 +415,20 @@ class UnlinkLinkTransaction(object):
         application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
             *required_quad
         )
-        private_envs_meta_actions = CreatePrivateEnvMetaAction.create_actions(*required_quad)
 
         all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
             file_link_actions,
             python_entry_point_actions,
             compile_pyc_actions,
+        ))
+
+        leased_paths = tuple(axn.target_short_path for axn in concatv(
             application_entry_point_actions,
         ))
+
         meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
-            *required_quad, all_target_short_paths=all_target_short_paths
+            *required_quad, all_target_short_paths=all_target_short_paths,
+            leased_paths=leased_paths,
         )
         # the ordering here is significant
         return tuple(concatv(
@@ -434,7 +440,6 @@ class UnlinkLinkTransaction(object):
             compile_pyc_actions,
             create_menu_actions,
             application_entry_point_actions,
-            private_envs_meta_actions,
         ))
 
 

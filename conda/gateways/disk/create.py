@@ -13,16 +13,15 @@ import sys
 import tarfile
 import traceback
 
-from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE, ENVS_DIR_MAGIC_FILE
 from .delete import rm_rf
 from .link import islink, link, readlink, symlink
 from .permissions import make_executable
-from .read import get_json_content
 from .update import touch
 from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
+from ...base.constants import ENVS_DIR_MAGIC_FILE, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import ensure_binary, on_win
 from ...common.path import win_path_ok
@@ -267,18 +266,6 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
         return None
 
     return pyc_full_path
-
-
-# def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
-#     # type: (str, str, str) -> ()
-#     path_to_conda_meta = join(root_prefix, "conda-meta")
-#
-#     if not isdir(path_to_conda_meta):
-#         mkdir_p(path_to_conda_meta)
-#
-#     private_envs_json = get_json_content(context.private_envs_json_path)
-#     private_envs_json[pkg] = private_env_prefix
-#     write_as_json_to_file(context.private_envs_json_path, private_envs_json)
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
