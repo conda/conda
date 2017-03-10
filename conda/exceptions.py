@@ -74,7 +74,6 @@ class TooFewArgumentsError(ArgumentError):
 
 
 class ClobberError(CondaError):
-
     def __init__(self, message, path_conflict, **kwargs):
         self.path_conflict = path_conflict
         super(ClobberError, self).__init__(message, **kwargs)
@@ -100,7 +99,6 @@ class BasicClobberError(ClobberError):
 
 
 class KnownPackageClobberError(ClobberError):
-
     def __init__(self, target_path, colliding_dist_being_linked, colliding_linked_dist, context):
         message = dals("""
         The package '%(colliding_dist_being_linked)s' cannot be installed due to a
@@ -121,7 +119,6 @@ class KnownPackageClobberError(ClobberError):
 
 
 class UnknownPackageClobberError(ClobberError):
-
     def __init__(self, target_path, colliding_dist_being_linked, context):
         message = dals("""
         The package '%(colliding_dist_being_linked)s' cannot be installed due to a
@@ -141,7 +138,6 @@ class UnknownPackageClobberError(ClobberError):
 
 
 class SharedLinkPathClobberError(ClobberError):
-
     def __init__(self, target_path, incompatible_package_dists, context):
         message = dals("""
         This transaction has incompatible packages due to a shared path.
@@ -184,6 +180,7 @@ class CondaEnvironmentNotFoundError(CondaError, EnvironmentError):
     args:
         environment_name_or_prefix (str): either the name or location of an environment
     """
+
     def __init__(self, environment_name_or_prefix, *args, **kwargs):
         msg = ("Could not find environment: %s .\n"
                "You can list all discoverable environments with `conda info --envs`."
@@ -358,6 +355,7 @@ class NoPackagesFoundError(CondaError):
         Raises an exception with a formatted message detailing the
         missing packages and/or dependencies.
     """
+
     def __init__(self, bad_deps):
         from .resolve import dashlist
         from .base.context import context
@@ -388,6 +386,7 @@ class UnsatisfiableError(CondaError):
         Raises an exception with a formatted message detailing the
         unsatisfiable specifications.
     """
+
     def __init__(self, bad_deps, chains=True):
         from .resolve import dashlist, MatchSpec
 
@@ -499,10 +498,11 @@ class BinaryPrefixReplacementError(CondaError):
         placeholder: %(placeholder)s
 
         """)
-        super(BinaryPrefixReplacementError, self).__init__(message, new_data_length=new_data_length,
-                                                     original_data_length=original_data_length,
-                                                     new_prefix=new_prefix, path=path,
-                                                     placeholder=placeholder)
+        super(BinaryPrefixReplacementError, self).__init__(message,
+                                                           new_data_length=new_data_length,
+                                                           original_data_length=original_data_length,
+                                                           new_prefix=new_prefix, path=path,
+                                                           placeholder=placeholder)
 
 
 class InvalidSpecError(CondaError):
