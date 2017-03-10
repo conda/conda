@@ -45,8 +45,7 @@ class EnvsDirectoryType(type):
 @with_metaclass(EnvsDirectoryType)
 class EnvsDirectory(object):
     """
-    This class manages the `envs/catalog.json` file.  The file currently contains two root-level
-    keys: `registered_envs` and `leased_paths`.
+    This class manages the `envs/catalog.json` file.
 
     The 'registered_envs' key is a list of known environment locations.  These locations need
     not be within the `envs` directory.  Each entry in the 'registered_envs/ list is a map
@@ -64,6 +63,15 @@ class EnvsDirectory(object):
         target_path: the full path to the executable in the private env
         target_prefix: the full path to the private environment
         leased_path: the full path for the lease in the root prefix
+
+    The 'preferred_env_packages' key is a list of packages associated with a private env, and
+    therefore potentially having application entry points in the root env.  Each
+    'preferred_env_packages' entry has the following keys:
+
+        package_name: package name
+        conda_meta_path: path to the package's conda-meta/*.json file within the target_prefix
+
+    A preferred env package cannot also be installed in the root env.
 
     """
     _cache_ = {}
@@ -94,6 +102,8 @@ class EnvsDirectory(object):
             _data['registered_envs'] = self._registered_envs
         if self._leased_paths:
             _data['leased_paths'] = self._leased_paths
+        if self._preferred_env_packages:
+            _data['preferred_env_packages'] = self._preferred_env_packages
 
         if _data:
             if not self.is_writable:
@@ -111,6 +121,11 @@ class EnvsDirectory(object):
     def _leased_paths(self):
         # mutable structure for use within this class
         return self._envs_dir_data.setdefault('leased_paths', [])
+
+    @property
+    def _preferred_env_packages(self):
+        # mutable structure for use within this class
+        return self._envs_dir_data.setdefault('preferred_env_packages', [])
 
     @property
     def is_writable(self):
@@ -133,7 +148,7 @@ class EnvsDirectory(object):
     @classmethod
     def all_writable(cls, envs_dirs=None):
         _all = cls.all(envs_dirs)
-        writable_caches = tuple(ed.is_writable for ed in _all)
+        writable_caches = tuple(ed for ed in _all if ed.is_writable)
         if not writable_caches:
             _all_envs_dirs = tuple(ed.envs_dir for ed in _all)
             raise CondaError("No writable envs directories found in\n"
@@ -166,10 +181,21 @@ class EnvsDirectory(object):
         prefix_path = right_pad_os_sep(normpath(prefix_path))
 
         for ed in context.envs_dirs:
-            if prefix_path.startswith(right_pad_os_sep(ed.root_dir)):
-                return ed
+            edo = cls(ed)
+            if prefix_path.startswith(right_pad_os_sep(edo.root_dir)):
+                return edo
 
         return cls.first_writable()
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.write_to_disk()
+
+    # ############################
+    # registered envs
+    # ############################
 
     def get_registered_env_by_name(self, env_name, default=None):
         if env_name is None:
@@ -206,10 +232,14 @@ class EnvsDirectory(object):
             return
 
         # finally, add a new entry
-        self._envs_dir_data['registered_envs'].append({
+        self._registered_envs.append({
             'name': env_name,
             'location': location,
         })
+
+    # ############################
+    # leased paths
+    # ############################
 
     def get_leased_path_entry(self, target_short_path, default=None):
         current_lp = next((lp for lp in self._leased_paths if lp['_path'] == target_short_path), default)
@@ -240,18 +270,34 @@ class EnvsDirectory(object):
             "leased_path": join(root_prefix, win_path_ok(target_short_path))
         }
 
-        self._envs_dir_data['leased_paths'].append(leased_path_entry)
+        self._leased_paths.append(leased_path_entry)
 
     def remove_leased_path(self, target_short_path):
-        lp_idxs = tuple(q for q, lp in enumerate(self._leased_paths) if lp['_path'] == target_short_path)
-        for idx in lp_idxs:
-            self._leased_paths.pop(idx)
+        lp_idx = next((q for q, lp in enumerate(self._leased_paths) if lp['_path'] == target_short_path), None)
+        if lp_idx is not None:
+            self._leased_paths.pop(lp_idx)
 
-    def __enter__(self):
-        pass
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.write_to_disk()
+    # ############################
+    # preferred env packages
+    # ############################
+
+    def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path):
+        # assert package of same name not already installed in root env
+        # assert there's not already a similar entry
+        preferred_env_packages_entry = {
+            'package_name': package_name,
+            'conda_meta_path': conda_meta_path,
+            'preferred_env_name': preferred_env_name,
+        }
+        self._preferred_env_packages.append(preferred_env_packages_entry)
+
+    def remove_preferred_env_package(self, package_name):
+        lp_idx = next((q for q, lp in enumerate(self._preferred_env_package) if lp['package_name'] == package_name), None)
+        if lp_idx is not None:
+            self._preferred_env_package.pop(lp_idx)
+
+
 
 
 def get_prefix(ctx, args, search=True):

@@ -207,9 +207,12 @@ def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     # type: (str, str, str) -> bool
     if preferred_env is None:
         return False
+
+    # check if prefix is within root_prefix/envs
     prefix_dir = dirname(prefix)
     if prefix_dir != join(root_dir, 'envs'):
         return False
+
     prefix_name = basename(prefix)
     padded_preferred_env = ensure_pad(preferred_env)
     return prefix_name == padded_preferred_env

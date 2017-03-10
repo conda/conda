@@ -438,8 +438,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
         preferred_env = package_info.repodata_record.preferred_env
-        if (preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix)
-                and target_prefix != context.root_prefix):
+        if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
             exe_paths = (package_info.package_metadata
                          and package_info.package_metadata.preferred_env
                          and package_info.package_metadata.preferred_env.executable_paths
@@ -545,8 +544,6 @@ class SetEnvsDirectoryCatalogAction(CreateInPrefixPathAction):
         from .envs_manager import EnvsDirectory
         self.envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
         self._execute_successful = False
-
-
         # if target_prefix == context.root_prefix:
         #     env_name = ROOT_ENV_NAME
         #     self.envs_directory_path = join(target_prefix, 'envs')
@@ -602,6 +599,15 @@ class SetEnvsDirectoryCatalogAction(CreateInPrefixPathAction):
         for leased_path in self.leased_paths:
             envs_directory.add_leased_path(self.target_prefix, leased_path, root_prefix)
 
+        preferred_env = self.package_info.repodata_record.preferred_env
+        if preferred_env_matches_prefix(preferred_env, self.target_prefix, envs_directory.root_dir):
+            # add preferred_env_packages record
+            conda_meta_path = join(self.target_prefix, 'conda-meta',
+                                   Dist(self.package_info).to_filename('.json'))
+            envs_directory.add_preferred_env_package(preferred_env,
+                                                     self.package_info.index_json_record.name,
+                                                     conda_meta_path)
+
         envs_directory.write_to_disk()
         self._execute_successful = True
 
@@ -612,49 +618,6 @@ class SetEnvsDirectoryCatalogAction(CreateInPrefixPathAction):
             envs_directory = EnvsDirectory(self.envs_directory_path)
             envs_directory._envs_dir_data = self.envs_dir_state
 
-
-
-class UnsetEnvsDirectoryCatalogAction():
-
-    @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       leased_paths):
-        return cls(transaction_context, package_info, target_prefix, leased_paths),
-
-    def __init__(self, transaction_context, package_info, target_prefix, leased_paths):
-        super(UnsetEnvsDirectoryCatalogAction, self).__init__(transaction_context, package_info,
-                                                            None, None,
-                                                            target_prefix, None)
-        self.leased_paths = leased_paths or ()
-        from .envs_manager import EnvsDirectory
-        self.envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
-        self._execute_successful = False
-
-    def execute(self):
-        log.trace("unsetting envs directory catalog for %s", self.target_prefix)
-
-        # touches env prefix entry in catalog.json
-        # updates leased_paths
-        from .envs_manager import EnvsDirectory
-        envs_directory = EnvsDirectory(self.envs_directory_path)
-
-        self.envs_dir_state = deepcopy(envs_directory._envs_dir_data)  # TODO: find a better way
-        root_prefix = dirname(dirname(self.target_prefix))
-
-        # TODO: figure out how to clean up env registration for deleted envs
-
-        for leased_path in self.leased_paths:
-            envs_directory.remove_leased_path(self.target_prefix, leased_path, root_prefix)
-
-        envs_directory.write_to_disk()
-        self._execute_successful = True
-
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing envs directory catalog unset for %s", self.target_prefix)
-            from .envs_manager import EnvsDirectory
-            envs_directory = EnvsDirectory(self.envs_directory_path)
-            envs_directory._envs_dir_data = self.envs_dir_state
 
 
 # ######################################################
@@ -750,6 +713,55 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
         load_linked_data(self.target_prefix,
                          Dist(self.linked_package_data).dist_name,
                          meta_record)
+
+
+class UnsetEnvsDirectoryCatalogAction(RemoveFromPrefixPathAction):
+
+    # @classmethod
+    # def create_actions(cls, transaction_context, package_info, target_prefix,
+    #                    requested_link_type,
+    #                    leased_paths):
+    #     return cls(transaction_context, package_info, target_prefix, leased_paths),
+
+    def __init__(self, transaction_context, linked_package_data, target_prefix, leased_paths):
+        super(UnsetEnvsDirectoryCatalogAction, self).__init__(transaction_context, linked_package_data, target_prefix, None)
+
+
+        self.leased_paths = leased_paths or ()
+
+        from .envs_manager import EnvsDirectory
+        self.envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(
+            self.target_prefix)
+        self._execute_successful = False
+
+    def execute(self):
+        log.trace("unsetting envs directory catalog for %s", self.target_prefix)
+        from .envs_manager import EnvsDirectory
+        envs_directory = EnvsDirectory(self.envs_directory_path)
+
+        self.envs_dir_state = deepcopy(envs_directory._envs_dir_data)  # TODO: find a better way
+
+        # TODO: figure out how to clean up env registration for deleted envs
+
+        for leased_path in self.leased_paths:
+            envs_directory.remove_leased_path(leased_path)
+
+        preferred_env = self.linked_package_data.preferred_env
+        if preferred_env_matches_prefix(preferred_env, self.target_prefix, envs_directory.root_dir):
+            envs_directory.remove_preferred_env_package(self.linked_package_data.name)
+
+        envs_directory.write_to_disk()
+        self._execute_successful = True
+
+    def reverse(self):
+        if self._execute_successful:
+            log.trace("reversing envs directory catalog unset for %s", self.target_prefix)
+            from .envs_manager import EnvsDirectory
+            envs_directory = EnvsDirectory(self.envs_directory_path)
+            envs_directory._envs_dir_data = self.envs_dir_state
+
+    def cleanup(self):
+        pass
 
 
 # ######################################################

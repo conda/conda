@@ -16,7 +16,8 @@ from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateLinkedPackageRecordAction, CreateNonadminAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction)
+                           RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction,
+                           SetEnvsDirectoryCatalogAction, UnsetEnvsDirectoryCatalogAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -24,7 +25,7 @@ from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
                            get_major_minor_version,
-                           get_python_site_packages_short_path)
+                           get_python_site_packages_short_path, preferred_env_matches_prefix)
 from ..common.signals import signal_handler
 from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
                           UnknownPackageClobberError, maybe_raise)
@@ -78,21 +79,25 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
 
-    if linked_package_data.preferred_env is not None:
-        app_entry_point_short_path = os.path.join(get_bin_directory_short_path(),
-                                                  linked_package_data.name)
-        unlink_app_entry_point = UnlinkPathAction(transaction_context, linked_package_data,
-                                                  context.root_prefix, app_entry_point_short_path),
-        unlink_path_actions = unlink_path_actions + unlink_app_entry_point
-        private_envs_meta_action = ()
-    else:
-        private_envs_meta_action = ()
+    preferred_env = linked_package_data.preferred_env
+    executable_paths = linked_package_data.leased_paths or ()
+    if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+        # need to remove application entry points
+        unlink_path_actions += tuple(UnlinkPathAction(transaction_context,
+                                                      linked_package_data,
+                                                      context.root_prefix, ep)
+                                     for ep in executable_paths)
+
+    unset_envs_dir_catalog_actions = UnsetEnvsDirectoryCatalogAction(
+        transaction_context, linked_package_data, target_prefix,
+        executable_paths
+    ),
 
     return tuple(concatv(
         remove_menu_actions,
         unlink_path_actions,
         directory_remove_actions,
-        private_envs_meta_action,
+        unset_envs_dir_catalog_actions,
         remove_conda_meta_actions,
     ))
 
@@ -430,6 +435,11 @@ class UnlinkLinkTransaction(object):
             *required_quad, all_target_short_paths=all_target_short_paths,
             leased_paths=leased_paths,
         )
+
+        set_envs_dir_catalog_actions = SetEnvsDirectoryCatalogAction.create_actions(
+            *required_quad, leased_paths=leased_paths
+        )
+
         # the ordering here is significant
         return tuple(concatv(
             meta_create_actions,
@@ -440,6 +450,7 @@ class UnlinkLinkTransaction(object):
             compile_pyc_actions,
             create_menu_actions,
             application_entry_point_actions,
+            set_envs_dir_catalog_actions,
         ))
 
 
