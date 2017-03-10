@@ -178,8 +178,7 @@ def execute(args, parser):
                     'actions': action_groups
                 })
             return
-        raise PackageNotFoundError('', 'no packages found to remove from '
-                                       'environment: %s' % prefix)
+        raise PackageNotFoundError(prefix)
     for action in action_groups:
         if not context.json:
             print()

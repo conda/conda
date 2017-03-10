@@ -123,7 +123,7 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
-        raise PackageNotFoundError('', text_type(e))
+        raise PackageNotFoundError(text_type(e))
 
 def execute_search(args, parser):
     import re

@@ -150,8 +150,7 @@ def install(args, parser, command='install'):
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names and common.prefix_if_in_private_env(name) is None:
-                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
-                                           (name, prefix))
+                raise PackageNotFoundError(name)
 
     if newenv and not args.no_default_packages:
         default_packages = list(context.create_default_packages)

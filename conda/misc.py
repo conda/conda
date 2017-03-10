@@ -257,9 +257,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 notfound.append(fn)
     if notfound:
         what = "Package%s " % ('' if len(notfound) == 1 else 's')
-        notfound = '\n'.join(' - ' + fn for fn in notfound)
-        msg = '%s missing in current %s channels:%s' % (what, context.subdir, notfound)
-        raise PackageNotFoundError(msg)
+        raise PackageNotFoundError(what)
 
     # Assemble the URL and channel list
     urls = {}
