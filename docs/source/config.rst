@@ -141,8 +141,8 @@ environment. The default is ``True``.
   changeps1: False
 
 
-Add PIP as Python Dependency (add_pip_as_python_depedency)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Add PIP as Python Dependency (add_pip_as_python_dependency)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Add pip, wheel and setuptools as dependencies of python. This ensures pip, wheel
 and setuptools will always be installed any time python is installed.
