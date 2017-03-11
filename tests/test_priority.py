@@ -22,8 +22,8 @@ class PriorityIntegrationTests(TestCase):
             # update --all
             update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
 
-            # pycosat should be in the SUPERCEDED list
-            superceded_split = update_stdout.split('SUPERCEDED')
+            # pycosat should be in the SUPERSEDED list
+            superceded_split = update_stdout.split('SUPERSEDED')
             assert len(superceded_split) == 2
             assert 'pycosat' in superceded_split[1]
 
@@ -48,7 +48,7 @@ class PriorityIntegrationTests(TestCase):
             # update python
             update_stdout, _ = run_command(Commands.UPDATE, prefix, 'python')
 
-            # pycosat should be in the SUPERCEDED list
+            # pycosat should be in the SUPERSEDED list
             superceded_split = update_stdout.split('UPDATED')
             assert len(superceded_split) == 2
             assert 'conda-forge' in superceded_split[1]
