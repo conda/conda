@@ -6,7 +6,7 @@ from errno import EACCES, EEXIST, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
 from os import W_OK, access, chmod, getpid, listdir, lstat, makedirs, rename, unlink, walk
-from os.path import abspath, basename, dirname, isdir, islink, join, lexists
+from os.path import abspath, basename, dirname, isdir, join, lexists
 from shutil import rmtree
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE
 from time import sleep
