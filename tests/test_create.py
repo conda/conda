@@ -548,24 +548,24 @@ class IntegrationTests(TestCase):
                 assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
-        with make_temp_env("python=3.5 openssl=1.0.2g pytz=2015.7") as prefix:
-            assert package_is_installed(prefix, "openssl-1.0.2g")
-            assert package_is_installed(prefix, "python-3.5")
+        with make_temp_env("python=2.7 itsdangerous=0.23 pytz=2015.7") as prefix:
+            assert package_is_installed(prefix, "itsdangerous-0.23")
+            assert package_is_installed(prefix, "python-2.7")
             assert package_is_installed(prefix, "pytz-2015.7")
 
             with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
-                fh.write("openssl 1.0.2g\n")
+                fh.write("itsdangerous 0.23\n")
 
             run_command(Commands.UPDATE, prefix, "--all")
-            assert package_is_installed(prefix, "openssl-1.0.2g")
+            assert package_is_installed(prefix, "itsdangerous-0.23")
             # assert not package_is_installed(prefix, "python-3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
-            assert package_is_installed(prefix, "python-3.5")
+            assert package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "pytz-2015.7")
             assert package_is_installed(prefix, "pytz-")
 
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
-            assert package_is_installed(prefix, "python-3.5")
-            assert not package_is_installed(prefix, "openssl-1.0.2g")
+            assert package_is_installed(prefix, "python-2.7")
+            assert not package_is_installed(prefix, "itsdangerous-0.23")
             assert package_is_installed(prefix, "openssl")
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
