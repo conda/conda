@@ -10,7 +10,7 @@ from os.path import abspath, basename
 from .. import console
 from ..base.constants import ROOT_ENV_NAME, NULL
 from ..base.context import context
-from ..exceptions import (DryRunExit, CondaSystemExit, CondaRuntimeError,
+from ..exceptions import (DryRunExit, CondaSystemExit,
                           CondaValueError, CondaFileIOError)
 from ..install import dist2quad
 from ..resolve import MatchSpec
