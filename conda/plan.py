@@ -230,7 +230,7 @@ def display_actions(actions, index, show_channel_urls=None):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if channeled:
-        print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
+        print("\nThe following packages will be SUPERSEDED by a higher-priority channel:\n")
         for pkg in sorted(channeled):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
