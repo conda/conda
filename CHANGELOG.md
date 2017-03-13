@@ -3,6 +3,10 @@
 ## Improvements
 * silence pre-link warning for old noarch 4.2.x backport (#4453)
 
+### Bug Fixes
+* remove incorrect elision of delete_prefix_from_linked_data() (#4813)
+* fix CB #1825 context clobbering (#4867)
+
 ### Non-User-Facing Changes
 * build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
 
