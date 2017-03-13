@@ -381,14 +381,11 @@ def add_parser_show_channel_urls(p):
         help="Don't show channel urls.",
     )
 
+
 def ensure_use_local(args):
     if not args.use_local:
         return
-    try:
-        from conda_build.config import croot  # noqa
-    except ImportError as e:
-        raise CondaRuntimeError("%s: you need to have 'conda-build >= 1.7.1' installed"
-                                " to use the --use-local option." % e)
+
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
