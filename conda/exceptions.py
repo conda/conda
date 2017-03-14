@@ -568,23 +568,28 @@ def maybe_raise(error, context):
         raise NotImplementedError()
 
 
-def conda_exception_handler(func, *args, **kwargs):
-    try:
-        return_value = func(*args, **kwargs)
-        if isinstance(return_value, int):
-            return return_value
-    except CondaExitZero:
+def handle_exception(e):
+    if isinstance(e, CondaExitZero):
         return 0
-    except CondaRuntimeError as e:
+    elif isinstance(e, CondaRuntimeError):
         print_unexpected_error_message(e)
         return 1
-    except CondaError as e:
+    elif isinstance(e, CondaError):
         from conda.base.context import context
         if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
         return 1
-    except Exception as e:
+    else:
         print_unexpected_error_message(e)
         return 1
+
+
+def conda_exception_handler(func, *args, **kwargs):
+    try:
+        return_value = func(*args, **kwargs)
+        if isinstance(return_value, int):
+            return return_value
+    except Exception as e:
+        return handle_exception(e)
