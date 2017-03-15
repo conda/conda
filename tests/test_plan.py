@@ -1,44 +1,36 @@
-import os
-
-from conda.gateways.disk.create import mkdir_p
-
-from conda.common.io import env_var
-
-from conda._vendor.boltons.setutils import IndexedSet
-
-from conda.cli import common
-from conda.cli.python_api import run_command, Commands
-from conda.core import linked_data
-from conda.core.package_cache import ProgressiveFetchExtract
-from conda.exceptions import NoPackagesFoundError, InstallError
-from conda.models.channel import prioritize_channels
-from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
-
-from contextlib import contextmanager
-import sys
-import json
-import random
-import unittest
-from os.path import dirname, join
 from collections import defaultdict, namedtuple
+from contextlib import contextmanager
+import json
+import os
+from os.path import dirname, join
+import random
+import sys
+import unittest
 
 import pytest
 
-from conda.base.context import context, reset_context
-import conda.plan as plan
-import conda.instructions as inst
-from conda.plan import display_actions
-from conda.resolve import Resolve, MatchSpec
-from conda.utils import on_win
-from conda.common.compat import iteritems
-
-# FIXME This should be a relative import
-from tests.helpers import captured, tempdir
 from conda import CondaError
-
+from conda._vendor.boltons.setutils import IndexedSet
+from conda.base.context import context, reset_context
+from conda.cli.python_api import Commands, run_command
+from conda.common.compat import iteritems
+from conda.common.io import env_var
+from conda.core.envs_manager import EnvsDirectory
+from conda.core.package_cache import ProgressiveFetchExtract
+from conda.exceptions import InstallError, NoPackagesFoundError
+from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.update import touch
+import conda.instructions as inst
+from conda.models.channel import prioritize_channels
+from conda.models.dist import Dist
+from conda.models.index_record import IndexRecord
+from conda.plan import display_actions
+import conda.plan as plan
+from conda.resolve import MatchSpec, Resolve
+from conda.utils import on_win
 from .decorators import skip_if_no_mock
-from .helpers import mock
+from .gateways.disk.test_permissions import tempdir
+from .helpers import captured, mock, tempdir
 
 try:
     from unittest.mock import patch
@@ -998,7 +990,7 @@ class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
     def test_try_install_duplicate_package_in_private_env(self):
         dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test2"),
                           plan.SpecForEnv(env=None, spec="test3")]
-        with patch.object(common, "prefix_if_in_private_env") as mock_prefix:
+        with patch.object(EnvsDirectory, "prefix_if_in_private_env") as mock_prefix:
             mock_prefix.return_value = "some/prefix"
             with pytest.raises(InstallError) as err:
                 plan.ensure_packge_not_duplicated_in_private_env_root(
@@ -1035,23 +1027,27 @@ class TestGroupDistsForPrefix(unittest.TestCase):
             prefix="some/envs/prefix", r=self.res, specs={"test-spec", "test-spec2"})]
         self.assertEquals(specs_for_prefix, expected_output)
 
-    @patch.object(plan, "not_requires_private_env", return_value=False)
-    def test_determine_dists_per_prefix(self, not_requires):
-        with patch.object(plan, "get_resolve_object") as gen_resolve_object_mock:
-            gen_resolve_object_mock.return_value = self.res
-            dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
-                              plan.SpecForEnv(env=None, spec="test-spec2"),
-                              plan.SpecForEnv(env="ranenv", spec="test")]
-            specs_for_prefix = plan.determine_dists_per_prefix(
-                self.res, "some/prefix", self.res.index, ["ranenv", None], dists_for_envs, self.context)
-            expected_output = [
-                plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
-                                    r=gen_resolve_object_mock(),
-                                    specs={"test"}),
-                plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
-                                    specs=IndexedSet(("test-spec", "test-spec2")))
-            ]
-        self.assertEquals(expected_output, specs_for_prefix)
+    def test_determine_dists_per_prefix(self):  # not_requires
+        with tempdir() as root_prefix:
+            mkdir_p(join(root_prefix, 'conda-meta'))
+            touch(join(root_prefix, 'conda-meta', 'history'))
+            with env_var("CONDA_ROOT_PREFIX", root_prefix, reset_context):
+                with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), reset_context):
+                    with patch.object(plan, "get_resolve_object") as gen_resolve_object_mock:
+                        gen_resolve_object_mock.return_value = self.res
+                        dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
+                                          plan.SpecForEnv(env=None, spec="test-spec2"),
+                                          plan.SpecForEnv(env="ranenv", spec="test")]
+                        specs_for_prefix = plan.determine_dists_per_prefix(
+                            self.res, root_prefix, self.res.index, ["ranenv", None], dists_for_envs, self.context)
+                        expected_output = [
+                            plan.SpecsForPrefix(prefix=join(root_prefix, 'envs', '_ranenv_'),
+                                                r=gen_resolve_object_mock(),
+                                                specs={"test"}),
+                            plan.SpecsForPrefix(prefix=root_prefix, r=self.res,
+                                                specs=IndexedSet(("test-spec", "test-spec2")))
+                        ]
+                    self.assertEquals(expected_output, specs_for_prefix)
 
     def test_match_to_original_specs(self):
         str_specs = ["test 1.2.0", "test-spec 1.1*", "test-spec2 <4.3"]
@@ -1192,25 +1188,36 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
             (None, "test4", "default", "1.2.1")]
         self.res = generate_mocked_resolve(pkgs)
 
-    @patch("conda.plan.remove_actions", return_value=generate_remove_action(
-        "root/prefix", [Dist("test1-2.1.4-1")]))
-    def test_update_in_private_env_add_remove_action(self, remove_actions):
-        required_solves = [plan.SpecsForPrefix(prefix="root/prefix/envs/_env_",
-                                               specs=["test1", "test2"], r=self.res),
-                           plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3"],
-                                               r=self.res)]
+    # @patch("conda.plan.remove_actions", return_value=generate_remove_action(
+    #     "root/prefix", [Dist("test1-2.1.4-1")]))
+    def test_update_in_private_env_add_remove_action(self):  # remove_actions
+        with tempdir() as root_prefix:
+            mkdir_p(join(root_prefix, 'conda-meta'))
+            touch(join(root_prefix, 'conda-meta', 'history'))
+            with env_var("CONDA_ROOT_PREFIX", root_prefix, reset_context):
+                with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), reset_context):
+                    with patch("conda.plan.remove_actions",
+                               return_value=generate_remove_action(root_prefix, [Dist("test1-2.1.4-1")])):
+                        preferred_env_prefix = join(root_prefix, 'envs', '_env_')
+                        required_solves = [plan.SpecsForPrefix(prefix=preferred_env_prefix,
+                                                               specs=["test1", "test2"], r=self.res),
+                                           plan.SpecsForPrefix(prefix=context.root_prefix,
+                                                               specs=["test3"],
+                                                               r=self.res)]
 
-        action = defaultdict(list)
-        action["PREFIX"] = "root/prefix/envs/_env_"
-        action["LINK"] = [Dist("test1-2.1.4-1"), Dist("test2-1.1.1-8")]
-        actions = [action]
+                        action = defaultdict(list)
+                        action["PREFIX"] = preferred_env_prefix
+                        action["LINK"] = [Dist("test1-2.1.4-1"), Dist("test2-1.1.1-8")]
+                        actions = [action]
 
-        test_link_data = {context.root_prefix: {Dist("test1-2.1.4-1"): True}}
-        with patch("conda.core.linked_data.linked_data_", test_link_data):
-            plan.add_unlink_options_for_update(actions, required_solves, self.res.index)
+                        test_link_data = {root_prefix: {Dist("test1-2.1.4-1"): True}}
+                        with patch("conda.core.linked_data.linked_data_", test_link_data):
+                            plan.add_unlink_options_for_update(actions, required_solves,
+                                                               self.res.index)
 
-        expected_output = [action, generate_remove_action("root/prefix", [Dist("test1-2.1.4-1")])]
-        self.assertEquals(actions, expected_output)
+                        expected_output = [action, generate_remove_action(root_prefix,
+                                                                          [Dist("test1-2.1.4-1")])]
+                        self.assertEquals(actions, expected_output)
 
     @patch("conda.plan.remove_actions", return_value=generate_remove_action(
         "root/prefix", [Dist("test1-2.1.4-1")]))
@@ -1239,20 +1246,28 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
         expected_output = [action, aug_action_root]
         self.assertEquals(actions, expected_output)
 
-    @patch("conda.cli.common.get_private_envs_json", return_value=
-        {"test3-1.2.0": "some/prefix/envs/_env_", "test4-2.1.0-22": "some/prefix/envs/_env_"})
-    def test_update_in_root_env(self, prefix_if_in_private_env):
-        required_solves = [plan.SpecsForPrefix(prefix=context.root_dir, specs=["test3", "test4"],
-                                               r=self.res)]
+    def test_update_in_root_env(self):
+        with tempdir() as root_prefix:
+            mkdir_p(join(root_prefix, 'conda-meta'))
+            touch(join(root_prefix, 'conda-meta', 'history'))
+            with env_var("CONDA_ROOT_PREFIX", root_prefix, reset_context):
+                with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), reset_context):
+                    env_path = join(root_prefix, 'envs', '_env_')
+                    ed = EnvsDirectory(join(root_prefix, 'envs'))
+                    ed.add_preferred_env_package('_env_', 'test3', join(env_path, "conda-meta", "test3-1.2.0.json"))
+                    ed.add_preferred_env_package('_env_', 'test4', join(env_path, "conda-meta", "test4-2.1.0-22.json"))
+                    required_solves = [plan.SpecsForPrefix(prefix=context.root_prefix,
+                                                           specs=["test3", "test4"],
+                                                           r=self.res)]
 
-        action = defaultdict(list)
-        action["PREFIX"] = "root/prefix"
-        action["LINK"] = [Dist("test3-1.2.0"), Dist("test4-1.2.1")]
-        actions = [action]
-        plan.add_unlink_options_for_update(actions, required_solves, self.res.index)
-        expected_output = [action, generate_remove_action(
-            "some/prefix/envs/_env_", [Dist("test3-1.2.0"), Dist("test4-2.1.0-22")])]
-        self.assertEquals(actions, expected_output)
+                    action = defaultdict(list)
+                    action["PREFIX"] = root_prefix
+                    action["LINK"] = [Dist("test3-1.2.0"), Dist("test4-1.2.1")]
+                    actions = [action]
+                    plan.add_unlink_options_for_update(actions, required_solves, self.res.index)
+                    expected_output = [action, generate_remove_action(env_path, [Dist("test3-1.2.0"), Dist("test4-2.1.0-22")])]
+                    self.assertEquals(actions, expected_output)
+
 
 
 def test_pinned_specs():

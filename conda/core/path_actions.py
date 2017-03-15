@@ -16,7 +16,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import iteritems, on_win
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
-                           get_python_noarch_target_path, get_python_short_path, is_private_env,
+                           get_python_noarch_target_path, get_python_short_path, is_private_env_path,
                            parse_entry_point_def, preferred_env_matches_prefix, pyc_path,
                            url_to_path, win_path_ok)
 from ..common.url import path_to_url
@@ -446,7 +446,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
 
             # target_prefix for the instantiated path action is the root prefix, not the same
             #   as target_prefix for the larger transaction
-            assert is_private_env(target_prefix)
+            assert is_private_env_path(target_prefix)
             root_prefix = dirname(dirname(target_prefix))
             return tuple(
                 cls(transaction_context, package_info, target_prefix, executable_short_path,
@@ -581,7 +581,7 @@ class SetEnvsDirectoryCatalogAction(CreateInPrefixPathAction):
         if not envs_directory.is_writable:
             raise
         if self.leased_paths:
-            assert is_private_env(self.target_prefix)
+            assert is_private_env_path(self.target_prefix)
         self._verified = True
 
     def execute(self):

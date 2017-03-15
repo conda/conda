@@ -16,13 +16,13 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes, confirm_yn,
-                     create_prefix_spec_map_with_deps, ensure_override_channels_requires_channel,
+                     ensure_override_channels_requires_channel,
                      ensure_use_local, names_in_specs, specs_from_args, stdout_json)
 from .install import check_write
 from ..base.constants import ROOT_NO_RM
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys
-from ..common.path import is_private_env, prefix_to_env_name
+from ..common.path import is_private_env_path, prefix_to_env_name
 from ..console import json_progress_bars
 from ..core.index import get_index
 from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
@@ -106,6 +106,26 @@ def configure_parser(sub_parsers, name='remove'):
         help="Package names to %s from the environment." % name,
     ).completer = InstalledPackages
     p.set_defaults(func=execute)
+
+
+def create_prefix_spec_map_with_deps(r, specs, default_prefix):
+    from ..core.envs_manager import EnvsDirectory
+    prefix_spec_map = {}
+    for spec in specs:
+        spec_prefix = EnvsDirectory(join(context.root_prefix, 'envs')).prefix_if_in_private_env(spec)
+        spec_prefix = spec_prefix if spec_prefix is not None else default_prefix
+        if spec_prefix in prefix_spec_map.keys():
+            prefix_spec_map[spec_prefix].add(spec)
+        else:
+            prefix_spec_map[spec_prefix] = {spec}
+
+        if is_private_env_path(spec_prefix):
+            from ..core.linked_data import linked_data
+            linked = linked_data(spec_prefix)
+            for linked_spec in linked:
+                if not linked_spec.name.startswith(spec) and r.depends_on(spec, linked_spec):
+                    prefix_spec_map[spec_prefix].add(linked_spec.name)
+    return prefix_spec_map
 
 
 def execute(args, parser):
@@ -214,8 +234,7 @@ def execute(args, parser):
                         raise
 
         target_prefix = actions["PREFIX"]
-        if (is_private_env(prefix_to_env_name(target_prefix, context.root_prefix)) and
-                linked_data(target_prefix) == {}):
+        if is_private_env_path(target_prefix) and linked_data(target_prefix) == {}:
             rm_rf(target_prefix)
 
     if args.all:

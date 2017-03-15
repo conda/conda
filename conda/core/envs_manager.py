@@ -7,16 +7,18 @@ from os import getcwd
 from os.path import basename, dirname, isdir, isfile, join, normpath
 
 from .. import CondaError
+from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import with_metaclass
-from ..common.path import right_pad_os_sep, win_path_ok
+from ..common.path import ensure_pad, right_pad_os_sep, win_path_ok
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable
+from ..models.dist import Dist
 
 try:
     from cytoolz.itertoolz import concatv
@@ -187,6 +189,13 @@ class EnvsDirectory(object):
 
         return cls.first_writable()
 
+    @classmethod
+    def preferred_env_to_prefix(cls, preferred_env):
+        if preferred_env is None:
+            return context.root_prefix
+        else:
+            return join(cls.first_writable().envs_dir, ensure_pad(preferred_env, '_'))
+
     def __enter__(self):
         pass
 
@@ -297,7 +306,19 @@ class EnvsDirectory(object):
         if lp_idx is not None:
             self._preferred_env_package.pop(lp_idx)
 
+    def prefix_if_in_private_env(self, spec_str):
+        package_name = spec_str.split()[0]
+        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+        return dirname(dirname(pep['conda_meta_path'])) if pep else None
 
+    def get_preferred_env_package(self, spec_str):
+        package_name = spec_str.split()[0]
+        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+        if pep:
+            json_file_name = basename(pep['conda_meta_path'])
+            return Dist(json_file_name[:-5])
+        else:
+            return None
 
 
 def get_prefix(ctx, args, search=True):

@@ -18,6 +18,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import on_win, text_type
+from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError,
@@ -150,8 +151,11 @@ def install(args, parser, command='install'):
     if isupdate and not args.all:
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
-            if name not in linked_names and common.prefix_if_in_private_env(name) is None:
-                raise PackageNotInstalledError(prefix, name)
+            if name not in linked_names:
+                envs_dir = join(context.root_prefix, 'envs')
+                private_env_prefix = EnvsDirectory(envs_dir).prefix_if_in_private_env(name)
+                if private_env_prefix is None:
+                    raise PackageNotInstalledError(prefix, name)
 
     if newenv and not args.no_default_packages:
         default_packages = list(context.create_default_packages)
