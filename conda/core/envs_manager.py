@@ -302,9 +302,9 @@ class EnvsDirectory(object):
         self._preferred_env_packages.append(preferred_env_packages_entry)
 
     def remove_preferred_env_package(self, package_name):
-        lp_idx = next((q for q, lp in enumerate(self._preferred_env_package) if lp['package_name'] == package_name), None)
+        lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages) if lp['package_name'] == package_name), None)
         if lp_idx is not None:
-            self._preferred_env_package.pop(lp_idx)
+            self._preferred_env_packages.pop(lp_idx)
 
     def prefix_if_in_private_env(self, spec_str):
         package_name = spec_str.split()[0]

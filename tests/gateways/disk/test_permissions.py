@@ -27,6 +27,7 @@ def create_temp_location():
     dirname = str(uuid.uuid4())[:8]
     return join(tempdirdir, dirname)
 
+
 @contextmanager
 def tempdir():
     prefix = create_temp_location()

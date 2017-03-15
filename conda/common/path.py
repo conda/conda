@@ -186,7 +186,7 @@ def win_path_backout(path):
 
 
 def ensure_pad(name, pad="_"):
-    return "%s%s%s" % (pad, name.strip(pad), pad)
+    return name and "%s%s%s" % (pad, name.strip(pad), pad)
 
 
 def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):

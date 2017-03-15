@@ -950,7 +950,7 @@ class TestDetermineAllEnvs(unittest.TestCase):
     def test_determine_all_envs(self):
         specs_for_envs = plan.determine_all_envs(self.res, self.specs)
         expected_output = (plan.SpecForEnv(env=None, spec="test-spec"),
-                           plan.SpecForEnv(env="test1", spec="test-spec2"))
+                           plan.SpecForEnv(env="_test1_", spec="test-spec2"))
         self.assertEquals(specs_for_envs, expected_output)
 
     def test_determine_all_envs_with_channel_priority(self):
@@ -962,8 +962,8 @@ class TestDetermineAllEnvs(unittest.TestCase):
         prioritized_channel_map = prioritize_channels(tuple(["rando_chnl", "defaults"]))
         specs_for_envs_w_channel_priority = plan.determine_all_envs(
             self.res, self.specs, prioritized_channel_map)
-        expected_output = (plan.SpecForEnv(env="ranenv", spec="test-spec"),
-                           plan.SpecForEnv(env="test1", spec="test-spec2"))
+        expected_output = (plan.SpecForEnv(env="_ranenv_", spec="test-spec"),
+                           plan.SpecForEnv(env="_test1_", spec="test-spec2"))
         self.assertEquals(specs_for_envs_w_channel_priority, expected_output)
 
     def test_determine_all_envs_no_package(self):
@@ -983,7 +983,7 @@ class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
         dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test1"),
                           plan.SpecForEnv(env=None, spec="something")]
         with pytest.raises(InstallError) as err:
-            plan.ensure_packge_not_duplicated_in_private_env_root(
+            plan.ensure_package_not_duplicated_in_private_env_root(
                 dists_for_envs, self.linked_in_root)
             assert "Package test1 is already installed" in str(err)
             assert "Can't install in private environment _env_" in str(err)
@@ -994,7 +994,7 @@ class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
         with patch.object(EnvsDirectory, "prefix_if_in_private_env") as mock_prefix:
             mock_prefix.return_value = "some/prefix"
             with pytest.raises(InstallError) as err:
-                plan.ensure_packge_not_duplicated_in_private_env_root(
+                plan.ensure_package_not_duplicated_in_private_env_root(
                     dists_for_envs, self.linked_in_root)
                 assert "Package test3 is already installed" in str(err)
                 assert "private_env some/prefix" in str(err)
@@ -1002,7 +1002,7 @@ class TestEnsurePackageNotDuplicatedInPrivateEnvRoot(unittest.TestCase):
     def test_try_install_no_duplicate(self):
         dists_for_envs = [plan.SpecForEnv(env="_env_", spec="test2"),
                           plan.SpecForEnv(env=None, spec="test3")]
-        plan.ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, self.linked_in_root)
+        plan.ensure_package_not_duplicated_in_private_env_root(dists_for_envs, self.linked_in_root)
 
 
 # Includes testing for determine_dists_per_prefix and match_to_original_specs

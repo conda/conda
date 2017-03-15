@@ -377,7 +377,7 @@ class Context(Configuration):
 
     @property
     def prefix_specified(self):
-        return (self._argparse_args.get("prefix") is not None and
+        return (self._argparse_args.get("prefix") is not None or
                 self._argparse_args.get("name") is not None)
 
     @memoizedproperty
