@@ -42,6 +42,7 @@ _platform_map = {
     'linux': 'linux',
     'darwin': 'osx',
     'win32': 'win',
+    'zos': 'zos',
 }
 non_x86_linux_machines = {
     'armv6l',
@@ -235,6 +236,8 @@ class Context(Configuration):
         m = machine()
         if m in non_x86_linux_machines:
             return 'linux-%s' % m
+        elif self.platform == 'zos':
+            return 'zos-z'
         else:
             return '%s-%d' % (self.platform, self.bits)
 
