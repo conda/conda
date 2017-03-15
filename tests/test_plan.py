@@ -19,6 +19,7 @@ from conda.core.envs_manager import EnvsDirectory
 from conda.core.package_cache import ProgressiveFetchExtract
 from conda.exceptions import InstallError, NoPackagesFoundError
 from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 import conda.instructions as inst
 from conda.models.channel import prioritize_channels
@@ -29,7 +30,7 @@ import conda.plan as plan
 from conda.resolve import MatchSpec, Resolve
 from conda.utils import on_win
 from .decorators import skip_if_no_mock
-from .gateways.disk.test_permissions import tempdir
+from .gateways.disk.test_permissions import create_temp_location, tempdir
 from .helpers import captured, mock, tempdir
 
 try:
@@ -933,8 +934,8 @@ def generate_mocked_record(dist_name):
 
 
 def generate_mocked_context(prefix, root_prefix, envs_dirs):
-    mocked_context = namedtuple("Context", ["prefix", "root_prefix", "envs_dirs"])
-    return mocked_context(prefix=prefix, root_prefix=root_prefix, envs_dirs=envs_dirs)
+    mocked_context = namedtuple("Context", ["prefix", "root_prefix", "envs_dirs", "prefix_specified"])
+    return mocked_context(prefix=prefix, root_prefix=root_prefix, envs_dirs=envs_dirs, prefix_specified=False)
 
 
 class TestDetermineAllEnvs(unittest.TestCase):
@@ -1013,41 +1014,45 @@ class TestGroupDistsForPrefix(unittest.TestCase):
             ("test1", "test-spec2", "default", "1")]
         self.res = generate_mocked_resolve(pkgs)
         self.specs = [MatchSpec("test-spec"), MatchSpec("test-spec2")]
-        self.context = generate_mocked_context(
-            "some/prefix", "some/prefix", ["some/prefix/envs", "some/prefix/envs/_pre_"])
 
-    def test_not_requires_private_env(self):
-        with patch.object(plan, "not_requires_private_env") as not_requires:
-            not_requires.return_value = True
-            dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
-                              plan.SpecForEnv(env=None, spec="test-spec2")]
+        self.root_prefix = root_prefix = create_temp_location()
+        mkdir_p(join(root_prefix, 'conda-meta'))
+        touch(join(root_prefix, 'conda-meta', 'history'))
+
+        self.context = generate_mocked_context(root_prefix, root_prefix,
+                                               [join(root_prefix, 'envs'),
+                                                join(root_prefix, 'envs', '_pre_')])
+
+    def tearDown(self):
+        rm_rf(self.root_prefix)
+
+    def test_determine_dists_per_prefix_1(self):
+        with patch.object(plan, "get_resolve_object") as get_resolve_object:
+            get_resolve_object.return_value = self.res
+            preferred_envs_with_specs = {None: ["test-spec", "test-spec2"]}
             specs_for_prefix = plan.determine_dists_per_prefix(
-                self.res, "some/envs/prefix", self.res.index, "prefix", dists_for_envs, self.context)
+                self.root_prefix, self.res.index, preferred_envs_with_specs, self.context)
         expected_output = [plan.SpecsForPrefix(
-            prefix="some/envs/prefix", r=self.res, specs={"test-spec", "test-spec2"})]
+            prefix=self.root_prefix, r=self.res, specs={"test-spec", "test-spec2"})]
         self.assertEquals(specs_for_prefix, expected_output)
 
-    def test_determine_dists_per_prefix(self):  # not_requires
-        with tempdir() as root_prefix:
-            mkdir_p(join(root_prefix, 'conda-meta'))
-            touch(join(root_prefix, 'conda-meta', 'history'))
-            with env_var("CONDA_ROOT_PREFIX", root_prefix, reset_context):
-                with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), reset_context):
-                    with patch.object(plan, "get_resolve_object") as gen_resolve_object_mock:
-                        gen_resolve_object_mock.return_value = self.res
-                        dists_for_envs = [plan.SpecForEnv(env=None, spec="test-spec"),
-                                          plan.SpecForEnv(env=None, spec="test-spec2"),
-                                          plan.SpecForEnv(env="ranenv", spec="test")]
-                        specs_for_prefix = plan.determine_dists_per_prefix(
-                            self.res, root_prefix, self.res.index, ["ranenv", None], dists_for_envs, self.context)
-                        expected_output = [
-                            plan.SpecsForPrefix(prefix=join(root_prefix, 'envs', '_ranenv_'),
-                                                r=gen_resolve_object_mock(),
-                                                specs={"test"}),
-                            plan.SpecsForPrefix(prefix=root_prefix, r=self.res,
-                                                specs=IndexedSet(("test-spec", "test-spec2")))
-                        ]
-                    self.assertEquals(expected_output, specs_for_prefix)
+    def test_determine_dists_per_prefix_2(self):  # not_requires
+        root_prefix = self.root_prefix
+        with env_var("CONDA_ROOT_PREFIX", root_prefix, reset_context):
+            with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), reset_context):
+                with patch.object(plan, "get_resolve_object") as gen_resolve_object_mock:
+                    gen_resolve_object_mock.return_value = self.res
+                    preferred_envs_with_specs = {None: ['test-spec', 'test-spec2'], 'ranenv': ['test']}
+                    specs_for_prefix = plan.determine_dists_per_prefix(
+                        root_prefix, self.res.index, preferred_envs_with_specs, self.context)
+                    expected_output = [
+                        plan.SpecsForPrefix(prefix=join(root_prefix, 'envs', '_ranenv_'),
+                                            r=gen_resolve_object_mock(),
+                                            specs={"test"}),
+                        plan.SpecsForPrefix(prefix=root_prefix, r=self.res,
+                                            specs=IndexedSet(("test-spec", "test-spec2")))
+                    ]
+                self.assertEquals(expected_output, specs_for_prefix)
 
     def test_match_to_original_specs(self):
         str_specs = ["test 1.2.0", "test-spec 1.1*", "test-spec2 <4.3"]

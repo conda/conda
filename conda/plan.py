@@ -597,7 +597,7 @@ def determine_dists_per_prefix(prefix, index, preferred_envs_with_specs, context
     def make_specs_for_prefix(preferred_env):
         pfx = EnvsDirectory.preferred_env_to_prefix(preferred_env) if preferred_env else prefix
         resolve_obj = get_resolve_object(index.copy(), pfx)
-        spec_strs = preferred_envs_with_specs[preferred_env]
+        spec_strs = set(preferred_envs_with_specs[preferred_env])
         return SpecsForPrefix(prefix=pfx, r=resolve_obj, specs=spec_strs)
 
     return [make_specs_for_prefix(pe) for pe in preferred_envs_with_specs]

@@ -1017,6 +1017,7 @@ class IntegrationTests(TestCase):
                         assert not package_is_installed(prefix, "uses-spiffy-test-app")
                         assert package_is_installed(join(prefix, 'envs', preferred_env), "uses-spiffy-test-app")
 
+                        # can we go backwards?  If we do, we need to make sure that any other registered private env package also gets moved back to the root_prefix
                         run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
                         assert package_is_installed(prefix, "spiffy-test-app")
                         assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))

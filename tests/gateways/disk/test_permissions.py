@@ -22,11 +22,14 @@ except ImportError:
     from mock import patch
 
 
-@contextmanager
-def tempdir():
+def create_temp_location():
     tempdirdir = gettempdir()
     dirname = str(uuid.uuid4())[:8]
-    prefix = join(tempdirdir, dirname)
+    return join(tempdirdir, dirname)
+
+@contextmanager
+def tempdir():
+    prefix = create_temp_location()
     try:
         os.makedirs(prefix)
         yield prefix
