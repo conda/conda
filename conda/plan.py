@@ -374,6 +374,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
     for name, def_ver in [('python', context.default_python or None),
                           # Default version required, but only used for Python
+                          ('vc', None),
                           ('lua', None)]:
         if any(s.name == name and not s.is_simple() for s in mspecs):
             # if any of the specifications mention the Python/Numpy version,
