@@ -215,7 +215,7 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.10')
+            run_command(Commands.INSTALL, prefix, 'flask=0.10`')
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python-3')
 

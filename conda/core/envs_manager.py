@@ -189,12 +189,12 @@ class EnvsDirectory(object):
 
         return cls.first_writable()
 
-    @classmethod
-    def preferred_env_to_prefix(cls, preferred_env):
+    @staticmethod
+    def preferred_env_to_prefix(preferred_env):
         if preferred_env is None:
             return context.root_prefix
         else:
-            return join(cls.first_writable().envs_dir, ensure_pad(preferred_env, '_'))
+            return join(context.root_prefix, 'envs', ensure_pad(preferred_env, '_'))
 
     def __enter__(self):
         pass
