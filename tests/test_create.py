@@ -497,9 +497,9 @@ class IntegrationTests(TestCase):
             # conda itself does not provide a public API for it
             index = get_index_trap(prefix=prefix)
             actions_set = plan.install_actions_list(prefix,
-                                           index,
-                                           specs=['flask'],
-                                           prune=True)
+                                                    index,
+                                                    spec_strs=['flask'],
+                                                    prune=True)
             for actions in actions_set:
                 plan.execute_actions(actions, index, verbose=True)
 
@@ -1159,11 +1159,11 @@ class PrivateEnvIntegrationTests(TestCase):
         self.preferred_env = "_spiffy-test-app_"
         self.preferred_env_prefix = join(self.prefix, 'envs', self.preferred_env)
 
-        self.save_path_conflict = os.environ.get('CONDA_PATH_CONFLICT')
+        # self.save_path_conflict = os.environ.get('CONDA_PATH_CONFLICT')
         self.save_root_prefix = os.environ.get('CONDA_ROOT_PREFIX')
         self.save_pkgs_dirs = os.environ.get('CONDA_PKGS_DIRS')
 
-        os.environ['CONDA_PATH_CONFLICT'] = 'prevent'
+        # os.environ['CONDA_PATH_CONFLICT'] = 'prevent'
         os.environ['CONDA_ROOT_PREFIX'] = self.prefix
         os.environ['CONDA_PKGS_DIRS'] = self.pkgs_dirs
 
@@ -1172,8 +1172,8 @@ class PrivateEnvIntegrationTests(TestCase):
     def tearDown(self):
         rm_rf(self.prefix)
 
-        if self.save_path_conflict is not None:
-            os.environ['CONDA_PATH_CONFLICT'] = self.save_path_conflict
+        # if self.save_path_conflict is not None:
+        #     os.environ['CONDA_PATH_CONFLICT'] = self.save_path_conflict
         if self.save_root_prefix is not None:
             os.environ['CONDA_ROOT_PREFIX'] = self.save_root_prefix
         if self.save_pkgs_dirs is not None:
@@ -1328,7 +1328,8 @@ class PrivateEnvIntegrationTests(TestCase):
         run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
-        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
@@ -1352,7 +1353,7 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
 
     @patch.object(Context, 'prefix_specified')
-    def test_c(self, prefix_specified):
+    def test_c2(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
@@ -1364,6 +1365,21 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "spiffy-test-app-2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_d2(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "needs-spiffy-test-app")
+        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
 
 
 

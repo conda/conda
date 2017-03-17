@@ -297,13 +297,14 @@ class EnvsDirectory(object):
     # preferred env packages
     # ############################
 
-    def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path):
+    def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path, requested_spec):
         # assert package of same name not already installed in root env
         # assert there's not already a similar entry
         preferred_env_packages_entry = {
             'package_name': package_name,
             'conda_meta_path': conda_meta_path,
             'preferred_env_name': ensure_pad(preferred_env_name),
+            'requested_spec': requested_spec,
         }
         self._preferred_env_packages.append(preferred_env_packages_entry)
 

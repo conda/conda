@@ -4,20 +4,19 @@ import errno
 import json
 import logging
 import os
-from os.path import isdir, isfile, join, dirname
+from os.path import isdir, isfile, join
 import re
 import sys
 import time
 import warnings
 
-from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.update import touch
-from .resolve import MatchSpec
-from .common.compat import itervalues
 from .base.constants import DEFAULTS_CHANNEL_NAME
+from .common.compat import itervalues
 from .core.linked_data import linked
 from .exceptions import CondaFileIOError, CondaHistoryError
+from .gateways.disk.update import touch
 from .models.dist import Dist
+from .resolve import MatchSpec
 
 log = logging.getLogger(__name__)
 
@@ -80,13 +79,13 @@ class History(object):
 
     def init_log_file(self):
         if isfile(self.path):
-            if self.file_is_empty():
-                with open(self.path, 'a') as fo:
-                    write_head(fo)
+            return
         else:
             dists = linked(self.prefix)
             if dists:
                 self.write_dists(dists)
+            else:
+                touch(self.path, True)
 
     def file_is_empty(self):
         return os.stat(self.path).st_size == 0
@@ -170,11 +169,11 @@ class History(object):
     def get_requested_specs(self):
         spec_map = {}
         for request in self.get_user_requests():
-            axn = request.get('action')
-            if axn == 'install':
+            axn = request.get('action', '')
+            if axn.startswith('install'):
                 specs = tuple(MatchSpec(s) for s in request['specs'] if s)
                 spec_map.update({s.name: s for s in specs})
-            elif axn == 'remove':
+            elif axn.startswith('remove'):
                 for name in (MatchSpec(s).name for s in request['specs']):
                     spec_map.pop(name, None)
         return set(itervalues(spec_map))

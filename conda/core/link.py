@@ -105,7 +105,7 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
 class UnlinkLinkTransaction(object):
 
     @classmethod
-    def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists):
+    def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists, requested_specs):
         # This constructor method helps to patch into the 'plan' framework
         linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
                                                for dist in unlink_dists)
@@ -126,9 +126,9 @@ class UnlinkLinkTransaction(object):
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
-                                     packages_info_to_link)
+                                     packages_info_to_link, requested_specs)
 
-    def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link):
+    def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link, requested_specs):
         # type: (str, Sequence[Dist], Sequence[PackageInfo]) -> NoneType
         # order of unlink_dists and link_dists will be preserved throughout
         #   should be given in dependency-sorted order
@@ -136,6 +136,7 @@ class UnlinkLinkTransaction(object):
         self.target_prefix = target_prefix
         self.linked_packages_data_to_unlink = linked_packages_data_to_unlink
         self.packages_info_to_link = packages_info_to_link
+        self.requested_specs = requested_specs
 
         self._prepared = False
         self._verified = False
@@ -152,6 +153,7 @@ class UnlinkLinkTransaction(object):
         # make all the path actions
         # no side effects allowed when instantiating these action objects
         transaction_context = dict()
+        transaction_context['requested_specs'] = self.requested_specs
         python_version = self.get_python_version(self.target_prefix,
                                                  self.linked_packages_data_to_unlink,
                                                  self.packages_info_to_link)

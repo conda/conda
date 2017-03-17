@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, EEXIST, EPERM
+from errno import EACCES, EPERM
 from io import open
 import json
 from logging import getLogger
@@ -13,6 +13,7 @@ import sys
 import tarfile
 import traceback
 
+from . import mkdir_p
 from .delete import rm_rf
 from .link import islink, link, readlink, symlink
 from .permissions import make_executable
@@ -33,6 +34,7 @@ from ...core.portability import replace_long_shebang
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
 
+mkdir_p = mkdir_p  # in __init__.py to help with circular imports
 
 python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-
@@ -151,18 +153,6 @@ def make_menu(prefix, file_path, remove=False):
     except:
         stdoutlog.error("menuinst Exception:")
         stdoutlog.error(traceback.format_exc())
-
-
-def mkdir_p(path):
-    try:
-        log.trace('making directory %s', path)
-        if path:
-            makedirs(path)
-    except OSError as e:
-        if e.errno == EEXIST and isdir(path):
-            return path
-        else:
-            raise
 
 
 def create_hard_link_or_copy(src, dst):

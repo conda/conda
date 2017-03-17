@@ -106,7 +106,7 @@ def UNLINKLINKTRANSACTION_CMD(state, arg):
     unlink_dists, link_dists, axn, specs = arg
     index = state['index']
     prefix = state['prefix']
-    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists)
+    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists, specs)
 
     h = History(prefix)
     h.init_log_file()

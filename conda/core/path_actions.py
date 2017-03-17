@@ -604,9 +604,12 @@ class SetEnvsDirectoryCatalogAction(CreateInPrefixPathAction):
             # add preferred_env_packages record
             conda_meta_path = join(self.target_prefix, 'conda-meta',
                                    Dist(self.package_info).to_filename('.json'))
+            package_name = self.package_info.index_json_record.name
+            # requested_spec = self.transaction_context['requested_specs']
+            requested_spec = None
             envs_directory.add_preferred_env_package(preferred_env,
                                                      self.package_info.index_json_record.name,
-                                                     conda_meta_path)
+                                                     conda_meta_path, requested_spec)
 
         envs_directory.write_to_disk()
         self._execute_successful = True

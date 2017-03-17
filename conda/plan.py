@@ -21,7 +21,7 @@ from . import instructions as inst
 from ._vendor.auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import odict, on_win, iterkeys, iteritems, itervalues
+from .common.compat import odict, on_win, iterkeys, iteritems, itervalues, text_type
 from .common.path import (ensure_pad, is_private_env_name, is_private_env_path,
                           preferred_env_matches_prefix)
 from .core.envs_manager import EnvsDirectory
@@ -43,9 +43,9 @@ from .utils import human_bytes
 from .version import normalized_version
 
 try:
-    from cytoolz.itertoolz import concatv, groupby, remove
+    from cytoolz.itertoolz import concat, concatv, groupby, remove
 except ImportError:
-    from ._vendor.toolz.itertoolz import concatv, groupby, remove  # NOQA
+    from ._vendor.toolz.itertoolz import concat, concatv, groupby, remove  # NOQA
 
 log = getLogger(__name__)
 
@@ -476,13 +476,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     return actions
 
 
-def install_actions_list(prefix, index, specs, force=False, only_names=None, always_copy=False,
+def install_actions_list(prefix, index, spec_strs, force=False, only_names=None, always_copy=False,
                          pinned=True, minimal_hint=False, update_deps=True, prune=False,
                          channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
-    str_specs = specs
-    specs = tuple(MatchSpec(spec) for spec in specs)
+    str_specs = spec_strs
+    spec_strs = tuple(MatchSpec(spec) for spec in spec_strs)
 
     # split out specs into potentially multiple preferred envs if:
     #  1. the user default env (root_prefix) is the prefix being considered here
@@ -510,7 +510,7 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
             return ensure_pad(root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]].preferred_env)
 
         # specs grouped by target env, the 'None' key holds the specs for the root env
-        env_map = groupby(get_env_for_spec, specs)
+        env_map = groupby(get_env_for_spec, spec_strs)
 
         # if a spec is already registered, we'll need to do special things for it
 
@@ -528,9 +528,21 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
         # now we have a list of required package names in root
 
+        root_requested_specs = {s.name: MatchSpec(s) for s in History(prefix).get_requested_specs()}
+        root_specs_to_add = {s.name: MatchSpec(s) for s in env_map.pop(None, ())}
+        root_requested_specs.update(root_specs_to_add)
+        # root_specs_to_remove = set(itervalues(env_map))
+        required_root_dists = solve_prefix(context.root_prefix, root_r,
+                                           specs_to_add=tuple(itervalues(root_requested_specs)),
+                                           prune=True)
 
-        root_specs = env_map.pop(None, ())
-        required_root_dists = solve_prefix(context.root_prefix, root_r, specs_to_add=root_specs, prune=True)
+        # test_r = Resolve({d: root_r.index[d] for d in required_root_dists})
+        # force_specs_to_root = []
+        # for spec in itervalues(env_map):
+        #     spec_name = MatchSpec(spec).name
+        #     if any(test_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):
+        #         force_specs_to_root.append(spec)
+
 
 
         # problems are any packages that are registered, but are now needed in the root env
@@ -538,50 +550,99 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
         registered_packages = ed.get_registered_packages()
         problems = set(d.name for d in required_root_dists) & set(registered_packages)
 
+
+
         if problems:
+            # now we need to unregister each problem package, and prune that private environment
+            problem_envs_map = groupby(registered_packages.get, problems)
+
             # for now, just use package name as spec; we'll probably need to improve this later
             #  to improve, we'll probably need to record the user-requested spec when we
             #  register the package for a private env
-            problem_specs = set(problems)
+            problem_specs = {p: MatchSpec(p) for p in problems}
 
-            # now we need to unregister each problem package, and prune that private environment
-            problem_envs = groupby(registered_packages.get, problems)
 
             # adjust env_map to remove problem specs
+            for p in problems:
+                problem_env_name = registered_packages[p]
+                problem_env_specs = env_map.get(problem_env_name)
+                if problem_env_specs is None:
+                    # need to add an empty set of specs to prune and solve
+                    # env_map[problem_env_name] = []
+                    pass
+                else:
+                    idx = next((q for q, s in enumerate(problem_env_specs) if s.name == p), None)
+                    if idx is not None:
+                        problem_env_specs.pop(idx)
+
+            # TODO: unregister all problem packages, which means they are no longer user-requested specs for those private envs
+            # import pdb; pdb.set_trace()
+
+
 
 
 
         else:
-            problem_envs = {}
-            problem_specs = set()
+            problem_envs_map = {}
+            problem_specs = {}
 
 
         unlink_link_map = odict()
 
+        for env_name in set(concatv(env_map, problem_envs_map)):
+            specs_to_unregister = tuple(MatchSpec(s) for s in problem_envs_map.get(env_name, ()))
+            specs_to_add = env_map.get(env_name, ())
+            pfx = ed.preferred_env_to_prefix(env_name)
+            unlink, link = solve_for_actions(pfx, get_resolve_object(index.copy(), pfx),
+                                             specs_to_remove=specs_to_unregister,
+                                             specs_to_add=specs_to_add,
+                                             prune=True)
+            unlink_link_map[env_name] = unlink, link, specs_to_add
+
+
         # now let's try to get unlink_dists and link_dists for root
         # we have to solve root a second time in all cases, because this time we don't prune
-        specs_to_add = tuple(concatv(root_specs, problem_specs))
+        root_specs_to_unregister = tuple(concat(itervalues(env_map)))
+        problem_specs.update(root_specs_to_add)
+        root_specs_to_add = tuple(itervalues(problem_specs))
         root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
-                                                   specs_to_remove=(),
-                                                   specs_to_add=specs_to_add)
+                                                   specs_to_remove=root_specs_to_unregister,
+                                                   specs_to_add=root_specs_to_add)
         # but we also need to add potentially specs_to_remove here now ^^ , from the other private envs that aren't problem envs
+
         if root_unlink or root_link:
-            unlink_link_map[None] = root_unlink, root_link, specs_to_add
+            # this needs to be added to odict last; the private envs need to be updated first
+            unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
 
-        for env_name, specs in iteritems(env_map):
-            # TODO: adjust specs for problem specs
 
-            pfx = ed.preferred_env_to_prefix(env_name)
-            env_r = get_resolve_object(index.copy(), pfx)
-            unlink, link = solve_for_actions(pfx, env_r, specs_to_add=specs, prune=True)
-            if unlink or link:
-                unlink_link_map[env_name] = unlink, link, specs
-
+        #
+        # for env_name, spec_strs in iteritems(problem_envs_map):
+        #     pfx = ed.preferred_env_to_prefix(env_name)
+        #     env_requested_specs = {s.name: MatchSpec(s) for s in History(pfx).get_requested_specs()}
+        #     for s in spec_strs:
+        #         env_requested_specs.pop(MatchSpec(s).name)
+        #
+        #     unlink, root_link = solve_for_actions(context.root_prefix, root_r,
+        #                                           specs_to_remove=(),
+        #                                           specs_to_add=specs_to_add, prune=True)
+        #
+        #     import pdb; pdb.set_trace()
+        #
+        #
+        #
+        # for env_name, spec_strs in iteritems(env_map):
+        #     # TODO: adjust specs for problem specs
+        #
+        #     pfx = ed.preferred_env_to_prefix(env_name)
+        #     env_r = get_resolve_object(index.copy(), pfx)
+        #     unlink, link = solve_for_actions(pfx, env_r, specs_to_add=spec_strs, prune=True)
+        #     if unlink or link:
+        #         unlink_link_map[env_name] = unlink, link, spec_strs
+        #
 
 
         # this is for other pruning that we haven't otherwise gotten to
-        problem_envs_not_in_env_map = set(problem_envs) - set(env_map)
-
+        problem_envs_not_in_env_map = set(problem_envs_map) - set(env_map)
 
         def make_actions(pfx, unlink, link, specs):
             actions = get_blank_actions(pfx)
@@ -694,7 +755,7 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
     else:
         # disregard any requested preferred env
-        return [install_actions(prefix, index, specs, force, only_names, always_copy,
+        return [install_actions(prefix, index, spec_strs, force, only_names, always_copy,
                                 pinned, minimal_hint, update_deps, prune,
                                 channel_priority_map, is_update)]
 
@@ -858,18 +919,28 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     #       change iterkeys to itervalues
 
     if solved_linked_dists and specs_to_remove:
-        solved_linked_dists = r.remove(specs_to_remove, tuple(MatchSpec(s) for s in solved_linked_dists))
+        solved_linked_dists = r.remove(tuple(text_type(s) for s in specs_to_remove), solved_linked_dists)
 
-    if specs_to_add or prune:
-        specs_to_add = (MatchSpec(s) for s in specs_to_add)
-        if prune:
-            specs_map = {s.name: s for s in History(prefix).get_requested_specs()}
-            specs_map.update({s.name: s for s in specs_to_add})
-            specs_to_add = itervalues(specs_map)
-        specs_to_add = augment_specs(prefix, specs_to_add)
-        solved_linked_dists = r.install(specs_to_add,
-                                        solved_linked_dists,
-                                        update_deps=context.update_dependencies)
+    # # if specs_to_add or prune:
+    # specs_to_add = (MatchSpec(s) for s in specs_to_add)
+    # if prune:
+    #     specs_map = {s.name: s for s in History(prefix).get_requested_specs()}
+    #     for spec in specs_to_remove:
+    #         specs_map.pop(spec.name, None)
+    #     specs_map.update({s.name: s for s in specs_to_add})
+    #     specs_to_add = itervalues(specs_map)
+
+    specs_map = {s.name: s for s in History(prefix).get_requested_specs()}
+    for spec in specs_to_remove:
+        specs_map.pop(spec.name, None)
+    specs_map.update({s.name: s for s in specs_to_add})
+    specs_to_add = itervalues(specs_map)
+
+
+    specs_to_add = augment_specs(prefix, specs_to_add)
+    solved_linked_dists = r.install(specs_to_add,
+                                    solved_linked_dists,
+                                    update_deps=context.update_dependencies)
 
     if context.respect_pinned:
         # TODO: assert all pinned specs are compatible with what's in solved_linked_dists
