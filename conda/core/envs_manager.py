@@ -202,6 +202,12 @@ class EnvsDirectory(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.write_to_disk()
 
+    def to_prefix(self, env_name):
+        if env_name in (None, ROOT_ENV_NAME):
+            return self.root_dir
+        else:
+            return join(self.envs_dir, env_name)
+
     # ############################
     # registered envs
     # ############################
@@ -297,7 +303,7 @@ class EnvsDirectory(object):
         preferred_env_packages_entry = {
             'package_name': package_name,
             'conda_meta_path': conda_meta_path,
-            'preferred_env_name': preferred_env_name,
+            'preferred_env_name': ensure_pad(preferred_env_name),
         }
         self._preferred_env_packages.append(preferred_env_packages_entry)
 
@@ -306,12 +312,22 @@ class EnvsDirectory(object):
         if lp_idx is not None:
             self._preferred_env_packages.pop(lp_idx)
 
+    def get_registered_preferred_env(self, package_name):
+        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+        return pep and pep['preferred_env_name']
+
+    def get_registered_packages(self):
+        # returns Map[package_name, env_name]
+        return {pep['package_name']: pep['preferred_env_name'] for pep in self._preferred_env_packages}
+
     def prefix_if_in_private_env(self, spec_str):
+        # TODO: get rid of this
         package_name = spec_str.split()[0]
         pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        return dirname(dirname(pep['conda_meta_path'])) if pep else None
+        return join(self.envs_dir, pep['preferred_env_name']) if pep else None
 
     def get_preferred_env_package(self, spec_str):
+        # TODO: get rid of this
         package_name = spec_str.split()[0]
         pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
         if pep:

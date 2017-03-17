@@ -250,7 +250,7 @@ def install(args, parser, command='install'):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])
                 action_set = install_actions_list(
                     prefix, index, specs, force=args.force, only_names=only_names,
-                    pinned=args.pinned, always_copy=context.always_copy,
+                    pinned=context.respect_pinned, always_copy=context.always_copy,
                     minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
                     channel_priority_map=_channel_priority_map, is_update=isupdate)
     except NoPackagesFoundError as e:
@@ -359,15 +359,6 @@ def install(args, parser, command='install'):
         with common.json_progress_bars(json=context.json and not context.quiet):
             try:
                 execute_actions(actions, index, verbose=not context.quiet)
-                if not (command == 'update' and args.all):
-                    try:
-                        with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                            f.write('# %s specs: %s\n' % (command, ','.join(specs)))
-                    except IOError as e:
-                        if e.errno == errno.EACCES:
-                            log.debug("Can't write the history file")
-                        else:
-                            raise CondaIOError("Can't write the history file", e)
 
             except RuntimeError as e:
                 if len(e.args) > 0 and "LOCKERROR" in e.args[0]:

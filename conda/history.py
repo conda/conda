@@ -4,12 +4,16 @@ import errno
 import json
 import logging
 import os
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile, join, dirname
 import re
 import sys
 import time
 import warnings
 
+from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.update import touch
+from .resolve import MatchSpec
+from .common.compat import itervalues
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .core.linked_data import linked
 from .exceptions import CondaFileIOError, CondaHistoryError
@@ -68,26 +72,30 @@ class History(object):
         self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
-        self.update('enter')
+        self.init_log_file()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.update('exit')
+        self.update()
 
-    def init_log_file(self, force=False):
-        if not force and isfile(self.path):
-            return
-        self.write_dists(linked(self.prefix))
+    def init_log_file(self):
+        if isfile(self.path):
+            if self.file_is_empty():
+                with open(self.path, 'a') as fo:
+                    write_head(fo)
+        else:
+            dists = linked(self.prefix)
+            if dists:
+                self.write_dists(dists)
 
     def file_is_empty(self):
         return os.stat(self.path).st_size == 0
 
-    def update(self, enter_or_exit=''):
+    def update(self):
         """
         update the history file (creating a new one if necessary)
         """
         try:
-            self.init_log_file()
             try:
                 last = set(self.get_state())
             except CondaHistoryError as e:
@@ -95,12 +103,8 @@ class History(object):
                               CondaHistoryWarning)
                 return
             curr = set(map(str, linked(self.prefix)))
-            if last == curr:
-                # print a head when a blank env is first created to preserve history
-                if enter_or_exit == 'exit' and self.file_is_empty():
-                    with open(self.path, 'a') as fo:
-                        write_head(fo)
-                return
+            # if last == curr and not self.file_is_empty():
+            #     return
             self.write_changes(last, curr)
         except IOError as e:
             if e.errno == errno.EACCES:
@@ -143,7 +147,7 @@ class History(object):
         """
         res = []
         com_pat = re.compile(r'#\s*cmd:\s*(.+)')
-        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)')
+        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
         for dt, unused_cont, comments in self.parse():
             item = {'date': dt}
             for line in comments:
@@ -157,10 +161,23 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    item['specs'] = json.loads(specs.replace("'", '"'))
+                    specs = specs.replace("'", '"')
+                    item['specs'] = json.loads(specs.replace('u"', '"')) if specs.startswith('[') else specs.split(',')
             if 'cmd' in item:
                 res.append(item)
         return res
+
+    def get_requested_specs(self):
+        spec_map = {}
+        for request in self.get_user_requests():
+            axn = request.get('action')
+            if axn == 'install':
+                specs = tuple(MatchSpec(s) for s in request['specs'] if s)
+                spec_map.update({s.name: s for s in specs})
+            elif axn == 'remove':
+                for name in (MatchSpec(s).name for s in request['specs']):
+                    spec_map.pop(name, None)
+        return set(itervalues(spec_map))
 
     def construct_states(self):
         """
@@ -254,11 +271,12 @@ class History(object):
             os.makedirs(self.meta_dir)
         with open(self.path, 'w') as fo:
             if dists:
-                write_head(fo)
                 for dist in sorted(dists):
                     fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
+        if not isdir(self.meta_dir):
+            os.makedirs(self.meta_dir)
         with open(self.path, 'a') as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
@@ -266,9 +284,16 @@ class History(object):
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
+    def write_specs(self, action, specs):
+        specs = [s.spec if isinstance(s, MatchSpec) else s for s in specs or () if s]
+        axn = action and action.lower() or 'unknown'
+        with open(self.path, 'a') as fo:
+            fo.write("# %s specs: %s\n" % (axn, json.dumps(specs)))
+
 
 if __name__ == '__main__':
     from pprint import pprint
     # Don't use in context manager mode---it augments the history every time
     h = History(sys.prefix)
     pprint(h.get_user_requests())
+    print(h.get_requested_specs())

@@ -363,8 +363,8 @@ def add_parser_no_pin(p):
     p.add_argument(
         "--no-pin",
         action="store_false",
-        default=True,
-        dest='pinned',
+        dest='respect_pinned',
+        default=NULL,
         help="Ignore pinned file.",
     )
 

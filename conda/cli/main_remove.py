@@ -157,7 +157,8 @@ def execute(args, parser):
     specs = None
     if args.features:
         specs = ['@' + f for f in set(args.package_names)]
-        actions = plan.remove_actions(prefix, specs, index, pinned=args.pinned)
+        actions = plan.remove_actions(prefix, specs, index, pinned=context.respect_pinned)
+        actions['ACTION'].append('REMOVE_FEATURE')
         action_groups = actions,
     elif args.all:
         if plan.is_root_prefix(prefix):
@@ -166,6 +167,7 @@ def execute(args, parser):
         actions = {inst.PREFIX: prefix}
         for dist in sorted(iterkeys(index)):
             plan.add_unlink(actions, dist)
+        actions['ACTION'].append('REMOVE_ALL')
         action_groups = actions,
     else:
         specs = specs_from_args(args.package_names)
@@ -181,7 +183,7 @@ def execute(args, parser):
             index = linked_data(prfx)
             index = {dist: info for dist, info in iteritems(index)}
             actions.append(plan.remove_actions(prfx, list(spcs), index=index, force=args.force,
-                                               pinned=args.pinned))
+                                               pinned=context.respect_pinned))
         action_groups = tuple(actions)
 
     delete_trash()
@@ -223,15 +225,6 @@ def execute(args, parser):
                 plan.execute_actions(actions, index, verbose=not context.quiet)
         else:
             plan.execute_actions(actions, index, verbose=not context.quiet)
-            if specs:
-                try:
-                    with open(join(prefix, 'conda-meta', 'history'), 'a') as f:
-                        f.write('# remove specs: %s\n' % ','.join(specs))
-                except IOError as e:
-                    if e.errno == errno.EACCES:
-                        log.debug("Can't write the history file")
-                    else:
-                        raise
 
         target_prefix = actions["PREFIX"]
         if is_private_env_path(target_prefix) and linked_data(target_prefix) == {}:

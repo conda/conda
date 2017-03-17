@@ -134,6 +134,8 @@ class Context(Configuration):
     json = PrimitiveParameter(False)
     offline = PrimitiveParameter(False)
     quiet = PrimitiveParameter(False)
+    prune = PrimitiveParameter(False)
+    respect_pinned = PrimitiveParameter(True)
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))

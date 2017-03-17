@@ -10,15 +10,18 @@ NOTE:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict, namedtuple
+from copy import copy
 from logging import getLogger
 from os.path import abspath, basename, exists, join
 import sys
+
+from conda._vendor.boltons.setutils import IndexedSet
 
 from . import instructions as inst
 from ._vendor.auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import odict, on_win
+from .common.compat import odict, on_win, iterkeys, iteritems, itervalues
 from .common.path import (ensure_pad, is_private_env_name, is_private_env_path,
                           preferred_env_matches_prefix)
 from .core.envs_manager import EnvsDirectory
@@ -40,9 +43,9 @@ from .utils import human_bytes
 from .version import normalized_version
 
 try:
-    from cytoolz.itertoolz import concatv, groupby
+    from cytoolz.itertoolz import concatv, groupby, remove
 except ImportError:
-    from ._vendor.toolz.itertoolz import concatv, groupby  # NOQA
+    from ._vendor.toolz.itertoolz import concatv, groupby, remove  # NOQA
 
 log = getLogger(__name__)
 
@@ -287,7 +290,7 @@ def handle_menuinst(unlink_dists, link_dists):
     return unlink_dists, link_dists
 
 
-def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
+def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
     # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:
@@ -300,7 +303,7 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists, axn, specs)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
 
     return plan
@@ -315,6 +318,8 @@ def plan_from_actions(actions, index):
     assert PREFIX in actions and actions[PREFIX]
     prefix = actions[PREFIX]
     plan = [('PREFIX', '%s' % actions[PREFIX])]
+    axn = actions.get('ACTION', (None,))[0]
+    specs = actions.get('SPECS')
 
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
@@ -334,7 +339,7 @@ def plan_from_actions(actions, index):
             log.debug("appending value {0} for action {1}".format(arg, op))
             plan.append((op, arg))
 
-    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix)
+    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
 
     return plan
 
@@ -355,6 +360,16 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
             continue
         actions[LINK].append(dist)
     return actions
+
+
+def get_blank_actions(prefix):
+    actions = defaultdict(list)
+    actions[PREFIX] = prefix
+    actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
+                           RM_EXTRACTED, EXTRACT,
+                           UNLINK, LINK, SYMLINK_CONDA)
+    return actions
+
 
 # -------------------------------------------------------------------
 
@@ -451,8 +466,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     str_specs = specs
 
     specs_for_prefix = SpecsForPrefix(prefix=prefix, specs=tuple(str_specs), r=r)
+
+    # TODO: Don't we need add_defaults_to_sepcs here?
+
     actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy,
                                     prune, update_deps, pinned)
+    actions['SPECS'].extend(str_specs)
+    actions['ACTION'].append('INSTALL')
     return actions
 
 
@@ -462,40 +482,214 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
     str_specs = specs
-    specs = [MatchSpec(spec) for spec in specs]
-    r = get_resolve_object(index.copy(), prefix)
+    specs = tuple(MatchSpec(spec) for spec in specs)
 
     # split out specs into potentially multiple preferred envs if:
     #  1. the user default env (root_prefix) is the prefix being considered here
     #  2. the user has not specified the --name or --prefix command-line flags
     if prefix == context.root_prefix and not context.prefix_specified:
+
+
+
         # split out specs by preferred env
 
-        # determine which preferred_envs we need to solve for
-        dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
-        # ensure_package_not_duplicated_in_private_env_root(dists_for_envs, linked_data(context.root_prefix))
-        preferred_envs_with_specs = defaultdict(list)  # Map[env_name, package_name]
-        for d in dists_for_envs:
-            preferred_envs_with_specs[d.env].append(d.spec)
+        # based on specs, determine which preferred_envs we need to solve for
+        # for any spec that matches a registered preferred_env package,
 
-        # Group specs by prefix
-        grouped_specs = determine_dists_per_prefix(prefix, index, preferred_envs_with_specs, context)
 
-        # Replace SpecsForPrefix specs with specs that were passed in in order to retain
-        #   version information
-        required_solves = match_to_original_specs(str_specs, grouped_specs)
+        # determine target env for each spec
 
-        actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
-                                         always_copy, prune, update_deps, pinned)
-                   for dists_by_prefix in required_solves]
 
-        # TODO: any explicit spec we're about to install in a private env we need to uninstall from root_prefix if it exists
-        add_unlink_options_for_update(actions, required_solves, index)
-        # Need to add unlink actions if updating a private env from root
-        # if is_update and prefix == context.root_prefix:
-        #     add_unlink_options_for_update(actions, required_solves, index)
+
+        # move packages back to root env if they are registered
+
+
+        root_r = get_resolve_object(index.copy(), context.root_prefix)
+        def get_env_for_spec(spec):
+            # use resolve's get_dists_for_spec() to find the "best" matching record
+            return ensure_pad(root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]].preferred_env)
+
+        # specs grouped by target env, the 'None' key holds the specs for the root env
+        env_map = groupby(get_env_for_spec, specs)
+
+        # if a spec is already registered, we'll need to do special things for it
+
+        # if a package is registered, but the package is now needed in the root env,
+        # it must be unregistered and moved to the root env,
+        # if there are no more registered packages for that private env, it can be removed entirely
+        # but if there are still registered packages for that private env, it must stay
+
+        # if a package wants a private env, but it must be in the root env because of root env depdencies, it must stay in the root env
+
+        # packages cannot be simultaneously registered and also required in the root env
+
+
+        # if needed, first solve for the root env case if root_env in env_map
+
+        # now we have a list of required package names in root
+
+
+        root_specs = env_map.pop(None, ())
+        required_root_dists = solve_prefix(context.root_prefix, root_r, specs_to_add=root_specs, prune=True)
+
+
+        # problems are any packages that are registered, but are now needed in the root env
+        ed = EnvsDirectory(join(context.root_prefix, 'envs'))
+        registered_packages = ed.get_registered_packages()
+        problems = set(d.name for d in required_root_dists) & set(registered_packages)
+
+        if problems:
+            # for now, just use package name as spec; we'll probably need to improve this later
+            #  to improve, we'll probably need to record the user-requested spec when we
+            #  register the package for a private env
+            problem_specs = set(problems)
+
+            # now we need to unregister each problem package, and prune that private environment
+            problem_envs = groupby(registered_packages.get, problems)
+
+            # adjust env_map to remove problem specs
+
+
+
+        else:
+            problem_envs = {}
+            problem_specs = set()
+
+
+        unlink_link_map = odict()
+
+        # now let's try to get unlink_dists and link_dists for root
+        # we have to solve root a second time in all cases, because this time we don't prune
+        specs_to_add = tuple(concatv(root_specs, problem_specs))
+        root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
+                                                   specs_to_remove=(),
+                                                   specs_to_add=specs_to_add)
+        # but we also need to add potentially specs_to_remove here now ^^ , from the other private envs that aren't problem envs
+        if root_unlink or root_link:
+            unlink_link_map[None] = root_unlink, root_link, specs_to_add
+
+        for env_name, specs in iteritems(env_map):
+            # TODO: adjust specs for problem specs
+
+            pfx = ed.preferred_env_to_prefix(env_name)
+            env_r = get_resolve_object(index.copy(), pfx)
+            unlink, link = solve_for_actions(pfx, env_r, specs_to_add=specs, prune=True)
+            if unlink or link:
+                unlink_link_map[env_name] = unlink, link, specs
+
+
+
+        # this is for other pruning that we haven't otherwise gotten to
+        problem_envs_not_in_env_map = set(problem_envs) - set(env_map)
+
+
+        def make_actions(pfx, unlink, link, specs):
+            actions = get_blank_actions(pfx)
+            actions['UNLINK'].extend(reversed(unlink))
+            actions['LINK'].extend(link)
+            actions['SPECS'].extend(s.spec for s in specs)
+            actions['ACTION'].append('INSTALL')
+            return actions
+
+        actions = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink) for env_name, oink in iteritems(unlink_link_map)]
 
         return actions
+
+
+
+
+
+
+
+        # root_specs = env_map.get(None, ())
+        # if root_specs:
+        #     # root_specs are both the specs that want to be, and the specs that have to be
+        #     # first solve for the want-to-be
+        #
+        #     pfx = context.root_prefix
+        #     required_dists = solve_prefix(pfx, get_resolve_object(index.copy(), pfx), specs_to_add=root_specs, prune=True)
+        #
+        #     # if link_dists matches any registered preferred_env_package, need to remove from preferred_env
+        #     ed = EnvsDirectory(join(context.root_prefix, 'envs'))
+        #
+        #     # problems are any packages that are registered, but are now needed in the root env
+        #     registered_packages = set(ed.get_registered_packages())
+        #     problems = set(d.name for d in required_dists) & registered_packages
+        #     import pdb; pdb.set_trace()
+        #
+        #     problems = groupby(ed.get_registered_preferred_env, (d.name for d in required_dists))
+        #     # for each problem, if there are no more registered packages for that private env,
+        #     #  that private env can be removed entirely
+        #     # otherwise, we just need to unregister that package, but keep it installed in the
+        #     #  private env
+
+
+
+        # now we need to modify env_map, and remove any packages that are required in the root env
+        #  if env_map requires modification, then those are the root_specs have-to-be packages
+        #  we'll need to solve the root prefix again with the have-to-bes included
+
+        # now we need to solve each non-root environment in env_map
+
+
+
+
+        # def get_actions(env_name, specs):
+        #     pfx = EnvsDirectory.preferred_env_to_prefix(env_name) if env_name else prefix
+        #     unlink, link = solve_for_actions(pfx, get_resolve_object(index.copy(), pfx), specs_to_add=specs)
+        #     actions = get_blank_actions(pfx)
+        #     actions['UNLINK'].extend(reversed(unlink))
+        #     actions['LINK'].extend(link)
+        #     return actions
+        #
+        # actions = [get_actions(env_name, specs) for env_name, specs in iteritems(env_map)]
+        # return actions
+
+
+
+
+        # dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+        # # ensure_package_not_duplicated_in_private_env_root(dists_for_envs, linked_data(context.root_prefix))
+        # preferred_envs_with_specs = defaultdict(list)  # Map[env_name, package_name]
+        # for d in dists_for_envs:
+        #     preferred_envs_with_specs[d.env].append(d.spec)
+        #
+        # # Group specs by prefix
+        # grouped_specs = determine_dists_per_prefix(prefix, index, preferred_envs_with_specs, context)
+        #
+        # # Replace SpecsForPrefix specs with specs that were passed in in order to retain
+        # #   version information
+        # required_solves = match_to_original_specs(str_specs, grouped_specs)
+        #
+        # private_env_required_solves = tuple(s for s in required_solves if is_private_env_path(s.prefix))
+        # root_env_required_solves = tuple(s for s in required_solves if s.prefix == context.root_prefix)
+        #
+        # specs_in_private_envs = tuple(concatv(s.specs for s in private_env_required_solves))
+        # # if any specs_in_private_envs match packages in the root env, remove them
+        #
+        #
+        # # for private_env_required_solves, need to solve root prefix without any specs that are being transferred
+        # # if any requested specs being transferred to
+        # # private envs need to be removed from root prefix via remove_actions()
+        #
+        #
+        # # for slv in required_solves:
+        # #     specs_to_remove = None
+        # actions = [solve_for_actions(slv.prefix, slv.r, specs_to_add=slv.specs) for slv in required_solves]
+        #
+        #
+        #
+        # # actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+        # #                                  always_copy, prune, update_deps, pinned)
+        # #            for dists_by_prefix in required_solves]
+        #
+        # # # TODO: any explicit spec we're about to install in a private env we need to uninstall from root_prefix if it exists
+        # # add_unlink_options_for_update(actions, required_solves, index)
+        # # Need to add unlink actions if updating a private env from root
+        # # if is_update and prefix == context.root_prefix:
+        # #     add_unlink_options_for_update(actions, required_solves, index)
+        #
+        # return actions
 
 
     else:
@@ -511,9 +705,19 @@ def add_unlink_options_for_update(actions, required_solves, index):
     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
     linked_in_root = linked_data(context.root_prefix)
     dist_in_root = lambda spc: tuple(dist for dist in linked_in_root.keys() if MatchSpec(spc).match(dist))
+
+    private_env_required_solves = tuple(s for s in required_solves if is_private_env_path(s.prefix))
+    root_env_required_solves = tuple(s for s in required_solves if s.prefix == context.root_prefix)
+
+
+
+
     for solved in required_solves:
-        # If the solved prefix is private
         if is_private_env_path(solved.prefix):
+            # if solved.prefix is private, any requested specs being transferred to
+            # private envs need to be removed from root prefix via remove_actions()
+
+
             for spec in solved.specs:
                 matched_dist_in_root = dist_in_root(spec)
                 if matched_dist_in_root:
@@ -640,6 +844,114 @@ def match_to_original_specs(str_specs, specs_for_prefix):
     return matched_specs_for_prefix
 
 
+
+
+
+def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
+    # this function gives a "final state" for an existing prefix given just these simple inputs
+
+    prune = context.prune or prune
+
+    # declare starting point
+    solved_linked_dists = () if prune else tuple(iterkeys(linked_data(prefix)))
+    # TODO: to change this whole function from working with dists to working with records, just
+    #       change iterkeys to itervalues
+
+    if solved_linked_dists and specs_to_remove:
+        solved_linked_dists = r.remove(specs_to_remove, tuple(MatchSpec(s) for s in solved_linked_dists))
+
+    if specs_to_add or prune:
+        specs_to_add = (MatchSpec(s) for s in specs_to_add)
+        if prune:
+            specs_map = {s.name: s for s in History(prefix).get_requested_specs()}
+            specs_map.update({s.name: s for s in specs_to_add})
+            specs_to_add = itervalues(specs_map)
+        specs_to_add = augment_specs(prefix, specs_to_add)
+        solved_linked_dists = r.install(specs_to_add,
+                                        solved_linked_dists,
+                                        update_deps=context.update_dependencies)
+
+    if context.respect_pinned:
+        # TODO: assert all pinned specs are compatible with what's in solved_linked_dists
+        pass
+
+    # TODO: don't uninstall conda or its dependencies, probably need to check elsewhere
+
+    solved_linked_dists = IndexedSet(r.dependency_sort({d.name: d for d in solved_linked_dists}))
+
+    return solved_linked_dists
+
+
+def sort_unlink_link_from_solve(prefix, solved_dists):
+    # solved_dists should be the return value of solve_prefix()
+    old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
+
+    dists_for_unlinking = old_linked_dists - solved_dists
+    dists_for_linking = solved_dists - old_linked_dists
+
+    return dists_for_unlinking, dists_for_linking
+
+
+def forced_reinstall_specs(prefix, solved_dists, dists_for_unlinking, dists_for_linking, specs_to_add):
+    _dists_for_unlinking, _dists_for_linking = copy(dists_for_unlinking), copy(dists_for_linking)
+    old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
+
+    # re-install any specs_to_add
+    def find_first(dists, package_name):
+        return next((d for d in dists if d.name == package_name), None)
+
+    for spec in specs_to_add:
+        spec_name = MatchSpec(spec).name
+        old_dist_with_same_name = find_first(old_linked_dists, spec_name)
+        if old_dist_with_same_name:
+            _dists_for_unlinking.add(old_dist_with_same_name)
+
+        new_dist_with_same_name = find_first(solved_dists, spec_name)
+        if new_dist_with_same_name:
+            _dists_for_linking.add(new_dist_with_same_name)
+
+    return _dists_for_unlinking, _dists_for_linking
+
+
+def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
+    # this is not for force-removing packages, which doesn't invoke the solver
+
+    solved_dists = solve_prefix(prefix, r, specs_to_remove, specs_to_add, prune)
+    dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists)
+
+    if context.force:
+        dists_for_unlinking, dists_for_linking = forced_reinstall_specs(prefix, solved_dists,
+                                                                        dists_for_unlinking,
+                                                                        dists_for_linking,
+                                                                        specs_to_add)
+
+    # actions = get_blank_actions(prefix)
+    # actions['UNLINK'].extend(reversed(dists_for_unlinking))
+    # actions['LINK'].extend(dists_for_linking)
+    # return actions
+    return dists_for_unlinking, dists_for_linking
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
                           update_deps, pinned):
     root_only = ('conda', 'conda-env')
@@ -696,7 +1008,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
     actions = ensure_linked_actions(
         smh, prefix,
         index=r.index,
-        force=force, always_copy=always_copy)
+        force=force)
 
     if actions[LINK]:
         actions[SYMLINK_CONDA] = [context.root_prefix]
@@ -713,22 +1025,24 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
 
 
 def augment_specs(prefix, specs, pinned=True):
+    _specs = list(specs)
+
     # get conda-meta/pinned
-    if pinned:
+    if context.respect_pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s", pinned_specs)
-        specs += [MatchSpec(spec) for spec in pinned_specs]
+        _specs += [MatchSpec(spec) for spec in pinned_specs]
 
     # support aggressive auto-update conda
     #   Only add a conda spec if conda and conda-env are not in the specs.
     #   Also skip this step if we're offline.
     root_only = ('conda', 'conda-env')
-    mss = [MatchSpec(s) for s in specs if s.name.startswith(root_only)]
+    mss = [MatchSpec(s) for s in _specs if s.name.startswith(root_only)]
     mss = [ms for ms in mss if ms.name in root_only]
     if is_root_prefix(prefix):
         if context.auto_update_conda and not context.offline and not mss:
-            specs.append(MatchSpec('conda'))
-            specs.append(MatchSpec('conda-env'))
+            _specs.append(MatchSpec('conda'))
+            _specs.append(MatchSpec('conda-env'))
     elif basename(prefix).startswith('_'):
         # anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
@@ -738,8 +1052,8 @@ def augment_specs(prefix, specs, pinned=True):
 
     # support track_features config parameter
     if context.track_features:
-        specs.extend(x + '@' for x in context.track_features)
-    return specs
+        _specs.extend(x + '@' for x in context.track_features)
+    return _specs
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
@@ -779,7 +1093,8 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                 raise RemoveError("Error: this 'remove' command cannot be executed because it\n"
                                   "would require removing 'conda' dependencies")
         add_unlink(actions, old_dist)
-
+    actions['SPECS'].extend(specs)
+    actions['ACTION'].append('REMOVE')
     return actions
 
 
@@ -829,8 +1144,7 @@ def revert_actions(prefix, revision=-1, index=None):
 
 def execute_actions(actions, index, verbose=False):
     plan = plan_from_actions(actions, index)
-    with History(actions[PREFIX]):
-        execute_instructions(plan, index, verbose)
+    execute_instructions(plan, index, verbose)
 
 
 def update_old_plan(old_plan):

@@ -8,6 +8,8 @@ import os
 from os.path import basename, isdir, isfile, join
 import tarfile
 
+from conda.history import History
+from conda.resolve import MatchSpec
 from .base.context import context
 from .common.compat import on_win
 from .core.link import UnlinkLinkTransaction
@@ -101,11 +103,16 @@ def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):
-    unlink_dists, link_dists = arg
+    unlink_dists, link_dists, axn, specs = arg
     index = state['index']
     prefix = state['prefix']
     txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists)
+
+    h = History(prefix)
+    h.init_log_file()
     txn.execute()
+    h.update()
+    h.write_specs(axn, specs)
 
 
 def check_files_in_package(source_dir, files):

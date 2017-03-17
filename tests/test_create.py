@@ -3,15 +3,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bz2
 from contextlib import contextmanager
+from errno import EACCES
 from glob import glob
 import json
 from json import loads as json_loads
 from logging import DEBUG, getLogger
 import os
-from os.path import basename, exists, isdir, isfile, join, relpath, dirname
+from os.path import basename, exists, isdir, isfile, join, relpath, dirname, lexists
 from random import sample
 from shlex import split
 from shutil import copyfile, rmtree
+from stat import S_IRWXG
+from stat import S_IRWXU, S_IRWXO
 from subprocess import check_call
 import sys
 from tempfile import gettempdir
@@ -40,7 +43,7 @@ from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.compat import itervalues, text_type, PY2
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level, \
-    env_var
+    env_var, argv
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
@@ -132,12 +135,13 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     arguments = list(map(escape_for_winpath, arguments))
     command_line = "{0} {1}".format(command, " ".join(arguments))
+    split_command_line = split(command_line)
 
-    args = p.parse_args(split(command_line))
+    args = p.parse_args(split_command_line)
     context._set_argparse_args(args)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with captured() as c, replace_log_streams():
+        with argv(['python_api'] + split_command_line), captured() as c, replace_log_streams():
             if use_exception_handler:
                 conda_exception_handler(args.func, args, p)
             else:
@@ -161,6 +165,23 @@ def make_temp_env(*packages, **kwargs):
             yield prefix
         finally:
             rmtree(prefix, ignore_errors=True)
+
+
+def create_temp_location():
+    tempdirdir = gettempdir()
+    dirname = str(uuid4())[:8]
+    return join(tempdirdir, dirname)
+
+
+@contextmanager
+def tempdir():
+    prefix = create_temp_location()
+    try:
+        os.makedirs(prefix)
+        yield prefix
+    finally:
+        if lexists(prefix):
+            rm_rf(prefix)
 
 
 def reload_config(prefix):
@@ -210,12 +231,12 @@ class IntegrationTests(TestCase):
             packages = json.loads(stdout)
             assert len(packages) > 1
 
-    def test_create_install_update_remove(self):
+    def test_create_install_update_remove_smoketest(self):
         with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-3')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.10`')
+            run_command(Commands.INSTALL, prefix, 'flask=0.10')
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python-3')
 
@@ -1000,104 +1021,104 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
 
-    @patch.object(Context, 'prefix_specified')
-    def test_preferred_env(self, prefix_specified):
-        prefix_specified.__get__ = Mock(return_value=False)
-        preferred_env = "_spiffy-test-app_"
-        pkgs_dirs = ','.join(context.pkgs_dirs)
-
-        with make_temp_env() as prefix:
-            with env_var('CONDA_PATH_CONFLICT', 'prevent', reset_context):
-                with env_var('CONDA_ROOT_PREFIX', prefix, reset_context):
-                    with env_var('CONDA_PKGS_DIRS', pkgs_dirs, reset_context):
-                        preferred_env_prefix = join(prefix, 'envs', preferred_env)
-
-                        # simple progression install then uninstall
-                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app")
-                        assert not package_is_installed(prefix, "spiffy-test-app")
-                        assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
-                        assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
-
-                        run_command(Commands.INSTALL, prefix, "-c conda-test uses-spiffy-test-app")
-                        assert not package_is_installed(prefix, "uses-spiffy-test-app")
-                        assert package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
-
-                        run_command(Commands.REMOVE, prefix, "uses-spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
-
-                        run_command(Commands.REMOVE, prefix, "spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
-
-
-                        # install uses-spiffy-test-app, uninstall spiffy-test-app
-                        run_command(Commands.INSTALL, prefix, "-c conda-test uses-spiffy-test-app")
-                        assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
-                        assert package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
-
-                        run_command(Commands.REMOVE, prefix, "spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
-
-
-                        # install spiffy-test-app 1.0, then update
-                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
-                        assert package_is_installed(prefix, "spiffy-test-app")
-
-                        run_command(Commands.UPDATE, prefix, "-c conda-test spiffy-test-app")
-                        assert not package_is_installed(prefix, "spiffy-test-app")
-                        assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
-
-                        run_command(Commands.REMOVE, prefix, "spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
-
-
-                        # install spiffy-test-app 1.0, then install spiffy-test-app 2.0
-                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
-                        assert package_is_installed(prefix, "spiffy-test-app")
-
-                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=2")
-                        assert not package_is_installed(prefix, "spiffy-test-app")
-                        assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
-
-                        run_command(Commands.REMOVE, prefix, "spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
-
-
-                        # install spiffy-test-app 2.0, then spiffy-test-app 1.0
-                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app")
-                        assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
-
-                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
-                        assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
-                        assert package_is_installed(prefix, "spiffy-test-app")
-
-
-                        # install spiffy-test-app 2.0, then uses-spiffy-test-app 1.0
-                        run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app")
-                        assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
-                        assert not package_is_installed(prefix, "spiffy-test-app")
-                        assert not package_is_installed(prefix, "uses-spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
-
-                        run_command(Commands.INSTALL, prefix, "-c conda-test uses-spiffy-test-app=1")
-                        assert package_is_installed(prefix, "spiffy-test-app")
-                        assert package_is_installed(prefix, "uses-spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
-                        assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
-
-
-                        # install spiffy-test-app 2.0 in root, then install uses-spiffy-test-app
-                        # this one will need a different test class to toggle context.prefix_specified between installs
-
-
-                        #
-                        # # can we go backwards?  If we do, we need to make sure that any other registered private env package also gets moved back to the root_prefix
-                        # run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
-                        # assert package_is_installed(prefix, "spiffy-test-app")
-                        # assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
-                        # assert not package_is_installed(join(prefix, 'envs', preferred_env), "spiffy-test-app")
-                        #
-
+    # @patch.object(Context, 'prefix_specified')
+    # def test_preferred_env(self, prefix_specified):
+    #     prefix_specified.__get__ = Mock(return_value=False)
+    #     preferred_env = "_spiffy-test-app_"
+    #     pkgs_dirs = ','.join(context.pkgs_dirs)
+    #
+    #     with make_temp_env() as prefix:
+    #         with env_var('CONDA_PATH_CONFLICT', 'prevent', reset_context):
+    #             with env_var('CONDA_ROOT_PREFIX', prefix, reset_context):
+    #                 with env_var('CONDA_PKGS_DIRS', pkgs_dirs, reset_context):
+    #                     preferred_env_prefix = join(prefix, 'envs', preferred_env)
+    #
+    #                     # simple progression install then uninstall
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app")
+    #                     assert not package_is_installed(prefix, "spiffy-test-app")
+    #                     assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+    #                     assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test uses-spiffy-test-app")
+    #                     assert not package_is_installed(prefix, "uses-spiffy-test-app")
+    #                     assert package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
+    #
+    #                     run_command(Commands.REMOVE, prefix, "uses-spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
+    #
+    #                     run_command(Commands.REMOVE, prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #
+    #
+    #                     # install uses-spiffy-test-app, uninstall spiffy-test-app
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test uses-spiffy-test-app")
+    #                     assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #                     assert package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
+    #
+    #                     run_command(Commands.REMOVE, prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
+    #
+    #
+    #                     # install spiffy-test-app 1.0, then update
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
+    #                     assert package_is_installed(prefix, "spiffy-test-app")
+    #
+    #                     run_command(Commands.UPDATE, prefix, "-c conda-test spiffy-test-app")
+    #                     assert not package_is_installed(prefix, "spiffy-test-app")
+    #                     assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #
+    #                     run_command(Commands.REMOVE, prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #
+    #
+    #                     # install spiffy-test-app 1.0, then install spiffy-test-app 2.0
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
+    #                     assert package_is_installed(prefix, "spiffy-test-app")
+    #
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=2")
+    #                     assert not package_is_installed(prefix, "spiffy-test-app")
+    #                     assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #
+    #                     run_command(Commands.REMOVE, prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #
+    #
+    #                     # install spiffy-test-app 2.0, then spiffy-test-app 1.0
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app")
+    #                     assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
+    #                     assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #                     assert package_is_installed(prefix, "spiffy-test-app")
+    #
+    #
+    #                     # install spiffy-test-app 2.0, then uses-spiffy-test-app 1.0
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app")
+    #                     assert package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(prefix, "uses-spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
+    #
+    #                     run_command(Commands.INSTALL, prefix, "-c conda-test uses-spiffy-test-app=1")
+    #                     assert package_is_installed(prefix, "spiffy-test-app")
+    #                     assert package_is_installed(prefix, "uses-spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "spiffy-test-app")
+    #                     assert not package_is_installed(preferred_env_prefix, "uses-spiffy-test-app")
+    #
+    #
+    #                     # install spiffy-test-app 2.0 in root, then install uses-spiffy-test-app
+    #                     # this one will need a different test class to toggle context.prefix_specified between installs
+    #
+    #
+    #                     #
+    #                     # # can we go backwards?  If we do, we need to make sure that any other registered private env package also gets moved back to the root_prefix
+    #                     # run_command(Commands.INSTALL, prefix, "-c conda-test spiffy-test-app=1")
+    #                     # assert package_is_installed(prefix, "spiffy-test-app")
+    #                     # assert isfile(join(prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+    #                     # assert not package_is_installed(join(prefix, 'envs', preferred_env), "spiffy-test-app")
+    #                     #
+    #
 
 
     def test_conda_list_json(self):
@@ -1123,3 +1144,256 @@ class IntegrationTests(TestCase):
             packages = [pkg_info(package) for package in stdout_json]
             python_package = next((p for p in packages if p['name'] == 'python'), None)
             assert python_package['version'] == '3.5.2'
+
+
+@pytest.mark.integration
+class PrivateEnvIntegrationTests(TestCase):
+
+    def setUp(self):
+        PackageCache.clear()
+
+        self.pkgs_dirs = ','.join(context.pkgs_dirs)
+        self.prefix = create_temp_location()
+        run_command(Commands.CREATE, self.prefix)
+
+        self.preferred_env = "_spiffy-test-app_"
+        self.preferred_env_prefix = join(self.prefix, 'envs', self.preferred_env)
+
+        self.save_path_conflict = os.environ.get('CONDA_PATH_CONFLICT')
+        self.save_root_prefix = os.environ.get('CONDA_ROOT_PREFIX')
+        self.save_pkgs_dirs = os.environ.get('CONDA_PKGS_DIRS')
+
+        os.environ['CONDA_PATH_CONFLICT'] = 'prevent'
+        os.environ['CONDA_ROOT_PREFIX'] = self.prefix
+        os.environ['CONDA_PKGS_DIRS'] = self.pkgs_dirs
+
+        reset_context()
+
+    def tearDown(self):
+        rm_rf(self.prefix)
+
+        if self.save_path_conflict is not None:
+            os.environ['CONDA_PATH_CONFLICT'] = self.save_path_conflict
+        if self.save_root_prefix is not None:
+            os.environ['CONDA_ROOT_PREFIX'] = self.save_root_prefix
+        if self.save_pkgs_dirs is not None:
+            os.environ['CONDA_PKGS_DIRS'] = self.save_pkgs_dirs
+        reset_context()
+
+    @patch.object(Context, 'prefix_specified')
+    def test_simple_install_uninstall(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # >> simple progression install then uninstall <<
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+
+        run_command(Commands.REMOVE, self.prefix, "uses-spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+
+        run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_dep_uninstall_base(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # >> install uses-spiffy-test-app, uninstall spiffy-test-app <<
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
+
+        run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_base_1_then_update(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # >> install spiffy-test-app 1.0, then update <<
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        assert package_is_installed(self.prefix, "spiffy-test-app")
+
+        run_command(Commands.UPDATE, self.prefix, "-c conda-test spiffy-test-app")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+
+        run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_base_then_remove_from_private_env(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # >> install spiffy-test-app, then remove from preferred env <<
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+
+        run_command(Commands.REMOVE, self.preferred_env_prefix, "spiffy-test-app")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_base_1_then_install_base_2(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # >> install spiffy-test-app 1.0, then install spiffy-test-app 2.0 <<
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        assert package_is_installed(self.prefix, "spiffy-test-app")
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=2")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+
+        run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_base_2_then_install_base_1(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # >> install spiffy-test-app 2.0, then spiffy-test-app 1.0 <<
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert package_is_installed(self.prefix, "spiffy-test-app")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_base_2_then_install_dep_1(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # install spiffy-test-app 2.0, then uses-spiffy-test-app 1.0,
+        #   which should suck spiffy-test-app back to the root prefix
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert not package_is_installed(self.prefix, "spiffy-test-app")
+        assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app=1")
+        assert package_is_installed(self.prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "uses-spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_dep_2_then_install_base_1(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        # install uses-spiffy-test-app 2.0, then spiffy-test-app 1.0,
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "spiffy-test-app-1")
+        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+
+    @patch.object(Context, 'prefix_specified')
+    def test_install_base_1_dep_2_together(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1 uses-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "spiffy-test-app-1")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_a(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
+        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "needs-spiffy-test-app")
+        assert package_is_installed(self.prefix, "uses-spiffy-test-app-2")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_b(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app uses-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "needs-spiffy-test-app")
+
+    @patch.object(Context, 'prefix_specified')
+    def test_c(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
+        assert package_is_installed(self.prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "needs-spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+
+        run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=2")  # nothing to do
+        assert package_is_installed(self.prefix, "spiffy-test-app-2")
+        assert package_is_installed(self.prefix, "needs-spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
+
+
+
+            # @patch.object(Context, 'prefix_specified')
+    # def test_install_dep_2_then_force_base_2_root(self, prefix_specified):
+    #     prefix_specified.__get__ = Mock(return_value=False)
+    #
+    #     # install uses-spiffy-test-app 2.0, then force spiffy-test-app 2.0 root_prefix install,
+    #     #   which should suck uses-spiffy-test-app back to the root prefix
+    #
+    #     run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
+    #     assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+    #     assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+    #
+    #     prefix_specified.__get__ = Mock(return_value=True)
+    #
+    #     run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
+    #     assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+    #     assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+    #     assert package_is_installed(self.prefix, "spiffy-test-app")
+    #     assert package_is_installed(self.prefix, "uses-spiffy-test-app")
+    #
+    # this might be the same as install dep_2, then install base_1
+
+
+
+            # >> install spiffy-test-app 2.0 in root, then install uses-spiffy-test-app <<
+        # this one will need a different test class to toggle context.prefix_specified between installs
+
+        # >> install spiffy-test-app 2.0 in root, then install spiffy-test-app=2 without prefix specification <<
+
+
+
