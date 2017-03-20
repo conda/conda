@@ -28,6 +28,7 @@ rc_list_keys = [
     'create_default_packages',
     'track_features',
     'envs_dirs',
+    'pkgs_dirs',
     'default_channels',
 ]
 
