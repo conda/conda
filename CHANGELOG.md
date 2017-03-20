@@ -4,13 +4,20 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.15 (unreleased)
+## 4.3.15 (2017-03-20)
+
+### Improvements
+* allow pkgs_dirs to be configured using `conda config` (#4895)
 
 ### Bug Fixes
 * remove incorrect elision of delete_prefix_from_linked_data() (#4814)
 * fix envs_dirs order for read-only root prefix (#4821)
 * fix break-point in conda clean (#4801)
 * fix long shebangs when creating entry points (#4828)
+* fix spelling and typos (#4868, #4869)
+* fix #4840 TypeError reduce() of empty sequence with no initial value (#4843)
+* fix zos subdir (#4875)
+* fix exceptions triggered during activate (#4873)
 
 
 ## 4.3.14 (2017-03-03)
