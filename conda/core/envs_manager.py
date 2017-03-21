@@ -23,9 +23,9 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
 
 try:
-    from cytoolz.itertoolz import concatv
+    from cytoolz.itertoolz import concatv, groupby
 except ImportError:
-    from .._vendor.toolz.itertoolz import concatv
+    from .._vendor.toolz.itertoolz import concatv, groupby
 
 log = getLogger(__name__)
 
@@ -211,15 +211,15 @@ class EnvsDirectory(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.write_to_disk()
 
+    # ############################
+    # registered envs
+    # ############################
+
     def to_prefix(self, env_name):
         if env_name in (None, ROOT_ENV_NAME):
             return self.root_dir
         else:
-            return join(self.envs_dir, env_name)
-
-    # ############################
-    # registered envs
-    # ############################
+            return join(self.envs_dir, ensure_pad(env_name))
 
     def get_registered_env_by_name(self, env_name, default=None):
         if env_name is None:
@@ -356,7 +356,11 @@ class EnvsDirectory(object):
 
     def get_registered_packages(self):
         # returns Map[package_name, env_name]
-        return {pep['package_name']: pep['preferred_env_name'] for pep in self._preferred_env_packages}
+        return {pep['package_name']: pep for pep in self._preferred_env_packages}
+
+    def get_registered_packages_keyed_on_env_name(self):
+        get_env_name = lambda x: x['preferred_env_name']
+        return groupby(get_env_name, self._preferred_env_packages)
 
     def prefix_if_in_private_env(self, spec_str):
         # TODO: get rid of this

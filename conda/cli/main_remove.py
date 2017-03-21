@@ -29,7 +29,12 @@ from ..console import json_progress_bars
 from ..core.index import get_index
 from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
 from ..gateways.disk.delete import delete_trash
-from ..resolve import Resolve
+from ..resolve import Resolve, MatchSpec
+
+try:
+    from cytoolz.itertoolz import groupby
+except ImportError:
+    from .._vendor.toolz.itertoolz import groupby
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -112,9 +117,16 @@ def configure_parser(sub_parsers, name='remove'):
 
 def create_prefix_spec_map_with_deps(r, specs, default_prefix):
     from ..core.envs_manager import EnvsDirectory
+    ed = EnvsDirectory(join(context.root_prefix, 'envs'))
+    get_env = lambda s: ed.get_registered_preferred_env(MatchSpec(s).name)
+    env_spec_map = groupby(get_env, specs)
+    for spec in specs:
+        ed.get_registered_preferred_env(MatchSpec(spec).name)
+
+
     prefix_spec_map = {}
     for spec in specs:
-        spec_prefix = EnvsDirectory(join(context.root_prefix, 'envs')).prefix_if_in_private_env(spec)
+        spec_prefix = ed.prefix_if_in_private_env(spec)
         spec_prefix = spec_prefix if spec_prefix is not None else default_prefix
         if spec_prefix in prefix_spec_map.keys():
             prefix_spec_map[spec_prefix].add(spec)
@@ -127,6 +139,7 @@ def create_prefix_spec_map_with_deps(r, specs, default_prefix):
             for linked_spec in linked:
                 if not linked_spec.name.startswith(spec) and r.depends_on(spec, linked_spec):
                     prefix_spec_map[spec_prefix].add(linked_spec.name)
+    import pdb; pdb.set_trace()
     return prefix_spec_map
 
 
@@ -161,7 +174,7 @@ def execute(args, parser):
         specs = ['@' + f for f in set(args.package_names)]
         actions = plan.remove_actions(prefix, specs, index, pinned=context.respect_pinned)
         actions['ACTION'] = 'REMOVE_FEATURE'
-        action_groups = actions,
+        action_groups = (actions, index),
     elif args.all:
         if plan.is_root_prefix(prefix):
             raise CondaEnvironmentError('cannot remove root environment,\n'
@@ -171,26 +184,43 @@ def execute(args, parser):
         for dist in sorted(iterkeys(index)):
             plan.add_unlink(actions, dist)
         actions['ACTION'] = 'REMOVE_ALL'
-        action_groups = actions,
+        action_groups = (actions, index),
+    elif prefix == context.root_prefix and not context.prefix_specified:
+        from ..core.envs_manager import EnvsDirectory
+        ed = EnvsDirectory(join(context.root_prefix, 'envs'))
+        get_env = lambda s: ed.get_registered_preferred_env(MatchSpec(s).name)
+        specs = specs_from_args(args.package_names)
+        env_spec_map = groupby(get_env, specs)
+        action_groups = []
+        for env_name, spcs in iteritems(env_spec_map):
+            pfx = ed.to_prefix(env_name)
+            r = plan.get_resolve_object(index.copy(), pfx)
+            specs_to_remove = tuple(MatchSpec(s) for s in spcs)
+            prune = pfx != context.root_prefix
+            dists_for_unlinking, dists_for_linking = plan.solve_for_actions(
+                pfx, r,
+                specs_to_remove=specs_to_remove, prune=prune,
+            )
+            actions = plan.get_blank_actions(pfx)
+            actions['UNLINK'].extend(dists_for_unlinking)
+            actions['LINK'].extend(dists_for_linking)
+            actions['SPECS'].extend(s.spec for s in specs_to_remove)
+            actions['ACTION'] = 'REMOVE'
+            action_groups.append((actions, r.index))
+        action_groups = tuple(action_groups)
+
     else:
         specs = specs_from_args(args.package_names)
-        r = Resolve(index)
-        prefix_spec_map = create_prefix_spec_map_with_deps(r, specs, prefix)
-
         if (context.conda_in_root and plan.is_root_prefix(prefix) and names_in_specs(
                 ROOT_NO_RM, specs) and not args.force):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
-        actions = []
-        for prfx, spcs in iteritems(prefix_spec_map):
-            index = linked_data(prfx)
-            index = {dist: info for dist, info in iteritems(index)}
-            actions.append(plan.remove_actions(prfx, list(spcs), index=index, force=args.force,
-                                               pinned=context.respect_pinned))
-        action_groups = tuple(actions)
+        action_groups = (plan.remove_actions(prefix, list(specs), index=index, force=args.force,
+                                               pinned=context.respect_pinned), index),
+
 
     delete_trash()
-    if any(plan.nothing_to_do(actions) for actions in action_groups):
+    if any(plan.nothing_to_do(x[0]) for x in action_groups):
         if args.all:
             print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
             if not context.json:
@@ -200,34 +230,33 @@ def execute(args, parser):
             if context.json:
                 stdout_json({
                     'success': True,
-                    'actions': action_groups
+                    'actions': tuple(x[0] for x in action_groups)
                 })
             return
         error_message = 'no packages found to remove from environment: %s' % prefix
         raise PackageNotFoundError(error_message)
-    for action in action_groups:
-        if not context.json:
+    if not context.json:
+        for actions, ndx in action_groups:
             print()
-            print("Package plan for package removal in environment %s:" % action["PREFIX"])
-            plan.display_actions(action, index)
-
-        if context.json and args.dry_run:
-            stdout_json({
-                'success': True,
-                'dry_run': True,
-                'actions': action_groups
-            })
-            return
+            print("Package plan for package removal in environment %s:" % actions["PREFIX"])
+            plan.display_actions(actions, ndx)
+    elif context.json and args.dry_run:
+        stdout_json({
+            'success': True,
+            'dry_run': True,
+            'actions': tuple(x[0] for x in action_groups),
+        })
+        return
 
     if not context.json:
         confirm_yn(args)
 
-    for actions in action_groups:
+    for actions, ndx in action_groups:
         if context.json and not context.quiet:
             with json_progress_bars():
-                plan.execute_actions(actions, index, verbose=not context.quiet)
+                plan.execute_actions(actions, ndx, verbose=not context.quiet)
         else:
-            plan.execute_actions(actions, index, verbose=not context.quiet)
+            plan.execute_actions(actions, ndx, verbose=not context.quiet)
 
         target_prefix = actions["PREFIX"]
         if is_private_env_path(target_prefix) and linked_data(target_prefix) == {}:
@@ -239,5 +268,5 @@ def execute(args, parser):
     if context.json:
         stdout_json({
             'success': True,
-            'actions': actions
+            'actions': tuple(x[0] for x in action_groups),
         })
