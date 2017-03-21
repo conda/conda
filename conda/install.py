@@ -82,7 +82,7 @@ if on_win:
 
     def win_conda_unix_redirect(src, dst, shell):
         """Special function for Windows where the os.symlink function
-        is unavailable due to a lack of user priviledges.
+        is unavailable due to a lack of user privileges.
 
         Simply creates a source-able intermediate file.
         """
