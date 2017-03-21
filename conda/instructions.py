@@ -103,9 +103,9 @@ def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):
-    prefix, unlink_dists, link_dists, axn, specs, ensure_unregistered = arg
+    prefix, unlink_dists, link_dists, axn, specs = arg
     index = state['index']
-    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists, specs, ensure_unregistered)
+    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists, specs)
 
     h = History(prefix)
     h.init_log_file()

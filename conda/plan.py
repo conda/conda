@@ -290,7 +290,7 @@ def handle_menuinst(unlink_dists, link_dists):
     return unlink_dists, link_dists
 
 
-def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs, ensure_unregistered):
+def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
     # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:
@@ -303,10 +303,10 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs, ensure_unregis
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (prefix, unlink_dists, link_dists, axn, specs, ensure_unregistered)))
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (prefix, unlink_dists, link_dists, axn, specs)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
-        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), axn, specs, ensure_unregistered)))
+        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), axn, specs)))
 
     return plan
 
@@ -320,9 +320,8 @@ def plan_from_actions(actions, index):
     assert PREFIX in actions and actions[PREFIX]
     prefix = actions[PREFIX]
     plan = [('PREFIX', '%s' % actions[PREFIX])]
-    axn = actions['ACTION'] or None
-    specs = actions.get('SPECS')
-    ensure_unregistered = actions.get('ENSURE_UNREGISTERED')
+    axn = actions.get('ACTION') or None
+    specs = actions.get('SPECS', [])
 
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
@@ -342,7 +341,7 @@ def plan_from_actions(actions, index):
             log.debug("appending value {0} for action {1}".format(arg, op))
             plan.append((op, arg))
 
-    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs, ensure_unregistered)
+    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
 
     return plan
 
@@ -465,6 +464,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     """
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
+
     r = get_resolve_object(index.copy(), prefix)
     str_specs = specs
 
@@ -479,13 +479,26 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     return actions
 
 
+# def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
+#                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
+#                     channel_priority_map=None, is_update=False):  # pragma: no cover
+#
+#     specs = set(MatchSpec(s) for s in specs)
+#     unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),
+#                                                specs_to_add=specs)
+#     actions = get_blank_actions(prefix)
+#     actions['UNLINK'].extend(unlink_dists)
+#     actions['LINK'].extend(link_dists)
+#     actions['SPECS'].extend(s.spec for s in specs)
+#     actions['ACTION'] = 'INSTALL'
+#     return actions
+
+
 def install_actions_list(prefix, index, spec_strs, force=False, only_names=None, always_copy=False,
                          pinned=True, minimal_hint=False, update_deps=True, prune=False,
                          channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
-    str_specs = spec_strs
-    spec_strs = tuple(MatchSpec(spec) for spec in spec_strs)
 
     # split out specs into potentially multiple preferred envs if:
     #  1. the user default env (root_prefix) is the prefix being considered here
@@ -496,29 +509,14 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
         # if ANY package requesting a private env is required in the root env, all packages for
         #   that requested env must instead be installed in the root env
 
-
-
-        # split out specs by preferred env
-
-        # based on specs, determine which preferred_envs we need to solve for
-        # for any spec that matches a registered preferred_env package,
-
-
-        # determine target env for each spec
-
-
-
-        # move packages back to root env if they are registered
-
-
         root_r = get_resolve_object(index.copy(), context.root_prefix)
         def get_env_for_spec(spec):
             # use resolve's get_dists_for_spec() to find the "best" matching record
             return ensure_pad(root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]].preferred_env)
 
         # specs grouped by target env, the 'None' key holds the specs for the root env
-        env_add_map = groupby(get_env_for_spec, spec_strs)
-        requested_root_specs_to_add = {s.name: MatchSpec(s) for s in env_add_map.pop(None, ())}
+        env_add_map = groupby(get_env_for_spec, (MatchSpec(s) for s in spec_strs))
+        requested_root_specs_to_add = {s for s in env_add_map.pop(None, ())}
 
         ed = EnvsDirectory(join(context.root_prefix, 'envs'))
         registered_packages = ed.get_registered_packages_keyed_on_env_name()
@@ -529,43 +527,22 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
                                     pinned, minimal_hint, update_deps, prune,
                                     channel_priority_map, is_update)]
 
-
-        # if a spec is already registered, we'll need to do special things for it
-
-        # if a package is registered, but the package is now needed in the root env,
-        # it must be unregistered and moved to the root env,
-        # if there are no more registered packages for that private env, it can be removed entirely
-        # but if there are still registered packages for that private env, it must stay
-
-        # if a package wants a private env, but it must be in the root env because of root env depdencies, it must stay in the root env
-
-        # packages cannot be simultaneously registered and also required in the root env
-
-
-        # if needed, first solve for the root env case if root_env in env_map
-
-        # now we have a list of required package names in root
-
-
-
-        root_specs_to_remove = set(MatchSpec(MatchSpec(s).name) for s in concat(itervalues(env_add_map)))
+        root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
         required_root_dists = solve_prefix(context.root_prefix, root_r,
                                            specs_to_remove=root_specs_to_remove,
-                                           specs_to_add=tuple(itervalues(requested_root_specs_to_add)),
+                                           specs_to_add=requested_root_specs_to_add,
                                            prune=True)
-        required_root_specs = tuple(d.to_matchspec() for d in required_root_dists)
         required_root_package_names = tuple(d.name for d in required_root_dists)
 
-        forced_root_specs_to_add = {}
-
         # first handle pulling back requested specs to root
+        forced_root_specs_to_add = set()
         pruned_env_add_map = defaultdict(list)
         for env_name, specs in iteritems(env_add_map):
             for spec in specs:
                 spec_name = MatchSpec(spec).name
                 # if any(root_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):
                 if spec_name in required_root_package_names:
-                    forced_root_specs_to_add[spec_name] = spec
+                    forced_root_specs_to_add.add(spec)
                 else:
                     pruned_env_add_map[env_name].append(spec)
         env_add_map = pruned_env_add_map
@@ -581,269 +558,47 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
                         # add an entry in forced_root_specs_to_add
                         pname = pe['package_name']
                         env_remove_map[env_name].append(MatchSpec(pname))
-                        forced_root_specs_to_add[pname] = MatchSpec(pe['requested_spec'])
+                        forced_root_specs_to_add.add(MatchSpec(pe['requested_spec']))
                 break
 
         # TODO: now we might need one more check that any remaining registered packages don't depend on forced_root_specs_to_add or an updated required_root_package_names
 
-
-
-        # # problems are any packages that are registered, but are now needed in the root env
-        #
-        # maybe_ok_registered_names = []
-        #
-        # these_package_names = set(registered_packages)
-        # while these_package_names:
-        #     package_name = these_package_names.pop()
-        #     if package_name in required_root_package_names:
-        #         # ANY registered packages in this environment need to be pulled back
-        #         env_name = registered_packages[package_name]['preferred_env_name']
-        #
-        #         all_package_entries_from_env = (pe for pe in registered_packages if pe['preferred_env_name'] ==  env_name)
-        #         for pe in all_package_entries_from_env:
-        #             # add an entry in env_remove_map
-        #             # add an entry in forced_root_specs_to_add
-        #             pname = pe['package_name']
-        #             env_remove_map[env_name].append(pname)
-        #             forced_root_specs_to_add[pname] = MatchSpec(pe['requested_spec'])
-        #             these_package_names.discard(pname)
-        #
-        #     else:
-        #         maybe_ok_registered_names.append(package_name)
-        #
-        #
-        #
-        # for package_name in registered_packages:
-        #     if package_name in required_root_package_names:
-        #         # ANY registered packages in this environment need to be pulled back
-        #         env_name = registered_packages[package_name]['preferred_env_name']
-        #
-        #         all_package_entries_from_env = (pe for pe in registered_packages if pe['preferred_env_name'] ==  env_name)
-        #         for pe in all_package_entries_from_env:
-        #
-        #
-        #         # add an entry in env_remove_map
-        #         # add an entry in root_specs_to_add
-        #         requested_spec = preferred_env_package_entry['requested_spec']
-        #         env_remove_map[env_name].append(package_name)
-        #         root_specs_to_add[package_name] = MatchSpec(requested_spec)
-        #
-        #
-        #
-        #     else:
-        #         maybe_ok_registered_names.append(package_name)
-        #
-        # for env_name, spec in force_specs_to_root:
-        #     if any(root_r.depends_on(spec, n) for n in maybe_ok_registered_names):
-        #         # not ok, also must force to root
-
-
-        # problems = set(d.name for d in required_root_dists) & set(registered_packages)
-        # if problems:
-        #     # now we need to unregister each problem package, and prune that private environment
-        #     problem_envs_map = groupby(registered_packages.get, problems)
-        #
-        #     # for now, just use package name as spec; we'll probably need to improve this later
-        #     #  to improve, we'll probably need to record the user-requested spec when we
-        #     #  register the package for a private env
-        #     problem_specs = {p: MatchSpec(p) for p in problems}
-        #
-        #
-        #     # adjust env_map to remove problem specs
-        #     for p in problems:
-        #         problem_env_name = registered_packages[p]
-        #         problem_env_specs = env_add_map.get(problem_env_name)
-        #         if problem_env_specs is None:
-        #             # need to add an empty set of specs to prune and solve
-        #             # env_map[problem_env_name] = []
-        #             pass
-        #         else:
-        #             idx = next((q for q, s in enumerate(problem_env_specs) if s.name == p), None)
-        #             if idx is not None:
-        #                 problem_env_specs.pop(idx)
-        #
-        #     # TODO: unregister all problem packages, which means they are no longer user-requested specs for those private envs
-        #
-        #
-        #
-        #
-        #
-        # else:
-        #     problem_envs_map = {}
-        #     problem_specs = {}
-
-
         unlink_link_map = odict()
 
+        # solve all neede preferred_env prefixes
         for env_name in set(concatv(env_add_map, env_remove_map)):
-            specs_to_add = env_add_map.get(env_name, ())
-            spec_to_remove = env_remove_map.get(env_name, ())
+            specs_to_add = env_add_map[env_name]
+            spec_to_remove = env_remove_map[env_name]
             pfx = ed.preferred_env_to_prefix(env_name)
             unlink, link = solve_for_actions(pfx, get_resolve_object(index.copy(), pfx),
                                              specs_to_remove=spec_to_remove,
                                              specs_to_add=specs_to_add,
                                              prune=True)
-            unlink_link_map[env_name] = unlink, link, specs_to_add, None
+            unlink_link_map[env_name] = unlink, link, specs_to_add
 
-
-        # now let's try to get unlink_dists and link_dists for root
+        # now solve root prefix
         # we have to solve root a second time in all cases, because this time we don't prune
-        root_specs_to_unregister = set(MatchSpec(MatchSpec(s).name) for s in concat(itervalues(env_add_map)))
-        # root_specs_to_unregister = tuple(concat(itervalues(env_map)))
-        # problem_specs.update(root_specs_to_add)
-        root_specs_to_add = tuple(concatv(itervalues(requested_root_specs_to_add), itervalues(forced_root_specs_to_add)))
+        root_specs_to_add = set(concatv(requested_root_specs_to_add, forced_root_specs_to_add))
         root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
                                                    specs_to_remove=root_specs_to_remove,
                                                    specs_to_add=root_specs_to_add)
-        # but we also need to add potentially specs_to_remove here now ^^ , from the other private envs that aren't problem envs
-        # import pdb; pdb.set_trace()
         if root_unlink or root_link:
             # this needs to be added to odict last; the private envs need to be updated first
-
-            # env_unlink_names = set(d.name for g in itervalues(unlink_link_map) for d in g[0])
-
-            unlink_link_map[None] = root_unlink, root_link, root_specs_to_add, None
+            unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
 
 
-        #
-        # for env_name, spec_strs in iteritems(problem_envs_map):
-        #     pfx = ed.preferred_env_to_prefix(env_name)
-        #     env_requested_specs = {s.name: MatchSpec(s) for s in History(pfx).get_requested_specs()}
-        #     for s in spec_strs:
-        #         env_requested_specs.pop(MatchSpec(s).name)
-        #
-        #     unlink, root_link = solve_for_actions(context.root_prefix, root_r,
-        #                                           specs_to_remove=(),
-        #                                           specs_to_add=specs_to_add, prune=True)
-        #
-        #     import pdb; pdb.set_trace()
-        #
-        #
-        #
-        # for env_name, spec_strs in iteritems(env_map):
-        #     # TODO: adjust specs for problem specs
-        #
-        #     pfx = ed.preferred_env_to_prefix(env_name)
-        #     env_r = get_resolve_object(index.copy(), pfx)
-        #     unlink, link = solve_for_actions(pfx, env_r, specs_to_add=spec_strs, prune=True)
-        #     if unlink or link:
-        #         unlink_link_map[env_name] = unlink, link, spec_strs
-        #
 
-
-        # this is for other pruning that we haven't otherwise gotten to
-        # problem_envs_not_in_env_map = set(problem_envs_map) - set(env_add_map)
-
-
-        def make_actions(pfx, unlink, link, specs, ensure_unregistered):
+        def make_actions(pfx, unlink, link, specs):
             actions = get_blank_actions(pfx)
             actions['UNLINK'].extend(unlink)
             actions['LINK'].extend(link)
             actions['SPECS'].extend(s.spec for s in specs)
             actions['ACTION'] = 'INSTALL'
-            actions['ENSURE_UNREGISTERED'].extend(ensure_unregistered or ())
             return actions
 
         action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink) for env_name, oink in iteritems(unlink_link_map)]
 
         return action_groups
-
-
-
-
-
-
-
-        # root_specs = env_map.get(None, ())
-        # if root_specs:
-        #     # root_specs are both the specs that want to be, and the specs that have to be
-        #     # first solve for the want-to-be
-        #
-        #     pfx = context.root_prefix
-        #     required_dists = solve_prefix(pfx, get_resolve_object(index.copy(), pfx), specs_to_add=root_specs, prune=True)
-        #
-        #     # if link_dists matches any registered preferred_env_package, need to remove from preferred_env
-        #     ed = EnvsDirectory(join(context.root_prefix, 'envs'))
-        #
-        #     # problems are any packages that are registered, but are now needed in the root env
-        #     registered_packages = set(ed.get_registered_packages())
-        #     problems = set(d.name for d in required_dists) & registered_packages
-        #     import pdb; pdb.set_trace()
-        #
-        #     problems = groupby(ed.get_registered_preferred_env, (d.name for d in required_dists))
-        #     # for each problem, if there are no more registered packages for that private env,
-        #     #  that private env can be removed entirely
-        #     # otherwise, we just need to unregister that package, but keep it installed in the
-        #     #  private env
-
-
-
-        # now we need to modify env_map, and remove any packages that are required in the root env
-        #  if env_map requires modification, then those are the root_specs have-to-be packages
-        #  we'll need to solve the root prefix again with the have-to-bes included
-
-        # now we need to solve each non-root environment in env_map
-
-
-
-
-        # def get_actions(env_name, specs):
-        #     pfx = EnvsDirectory.preferred_env_to_prefix(env_name) if env_name else prefix
-        #     unlink, link = solve_for_actions(pfx, get_resolve_object(index.copy(), pfx), specs_to_add=specs)
-        #     actions = get_blank_actions(pfx)
-        #     actions['UNLINK'].extend(reversed(unlink))
-        #     actions['LINK'].extend(link)
-        #     return actions
-        #
-        # actions = [get_actions(env_name, specs) for env_name, specs in iteritems(env_map)]
-        # return actions
-
-
-
-
-        # dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
-        # # ensure_package_not_duplicated_in_private_env_root(dists_for_envs, linked_data(context.root_prefix))
-        # preferred_envs_with_specs = defaultdict(list)  # Map[env_name, package_name]
-        # for d in dists_for_envs:
-        #     preferred_envs_with_specs[d.env].append(d.spec)
-        #
-        # # Group specs by prefix
-        # grouped_specs = determine_dists_per_prefix(prefix, index, preferred_envs_with_specs, context)
-        #
-        # # Replace SpecsForPrefix specs with specs that were passed in in order to retain
-        # #   version information
-        # required_solves = match_to_original_specs(str_specs, grouped_specs)
-        #
-        # private_env_required_solves = tuple(s for s in required_solves if is_private_env_path(s.prefix))
-        # root_env_required_solves = tuple(s for s in required_solves if s.prefix == context.root_prefix)
-        #
-        # specs_in_private_envs = tuple(concatv(s.specs for s in private_env_required_solves))
-        # # if any specs_in_private_envs match packages in the root env, remove them
-        #
-        #
-        # # for private_env_required_solves, need to solve root prefix without any specs that are being transferred
-        # # if any requested specs being transferred to
-        # # private envs need to be removed from root prefix via remove_actions()
-        #
-        #
-        # # for slv in required_solves:
-        # #     specs_to_remove = None
-        # actions = [solve_for_actions(slv.prefix, slv.r, specs_to_add=slv.specs) for slv in required_solves]
-        #
-        #
-        #
-        # # actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
-        # #                                  always_copy, prune, update_deps, pinned)
-        # #            for dists_by_prefix in required_solves]
-        #
-        # # # TODO: any explicit spec we're about to install in a private env we need to uninstall from root_prefix if it exists
-        # # add_unlink_options_for_update(actions, required_solves, index)
-        # # Need to add unlink actions if updating a private env from root
-        # # if is_update and prefix == context.root_prefix:
-        # #     add_unlink_options_for_update(actions, required_solves, index)
-        #
-        # return actions
-
 
     else:
         # disregard any requested preferred env
@@ -861,8 +616,6 @@ def add_unlink_options_for_update(actions, required_solves, index):
 
     private_env_required_solves = tuple(s for s in required_solves if is_private_env_path(s.prefix))
     root_env_required_solves = tuple(s for s in required_solves if s.prefix == context.root_prefix)
-
-
 
 
     for solved in required_solves:
@@ -1095,25 +848,6 @@ def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=Fals
     # return actions
     dists_for_unlinking = IndexedSet(reversed(dists_for_unlinking))
     return dists_for_unlinking, dists_for_linking
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
