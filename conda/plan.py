@@ -528,10 +528,11 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
                                     channel_priority_map, is_update)]
 
         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
-        required_root_dists = solve_prefix(context.root_prefix, root_r,
-                                           specs_to_remove=root_specs_to_remove,
-                                           specs_to_add=requested_root_specs_to_add,
-                                           prune=True)
+        required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
+                                              specs_to_remove=root_specs_to_remove,
+                                              specs_to_add=requested_root_specs_to_add,
+                                              prune=True)
+
         required_root_package_names = tuple(d.name for d in required_root_dists)
 
         # first handle pulling back requested specs to root
@@ -585,8 +586,6 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
         if root_unlink or root_link:
             # this needs to be added to odict last; the private envs need to be updated first
             unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
-
-
 
         def make_actions(pfx, unlink, link, specs):
             actions = get_blank_actions(pfx)
@@ -750,9 +749,6 @@ def get_resolve_object(index, prefix):
 #     return matched_specs_for_prefix
 
 
-
-
-
 def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     # this function gives a "final state" for an existing prefix given just these simple inputs
 
@@ -766,12 +762,11 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     if solved_linked_dists and specs_to_remove:
         solved_linked_dists = r.remove(tuple(text_type(s) for s in specs_to_remove), solved_linked_dists)
 
-    r_linked = Resolve(linked_data(prefix))
+    # add in specs from requested history,
+    #   but not if we're requesting removal in this operation
     spec_names_to_remove = set(s.name for s in specs_to_remove)
     specs_map = {s.name: s for s in History(prefix).get_requested_specs()
-                 if s.name not in spec_names_to_remove  # don't add from history if we're requesting removal
-                 and not r_linked.find_matches(s)  # not already satisfied by installed packages
-                 }
+                 if s.name not in spec_names_to_remove}
 
     # replace specs matching same name with new specs_to_add
     specs_map.update({s.name: s for s in specs_to_add})
@@ -790,15 +785,26 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
 
     solved_linked_dists = IndexedSet(r.dependency_sort({d.name: d for d in solved_linked_dists}))
 
-    return solved_linked_dists
+    return solved_linked_dists, specs_to_add
 
 
-def sort_unlink_link_from_solve(prefix, solved_dists):
+def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
     # solved_dists should be the return value of solve_prefix()
     old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
 
     dists_for_unlinking = old_linked_dists - solved_dists
     dists_for_linking = solved_dists - old_linked_dists
+
+    # r_linked = Resolve(linked_data(prefix))
+    # for spec in remove_satisfied_specs:
+    #     if r_linked.find_matches(spec):
+    #         spec_name = spec.name
+    #         unlink_dist = next((d for d in dists_for_unlinking if d.name == spec_name), None)
+    #         link_dist = next((d for d in dists_for_linking if d.name == spec_name), None)
+    #         if unlink_dist:
+    #             dists_for_unlinking.discard(unlink_dist)
+    #         if link_dist:
+    #             dists_for_linking.discard(link_dist)
 
     return dists_for_unlinking, dists_for_linking
 
@@ -827,8 +833,9 @@ def forced_reinstall_specs(prefix, solved_dists, dists_for_unlinking, dists_for_
 def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     # this is not for force-removing packages, which doesn't invoke the solver
 
-    solved_dists = solve_prefix(prefix, r, specs_to_remove, specs_to_add, prune)
-    dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists)
+    solved_dists, _specs_to_add = solve_prefix(prefix, r, specs_to_remove, specs_to_add, prune)
+    dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists, _specs_to_add)
+    # TODO: this _specs_to_add part should be refactored when we can better pin package channel origin
 
     if context.force:
         dists_for_unlinking, dists_for_linking = forced_reinstall_specs(prefix, solved_dists,
@@ -845,76 +852,76 @@ def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=Fals
 
 
 
-def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
-                          update_deps, pinned):
-    root_only = ('conda', 'conda-env')
-    prefix = dists_for_prefix.prefix
-    dists = dists_for_prefix.specs
-    r = dists_for_prefix.r
-    specs = [MatchSpec(dist) for dist in dists]
-    specs = augment_specs(prefix, specs, pinned)
-
-    linked = linked_data(prefix)
-    must_have = odict()
-
-    installed = linked
-    if prune:
-        installed = []
-    pkgs = r.install(specs, installed, update_deps=update_deps)
-
-    for fn in pkgs:
-        dist = Dist(fn)
-        name = r.package_name(dist)
-        if not name or only_names and name not in only_names:
-            continue
-        must_have[name] = dist
-
-    if is_root_prefix(prefix):
-        # for name in foreign:
-        #     if name in must_have:
-        #         del must_have[name]
-        pass
-    elif basename(prefix).startswith('_'):
-        # anything (including conda) can be installed into environments
-        # starting with '_', mainly to allow conda-build to build conda
-        pass
-
-    elif any(s in must_have for s in root_only):
-        # the solver scheduled an install of conda, but it wasn't in the
-        # specs, so it must have been a dependency.
-        specs = [s for s in specs if r.depends_on(s, root_only)]
-        if specs:
-            raise InstallError("""\
-Error: the following specs depend on 'conda' and can only be installed
-into the root environment: %s""" % (' '.join(spec.name for spec in specs),))
-        linked = [r.package_name(s) for s in linked]
-        linked = [s for s in linked if r.depends_on(s, root_only)]
-        if linked:
-            raise InstallError("""\
-Error: one or more of the packages already installed depend on 'conda'
-and should only be installed in the root environment: %s
-These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
-        raise InstallError("Error: 'conda' can only be installed into the "
-                           "root environment")
-
-    smh = r.dependency_sort(must_have)
-    actions = ensure_linked_actions(
-        smh, prefix,
-        index=r.index,
-        force=force)
-
-    if actions[LINK]:
-        actions[SYMLINK_CONDA] = [context.root_prefix]
-
-    for dist in sorted(linked):
-        dist = Dist(dist)
-        name = r.package_name(dist)
-        replace_existing = name in must_have and dist != must_have[name]
-        prune_it = prune and dist not in smh
-        if replace_existing or prune_it:
-            add_unlink(actions, dist)
-
-    return actions
+# def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+#                           update_deps, pinned):
+#     root_only = ('conda', 'conda-env')
+#     prefix = dists_for_prefix.prefix
+#     dists = dists_for_prefix.specs
+#     r = dists_for_prefix.r
+#     specs = [MatchSpec(dist) for dist in dists]
+#     specs = augment_specs(prefix, specs, pinned)
+#
+#     linked = linked_data(prefix)
+#     must_have = odict()
+#
+#     installed = linked
+#     if prune:
+#         installed = []
+#     pkgs = r.install(specs, installed, update_deps=update_deps)
+#
+#     for fn in pkgs:
+#         dist = Dist(fn)
+#         name = r.package_name(dist)
+#         if not name or only_names and name not in only_names:
+#             continue
+#         must_have[name] = dist
+#
+#     if is_root_prefix(prefix):
+#         # for name in foreign:
+#         #     if name in must_have:
+#         #         del must_have[name]
+#         pass
+#     elif basename(prefix).startswith('_'):
+#         # anything (including conda) can be installed into environments
+#         # starting with '_', mainly to allow conda-build to build conda
+#         pass
+#
+#     elif any(s in must_have for s in root_only):
+#         # the solver scheduled an install of conda, but it wasn't in the
+#         # specs, so it must have been a dependency.
+#         specs = [s for s in specs if r.depends_on(s, root_only)]
+#         if specs:
+#             raise InstallError("""\
+# Error: the following specs depend on 'conda' and can only be installed
+# into the root environment: %s""" % (' '.join(spec.name for spec in specs),))
+#         linked = [r.package_name(s) for s in linked]
+#         linked = [s for s in linked if r.depends_on(s, root_only)]
+#         if linked:
+#             raise InstallError("""\
+# Error: one or more of the packages already installed depend on 'conda'
+# and should only be installed in the root environment: %s
+# These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
+#         raise InstallError("Error: 'conda' can only be installed into the "
+#                            "root environment")
+#
+#     smh = r.dependency_sort(must_have)
+#     actions = ensure_linked_actions(
+#         smh, prefix,
+#         index=r.index,
+#         force=force)
+#
+#     if actions[LINK]:
+#         actions[SYMLINK_CONDA] = [context.root_prefix]
+#
+#     for dist in sorted(linked):
+#         dist = Dist(dist)
+#         name = r.package_name(dist)
+#         replace_existing = name in must_have and dist != must_have[name]
+#         prune_it = prune and dist not in smh
+#         if replace_existing or prune_it:
+#             add_unlink(actions, dist)
+#
+#     return actions
 
 
 def augment_specs(prefix, specs, pinned=True):
@@ -992,19 +999,21 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
-    if force:
-        return _remove_actions(prefix, specs, index, force, pinned)
-    else:
-        specs = set(MatchSpec(s) for s in specs)
-        unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),
-                                                    specs_to_remove=specs)
-
-        actions = get_blank_actions(prefix)
-        actions['UNLINK'].extend(unlink_dists)
-        actions['LINK'].extend(link_dists)
-        actions['SPECS'].extend(specs)
-        actions['ACTION'] = 'REMOVE'
-        return actions
+    return _remove_actions(prefix, specs, index, force, pinned)
+    # TODO: can't do this yet because   py.test tests/test_create.py -k test_remove_features
+    # if force:
+    #     return _remove_actions(prefix, specs, index, force, pinned)
+    # else:
+    #     specs = set(MatchSpec(s) for s in specs)
+    #     unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),
+    #                                                  specs_to_remove=specs)
+    #
+    #     actions = get_blank_actions(prefix)
+    #     actions['UNLINK'].extend(unlink_dists)
+    #     actions['LINK'].extend(link_dists)
+    #     actions['SPECS'].extend(specs)
+    #     actions['ACTION'] = 'REMOVE'
+    #     return actions
 
 
 # def remove_spec_action_from_prefix(prefix, dist):

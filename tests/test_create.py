@@ -23,6 +23,8 @@ from uuid import uuid4
 
 import shutil
 
+from datetime import datetime
+
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
@@ -468,6 +470,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'mkl')
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 4, 1), reason="Bring back when we can pin packages to a channel by default", strict=True)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
@@ -968,6 +971,7 @@ class IntegrationTests(TestCase):
         finally:
             rmtree(prefix, ignore_errors=True)
 
+    # @pytest.mark.xfail(datetime.now() < datetime(2017, 4, 1), reason="Bring back when conda uninstall conda raises again", strict=True)
     def test_force_remove(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix):
