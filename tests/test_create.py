@@ -258,7 +258,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
 
-    # @pytest.mark.xfail(strict=True)
+    @pytest.mark.xfail(strict=True)
     def test_non_root_conda(self):
         with make_temp_env("python=3.5") as prefix:
             self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'conda')
@@ -472,6 +472,7 @@ class IntegrationTests(TestCase):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'conda-forge::python-3.5')
             run_command(Commands.INSTALL, prefix, "decorator")
             assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
@@ -495,21 +496,28 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'decorator')
 
     def test_install_prune(self):
-        with make_temp_env("python=2 decorator") as prefix:
-            assert_package_is_installed(prefix, 'decorator')
+        with make_temp_env("python=3 flask") as prefix:
+            assert package_is_installed(prefix, 'flask')
+            assert package_is_installed(prefix, 'python-3')
+            run_command(Commands.REMOVE, prefix, "flask")
+            assert not package_is_installed(prefix, 'flask')
+            assert package_is_installed(prefix, 'itsdangerous')
+            assert package_is_installed(prefix, 'python-3')
 
             # prune is a feature used by conda-env
             # conda itself does not provide a public API for it
             index = get_index_trap(prefix=prefix)
             actions_set = plan.install_actions_list(prefix,
                                                     index,
-                                                    spec_strs=['flask'],
+                                                    spec_strs=['pytz'],
                                                     prune=True)
             for actions in actions_set:
                 plan.execute_actions(actions, index, verbose=True)
 
-            assert_package_is_installed(prefix, 'flask')
-            assert not package_is_installed(prefix, 'decorator')
+            assert not package_is_installed(prefix, 'itsdangerous')
+            assert package_is_installed(prefix, 'pytz')
+            assert package_is_installed(prefix, 'python-3')
+
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
