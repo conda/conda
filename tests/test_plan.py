@@ -854,10 +854,11 @@ class PlanFromActionsTests(unittest.TestCase):
         menuinst_record = IndexRecord.from_objects(menuinst)
         ipython = Dist('ipython-5.1.0-py27_1')
         ipython_record = IndexRecord.from_objects(ipython)
-        actions = {
+        actions = defaultdict(list)
+        actions.update({
             'PREFIX': 'aprefix',
             'LINK': [ipython, menuinst],
-        }
+        })
 
         conda_plan = plan.plan_from_actions(actions, {
             menuinst: menuinst_record,
@@ -1259,8 +1260,8 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
                 with env_var("CONDA_ENVS_DIRS", join(root_prefix, 'envs'), reset_context):
                     env_path = join(root_prefix, 'envs', '_env_')
                     ed = EnvsDirectory(join(root_prefix, 'envs'))
-                    ed.add_preferred_env_package('_env_', 'test3', join(env_path, "conda-meta", "test3-1.2.0.json"))
-                    ed.add_preferred_env_package('_env_', 'test4', join(env_path, "conda-meta", "test4-2.1.0-22.json"))
+                    ed.add_preferred_env_package('_env_', 'test3', join(env_path, "conda-meta", "test3-1.2.0.json"), "test3")
+                    ed.add_preferred_env_package('_env_', 'test4', join(env_path, "conda-meta", "test4-2.1.0-22.json"), "test4")
                     required_solves = [plan.SpecsForPrefix(prefix=context.root_prefix,
                                                            specs=["test3", "test4"],
                                                            r=self.res)]

@@ -134,6 +134,9 @@ class MatchSpec(object):
             res = '%s (%s)' % (res, ','.join(args))
         return res
 
+    def to_json(self):
+        return self.__str__()
+
 
 class Resolve(object):
 

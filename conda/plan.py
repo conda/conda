@@ -290,7 +290,7 @@ def handle_menuinst(unlink_dists, link_dists):
     return unlink_dists, link_dists
 
 
-def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
+def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs, ensure_unregistered):
     # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:
@@ -303,8 +303,10 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists, axn, specs)))
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (prefix, unlink_dists, link_dists, axn, specs, ensure_unregistered)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
+    elif axn in ('INSTALL', 'CREATE'):
+        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), axn, specs, ensure_unregistered)))
 
     return plan
 
@@ -318,8 +320,9 @@ def plan_from_actions(actions, index):
     assert PREFIX in actions and actions[PREFIX]
     prefix = actions[PREFIX]
     plan = [('PREFIX', '%s' % actions[PREFIX])]
-    axn = actions.get('ACTION', (None,))[0]
+    axn = actions['ACTION'] or None
     specs = actions.get('SPECS')
+    ensure_unregistered = actions.get('ENSURE_UNREGISTERED')
 
     log.debug("Adding plans for operations: {0}".format(op_order))
     for op in op_order:
@@ -339,7 +342,7 @@ def plan_from_actions(actions, index):
             log.debug("appending value {0} for action {1}".format(arg, op))
             plan.append((op, arg))
 
-    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
+    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs, ensure_unregistered)
 
     return plan
 
@@ -472,7 +475,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy,
                                     prune, update_deps, pinned)
     actions['SPECS'].extend(str_specs)
-    actions['ACTION'].append('INSTALL')
+    actions['ACTION'] = 'INSTALL'
     return actions
 
 
@@ -511,6 +514,14 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
         # specs grouped by target env, the 'None' key holds the specs for the root env
         env_map = groupby(get_env_for_spec, spec_strs)
+        root_specs_to_add = {s.name: MatchSpec(s) for s in env_map.pop(None, ())}
+
+        if len(env_map) == 0:
+            # short-circuit the rest of this logic
+            return [install_actions(prefix, index, spec_strs, force, only_names, always_copy,
+                                    pinned, minimal_hint, update_deps, prune,
+                                    channel_priority_map, is_update)]
+
 
         # if a spec is already registered, we'll need to do special things for it
 
@@ -528,28 +539,35 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
         # now we have a list of required package names in root
 
-        root_requested_specs = {s.name: MatchSpec(s) for s in History(prefix).get_requested_specs()}
-        root_specs_to_add = {s.name: MatchSpec(s) for s in env_map.pop(None, ())}
-        root_requested_specs.update(root_specs_to_add)
-        # root_specs_to_remove = set(itervalues(env_map))
+        root_specs_to_remove = set(MatchSpec(MatchSpec(s).name) for s in concat(itervalues(env_map)))
         required_root_dists = solve_prefix(context.root_prefix, root_r,
-                                           specs_to_add=tuple(itervalues(root_requested_specs)),
+                                           specs_to_remove=root_specs_to_remove,
+                                           specs_to_add=tuple(itervalues(root_specs_to_add)),
                                            prune=True)
 
-        # test_r = Resolve({d: root_r.index[d] for d in required_root_dists})
-        # force_specs_to_root = []
-        # for spec in itervalues(env_map):
-        #     spec_name = MatchSpec(spec).name
-        #     if any(test_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):
-        #         force_specs_to_root.append(spec)
+        force_specs_to_root = []
+        for env_name, specs in iteritems(env_map):
+            for spec in specs:
+                spec_name = MatchSpec(spec).name
+                if any(root_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):
+                    force_specs_to_root.append((env_name, spec))
 
+        for env_name, spec in force_specs_to_root:
+            root_specs_to_add[spec.name] = spec
+            env_map[env_name].remove(spec)
+
+
+        # for spec in concat(itervalues(env_map)):
+        #     spec_name = MatchSpec(spec).name
+        #     if any(root_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):
+        #         force_specs_to_root.append(spec)
+        #         root_specs_to_add[spec.name] = spec
 
 
         # problems are any packages that are registered, but are now needed in the root env
         ed = EnvsDirectory(join(context.root_prefix, 'envs'))
         registered_packages = ed.get_registered_packages()
         problems = set(d.name for d in required_root_dists) & set(registered_packages)
-
 
 
         if problems:
@@ -597,22 +615,27 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
                                              specs_to_remove=specs_to_unregister,
                                              specs_to_add=specs_to_add,
                                              prune=True)
-            unlink_link_map[env_name] = unlink, link, specs_to_add
+            unlink_link_map[env_name] = unlink, link, specs_to_add, None
 
 
         # now let's try to get unlink_dists and link_dists for root
         # we have to solve root a second time in all cases, because this time we don't prune
-        root_specs_to_unregister = tuple(concat(itervalues(env_map)))
+        root_specs_to_unregister = set(MatchSpec(MatchSpec(s).name) for s in concat(itervalues(env_map)))
+        # root_specs_to_unregister = tuple(concat(itervalues(env_map)))
         problem_specs.update(root_specs_to_add)
         root_specs_to_add = tuple(itervalues(problem_specs))
         root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
                                                    specs_to_remove=root_specs_to_unregister,
                                                    specs_to_add=root_specs_to_add)
         # but we also need to add potentially specs_to_remove here now ^^ , from the other private envs that aren't problem envs
-
+        # import pdb; pdb.set_trace()
         if root_unlink or root_link:
             # this needs to be added to odict last; the private envs need to be updated first
-            unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
+
+            env_unlink_names = set(d.name for g in itervalues(unlink_link_map) for d in g[0])
+            ensure_unregistered = tuple(name for name in problems if name not in env_unlink_names)
+
+            unlink_link_map[None] = root_unlink, root_link, root_specs_to_add, ensure_unregistered
 
 
         #
@@ -644,17 +667,19 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
         # this is for other pruning that we haven't otherwise gotten to
         problem_envs_not_in_env_map = set(problem_envs_map) - set(env_map)
 
-        def make_actions(pfx, unlink, link, specs):
+
+        def make_actions(pfx, unlink, link, specs, ensure_unregistered):
             actions = get_blank_actions(pfx)
             actions['UNLINK'].extend(reversed(unlink))
             actions['LINK'].extend(link)
             actions['SPECS'].extend(s.spec for s in specs)
-            actions['ACTION'].append('INSTALL')
+            actions['ACTION'] = 'INSTALL'
+            actions['ENSURE_UNREGISTERED'].extend(ensure_unregistered or ())
             return actions
 
-        actions = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink) for env_name, oink in iteritems(unlink_link_map)]
+        action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink) for env_name, oink in iteritems(unlink_link_map)]
 
-        return actions
+        return action_groups
 
 
 
@@ -933,6 +958,7 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     specs_map = {s.name: s for s in History(prefix).get_requested_specs()}
     for spec in specs_to_remove:
         specs_map.pop(spec.name, None)
+
     specs_map.update({s.name: s for s in specs_to_add})
     specs_to_add = itervalues(specs_map)
 
@@ -1165,7 +1191,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
                                   "would require removing 'conda' dependencies")
         add_unlink(actions, old_dist)
     actions['SPECS'].extend(specs)
-    actions['ACTION'].append('REMOVE')
+    actions['ACTION'] = 'REMOVE'
     return actions
 
 

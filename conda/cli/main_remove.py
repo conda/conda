@@ -12,6 +12,8 @@ import logging
 from os.path import join
 import sys
 
+from collections import defaultdict
+
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
@@ -158,16 +160,17 @@ def execute(args, parser):
     if args.features:
         specs = ['@' + f for f in set(args.package_names)]
         actions = plan.remove_actions(prefix, specs, index, pinned=context.respect_pinned)
-        actions['ACTION'].append('REMOVE_FEATURE')
+        actions['ACTION'] = 'REMOVE_FEATURE'
         action_groups = actions,
     elif args.all:
         if plan.is_root_prefix(prefix):
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
-        actions = {inst.PREFIX: prefix}
+        actions = defaultdict(list)
+        actions[inst.PREFIX] = prefix
         for dist in sorted(iterkeys(index)):
             plan.add_unlink(actions, dist)
-        actions['ACTION'].append('REMOVE_ALL')
+        actions['ACTION'] = 'REMOVE_ALL'
         action_groups = actions,
     else:
         specs = specs_from_args(args.package_names)

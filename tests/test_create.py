@@ -579,13 +579,11 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.UPDATE, prefix, "--all")
             assert package_is_installed(prefix, "openssl-1.0.2g")
-            # assert not package_is_installed(prefix, "python-3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
-            assert package_is_installed(prefix, "python-3.5")
+            assert not package_is_installed(prefix, "python-3.5")  # add_defaults_to_specs is right now removed for python pinning, TODO: discuss
             assert not package_is_installed(prefix, "pytz-2015.7")
             assert package_is_installed(prefix, "pytz-")
 
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
-            assert package_is_installed(prefix, "python-3.5")
             assert not package_is_installed(prefix, "openssl-1.0.2g")
             assert package_is_installed(prefix, "openssl")
 
@@ -1214,12 +1212,20 @@ class PrivateEnvIntegrationTests(TestCase):
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
 
-        run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
-        assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
-        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
-        assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+        with pytest.raises(PackageNotFoundError):
+            run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
+        assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        assert isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+
+        run_command(Commands.REMOVE, self.prefix, "uses-spiffy-test-app")
+        assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
+
+        # # this part tests that the private environment was fully pruned
+        # assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        # assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
 
     @patch.object(Context, 'prefix_specified')
     def test_install_base_1_then_update(self, prefix_specified):
@@ -1338,7 +1344,7 @@ class PrivateEnvIntegrationTests(TestCase):
         assert package_is_installed(self.prefix, "uses-spiffy-test-app-2")
 
     @patch.object(Context, 'prefix_specified')
-    def test_b(self, prefix_specified):
+    def test_b2(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app uses-spiffy-test-app")
@@ -1349,8 +1355,8 @@ class PrivateEnvIntegrationTests(TestCase):
         run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
-        assert package_is_installed(self.prefix, "spiffy-test-app-2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
+        assert package_is_installed(self.prefix, "spiffy-test-app-2")
 
     @patch.object(Context, 'prefix_specified')
     def test_c2(self, prefix_specified):

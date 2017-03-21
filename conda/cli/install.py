@@ -244,11 +244,11 @@ def install(args, parser, command='install'):
 
     try:
         if isinstall and args.revision:
-            action_set = [revert_actions(prefix, get_revision(args.revision), index)]
+            action_groups = [revert_actions(prefix, get_revision(args.revision), index)]
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                action_set = install_actions_list(
+                action_groups = install_actions_list(
                     prefix, index, specs, force=args.force, only_names=only_names,
                     pinned=context.respect_pinned, always_copy=context.always_copy,
                     minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
@@ -314,22 +314,21 @@ def install(args, parser, command='install'):
         if e.args and 'could not import' in e.args[0]:
             raise CondaImportError(text_type(e))
         raise
-
     if not context.json:
-        if any(nothing_to_do(actions) for actions in action_set) and not newenv:
+        if any(nothing_to_do(actions) for actions in action_groups) and not newenv:
             from .main_list import print_packages
 
             if not context.json:
                 spec_regex = r'^(%s)$' % re.escape('|'.join(s.split()[0] for s in ospecs))
                 print('\n# All requested packages already installed.')
-                for action in action_set:
+                for action in action_groups:
                     print_packages(action["PREFIX"], spec_regex)
             else:
                 common.stdout_json_success(
                     message='All requested packages already installed.')
             return
 
-        for actions in action_set:
+        for actions in action_groups:
             print()
             print("Package plan for installation in environment %s:" % actions["PREFIX"])
             display_actions(actions, index, show_channel_urls=context.show_channel_urls)
@@ -337,10 +336,10 @@ def install(args, parser, command='install'):
         common.confirm_yn(args)
 
     elif args.dry_run:
-        common.stdout_json_success(actions=action_set, dry_run=True)
+        common.stdout_json_success(actions=action_groups, dry_run=True)
         raise DryRunExit()
 
-    for actions in action_set:
+    for actions in action_groups:
         if newenv:
             # needed in the case of creating an empty env
             from ..instructions import LINK, UNLINK, SYMLINK_CONDA

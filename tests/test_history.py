@@ -17,18 +17,22 @@ class HistoryTestCase(unittest.TestCase):
     @skip_if_no_mock
     def test_calls_update_on_exit(self):
         h = history.History("/path/to/prefix")
-        with mock.patch.object(h, 'update') as update:
-            with h:
-                self.assertEqual(0, update.call_count)
-                pass
-        self.assertEqual(1, update.call_count)
+        with mock.patch.object(h, 'init_log_file') as init_log_file:
+            init_log_file.return_value = None
+            with mock.patch.object(h, 'update') as update:
+                with h:
+                    self.assertEqual(0, update.call_count)
+                    pass
+            self.assertEqual(1, update.call_count)
 
     @skip_if_no_mock
     def test_returns_history_object_as_context_object(self):
         h = history.History("/path/to/prefix")
-        with mock.patch.object(h, 'update'):
-            with h as h2:
-                self.assertEqual(h, h2)
+        with mock.patch.object(h, 'init_log_file') as init_log_file:
+            init_log_file.return_value = None
+            with mock.patch.object(h, 'update'):
+                with h as h2:
+                    self.assertEqual(h, h2)
 
     @skip_if_no_mock
     def test_empty_history_check_on_empty_env(self):

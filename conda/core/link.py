@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
 from os.path import dirname, join
@@ -10,6 +10,7 @@ import sys
 from traceback import format_exc
 import warnings
 
+from conda.resolve import MatchSpec
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
 from .package_cache import PackageCache
@@ -17,7 +18,8 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateLinkedPackageRecordAction, CreateNonadminAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction,
-                           SetEnvsDirectoryCatalogAction, UnsetEnvsDirectoryCatalogAction)
+                           UnregisterEnvironmentLocationAction, UnregisterPrivateEnvAction,
+                           RegisterEnvironmentLocationAction, RegisterPrivateEnvAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -38,9 +40,9 @@ from ..models.dist import Dist
 from ..models.enums import LinkType
 
 try:
-    from cytoolz.itertoolz import concat, concatv, groupby
+    from cytoolz.itertoolz import concat, concatv, groupby, take
 except ImportError:
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby, take  # NOQA
 
 log = getLogger(__name__)
 
@@ -56,6 +58,46 @@ def determine_link_type(extracted_package_dir, target_prefix):
     if context.allow_softlinks and softlink_supported(source_test_file, target_prefix):
         return LinkType.softlink
     return LinkType.copy
+
+
+
+
+# def make_unregister_package_actions(transaction_context, target_prefix, env_names):
+#     assert target_prefix == context.root_prefix
+#     from .envs_manager import EnvsDirectory
+#     envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(target_prefix)
+#     ed = EnvsDirectory(envs_directory_path)
+#
+#     unlink_path_actions = []
+#
+#     for env_name in env_names:
+#         pfx = join(envs_directory_path, env_name)
+#         leased_path_entries = ed.get_leased_path_entries_for_prefix(pfx)
+#         leased_paths_to_remove = tuple(lpe["_path"] for lpe in leased_path_entries)
+#         unlink_path_actions.extend(UnlinkPathAction(transaction_context, None, target_prefix, lp)
+#                                    for lp in leased_paths_to_remove)
+#         UnsetEnvsDirectoryCatalogAction(transaction_context, linked_package_data, target_prefix,
+#             leased_paths_to_remove)
+#
+#
+#
+#
+#
+#
+#     preferred_env = linked_package_data.preferred_env
+#     executable_paths = linked_package_data.leased_paths or ()
+#     if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#         # need to remove application entry points
+#         unlink_path_actions += tuple(UnlinkPathAction(transaction_context,
+#                                                       linked_package_data,
+#                                                       context.root_prefix, ep)
+#                                      for ep in executable_paths)
+#
+#     unset_envs_dir_catalog_actions = UnsetEnvsDirectoryCatalogAction(
+#         transaction_context, linked_package_data, target_prefix,
+#         executable_paths
+#     ),
+
 
 
 def make_unlink_actions(transaction_context, target_prefix, linked_package_data):
@@ -79,33 +121,33 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
 
-    preferred_env = linked_package_data.preferred_env
-    executable_paths = linked_package_data.leased_paths or ()
-    if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-        # need to remove application entry points
-        unlink_path_actions += tuple(UnlinkPathAction(transaction_context,
-                                                      linked_package_data,
-                                                      context.root_prefix, ep)
-                                     for ep in executable_paths)
-
-    unset_envs_dir_catalog_actions = UnsetEnvsDirectoryCatalogAction(
-        transaction_context, linked_package_data, target_prefix,
-        executable_paths
-    ),
+    unregister_private_package_actions = UnregisterPrivateEnvAction.create_actions(
+        transaction_context, linked_package_data, target_prefix
+    )
 
     return tuple(concatv(
         remove_menu_actions,
         unlink_path_actions,
         directory_remove_actions,
-        unset_envs_dir_catalog_actions,
+        unregister_private_package_actions,
         remove_conda_meta_actions,
     ))
+
+
+def match_specs_to_dists(link_dists, specs):
+    matched_specs = [None for _ in range(len(link_dists))]
+    for spec in specs or ():
+        spec = MatchSpec(spec)
+        idx = next((q for q, d in enumerate(link_dists) if d.name == spec.name), None)
+        if idx is not None:
+            matched_specs[idx] = spec
+    return tuple(matched_specs)
 
 
 class UnlinkLinkTransaction(object):
 
     @classmethod
-    def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists, requested_specs):
+    def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists, requested_specs, ensure_unregistered):
         # This constructor method helps to patch into the 'plan' framework
         linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
                                                for dist in unlink_dists)
@@ -125,10 +167,13 @@ class UnlinkLinkTransaction(object):
         assert all(pkg_dirs_to_link)
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
-        return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
-                                     packages_info_to_link, requested_specs)
 
-    def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link, requested_specs):
+        matchspecs_for_link_dists = match_specs_to_dists(link_dists, requested_specs)
+
+        return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
+                                     packages_info_to_link, matchspecs_for_link_dists, ensure_unregistered)
+
+    def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link, matchspecs_for_link_dists, ensure_unregistered):
         # type: (str, Sequence[Dist], Sequence[PackageInfo]) -> NoneType
         # order of unlink_dists and link_dists will be preserved throughout
         #   should be given in dependency-sorted order
@@ -136,7 +181,8 @@ class UnlinkLinkTransaction(object):
         self.target_prefix = target_prefix
         self.linked_packages_data_to_unlink = linked_packages_data_to_unlink
         self.packages_info_to_link = packages_info_to_link
-        self.requested_specs = requested_specs
+        self.matchspecs_for_link_dists = matchspecs_for_link_dists
+        self.ensure_unregistered = ensure_unregistered
 
         self._prepared = False
         self._verified = False
@@ -153,7 +199,6 @@ class UnlinkLinkTransaction(object):
         # make all the path actions
         # no side effects allowed when instantiating these action objects
         transaction_context = dict()
-        transaction_context['requested_specs'] = self.requested_specs
         python_version = self.get_python_version(self.target_prefix,
                                                  self.linked_packages_data_to_unlink,
                                                  self.packages_info_to_link)
@@ -161,42 +206,73 @@ class UnlinkLinkTransaction(object):
         sp = get_python_site_packages_short_path(python_version)
         transaction_context['target_site_packages_short_path'] = sp
 
-        unlink_actions = tuple((lnkd_pkg_data, make_unlink_actions(transaction_context,
-                                                                   self.target_prefix,
-                                                                   lnkd_pkg_data))
-                               for lnkd_pkg_data in self.linked_packages_data_to_unlink)
+        ActionGroup = namedtuple('ActionGroup', ('type', 'pkg_data', 'actions'))
 
-        link_actions = (
-            (pkg_info, self.make_link_actions(transaction_context, pkg_info,
-                                              self.target_prefix, lt))
-            for pkg_info, lt in zip(self.packages_info_to_link, link_types)
+
+        self.unlink_action_groups = tuple(
+            ActionGroup('unlink', lnkd_pkg_data, make_unlink_actions(transaction_context,
+                                                                     self.target_prefix,
+                                                                     lnkd_pkg_data))
+            for lnkd_pkg_data in self.linked_packages_data_to_unlink
         )
 
-        self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
-                                 concatv(unlink_actions, link_actions))
-        # type: Tuple[pkg_data, Tuple[PathAction]]
+        # if unlink_actions:
+        #     unregister_actions = (None, UnregisterEnvironmentLocationAction(transaction_context, self.target_prefix)),
+        # else:
+        #     unregister_actions = ()
 
-        self.num_unlink_pkgs = len(unlink_actions)
+        if self.ensure_unregistered:
+            assert self.target_prefix == context.root_prefix
+            unregister_actions = tuple((None, UnregisterPrivateEnvAction(transaction_context,
+                                                                   self.target_prefix,
+                                                                   package_name))
+                                        for package_name in self.ensure_unregistered)
+        else:
+            unregister_actions = ()
 
+        self.link_action_groups = tuple(
+            ActionGroup('link', pkg_info, self.make_link_actions(transaction_context, pkg_info,
+                                                                 self.target_prefix, lt, spec))
+            for pkg_info, lt, spec in zip(self.packages_info_to_link, link_types,
+                                          self.matchspecs_for_link_dists)
+        )
+
+        # if link_actions:
+        #     link_actions.append((None, RegisterEnvironmentLocationAction(transaction_context, self.target_prefix)))
+
+
+        # self.all_actions = tuple(per_pkg_actions for per_pkg_actions in
+        #                          concatv(unlink_actions, link_actions))
+        # # type: Tuple[pkg_data, Tuple[PathAction]]
+        #
+        # self.num_unlink_pkgs = len(unlink_actions)
         self._prepared = True
+
+    def all_actions(self):
+        return concat(axngroup.actions for axngroup in self.all_action_groups())
+
+    def all_action_groups(self):
+        return concatv(
+            self.unlink_action_groups,
+            self.link_action_groups,
+        )
 
     @staticmethod
     def _verify_individual_level(all_actions):
         # run all per-action verify methods
         #   one of the more important of these checks is to verify that a file listed in
         #   the packages manifest (i.e. info/files) is actually contained within the package
-        for _, pkg_actions in all_actions:
-            for axn in pkg_actions:
-                if axn.verified:
-                    continue
-                error_result = axn.verify()
-                if error_result:
-                    log.debug("Verification error in action %s", axn)
-                    log.debug(format_exc())
-                    yield error_result
+        for axn in all_actions:
+            if axn.verified:
+                continue
+            error_result = axn.verify()
+            if error_result:
+                log.debug("Verification error in action %s", axn)
+                log.debug(format_exc())
+                yield error_result
 
     @staticmethod
-    def _verify_transaction_level(target_prefix, all_actions, num_unlink_pkgs):
+    def _verify_transaction_level(target_prefix, unlink_action_groups, link_action_groups):
         # further verification of the whole transaction
         # for each path we are creating in link_actions, we need to make sure
         #   1. each path either doesn't already exist in the prefix, or will be unlinked
@@ -208,14 +284,14 @@ class UnlinkLinkTransaction(object):
         # paths are case-insensitive on windows apparently
         lower_on_win = lambda p: p.lower() if on_win else p
         unlink_paths = set(lower_on_win(axn.target_short_path)
-                           for _, pkg_actions in all_actions[:num_unlink_pkgs]
-                           for axn in pkg_actions
+                           for grp in unlink_action_groups
+                           for axn in grp.actions
                            if isinstance(axn, UnlinkPathAction))
         # we can get all of the paths being linked by looking only at the
         #   CreateLinkedPackageRecordAction actions
         create_lpr_actions = (axn
-                              for _, pkg_actions in all_actions[num_unlink_pkgs:]
-                              for axn in pkg_actions
+                              for grp in link_action_groups
+                              for axn in grp.actions
                               if isinstance(axn, CreateLinkedPackageRecordAction))
 
         link_paths_dict = defaultdict(list)
@@ -252,9 +328,9 @@ class UnlinkLinkTransaction(object):
             return
 
         exceptions = tuple(exc for exc in concatv(
-            self._verify_individual_level(self.all_actions),
-            self._verify_transaction_level(self.target_prefix, self.all_actions,
-                                           self.num_unlink_pkgs),
+            self._verify_individual_level(self.all_actions()),
+            self._verify_transaction_level(self.target_prefix, self.unlink_action_groups,
+                                           self.link_action_groups),
         ) if exc)
 
         if exceptions:
@@ -281,18 +357,16 @@ class UnlinkLinkTransaction(object):
         with signal_handler(conda_signal_handler):
             pkg_idx = 0
             try:
-                for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
-                    self._execute_actions(self.target_prefix, self.num_unlink_pkgs, pkg_idx,
-                                          pkg_data, actions)
+                for pkg_idx, axngroup in enumerate(self.all_action_groups()):
+                    self._execute_actions(self.target_prefix, pkg_idx, axngroup)
             except Exception as execute_multi_exc:
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
                     failed_pkg_idx = pkg_idx
-                    reverse_actions = reversed(tuple(enumerate(self.all_actions[:failed_pkg_idx])))
-                    for pkg_idx, (pkg_data, actions) in reverse_actions:
-                        excs = self._reverse_actions(self.target_prefix, self.num_unlink_pkgs,
-                                                     pkg_idx, pkg_data, actions)
+                    reverse_actions = reversed(tuple(enumerate(take(failed_pkg_idx, self.all_action_groups()))))
+                    for pkg_idx, axngroup in reverse_actions:
+                        excs = self._reverse_actions(self.target_prefix, pkg_idx, axngroup)
                         rollback_excs.extend(excs)
 
                 raise CondaMultiError(tuple(concatv(
@@ -302,34 +376,35 @@ class UnlinkLinkTransaction(object):
                     rollback_excs,
                 )))
             else:
-                for pkg_idx, (pkg_data, actions) in enumerate(self.all_actions):
-                    for axn_idx, action in enumerate(actions):
+                for axngroup in self.all_action_groups():
+                    for action in axngroup.actions:
                         action.cleanup()
 
     @staticmethod
-    def _execute_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions):
-        axn_idx, action, is_unlink = 0, None, True
-        try:
-            dist = Dist(pkg_data)
-            is_unlink = pkg_idx <= num_unlink_pkgs - 1
-            if is_unlink:
-                log.info("===> UNLINKING PACKAGE: %s <===\n"
-                         "  prefix=%s\n",
-                         dist, target_prefix)
+    def _execute_actions(target_prefix, pkg_idx, axngroup):
+        axn_idx, action, is_unlink = 0, None, axngroup.type == 'unlink'
+        pkg_data = axngroup.pkg_data
+        dist = pkg_data and Dist(pkg_data)
 
-            else:
+        try:
+            if axngroup.type == 'unlink':
+                log.info("===> UNLINKING PACKAGE: %s <===\n"
+                         "  prefix=%s\n", dist, target_prefix)
+
+            elif axngroup.type == 'link':
                 log.info("===> LINKING PACKAGE: %s <===\n"
                          "  prefix=%s\n"
-                         "  source=%s\n",
-                         dist, target_prefix, pkg_data.extracted_package_dir)
+                         "  source=%s\n", dist, target_prefix, pkg_data.extracted_package_dir)
 
-            run_script(target_prefix if is_unlink else pkg_data.extracted_package_dir,
-                       Dist(pkg_data),
-                       'pre-unlink' if is_unlink else 'pre-link',
-                       target_prefix)
-            for axn_idx, action in enumerate(actions):
+            if axngroup.type in ('unlink', 'link'):
+                run_script(target_prefix if is_unlink else pkg_data.extracted_package_dir,
+                           dist,
+                           'pre-unlink' if is_unlink else 'pre-link',
+                           target_prefix)
+            for axn_idx, action in enumerate(axngroup.actions):
                 action.execute()
-            run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
+            if axngroup.type in ('unlink', 'link'):
+                run_script(target_prefix, dist, 'post-unlink' if is_unlink else 'post-link')
         except Exception as e:  # this won't be a multi error
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
@@ -339,10 +414,9 @@ class UnlinkLinkTransaction(object):
                 log.error("An error occurred while %s package '%s'.\n"
                           "%r\n"
                           "Attempting to roll back.\n",
-                          'uninstalling' if is_unlink else 'installing', Dist(pkg_data), e)
+                          'uninstalling' if is_unlink else 'installing', dist, e)
                 reverse_excs = UnlinkLinkTransaction._reverse_actions(
-                    target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions,
-                    reverse_from_idx=axn_idx
+                    target_prefix, pkg_idx, axngroup, reverse_from_idx=axn_idx
                 )
             raise CondaMultiError(tuple(concatv(
                 (e,),
@@ -350,24 +424,23 @@ class UnlinkLinkTransaction(object):
             )))
 
     @staticmethod
-    def _reverse_actions(target_prefix, num_unlink_pkgs, pkg_idx, pkg_data, actions,
-                         reverse_from_idx=-1):
+    def _reverse_actions(target_prefix, pkg_idx, axngroup, reverse_from_idx=-1):
         # reverse_from_idx = -1 means reverse all actions
-        dist = Dist(pkg_data)
-        is_unlink = pkg_idx <= num_unlink_pkgs - 1
-        if is_unlink:
-            log.info("===> REVERSING PACKAGE UNLINK: %s <===\n"
-                     "  prefix=%s\n",
-                     dist, target_prefix)
+        pkg_data = axngroup.pkg_data
+        dist = pkg_data and Dist(pkg_data)
 
-        else:
+        if axngroup.type == 'unlink':
+            log.info("===> REVERSING PACKAGE UNLINK: %s <===\n"
+                     "  prefix=%s\n", dist, target_prefix)
+
+        elif axngroup.type == 'link':
             log.info("===> REVERSING PACKAGE LINK: %s <===\n"
-                     "  prefix=%s\n",
-                     dist, target_prefix)
+                     "  prefix=%s\n", dist, target_prefix)
+
         log.debug("reversing pkg_idx #%d from axn_idx #%d", pkg_idx, reverse_from_idx)
 
         exceptions = []
-        reverse_actions = actions if reverse_from_idx < 0 else actions[:reverse_from_idx+1]
+        reverse_actions = axngroup.actions if reverse_from_idx < 0 else axngroup.actions[:reverse_from_idx+1]
         for axn_idx, action in reversed(tuple(enumerate(reverse_actions))):
             try:
                 action.reverse()
@@ -405,7 +478,7 @@ class UnlinkLinkTransaction(object):
         return None
 
     @staticmethod
-    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type):
+    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type, requested_spec):
         required_quad = transaction_context, package_info, target_prefix, requested_link_type
 
         file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
@@ -419,9 +492,12 @@ class UnlinkLinkTransaction(object):
         compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
                                                               file_link_actions=file_link_actions)
 
-        application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
-            *required_quad
-        )
+        if requested_spec:
+            application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
+                *required_quad
+            )
+        else:
+            application_entry_point_actions = ()
 
         all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
             file_link_actions,
@@ -438,9 +514,12 @@ class UnlinkLinkTransaction(object):
             leased_paths=leased_paths,
         )
 
-        set_envs_dir_catalog_actions = SetEnvsDirectoryCatalogAction.create_actions(
-            *required_quad, leased_paths=leased_paths
-        )
+        if requested_spec:
+            register_private_env_actions = RegisterPrivateEnvAction.create_actions(
+                transaction_context, package_info, target_prefix, requested_spec, leased_paths
+            )
+        else:
+            register_private_env_actions = ()
 
         # the ordering here is significant
         return tuple(concatv(
@@ -452,7 +531,7 @@ class UnlinkLinkTransaction(object):
             compile_pyc_actions,
             create_menu_actions,
             application_entry_point_actions,
-            set_envs_dir_catalog_actions,
+            register_private_env_actions,
         ))
 
 
