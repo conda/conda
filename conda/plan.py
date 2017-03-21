@@ -949,7 +949,7 @@ def augment_specs(prefix, specs, pinned=True):
     return _specs
 
 
-def remove_actions(prefix, specs, index, force=False, pinned=True):
+def _remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
     linked = linked_data(prefix)
     linked_dists = [d for d in linked.keys()]
@@ -991,15 +991,31 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     return actions
 
 
-def remove_spec_action_from_prefix(prefix, dist):
-    actions = defaultdict(list)
-    actions[inst.PREFIX] = prefix
-    actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
-                           inst.RM_EXTRACTED, inst.EXTRACT,
-                           inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+def remove_actions(prefix, specs, index, force=False, pinned=True):
+    if force:
+        return _remove_actions(prefix, specs, index, force, pinned)
+    else:
+        specs = set(MatchSpec(s) for s in specs)
+        unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),
+                                                    specs_to_remove=specs)
 
-    add_unlink(actions, dist)
-    return actions
+        actions = get_blank_actions(prefix)
+        actions['UNLINK'].extend(unlink_dists)
+        actions['LINK'].extend(link_dists)
+        actions['SPECS'].extend(specs)
+        actions['ACTION'] = 'REMOVE'
+        return actions
+
+
+# def remove_spec_action_from_prefix(prefix, dist):
+#     actions = defaultdict(list)
+#     actions[inst.PREFIX] = prefix
+#     actions['op_order'] = (inst.CHECK_FETCH, inst.RM_FETCHED, inst.FETCH, inst.CHECK_EXTRACT,
+#                            inst.RM_EXTRACTED, inst.EXTRACT,
+#                            inst.UNLINK, inst.LINK, inst.SYMLINK_CONDA)
+#
+#     add_unlink(actions, dist)
+#     return actions
 
 
 def revert_actions(prefix, revision=-1, index=None):

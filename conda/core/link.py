@@ -456,7 +456,7 @@ class UnlinkLinkTransaction(object):
 
         meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
             *required_quad, all_target_short_paths=all_target_short_paths,
-            leased_paths=leased_paths,
+            leased_paths=leased_paths
         )
 
         if requested_spec:
