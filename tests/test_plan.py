@@ -7,6 +7,7 @@ from conda.common.io import env_var
 from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.cli import common
+from conda.cli.python_api import run_command, Commands
 from conda.core import linked_data
 from conda.core.package_cache import ProgressiveFetchExtract
 from conda.exceptions import NoPackagesFoundError, InstallError
@@ -1269,15 +1270,19 @@ def test_pinned_specs():
         pinned = plan.get_pinned_specs(td)
         assert pinned == specs_2
 
-    with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_2), reset_context):
-        with tempdir() as td:
-            mkdir_p(join(td, 'conda-meta'))
-            with open(join(td, 'conda-meta', 'pinned'), 'w') as fh:
-                fh.write("\n".join(specs_1))
-                fh.write("\n")
+    with tempdir() as td:
+        mkdir_p(join(td, 'conda-meta'))
+        with open(join(td, 'conda-meta', 'pinned'), 'w') as fh:
+            fh.write("\n".join(specs_1))
+            fh.write("\n")
 
-            pinned = plan.get_pinned_specs(td)
-            assert pinned == specs_2 + specs_1
+        with env_var('CONDA_PREFIX', td, reset_context):
+            run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
+            with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_2), reset_context):
+                pinned = plan.get_pinned_specs(td)
+                assert pinned == specs_2 + ("requests 2.13",) + specs_1
+
+
 
 
 if __name__ == '__main__':

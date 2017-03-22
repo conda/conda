@@ -425,7 +425,13 @@ def get_pinned_specs(prefix):
                          if i and not i.strip().startswith('#'))
     else:
         from_file = ()
-    return tuple(concatv(context.pinned_packages, from_file))
+
+    from .cli.common import spec_from_line
+
+    def munge_spec(s):
+        return s if ' ' in s else spec_from_line(s)
+
+    return tuple(munge_spec(s) for s in concatv(context.pinned_packages, from_file))
 
 
 # Has one spec (string) for each env

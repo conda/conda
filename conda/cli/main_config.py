@@ -9,6 +9,7 @@ from argparse import SUPPRESS
 import collections
 import json
 import os
+from os.path import join
 import sys
 from textwrap import wrap
 
@@ -313,7 +314,10 @@ def execute_config(args, parser):
     if args.system:
         rc_path = sys_rc_path
     elif args.env:
-        rc_path = os.getenv('CONDA_PREFIX', user_rc_path)
+        if 'CONDA_PREFIX' in os.environ:
+            rc_path = join(os.environ['CONDA_PREFIX'], '.condarc')
+        else:
+            rc_path = user_rc_path
     elif args.file:
         rc_path = args.file
     else:
@@ -365,12 +369,13 @@ def execute_config(args, parser):
 
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
+        sequence_parameters = [p for p in context.list_parameters()
+                               if context.describe_parameter(p)['parameter_type'] == 'sequence']
         for key, item in arg:
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
-            if key not in rc_list_keys:
-                raise CondaValueError("key must be one of %s, not %r" %
-                                      (', '.join(rc_list_keys), key))
+            if key not in sequence_parameters:
+                raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
             if not isinstance(rc_config.get(key, []), list):
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
@@ -394,7 +399,7 @@ def execute_config(args, parser):
         primitive_parameters = [p for p in context.list_parameters()
                                 if context.describe_parameter(p)['parameter_type'] == 'primitive']
         if key not in primitive_parameters:
-            raise CondaValueError("Error key '%s' is not a known primitive parameter." % key)
+            raise CondaValueError("Key '%s' is not a known primitive parameter." % key)
         value = context.typify_parameter(key, item)
         rc_config[key] = value
 
