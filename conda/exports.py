@@ -90,7 +90,7 @@ get_prefix = partial(context_get_prefix, conda.base.context.context)
 get_default_urls = lambda: DEFAULT_CHANNELS
 
 arch_name = conda.base.context.context.arch_name
-binstar_upload = conda.base.context.context.binstar_upload
+binstar_upload = conda.base.context.context.anaconda_upload
 bits = conda.base.context.context.bits
 default_prefix = conda.base.context.context.default_prefix
 default_python = conda.base.context.context.default_python
