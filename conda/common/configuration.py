@@ -862,7 +862,9 @@ class Configuration(object):
 
         description = self.get_descriptions()[name]
         et = parameter._element_type
-        if not isiterable(et) or type(et) == EnumMeta:
+        if type(et) == EnumMeta:
+            et = [et]
+        if not isiterable(et):
             et = [et]
         element_types = tuple(_et.__name__ for _et in et)
 

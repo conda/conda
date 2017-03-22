@@ -124,7 +124,7 @@ class Context(Configuration):
                                           aliases=('default_channels',))
     _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
-    _custom_multichannels = MapParameter(Sequence, aliases=('custom_multichannels',))
+    _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
 
     # command line
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
@@ -144,7 +144,7 @@ class Context(Configuration):
     # conda_build
     bld_path = PrimitiveParameter('')
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
-                                        element_type=(bool, NoneType))
+                                         element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
     conda_build = MapParameter(string_types, aliases=('conda-build',))
 
@@ -453,16 +453,16 @@ class Context(Configuration):
             'default_python',
             'force_32bit',
             'migrated_custom_channels',
+# https://conda.io/docs/config.html#configure-conda-for-use-behind-a-proxy-server-proxy-servers # NOQA
+# before adding proxy_servers to this documentation, we should test and verify behavior # NOQA
             'proxy_servers',
-            # https://conda.io/docs/config.html#configure-conda-for-use-behind-a-proxy-server-proxy-servers
-            # before adding documentation, we should test and verify behavior
             'root_dir',
             'shortcuts',
             'skip_safety_checks',
             'subdir',
+# https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
+# I don't think this documentation is correct any longer. # NOQA
             'update_dependencies',
-            # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies
-            # I don't think this documentation is correct any longer.
         )
         return tuple(p for p in super(Context, self).list_parameters()
                      if p not in UNLISTED_PARAMETERS)
@@ -559,17 +559,17 @@ def get_help_dict():
             """),  # TODO: This is a bad parameter name. Consider an alternate.
         'custom_channels': dals("""
             A map of key-value pairs where the key is a channel name and the value is
-            a channel location. Channel locations defined here override the default
+            a channel location. Channels defined here override the default
             'channel_alias' value. The channel name (key) is not included in the channel
             location (value).  For example, to override the location of the 'conda-forge'
-            channel where the full url to repodata is
+            channel where the url to repodata is
             https://anaconda-repo.dev/packages/conda-forge/linux-64/repodata.json, add an
             entry 'conda-forge: https://anaconda-repo.dev/packages'.
             """),
         'custom_multichannels': dals("""
             A multichannel is a metachannel composed of multiple channels. The two reserved
             multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
-            customized using the 'default_channels' configuration parameter. The 'local'
+            customized using the 'default_channels' parameter. The 'local'
             multichannel is a list of file:// channel locations where conda-build stashes
             successfully-built packages.  Other multichannels can be defined with
             custom_multichannels, where the key is the multichannel name and the value is

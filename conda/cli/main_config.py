@@ -5,6 +5,7 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from argparse import SUPPRESS
 import collections
 import json
 import os
@@ -37,65 +38,31 @@ config command.  Writes to the user .condarc file (%s) by default.
 # recognize it because it removes the indentation, but at least it will be
 # valid.
 additional_descr = """
-See %s/docs/config.html for details on all the options
-that can go in .condarc.
+See `conda config --describe` or %s/docs/config.html
+for details on all the options that can go in .condarc.
 
-List keys, like
-
-  channels:
-    - conda
-    - defaults
-
-are modified with the --add and --remove options. For example
-
-    conda config --add channels r
-
-on the above configuration would prepend the key 'r', giving
-
-    channels:
-      - r
-      - conda
-      - defaults
-
-Note that the key 'channels' implicitly contains the key 'defaults' if it has
-not been configured yet.
-
-Boolean keys, like
-
-    always_yes: true
-
-are modified with --set and removed with --remove-key. For example
-
-    conda config --set always_yes false
-
-gives
-
-    always_yes: false
-
-Note that in YAML, "yes", "YES", "on", "true", "True", and "TRUE" are all
-valid ways to spell "true", and "no", "NO", "off", "false", "False", and
-"FALSE", are all valid ways to spell "false".
-
-The .condarc file is YAML, and any valid YAML syntax is allowed.
-""" % CONDA_HOMEPAGE_URL
-
-
-# Note, the formatting of this is designed to work well with help2man
-example = """
 Examples:
 
-Get the channels defined in the system .condarc:
+Display all configuration values as calculated and compiled:
 
-    conda config --get channels --system
+    conda config --show
 
-Add the 'foo' Binstar channel:
+Display all identified configuration sources:
 
-    conda config --add channels foo
+    conda config --show-sources
 
-Disable the 'show_channel_urls' option:
+Describe all available configuration options:
 
-    conda config --set show_channel_urls no
-"""
+    conda config --describe
+
+Add the conda-canary channel:
+
+    conda config --add channels conda-canary
+
+Set the output verbosity to level 3 (highest):
+
+    conda config --set verbosity 3
+""" % CONDA_HOMEPAGE_URL
 
 
 class SingleValueKey(Completer):
@@ -123,7 +90,7 @@ def configure_parser(sub_parsers):
         'config',
         description=descr,
         help=descr,
-        epilog=additional_descr + example,
+        epilog=additional_descr,
     )
     add_parser_json(p)
 
@@ -234,8 +201,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         "-f", "--force",
         action="store_true",
         default=NULL,
-        help="""Write to the config file using the yaml parser.  This will
-        remove any comments or structure from the file."""
+        help=SUPPRESS,  # TODO: No longer used.  Remove in a future release.
     )
 
     p.set_defaults(func=execute)
@@ -310,13 +276,23 @@ def execute_config(args, parser):
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
+            def clean_element_type(element_types):
+                _types = set()
+                for et in element_types:
+                    _types.add('str') if isinstance(et, string_types) else _types.add('%s' % et)
+                return tuple(sorted(_types))
+
+
             for name in paramater_names:
                 details = context.describe_parameter(name)
                 aliases = details['aliases']
                 string_delimiter = details.get('string_delimiter')
-                print("%s (%s: %s)" % (name, details['parameter_type'],
-                                       ', '.join(details['element_types'])))
-                def_str = '  default value: %s' % json.dumps(details['default_value'], indent=2,
+                element_types = details['element_types']
+                if details['parameter_type'] == 'primitive':
+                    print("%s (%s)" % (name, ', '.join(clean_element_type(element_types))))
+                else:
+                    print("%s (%s: %s)" % (name, details['parameter_type'], ', '.join(clean_element_type(element_types))))
+                def_str = '  default: %s' % json.dumps(details['default_value'], indent=2,
                                                              separators=(',', ': '),
                                                              cls=EntityEncoder)
                 print('\n  '.join(def_str.split('\n')))
