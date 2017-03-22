@@ -419,10 +419,13 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 def get_pinned_specs(prefix):
     pinfile = join(prefix, 'conda-meta', 'pinned')
-    if not exists(pinfile):
-        return []
-    with open(pinfile) as f:
-        return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
+    if exists(pinfile):
+        with open(pinfile) as f:
+            from_file = (i for i in f.read().strip().splitlines()
+                         if i and not i.strip().startswith('#'))
+    else:
+        from_file = ()
+    return tuple(concatv(context.pinned_packages, from_file))
 
 
 # Has one spec (string) for each env

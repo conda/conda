@@ -82,6 +82,7 @@ class Context(Configuration):
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
+    pinned_packages = SequenceParameter(string_types, string_delimiter='/')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
@@ -616,6 +617,9 @@ def get_help_dict():
             create, install, or update operation. The value must be one of 'clobber',
             'warn', or 'prevent'. The '--clobber' command-line flag or clobber
             configuration parameter overrides path_conflict set to 'prevent'.
+            """),
+        'pinned_packages': dals("""
+            A list of package specs to pin for every environment resolution.
             """),
         'pkgs_dirs': dals("""
             The list of directories where locally-available packages are linked from at
