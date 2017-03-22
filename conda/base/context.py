@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import Sequence
 from logging import getLogger
 import os
 from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
@@ -14,7 +13,7 @@ from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAU
 from .. import CondaError
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import first, frozendict
-from .._vendor.auxlib.decorators import memoizedproperty, memoize
+from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from .._vendor.boltons.setutils import IndexedSet
@@ -457,7 +456,6 @@ class Context(Configuration):
 # before adding proxy_servers to this documentation, we should test and verify behavior # NOQA
             'proxy_servers',
             'root_dir',
-            'shortcuts',
             'skip_safety_checks',
             'subdir',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
@@ -466,6 +464,11 @@ class Context(Configuration):
         )
         return tuple(p for p in super(Context, self).list_parameters()
                      if p not in UNLISTED_PARAMETERS)
+
+    @property
+    def binstar_upload(self):
+        # backward compatibility for conda-build
+        return self.anaconda_upload
 
 
 def conda_in_private_env():
@@ -637,6 +640,10 @@ def get_help_dict():
         'rollback_enabled': dals("""
             Should any error occur during an unlink/link transaction, revert any disk
             mutations made to that point in the transaction.
+            """),
+        'shortcuts': dals("""
+            Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
+            Menu) at install time.
             """),
         'show_channel_urls': dals("""
             Show channel URLs when displaying what is going to be downloaded.

@@ -261,7 +261,8 @@ def execute_config(args, parser):
                   cls=EntityEncoder))
         else:
             # coerce channels
-            d['custom_channels'] = {k: text_type(v).replace(k, '') for k, v in iteritems(d['custom_channels'])}  # TODO: the replace here isn't quite right
+            d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
+                                    for k, v in iteritems(d['custom_channels'])}
             d['custom_multichannels'] = {k: [text_type(c) for c in chnls]
                                          for k, chnls in iteritems(d['custom_multichannels'])}
 
@@ -282,7 +283,6 @@ def execute_config(args, parser):
                     _types.add('str') if isinstance(et, string_types) else _types.add('%s' % et)
                 return tuple(sorted(_types))
 
-
             for name in paramater_names:
                 details = context.describe_parameter(name)
                 aliases = details['aliases']
@@ -291,10 +291,11 @@ def execute_config(args, parser):
                 if details['parameter_type'] == 'primitive':
                     print("%s (%s)" % (name, ', '.join(clean_element_type(element_types))))
                 else:
-                    print("%s (%s: %s)" % (name, details['parameter_type'], ', '.join(clean_element_type(element_types))))
+                    print("%s (%s: %s)" % (name, details['parameter_type'],
+                                           ', '.join(clean_element_type(element_types))))
                 def_str = '  default: %s' % json.dumps(details['default_value'], indent=2,
-                                                             separators=(',', ': '),
-                                                             cls=EntityEncoder)
+                                                       separators=(',', ': '),
+                                                       cls=EntityEncoder)
                 print('\n  '.join(def_str.split('\n')))
                 if aliases:
                     print("  aliases: %s" % ', '.join(aliases))
@@ -389,7 +390,8 @@ def execute_config(args, parser):
 
     # Set
     for key, item in args.set:
-        primitive_parameters = [p for p in context.list_parameters() if context.describe_parameter(p)['parameter_type'] == 'primitive']
+        primitive_parameters = [p for p in context.list_parameters()
+                                if context.describe_parameter(p)['parameter_type'] == 'primitive']
         if key not in primitive_parameters:
             raise CondaValueError("Error key '%s' is not a known primitive parameter." % key)
         value = context.typify_parameter(key, item)
