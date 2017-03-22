@@ -94,7 +94,7 @@ class Context(Configuration):
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
     _subdir = PrimitiveParameter('', aliases=('subdir',))
 
-    local_repodata_ttl = PrimitiveParameter(True, element_type=(bool, int))
+    local_repodata_ttl = PrimitiveParameter(1, element_type=(bool, int))
     # number of seconds to cache repodata locally
     #   True/1: respect Cache-Control max-age header
     #   False/0: always fetch remote repodata (HTTP 304 responses respected)
@@ -449,12 +449,9 @@ class Context(Configuration):
             'concurrent',
             'conda_build',
             'croot',
-            'custom_channels',
-            'custom_multichannels',
             'debug',
             'default_python',
             'force_32bit',
-            'migrated_channel_aliases',
             'migrated_custom_channels',
             'proxy_servers',
             # https://conda.io/docs/config.html#configure-conda-for-use-behind-a-proxy-server-proxy-servers
@@ -560,6 +557,24 @@ def get_help_dict():
         'create_default_packages': dals("""
             Packages that are by default added to a newly created environments.
             """),  # TODO: This is a bad parameter name. Consider an alternate.
+        'custom_channels': dals("""
+            A map of key-value pairs where the key is a channel name and the value is
+            a channel location. Channel locations defined here override the default
+            'channel_alias' value. The channel name (key) is not included in the channel
+            location (value).  For example, to override the location of the 'conda-forge'
+            channel where the full url to repodata is
+            https://anaconda-repo.dev/packages/conda-forge/linux-64/repodata.json, add an
+            entry 'conda-forge: https://anaconda-repo.dev/packages'.
+            """),
+        'custom_multichannels': dals("""
+            A multichannel is a metachannel composed of multiple channels. The two reserved
+            multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
+            customized using the 'default_channels' configuration parameter. The 'local'
+            multichannel is a list of file:// channel locations where conda-build stashes
+            successfully-built packages.  Other multichannels can be defined with
+            custom_multichannels, where the key is the multichannel name and the value is
+            a list of channel names and/or channel urls.
+            """),
         'default_channels': dals("""
             The list of channel names and/or urls used for the 'defaults' multichannel.
             """),
@@ -585,6 +600,10 @@ def get_help_dict():
             respected). For a value of True or 1, respect the HTTP Cache-Control max-age
             header. Any other positive integer values is the number of seconds to locally
             cache repodata before checking the remote server for an update.
+            """),
+        'migrated_channel_aliases': dals("""
+            A list of previously-used channel_alias values, useful for example when switching
+            between different Anaconda Repository instances.
             """),
         'offline': dals("""
             Restrict conda to cached download content and file:// based urls.
