@@ -9,12 +9,12 @@ import collections
 import json
 import os
 import sys
+from textwrap import wrap
 
 from .common import Completer, add_parser_json, stdout_json_success
 from .. import CondaError
 from .._vendor.auxlib.compat import isiterable
 from .._vendor.auxlib.entity import EntityEncoder
-from .._vendor.auxlib.type_coercion import boolify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import iteritems, string_types
@@ -137,6 +137,13 @@ def configure_parser(sub_parsers):
                                         user=user_rc_path),
     )
     location.add_argument(
+        "--env",
+        action="store_true",
+        help="Write to the active conda environment .condarc file (%s). "
+             "If no environment is active, write to the user config file (%s)."
+             "" % (os.getenv('CONDA_PREFIX', "<no active environment>"), user_rc_path),
+    )
+    location.add_argument(
         "--file",
         action="store",
         help="""Write to the given file. Otherwise writes to the user config file ({user})
@@ -163,6 +170,11 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         "--validate",
         action="store_true",
         help="Validate all configuration sources.",
+    )
+    action.add_argument(
+        "--describe",
+        action="store_true",
+        help="Describe available configuration parameters.",
     )
     action.add_argument(
         "--get",
@@ -275,38 +287,9 @@ def execute_config(args, parser):
 
     if args.show:
         from collections import OrderedDict
+
         d = OrderedDict((key, getattr(context, key))
-                        for key in sorted(('add_anaconda_token',
-                                           'add_pip_as_python_dependency',
-                                           'allow_softlinks',
-                                           'always_copy',
-                                           'always_softlink',
-                                           'always_yes',
-                                           'auto_update_conda',
-                                           'binstar_upload',
-                                           'changeps1',
-                                           'channel_alias',
-                                           'channel_priority',
-                                           'channels',
-                                           'client_ssl_cert',
-                                           'client_ssl_cert_key',
-                                           'create_default_packages',
-                                           'debug',
-                                           'default_channels',
-                                           'disallow',
-                                           'envs_dirs',
-                                           'json',
-                                           'offline',
-                                           'proxy_servers',
-                                           'quiet',
-                                           'shortcuts',
-                                           'show_channel_urls',
-                                           'ssl_verify',
-                                           'track_features',
-                                           'update_dependencies',
-                                           'use_pip',
-                                           'verbosity',
-                                           )))
+                        for key in context.list_parameters())
         if context.json:
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
@@ -315,12 +298,39 @@ def execute_config(args, parser):
         context.validate_configuration()
         return
 
+    if args.describe:
+        paramater_names = context.list_parameters()
+        if context.json:
+            print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                             sort_keys=True, indent=2, separators=(',', ': '),
+                             cls=EntityEncoder))
+        else:
+            for name in paramater_names:
+                details = context.describe_parameter(name)
+                aliases = details['aliases']
+                string_delimiter = details.get('string_delimiter')
+                print("%s (%s: %s)" % (name, details['parameter_type'],
+                                       ', '.join(details['element_types'])))
+                def_str = '  default value: %s' % json.dumps(details['default_value'], indent=2,
+                                                             separators=(',', ': '),
+                                                             cls=EntityEncoder)
+                print('\n  '.join(def_str.split('\n')))
+                if aliases:
+                    print("  aliases: %s" % ', '.join(aliases))
+                if string_delimiter:
+                    print("  string delimiter: '%s'" % string_delimiter)
+                print('\n  '.join(wrap('  ' + details['description'], 70)))
+                print()
+        return
+
     if args.validate:
         context.validate_all()
         return
 
     if args.system:
         rc_path = sys_rc_path
+    elif args.env:
+        rc_path = os.getenv('CONDA_PREFIX', user_rc_path)
     elif args.file:
         rc_path = args.file
     else:
@@ -397,19 +407,12 @@ def execute_config(args, parser):
             arglist.insert(0 if prepend else len(arglist), item)
 
     # Set
-    set_bools, set_strings = set(rc_bool_keys), set(rc_string_keys)
     for key, item in args.set:
-        # Check key and value
-        if key in set_bools:
-            rc_config[key] = boolify(item)
-        elif key in set_strings:
-            assert isinstance(item, string_types)
-            rc_config[key] = item
-        elif key == 'ssl_verify':
-            rc_config[key] = boolify(item, return_string=True)
-        else:
-            raise CondaValueError("Error key must be one of %s, not %s" %
-                                  (', '.join(set_bools | set_strings), key))
+        primitive_parameters = [p for p in context.list_parameters() if context.describe_parameter(p)['parameter_type'] == 'primitive']
+        if key not in primitive_parameters:
+            raise CondaValueError("Error key '%s' is not a known primitive parameter." % key)
+        value = context.typify_parameter(key, item)
+        rc_config[key] = value
 
     # Remove
     for key, item in args.remove:

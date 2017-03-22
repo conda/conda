@@ -153,3 +153,10 @@ class ContextTests(TestCase):
     def test_clobber_enum(self):
         with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
             assert context.path_conflict == PathConflict.prevent
+
+    def test_describe_all(self):
+        paramter_names = context.list_parameters()
+        from pprint import pprint
+        for name in paramter_names:
+            pprint(context.describe_parameter(name))
+
