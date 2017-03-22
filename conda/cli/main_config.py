@@ -263,7 +263,8 @@ def execute_config(args, parser):
             # coerce channels
             d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
                                     for k, v in iteritems(d['custom_channels'])}
-            d['custom_multichannels'] = {k: [text_type(c) for c in chnls]
+            # TODO: custom_multichannels needs better formatting
+            d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
                                          for k, chnls in iteritems(d['custom_multichannels'])}
 
             print('\n'.join(format_dict(d)))
