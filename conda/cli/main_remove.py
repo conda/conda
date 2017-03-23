@@ -126,7 +126,7 @@ def execute(args, parser):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 
-    prefix = context.prefix_w_legacy_search
+    prefix = context.strict_prefix
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)

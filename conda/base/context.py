@@ -354,6 +354,10 @@ class Context(Configuration):
         return get_prefix(self, self._argparse_args, False)
 
     @property
+    def strict_prefix(self):
+        return get_prefix(self, self._argparse_args, False, strict=True)
+
+    @property
     def prefix_w_legacy_search(self):
         return get_prefix(self, self._argparse_args, True)
 
