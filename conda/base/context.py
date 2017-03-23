@@ -333,6 +333,10 @@ class Context(Configuration):
         return get_prefix(self, self._argparse_args, False)
 
     @property
+    def strict_prefix(self):
+        return get_prefix(self, self._argparse_args, False, strict=True)
+
+    @property
     def prefix_w_legacy_search(self):
         return get_prefix(self, self._argparse_args, True)
 
@@ -518,16 +522,18 @@ def get_help_dict():
     }
 
 
-def get_prefix(ctx, args, search=True):
+def get_prefix(ctx, args, search=True, strict=False):
     """Get the prefix to operate in
 
     Args:
         ctx: the context of conda
         args: the argparse args from the command line
         search: whether search for prefix
+        strict: checks if prefix path exists
 
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+            and strict is set to True
     """
     if getattr(args, 'name', None):
         if '/' in args.name:
@@ -543,7 +549,14 @@ def get_prefix(ctx, args, search=True):
             if not envs_dir:
                 raise CondaError("No writable package envs directories found in\n"
                                  "%s" % text_type(context.envs_dirs))
-            return join(envs_dir, args.name)
+
+            prefix = join(envs_dir, args.name)
+
+            if strict and not isdir(prefix):
+                raise CondaEnvironmentNotFoundError(args.name)
+
+            return prefix
+
     elif getattr(args, 'prefix', None):
         return abspath(expanduser(args.prefix))
     else:
