@@ -529,6 +529,7 @@ def get_prefix(ctx, args, search=True, strict=False):
         ctx: the context of conda
         args: the argparse args from the command line
         search: whether search for prefix
+        strict: checks if prefix path exists
 
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
