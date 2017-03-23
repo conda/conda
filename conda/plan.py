@@ -692,7 +692,7 @@ def augment_specs(prefix, specs, pinned=True):
     # get conda-meta/pinned
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
+        log.debug("Pinned specs=%s", pinned_specs)
         specs += [MatchSpec(spec) for spec in pinned_specs]
 
     # support aggressive auto-update conda
