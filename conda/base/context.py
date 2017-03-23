@@ -82,6 +82,7 @@ class Context(Configuration):
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
+    pinned_packages = SequenceParameter(string_types, string_delimiter='/')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
@@ -452,9 +453,6 @@ class Context(Configuration):
             'default_python',
             'force_32bit',
             'migrated_custom_channels',
-# https://conda.io/docs/config.html#configure-conda-for-use-behind-a-proxy-server-proxy-servers # NOQA
-# before adding proxy_servers to this documentation, we should test and verify behavior # NOQA
-            'proxy_servers',
             'root_dir',
             'skip_safety_checks',
             'subdir',
@@ -617,10 +615,21 @@ def get_help_dict():
             'warn', or 'prevent'. The '--clobber' command-line flag or clobber
             configuration parameter overrides path_conflict set to 'prevent'.
             """),
+        'pinned_packages': dals("""
+            A list of package specs to pin for every environment resolution.
+            """),
         'pkgs_dirs': dals("""
             The list of directories where locally-available packages are linked from at
             install time. Packages not locally available are downloaded and extracted
             into the first writable directory.
+            """),
+        'proxy_servers': dals("""
+            A mapping to enable proxy settings. Keys can be either (1) a scheme://hostname
+            form, which will match any request to the given scheme and exact hostname, or
+            (2) just a scheme, which will match requests to that scheme. Values are are
+            the actual proxy server, and are of the form
+            'scheme://[user:password@]host[:port]'. The optional 'user:password' inclusion
+            enables HTTP Basic Auth with your proxy.
             """),
         'quiet': dals("""
             Disable progress bar display and other output.
