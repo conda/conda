@@ -96,7 +96,9 @@ if (( $? == 0 )); then
     # if CONDA_DEFAULT_ENV not in PS1, prepend it with parentheses
     if [ $("$_CONDA_DIR/conda" ..changeps1) = "1" ]; then
         if ! $(grep -q CONDA_DEFAULT_ENV <<<$PS1); then
-            export PS1="(${CONDA_DEFAULT_ENV}) $PS1"
+            if ! $(grep -q "POWERLINE" <<<$PS1); then
+                export PS1="(${CONDA_DEFAULT_ENV}) $PS1"
+            fi
         fi
     fi
 
