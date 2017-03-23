@@ -23,7 +23,7 @@ of these locations.
 Environment variables set during the build process
 --------------------------------------------------
 
-The following environment variables are set, both on Unix (build.sh) and on 
+The following environment variables are set, both on Unix (build.sh) and on
 Windows (bld.bat) during the build process.
 (By default, these are the only variables available to your build script --
 unless otherwise noted, no variables are inherited from the shell environment
@@ -115,15 +115,15 @@ defined in Windows:
   * - ``SCRIPTS``
     - ``<build prefix>\Scripts``
   * - ``VS_MAJOR``
-    - The major version number of the Visual Studio version activated within the 
+    - The major version number of the Visual Studio version activated within the
       build, e.g. ``9``
   * - ``VS_VERSION``
-    - The version number of the Visual Studio version activated within the 
+    - The version number of the Visual Studio version activated within the
       build, e.g. ``9.0``
   * - ``VS_YEAR``
-    - The release year of the Visual Studio version activated within the 
+    - The release year of the Visual Studio version activated within the
       build, e.g. ``2008``
- 
+
 On non-Windows (Linux and OS X), we have:
 
 .. list-table::
@@ -220,11 +220,11 @@ additional environment variables by adding them to ``meta.yaml``:
         - LD_LIBRARY_PATH # [linux]
         - DYLD_LIBRARY_PATH # [osx]
 
-If an inherited variable was missing from your shell environment, it will remain 
+If an inherited variable was missing from your shell environment, it will remain
 unassigned, but a warning will be issued noting that it has no value assigned.
 
 NOTE: Inheriting environment variables like this can make it difficult for others
-to reproduce binaries from source with your recipe. This feature should be 
+to reproduce binaries from source with your recipe. This feature should be
 used with caution or avoided altogether.
 
 .. _build-envs:
@@ -235,7 +235,7 @@ Environment variables that affect the build process
 .. list-table::
 
    * - ``CONDA_PY``
-     - Should be ``27``, ``34``, or ``35``.  This is the Python version
+     - Should be ``27``, ``34``, ``35`` or ``36``.  This is the Python version
        used to build the package.
    * - ``CONDA_NPY``
      - This is the NumPy version used to build the package, such as ``19``,

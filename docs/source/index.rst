@@ -68,7 +68,7 @@ Presentations & Blog Posts
 Requirements
 ------------
 
-* python 2.7, 3.4, or 3.5
+* python 2.7, 3.4, 3.5, or 3.6
 * pycosat
 * pyyaml
 * requests
@@ -95,7 +95,7 @@ contains a complete list of changes.
   noarch/universal type for python packages is now officially supported. These are much like universal
   python wheels. Files in a python noarch package are linked into a prefix just like any other
   conda package, with the following additional features:
-  
+
   1. conda maps the ``site-packages`` directory to the correct location for the python version
      in the environment,
   2. conda maps the python-scripts directory to either ``$PREFIX/bin`` or ``$PREFIX/Scripts`` depending
@@ -174,5 +174,5 @@ contains a complete list of changes.
 
 * Further bug fixes, performance improvements, and better error and warning messages.
 
-See the `changelog <https://github.com/conda/conda/releases/tag/4.3.4>`_ for 
-a complete list of changes. 
+See the `changelog <https://github.com/conda/conda/releases/tag/4.3.4>`_ for
+a complete list of changes.

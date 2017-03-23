@@ -1105,6 +1105,8 @@ variables are defined. Unless otherwise stated, the variables are booleans.
      - True if the Python version is 3.4
    * - ``py35``
      - True if the Python version is 3.5
+   * - ``py36``
+     - True if the Python version is 3.6
    * - ``np``
      - The NumPy version as an integer (like ``111``).  See also the
        ``CONDA_NPY`` environment variable :ref:`below <build-envs>`.
