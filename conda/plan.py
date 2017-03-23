@@ -735,7 +735,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
+        log.debug("Pinned specs=%s", pinned_specs)
 
     linked = {r.package_name(dist): dist for dist in linked_dists}
 
