@@ -143,6 +143,7 @@ class Resolve(object):
         self.index = index = index.copy()
         if not processed:
             for dist, info in iteritems(index.copy()):
+                dist = Dist(dist)
                 if dist.with_features_depends:
                     continue
                 for fstr in chain(info.get('features', '').split(),
