@@ -121,7 +121,7 @@ set_test_vars() {
     export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
     export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
 
-    export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+    export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda --cov conda_env"
 }
 
 
