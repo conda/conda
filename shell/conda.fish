@@ -11,7 +11,7 @@
 #     Source this file from the fish shell to enable activate / deactivate functions.
 #     In order to automatically load these functions on fish startup, append
 #
-#         source (conda info --root)/bin/conda.fish
+#         source (conda info --root)/etc/fish/conf.d/conda.fish
 #
 #     to the end of your ~/.config/config.fish file.
 #
