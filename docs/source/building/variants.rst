@@ -250,7 +250,7 @@ First, the meta.yaml file:
        - name: libxgboost
        - name: py-xgboost
          requirements:
-             - {{ pin_subpackage('libxgboost', exact=True)
+             - {{ pin_subpackage('libxgboost', exact=True) }}
              - python  {{ python }}
 
        - name: py-xgboost
@@ -337,6 +337,40 @@ You could supply a variant to build this recipe like so:
 
    variants = {'python': ['2.7', '3.5']}
    api.build(path_to_recipe, variants=variants)
+
+
+Note that these Jinja2 variable substitutions are not limited to version
+numbers. You can use them anywhere, for any string value. For example, to build
+against different MPI implementations:
+
+With meta.yaml contents like:
+
+.. code-block:: yaml
+
+   package:
+       name: compiled-code
+       version: 1.0
+
+   requirements:
+       build:
+           - {{ mpi }}
+       run:
+           - {{ mpi }}
+
+
+You could supply a variant to build this recipe like this (conda_build_config.yaml):
+
+
+.. code-block:: yaml
+
+    mpi:
+        - openmpi  # version spec here is totally valid, and will apply in the recipe
+        - mpich  # version spec here is totally valid, and will apply in the recipe
+
+
+Selectors are not currently valid in conda_build_config.yaml, but we plan on
+adding them soon.
+
 
 
 Special variant keys
