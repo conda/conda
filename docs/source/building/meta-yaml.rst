@@ -492,9 +492,12 @@ functions listed at :ref:`extra_jinja2`
 For example, you may use :ref:`pinning_expressions` to obtain flexible version
 pinning relative to versions present at build time:
 
+.. code-block:: yaml
+
   build:
     pin_downstream:
       - libstdc++  {{ pin_compatible('g++', 'x') }}
+
 
 With this example, if g++ were version 5.3.0, this pinning expression would
 evaluate to ``>=5.3.0,<6``
