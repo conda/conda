@@ -151,8 +151,8 @@ def install(args, parser, command='install'):
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names and common.prefix_if_in_private_env(name) is None:
-                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
-                                           (name, prefix))
+                error_message = "Package '%s' is not installed in %s" % (name, prefix)
+                raise PackageNotFoundError(error_message)
 
     if newenv and not args.no_default_packages:
         default_packages = list(context.create_default_packages)
@@ -183,8 +183,8 @@ def install(args, parser, command='install'):
             return
     elif getattr(args, 'all', False):
         if not linked_dists:
-            raise PackageNotFoundError('', "There are no packages installed in the "
-                                       "prefix %s" % prefix)
+            error_message = "There are no packages installed in the prefix %s" % prefix
+            raise PackageNotFoundError(error_message)
         specs.extend(d.quad[0] for d in linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
@@ -305,7 +305,7 @@ def install(args, parser, command='install'):
 
             error_message = ''.join(error_message)
 
-            raise PackageNotFoundError('', error_message)
+            raise PackageNotFoundError(error_message, package_name=pkg)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
