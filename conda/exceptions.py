@@ -305,11 +305,20 @@ class MD5MismatchError(CondaError):
 
 
 class PackageNotFoundError(CondaError):
-    def __init__(self, message, package_name=None):
-        if package_name:
-            _message = "conda could not find package '%(package_name)s'\n\n"
-            message = _message + message
-        super(PackageNotFoundError, self).__init__(message, package_name=package_name)
+    def __init__(self, message, **kwargs):
+        super(PackageNotFoundError, self).__init__(message, **kwargs)
+
+
+class PackageNotInstalledError(PackageNotFoundError):
+
+    def __init__(self, prefix, package_name):
+        message = dals("""
+        Package is not installed in prefix.
+          prefix: %(prefix)s
+          package name: %(package_name)s
+        """)
+        super(PackageNotInstalledError, self).__init__(message, prefix=prefix,
+                                                       package_name=package_name)
 
 
 class CondaHTTPError(CondaError):
