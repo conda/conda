@@ -193,3 +193,5 @@ Python 3, as conda can only be installed into a root environment.
 Run the conda tests by ``conda install pytest pytest-cov pytest-timeout mock responses``
 and then running ``py.test`` in the conda directory. The tests are also run by Travis
 CI when you make a pull request.
+
+[please ignore this test edit]
