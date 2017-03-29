@@ -14,7 +14,6 @@ from os.path import abspath, basename, exists, isdir, join
 import re
 
 from . import common
-from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
