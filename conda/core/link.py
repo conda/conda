@@ -10,24 +10,21 @@ import sys
 from traceback import format_exc
 import warnings
 
-from conda.resolve import MatchSpec
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateLinkedPackageRecordAction, CreateNonadminAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction,
-                           UnregisterEnvironmentLocationAction, UnregisterPrivateEnvAction,
-                           RegisterEnvironmentLocationAction, RegisterPrivateEnvAction)
+                           RegisterPrivateEnvAction, RemoveLinkedPackageRecordAction,
+                           RemoveMenuAction, UnlinkPathAction, UnregisterPrivateEnvAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, on_win, text_type
-from ..common.path import (explode_directories, get_all_directories, get_bin_directory_short_path,
-                           get_major_minor_version,
-                           get_python_site_packages_short_path, preferred_env_matches_prefix)
+from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
+                           get_python_site_packages_short_path)
 from ..common.signals import signal_handler
 from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
                           UnknownPackageClobberError, maybe_raise)
@@ -38,6 +35,7 @@ from ..gateways.disk.test import hardlink_supported, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.dist import Dist
 from ..models.enums import LinkType
+from ..resolve import MatchSpec
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, take
@@ -133,7 +131,8 @@ class UnlinkLinkTransaction(object):
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
                                      packages_info_to_link, matchspecs_for_link_dists)
 
-    def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link, matchspecs_for_link_dists):
+    def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link,
+                 matchspecs_for_link_dists):
         # type: (str, Sequence[Dist], Sequence[PackageInfo]) -> NoneType
         # order of unlink_dists and link_dists will be preserved throughout
         #   should be given in dependency-sorted order
@@ -166,7 +165,6 @@ class UnlinkLinkTransaction(object):
         transaction_context['target_site_packages_short_path'] = sp
 
         ActionGroup = namedtuple('ActionGroup', ('type', 'pkg_data', 'actions'))
-
 
         self.unlink_action_groups = tuple(
             ActionGroup('unlink', lnkd_pkg_data, make_unlink_actions(transaction_context,
@@ -309,7 +307,9 @@ class UnlinkLinkTransaction(object):
                 rollback_excs = []
                 if context.rollback_enabled:
                     failed_pkg_idx = pkg_idx
-                    reverse_actions = reversed(tuple(enumerate(take(failed_pkg_idx, self.all_action_groups()))))
+                    reverse_actions = reversed(tuple(enumerate(
+                        take(failed_pkg_idx, self.all_action_groups())
+                    )))
                     for pkg_idx, axngroup in reverse_actions:
                         excs = self._reverse_actions(self.target_prefix, pkg_idx, axngroup)
                         rollback_excs.extend(excs)
@@ -349,7 +349,8 @@ class UnlinkLinkTransaction(object):
             for axn_idx, action in enumerate(axngroup.actions):
                 action.execute()
             if axngroup.type in ('unlink', 'link'):
-                run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
+                run_script(target_prefix, Dist(pkg_data),
+                           'post-unlink' if is_unlink else 'post-link')
         except Exception as e:  # this won't be a multi error
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
@@ -385,7 +386,10 @@ class UnlinkLinkTransaction(object):
         log.debug("reversing pkg_idx #%d from axn_idx #%d", pkg_idx, reverse_from_idx)
 
         exceptions = []
-        reverse_actions = axngroup.actions if reverse_from_idx < 0 else axngroup.actions[:reverse_from_idx+1]
+        if reverse_from_idx < 0:
+            reverse_actions = axngroup.actions
+        else:
+            reverse_actions = axngroup.actions[:reverse_from_idx+1]
         for axn_idx, action in reversed(tuple(enumerate(reverse_actions))):
             try:
                 action.reverse()
@@ -423,7 +427,8 @@ class UnlinkLinkTransaction(object):
         return None
 
     @staticmethod
-    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type, requested_spec):
+    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type,
+                          requested_spec):
         required_quad = transaction_context, package_info, target_prefix, requested_link_type
 
         file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)

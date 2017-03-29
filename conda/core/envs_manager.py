@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from copy import deepcopy
 import json
 from logging import getLogger
 from os import getcwd, listdir
 from os.path import basename, dirname, isdir, isfile, join, normpath
-
-from copy import deepcopy
 
 from .. import CondaError
 from .._vendor.auxlib.collection import first
@@ -15,7 +14,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.path import expand
 from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import with_metaclass, text_type, range
+from ..common.compat import text_type, with_metaclass
 from ..common.path import ensure_pad, right_pad_os_sep, win_path_ok
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 from ..gateways.disk.create import create_envs_directory
@@ -224,12 +223,14 @@ class EnvsDirectory(object):
     def get_registered_env_by_name(self, env_name, default=None):
         if env_name is None:
             return default
-        env_entry = next((renv for renv in self._registered_envs if renv.get('name') == env_name), default)
+        env_entry = next((renv for renv in self._registered_envs if renv.get('name') == env_name),
+                         default)
         return env_entry
 
     def get_registered_env_by_location(self, location, default=None):
         location = normpath(location)
-        env_entry = next((renv for renv in self._registered_envs if renv['location'] == location), default)
+        env_entry = next((renv for renv in self._registered_envs if renv['location'] == location),
+                         default)
         return env_entry
 
     def register_env(self, location):
@@ -271,17 +272,20 @@ class EnvsDirectory(object):
                     #   then don't unregister
                     return
 
-        idx = next((q for q, env_record in enumerate(self._registered_envs) if env_record['location'] == location), None)
+        idx = next((q for q, env_record in enumerate(self._registered_envs)
+                    if env_record['location'] == location),
+                   None)
         if idx is not None:
             self._registered_envs.pop(idx)
-
 
     # ############################
     # leased paths
     # ############################
 
     def get_leased_path_entry(self, target_short_path, default=None):
-        current_lp = next((lp for lp in self._leased_paths if lp['_path'] == target_short_path), default)
+        current_lp = next((lp for lp in self._leased_paths
+                           if lp['_path'] == target_short_path),
+                          default)
         return current_lp
 
     def assert_path_not_leased(self, target_short_path):
@@ -313,20 +317,21 @@ class EnvsDirectory(object):
         self._leased_paths.append(leased_path_entry)
 
     def remove_leased_path(self, target_short_path):
-        lp_idx = next((q for q, lp in enumerate(self._leased_paths) if lp['_path'] == target_short_path), None)
+        lp_idx = next((q for q, lp in enumerate(self._leased_paths)
+                       if lp['_path'] == target_short_path),
+                      None)
         if lp_idx is not None:
             self._leased_paths.pop(lp_idx)
 
     def get_leased_path_entries_for_package(self, package_name):
         return tuple(lpe for lpe in self._leased_paths if lpe['package_name'] == package_name)
 
-
-
     # ############################
     # preferred env packages
     # ############################
 
-    def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path, requested_spec):
+    def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path,
+                                  requested_spec):
         # assert package of same name not already installed in root env
         # assert there's not already a similar entry
         preferred_env_packages_entry = {
@@ -338,7 +343,9 @@ class EnvsDirectory(object):
         self._preferred_env_packages.append(preferred_env_packages_entry)
 
     def remove_preferred_env_package(self, package_name):
-        lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages) if lp['package_name'] == package_name), None)
+        lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages)
+                       if lp['package_name'] == package_name),
+                      None)
         package_record = self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
 
         if package_record:

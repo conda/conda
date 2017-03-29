@@ -15,15 +15,11 @@ from logging import getLogger
 from os.path import abspath, basename, exists, join
 import sys
 
-from conda._vendor.boltons.setutils import IndexedSet
-
-from . import instructions as inst
-from ._vendor.auxlib.ish import dals
+from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import odict, on_win, iterkeys, iteritems, itervalues, text_type
-from .common.path import (ensure_pad, is_private_env_name, is_private_env_path,
-                          preferred_env_matches_prefix)
+from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
+from .common.path import ensure_pad, is_private_env_path
 from .core.envs_manager import EnvsDirectory
 from .core.index import _supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
@@ -303,7 +299,8 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (prefix, unlink_dists, link_dists, axn, specs)))
+        plan.insert(first_unlink_link_idx,
+                    (UNLINKLINKTRANSACTION, (prefix, unlink_dists, link_dists, axn, specs)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
         plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), axn, specs)))
@@ -485,7 +482,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     specs = set(MatchSpec(s) for s in specs)
     unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),
-                                               specs_to_add=specs, prune=prune)
+                                                 specs_to_add=specs, prune=prune)
     actions = get_blank_actions(prefix)
     actions['UNLINK'].extend(unlink_dists)
     actions['LINK'].extend(link_dists)
@@ -510,9 +507,11 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
         #   that requested env must instead be installed in the root env
 
         root_r = get_resolve_object(index.copy(), context.root_prefix)
+
         def get_env_for_spec(spec):
             # use resolve's get_dists_for_spec() to find the "best" matching record
-            return ensure_pad(root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]].preferred_env)
+            record_for_spec = root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]]
+            return ensure_pad(record_for_spec.preferred_env)
 
         # specs grouped by target env, the 'None' key holds the specs for the root env
         env_add_map = groupby(get_env_for_spec, (MatchSpec(s) for s in spec_strs))
@@ -541,7 +540,7 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
         for env_name, specs in iteritems(env_add_map):
             for spec in specs:
                 spec_name = MatchSpec(spec).name
-                # if any(root_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):
+                # if any(root_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):  # NOQA
                 if spec_name in required_root_package_names:
                     forced_root_specs_to_add.add(spec)
                 else:
@@ -562,7 +561,8 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
                         forced_root_specs_to_add.add(MatchSpec(pe['requested_spec']))
                 break
 
-        # TODO: now we might need one more check that any remaining registered packages don't depend on forced_root_specs_to_add or an updated required_root_package_names
+        # TODO: now we might need one more check that any remaining registered packages don't
+        #       depend on forced_root_specs_to_add or an updated required_root_package_names
 
         unlink_link_map = odict()
 
@@ -595,7 +595,8 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
             actions['ACTION'] = 'INSTALL'
             return actions
 
-        action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink) for env_name, oink in iteritems(unlink_link_map)]
+        action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink)
+                         for env_name, oink in iteritems(unlink_link_map)]
 
         return action_groups
 
@@ -606,15 +607,14 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
                                 channel_priority_map, is_update)]
 
 
-
 # def add_unlink_options_for_update(actions, required_solves, index):
 #     # type: (Dict[weird], List[SpecsForPrefix], List[weird]) -> ()
-#     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
+#     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)  # NOQA
 #     linked_in_root = linked_data(context.root_prefix)
-#     dist_in_root = lambda spc: tuple(dist for dist in linked_in_root.keys() if MatchSpec(spc).match(dist))
+#     dist_in_root = lambda spc: tuple(dist for dist in linked_in_root.keys() if MatchSpec(spc).match(dist))  # NOQA
 #
-#     private_env_required_solves = tuple(s for s in required_solves if is_private_env_path(s.prefix))
-#     root_env_required_solves = tuple(s for s in required_solves if s.prefix == context.root_prefix)
+#     private_env_required_solves = tuple(s for s in required_solves if is_private_env_path(s.prefix))  # NOQA
+#     root_env_required_solves = tuple(s for s in required_solves if s.prefix == context.root_prefix)  # NOQA
 #
 #
 #     for solved in required_solves:
@@ -630,7 +630,7 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 #                     if len(aug_action) > 0:
 #                         add_unlink(aug_action[0], matched_dist_in_root[0])
 #                     else:
-#                         actions.append(remove_actions(context.root_prefix, tuple(m.to_matchspec() for m in matched_dist_in_root), index))
+#                         actions.append(remove_actions(context.root_prefix, tuple(m.to_matchspec() for m in matched_dist_in_root), index))  # NOQA
 #         # If the solved prefix is root
 #         elif solved.prefix == context.root_prefix:
 #             ed = EnvsDirectory(join(context.root_prefix, 'envs'))
@@ -657,7 +657,7 @@ def get_resolve_object(index, prefix):
 #     # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
 #     assert all(isinstance(spec, MatchSpec) for spec in specs)
 #     best_pkg_records = (r.index[r.get_dists_for_spec(s, emptyok=False)[-1]] for s in specs)
-#     spec_for_envs = tuple(SpecForEnv(env=ensure_pad(record.preferred_env), spec=record.name) for record in best_pkg_records)
+#     spec_for_envs = tuple(SpecForEnv(env=ensure_pad(record.preferred_env), spec=record.name) for record in best_pkg_records)  # NOQA
 #     return spec_for_envs
 #
 #
@@ -667,7 +667,7 @@ def get_resolve_object(index, prefix):
 #     #       instead of raising exceptions
 #     for dist_env in dists_for_envs:
 #         # If trying to install a package in root that is already in a private env
-#         private_env_prefix = EnvsDirectory(join(context.root_prefix, 'envs')).prefix_if_in_private_env(dist_env.spec)
+#         private_env_prefix = EnvsDirectory(join(context.root_prefix, 'envs')).prefix_if_in_private_env(dist_env.spec)  # NOQA
 #         if dist_env.env is None and private_env_prefix is not None:
 #             message = dals("""
 #             Package '%s' is already installed in the private environment at
@@ -679,8 +679,8 @@ def get_resolve_object(index, prefix):
 #
 #         # If trying to install a package in a private env that is already in root
 #         if (is_private_env_name(dist_env.env) and
-#                 any(dist for dist in linked_in_root if dist.dist_name.startswith(dist_env.spec))):
-#             raise InstallError("Package %s is already installed in the root environment. Can't install in private"
+#                 any(dist for dist in linked_in_root if dist.dist_name.startswith(dist_env.spec))):  # NOQA
+#             raise InstallError("Package %s is already installed in the root environment. Can't install in private"  # NOQA
 #                                " environment %s" % (dist_env.spec, dist_env.env))
 #
 #
@@ -723,7 +723,7 @@ def get_resolve_object(index, prefix):
 #     #
 #     #     def make_specs_for_prefix(preferred_env):
 #     #         spec_strs = IndexedSet(d.spec for d in dists_for_envs if d.env == preferred_env)
-#     #         pfx = EnvsDirectory.preferred_env_to_prefix(preferred_env) if preferred_env else prefix
+#     #         pfx = EnvsDirectory.preferred_env_to_prefix(preferred_env) if preferred_env else prefix  # NOQA
 #     #         resolve_obj = get_resolve_object(index.copy(), pfx)
 #     #         return SpecsForPrefix(prefix=pfx, r=resolve_obj, specs=spec_strs)
 #     #
@@ -760,7 +760,8 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     #       change iterkeys to itervalues
 
     if solved_linked_dists and specs_to_remove:
-        solved_linked_dists = r.remove(tuple(text_type(s) for s in specs_to_remove), solved_linked_dists)
+        solved_linked_dists = r.remove(tuple(text_type(s) for s in specs_to_remove),
+                                       solved_linked_dists)
 
     # add in specs from requested history,
     #   but not if we're requesting removal in this operation
@@ -809,7 +810,8 @@ def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
     return dists_for_unlinking, dists_for_linking
 
 
-def forced_reinstall_specs(prefix, solved_dists, dists_for_unlinking, dists_for_linking, specs_to_add):
+def forced_reinstall_specs(prefix, solved_dists, dists_for_unlinking, dists_for_linking,
+                           specs_to_add):
     _dists_for_unlinking, _dists_for_linking = copy(dists_for_unlinking), copy(dists_for_linking)
     old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
 
@@ -834,8 +836,9 @@ def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=Fals
     # this is not for force-removing packages, which doesn't invoke the solver
 
     solved_dists, _specs_to_add = solve_prefix(prefix, r, specs_to_remove, specs_to_add, prune)
-    dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists, _specs_to_add)
-    # TODO: this _specs_to_add part should be refactored when we can better pin package channel origin
+    dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists,
+                                                                         _specs_to_add)
+    # TODO: this _specs_to_add part should be refactored when we can better pin package channel origin  # NOQA
 
     if context.force:
         dists_for_unlinking, dists_for_linking = forced_reinstall_specs(prefix, solved_dists,
@@ -849,7 +852,6 @@ def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=Fals
     # return actions
     dists_for_unlinking = IndexedSet(reversed(dists_for_unlinking))
     return dists_for_unlinking, dists_for_linking
-
 
 
 # def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
@@ -1005,7 +1007,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     #     return _remove_actions(prefix, specs, index, force, pinned)
     # else:
     #     specs = set(MatchSpec(s) for s in specs)
-    #     unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),
+    #     unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),  # NOQA
     #                                                  specs_to_remove=specs)
     #
     #     actions = get_blank_actions(prefix)

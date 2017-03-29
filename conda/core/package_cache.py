@@ -229,7 +229,7 @@ class PackageCache(object):
     def tarball_file_in_cache(cls, tarball_path, md5sum=None):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
         pc_entry = first(cls(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
-                                                                           md5sum)
+                                                                  md5sum)
                          for pkgs_dir in context.pkgs_dirs)
         return pc_entry
 

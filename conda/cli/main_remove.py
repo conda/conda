@@ -7,29 +7,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from argparse import RawDescriptionHelpFormatter
-import errno
+from collections import defaultdict
 import logging
 from os.path import join
 import sys
-
-from collections import defaultdict
 
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes, confirm_yn,
-                     ensure_override_channels_requires_channel,
-                     ensure_use_local, names_in_specs, specs_from_args, stdout_json)
-from .install import check_write
-from ..base.constants import ROOT_NO_RM
-from ..base.context import context
-from ..common.compat import iteritems, iterkeys
-from ..common.path import is_private_env_path, prefix_to_env_name
-from ..console import json_progress_bars
-from ..core.index import get_index
-from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
-from ..gateways.disk.delete import delete_trash
-from ..resolve import Resolve, MatchSpec
+                     ensure_override_channels_requires_channel, ensure_use_local, names_in_specs,
+                     specs_from_args, stdout_json)
 
 try:
     from cytoolz.itertoolz import groupby
@@ -115,39 +103,22 @@ def configure_parser(sub_parsers, name='remove'):
     p.set_defaults(func=execute)
 
 
-def create_prefix_spec_map_with_deps(r, specs, default_prefix):
-    from ..core.envs_manager import EnvsDirectory
-    ed = EnvsDirectory(join(context.root_prefix, 'envs'))
-    get_env = lambda s: ed.get_registered_preferred_env(MatchSpec(s).name)
-    env_spec_map = groupby(get_env, specs)
-    for spec in specs:
-        ed.get_registered_preferred_env(MatchSpec(spec).name)
-
-
-    prefix_spec_map = {}
-    for spec in specs:
-        spec_prefix = ed.prefix_if_in_private_env(spec)
-        spec_prefix = spec_prefix if spec_prefix is not None else default_prefix
-        if spec_prefix in prefix_spec_map.keys():
-            prefix_spec_map[spec_prefix].add(spec)
-        else:
-            prefix_spec_map[spec_prefix] = {spec}
-
-        if is_private_env_path(spec_prefix):
-            from ..core.linked_data import linked_data
-            linked = linked_data(spec_prefix)
-            for linked_spec in linked:
-                if not linked_spec.name.startswith(spec) and r.depends_on(spec, linked_spec):
-                    prefix_spec_map[spec_prefix].add(linked_spec.name)
-    import pdb; pdb.set_trace()
-    return prefix_spec_map
-
-
 def execute(args, parser):
-    import conda.plan as plan
-    import conda.instructions as inst
-    from conda.gateways.disk.delete import rm_rf
-    from conda.core.linked_data import linked_data
+    from .install import check_write
+    from ..core.linked_data import linked_data
+    from ..base.constants import ROOT_NO_RM
+    from ..base.context import context
+    from ..common.compat import iteritems, iterkeys
+    from ..common.path import is_private_env_path
+    from ..console import json_progress_bars
+    from ..core.index import get_index
+    from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
+    from ..gateways.disk.delete import delete_trash, rm_rf
+    from ..instructions import PREFIX
+    from ..plan import (add_unlink, display_actions, execute_actions, get_blank_actions,
+                        get_resolve_object, is_root_prefix, nothing_to_do, remove_actions,
+                        solve_for_actions)
+    from ..resolve import MatchSpec
 
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
@@ -172,17 +143,17 @@ def execute(args, parser):
     specs = None
     if args.features:
         specs = ['@' + f for f in set(args.package_names)]
-        actions = plan.remove_actions(prefix, specs, index, pinned=context.respect_pinned)
+        actions = remove_actions(prefix, specs, index, pinned=context.respect_pinned)
         actions['ACTION'] = 'REMOVE_FEATURE'
         action_groups = (actions, index),
     elif args.all:
-        if plan.is_root_prefix(prefix):
+        if is_root_prefix(prefix):
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
         actions = defaultdict(list)
-        actions[inst.PREFIX] = prefix
+        actions[PREFIX] = prefix
         for dist in sorted(iterkeys(index)):
-            plan.add_unlink(actions, dist)
+            add_unlink(actions, dist)
         actions['ACTION'] = 'REMOVE_ALL'
         action_groups = (actions, index),
     elif prefix == context.root_prefix and not context.prefix_specified:
@@ -194,14 +165,14 @@ def execute(args, parser):
         action_groups = []
         for env_name, spcs in iteritems(env_spec_map):
             pfx = ed.to_prefix(env_name)
-            r = plan.get_resolve_object(index.copy(), pfx)
+            r = get_resolve_object(index.copy(), pfx)
             specs_to_remove = tuple(MatchSpec(s) for s in spcs)
             prune = pfx != context.root_prefix
-            dists_for_unlinking, dists_for_linking = plan.solve_for_actions(
+            dists_for_unlinking, dists_for_linking = solve_for_actions(
                 pfx, r,
                 specs_to_remove=specs_to_remove, prune=prune,
             )
-            actions = plan.get_blank_actions(pfx)
+            actions = get_blank_actions(pfx)
             actions['UNLINK'].extend(dists_for_unlinking)
             actions['LINK'].extend(dists_for_linking)
             actions['SPECS'].extend(s.spec for s in specs_to_remove)
@@ -211,16 +182,15 @@ def execute(args, parser):
 
     else:
         specs = specs_from_args(args.package_names)
-        if (context.conda_in_root and plan.is_root_prefix(prefix) and names_in_specs(
+        if (context.conda_in_root and is_root_prefix(prefix) and names_in_specs(
                 ROOT_NO_RM, specs) and not args.force):
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
-        action_groups = (plan.remove_actions(prefix, list(specs), index=index, force=args.force,
-                                               pinned=context.respect_pinned), index),
-
+        action_groups = (remove_actions(prefix, list(specs), index=index, force=args.force,
+                                        pinned=context.respect_pinned), index),
 
     delete_trash()
-    if any(plan.nothing_to_do(x[0]) for x in action_groups):
+    if any(nothing_to_do(x[0]) for x in action_groups):
         if args.all:
             print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
             if not context.json:
@@ -239,7 +209,7 @@ def execute(args, parser):
         for actions, ndx in action_groups:
             print()
             print("Package plan for package removal in environment %s:" % actions["PREFIX"])
-            plan.display_actions(actions, ndx)
+            display_actions(actions, ndx)
     elif context.json and args.dry_run:
         stdout_json({
             'success': True,
@@ -254,9 +224,9 @@ def execute(args, parser):
     for actions, ndx in action_groups:
         if context.json and not context.quiet:
             with json_progress_bars():
-                plan.execute_actions(actions, ndx, verbose=not context.quiet)
+                execute_actions(actions, ndx, verbose=not context.quiet)
         else:
-            plan.execute_actions(actions, ndx, verbose=not context.quiet)
+            execute_actions(actions, ndx, verbose=not context.quiet)
 
         target_prefix = actions["PREFIX"]
         if is_private_env_path(target_prefix) and linked_data(target_prefix) == {}:

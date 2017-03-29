@@ -161,7 +161,10 @@ class History(object):
                     action, specs = m.groups()
                     item['action'] = action
                     specs = specs.replace("'", '"')
-                    item['specs'] = json.loads(specs.replace('u"', '"')) if specs.startswith('[') else specs.split(',')
+                    if specs.startswith('['):
+                        item['specs'] = json.loads(specs.replace('u"', '"'))
+                    else:
+                        item['specs'] = specs.split(',')
             if 'cmd' in item:
                 res.append(item)
         return res

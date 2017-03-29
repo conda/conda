@@ -8,14 +8,13 @@ import os
 from os.path import basename, isdir, isfile, join
 import tarfile
 
-from conda.history import History
-from conda.resolve import MatchSpec
 from .base.context import context
 from .common.compat import on_win
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
 from .gateways.disk.link import islink
+from .history import History
 from .install import symlink_conda
 from .models.dist import Dist
 

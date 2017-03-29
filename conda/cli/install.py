@@ -7,7 +7,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from difflib import get_close_matches
-import errno
 import logging
 import os
 from os.path import abspath, basename, exists, isdir, join
@@ -21,8 +20,7 @@ from ..common.compat import on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..exceptions import (CondaEnvironmentNotFoundError,
-                          CondaIOError, CondaImportError, CondaOSError,
+from ..exceptions import (CondaEnvironmentNotFoundError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
                           PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError,
