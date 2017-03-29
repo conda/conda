@@ -617,6 +617,7 @@ def get_help_dict():
             """),
         'pinned_packages': dals("""
             A list of package specs to pin for every environment resolution.
+            This parameter is in BETA, and its behavior may change in a future release.
             """),
         'pkgs_dirs': dals("""
             The list of directories where locally-available packages are linked from at
