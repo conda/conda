@@ -1,6 +1,8 @@
 import json
 from unittest import TestCase
 
+from conda.common.compat import on_win
+
 from conda import text_type
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import reset_context, context
@@ -372,5 +374,10 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == ("CommandNotFoundError: 'activate is not a conda command.\n"
-                                    "Did you mean 'source activate'?")
+
+        if on_win:
+            message = "CommandNotFoundError: Conda could not find the command: 'activate'"
+        else:
+            message = ("CommandNotFoundError: 'activate is not a conda command.\n"
+                       "Did you mean 'source activate'?")
+        assert c.stderr.strip() == message
