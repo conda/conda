@@ -452,6 +452,7 @@ class Context(Configuration):
             'default_python',
             'force_32bit',
             'migrated_custom_channels',
+            'prune',
             'root_dir',
             'skip_safety_checks',
             'subdir',
