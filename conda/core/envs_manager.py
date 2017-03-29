@@ -16,7 +16,7 @@ from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import text_type, with_metaclass
 from ..common.path import ensure_pad, right_pad_os_sep, win_path_ok
-from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
+from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError, NotWritableError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
@@ -150,6 +150,11 @@ class EnvsDirectory(object):
                 log.debug("env directory '%s' does not exist", self.envs_dir)
                 self._is_writable = create_envs_directory(self.envs_dir)
         return self._is_writable
+
+    def raise_if_not_writable(self):
+        if not self.is_writable:
+            raise NotWritableError(self.catalog_file)
+        return True
 
     @classmethod
     def first_writable(cls, envs_dirs=None):

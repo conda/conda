@@ -17,7 +17,8 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateLinkedPackageRecordAction, CreateNonadminAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterPrivateEnvAction, RemoveLinkedPackageRecordAction,
-                           RemoveMenuAction, UnlinkPathAction, UnregisterPrivateEnvAction)
+                           RemoveMenuAction, UnlinkPathAction, UnregisterPrivateEnvAction,
+                           UnregisterEnvironmentLocationAction, RegisterEnvironmentLocationAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -173,10 +174,11 @@ class UnlinkLinkTransaction(object):
             for lnkd_pkg_data in self.linked_packages_data_to_unlink
         )
 
-        # if unlink_actions:
-        #     unregister_actions = (None, UnregisterEnvironmentLocationAction(transaction_context, self.target_prefix)),
-        # else:
-        #     unregister_actions = ()
+        if self.unlink_action_groups:
+            axns = UnregisterEnvironmentLocationAction(transaction_context, self.target_prefix),
+            self.unregister_action_groups = ActionGroup('unregister', None, axns),
+        else:
+            self.unregister_action_groups = ()
 
         self.link_action_groups = tuple(
             ActionGroup('link', pkg_info, self.make_link_actions(transaction_context, pkg_info,
@@ -185,9 +187,11 @@ class UnlinkLinkTransaction(object):
                                           self.matchspecs_for_link_dists)
         )
 
-        # if link_actions:
-        #     link_actions.append((None, RegisterEnvironmentLocationAction(transaction_context, self.target_prefix)))
-
+        if self.link_action_groups:
+            axns = RegisterEnvironmentLocationAction(transaction_context, self.target_prefix),
+            self.register_action_groups = ActionGroup('register', None, axns),
+        else:
+            self.register_action_groups = ()
 
         self._prepared = True
 
@@ -197,7 +201,9 @@ class UnlinkLinkTransaction(object):
     def all_action_groups(self):
         return concatv(
             self.unlink_action_groups,
+            self.unregister_action_groups,
             self.link_action_groups,
+            self.register_action_groups,
         )
 
     @staticmethod
@@ -222,7 +228,8 @@ class UnlinkLinkTransaction(object):
         #   2. there's only a single instance of each path
         #   3. if the target is a private env, leased paths need to be verified
         #   4. make sure conda-meta/history file is writable
-        #   5. make sure envs/catalog.json is writable
+        #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
+        # TODO: ensure 3 and 4 are happening
 
         # paths are case-insensitive on windows apparently
         lower_on_win = lambda p: p.lower() if on_win else p

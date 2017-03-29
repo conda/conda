@@ -101,6 +101,43 @@ class PrefixPathAction(PathAction):
             return None
 
 
+@with_metaclass(ABCMeta)
+class EnvsDirectoryPathAction(PathAction):
+    def __init__(self, transaction_context, target_prefix):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+
+        from .envs_manager import EnvsDirectory
+        self._ed_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
+
+        self._execute_successful = False
+
+    def verify(self):
+        from .envs_manager import EnvsDirectory
+        ed = EnvsDirectory(self.envs_dir_path)
+        ed.raise_if_not_writable()
+        self._verified = True
+
+    @abstractmethod
+    def execute(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def reverse(self):
+        raise NotImplementedError()
+
+    def cleanup(self):
+        pass
+
+    @property
+    def envs_dir_path(self):
+        return self._ed_path
+
+    @property
+    def target_full_path(self):
+        raise NotImplementedError()
+
+
 # ######################################################
 #  Creation of Paths within a Prefix
 # ######################################################
@@ -528,30 +565,17 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         rm_rf(self.target_full_path)
 
 
-class RegisterEnvironmentLocationAction(PathAction):
+class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):
 
     def __init__(self, transaction_context, target_prefix):
-        self.transaction_context = transaction_context
-        self.target_prefix = target_prefix
-
-        from .envs_manager import EnvsDirectory
-        self.ed_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
-
-        self._execute_successful = False
-
-    def verify(self):
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
-        if not ed.is_writable:
-            raise PermissionsError()
-        self._verified = True
+        super(RegisterEnvironmentLocationAction, self).__init__(transaction_context, target_prefix)
 
     def execute(self):
         log.trace("registering environment in catalog %s", self.target_prefix)
 
         # touches env prefix entry in catalog.json
         from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
+        ed = EnvsDirectory(self.envs_dir_path)
 
         self.envs_dir_state = ed._get_state()
         ed.register_env(self.target_prefix)
@@ -562,19 +586,12 @@ class RegisterEnvironmentLocationAction(PathAction):
         if self._execute_successful:
             log.trace("reversing environment registration in catalog for %s", self.target_prefix)
             from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.ed_path)
+            ed = EnvsDirectory(self.envs_dir_path)
             ed._set_state(self.envs_dir_state)
             ed.write_to_disk()
 
-    def cleanup(self):
-        pass
 
-    @property
-    def target_full_path(self):
-        raise NotImplementedError()
-
-
-class RegisterPrivateEnvAction(PathAction):
+class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_spec,
@@ -588,28 +605,17 @@ class RegisterPrivateEnvAction(PathAction):
 
     def __init__(self, transaction_context, package_info, root_prefix, env_name, requested_spec,
                  leased_paths):
-        self.transaction_context = transaction_context
         self.root_prefix = root_prefix
         self.env_name = ensure_pad(env_name)
+        target_prefix = join(self.root_prefix, 'envs', self.env_name)
+        super(RegisterPrivateEnvAction, self).__init__(transaction_context, target_prefix)
+
         self.package_name = package_info.index_json_record.name
         self.requested_spec = requested_spec
         self.leased_paths = leased_paths
 
-        self.target_prefix = join(root_prefix, 'envs', self.env_name)
         fn = Dist(package_info).to_filename('.json')
         self.conda_meta_path = join(self.target_prefix, 'conda-meta', fn)
-
-        from .envs_manager import EnvsDirectory
-        self.ed_path = EnvsDirectory.get_envs_directory_for_prefix(root_prefix)
-
-        self._execute_successful = False
-
-    def verify(self):
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
-        if not ed.is_writable:
-            raise PermissionsError()
-        self._verified = True
 
     def execute(self):
         log.trace("registering private env for %s", self.target_prefix)
@@ -617,7 +623,7 @@ class RegisterPrivateEnvAction(PathAction):
         # touches env prefix entry in catalog.json
         # updates leased_paths
         from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
+        ed = EnvsDirectory(self.envs_dir_path)
 
         self.envs_dir_state = ed._get_state()
 
@@ -634,16 +640,9 @@ class RegisterPrivateEnvAction(PathAction):
         if self._execute_successful:
             log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
             from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.ed_path)
+            ed = EnvsDirectory(self.envs_dir_path)
             ed._set_state(self.envs_dir_state)
             ed.write_to_disk()
-
-    def cleanup(self):
-        pass
-
-    @property
-    def target_full_path(self):
-        raise NotImplementedError()
 
 
 # ######################################################
@@ -741,30 +740,14 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
                          meta_record)
 
 
-class UnregisterEnvironmentLocationAction(PathAction):
-
-    def __init__(self, transaction_context, target_prefix):
-        self.transaction_context = transaction_context
-        self.target_prefix = target_prefix
-
-        from .envs_manager import EnvsDirectory
-        self.ed_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
-
-        self._execute_successful = False
-
-    def verify(self):
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
-        if not ed.is_writable:
-            raise PermissionsError()
-        self._verified = True
+class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
 
     def execute(self):
         log.trace("unregistering environment in catalog %s", self.target_prefix)
 
         # touches env prefix entry in catalog.json
         from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
+        ed = EnvsDirectory(self.envs_dir_path)
 
         self.envs_dir_state = ed._get_state()
         ed.unregister_env(self.target_prefix)
@@ -775,19 +758,12 @@ class UnregisterEnvironmentLocationAction(PathAction):
         if self._execute_successful:
             log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
             from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.ed_path)
+            ed = EnvsDirectory(self.envs_dir_path)
             ed._set_state(self.envs_dir_state)
             ed.write_to_disk()
 
-    def cleanup(self):
-        pass
 
-    @property
-    def target_full_path(self):
-        raise NotImplementedError()
-
-
-class UnregisterPrivateEnvAction(PathAction):
+class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
@@ -816,27 +792,15 @@ class UnregisterPrivateEnvAction(PathAction):
             return ()
 
     def __init__(self, transaction_context, root_prefix, package_name):
-        self.transaction_context = transaction_context
+        super(UnregisterPrivateEnvAction, self).__init__(transaction_context, root_prefix)
         self.root_prefix = root_prefix
         self.package_name = package_name
-
-        from .envs_manager import EnvsDirectory
-        self.ed_path = EnvsDirectory.get_envs_directory_for_prefix(root_prefix)
-
-        self._execute_successful = False
-
-    def verify(self):
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
-        if not ed.is_writable:
-            raise PermissionsError()
-        self._verified = True
 
     def execute(self):
         log.trace("unregistering private env for %s", self.package_name)
 
         from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.ed_path)
+        ed = EnvsDirectory(self.envs_dir_path)
 
         self.envs_dir_state = ed._get_state()
 
@@ -850,16 +814,9 @@ class UnregisterPrivateEnvAction(PathAction):
             log.trace("reversing environment unregistration in catalog for %s",
                       self.target_prefix)
             from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.ed_path)
+            ed = EnvsDirectory(self.envs_dir_path)
             ed._set_state(self.envs_dir_state)
             ed.write_to_disk()
-
-    def cleanup(self):
-        pass
-
-    @property
-    def target_full_path(self):
-        raise NotImplementedError()
 
 
 # ######################################################
