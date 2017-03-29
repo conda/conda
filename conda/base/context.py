@@ -453,7 +453,8 @@ class Context(Configuration):
             'force_32bit',
             'migrated_custom_channels',
             'prune',
-            'root_dir',
+            'respect_pinned',
+            'root_prefix',
             'skip_safety_checks',
             'subdir',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
