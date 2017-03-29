@@ -5,7 +5,7 @@ from errno import ENOENT
 import json
 from logging import getLogger
 from os import listdir, removedirs, rename, unlink, walk
-from os.path import abspath, dirname, isdir, isfile, join, lexists
+from os.path import abspath, dirname, isdir, join, lexists
 from shutil import rmtree
 from uuid import uuid4
 
@@ -38,10 +38,8 @@ def rm_rf(path, max_retries=5, trash=True):
                         return True
                 backoff_rmdir(path)
             finally:
-                # If path was removed, ensure it's not in linked_data_
-                if islink(path) or isfile(path):
-                    from ...core.linked_data import delete_prefix_from_linked_data
-                    delete_prefix_from_linked_data(path)
+                from ...core.linked_data import delete_prefix_from_linked_data
+                delete_prefix_from_linked_data(path)
         elif lexists(path):
             try:
                 backoff_unlink(path)

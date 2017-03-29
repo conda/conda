@@ -31,6 +31,12 @@ class ContextTests(TestCase):
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://another.url:8080/with/path
+        custom_multichannels:
+          michele:
+            - https://do.it.with/passion
+            - learn_from_every_thing
+          steve:
+            - more-downloads
         migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
@@ -145,6 +151,12 @@ class ContextTests(TestCase):
         finally:
             rm_rf(conda_bld_path)
 
+    def test_custom_multichannels(self):
+        assert context.custom_multichannels['michele'] == (
+            Channel('passion'),
+            Channel('learn_from_every_thing'),
+        )
+
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"
         from conda.config import rc
@@ -153,3 +165,9 @@ class ContextTests(TestCase):
     def test_clobber_enum(self):
         with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
             assert context.path_conflict == PathConflict.prevent
+
+    def test_describe_all(self):
+        paramter_names = context.list_parameters()
+        from pprint import pprint
+        for name in paramter_names:
+            pprint(context.describe_parameter(name))
