@@ -10,14 +10,11 @@ import argparse
 import os
 import subprocess
 import sys
-from difflib import get_close_matches
 
 from .common import add_parser_help
 from .find_commands import find_commands, find_executable
 from ..exceptions import CommandNotFoundError
 
-build_commands = {'build', 'index', 'skeleton', 'package', 'metapackage',
-                  'pipbuild', 'develop', 'convert'}
 
 _ARGCOMPLETE_DEBUG = False
 def debug_argcomplete(msg):
@@ -129,21 +126,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     cmd = m.group(1)
                     executable = find_executable('conda-' + cmd)
                     if not executable:
-                        if cmd in build_commands:
-                            raise CommandNotFoundError(cmd, '''
-Error: You need to install conda-build in order to
-use the "conda %s" command.''' % cmd)
-                        else:
-                            message = "Error: Could not locate 'conda-%s'" % cmd
-                            possibilities = (set(argument.choices.keys()) |
-                                             build_commands |
-                                             set(find_commands()))
-                            close = get_close_matches(cmd, possibilities)
-                            if close:
-                                message += '\n\nDid you mean one of these?\n'
-                                for s in close:
-                                    message += '    %s' % s
-                            raise CommandNotFoundError(cmd, message)
+                        raise CommandNotFoundError(cmd)
 
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])

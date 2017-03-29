@@ -11,7 +11,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from .base.constants import PathConflict
-from .common.compat import iteritems, iterkeys, string_types
+from .common.compat import iteritems, iterkeys, on_win, string_types
 from .common.signals import get_signal_name
 from .common.url import maybe_unquote
 
@@ -159,7 +159,32 @@ class SharedLinkPathClobberError(ClobberError):
 
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
-        message = "Conda could not find the command: '%(command)s'"
+        build_commands = {
+            'build',
+            'convert',
+            'develop',
+            'index',
+            'inspect',
+            'metapackage',
+            'render',
+            'skeleton',
+        }
+        needs_source = {
+            'activate',
+            'deactivate'
+        }
+        if command in build_commands:
+            message = dals("""
+            You need to install conda-build in order to
+            use the 'conda %(command)s' command.
+            """)
+        elif command in needs_source and not on_win:
+            message = dals("""
+            '%(command)s is not a conda command.
+            Did you mean 'source %(command)s'?
+            """)
+        else:
+            message = "Conda could not find the command: '%(command)s'"
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
