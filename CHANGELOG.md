@@ -4,6 +4,21 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.16 (2017-03-29)
+
+### Improvements
+* add 'conda config --describe' and extra config documentation (#4913)
+* enable packaging pinning in condarc using pinned_packages config parameter
+  as beta feature (#4921, #4964)
+
+### Bug Fixes
+* fix #4914 handle directory creation on top of file paths (#4922)
+* fix #3982 issue with CONDA_ENV and using powerline (#4925)
+* fix #2611 update instructions on how to source conda.fish (#4924)
+* fix #4860 missing information on package not found error (#4935)
+* fix #4944 command not found error error (#4963)
+
+
 ## 4.3.15 (2017-03-20)
 
 ### Improvements
