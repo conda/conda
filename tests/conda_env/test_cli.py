@@ -12,6 +12,7 @@ from conda_env.cli.main import create_parser
 from conda.base.context import context
 from conda.base.constants import ROOT_ENV_NAME
 from conda.common.io import captured
+from conda.exceptions import CondaEnvironmentNotFoundError
 from conda.install import rm_rf
 from conda.cli.main_create import configure_parser as conda_create_parser
 from conda.cli.main_list import configure_parser as list_parser
@@ -38,6 +39,7 @@ channels:
 
 test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
+test_env_name_3 = "env_foo"
 
 def escape_for_winpath(p):
     if p:
@@ -236,12 +238,20 @@ class NewIntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
 
-    def test_create_env(self):
+    def test_create_remove_env(self):
         """
-            Test conda create env and conda env remove env
+            Test conda create and remove env
         """
-        run_conda_command(Commands.CREATE, test_env_name_2)
-        self.assertTrue(env_is_created(test_env_name_2))
+
+        run_conda_command(Commands.CREATE, test_env_name_3)
+        self.assertTrue(env_is_created(test_env_name_3))
+
+        with pytest.raises(CondaEnvironmentNotFoundError) as execinfo:
+            run_env_command(Commands.ENV_REMOVE, 'does-not-exist')
+
+        run_env_command(Commands.ENV_REMOVE, test_env_name_3)
+        self.assertFalse(env_is_created(test_env_name_3))
+
 
     def test_export(self):
         """
