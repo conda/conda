@@ -25,6 +25,9 @@ SEARCH_PATH = (
     '/etc/conda/condarc.d/',
     '/var/lib/conda/condarc',
     '/var/lib/conda/condarc.d/',
+    '%s/condarc' % sys.prefix,
+    '%s/.condarc' % sys.prefix,
+    '%s/condarc.d/' % sys.prefix,
     '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/.condarc',
     '$CONDA_ROOT/condarc.d/',
@@ -92,3 +95,6 @@ class PathConflict(Enum):
     clobber = 'clobber'
     warn = 'warn'
     prevent = 'prevent'
+
+    def __str__(self):
+        return self.value

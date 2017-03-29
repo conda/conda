@@ -11,7 +11,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from .base.constants import PathConflict
-from .common.compat import iteritems, iterkeys, string_types
+from .common.compat import iteritems, iterkeys, on_win, string_types
 from .common.signals import get_signal_name
 from .common.url import maybe_unquote
 
@@ -159,7 +159,32 @@ class SharedLinkPathClobberError(ClobberError):
 
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
-        message = "Conda could not find the command: '%(command)s'"
+        build_commands = {
+            'build',
+            'convert',
+            'develop',
+            'index',
+            'inspect',
+            'metapackage',
+            'render',
+            'skeleton',
+        }
+        needs_source = {
+            'activate',
+            'deactivate'
+        }
+        if command in build_commands:
+            message = dals("""
+            You need to install conda-build in order to
+            use the 'conda %(command)s' command.
+            """)
+        elif command in needs_source and not on_win:
+            message = dals("""
+            '%(command)s is not a conda command.
+            Did you mean 'source %(command)s'?
+            """)
+        else:
+            message = "Conda could not find the command: '%(command)s'"
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
@@ -305,10 +330,20 @@ class MD5MismatchError(CondaError):
 
 
 class PackageNotFoundError(CondaError):
-    def __init__(self, package_name, *args):
-        self.package_name = package_name
-        message = "Package not found: Conda could not find '%(package_name)s"
-        super(PackageNotFoundError, self).__init__(message, package_name=package_name)
+    def __init__(self, message, **kwargs):
+        super(PackageNotFoundError, self).__init__(message, **kwargs)
+
+
+class PackageNotInstalledError(PackageNotFoundError):
+
+    def __init__(self, prefix, package_name):
+        message = dals("""
+        Package is not installed in prefix.
+          prefix: %(prefix)s
+          package name: %(package_name)s
+        """)
+        super(PackageNotInstalledError, self).__init__(message, prefix=prefix,
+                                                       package_name=package_name)
 
 
 class CondaHTTPError(CondaError):
@@ -568,23 +603,28 @@ def maybe_raise(error, context):
         raise NotImplementedError()
 
 
-def conda_exception_handler(func, *args, **kwargs):
-    try:
-        return_value = func(*args, **kwargs)
-        if isinstance(return_value, int):
-            return return_value
-    except CondaExitZero:
+def handle_exception(e):
+    if isinstance(e, CondaExitZero):
         return 0
-    except CondaRuntimeError as e:
+    elif isinstance(e, CondaRuntimeError):
         print_unexpected_error_message(e)
         return 1
-    except CondaError as e:
+    elif isinstance(e, CondaError):
         from conda.base.context import context
         if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
         return 1
-    except Exception as e:
+    else:
         print_unexpected_error_message(e)
         return 1
+
+
+def conda_exception_handler(func, *args, **kwargs):
+    try:
+        return_value = func(*args, **kwargs)
+        if isinstance(return_value, int):
+            return return_value
+    except Exception as e:
+        return handle_exception(e)
