@@ -25,7 +25,8 @@ from ..exceptions import (CondaEnvironmentNotFoundError,
                           CondaIOError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
-                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
+                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError,
+                          PackageNotInstalledError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
@@ -151,8 +152,7 @@ def install(args, parser, command='install'):
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names and common.prefix_if_in_private_env(name) is None:
-                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
-                                           (name, prefix))
+                raise PackageNotInstalledError(prefix, name)
 
     if newenv and not args.no_default_packages:
         default_packages = list(context.create_default_packages)
@@ -183,8 +183,8 @@ def install(args, parser, command='install'):
             return
     elif getattr(args, 'all', False):
         if not linked_dists:
-            raise PackageNotFoundError('', "There are no packages installed in the "
-                                       "prefix %s" % prefix)
+            log.info("There are no packages installed in prefix %s", prefix)
+            return
         specs.extend(d.quad[0] for d in linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
@@ -286,16 +286,16 @@ def install(args, parser, command='install'):
                     error_message.append("\n\nClose matches found; did you mean one of these?\n")
                 error_message.append("\n    %s: %s" % (pkg, ', '.join(close)))
                 nfound += 1
-            error_message.append('\n\nYou can search for packages on anaconda.org with')
-            error_message.append('\n\n    anaconda search -t conda %s' % pkg)
+            # error_message.append('\n\nYou can search for packages on anaconda.org with')
+            # error_message.append('\n\n    anaconda search -t conda %s' % pkg)
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
                 error_message.append('\n\n(and similarly for the other packages)')
 
-            if not find_executable('anaconda', include_others=False):
-                error_message.append('\n\nYou may need to install the anaconda-client')
-                error_message.append(' command line client with')
-                error_message.append('\n\n    conda install anaconda-client')
+            # if not find_executable('anaconda', include_others=False):
+            #     error_message.append('\n\nYou may need to install the anaconda-client')
+            #     error_message.append(' command line client with')
+            #     error_message.append('\n\n    conda install anaconda-client')
 
             pinned_specs = get_pinned_specs(prefix)
             if pinned_specs:
@@ -304,8 +304,7 @@ def install(args, parser, command='install'):
                 error_message.append("\n\n    %r" % pinned_specs)
 
             error_message = ''.join(error_message)
-
-            raise PackageNotFoundError('', error_message)
+            raise PackageNotFoundError(error_message)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
