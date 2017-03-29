@@ -181,7 +181,7 @@ class CommandNotFoundError(CondaError):
         elif command in needs_source and not on_win:
             message = dals("""
             '%(command)s is not a conda command.
-            Did you mean 'source %(command)s'? 
+            Did you mean 'source %(command)s'?
             """)
         else:
             message = "Conda could not find the command: '%(command)s'"
