@@ -7,7 +7,7 @@ import json
 from logging import getLogger
 import os
 from os import X_OK, access, makedirs
-from os.path import basename, isdir, isfile, join, lexists
+from os.path import basename, isdir, isfile, join, lexists, dirname
 import shutil
 import sys
 import tarfile
@@ -49,7 +49,10 @@ application_entry_point_template = dals("""
 if __name__ == '__main__':
     import os
     import sys
-    os.execv(%(source_full_path)s, sys.argv)
+    args = ["%(source_full_path)s"]
+    if len(sys.argv) > 1:
+        args += sys.argv[1:]
+    os.execv(args[0], args)
 """)
 
 
@@ -97,6 +100,28 @@ def create_windows_python_entry_point(target_full_path, module, func):
         fo.write(pyscript)
 
     return target_full_path
+
+
+def create_application_entry_point(source_full_path, target_full_path, python_full_path):
+    # source_full_path: where the entry point file points to
+    # target_full_path: the location of the entry point file
+    if lexists(target_full_path):
+        maybe_raise(BasicClobberError(
+            source_path=None,
+            target_path=target_full_path,
+            context=context,
+        ), context)
+
+    entry_point = application_entry_point_template % {
+        "source_full_path": source_full_path,
+    }
+    if not isdir(dirname(target_full_path)):
+        mkdir_p(dirname(target_full_path))
+    with open(target_full_path, str("w")) as fo:
+        if not on_win:
+            fo.write('#!%s\n' % python_full_path)
+        fo.write(entry_point)
+    make_executable(target_full_path)
 
 
 def extract_tarball(tarball_full_path, destination_directory=None):
@@ -256,21 +281,6 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
         return None
 
     return pyc_full_path
-
-
-def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
-    if lexists(target_full_path):
-        maybe_raise(BasicClobberError(
-            source_path=None,
-            target_path=target_full_path,
-            context=context,
-        ), context)
-
-    entry_point = application_entry_point_template % {"source_full_path": source_full_path}
-    with open(target_full_path, str("w")) as fo:
-        fo.write('#!%s\n' % python_full_path)
-        fo.write(entry_point)
-    make_executable(target_full_path)
 
 
 def create_package_cache_directory(pkgs_dir):

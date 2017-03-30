@@ -59,6 +59,7 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
+from conda.gateways.subprocess import subprocess_call
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
 
@@ -1095,6 +1096,11 @@ class PrivateEnvIntegrationTests(TestCase):
             os.environ['CONDA_PKGS_DIRS'] = self.save_pkgs_dirs
         reset_context()
 
+    def exe_file(self, prefix, exe_name):
+        if on_win:
+            exe_name = exe_name + '.exe'
+        return join(prefix, get_bin_directory_short_path(), exe_name)
+
     @patch.object(Context, 'prefix_specified')
     def test_simple_install_uninstall(self, prefix_specified):
         prefix_specified.__get__ = Mock(return_value=False)
@@ -1102,8 +1108,14 @@ class PrivateEnvIntegrationTests(TestCase):
         # >> simple progression install then uninstall <<
         run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
-        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
+        with env_var('yabba-dabba', 'doo'):
+            stdout, stderr, rc = subprocess_call(self.exe_file(self.prefix, 'spiffy-test-app'))
+        assert not stderr
+        assert rc == 0
+        json_d = json.loads(stdout)
+        assert json_d['yabba-dabba'] == 'doo'
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
@@ -1114,9 +1126,9 @@ class PrivateEnvIntegrationTests(TestCase):
 
         run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
-        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
-        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
     @patch.object(Context, 'prefix_specified')
     def test_install_dep_uninstall_base(self, prefix_specified):
@@ -1132,17 +1144,17 @@ class PrivateEnvIntegrationTests(TestCase):
         with pytest.raises(PackageNotFoundError):
             run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
-        assert isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
-        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
 
         run_command(Commands.REMOVE, self.prefix, "uses-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
 
         # this part tests that the private environment was fully pruned
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
-        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
     @patch.object(Context, 'prefix_specified')
     def test_install_base_1_then_update(self, prefix_specified):
@@ -1169,9 +1181,9 @@ class PrivateEnvIntegrationTests(TestCase):
 
         run_command(Commands.REMOVE, self.preferred_env_prefix, "spiffy-test-app")
         assert not package_is_installed(self.prefix, "spiffy-test-app")
-        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
-        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
     @patch.object(Context, 'prefix_specified')
     def test_install_base_1_then_install_base_2(self, prefix_specified):
@@ -1226,13 +1238,13 @@ class PrivateEnvIntegrationTests(TestCase):
         run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
-        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app=1")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
         assert package_is_installed(self.prefix, "spiffy-test-app-1")
-        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
 
     @patch.object(Context, 'prefix_specified')
     def test_install_base_1_dep_2_together(self, prefix_specified):
@@ -1250,29 +1262,29 @@ class PrivateEnvIntegrationTests(TestCase):
         run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
-        assert not isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
-        assert isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app-2")
-        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
-        assert isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
         run_command(Commands.REMOVE, self.prefix, "uses-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert not package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app-2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app-2")
-        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
-        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
         run_command(Commands.REMOVE, self.prefix, "needs-spiffy-test-app")
         assert not package_is_installed(self.prefix, "needs-spiffy-test-app")
         assert package_is_installed(self.prefix, "spiffy-test-app-2")
-        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
 
     @patch.object(Context, 'prefix_specified')
     def test_b2(self, prefix_specified):

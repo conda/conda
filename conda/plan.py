@@ -751,8 +751,12 @@ def get_resolve_object(index, prefix):
 
 def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     # this function gives a "final state" for an existing prefix given just these simple inputs
-
     prune = context.prune or prune
+    log.debug("solving prefix %s\n"
+              "  specs_to_remove: %s\n"
+              "  specs_to_add: %s\n"
+              "  prune: %s", prefix, specs_to_remove, specs_to_add, prune)
+
 
     # declare starting point
     solved_linked_dists = () if prune else tuple(iterkeys(linked_data(prefix)))
@@ -766,8 +770,9 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     # add in specs from requested history,
     #   but not if we're requesting removal in this operation
     spec_names_to_remove = set(s.name for s in specs_to_remove)
-    specs_map = {s.name: s for s in History(prefix).get_requested_specs()
-                 if s.name not in spec_names_to_remove}
+    user_requested_specs = History(prefix).get_requested_specs()
+    log.debug("user requested specs: %s", user_requested_specs)
+    specs_map = {s.name: s for s in user_requested_specs if s.name not in spec_names_to_remove}
 
     # replace specs matching same name with new specs_to_add
     specs_map.update({s.name: s for s in specs_to_add})
@@ -785,6 +790,9 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     # TODO: don't uninstall conda or its dependencies, probably need to check elsewhere
 
     solved_linked_dists = IndexedSet(r.dependency_sort({d.name: d for d in solved_linked_dists}))
+
+    log.debug("solved prefix %s\n"
+              "  solved_linked_dists: %s", prefix, solved_linked_dists)
 
     return solved_linked_dists, specs_to_add
 

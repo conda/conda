@@ -160,7 +160,7 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    specs = specs.replace("'", '"')
+                    specs = specs and specs.replace("'", '"') or ""
                     if specs.startswith('['):
                         item['specs'] = json.loads(specs.replace('u"', '"'))
                     else:

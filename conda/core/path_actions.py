@@ -21,7 +21,7 @@ from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_di
 from ..common.url import path_to_url
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
-                                    create_private_pkg_entry_point, create_unix_python_entry_point,
+                                    create_application_entry_point, create_unix_python_entry_point,
                                     create_windows_python_entry_point, extract_tarball, make_menu,
                                     write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
@@ -33,9 +33,9 @@ from ..models.enums import LinkType, NoarchType, PathType
 from ..models.index_record import IndexRecord, Link
 
 try:
-    from cytoolz.itertoolz import concatv
+    from cytoolz.itertoolz import concat, concatv
 except ImportError:
-    from .._vendor.toolz.itertoolz import concatv  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -233,6 +233,17 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_short_path = 'Scripts/conda.exe'
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = "Scripts/%s.exe" % command
+        return cls(transaction_context, package_info, source_directory,
+                   source_short_path, target_prefix, target_short_path,
+                   requested_link_type)
+
+    @classmethod
+    def create_application_entry_point_windows_exe_action(cls, transaction_context, package_info,
+                                                          target_prefix, requested_link_type,
+                                                          exe_path):
+        source_directory = context.conda_prefix
+        source_short_path = 'Scripts/conda.exe'
+        target_short_path = exe_path
         return cls(transaction_context, package_info, source_directory,
                    source_short_path, target_prefix, target_short_path,
                    requested_link_type)
@@ -484,11 +495,27 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
             #   as target_prefix for the larger transaction
             assert is_private_env_path(target_prefix)
             root_prefix = dirname(dirname(target_prefix))
-            return tuple(
-                cls(transaction_context, package_info, target_prefix, executable_short_path,
-                    root_prefix, executable_short_path)
-                for executable_short_path in exe_paths
-            )
+
+            if on_win:
+                def make_app_entry_point_axns(exe_path):
+                    assert exe_path.endswith(('.exe', '.bat'))
+                    target_short_path = exe_path[:-4] + "-script.py"
+                    yield cls(transaction_context, package_info, target_prefix, target_short_path,
+                              root_prefix, exe_path)
+
+                    yield LinkPathAction.create_application_entry_point_windows_exe_action(
+                        transaction_context, package_info, root_prefix,
+                        LinkType.hardlink, exe_path
+                    )
+                return tuple(concat(make_app_entry_point_axns(executable_short_path)
+                                    for executable_short_path in exe_paths))
+
+            else:
+                return tuple(
+                    cls(transaction_context, package_info, target_prefix, executable_short_path,
+                        root_prefix, executable_short_path)
+                    for executable_short_path in exe_paths
+                )
         else:
             return ()
 
@@ -511,7 +538,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
             conda_python_version = get_python_version_for_prefix(context.conda_prefix)
         conda_python_short_path = get_python_short_path(conda_python_version)
         conda_python_full_path = join(context.conda_prefix, win_path_ok(conda_python_short_path))
-        create_private_pkg_entry_point(self.source_full_path, self.target_full_path,
+        create_application_entry_point(self.source_full_path, self.target_full_path,
                                        conda_python_full_path)
         self._execute_successful = True
 
