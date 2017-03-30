@@ -760,7 +760,6 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
               "  specs_to_add: %s\n"
               "  prune: %s", prefix, specs_to_remove, specs_to_add, prune)
 
-
     # declare starting point
     solved_linked_dists = () if prune else tuple(iterkeys(linked_data(prefix)))
     # TODO: to change this whole function from working with dists to working with records, just
