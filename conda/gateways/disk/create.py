@@ -7,7 +7,7 @@ import json
 from logging import getLogger
 import os
 from os import X_OK, access, makedirs
-from os.path import basename, isdir, isfile, join, lexists, dirname
+from os.path import basename, dirname, isdir, isfile, join, lexists
 import shutil
 import sys
 import tarfile
@@ -25,11 +25,11 @@ from ..._vendor.auxlib.ish import dals
 from ...base.constants import ENVS_DIR_MAGIC_FILE, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import ensure_binary, on_win
-from ...common.path import win_path_ok
+from ...common.path import win_path_double_escape, win_path_ok
+from ...core.portability import replace_long_shebang
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
-from ...models.enums import LinkType, FileMode
-from ...core.portability import replace_long_shebang
+from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
@@ -113,7 +113,7 @@ def create_application_entry_point(source_full_path, target_full_path, python_fu
         ), context)
 
     entry_point = application_entry_point_template % {
-        "source_full_path": source_full_path,
+        "source_full_path": win_path_double_escape(source_full_path),
     }
     if not isdir(dirname(target_full_path)):
         mkdir_p(dirname(target_full_path))
