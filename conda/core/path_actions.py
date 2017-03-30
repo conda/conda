@@ -500,12 +500,12 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                 def make_app_entry_point_axns(exe_path):
                     assert exe_path.endswith(('.exe', '.bat'))
                     target_short_path = exe_path[:-4] + "-script.py"
-                    yield cls(transaction_context, package_info, target_prefix, target_short_path,
-                              root_prefix, exe_path)
+                    yield cls(transaction_context, package_info, target_prefix, exe_path,
+                              root_prefix, target_short_path)
 
                     yield LinkPathAction.create_application_entry_point_windows_exe_action(
                         transaction_context, package_info, root_prefix,
-                        LinkType.hardlink, exe_path
+                        LinkType.hardlink, exe_path[:-4] + ".exe"
                     )
                 return tuple(concat(make_app_entry_point_axns(executable_short_path)
                                     for executable_short_path in exe_paths))

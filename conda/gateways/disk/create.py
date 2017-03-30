@@ -104,7 +104,7 @@ def create_windows_python_entry_point(target_full_path, module, func):
 
 def create_application_entry_point(source_full_path, target_full_path, python_full_path):
     # source_full_path: where the entry point file points to
-    # target_full_path: the location of the entry point file
+    # target_full_path: the location of the new entry point file being created
     if lexists(target_full_path):
         maybe_raise(BasicClobberError(
             source_path=None,
