@@ -46,9 +46,11 @@ esac
 # note whether or not the CONDA_* variables are exported, if so we need   #
 # to preserve that status                                                 #
 IS_ENV_CONDA_HELP="${FALSE}"
+IS_ENV_CONDA_STACK="${FALSE}"
 IS_ENV_CONDA_VERBOSE="${FALSE}"
 IS_ENV_CONDA_ENVNAME="${FALSE}"
 [ "$(env | grep -q CONDA_HELP)" ]    && IS_ENV_CONDA_HELP="${TRUE}"
+[ "$(env | grep -q CONDA_STACK)" ]    && IS_ENV_CONDA_STACK="${TRUE}"
 [ "$(env | grep -q CONDA_VERBOSE)" ] && IS_ENV_CONDA_VERBOSE="${TRUE}"
 [ "$(env | grep -q CONDA_ENVNAME)" ] && IS_ENV_CONDA_ENVNAME="${TRUE}"
 
@@ -60,6 +62,11 @@ if [ -z "${CONDA_HELP+x}" ] || [ "${CONDA_HELP}" = "${FALSE}" ] || [ "${CONDA_HE
 elif [ "${CONDA_HELP}" = "${TRUE}" ] || [ "${CONDA_HELP}" = "true" ] || [ "${CONDA_HELP}" = "TRUE" ] || [ "${CONDA_HELP}" = "True" ]; then
     CONDA_HELP="${TRUE}"
 fi
+if [ -z "${CONDA_STACK+x}" ] || [ "${CONDA_STACK}" = "${FALSE}" ] || [ "${CONDA_STACK}" = "false" ] || [ "${CONDA_STACK}" = "FALSE" ] || [ "${CONDA_STACK}" = "False" ]; then
+    CONDA_STACK="${FALSE}"
+elif [ "${CONDA_STACK}" = "${TRUE}" ] || [ "${CONDA_STACK}" = "true" ] || [ "${CONDA_STACK}" = "TRUE" ] || [ "${CONDA_STACK}" = "True" ]; then
+    CONDA_STACK="${TRUE}"
+fi
 UNKNOWN=""
 if [ -z "${CONDA_VERBOSE+x}" ] || [ "${CONDA_VERBOSE}" = "${FALSE}" ] || [ "${CONDA_VERBOSE}" = "false" ] || [ "${CONDA_VERBOSE}" = "FALSE" ] || [ "${CONDA_VERBOSE}" = "False" ]; then
     CONDA_VERBOSE="${FALSE}"
@@ -70,7 +77,7 @@ if [ -z "${CONDA_ENVNAME+x}" ]; then
     CONDA_ENVNAME=""
 fi
 
-# at this point CONDA_HELP, UNKNOWN, CONDA_VERBOSE, and CONDA_ENVNAME are #
+# at this point CONDA_HELP, CONDA_STACK, UNKNOWN, CONDA_VERBOSE, and CONDA_ENVNAME are #
 # defined and do not need to be checked for unbounded again               #
 # END DEFINE BASIC VARS                                                   #
 ###########################################################################
@@ -90,6 +97,9 @@ while [ $num != -1 ]; do
         case "${arg}" in
             -h|--help)
                 CONDA_HELP="${TRUE}"
+                ;;
+            -s|--stack)
+                CONDA_STACK="${TRUE}"
                 ;;
             -v|--verbose)
                 CONDA_VERBOSE="${TRUE}"
@@ -118,12 +128,14 @@ unset is_envname_set
 
 # if any of these variables are undefined set them to a default           #
 [ -z "${CONDA_HELP}" ]    && CONDA_HELP="${FALSE}"
+[ -z "${CONDA_STACK}" ]    && CONDA_STACK="${FALSE}"
 [ -z "${CONDA_VERBOSE}" ] && CONDA_VERBOSE="${FALSE}"
 [ -z "${CONDA_ENVNAME}" ] && CONDA_ENVNAME="root"
 
 # export CONDA_* variables as necessary                                   #
 [ "${IS_ENV_CONDA_ENVNAME}" = "${TRUE}" ] && export CONDA_ENVNAME
 [ "${IS_ENV_CONDA_HELP}" = "${TRUE}" ]    && export CONDA_HELP
+[ "${IS_ENV_CONDA_STACK}" = "${TRUE}" ]    && export CONDA_STACK
 [ "${IS_ENV_CONDA_VERBOSE}" = "${TRUE}" ] && export CONDA_VERBOSE
 # END PARSE COMMAND LINE                                                  #
 ###########################################################################
@@ -136,9 +148,11 @@ if [ "${CONDA_HELP}" = "${TRUE}" ]; then
     unset WHAT_SHELL_AM_I
     [ "${IS_ENV_CONDA_ENVNAME}" = "${FALSE}" ] && unset CONDA_ENVNAME
     [ "${IS_ENV_CONDA_HELP}" = "${FALSE}" ]    && unset CONDA_HELP
+    [ "${IS_ENV_CONDA_STACK}" = "${FALSE}" ]    && unset CONDA_STACK
     [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
     unset IS_ENV_CONDA_ENVNAME
     unset IS_ENV_CONDA_HELP
+    unset IS_ENV_CONDA_STACK
     unset IS_ENV_CONDA_VERBOSE
     unset TRUE
     unset FALSE
@@ -163,8 +177,10 @@ conda "..checkenv" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}"
 if [ $? != 0 ]; then
     unset WHAT_SHELL_AM_I
     [ "${IS_ENV_CONDA_ENVNAME}" = "${FALSE}" ] && unset CONDA_ENVNAME
+    [ "${IS_ENV_CONDA_STACK}" = "${FALSE}" ] && unset CONDA_STACK
     [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
     unset IS_ENV_CONDA_ENVNAME
+    unset IS_ENV_CONDA_STACK
     unset IS_ENV_CONDA_VERBOSE
     unset TRUE
     unset FALSE
@@ -174,23 +190,33 @@ fi
 # store remaining values that may get cleared by deactivate               #
 _CONDA_WHAT_SHELL_AM_I="${WHAT_SHELL_AM_I}"
 _CONDA_VERBOSE="${CONDA_VERBOSE}"
+_CONDA_STACK="${CONDA_STACK}"
 _IS_ENV_CONDA_VERBOSE="${IS_ENV_CONDA_VERBOSE}"
+_IS_ENV_CONDA_STACK="${IS_ENV_CONDA_STACK}"
 if [ -n "${MSYS2_ENV_CONV_EXCL+x}" ]; then
     _MSYS2_ENV_CONV_EXCL="${MSYS2_ENV_CONV_EXCL}"
 fi
 
 # ensure we deactivate any scripts from the old env                       #
-. deactivate.sh ""
-if [ $? != 0 ]; then
-    unset _CONDA_WHAT_SHELL_AM_I
-    [ "${IS_ENV_CONDA_ENVNAME}" = "0" ] && unset CONDA_ENVNAME
-    unset _CONDA_VERBOSE
-    unset IS_ENV_CONDA_ENVNAME
-    unset _IS_ENV_CONDA_VERBOSE
-    if [ -n "${_MSYS2_ENV_CONV_EXCL+x}" ]; then
-        unset _MSYS2_ENV_CONV_EXCL
+if [ -n "${CONDA_STACK+x}" ]; then
+    if [ "${CONDA_VERBOSE}" = "${TRUE}" ]; then
+        echo "[ACTIVATE]: Warning: stacking environments (--stacks option) can cause unexpected errors in case of incompatibilities between different conda packages"
     fi
-    return 1
+else
+    . deactivate.sh ""
+    if [ $? != 0 ]; then
+        unset _CONDA_WHAT_SHELL_AM_I
+        [ "${IS_ENV_CONDA_ENVNAME}" = "0" ] && unset CONDA_ENVNAME
+        unset _CONDA_VERBOSE
+        unset _CONDA_STACK
+        unset IS_ENV_CONDA_ENVNAME
+        unset _IS_ENV_CONDA_VERBOSE
+        unset _IS_ENV_CONDA_STACK
+        if [ -n "${_MSYS2_ENV_CONV_EXCL+x}" ]; then
+            unset _MSYS2_ENV_CONV_EXCL
+        fi
+        return 1
+    fi
 fi
 
 # restore boolean                                                         #
@@ -200,6 +226,8 @@ FALSE=0
 # restore values                                                          #
 IS_ENV_CONDA_VERBOSE="${_IS_ENV_CONDA_VERBOSE}"
 CONDA_VERBOSE="${_CONDA_VERBOSE}"
+IS_ENV_CONDA_STACK="${_IS_ENV_CONDA_STACK}"
+CONDA_STACK="${_CONDA_STACK}"
 WHAT_SHELL_AM_I="${_CONDA_WHAT_SHELL_AM_I}"
 if [ -n "${_MSYS2_ENV_CONV_EXCL+x}" ]; then
     MSYS2_ENV_CONV_EXCL="${_MSYS2_ENV_CONV_EXCL}"
@@ -208,6 +236,8 @@ if [ -n "${_MSYS2_ENV_CONV_EXCL+x}" ]; then
 fi
 unset _IS_ENV_CONDA_VERBOSE
 unset _CONDA_VERBOSE
+unset _IS_ENV_CONDA_STACK
+unset _CONDA_STACK
 unset _CONDA_WHAT_SHELL_AM_I
 
 _CONDA_BIN=$(conda "..activate" "${WHAT_SHELL_AM_I}" "${CONDA_ENVNAME}" | sed 's| |\ |')
@@ -269,11 +299,18 @@ unset IS_ENV_CONDA_ENVNAME
 # PS1 & CONDA_PS1_BACKUP                                                  #
 # export PS1 to restore upon deactivation                                 #
 # customize the PS1 to show what environment has been activated           #
-if [ "$(conda "..changeps1")" = "1" ] && [ -n "${PS1+x}" ]; then
-    CONDA_PS1_BACKUP="${PS1}"
-    PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
-    export CONDA_PS1_BACKUP
-    export PS1
+if [ -n "${CONDA_STACK+x}" ] && [ -n "${CONDA_PS1_BACKUP+x}" ]; then
+    if [ "$(conda "..changeps1")" = "1" ] && [ -n "${PS1+x}" ]; then
+        PS1="(stacked env) ${PS1}"
+        export PS1
+    fi
+else
+    if [ "$(conda "..changeps1")" = "1" ] && [ -n "${PS1+x}" ]; then
+        CONDA_PS1_BACKUP="${PS1}"
+        PS1="(${CONDA_DEFAULT_ENV}) ${PS1}"
+        export CONDA_PS1_BACKUP
+        export PS1
+    fi
 fi
 # END PS1 & CONDA_PS1_BACKUP                                              #
 ###########################################################################
@@ -294,6 +331,8 @@ fi
 unset _CONDA_DIR
 [ "${IS_ENV_CONDA_VERBOSE}" = "${FALSE}" ] && unset CONDA_VERBOSE
 unset IS_ENV_CONDA_VERBOSE
+[ "${IS_ENV_CONDA_STACK}" = "${FALSE}" ] && unset CONDA_STACK
+unset IS_ENV_CONDA_STACK
 # END LOAD POST-ACTIVATE SCRIPTS                                          #
 ###########################################################################
 
