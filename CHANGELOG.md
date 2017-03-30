@@ -4,9 +4,10 @@
 * general support for all bourne- and c-based shells #3175
 
 
-## 4.3.16 (2017-03-29)
+## 4.3.16 (2017-03-30)
 
 ### Improvements
+* additions to configuration SEARCH_PATH to improve consistency (#4966)
 * add 'conda config --describe' and extra config documentation (#4913)
 * enable packaging pinning in condarc using pinned_packages config parameter
   as beta feature (#4921, #4964)
