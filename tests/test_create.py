@@ -1293,7 +1293,7 @@ class PrivateEnvIntegrationTests(TestCase):
         run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app uses-spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert package_is_installed(self.preferred_env_prefix, "uses-spiffy-test-app")
-        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
@@ -1322,11 +1322,11 @@ class PrivateEnvIntegrationTests(TestCase):
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
-        assert isfile(join(self.prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
-        assert isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
+        assert isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test needs-spiffy-test-app")
         assert not package_is_installed(self.preferred_env_prefix, "spiffy-test-app-2")
         assert package_is_installed(self.prefix, "spiffy-test-app-2")
         assert package_is_installed(self.prefix, "needs-spiffy-test-app")
-        assert not isfile(join(self.preferred_env_prefix, get_bin_directory_short_path(), 'spiffy-test-app'))
+        assert not isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))
