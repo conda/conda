@@ -26,6 +26,7 @@ from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
                          RemoveError)
+from .gateways.disk.test import prefix_is_writable
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -500,7 +501,9 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
     # split out specs into potentially multiple preferred envs if:
     #  1. the user default env (root_prefix) is the prefix being considered here
     #  2. the user has not specified the --name or --prefix command-line flags
-    if prefix == context.root_prefix and not context.prefix_specified:
+    if (prefix == context.root_prefix
+            and not context.prefix_specified
+            and prefix_is_writable(prefix)):
 
         # a registered package CANNOT be installed in the root env
         # if ANY package requesting a private env is required in the root env, all packages for
@@ -792,7 +795,9 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     solved_linked_dists = IndexedSet(r.dependency_sort({d.name: d for d in solved_linked_dists}))
 
     log.debug("solved prefix %s\n"
-              "  solved_linked_dists: %s", prefix, solved_linked_dists)
+              "  solved_linked_dists:\n"
+              "    %s\n",
+              prefix, "\n    ".join(text_type(d) for d in solved_linked_dists))
 
     return solved_linked_dists, specs_to_add
 
