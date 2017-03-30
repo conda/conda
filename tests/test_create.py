@@ -1110,12 +1110,12 @@ class PrivateEnvIntegrationTests(TestCase):
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
-        with env_var('yabba-dabba', 'doo'):
+        with env_var('YABBA-DABBA', 'doo'):
             stdout, stderr, rc = subprocess_call(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert not stderr
         assert rc == 0
         json_d = json.loads(stdout)
-        assert json_d['yabba-dabba'] == 'doo'
+        assert json_d['YABBA-DABBA'] == 'doo'
 
         run_command(Commands.INSTALL, self.prefix, "-c conda-test uses-spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app")

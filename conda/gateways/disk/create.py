@@ -25,7 +25,7 @@ from ..._vendor.auxlib.ish import dals
 from ...base.constants import ENVS_DIR_MAGIC_FILE, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import ensure_binary, on_win
-from ...common.path import win_path_double_escape, win_path_ok
+from ...common.path import ensure_pad, win_path_double_escape, win_path_ok
 from ...core.portability import replace_long_shebang
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
@@ -118,8 +118,9 @@ def create_application_entry_point(source_full_path, target_full_path, python_fu
     if not isdir(dirname(target_full_path)):
         mkdir_p(dirname(target_full_path))
     with open(target_full_path, str("w")) as fo:
-        if not on_win:
-            fo.write('#!%s\n' % python_full_path)
+        if ' ' in python_full_path:
+            python_full_path = ensure_pad(python_full_path, '"')
+        fo.write('#!%s\n' % python_full_path)
         fo.write(entry_point)
     make_executable(target_full_path)
 
