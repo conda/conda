@@ -22,7 +22,9 @@ from conda.common.path import get_python_site_packages_short_path, get_python_no
 from conda.core.path_actions import LinkPathAction, CompilePycAction, CreatePythonEntryPointAction
 from conda.gateways.disk.create import mkdir_p, create_link
 from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.read import is_exe, compute_md5sum
+from conda.gateways.disk.link import symlink
+from conda.gateways.disk.read import compute_md5sum
+from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.link import islink, stat_nlink
 from conda.models.enums import LinkType, NoarchType
 from conda.common.compat import PY2, on_win
@@ -182,7 +184,8 @@ class PathActionsTests(TestCase):
         mkdir_p(dirname(py_ep_axn.target_full_path))
         py_ep_axn.execute()
         assert isfile(py_ep_axn.target_full_path)
-        assert is_exe(py_ep_axn.target_full_path)
+        if not on_win:
+            assert is_executable(py_ep_axn.target_full_path)
         with open(py_ep_axn.target_full_path) as fh:
             lines = fh.readlines()
             first_line = lines[0].strip()
@@ -204,9 +207,9 @@ class PathActionsTests(TestCase):
             windows_exe_axn.verify()
             windows_exe_axn.execute()
             assert isfile(windows_exe_axn.target_full_path)
-            assert is_exe(windows_exe_axn.target_full_path)
+            assert is_executable(windows_exe_axn.target_full_path)
 
-            src = compute_md5sum(join(CONDA_PACKAGE_ROOT, 'resources', 'cli-%d.exe' % context.bits))
+            src = compute_md5sum(join(context.conda_prefix, 'Scripts/conda.exe'))
             assert src == compute_md5sum(windows_exe_axn.target_full_path)
 
             windows_exe_axn.reverse()

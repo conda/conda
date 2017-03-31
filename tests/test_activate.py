@@ -12,13 +12,17 @@ import sys
 from datetime import datetime
 import pytest
 
-from conda.compat import TemporaryDirectory
+from conda.compat import TemporaryDirectory, PY2
 from conda.config import root_dir, platform
 from conda.install import symlink_conda
 from conda.utils import path_identity, shells, on_win, translate_stream
 from conda.cli.activate import binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
+
+
+# ENVS_PREFIX = "envs" if PY2 else "envsßôç"
+ENVS_PREFIX = "envs"
 
 
 def gen_test_env_paths(envs, shell, num_test_folders=5):
@@ -133,7 +137,7 @@ def bash_profile(request):
 @pytest.mark.installed
 def test_activate_test1(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate{shell_suffix}" "{env_dirs[0]}"
         {printpath}
@@ -147,7 +151,7 @@ def test_activate_test1(shell):
 @pytest.mark.installed
 def test_activate_env_from_env_with_root_activate(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}activate" "{env_dirs[1]}"
@@ -161,7 +165,7 @@ def test_activate_env_from_env_with_root_activate(shell):
 @pytest.mark.installed
 def test_activate_bad_directory(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         env_dirs = gen_test_env_paths(envs, shell)
         # Strange semicolons are here to defeat MSYS' automatic path conversion.
         #   See http://www.mingw.org/wiki/Posix_path_conversion
@@ -178,7 +182,7 @@ def test_activate_bad_directory(shell):
 @pytest.mark.installed
 def test_activate_bad_env_keeps_existing_good_env(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
@@ -191,10 +195,10 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
 
 @pytest.mark.installed
 def test_activate_deactivate(shell):
-    if shell == "bash.exe" and datetime.now() < datetime(2017, 3, 1):
+    if shell == "bash.exe" and datetime.now() < datetime(2017, 4, 1):
         pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}deactivate"
@@ -208,10 +212,10 @@ def test_activate_deactivate(shell):
 
 @pytest.mark.installed
 def test_activate_root_simple(shell):
-    if shell == "bash.exe" and datetime.now() < datetime(2017, 3, 1):
+    if shell == "bash.exe" and datetime.now() < datetime(2017, 4, 1):
         pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root
         {printpath}
@@ -234,7 +238,7 @@ def test_activate_root_simple(shell):
 @pytest.mark.installed
 def test_activate_root_env_from_other_env(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
         {source} "{syspath}{binpath}activate" root
@@ -250,7 +254,7 @@ def test_activate_root_env_from_other_env(shell):
 @pytest.mark.installed
 def test_wrong_args(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" two args
         {printpath}
@@ -265,7 +269,7 @@ def test_wrong_args(shell):
 @pytest.mark.installed
 def test_activate_help(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         if shell not in ['powershell.exe', 'cmd.exe']:
             commands = (shell_vars['command_setup'] + """
             "{syspath}{binpath}activate" Zanzibar
@@ -312,7 +316,7 @@ def test_activate_symlinking(shell):
     """Symlinks or bat file redirects are created at activation time.  Make sure that the
     files/links exist, and that they point where they should."""
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         where = 'Scripts' if on_win else 'bin'
         for env in gen_test_env_paths(envs, shell)[:2]:
             scripts = ["conda", "activate", "deactivate"]
@@ -350,7 +354,7 @@ def test_activate_symlinking(shell):
 @pytest.mark.installed
 def test_PS1(shell, bash_profile):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         # activate changes PS1 correctly
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
@@ -418,7 +422,7 @@ def test_PS1(shell, bash_profile):
 def test_PS1_no_changeps1(shell, bash_profile):
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         rc_file = os.path.join(envs, ".condarc")
         with open(rc_file, 'w') as f:
             f.write("changeps1: False\n")
@@ -472,7 +476,7 @@ def test_PS1_no_changeps1(shell, bash_profile):
 @pytest.mark.installed
 def test_CONDA_DEFAULT_ENV(shell):
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         env_dirs=gen_test_env_paths(envs, shell)
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
@@ -546,7 +550,7 @@ def test_CONDA_DEFAULT_ENV(shell):
 def test_activate_from_env(shell):
     """Tests whether the activate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         env_dirs=gen_test_env_paths(envs, shell)
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
@@ -562,7 +566,7 @@ def test_activate_from_env(shell):
 def test_deactivate_from_env(shell):
     """Tests whether the deactivate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {source} "{env_dirs[0]}{binpath}deactivate"
@@ -578,7 +582,7 @@ def test_activate_relative_path(shell):
     current directory should be searched for environments
     """
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         env_dirs = gen_test_env_paths(envs, shell)
         env_dir = os.path.basename(env_dirs[0])
         work_dir = os.path.dirname(env_dir)
@@ -607,7 +611,7 @@ def test_activate_does_not_leak_echo_setting(shell):
     if not on_win or shell != "cmd.exe":
         pytest.skip("test only relevant for cmd.exe on win")
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         @echo on
         @call "{syspath}{binpath}activate.bat" "{env_dirs[0]}"
@@ -640,7 +644,7 @@ def test_activate_non_ascii_char_in_path(shell):
 def test_activate_has_extra_env_vars(shell):
     """Test that environment variables in activate.d show up when activated"""
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         env_dirs=gen_test_env_paths(envs, shell)
         for path in ["activate", "deactivate"]:
             dir = os.path.join(shells[shell]['path_from'](env_dirs[0]), "etc", "conda", "%s.d" % path)
@@ -674,7 +678,7 @@ def test_activate_keeps_PATH_order(shell):
     if not on_win or shell != "cmd.exe":
         pytest.xfail("test only implemented for cmd.exe on win")
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         @set "PATH=somepath;CONDA_PATH_PLACEHOLDER;%PATH%"
         @call "{syspath}{binpath}activate.bat"
@@ -689,7 +693,7 @@ def test_deactivate_placeholder(shell):
     if not on_win or shell != "cmd.exe":
         pytest.xfail("test only implemented for cmd.exe on win")
     shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         @set "PATH=flag;%PATH%"
         @call "{syspath}{binpath}activate.bat"
@@ -707,7 +711,7 @@ def test_deactivate_placeholder(shell):
 #     """The exec folder contains only the activate and conda commands.  It is for users
 #     who want to avoid conda packages shadowing system ones."""
 #     shell_vars = _format_vars(shell)
-#     with TemporaryDirectory(prefix='envs', dir=dirname(__file__)) as envs:
+#     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
 #         env_dirs=gen_test_env_paths(envs, shell)
 #         commands = (shell_vars['command_setup'] + """
 #         {source} "{syspath}/exec/activate" "{env_dirs[0]}"

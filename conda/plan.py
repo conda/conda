@@ -230,7 +230,7 @@ def display_actions(actions, index, show_channel_urls=None):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if channeled:
-        print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
+        print("\nThe following packages will be SUPERSEDED by a higher-priority channel:\n")
         for pkg in sorted(channeled):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
@@ -258,24 +258,6 @@ def add_unlink(actions, dist):
     if UNLINK not in actions:
         actions[UNLINK] = []
     actions[UNLINK].append(dist)
-
-
-def add_checks(actions):
-    """
-    Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
-    has a LINK action, add a CHECK_LINK, which will check if permissions are
-    suitable for linking.
-
-    Args:
-        actions: a defaultdict(list) of actions that are to be performed, e.g. FETCH
-
-    Returns:
-        the actions dict with the appropriate checks added
-    """
-    if FETCH in actions:
-        actions.setdefault(CHECK_FETCH, [True])
-    if EXTRACT in actions:
-        actions.setdefault(CHECK_EXTRACT, [True])
 
 
 def handle_menuinst(unlink_dists, link_dists):
@@ -437,10 +419,19 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 def get_pinned_specs(prefix):
     pinfile = join(prefix, 'conda-meta', 'pinned')
-    if not exists(pinfile):
-        return []
-    with open(pinfile) as f:
-        return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
+    if exists(pinfile):
+        with open(pinfile) as f:
+            from_file = (i for i in f.read().strip().splitlines()
+                         if i and not i.strip().startswith('#'))
+    else:
+        from_file = ()
+
+    from .cli.common import spec_from_line
+
+    def munge_spec(s):
+        return s if ' ' in s else spec_from_line(s)
+
+    return tuple(munge_spec(s) for s in concatv(context.pinned_packages, from_file))
 
 
 # Has one spec (string) for each env
@@ -451,20 +442,15 @@ SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False):
+                    channel_priority_map=None, is_update=False):  # pragma: no cover
+    """
+    This function ignores preferred_env.  It's currently used extensively by conda-build, but
+    it is no longer used within the conda code.  Instead, we now use `install_actions_list()`.
+    """
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
-    str_specs = specs
-    specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
-
-    linked_in_root = linked_data(context.root_prefix)
-
-    # Ensure that there is only one prefix to install into
-    dists_for_envs = determine_all_envs(r, specs)
-    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
-    preferred_envs = set(d.env for d in dists_for_envs)
-    assert len(preferred_envs) == 1
+    str_specs = specs
 
     specs_for_prefix = SpecsForPrefix(
         prefix=prefix, specs=tuple(str_specs), r=r
@@ -706,7 +692,7 @@ def augment_specs(prefix, specs, pinned=True):
     # get conda-meta/pinned
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
+        log.debug("Pinned specs=%s", pinned_specs)
         specs += [MatchSpec(spec) for spec in pinned_specs]
 
     # support aggressive auto-update conda
@@ -749,7 +735,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
+        log.debug("Pinned specs=%s", pinned_specs)
 
     linked = {r.package_name(dist): dist for dist in linked_dists}
 

@@ -21,17 +21,21 @@ machine_bits = 8 * tuple.__itemsize__
 APP_NAME = 'conda'
 
 SEARCH_PATH = (
+    '/etc/conda/.condarc',
     '/etc/conda/condarc',
     '/etc/conda/condarc.d/',
+    '/var/lib/conda/.condarc',
     '/var/lib/conda/condarc',
     '/var/lib/conda/condarc.d/',
-    '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/.condarc',
+    '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/condarc.d/',
+    '~/.conda/.condarc',
     '~/.conda/condarc',
     '~/.conda/condarc.d/',
     '~/.condarc',
     '$CONDA_PREFIX/.condarc',
+    '$CONDA_PREFIX/condarc',
     '$CONDA_PREFIX/condarc.d/',
     '$CONDARC',
 )
@@ -87,16 +91,11 @@ CONDA_TARBALL_EXTENSION = '.tar.bz2'
 
 UNKNOWN_CHANNEL = "<unknown>"
 
-INTERRUPT_SIGNALS = (
-    'SIGABRT',
-    'SIGINT',
-    'SIGTERM',
-    'SIGQUIT',
-    'SIGBREAK',
-)
-
 
 class PathConflict(Enum):
     clobber = 'clobber'
     warn = 'warn'
     prevent = 'prevent'
+
+    def __str__(self):
+        return self.value

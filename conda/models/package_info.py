@@ -31,8 +31,8 @@ class PreferredEnv(Entity):
 class PackageMetadata(Entity):
     # from info/package_metadata.json
     package_metadata_version = IntegerField()
-    noarch = ComposableField(Noarch, required=False)
-    preferred_env = ComposableField(PreferredEnv, required=False)
+    noarch = ComposableField(Noarch, required=False, nullable=True)
+    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True)
 
 
 class PathData(Entity):
@@ -49,8 +49,9 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    sha256 = StringField()
-    size_in_bytes = IntegerField()
+    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    sha256 = StringField(required=False, nullable=True)
+    size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(string_types, required=False, nullable=True)
 
 

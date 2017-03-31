@@ -25,7 +25,7 @@ from os import environ, stat
 from os.path import basename, join
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
-from enum import Enum
+from enum import Enum, EnumMeta
 
 from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, string_types,
                      text_type, with_metaclass)
@@ -36,6 +36,7 @@ from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
+from .._vendor.boltons.setutils import IndexedSet
 
 try:
     from cytoolz.dicttoolz import merge
@@ -144,7 +145,7 @@ def raise_errors(errors):
 
 
 class ParameterFlag(Enum):
-    final = 'final'
+    final = "final"
     top = "top"
     bottom = "bottom"
 
@@ -505,7 +506,7 @@ class PrimitiveParameter(Parameter):
     python 2 has long and unicode types.
     """
 
-    def __init__(self, default, aliases=(), validation=None, parameter_type=None):
+    def __init__(self, default, aliases=(), validation=None, element_type=None):
         """
         Args:
             default (Any):  The parameter's default value.
@@ -513,11 +514,11 @@ class PrimitiveParameter(Parameter):
             validation (callable): Given a parameter value as input, return a boolean indicating
                 validity, or alternately return a string describing an invalid value. Returning
                 `None` also indicates a valid value.
-            parameter_type (type or Tuple[type]): Type-validation of parameter's value. If None,
+            element_type (type or Tuple[type]): Type-validation of parameter's value. If None,
                 type(default) is used.
 
         """
-        self._type = type(default) if parameter_type is None else parameter_type
+        self._type = type(default) if element_type is None else element_type
         self._element_type = self._type
         super(PrimitiveParameter, self).__init__(default, aliases, validation)
 
@@ -561,7 +562,6 @@ class SequenceParameter(Parameter):
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(SequenceParameter, self).collect_errors(instance, value)
-
         element_type = self._element_type
         for idx, element in enumerate(value):
             if not isinstance(element, element_type):
@@ -616,9 +616,10 @@ class SequenceParameter(Parameter):
     def _get_all_matches(self, instance):
         # this is necessary to handle argparse `action="append"`, which can't be set to a
         #   default value of NULL
-        matches, multikey_exceptions = super(SequenceParameter, self)._get_all_matches(instance)
+        # it also config settings like `channels: ~`
+        matches, exceptions = super(SequenceParameter, self)._get_all_matches(instance)
         matches = tuple(m for m in matches if m._raw_value is not None)
-        return matches, multikey_exceptions
+        return matches, exceptions
 
 
 class MapParameter(Parameter):
@@ -647,6 +648,7 @@ class MapParameter(Parameter):
             errors.extend(InvalidElementTypeError(self.name, val, source, type(val),
                                                   element_type, key)
                           for key, val in iteritems(value) if not isinstance(val, element_type))
+
         return errors
 
     def _merge(self, matches):
@@ -676,6 +678,12 @@ class MapParameter(Parameter):
                                          self._str_format_flag(valueflag)))
         return '\n'.join(lines)
 
+    def _get_all_matches(self, instance):
+        # it also config settings like `proxy_servers: ~`
+        matches, exceptions = super(MapParameter, self)._get_all_matches(instance)
+        matches = tuple(m for m in matches if m._raw_value is not None)
+        return matches, exceptions
+
 
 class ConfigurationType(type):
     """metaclass for Configuration"""
@@ -699,7 +707,7 @@ class Configuration(object):
 
         if not hasattr(self, '_search_path') and search_path is not None:
             # we only set search_path once; we never change it
-            self._search_path = search_path
+            self._search_path = IndexedSet(search_path)
 
         if not hasattr(self, '_app_name') and app_name is not None:
             # we only set app_name once; we never change it
@@ -712,7 +720,7 @@ class Configuration(object):
     def _set_search_path(self, search_path):
         if not hasattr(self, '_search_path') and search_path is not None:
             # we only set search_path once; we never change it
-            self._search_path = search_path
+            self._search_path = IndexedSet(search_path)
 
         if getattr(self, '_search_path', None):
 
@@ -840,3 +848,49 @@ class Configuration(object):
             typed_values[source], validation_errors[source] = self.check_source(source)
         raise_errors(tuple(chain.from_iterable(itervalues(validation_errors))))
         return odict((k, v) for k, v in iteritems(typed_values) if v)
+
+    def describe_parameter(self, parameter_name):
+        # TODO, in Parameter base class, rename element_type to value_type
+        if parameter_name not in self.parameter_names:
+            parameter_name = '_' + parameter_name
+        parameter = self.__class__.__dict__[parameter_name]
+        assert isinstance(parameter, Parameter)
+
+        # dedupe leading underscore from name
+        name = parameter.name.lstrip('_')
+        aliases = tuple(alias for alias in parameter.aliases if alias != name)
+
+        description = self.get_descriptions()[name]
+        et = parameter._element_type
+        if type(et) == EnumMeta:
+            et = [et]
+        if not isiterable(et):
+            et = [et]
+        element_types = tuple(_et.__name__ for _et in et)
+
+        details = {
+            'parameter_type': parameter.__class__.__name__.lower().replace("parameter", ""),
+            'name': name,
+            'aliases': aliases,
+            'element_types': element_types,
+            'default_value': parameter.default,
+            'description': description.replace('\n', ' ').strip(),
+        }
+        if isinstance(parameter, SequenceParameter):
+            details['string_delimiter'] = parameter.string_delimiter
+        return details
+
+    def list_parameters(self):
+        return tuple(sorted(name.lstrip('_') for name in self.parameter_names))
+
+    def typify_parameter(self, parameter_name, value):
+        # return a tuple with correct parameter name and typed-value
+        if parameter_name not in self.parameter_names:
+            parameter_name = '_' + parameter_name
+        parameter = self.__class__.__dict__[parameter_name]
+        assert isinstance(parameter, Parameter)
+
+        return typify_data_structure(value, parameter._element_type)
+
+    def get_descriptions(self):
+        raise NotImplementedError()

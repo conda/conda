@@ -11,8 +11,9 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from .base.constants import PathConflict
-from .common.compat import iteritems, iterkeys, string_types
+from .common.compat import iteritems, iterkeys, on_win, string_types
 from .common.signals import get_signal_name
+from .common.url import maybe_unquote
 
 try:
     from cytoolz.itertoolz import groupby
@@ -46,15 +47,6 @@ class CondaSignalInterrupt(CondaError):
                                                    signal_name=signal_name,
                                                    signum=signum)
 
-
-class ArgumentNotFoundError(ArgumentError):
-    def __init__(self, argument, *args):
-        self.argument = argument
-        msg = 'Argument not found: %s. %s' \
-              % (argument, ' '.join(text_type(arg) for arg in self.args))
-        super(ArgumentNotFoundError, self).__init__(msg)
-
-
 class TooManyArgumentsError(ArgumentError):
     def __init__(self, expected, received, offending_arguments, optional_message='',
                  *args):
@@ -64,7 +56,7 @@ class TooManyArgumentsError(ArgumentError):
         self.optional_message = optional_message
 
         suffix = 's' if received - expected > 1 else ''
-        msg = ('Too many arguments: %s. Got %s argument%s (%s) and expected %s.' %
+        msg = ('Too many arguments: %s Got %s argument%s (%s) but expected %s.' %
                (optional_message, received, suffix, ', '.join(offending_arguments), expected))
         super(TooManyArgumentsError, self).__init__(msg, *args)
 
@@ -75,7 +67,7 @@ class TooFewArgumentsError(ArgumentError):
         self.received = received
         self.optional_message = optional_message
 
-        msg = ('Too few arguments: %s. Got %s arguments and expected %s.' %
+        msg = ('Too few arguments: %s Got %s arguments but expected %s.' %
                (optional_message, received, expected))
         super(TooFewArgumentsError, self).__init__(msg, *args)
 
@@ -95,14 +87,14 @@ class BasicClobberError(ClobberError):
     def __init__(self, source_path, target_path, context):
         message = dals("""
         Conda was asked to clobber an existing path.
-          source path:      %(source_path)s
-          destination path: %(target_path)s
+          source path: %(source_path)s
+          target path: %(target_path)s
         """)
         if context.path_conflict == PathConflict.prevent:
             message += ("Conda no longer clobbers existing paths without the use of the "
                         "--clobber option\n.")
         super(BasicClobberError, self).__init__(message, context.path_conflict,
-                                                destination_path=target_path,
+                                                target_path=target_path,
                                                 source_path=source_path)
 
 
@@ -153,7 +145,7 @@ class SharedLinkPathClobberError(ClobberError):
         message = dals("""
         This transaction has incompatible packages due to a shared path.
           packages: %(incompatible_packages)s
-          path: %(target_path)s
+          path: '%(target_path)s'
         """)
         if context.path_conflict == PathConflict.prevent:
             message += ("If you'd like to proceed anyway, re-run the command with "
@@ -165,32 +157,48 @@ class SharedLinkPathClobberError(ClobberError):
         )
 
 
-class CommandError(CondaError):
-    def __init__(self, command, message):
-        self.command = command
-        extra_info = ' '.join(text_type(arg) for arg in self.args)
-        msg = "Command Error: error with command '%s'. %s %s" % (command, message, extra_info)
-        super(CommandError, self).__init__(msg)
-
-
-class CommandNotFoundError(CommandError):
-    def __init__(self, command, message):
-        self.command = command
-        msg = "Command not found: '%s'. %s" % (command, message)
-        super(CommandNotFoundError, self).__init__(command, msg)
+class CommandNotFoundError(CondaError):
+    def __init__(self, command):
+        build_commands = {
+            'build',
+            'convert',
+            'develop',
+            'index',
+            'inspect',
+            'metapackage',
+            'render',
+            'skeleton',
+        }
+        needs_source = {
+            'activate',
+            'deactivate'
+        }
+        if command in build_commands:
+            message = dals("""
+            You need to install conda-build in order to
+            use the 'conda %(command)s' command.
+            """)
+        elif command in needs_source and not on_win:
+            message = dals("""
+            '%(command)s is not a conda command.
+            Did you mean 'source %(command)s'?
+            """)
+        else:
+            message = "Conda could not find the command: '%(command)s'"
+        super(CommandNotFoundError, self).__init__(message, command=command)
 
 
 class CondaFileNotFoundError(CondaError, OSError):
     def __init__(self, filename, *args):
         self.filename = filename
-        msg = "File not found: '%s'." % filename
-        super(CondaFileNotFoundError, self).__init__(msg, *args)
+        message = "File not found: '%s'." % filename
+        super(CondaFileNotFoundError, self).__init__(message, *args)
 
 
 class DirectoryNotFoundError(CondaError):
-    def __init__(self, directory, message, *args):
+    def __init__(self, directory):
         self.directory = directory
-        msg = 'Directory not found: %s' % directory
+        msg = "Directory not found: '%s'." % directory
         super(DirectoryNotFoundError, self).__init__(msg)
 
 
@@ -272,7 +280,6 @@ class CondaFileIOError(CondaIOError):
 class CondaKeyError(CondaError, KeyError):
     def __init__(self, key, message, *args):
         self.key = key
-
         self.msg = "Error with key '%s': %s" % (key, message)
         super(CondaKeyError, self).__init__(self.msg, *args)
 
@@ -308,20 +315,40 @@ class CouldntParseError(ParseError):
 
 
 class MD5MismatchError(CondaError):
-    def __init__(self, message):
-        msg = 'MD5MismatchError: %s' % message
-        super(MD5MismatchError, self).__init__(msg)
+    def __init__(self, url, target_full_path, expected_md5sum, actual_md5sum):
+        message = dals("""
+        Conda detected a mismatch between the expected content and downloaded content
+        for url '%(url)s'.
+          download saved to: %(target_full_path)s
+          expected md5 sum: %(expected_md5sum)s
+          actual md5 sum: %(actual_md5sum)s
+        """)
+        url = maybe_unquote(url)
+        super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
+                                               expected_md5sum=expected_md5sum,
+                                               actual_md5sum=actual_md5sum)
 
 
 class PackageNotFoundError(CondaError):
-    def __init__(self, package_name, message, *args):
-        self.package_name = package_name
-        msg = "Package not found: '%s' %s" % (package_name, message)
-        super(PackageNotFoundError, self).__init__(msg)
+    def __init__(self, message, **kwargs):
+        super(PackageNotFoundError, self).__init__(message, **kwargs)
+
+
+class PackageNotInstalledError(PackageNotFoundError):
+
+    def __init__(self, prefix, package_name):
+        message = dals("""
+        Package is not installed in prefix.
+          prefix: %(prefix)s
+          package name: %(package_name)s
+        """)
+        super(PackageNotInstalledError, self).__init__(message, prefix=prefix,
+                                                       package_name=package_name)
 
 
 class CondaHTTPError(CondaError):
-    def __init__(self, message, url, status_code, reason, elapsed_time, response=None):
+    def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
+                 caused_by=None):
         _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
@@ -333,18 +360,20 @@ class CondaHTTPError(CondaError):
         from ._vendor.auxlib.logz import stringify
         response_details = (stringify(response) or '') if response else ''
 
+        url = maybe_unquote(url)
         if isinstance(elapsed_time, timedelta):
             elapsed_time = text_type(elapsed_time).split(':', 1)[-1]
         if isinstance(reason, string_types):
             reason = reason.upper()
         super(CondaHTTPError, self).__init__(message, url=url, status_code=status_code,
                                              reason=reason, elapsed_time=elapsed_time,
-                                             response_details=response_details)
+                                             response_details=response_details,
+                                             caused_by=caused_by)
 
 
 class CondaRevisionError(CondaError):
     def __init__(self, message):
-        msg = 'Revision Error :%s' % message
+        msg = "Revision Error: %s." % message
         super(CondaRevisionError, self).__init__(msg)
 
 
@@ -476,22 +505,10 @@ class CondaTypeError(CondaError, TypeError):
         super(CondaTypeError, self).__init__(msg)
 
 
-class CondaAssertionError(CondaError, AssertionError):
-    def __init__(self, message, expected, actual):
-        msg = "Assertion error: %s expected %s and got %s" % (message, expected, actual)
-        super(CondaAssertionError, self).__init__(msg)
-
-
 class CondaHistoryError(CondaError):
     def __init__(self, message):
         msg = 'History error: %s' % message
         super(CondaHistoryError, self).__init__(msg)
-
-
-class CondaCorruptEnvironmentError(CondaError):
-    def __init__(self, message):
-        msg = "Corrupt environment error: %s" % message
-        super(CondaCorruptEnvironmentError, self).__init__(msg)
 
 
 class CondaUpgradeError(CondaError):
@@ -587,23 +604,28 @@ def maybe_raise(error, context):
         raise NotImplementedError()
 
 
-def conda_exception_handler(func, *args, **kwargs):
-    try:
-        return_value = func(*args, **kwargs)
-        if isinstance(return_value, int):
-            return return_value
-    except CondaExitZero:
+def handle_exception(e):
+    if isinstance(e, CondaExitZero):
         return 0
-    except CondaRuntimeError as e:
+    elif isinstance(e, CondaRuntimeError):
         print_unexpected_error_message(e)
         return 1
-    except CondaError as e:
+    elif isinstance(e, CondaError):
         from conda.base.context import context
         if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
         return 1
-    except Exception as e:
+    else:
         print_unexpected_error_message(e)
         return 1
+
+
+def conda_exception_handler(func, *args, **kwargs):
+    try:
+        return_value = func(*args, **kwargs)
+        if isinstance(return_value, int):
+            return return_value
+    except Exception as e:
+        return handle_exception(e)

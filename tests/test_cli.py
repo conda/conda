@@ -78,7 +78,6 @@ class TestJson(unittest.TestCase):
     #                                  '--packages', '--tarballs', '--json')
     #     self.assertJsonSuccess(res)
 
-    @pytest.mark.integration
     def test_config(self):
         res = capture_json_with_argv('conda config --get --json')
         self.assertJsonSuccess(res)
@@ -140,7 +139,6 @@ class TestJson(unittest.TestCase):
         #                              '--force', '--json')
         # self.assertJsonError(res)
 
-    @pytest.mark.slow
     @pytest.mark.integration
     def test_info(self):
         res = capture_json_with_argv('conda info --json')
@@ -206,7 +204,6 @@ class TestJson(unittest.TestCase):
     #                                  '-n', 'testing2', '--json', '--quiet')
     #     self.assertJsonSuccess(res)
 
-    @pytest.mark.integration
     def test_list(self):
         res = capture_json_with_argv('conda list --json')
         self.assertIsInstance(res, list)

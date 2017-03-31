@@ -13,6 +13,7 @@ on_win = bool(sys.platform == "win32")
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
+FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 
 # #############################
@@ -101,6 +102,22 @@ elif PY2:  # pragma: py3 no cover
 # other
 # #############################
 
+from collections import OrderedDict as odict  # NOQA
+odict = odict
+
+from io import open as io_open  # NOQA
+
+
+def open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True):
+    if 'b' in mode:
+        return io_open(ensure_fs_path_encoding(file), str(mode), buffering=buffering,
+                       errors=errors, newline=newline, closefd=closefd)
+    else:
+        return io_open(ensure_fs_path_encoding(file), str(mode), buffering=buffering,
+                       encoding=encoding or 'utf-8', errors=errors, newline=newline,
+                       closefd=closefd)
+
+
 def with_metaclass(Type, skip_attrs=set(('__dict__', '__weakref__'))):
     """Class decorator to set metaclass.
 
@@ -118,8 +135,6 @@ def with_metaclass(Type, skip_attrs=set(('__dict__', '__weakref__'))):
     return _clone_with_metaclass
 
 
-from collections import OrderedDict as odict
-odict = odict
 
 NoneType = type(None)
 primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool, NoneType)))
@@ -153,4 +168,11 @@ def ensure_unicode(value):
     except AttributeError:
         # AttributeError: '<>' object has no attribute 'decode'
         # In this case assume already unicode and do nothing
+        return value
+
+
+def ensure_fs_path_encoding(value):
+    try:
+        return value.decode(FILESYSTEM_ENCODING)
+    except AttributeError:
         return value

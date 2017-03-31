@@ -6,7 +6,7 @@ from io import open
 import json
 from logging import getLogger
 import os
-from os import makedirs
+from os import X_OK, access, makedirs
 from os.path import basename, isdir, isfile, join, lexists
 import shutil
 import sys
@@ -27,7 +27,8 @@ from ...common.compat import ensure_binary, on_win
 from ...common.path import win_path_ok
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
-from ...models.enums import LinkType
+from ...models.enums import LinkType, FileMode
+from ...core.portability import replace_long_shebang
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
@@ -68,7 +69,13 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
     with open(target_full_path, str('w')) as fo:
-        fo.write('#!%s\n' % python_full_path)
+        shebang = '#!%s\n' % python_full_path
+        if hasattr(shebang, 'encode'):
+            shebang = shebang.encode()
+        shebang = replace_long_shebang(FileMode.text, shebang)
+        if hasattr(shebang, 'decode'):
+            shebang = shebang.decode()
+        fo.write(shebang)
         fo.write(pyscript)
     make_executable(target_full_path)
 
@@ -138,8 +145,8 @@ def make_menu(prefix, file_path, remove=False):
         log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
-    import menuinst
     try:
+        import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except:
         stdoutlog.error("menuinst Exception:")
@@ -178,10 +185,44 @@ def create_hard_link_or_copy(src, dst):
         shutil.copy2(src, dst)
 
 
+def _is_unix_executable_using_ORIGIN(path):
+    if on_win:
+        return False
+    else:
+        return isfile(path) and not islink(path) and access(path, X_OK)
+
+
+def _do_softlink(src, dst):
+    if _is_unix_executable_using_ORIGIN(src):
+        # for extra details, see https://github.com/conda/conda/pull/4625#issuecomment-280696371
+        # We only need to do this copy for executables which have an RPATH containing $ORIGIN
+        #   on Linux, so `is_executable()` is currently overly aggressive.
+        # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
+        _do_copy(src, dst)
+    else:
+        symlink(src, dst)
+
+
+def _do_copy(src, dst):
+    # on unix, make sure relative symlinks stay symlinks
+    if not on_win and islink(src):
+        src_points_to = readlink(src)
+        if not src_points_to.startswith('/'):
+            # copy relative symlinks as symlinks
+            symlink(src_points_to, dst)
+            return
+    shutil.copy2(src, dst)
+
+
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.directory:
         # A directory is technically not a link.  So link_type is a misnomer.
         #   Naming is hard.
+        if lexists(dst) and not isdir(dst):
+            if not force:
+                maybe_raise(BasicClobberError(src, dst, context), context)
+            log.info("file exists, but clobbering for directory: %r" % dst)
+            rm_rf(dst)
         mkdir_p(dst)
         return
 
@@ -199,16 +240,9 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             raise CondaError("Cannot hard link a directory. %s" % src)
         link(src, dst)
     elif link_type == LinkType.softlink:
-        symlink(src, dst)
+        _do_softlink(src, dst)
     elif link_type == LinkType.copy:
-        # on unix, make sure relative symlinks stay symlinks
-        if not on_win and islink(src):
-            src_points_to = readlink(src)
-            if not src_points_to.startswith('/'):
-                # copy relative symlinks as symlinks
-                symlink(src_points_to, dst)
-                return
-        shutil.copy2(src, dst)
+        _do_copy(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
 
@@ -219,17 +253,17 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
 
     command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
     log.trace(command)
-    subprocess_call(command)
+    subprocess_call(command, raise_on_error=False)
 
     if not isfile(pyc_full_path):
         message = dals("""
         pyc file failed to compile successfully
-          python_exe_full_path: %(python_exe_full_path)s\n
-          py_full_path: %(py_full_path)s\n
-          pyc_full_path: %(pyc_full_path)s\n
+          python_exe_full_path: %()s\n
+          py_full_path: %()s\n
+          pyc_full_path: %()s\n
         """)
-        raise CondaError(message, python_exe_full_path=python_exe_full_path,
-                         py_full_path=py_full_path, pyc_full_path=pyc_full_path)
+        log.info(message, python_exe_full_path, py_full_path, pyc_full_path)
+        return None
 
     return pyc_full_path
 

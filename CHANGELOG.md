@@ -14,6 +14,72 @@
 * eliminate index modification in Resolve.__init__ (#4333)
 
 
+## 4.3.16 (2017-03-30)
+
+### Improvements
+* additions to configuration SEARCH_PATH to improve consistency (#4966)
+* add 'conda config --describe' and extra config documentation (#4913)
+* enable packaging pinning in condarc using pinned_packages config parameter
+  as beta feature (#4921, #4964)
+
+### Bug Fixes
+* fix #4914 handle directory creation on top of file paths (#4922)
+* fix #3982 issue with CONDA_ENV and using powerline (#4925)
+* fix #2611 update instructions on how to source conda.fish (#4924)
+* fix #4860 missing information on package not found error (#4935)
+* fix #4944 command not found error error (#4963)
+
+
+## 4.3.15 (2017-03-20)
+
+### Improvements
+* allow pkgs_dirs to be configured using `conda config` (#4895)
+
+### Bug Fixes
+* remove incorrect elision of delete_prefix_from_linked_data() (#4814)
+* fix envs_dirs order for read-only root prefix (#4821)
+* fix break-point in conda clean (#4801)
+* fix long shebangs when creating entry points (#4828)
+* fix spelling and typos (#4868, #4869)
+* fix #4840 TypeError reduce() of empty sequence with no initial value (#4843)
+* fix zos subdir (#4875)
+* fix exceptions triggered during activate (#4873)
+
+
+## 4.3.14 (2017-03-03)
+
+### Improvements
+* use cPickle in place of pickle for repodata (#4717)
+* ignore pyc compile failure (#4719)
+* use conda.exe for windows entry point executable (#4716, #4720)
+* localize use of conda_signal_handler (#4730)
+* add skip_safety_checks configuration parameter (#4767)
+* never symlink executables using ORIGIN (#4625)
+* set activate.bat codepage to CP_ACP (#4558)
+
+### Bug Fixes
+* fix #4777 package cache initialization speed (#4778)
+* fix #4703 menuinst PathNotFoundException (#4709)
+* ignore permissions error if user_site can't be read (#4710)
+* fix #4694 don't import requests directly in models (#4711)
+* fix #4715 include resources directory in recipe (#4716)
+* fix CondaHttpError for URLs that contain '%' (#4769)
+* bug fixes for preferred envs (#4678)
+* fix #4745 check for info/index.json with package is_extracted (#4776)
+* make sure url gets included in CondaHTTPError (#4779)
+* fix #4757 map-type configs set to None (#4774)
+* fix #4788 partial package extraction (#4789)
+
+### Non-User-Facing Changes
+* test coverage improvement (#4607)
+* CI configuration improvements (#4713, #4773, #4775)
+* allow sha256 to be None (#4759)
+* add cache_fn_url to exports (#4729)
+* add unicode paths for PY3 integration tests (#4760)
+* additional unit tests (#4728, #4783)
+* fix conda-build compatibility and tests (#4785)
+
+
 ## 4.3.13 (2017-02-17)
 
 ### Improvements
@@ -363,6 +429,10 @@
 
 ## Improvements
 * silence pre-link warning for old noarch 4.2.x backport (#4453)
+
+### Bug Fixes
+* remove incorrect elision of delete_prefix_from_linked_data() (#4813)
+* fix CB #1825 context clobbering (#4867)
 
 ### Non-User-Facing Changes
 * build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
