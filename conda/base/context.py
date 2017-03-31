@@ -79,6 +79,7 @@ class Context(Configuration):
                                         element_type=string_types + (NoneType,))
     disallow = SequenceParameter(string_types)
     force_32bit = PrimitiveParameter(False)
+    enable_private_envs = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
     pinned_packages = SequenceParameter(string_types, string_delimiter='/')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
@@ -450,6 +451,7 @@ class Context(Configuration):
             'croot',
             'debug',
             'default_python',
+            'enable_private_envs',
             'force_32bit',
             'migrated_custom_channels',
             'prune',

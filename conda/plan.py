@@ -503,7 +503,8 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
     #  2. the user has not specified the --name or --prefix command-line flags
     if (prefix == context.root_prefix
             and not context.prefix_specified
-            and prefix_is_writable(prefix)):
+            and prefix_is_writable(prefix)
+            and context.enable_private_envs):
 
         # a registered package CANNOT be installed in the root env
         # if ANY package requesting a private env is required in the root env, all packages for

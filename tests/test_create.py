@@ -43,7 +43,7 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.compat import itervalues, text_type, PY2
+from conda.common.compat import itervalues, text_type, PY2, iteritems
 from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level, \
     env_var, argv
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
@@ -1076,24 +1076,27 @@ class PrivateEnvIntegrationTests(TestCase):
         self.preferred_env_prefix = join(self.prefix, 'envs', self.preferred_env)
 
         # self.save_path_conflict = os.environ.get('CONDA_PATH_CONFLICT')
-        self.save_root_prefix = os.environ.get('CONDA_ROOT_PREFIX')
-        self.save_pkgs_dirs = os.environ.get('CONDA_PKGS_DIRS')
+        self.saved_values = {}
+        self.saved_values['CONDA_ROOT_PREFIX'] = os.environ.get('CONDA_ROOT_PREFIX')
+        self.saved_values['CONDA_PKGS_DIRS'] = os.environ.get('CONDA_PKGS_DIRS')
+        self.saved_values['CONDA_ENABLE_PRIVATE_ENVS'] = os.environ.get('CONDA_ENABLE_PRIVATE_ENVS')
 
         # os.environ['CONDA_PATH_CONFLICT'] = 'prevent'
         os.environ['CONDA_ROOT_PREFIX'] = self.prefix
         os.environ['CONDA_PKGS_DIRS'] = self.pkgs_dirs
+        os.environ['CONDA_ENABLE_PRIVATE_ENVS'] = 'true'
 
         reset_context()
 
     def tearDown(self):
         rm_rf(self.prefix)
 
-        # if self.save_path_conflict is not None:
-        #     os.environ['CONDA_PATH_CONFLICT'] = self.save_path_conflict
-        if self.save_root_prefix is not None:
-            os.environ['CONDA_ROOT_PREFIX'] = self.save_root_prefix
-        if self.save_pkgs_dirs is not None:
-            os.environ['CONDA_PKGS_DIRS'] = self.save_pkgs_dirs
+        for key, value in iteritems(self.saved_values):
+            if value is not None:
+                os.environ[key] = value
+            else:
+                del os.environ[key]
+
         reset_context()
 
     def exe_file(self, prefix, exe_name):
