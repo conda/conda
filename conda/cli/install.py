@@ -54,7 +54,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
+            raise DirectoryNotFoundError(src_arg)
     else:
         src_prefix = context.clone_src
 
