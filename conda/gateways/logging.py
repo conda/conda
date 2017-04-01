@@ -64,7 +64,6 @@ def initialize_logging():
     binstar.setLevel(CRITICAL+1)
     binstar.addHandler(NullHandler())
     binstar.propagate = False
-    binstar.disabled = True
 
 
 def initialize_root_logger(level=ERROR):
