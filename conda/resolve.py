@@ -86,7 +86,7 @@ class MatchSpec(object):
     def is_simple(self):
         return self.match_fast == self._match_any
 
-    def _match_any(self, verison, build):
+    def _match_any(self, version, build):
         return True
 
     def _match_version(self, version, build):

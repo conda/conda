@@ -10,6 +10,13 @@ import re
 import json
 from shlex import split
 
+from os.path import join
+from tempfile import gettempdir
+from uuid import uuid4
+
+from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.read import lexists
+
 from conda.base.context import reset_context
 from conda.common.io import captured, argv, replace_log_streams
 from conda.gateways.logging import initialize_logging
@@ -121,3 +128,16 @@ def run_inprocess_conda_command(command):
     print(c.stderr, file=sys.stderr)
     print(c.stdout)
     return c.stdout, c.stderr, exit_code
+
+
+@contextmanager
+def tempdir():
+    tempdirdir = gettempdir()
+    dirname = str(uuid4())[:8]
+    prefix = join(tempdirdir, dirname)
+    try:
+        os.makedirs(prefix)
+        yield prefix
+    finally:
+        if lexists(prefix):
+            rm_rf(prefix)

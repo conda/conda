@@ -49,7 +49,8 @@ from conda.core.repodata import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.core.package_cache import PackageCache
-from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler
+from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler, \
+    PackageNotFoundError
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
@@ -745,6 +746,16 @@ class IntegrationTests(TestCase):
         assert "flask:" in stdout
         assert "python:" in stdout
         assert join('another', 'place') in stdout
+
+    def test_packages_not_found(self):
+        with make_temp_env() as prefix:
+            with pytest.raises(PackageNotFoundError) as exc:
+                run_command(Commands.INSTALL, prefix, "not-a-real-package")
+            assert "not-a-real-package" in text_type(exc.value)
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "not-a-real-package",
+                                         use_exception_handler=True)
+            assert "not-a-real-package" in stderr
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win(self):

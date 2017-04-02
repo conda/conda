@@ -96,7 +96,10 @@ class PrefixPathAction(PathAction):
     @property
     def target_full_path(self):
         trgt, shrt_pth = self.target_prefix, self.target_short_path
-        return join(trgt, win_path_ok(shrt_pth)) if trgt and shrt_pth else None
+        if trgt is not None and shrt_pth is not None:
+            return join(trgt, win_path_ok(shrt_pth))
+        else:
+            return None
 
 
 # ######################################################

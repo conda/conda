@@ -230,7 +230,7 @@ def display_actions(actions, index, show_channel_urls=None):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if channeled:
-        print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
+        print("\nThe following packages will be SUPERSEDED by a higher-priority channel:\n")
         for pkg in sorted(channeled):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
@@ -419,10 +419,19 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 def get_pinned_specs(prefix):
     pinfile = join(prefix, 'conda-meta', 'pinned')
-    if not exists(pinfile):
-        return []
-    with open(pinfile) as f:
-        return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
+    if exists(pinfile):
+        with open(pinfile) as f:
+            from_file = (i for i in f.read().strip().splitlines()
+                         if i and not i.strip().startswith('#'))
+    else:
+        from_file = ()
+
+    from .cli.common import spec_from_line
+
+    def munge_spec(s):
+        return s if ' ' in s else spec_from_line(s)
+
+    return tuple(munge_spec(s) for s in concatv(context.pinned_packages, from_file))
 
 
 # Has one spec (string) for each env
@@ -683,7 +692,7 @@ def augment_specs(prefix, specs, pinned=True):
     # get conda-meta/pinned
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
+        log.debug("Pinned specs=%s", pinned_specs)
         specs += [MatchSpec(spec) for spec in pinned_specs]
 
     # support aggressive auto-update conda
@@ -726,7 +735,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
+        log.debug("Pinned specs=%s", pinned_specs)
 
     linked = {r.package_name(dist): dist for dist in linked_dists}
 
