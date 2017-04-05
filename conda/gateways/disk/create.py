@@ -36,10 +36,14 @@ stdoutlog = getLogger('stdoutlog')
 
 python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-
+import re
+import sys
+
+from %(module)s import %(import_name)s
+
 if __name__ == '__main__':
-    from sys import exit
-    from %(module)s import %(func)s
-    exit(%(func)s())
+    sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
+    sys.exit(%(func)s())
 """)
 
 application_entry_point_template = dals("""
@@ -67,7 +71,9 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
             context=context,
         ), context)
 
-    pyscript = python_entry_point_template % {'module': module, 'func': func}
+    import_name = func.split('.')[0]
+    pyscript = python_entry_point_template % {
+        'module': module, 'func': func, 'import_name': import_name}
     with open(target_full_path, str('w')) as fo:
         shebang = '#!%s\n' % python_full_path
         if hasattr(shebang, 'encode'):
@@ -90,7 +96,9 @@ def create_windows_python_entry_point(target_full_path, module, func):
             context=context,
         ), context)
 
-    pyscript = python_entry_point_template % {'module': module, 'func': func}
+    import_name = func.split('.')[0]
+    pyscript = python_entry_point_template % {
+        'module': module, 'func': func, import_name: 'import_name'}
     with open(target_full_path, str('w')) as fo:
         fo.write(pyscript)
 
