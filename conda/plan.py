@@ -879,7 +879,8 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):
         if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
             raise CondaRuntimeError(msg % old_dist.to_filename())
-        if context.conda_in_root and name == 'conda' and name not in nlinked and not context.force:
+        if (abspath(prefix) == sys.prefix and name == 'conda' and name not in nlinked
+                and not context.force):
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")
             else:

@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from argparse import RawDescriptionHelpFormatter
 from collections import defaultdict
 import logging
-from os.path import join
+from os.path import abspath, join
 import sys
 
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
@@ -182,8 +182,7 @@ def execute(args, parser):
 
     else:
         specs = specs_from_args(args.package_names)
-        if (context.conda_in_root and is_root_prefix(prefix) and names_in_specs(
-                ROOT_NO_RM, specs) and not args.force):
+        if sys.prefix == abspath(prefix) and names_in_specs(ROOT_NO_RM, specs) and not args.force:
             raise CondaEnvironmentError('cannot remove %s from root environment' %
                                         ', '.join(ROOT_NO_RM))
         action_groups = (remove_actions(prefix, list(specs), index=index, force=args.force,

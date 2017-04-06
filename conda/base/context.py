@@ -345,14 +345,6 @@ class Context(Configuration):
         return locate_prefix_by_name(self, self._argparse_args.clone)
 
     @property
-    def conda_in_root(self):
-        return not conda_in_private_env()
-
-    @property
-    def conda_private(self):
-        return conda_in_private_env()
-
-    @property
     def root_prefix(self):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))

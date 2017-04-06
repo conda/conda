@@ -142,7 +142,7 @@ def execute(args, parser):
     from os.path import dirname
 
     import conda
-    from conda.base.context import context
+    from conda.base.context import conda_in_private_env, context
     from conda.models.channel import offline_keep
     from conda.resolve import Resolve
     from conda.api import get_index
@@ -227,7 +227,7 @@ def execute(args, parser):
         conda_build_version=conda_build_version,
         root_prefix=context.root_prefix,
         conda_prefix=context.conda_prefix,
-        conda_private=context.conda_private,
+        conda_private=conda_in_private_env(),
         root_writable=context.root_writable,
         pkgs_dirs=context.pkgs_dirs,
         envs_dirs=context.envs_dirs,
