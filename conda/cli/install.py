@@ -6,15 +6,14 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from difflib import get_close_matches
 import errno
 import logging
 import os
-import re
-from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
+import re
 
 from . import common
-from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
@@ -22,9 +21,9 @@ from ..common.compat import on_win, text_type
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaIOError, CondaImportError,
-                          CondaValueError, DirectoryNotFoundError, DryRunExit,
-                          TooManyArgumentsError, UnsatisfiableError, CondaOSError,
-                          PackageNotFoundError, NoPackagesFoundError, CondaSystemExit)
+                          CondaOSError, CondaSystemExit, CondaValueError, DirectoryNotFoundError,
+                          DryRunExit, NoPackagesFoundError, PackageNotFoundError,
+                          PackageNotInstalledError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
@@ -53,7 +52,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
+            raise DirectoryNotFoundError(src_arg)
     else:
         src_prefix = context.clone_src
 
@@ -150,7 +149,7 @@ def install(args, parser, command='install'):
         for name in args.packages:
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names and common.prefix_if_in_private_env(name) is None:
-                raise PackageNotFoundError(name)
+                raise PackageNotInstalledError(prefix, name)
 
     if newenv and not args.no_default_packages:
         default_packages = list(context.create_default_packages)
@@ -181,8 +180,8 @@ def install(args, parser, command='install'):
             return
     elif getattr(args, 'all', False):
         if not linked_dists:
-            raise PackageNotFoundError('', "There are no packages installed in the "
-                                       "prefix %s" % prefix)
+            log.info("There are no packages installed in prefix %s", prefix)
+            return
         specs.extend(d.quad[0] for d in linked_dists)
     specs.extend(common.specs_from_args(args.packages, json=context.json))
 
@@ -284,26 +283,25 @@ def install(args, parser, command='install'):
                     error_message.append("\n\nClose matches found; did you mean one of these?\n")
                 error_message.append("\n    %s: %s" % (pkg, ', '.join(close)))
                 nfound += 1
-            error_message.append('\n\nYou can search for packages on anaconda.org with')
-            error_message.append('\n\n    anaconda search -t conda %s' % pkg)
+            # error_message.append('\n\nYou can search for packages on anaconda.org with')
+            # error_message.append('\n\n    anaconda search -t conda %s' % pkg)
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
                 error_message.append('\n\n(and similarly for the other packages)')
 
-            if not find_executable('anaconda', include_others=False):
-                error_message.append('\n\nYou may need to install the anaconda-client')
-                error_message.append(' command line client with')
-                error_message.append('\n\n    conda install anaconda-client')
+            # if not find_executable('anaconda', include_others=False):
+            #     error_message.append('\n\nYou may need to install the anaconda-client')
+            #     error_message.append(' command line client with')
+            #     error_message.append('\n\n    conda install anaconda-client')
 
             pinned_specs = get_pinned_specs(prefix)
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
                 error_message.append("\n\nNote that you have pinned specs in %s:" % path)
-                error_message.append("\n\n    %r" % pinned_specs)
+                error_message.append("\n\n    %r" % (pinned_specs,))
 
             error_message = ''.join(error_message)
-
-            raise PackageNotFoundError('', error_message)
+            raise PackageNotFoundError(error_message)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error

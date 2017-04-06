@@ -17,8 +17,7 @@ from ..common.compat import iteritems
 from ..common.constants import NULL
 from ..common.path import is_private_env, prefix_to_env_name
 from ..core.linked_data import linked_data
-from ..exceptions import (CondaFileIOError, CondaSystemExit, CondaValueError,
-                          DryRunExit)
+from ..exceptions import CondaFileIOError, CondaSystemExit, CondaValueError, DryRunExit
 from ..resolve import MatchSpec
 from ..utils import memoize
 

@@ -595,24 +595,24 @@ def test_config_command_remove_force():
                                                      'always_yes': True}
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove', 'channels', 'test', '--force', use_exception_handler=True)
+                                           '--remove', 'channels', 'test', use_exception_handler=True)
         assert stdout == ''
         assert "CondaKeyError: Error with key 'channels': 'test' is not in the 'channels' " \
                "key of the config file" in stderr
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove', 'disallow', 'python', '--force', use_exception_handler=True)
+                                           '--remove', 'disallow', 'python', use_exception_handler=True)
         assert stdout == ''
         assert "CondaKeyError: Error with key 'disallow': key 'disallow' " \
                "is not in the config file" in stderr
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove-key', 'always_yes', '--force')
+                                           '--remove-key', 'always_yes')
         assert stdout == stderr == ''
         assert yaml_load(_read_test_condarc(rc)) == {'channels': ['defaults']}
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                           '--remove-key', 'always_yes', '--force', use_exception_handler=True)
+                                           '--remove-key', 'always_yes', use_exception_handler=True)
 
         assert stdout == ''
         assert "CondaKeyError: Error with key 'always_yes': key 'always_yes' " \
