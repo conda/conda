@@ -99,6 +99,7 @@ class IndexRecord(DictSafeMixin, Entity):
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)
     subdir = StringField(required=False)
+    timestamp = IntegerField(required=False)
     track_features = StringField(required=False)
     version = StringField()
 
