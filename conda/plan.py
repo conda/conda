@@ -687,6 +687,8 @@ def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
     dists_for_unlinking = old_linked_dists - solved_dists
     dists_for_linking = solved_dists - old_linked_dists
 
+    # TODO: back 'noarch: python' to unlink and link if python version changes
+
     # r_linked = Resolve(linked_data(prefix))
     # for spec in remove_satisfied_specs:
     #     if r_linked.find_matches(spec):
