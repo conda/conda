@@ -240,8 +240,7 @@ class MatchSpec(object):
         return isinstance(other, MatchSpec) and self._eq_key() == other._eq_key()
 
     def __hash__(self):
-        # TODO: optional and target should not hash
-        return hash(self._specs_map)
+        return hash(self.name)
 
     if sys.version_info[0] == 2:
         def __ne__(self, other):
