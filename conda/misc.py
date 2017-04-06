@@ -19,7 +19,7 @@ from .common.url import is_url, join_url, path_to_url
 from .core.index import get_index, _supplement_index_with_cache
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import CondaFileNotFoundError, CondaRuntimeError, ParseError
+from .exceptions import CondaFileNotFoundError, ParseError, PackageNotFoundError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink
 from .instructions import LINK, UNLINK
@@ -257,9 +257,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 notfound.append(fn)
     if notfound:
         what = "Package%s " % ('' if len(notfound) == 1 else 's')
-        notfound = '\n'.join(' - ' + fn for fn in notfound)
-        msg = '%s missing in current %s channels:%s' % (what, context.subdir, notfound)
-        raise CondaRuntimeError(msg)
+        raise PackageNotFoundError(what)
 
     # Assemble the URL and channel list
     urls = {}

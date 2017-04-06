@@ -20,6 +20,7 @@ from conda.common.path import get_python_site_packages_short_path, get_python_no
     get_python_short_path, pyc_path, parse_entry_point_def, get_bin_directory_short_path, \
     win_path_ok
 from conda.core.path_actions import LinkPathAction, CompilePycAction, CreatePythonEntryPointAction
+from conda.exceptions import ParseError
 from conda.gateways.disk.create import mkdir_p, create_link
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import symlink
@@ -47,7 +48,7 @@ def load_python_file(py_file_full_path):
         import imp
         return imp.load_compiled("module.name", py_file_full_path)
     elif sys.version_info < (3, 5):
-        raise RuntimeError("this doesn't work for .pyc files")
+        raise ParseError("this doesn't work for .pyc files")
         from importlib.machinery import SourceFileLoader
         return SourceFileLoader("module.name", py_file_full_path).load_module()
     else:

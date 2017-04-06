@@ -30,7 +30,7 @@ from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.url import join_url, maybe_unquote
 from ..connection import CondaSession
 from ..core.package_cache import PackageCache
-from ..exceptions import CondaHTTPError, CondaRuntimeError
+from ..exceptions import CondaHTTPError, CondaIndexError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel
@@ -156,7 +156,7 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
         return fetched_repodata
 
     except ValueError as e:
-        raise CondaRuntimeError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
+        raise CondaIndexError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
     except (ConnectionError, HTTPError, SSLError) as e:
         # status_code might not exist on SSLError

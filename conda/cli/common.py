@@ -412,6 +412,7 @@ def ensure_override_channels_requires_channel(args, dashc=True):
             raise CondaValueError('--override-channels requires --channel'
                                   'or --use-local')
 
+
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
     if args.dry_run:
