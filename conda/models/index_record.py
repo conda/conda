@@ -5,8 +5,7 @@ from functools import total_ordering
 
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, Field, IntegerField, ListField, MapField,
-                                     StringField)
+                                     EnumField, Field, IntegerField, ListField, StringField)
 from ..common.compat import string_types
 
 
@@ -112,5 +111,4 @@ class IndexRecord(DictSafeMixin, Entity):
     files = ListField(string_types, default=(), required=False)
     link = ComposableField(Link, required=False)
 
-    with_features_depends = MapField(required=False)
     preferred_env = StringField(default=None, required=False, nullable=True)

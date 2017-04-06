@@ -230,8 +230,14 @@ class DryRunExit(CondaExitZero):
 
 class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
-        msg = ' '.join(text_type(arg) for arg in self.args)
+        msg = ' '.join(text_type(arg) for arg in args)
         super(CondaSystemExit, self).__init__(msg)
+
+
+class CondaHelp(CondaSystemExit):
+    def __init__(self, message, returncode):
+        self.returncode = returncode
+        super(CondaHelp, self).__init__(message)
 
 
 class SubprocessExit(CondaExitZero):
@@ -609,6 +615,9 @@ def handle_exception(e):
     elif isinstance(e, CondaRuntimeError):
         print_unexpected_error_message(e)
         return 1
+    elif isinstance(e, CondaHelp):
+        print_conda_exception(e)
+        return e.returncode
     elif isinstance(e, CondaError):
         from conda.base.context import context
         if context.debug or context.verbosity > 0:

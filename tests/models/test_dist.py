@@ -66,7 +66,7 @@ class UrlDistTests(TestCase):
 
     def test_dist_with_channel_url(self):
         # standard named channel
-        url = "https://repo.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+        url = "https://repo.continuum.io/pkgs/anaconda/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
         assert d.channel == 'defaults'
         assert d.name == 'spyder-app'
@@ -77,9 +77,9 @@ class UrlDistTests(TestCase):
         assert d.is_channel is True
 
         # standard url channel
-        url = "https://not.real.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+        url = "https://not.real.continuum.io/pkgs/anaconda/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
-        assert d.channel == 'defaults'  # because pkgs/free is in defaults
+        assert d.channel == 'defaults'  # because pkgs/anaconda is in defaults
         assert d.name == 'spyder-app'
         assert d.version == '2.3.8'
         assert d.build_string == 'py27_0'
@@ -88,9 +88,9 @@ class UrlDistTests(TestCase):
         assert d.is_channel is True
 
         # another standard url channel
-        url = "https://not.real.continuum.io/not/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+        url = "https://not.real.continuum.io/not/anaconda/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
-        assert d.channel == 'https://not.real.continuum.io/not/free'
+        assert d.channel == 'https://not.real.continuum.io/not/anaconda'
         assert d.name == 'spyder-app'
         assert d.version == '2.3.8'
         assert d.build_string == 'py27_0'
@@ -130,7 +130,7 @@ class UrlDistTests(TestCase):
 
     def test_dist_with_non_channel_url(self):
         # contrived url
-        url = "https://repo.continuum.io/pkgs/free/cffi-1.9.1-py34_0.tar.bz2"
+        url = "https://repo.continuum.io/pkgs/anaconda/cffi-1.9.1-py34_0.tar.bz2"
         d = Dist(url)
         assert d.channel == '<unknown>'
         assert d.name == 'cffi'
