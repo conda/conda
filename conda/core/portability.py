@@ -49,8 +49,8 @@ def update_prefix(path, new_prefix, placeholder=PREFIX_PLACEHOLDER, mode=FileMod
         # Step 4. if we have a binary file, make sure the byte size is the same before
         #         and after the update
         if mode == FileMode.binary and len(data) != len(original_data):
-            raise BinaryPrefixReplacementError(len(original_data), len(data), new_prefix,
-                                         path, placeholder)
+            raise BinaryPrefixReplacementError(path, placeholder, new_prefix,
+                                               len(original_data), len(data))
 
         return data
 

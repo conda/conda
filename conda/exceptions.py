@@ -521,23 +521,23 @@ class CondaDependencyError(CondaError):
 
 
 class BinaryPrefixReplacementError(CondaError):
-    def __init__(self, new_data_length, original_data_length, new_prefix,
-                 path, placeholder):
+    def __init__(self, path, placeholder, new_prefix, original_data_length, new_data_length):
         message = dals("""
-        Refusing to replace data of length '%(new_data_length)d' with
-        data of length '%(original_data_length)d' for binary file
-        new Data Length: %(new_data_length)d
-        original data Length: %(original_data_length)d
-        path: %(path)s
-        new prefix: %(new_prefix)s
-        placeholder: %(placeholder)s
-
+        Refusing to replace mismatched data length in binary file.
+          path: %(path)s
+          placeholder: %(placeholder)s
+          new prefix: %(new_prefix)s
+          original data Length: %(original_data_length)d
+          new data length: %(new_data_length)d
         """)
-        super(BinaryPrefixReplacementError, self).__init__(message,
-                                                           new_data_length=new_data_length,
-                                                           original_data_length=original_data_length,
-                                                           new_prefix=new_prefix, path=path,
-                                                           placeholder=placeholder)
+        kwargs = {
+            'path': path,
+            'placeholder': placeholder,
+            'new_prefix': new_prefix,
+            'original_data_length': original_data_length,
+            'new_data_length': new_data_length,
+        }
+        super(BinaryPrefixReplacementError, self).__init__(message, **kwargs)
 
 
 class InvalidSpecError(CondaError):

@@ -388,8 +388,8 @@ class ExceptionTests(TestCase):
         new_prefix = "some/where/on/goodwin.ave"
         path = "some/where/by/boneyard/creek"
         placeholder = "save/my/spot/in/374"
-        exc = BinaryPrefixReplacementError(new_data_length, original_data_length, new_prefix,
-                                           path, placeholder)
+        exc = BinaryPrefixReplacementError(path, placeholder, new_prefix,
+                                           original_data_length, new_data_length)
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
@@ -401,7 +401,7 @@ class ExceptionTests(TestCase):
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
         assert json_obj['new_data_length'] == 1104
-        assert json_obj['original_data_len'] == 1404
+        assert json_obj['original_data_length'] == 1404
         assert json_obj['new_prefix'] == new_prefix
         assert json_obj['path'] == path
         assert json_obj['placeholder'] == placeholder
@@ -412,11 +412,10 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        BinaryPrefixReplacementError: Refusing to replace data of length '1104' with
-        data of length '1404' for binary file
-        new Data Length: 1104
-        original data Length: 1404
-        path: some/where/by/boneyard/creek
-        new prefix: some/where/on/goodwin.ave
-        placeholder: save/my/spot/in/374
+        BinaryPrefixReplacementError: Refusing to replace mismatched data length in binary file.
+          path: some/where/by/boneyard/creek
+          placeholder: save/my/spot/in/374
+          new prefix: some/where/on/goodwin.ave
+          original data Length: 1404
+          new data length: 1104
         """).strip()
