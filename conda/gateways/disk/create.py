@@ -73,7 +73,10 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
 
     import_name = func.split('.')[0]
     pyscript = python_entry_point_template % {
-        'module': module, 'func': func, 'import_name': import_name}
+        'module': module,
+        'func': func,
+        'import_name': import_name,
+    }
     with open(target_full_path, str('w')) as fo:
         shebang = '#!%s\n' % python_full_path
         if hasattr(shebang, 'encode'):
@@ -98,7 +101,10 @@ def create_windows_python_entry_point(target_full_path, module, func):
 
     import_name = func.split('.')[0]
     pyscript = python_entry_point_template % {
-        'module': module, 'func': func, import_name: 'import_name'}
+        'module': module,
+        'func': func,
+        'import_name': import_name,
+    }
     with open(target_full_path, str('w')) as fo:
         fo.write(pyscript)
 
