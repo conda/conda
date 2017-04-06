@@ -4,6 +4,15 @@
 * general support for all bourne- and c-based shells #3175
 
 
+## 4.3.17 (unreleased)
+
+### Improvements
+* fall back to copy if hardlink fails (#5002)
+
+### Bug Fixes
+* quote prefix paths for locations with spaces (#5009)
+
+
 ## 4.3.16 (2017-03-30)
 
 ### Improvements
