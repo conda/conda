@@ -300,7 +300,7 @@ def install(args, parser, command='install'):
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
                 error_message.append("\n\nNote that you have pinned specs in %s:" % path)
-                error_message.append("\n\n    %r" % pinned_specs)
+                error_message.append("\n\n    %r" % (pinned_specs,))
 
             error_message = ''.join(error_message)
             raise PackageNotFoundError(error_message)
