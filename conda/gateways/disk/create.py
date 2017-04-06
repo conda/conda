@@ -238,7 +238,14 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.hardlink:
         if isdir(src):
             raise CondaError("Cannot hard link a directory. %s" % src)
-        link(src, dst)
+        try:
+            link(src, dst)
+        except (IOError, OSError) as e:
+            log.debug("hard-link failed. falling back to copy\n"
+                      "  error: %r\n"
+                      "  src: %s\n"
+                      "  dst: %s", e, src, dst)
+            _do_copy(src, dst)
     elif link_type == LinkType.softlink:
         _do_softlink(src, dst)
     elif link_type == LinkType.copy:
