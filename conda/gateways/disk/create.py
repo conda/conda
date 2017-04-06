@@ -63,7 +63,7 @@ def write_as_json_to_file(file_path, obj):
         fo.write(ensure_binary(json_str))
 
 
-def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
+def create_python_entry_point(target_full_path, python_full_path, module, func):
     if lexists(target_full_path):
         maybe_raise(BasicClobberError(
             source_path=None,
@@ -77,36 +77,24 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
         'func': func,
         'import_name': import_name,
     }
-    with open(target_full_path, str('w')) as fo:
+
+    if python_full_path is not None:
         shebang = '#!%s\n' % python_full_path
         if hasattr(shebang, 'encode'):
             shebang = shebang.encode()
         shebang = replace_long_shebang(FileMode.text, shebang)
         if hasattr(shebang, 'decode'):
             shebang = shebang.decode()
-        fo.write(shebang)
-        fo.write(pyscript)
-    make_executable(target_full_path)
+    else:
+        shebang = None
 
-    return target_full_path
-
-
-def create_windows_python_entry_point(target_full_path, module, func):
-    if lexists(target_full_path):
-        maybe_raise(BasicClobberError(
-            source_path=None,
-            target_path=target_full_path,
-            context=context,
-        ), context)
-
-    import_name = func.split('.')[0]
-    pyscript = python_entry_point_template % {
-        'module': module,
-        'func': func,
-        'import_name': import_name,
-    }
     with open(target_full_path, str('w')) as fo:
+        if shebang is not None:
+            fo.write(shebang)
         fo.write(pyscript)
+
+    if shebang is not None:
+        make_executable(target_full_path)
 
     return target_full_path
 

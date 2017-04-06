@@ -22,8 +22,7 @@ from ..common.url import path_to_url
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
                                     create_private_envs_meta, create_private_pkg_entry_point,
-                                    create_unix_python_entry_point,
-                                    create_windows_python_entry_point, extract_tarball,
+                                    create_python_entry_point, extract_tarball,
                                     make_menu, write_linked_package_record)
 from ..gateways.disk.delete import remove_private_envs_meta, rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
@@ -418,13 +417,14 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
     def execute(self):
         log.trace("creating python entry point %s", self.target_full_path)
         if on_win:
-            create_windows_python_entry_point(self.target_full_path, self.module, self.func)
+            python_full_path = None
         else:
             target_python_version = self.transaction_context['target_python_version']
             python_short_path = get_python_short_path(target_python_version)
             python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
-            create_unix_python_entry_point(self.target_full_path, python_full_path,
-                                           self.module, self.func)
+
+        create_python_entry_point(self.target_full_path, python_full_path,
+                                  self.module, self.func)
         self._execute_successful = True
 
     def reverse(self):
