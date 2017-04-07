@@ -214,12 +214,12 @@ def _do_softlink(src, dst):
         # We only need to do this copy for executables which have an RPATH containing $ORIGIN
         #   on Linux, so `is_executable()` is currently overly aggressive.
         # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
-        _do_copy(src, dst)
+        copy(src, dst)
     else:
         symlink(src, dst)
 
 
-def _do_copy(src, dst):
+def copy(src, dst):
     # on unix, make sure relative symlinks stay symlinks
     if not on_win and islink(src):
         src_points_to = readlink(src)
@@ -259,12 +259,12 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         except (IOError, OSError) as e:
             log.debug("%r", e)
             log.debug("hard link failed\n  src: %s\n  dst: %s\nfalling back to copy", src, dst)
-            _do_copy(src, dst)
+            copy(src, dst)
 
     elif link_type == LinkType.softlink:
         _do_softlink(src, dst)
     elif link_type == LinkType.copy:
-        _do_copy(src, dst)
+        copy(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
 

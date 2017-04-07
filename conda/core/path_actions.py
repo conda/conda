@@ -20,14 +20,16 @@ from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_di
                            preferred_env_matches_prefix, pyc_path, url_to_path, win_path_ok)
 from ..common.url import path_to_url
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
-from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
-                                    create_application_entry_point, create_unix_python_entry_point,
+from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
+                                    create_hard_link_or_copy, create_link,
+                                    create_unix_python_entry_point,
                                     create_windows_python_entry_point, extract_tarball, make_menu,
                                     write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
+from ..history import History
 from ..models.dist import Dist
 from ..models.enums import LinkType, NoarchType, PathType
 from ..models.index_record import IndexRecord, Link
@@ -590,6 +592,42 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
             delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
                                delete=False)
         rm_rf(self.target_full_path)
+
+
+class UpdateHistoryAction(CreateInPrefixPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, target_prefix, requested_specs, command_action):
+        target_short_path = join('conda-meta', 'history')
+        return cls(transaction_context, target_prefix, target_short_path, requested_specs,
+                   command_action),
+
+    def __init__(self, transaction_context, target_prefix, target_short_path, requested_specs,
+                 command_action):
+        super(UpdateHistoryAction, self).__init__(transaction_context, None, None, None,
+                                                  target_prefix,target_short_path)
+        self.requested_specs = requested_specs
+        self.command_action = command_action
+
+        self.hold_path = self.target_full_path + '.c~'
+
+    def execute(self):
+        log.trace("updating environment history %s", self.target_full_path)
+
+        if lexists(self.target_full_path):
+            copy(self.target_full_path, self.hold_path)
+
+        h = History(self.target_prefix)
+        h.update()
+        h.write_specs(self.command_action, self.requested_specs)
+
+    def reverse(self):
+        if lexists(self.hold_path):
+            log.trace("moving %s => %s", self.hold_path, self.target_full_path)
+            backoff_rename(self.hold_path, self.target_full_path, force=True)
+
+    def cleanup(self):
+        rm_rf(self.hold_path)
 
 
 class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):

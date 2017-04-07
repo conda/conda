@@ -16,9 +16,10 @@ from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateLinkedPackageRecordAction, CreateNonadminAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           RegisterPrivateEnvAction, RemoveLinkedPackageRecordAction,
-                           RemoveMenuAction, UnlinkPathAction, UnregisterPrivateEnvAction,
-                           UnregisterEnvironmentLocationAction, RegisterEnvironmentLocationAction)
+                           RegisterEnvironmentLocationAction, RegisterPrivateEnvAction,
+                           RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction,
+                           UnregisterEnvironmentLocationAction, UnregisterPrivateEnvAction,
+                           UpdateHistoryAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -93,11 +94,13 @@ def make_unlink_actions(transaction_context, target_prefix, linked_package_data)
     ))
 
 
-def match_specs_to_dists(link_dists, specs):
-    matched_specs = [None for _ in range(len(link_dists))]
+def match_specs_to_dists(packages_info_to_link, specs):
+    matched_specs = [None for _ in range(len(packages_info_to_link))]
     for spec in specs or ():
         spec = MatchSpec(spec)
-        idx = next((q for q, d in enumerate(link_dists) if d.name == spec.name), None)
+        idx = next((q for q, pkg_info in enumerate(packages_info_to_link)
+                    if pkg_info.index_json_record.name == spec.name),
+                   None)
         if idx is not None:
             matched_specs[idx] = spec
     return tuple(matched_specs)
@@ -106,7 +109,8 @@ def match_specs_to_dists(link_dists, specs):
 class UnlinkLinkTransaction(object):
 
     @classmethod
-    def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists, requested_specs):
+    def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists, command_action,
+                          requested_specs):
         # This constructor method helps to patch into the 'plan' framework
         linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
                                                for dist in unlink_dists)
@@ -127,13 +131,11 @@ class UnlinkLinkTransaction(object):
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)
                                       for dist, pkg_dir in zip(link_dists, pkg_dirs_to_link))
 
-        matchspecs_for_link_dists = match_specs_to_dists(link_dists, requested_specs)
-
         return UnlinkLinkTransaction(target_prefix, linked_packages_data_to_unlink,
-                                     packages_info_to_link, matchspecs_for_link_dists)
+                                     packages_info_to_link, command_action, requested_specs)
 
     def __init__(self, target_prefix, linked_packages_data_to_unlink, packages_info_to_link,
-                 matchspecs_for_link_dists):
+                 command_action, requested_specs):
         # type: (str, Sequence[Dist], Sequence[PackageInfo]) -> NoneType
         # order of unlink_dists and link_dists will be preserved throughout
         #   should be given in dependency-sorted order
@@ -141,7 +143,8 @@ class UnlinkLinkTransaction(object):
         self.target_prefix = target_prefix
         self.linked_packages_data_to_unlink = linked_packages_data_to_unlink
         self.packages_info_to_link = packages_info_to_link
-        self.matchspecs_for_link_dists = matchspecs_for_link_dists
+        self.command_action = command_action
+        self.requested_specs = requested_specs
 
         self._prepared = False
         self._verified = False
@@ -180,19 +183,22 @@ class UnlinkLinkTransaction(object):
         else:
             self.unregister_action_groups = ()
 
+        matchspecs_for_link_dists = match_specs_to_dists(self.packages_info_to_link, self.requested_specs)
         self.link_action_groups = tuple(
             ActionGroup('link', pkg_info, self.make_link_actions(transaction_context, pkg_info,
                                                                  self.target_prefix, lt, spec))
             for pkg_info, lt, spec in zip(self.packages_info_to_link, link_types,
-                                          self.matchspecs_for_link_dists)
+                                          matchspecs_for_link_dists)
         )
 
+        history_actions = UpdateHistoryAction.create_actions(
+            transaction_context, self.target_prefix, self.requested_specs, self.command_action)
         if self.link_action_groups:
-            axns = RegisterEnvironmentLocationAction(transaction_context, self.target_prefix),
-            self.register_action_groups = ActionGroup('register', None, axns),
+            register_actions = RegisterEnvironmentLocationAction(transaction_context, self.target_prefix),
         else:
-            self.register_action_groups = ()
+            register_actions = ()
 
+        self.register_action_groups = ActionGroup('register', None, register_actions + history_actions),
         self._prepared = True
 
     def all_actions(self):

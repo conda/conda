@@ -104,13 +104,8 @@ def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
 def UNLINKLINKTRANSACTION_CMD(state, arg):
     prefix, unlink_dists, link_dists, axn, specs = arg
     index = state['index']
-    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists, specs)
-
-    h = History(prefix)
-    h.init_log_file()
+    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists, axn, specs)
     txn.execute()
-    h.update()
-    h.write_specs(axn, specs)
 
 
 def check_files_in_package(source_dir, files):

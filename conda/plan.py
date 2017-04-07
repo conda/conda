@@ -538,7 +538,6 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
         for env_name, specs in iteritems(env_add_map):
             for spec in specs:
                 spec_name = MatchSpec(spec).name
-                # if any(root_r.depends_on(d.to_matchspec(), spec_name) for d in required_root_dists):  # NOQA
                 if spec_name in required_root_package_names:
                     forced_root_specs_to_add.add(spec)
                 else:
@@ -558,9 +557,6 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
                         env_remove_map[env_name].append(MatchSpec(pname))
                         forced_root_specs_to_add.add(MatchSpec(pe['requested_spec']))
                 break
-
-        # TODO: now we might need one more check that any remaining registered packages don't
-        #       depend on forced_root_specs_to_add or an updated required_root_package_names
 
         unlink_link_map = odict()
 
@@ -609,25 +605,6 @@ def get_resolve_object(index, prefix):
     _supplement_index_with_prefix(index, prefix, {})
     r = Resolve(index)
     return r
-
-
-# def match_to_original_specs(str_specs, specs_for_prefix):
-#     def matches_any_spec(package_name):
-#         return next((spc for spc in str_specs if spc.split()[0] == package_name), None)
-#
-#     matched_specs_for_prefix = []
-#     for prefix_with_dists in specs_for_prefix:
-#         linked = linked_data(prefix_with_dists.prefix)
-#         r = prefix_with_dists.r
-#         new_matches = []
-#         for package_name in prefix_with_dists.specs:
-#             matched = matches_any_spec(package_name)
-#             if matched:
-#                 new_matches.append(matched)
-#         add_defaults_to_specs(r, linked, new_matches, prefix=prefix_with_dists.prefix)
-#         matched_specs_for_prefix.append(SpecsForPrefix(
-#             prefix=prefix_with_dists.prefix, r=prefix_with_dists.r, specs=new_matches))
-#     return matched_specs_for_prefix
 
 
 def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
