@@ -67,6 +67,7 @@ class EnvsDirectory(object):
         target_prefix: the full path to the private environment
         leased_path: the full path for the lease in the root prefix
         package_name: the package holding the lease
+        path_type: application_entry_point
 
     The 'preferred_env_packages' key is a list of packages associated with a private env, and
     therefore potentially having application entry points in the root env.  Each
@@ -308,7 +309,8 @@ class EnvsDirectory(object):
                              target_short_path=target_short_path,
                              current_prefix=current_prefix)
 
-    def add_leased_path(self, target_prefix, target_short_path, root_prefix, package_name):
+    def add_leased_path(self, target_prefix, target_short_path, root_prefix, package_name,
+                        path_type):
         self.assert_path_not_leased(target_short_path)
 
         leased_path_entry = {
@@ -317,6 +319,7 @@ class EnvsDirectory(object):
             "target_prefix": target_prefix,
             "leased_path": join(root_prefix, win_path_ok(target_short_path)),
             "package_name": package_name,
+            "path_type": path_type,
         }
 
         self._leased_paths.append(leased_path_entry)

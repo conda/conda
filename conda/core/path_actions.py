@@ -656,7 +656,7 @@ class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
 
         for leased_path in self.leased_paths:
             ed.add_leased_path(self.target_prefix, leased_path, self.root_prefix,
-                               self.package_name)
+                               self.package_name, 'application_entry_point')
 
         ed.add_preferred_env_package(self.env_name, self.package_name, self.conda_meta_path,
                                      self.requested_spec)
