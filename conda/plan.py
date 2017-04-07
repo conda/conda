@@ -595,7 +595,6 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
         action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink)
                          for env_name, oink in iteritems(unlink_link_map)]
-
         return action_groups
 
     else:

@@ -81,11 +81,12 @@ class History(object):
         if isfile(self.path):
             return
         else:
-            dists = linked(self.prefix)
-            if dists:
-                self.write_dists(dists)
-            else:
-                touch(self.path, True)
+            touch(self.path, True)
+            # dists = linked(self.prefix)
+            # if dists:
+            #     self.write_dists(dists)
+            # else:
+            #     touch(self.path, True)
 
     def file_is_empty(self):
         return os.stat(self.path).st_size == 0
@@ -131,7 +132,7 @@ class History(object):
                 res.append((m.group(1), set(), []))
             elif line.startswith('#'):
                 res[-1][2].append(line)
-            else:
+            elif len(res) > 0:
                 res[-1][1].add(line)
         return res
 

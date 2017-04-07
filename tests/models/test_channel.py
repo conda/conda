@@ -36,8 +36,8 @@ class DefaultConfigChannelTests(TestCase):
     def setUpClass(cls):
         reset_context()
         cls.platform = context.subdir
-        cls.DEFAULT_URLS = ['https://repo.continuum.io/pkgs/anaconda/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/anaconda/noarch',
+        cls.DEFAULT_URLS = ['https://repo.continuum.io/pkgs/free/%s' % cls.platform,
+                            'https://repo.continuum.io/pkgs/free/noarch',
                             'https://repo.continuum.io/pkgs/r/%s' % cls.platform,
                             'https://repo.continuum.io/pkgs/r/noarch',
                             'https://repo.continuum.io/pkgs/pro/%s' % cls.platform,
@@ -88,19 +88,19 @@ class DefaultConfigChannelTests(TestCase):
         assert dc.urls() == self.DEFAULT_URLS
 
     def test_url_channel_w_platform(self):
-        channel = Channel('https://repo.continuum.io/pkgs/anaconda/osx-64')
+        channel = Channel('https://repo.continuum.io/pkgs/free/osx-64')
 
         assert channel.scheme == "https"
         assert channel.location == "repo.continuum.io"
         assert channel.platform == 'osx-64'
-        assert channel.name == 'pkgs/anaconda'
+        assert channel.name == 'pkgs/free'
 
-        assert channel.base_url == 'https://repo.continuum.io/pkgs/anaconda'
+        assert channel.base_url == 'https://repo.continuum.io/pkgs/free'
         assert channel.canonical_name == 'defaults'
-        assert channel.url() == 'https://repo.continuum.io/pkgs/anaconda/osx-64'
+        assert channel.url() == 'https://repo.continuum.io/pkgs/free/osx-64'
         assert channel.urls() == [
-            'https://repo.continuum.io/pkgs/anaconda/osx-64',
-            'https://repo.continuum.io/pkgs/anaconda/noarch',
+            'https://repo.continuum.io/pkgs/free/osx-64',
+            'https://repo.continuum.io/pkgs/free/noarch',
         ]
 
     def test_bare_channel(self):
