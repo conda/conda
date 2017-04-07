@@ -467,7 +467,7 @@ emitted during the build process and the variable will remain
 undefined.
 
 
-.. _pin_downstream:
+.. _run_exports:
 
 Pin downstream
 ~~~~~~~~~~~~~~
@@ -483,7 +483,7 @@ time, rather than to the package using those tools or libraries.
 .. code-block:: yaml
 
   build:
-    pin_downstream:
+    run_exports:
       - libstdc++
 
 You can express version constraints directly, or use any of the jinja2 helper
@@ -495,14 +495,14 @@ pinning relative to versions present at build time:
 .. code-block:: yaml
 
   build:
-    pin_downstream:
+    run_exports:
       - libstdc++  {{ pin_compatible('g++', 'x') }}
 
 
 With this example, if g++ were version 5.3.0, this pinning expression would
 evaluate to ``>=5.3.0,<6``
 
-Note that ``pin_downstream`` can be specified both in the build section, and on
+Note that ``run_exports`` can be specified both in the build section, and on
 a per-output basis for split packages.
 
 
@@ -742,13 +742,13 @@ requirement:
 
    outputs:
      - name: gcc
-       pin_downstream:
+       run_exports:
          - libgcc 2.*
      - name: libgcc
 
 
 Note: variant expressions are very powerful here. You can express the version
-requirement in the pin_downstream entry as a jinja function to insert values
+requirement in the run_exports entry as a jinja function to insert values
 based on the actual version of libgcc produced by the recipe. Read more about
 them at :ref:`referencing_subpackages`.
 

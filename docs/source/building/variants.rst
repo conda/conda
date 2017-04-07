@@ -1087,9 +1087,9 @@ the tracking of metadata associated with compilers - localize it to compiler
 packages, even if those packages are doing nothing more than activating an
 already-installed compiler (such as Visual Studio.)
 
-Note also the ``pin_downstream`` key in meta.yaml. This is useful for compiler
+Note also the ``run_exports`` key in meta.yaml. This is useful for compiler
 recipes to impose runtime constraints based on the versions of subpackages
-created by the compiler recipe. For more information, see the :ref:`pin_downstream`
+created by the compiler recipe. For more information, see the :ref:`run_exports`
 section of the meta.yaml docs.
 
 
@@ -1159,7 +1159,7 @@ with a compiler meta.yaml like:
        name: vs2015
        version: 14.0
    build:
-       pin_downstream:
+       run_exports:
            - vc 14
 
 
