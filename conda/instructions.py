@@ -10,11 +10,10 @@ import tarfile
 
 from .base.context import context
 from .common.compat import on_win
-from .core.link import UnlinkLinkTransaction
+from .core.link import UnlinkLinkTransaction, UnlinkLinkTransactionSetup
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
 from .gateways.disk.link import islink
-from .history import History
 from .install import symlink_conda
 from .models.dist import Dist
 
@@ -104,7 +103,8 @@ def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
 def UNLINKLINKTRANSACTION_CMD(state, arg):
     prefix, unlink_dists, link_dists, axn, specs = arg
     index = state['index']
-    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists, axn, specs)
+    stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, axn, specs)
+    txn = UnlinkLinkTransaction(stp)
     txn.execute()
 
 

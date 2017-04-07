@@ -9,7 +9,7 @@ NOTE:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from copy import copy
 from logging import getLogger
 from os.path import abspath, basename, exists, join
@@ -476,8 +476,11 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     channel_priority_map=None, is_update=False):  # pragma: no cover
 
     specs = set(MatchSpec(s) for s in specs)
-    unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),
-                                                 specs_to_add=specs, prune=prune)
+    r = get_resolve_object(index.copy(), prefix)
+    unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
+
+    # UnlinkLinkTransaction(r.index, prefix, unlink_dists, link_dists, 'INSTALL', tuple(s.spec for s in specs))
+
     actions = get_blank_actions(prefix)
     actions['UNLINK'].extend(unlink_dists)
     actions['LINK'].extend(link_dists)
