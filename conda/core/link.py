@@ -4,13 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
-from os.path import dirname, join
+from os.path import dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
 from traceback import format_exc
 import warnings
 
-from conda.common.compat import odict
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
                           load_meta)
 from .package_cache import PackageCache
@@ -21,16 +20,17 @@ from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction,
                            UnregisterEnvironmentLocationAction, UnregisterPrivateEnvAction,
                            UpdateHistoryAction)
-from .. import CondaMultiError, conda_signal_handler
+from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, itervalues, on_win, text_type
+from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
 from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
                           UnknownPackageClobberError, maybe_raise)
+from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, softlink_supported
@@ -200,6 +200,16 @@ class UnlinkLinkTransaction(object):
     @classmethod
     def _prepare(cls, index, target_prefix, unlink_dists, link_dists, command_action,
                  requested_specs):
+
+        # make sure prefix directory exists
+        if not isdir(target_prefix):
+            try:
+                mkdir_p(target_prefix)
+            except (IOError, OSError) as e:
+                log.debug(repr(e))
+                raise CondaError("Unable to create prefix directory '%s'.\n"
+                                 "Check that you have sufficient permissions."
+                                 "" % target_prefix)
 
         # gather information from disk and caches
         linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
@@ -516,8 +526,6 @@ class UnlinkLinkTransaction(object):
             application_entry_point_actions,
         ))
 
-        create_prefix_actions = LinkPathAction.create_prefix_actions(*required_quad)
-
         meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
             *required_quad, all_target_short_paths=all_target_short_paths,
             leased_paths=leased_paths
@@ -532,7 +540,6 @@ class UnlinkLinkTransaction(object):
 
         # the ordering here is significant
         return tuple(concatv(
-            create_prefix_actions,
             meta_create_actions,
             create_directory_actions,
             file_link_actions,

@@ -520,9 +520,9 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
         if len(env_add_map) == len(registered_packages) == 0:
             # short-circuit the rest of this logic
-            return [install_actions(prefix, index, spec_strs, force, only_names, always_copy,
-                                    pinned, minimal_hint, update_deps, prune,
-                                    channel_priority_map, is_update)]
+            return install_actions(prefix, index, spec_strs, force, only_names, always_copy,
+                                   pinned, minimal_hint, update_deps, prune,
+                                   channel_priority_map, is_update)
 
         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
@@ -598,8 +598,9 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
             return UnlinkLinkTransactionSetup(index, pfx, unlink, link, 'INSTALL',
                                               tuple(s.spec for s in specs))
 
-        txn = UnlinkLinkTransaction(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
-                                    for env_name, oink in iteritems(unlink_link_map))
+        txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
+                         for env_name, oink in iteritems(unlink_link_map))
+        txn = UnlinkLinkTransaction(*txn_args)
         return txn
 
     else:

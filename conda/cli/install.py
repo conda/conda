@@ -23,12 +23,11 @@ from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
-                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError,
-                          PackageNotInstalledError)
+                          PackageNotFoundError, PackageNotInstalledError, TooManyArgumentsError,
+                          UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
-from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
-                    is_root_prefix, nothing_to_do, revert_actions)
+from ..plan import get_pinned_specs, install_actions_list, is_root_prefix, revert_actions
 
 log = logging.getLogger(__name__)
 

@@ -228,12 +228,6 @@ class LinkPathAction(CreateInPrefixPathAction):
         )
 
     @classmethod
-    def create_prefix_actions(cls, transaction_context, package_info, target_prefix,
-                              requested_link_type):
-        return cls(transaction_context, package_info, None, None,
-                   target_prefix, '', LinkType.directory),
-
-    @classmethod
     def create_python_entry_point_windows_exe_action(cls, transaction_context, package_info,
                                                      target_prefix, requested_link_type,
                                                      entry_point_def):
