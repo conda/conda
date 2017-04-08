@@ -243,7 +243,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python-3')
 
-            # Test force reinstall
+            # Test force reinstall  # TODO: this actually doesn't ensure that package was reinstalled
             run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10')
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python-3')

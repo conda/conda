@@ -152,6 +152,16 @@ class UnlinkLinkTransaction(object):
         self._prepared = False
         self._verified = False
 
+    @property
+    def nothing_to_do(self):
+        return not any((stp.unlink_dists or stp.link_dists) for stp in itervalues(self.prefix_setups))
+
+    def get_pfe(self):
+        from .package_cache import ProgressiveFetchExtract
+        index = next(itervalues(self.prefix_setups)).index
+        link_dists = set(concat(stp.link_dists for stp in itervalues(self.prefix_setups)))
+        return ProgressiveFetchExtract(index, link_dists)
+
     def prepare(self):
         if self._prepared:
             return

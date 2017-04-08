@@ -12,9 +12,9 @@ from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
+from ..common.compat import itervalues
 from ..common.constants import NULL
-from ..exceptions import (CondaFileIOError, CondaSystemExit, CondaValueError,
-                          DryRunExit)
+from ..exceptions import CondaFileIOError, CondaSystemExit, CondaValueError, DryRunExit
 from ..resolve import MatchSpec
 from ..utils import memoize
 
@@ -588,12 +588,16 @@ def stdout_json_success(success=True, **kwargs):
 
     # this code reverts json output for plan back to previous behavior
     #   relied on by Anaconda Navigator and nb_conda
-    actions = kwargs.get('actions', {})
-    if 'LINK' in actions:
-        actions['LINK'] = [str(d) for d in actions['LINK']]
-    if 'UNLINK' in actions:
-        actions['UNLINK'] = [str(d) for d in actions['UNLINK']]
-
+    unlink_link_transaction = kwargs.get('unlink_link_transaction')
+    if unlink_link_transaction:
+        from .._vendor.toolz.itertoolz import concat
+        actions = kwargs.setdefault('actions', {})
+        actions['LINK'] = tuple(str(d) for d in concat(
+            stp.link_dists for stp in itervalues(unlink_link_transaction.prefix_setups)
+        ))
+        actions['UNLINK'] = tuple(str(d) for d in concat(
+            stp.unlink_dists for stp in itervalues(unlink_link_transaction.prefix_setups)
+        ))
     result.update(kwargs)
     stdout_json(result)
 

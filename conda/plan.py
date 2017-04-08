@@ -22,6 +22,7 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_
 from .common.path import ensure_pad, is_private_env_path
 from .core.envs_manager import EnvsDirectory
 from .core.index import _supplement_index_with_prefix
+from .core.link import UnlinkLinkTransaction, UnlinkLinkTransactionSetup
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
@@ -479,14 +480,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     r = get_resolve_object(index.copy(), prefix)
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
 
-    # UnlinkLinkTransaction(r.index, prefix, unlink_dists, link_dists, 'INSTALL', tuple(s.spec for s in specs))
+    stp = UnlinkLinkTransactionSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL', tuple(s.spec for s in specs))
+    txn = UnlinkLinkTransaction(stp)
+    return txn
 
-    actions = get_blank_actions(prefix)
-    actions['UNLINK'].extend(unlink_dists)
-    actions['LINK'].extend(link_dists)
-    actions['SPECS'].extend(s.spec for s in specs)
-    actions['ACTION'] = 'INSTALL'
-    return actions
 
 
 def install_actions_list(prefix, index, spec_strs, force=False, only_names=None, always_copy=False,
@@ -584,23 +581,32 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
             # this needs to be added to odict last; the private envs need to be updated first
             unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
 
-        def make_actions(pfx, unlink, link, specs):
-            actions = get_blank_actions(pfx)
-            actions['UNLINK'].extend(unlink)
-            actions['LINK'].extend(link)
-            actions['SPECS'].extend(s.spec for s in specs)
-            actions['ACTION'] = 'INSTALL'
-            return actions
+        # def make_actions(pfx, unlink, link, specs):
+        #     actions = get_blank_actions(pfx)
+        #     actions['UNLINK'].extend(unlink)
+        #     actions['LINK'].extend(link)
+        #     actions['SPECS'].extend(s.spec for s in specs)
+        #     actions['ACTION'] = 'INSTALL'
+        #     return actions
+        #
+        # action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink)
+        #                  for env_name, oink in iteritems(unlink_link_map)]
+        # return action_groups
 
-        action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink)
-                         for env_name, oink in iteritems(unlink_link_map)]
-        return action_groups
+        def make_txn_setup(pfx, unlink, link, specs):
+            # TODO: this index here is probably wrong; needs to be per-prefix
+            return UnlinkLinkTransactionSetup(index, pfx, unlink, link, 'INSTALL',
+                                              tuple(s.spec for s in specs))
+
+        txn = UnlinkLinkTransaction(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
+                                    for env_name, oink in iteritems(unlink_link_map))
+        return txn
 
     else:
         # disregard any requested preferred env
-        return [install_actions(prefix, index, spec_strs, force, only_names, always_copy,
-                                pinned, minimal_hint, update_deps, prune,
-                                channel_priority_map, is_update)]
+        return install_actions(prefix, index, spec_strs, force, only_names, always_copy,
+                               pinned, minimal_hint, update_deps, prune,
+                               channel_priority_map, is_update)
 
 
 def get_resolve_object(index, prefix):
@@ -896,6 +902,7 @@ def revert_actions(prefix, revision=-1, index=None):
     # change
     h = History(prefix)
     h.update()
+    user_requested_specs = h.get_requested_specs()
     try:
         state = h.get_state(revision)
     except IndexError:
@@ -903,23 +910,30 @@ def revert_actions(prefix, revision=-1, index=None):
 
     curr = h.get_state()
     if state == curr:
-        return {}
+        return {}  # TODO: return txn with nothing_to_do
 
-    dists = (Dist(s) for s in state)
-    actions = ensure_linked_actions(dists, prefix)
-    for dist in curr - state:
-        add_unlink(actions, Dist(dist))
+    r = get_resolve_object(index, prefix)
+    state = r.dependency_sort({d.name: d for d in (Dist(s) for s in state)})
+    curr = set(Dist(s) for s in curr)
+
+    link_dists = tuple(d for d in state if not is_linked(prefix, d))
+    unlink_dists = set(curr) - set(state)
+
+    # dists = (Dist(s) for s in state)
+    # actions = ensure_linked_actions(dists, prefix)
+    # for dist in curr - state:
+    #     add_unlink(actions, Dist(dist))
 
     # check whether it is a safe revision
-    from .instructions import LINK, UNLINK, FETCH
-    from .exceptions import CondaRevisionError
-    for arg in set(actions.get(LINK, []) + actions.get(UNLINK, []) + actions.get(FETCH, [])):
-        dist = Dist(arg)
+    for dist in concatv(link_dists, unlink_dists):
         if dist not in index:
+            from .exceptions import CondaRevisionError
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
-    return actions
+    stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, 'INSTALL', user_requested_specs)
+    txn = UnlinkLinkTransaction(stp)
+    return txn
 
 
 # ---------------------------- EXECUTION --------------------------

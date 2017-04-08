@@ -242,11 +242,11 @@ def install(args, parser, command='install'):
 
     try:
         if isinstall and args.revision:
-            action_groups = [revert_actions(prefix, get_revision(args.revision), index)]
+            unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                action_groups = install_actions_list(
+                unlink_link_transaction = install_actions_list(
                     prefix, index, specs, force=args.force, only_names=only_names,
                     pinned=context.respect_pinned, always_copy=context.always_copy,
                     minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
@@ -313,66 +313,96 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
     if not context.json:
-        if any(nothing_to_do(actions) for actions in action_groups) and not newenv:
+        if unlink_link_transaction.nothing_to_do and not newenv:
             from .main_list import print_packages
 
             if not context.json:
                 spec_regex = r'^(%s)$' % re.escape('|'.join(s.split()[0] for s in ospecs))
                 print('\n# All requested packages already installed.')
-                for action in action_groups:
-                    print_packages(action["PREFIX"], spec_regex)
+                print_packages(prefix, spec_regex)
             else:
                 common.stdout_json_success(
                     message='All requested packages already installed.')
             return
 
-        for actions in action_groups:
-            print()
-            print("Package plan for installation in environment %s:" % actions["PREFIX"])
-            display_actions(actions, index, show_channel_urls=context.show_channel_urls)
-            # TODO: this is where the transactions should be instantiated
+        # TODO: display_actions()
+        # for actions in action_groups:
+        #     print()
+        #     print("Package plan for installation in environment %s:" % actions["PREFIX"])
+        #     display_actions(actions, index, show_channel_urls=context.show_channel_urls)
+        #     # TODO: this is where the transactions should be instantiated
         common.confirm_yn(args)
 
     elif args.dry_run:
-        common.stdout_json_success(actions=action_groups, dry_run=True)
+        common.stdout_json_success(unlink_link_transaction=unlink_link_transaction, prefix=prefix, dry_run=True)
         raise DryRunExit()
 
-    for actions in action_groups:
-        if newenv:
-            # needed in the case of creating an empty env
-            from ..instructions import LINK, UNLINK, SYMLINK_CONDA
-            if not actions[LINK] and not actions[UNLINK]:
-                actions[SYMLINK_CONDA] = [context.root_prefix]
 
-        if command in {'install', 'update'}:
-            check_write(command, prefix)
+    with common.json_progress_bars(json=context.json and not context.quiet):
+        try:
+            pfe = unlink_link_transaction.get_pfe()
+            pfe.execute()
+            unlink_link_transaction.execute()
+            # execute_actions(actions, index, verbose=not context.quiet)
 
-        # if not context.json:
-        #     common.confirm_yn(args)
-        # elif args.dry_run:
-        #     common.stdout_json_success(actions=actions, dry_run=True)
-        #     raise DryRunExit()
+        except RuntimeError as e:
+            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+                raise LockError('Already locked: %s' % text_type(e))
+            else:
+                raise CondaRuntimeError('RuntimeError: %s' % e)
+        except SystemExit as e:
+            raise CondaSystemExit('Exiting', e)
 
-        with common.json_progress_bars(json=context.json and not context.quiet):
-            try:
-                execute_actions(actions, index, verbose=not context.quiet)
+    if newenv:
+        append_env(prefix)
+        touch_nonadmin(prefix)
+        if not context.json:
+            print(print_activate(args.name if args.name else prefix))
 
-            except RuntimeError as e:
-                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                    raise LockError('Already locked: %s' % text_type(e))
-                else:
-                    raise CondaRuntimeError('RuntimeError: %s' % e)
-            except SystemExit as e:
-                raise CondaSystemExit('Exiting', e)
+    if context.json:
+        common.stdout_json_success(actions=actions)
 
-        if newenv:
-            append_env(prefix)
-            touch_nonadmin(prefix)
-            if not context.json:
-                print(print_activate(args.name if args.name else prefix))
 
-        if context.json:
-            common.stdout_json_success(actions=actions)
+
+
+    # for actions in action_groups:
+    #     # if newenv:
+    #     #     # needed in the case of creating an empty env
+    #     #     from ..instructions import LINK, UNLINK, SYMLINK_CONDA
+    #     #     if not actions[LINK] and not actions[UNLINK]:
+    #     #         actions[SYMLINK_CONDA] = [context.root_prefix]
+    #
+    #
+    #
+    #     # if not context.json:
+    #     #     common.confirm_yn(args)
+    #     # elif args.dry_run:
+    #     #     common.stdout_json_success(actions=actions, dry_run=True)
+    #     #     raise DryRunExit()
+    #
+    #     with common.json_progress_bars(json=context.json and not context.quiet):
+    #         try:
+    #             pfe = unlink_link_transaction.get_pfe()
+    #             pfe.execute()
+    #             unlink_link_transaction.execute()
+    #             # execute_actions(actions, index, verbose=not context.quiet)
+    #
+    #         except RuntimeError as e:
+    #             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
+    #                 raise LockError('Already locked: %s' % text_type(e))
+    #             else:
+    #                 raise CondaRuntimeError('RuntimeError: %s' % e)
+    #         except SystemExit as e:
+    #             raise CondaSystemExit('Exiting', e)
+    #
+    #     if newenv:
+    #         append_env(prefix)
+    #         touch_nonadmin(prefix)
+    #         if not context.json:
+    #             print(print_activate(args.name if args.name else prefix))
+    #
+    #     if context.json:
+    #         common.stdout_json_success(actions=actions)
 
 
 def check_write(command, prefix, json=False):
