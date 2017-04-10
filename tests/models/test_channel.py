@@ -5,7 +5,7 @@ from collections import OrderedDict
 import os
 from tempfile import gettempdir
 
-from conda.base.constants import APP_NAME
+from conda.base.constants import APP_NAME, DEFAULT_CHANNELS
 from conda.common.io import env_var
 
 from conda._vendor.auxlib.ish import dals
@@ -795,6 +795,22 @@ class UrlChannelTests(TestCase):
                 ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 2)),
                 ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
             ))
+
+    def test_subdirs(self):
+        subdirs = ('linux-highest', 'linux-64', 'noarch')
+
+        def _default_urls():
+            for channel in DEFAULT_CHANNELS:
+                for subdir in subdirs:
+                    yield join_url(channel, subdir)
+
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+            c = Channel('defaults')
+            assert c.urls() == list(_default_urls())
+
+            c = Channel('conda-forge')
+            assert c.urls() == [join_url("https://conda.anaconda.org/conda-forge", subdir)
+                                for subdir in subdirs]
 
 
 class UnknownChannelTests(TestCase):
