@@ -4,7 +4,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
-from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
+from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
+                              MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
@@ -385,7 +386,15 @@ class MultiChannel(Channel):
         return self.name
 
     def urls(self, with_credentials=False, subdirs=None):
-        return list(chain.from_iterable(c.urls(with_credentials, subdirs) for c in self._channels))
+        _channels = self._channels
+        if self.name == 'defaults':
+            platform = next((s for s in reversed(subdirs or context.subdirs) if s != 'noarch'), '')
+            if platform != context.subdir:
+                # necessary shenanigan because different platforms have different default channels
+                urls = DEFAULT_CHANNELS_WIN if 'win' in platform else DEFAULT_CHANNELS_UNIX
+                ca = context.channel_alias
+                _channels = tuple(Channel.make_simple_channel(ca, v) for v in urls)
+        return list(chain.from_iterable(c.urls(with_credentials, subdirs) for c in _channels))
 
     @property
     def base_url(self):
