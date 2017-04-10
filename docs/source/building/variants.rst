@@ -392,9 +392,9 @@ There are some special keys that behave differently and can be more nested:
   clobbered, by later variants. These are detailed below in the `Extended keys`_
   section.
 * ``runtimes``: detailed further in `Extra Jinja2 functions`_.
-* ``exclude_from_build_hash``: list of package names to exclude from
-  requirements/build when computing hash. Described further in `Avoiding
-  unnecessary builds`_.
+* ``ignore_version``: list of package names whose versions should be excluded
+  from meta.yaml's requirements/build when computing hash. Described further in
+  `Avoiding unnecessary builds`_.
 
 
 Coupling keys
@@ -518,7 +518,7 @@ Avoiding unnecessary builds
 
 
 To avoid building variants of packages where pinning does not necessitate having
-different builds, you can use the ``exclude_from_build_hash`` key in your
+different builds, you can use the ``ignore_version`` key in your
 variant. The way this works is that all variants are evaluated, but if any
 hashes are the same, then they are considered duplicates, and are deduplicated.
 By omitting some packages from the build dependencies, we can avoid creating
@@ -530,7 +530,7 @@ requirements, and a variant that includes two numpy versions:
 
 .. code-block:: python
 
-    variants = [{'numpy': ['1.10', '1.11']}]
+    variants = [{'numpy': ['1.10', '1.11'], 'ignore_version': ['numpy]}]
 
 meta.yaml:
 
@@ -546,18 +546,37 @@ meta.yaml:
 Here, the variant says that we'll have two builds - one for each numpy version.
 However, since this recipe does not pin numpy's run requirement (because it
 doesn't utilize numpy's C API), it is unnecessary to build it against both numpy
-1.10 and 1.11.  This example also assumes that numpy is not set in
-``pin_run_as_build``.
+1.10 and 1.11.
 
-Defaults for ``exclude_from_build_hash`` are ['numpy', 'mkl'].  These result in
-just one build.  The actual build performed is probably done with the last
-'numpy' list element in the variant, but that's more of an implementation detail
-that you should not depend on.  The order is considered unspecified behavior,
-because the output should be independent of the input versions.  If the output is
-not independent of input versions, don't use this key!
+The rendered form of this recipe, with conda-build ignoring numpy's value in the
+recipe, is going to be just one build, that looks like:
 
-Any pinning done in the run requirements will affect the hash, and thus builds will
-be done for each variant in the matrix.
+meta.yaml:
+
+.. code-block:: yaml
+
+   requirements:
+       build:
+           - numpy
+       run:
+           - numpy
+
+
+``ignore_version`` is an empty list by default. The actual build performed is
+probably done with the last 'numpy' list element in the variant, but that's more
+of an implementation detail that you should not depend on. The order is
+considered unspecified behavior, because the output should be independent of the
+input versions. If the output is not independent of input versions, don't use
+this key!
+
+Any pinning done in the run requirements will affect the hash, and thus builds
+will be done for each variant in the matrix. Any package that sometimes is used
+for its compiled interface and sometimes used for only its python interface may
+benefit from careful use of ``ignore_version`` in the latter case.
+
+Note: ``pin_run_as_build`` is kind of the opposite of ``ignore_version``. Where
+they conflict, ``pin_run_as_build`` takes priority.
+
 
 .. _CLI_vars:
 
@@ -719,7 +738,7 @@ wanted: a dog *and* pony show: ``{'some_trait': ['dog', 'pony'])}``
 
 Again, mostly an internal implementation detail - unless you find a use for it.
 Internally, it is used to aggregate the ``pin_run_as_build`` and
-``exclude_from_build_hash`` entries from any of your conda_build_config.yaml
+``ignore_version`` entries from any of your conda_build_config.yaml
 files.
 
 
@@ -795,7 +814,7 @@ meta.yaml:
            - boost
 
 
-The result here is that the runtime numpy dependency will be pinned to
+The result here is that the runtime boost dependency will be pinned to
 ``>=(current boost 1.63.x version),<1.64``
 
 Note that there are some packages that you should not use ``pin_run_as_build``
@@ -1101,15 +1120,14 @@ The compiler jinja2 function is written to support cross-compilers. This depends
 on setting at least two variant keys: ``(language)_compiler`` and
 ``target_platform``. The target platform is appended to the value of
 ``(language)_compiler`` with the ``_`` character. This leads to package names
-like ``g++_linux-64_linux-aarch64``. We recommend a convention for naming your
-compiler packages as: ``<compiler name>_<native_platform>_<target_platform>``
+like ``g++_linux-aarch64``. We recommend a convention for naming your
+compiler packages as: ``<compiler name>_<target_platform>``
 
 Using a cross-compiler in a recipe would look like the following:
 
 .. code-block:: python
 
-   variants = {'cxx_compiler': ['g++_linux-64'], 'target_platform': ['linux-64', 'linux-aarch64'],
-                'runtimes': {'g++_linux-64_linux-64': 'libstdc++'}
+   variants = {'cxx_compiler': ['g++'], 'target_platform': ['linux-cos5-x86_64', 'linux-aarch64']}
 
 and a meta.yaml file:
 
@@ -1125,7 +1143,7 @@ and a meta.yaml file:
 
 
 This assumes that you have created two compiler packages named
-``g++_linux-64_linux-64`` and ``g++_linux-64_linux-aarch64`` - all conda-build
+``g++_linux-cos5-x86_64`` and ``g++_linux-aarch64`` - all conda-build
 is providing you with is a way to loop over appropriately named cross-compiler
 toolchains.
 
