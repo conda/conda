@@ -5,7 +5,7 @@ from collections import OrderedDict
 import os
 from tempfile import gettempdir
 
-from conda.base.constants import APP_NAME, DEFAULT_CHANNELS
+from conda.base.constants import APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNELS_UNIX
 from conda.common.io import env_var
 
 from conda._vendor.auxlib.ish import dals
@@ -800,7 +800,7 @@ class UrlChannelTests(TestCase):
         subdirs = ('linux-highest', 'linux-64', 'noarch')
 
         def _channel_urls(channels=None):
-            for channel in channels or DEFAULT_CHANNELS:
+            for channel in channels or DEFAULT_CHANNELS_UNIX:
                 channel = Channel(channel)
                 for subdir in subdirs:
                     yield join_url(channel.base_url, subdir)
