@@ -38,7 +38,7 @@ _conda_activate_old() {
 _conda_activate() {
     while read -r line; do
         eval "$line"
-    done < <(python -m conda.activate activate "$@")
+    done < <(python -m conda.activate activate posix "$@")
     if [ ${PS1:0:23} != '$CONDA_PROMPT_MODIFIER' ]; then
         PS1='$CONDA_PROMPT_MODIFIER'"$PS1"
     fi
@@ -47,7 +47,7 @@ _conda_activate() {
 _conda_deactivate() {
     while read -r line; do
         eval "$line"
-    done < <(python -m conda.activate deactivate "$@")
+    done < <(python -m conda.activate posix deactivate "$@")
     if [ -z "$CONDA_PREFIX" ]; then
         PS1=${PS1:23}
     fi
