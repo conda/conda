@@ -1,5 +1,7 @@
 # This file should be sourced by bash or zsh.  It should not itself be executed.
 
+# This file is WIP
+# For now, to test, try something like `source shell/conda.sh && conda activate /my/env`
 
 _conda_hashr() {
     [[ -z $BASH_VERSION ]] || hash -r
@@ -7,56 +9,36 @@ _conda_hashr() {
 }
 
 
-_conda_env_exists() {
-    _env_location="$(conda-env-helper find_env_location $1)"
-    test -n "$_env_location"
-}
-
-
-_conda_currently_in_env() {
-    test -n "$CONDA_DEFAULT_ENV"
-}
-
-
-_conda_activate_old() {
-    if _conda_currently_in_env; then
-        _conda_deactivate
-    fi
-    if _conda_env_exists "$1"; then
-        echo "found $_env_location"
-        echo "activating"
-        source activate "$_env_location"
-    else
-        echo "creating"
-        # create
-    fi
-    _conda_hashr
-}
-
-
-
 _conda_activate() {
     while read -r line; do
         eval "$line"
     done < <(python -m conda.activate activate posix "$@")
-    if [ ${PS1:0:23} != '$CONDA_PROMPT_MODIFIER' ]; then
+
+    if [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
         PS1='$CONDA_PROMPT_MODIFIER'"$PS1"
     fi
+
+    _conda_hashr
 }
 
 _conda_deactivate() {
     while read -r line; do
         eval "$line"
-    done < <(python -m conda.activate posix deactivate "$@")
+    done < <(python -m conda.activate deactivate posix "$@")
+
     if [ -z "$CONDA_PREFIX" ]; then
-        PS1=${PS1:23}
+        PS1=${PS1:22}
     fi
+
+    _conda_hashr
 }
 
+_conda_reactivate() {
+    while read -r line; do
+        eval "$line"
+    done < <(python -m conda.activate reactivate posix "$@")
 
-_conda_deactivate_old() {
-    echo "deactivating $CONDA_DEFAULT_ENV"
-    source deactivate
+    _conda_hashr
 }
 
 
@@ -69,9 +51,14 @@ conda() {
         deactivate)
             _conda_deactivate
             ;;
+        install | update | uninstall | remove)
+            CONDA="$(which conda)"
+            "$CONDA" "$cmd" "$@"
+            _conda_reactivate
+            ;;
         *)
             CONDA="$(which conda)"
-            $CONDA "$cmd" "$@"
+            "$CONDA" "$cmd" "$@"
             ;;
     esac
 }
