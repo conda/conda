@@ -5,7 +5,7 @@ from collections import OrderedDict
 import os
 from tempfile import gettempdir
 
-from conda.base.constants import APP_NAME
+from conda.base.constants import APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNELS_UNIX
 from conda.common.io import env_var
 
 from conda._vendor.auxlib.ish import dals
@@ -789,11 +789,46 @@ class UrlChannelTests(TestCase):
             prioritized = prioritize_channels(new_context.channels)
             assert prioritized == OrderedDict((
                 ("file://network_share/shared_folder/path/conda/%s" % context.subdir, ("file://network_share/shared_folder/path/conda", 0)),
-                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 0)),
-                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 1)),
-                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 1)),
-                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 2)),
-                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
+                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 1)),
+                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 2)),
+                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 3)),
+                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 4)),
+                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 5)),
+            ))
+
+    def test_subdirs(self):
+        subdirs = ('linux-highest', 'linux-64', 'noarch')
+
+        def _channel_urls(channels=None):
+            for channel in channels or DEFAULT_CHANNELS_UNIX:
+                channel = Channel(channel)
+                for subdir in subdirs:
+                    yield join_url(channel.base_url, subdir)
+
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+            c = Channel('defaults')
+            assert c.urls() == list(_channel_urls())
+
+            c = Channel('conda-forge')
+            assert c.urls() == list(_channel_urls(('conda-forge',)))
+
+            channels = ('bioconda', 'conda-forge')
+            prioritized = prioritize_channels(channels)
+            assert prioritized == OrderedDict((
+                ("https://conda.anaconda.org/bioconda/linux-highest", ("bioconda", 0)),
+                ("https://conda.anaconda.org/bioconda/linux-64", ("bioconda", 1)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 2)),
+                ("https://conda.anaconda.org/conda-forge/linux-highest", ("conda-forge", 3)),
+                ("https://conda.anaconda.org/conda-forge/linux-64", ("conda-forge", 4)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 5)),
+            ))
+
+            prioritized = prioritize_channels(channels, subdirs=('linux-again', 'noarch'))
+            assert prioritized == OrderedDict((
+                ("https://conda.anaconda.org/bioconda/linux-again", ("bioconda", 0)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 1)),
+                ("https://conda.anaconda.org/conda-forge/linux-again", ("conda-forge", 2)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 3)),
             ))
 
 
