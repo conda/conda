@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from glob import glob
 import os
-from os.path import basename, dirname, isdir, join
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
 import sys
 
@@ -21,16 +21,15 @@ else:
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
-# Need to answer 3 questions.
-#  1. what is the new state of all environment variables?
-#  2. what scripts do I need to run?
-#  3. what prompt should I prepend?
 
-# Strategy is to use the Activator class, where all core logic is is build_activate()
-# or build_deactivate().  Each returns a map containing the keys: set_vars, unset_var,
-# activate_scripts, deactivate_scripts.
+def expand(path):
+    return abspath(expanduser(expandvars(path)))
+
 
 class Activator(object):
+    # Strategy is to use the Activator class, where all core logic is is build_activate()
+    # or build_deactivate().  Each returns a map containing the keys: set_vars, unset_var,
+    # activate_scripts, deactivate_scripts.
 
     def __init__(self, shell):
         from .base.context import context
@@ -43,7 +42,7 @@ class Activator(object):
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
-            self.run_script_tmpl = 'source %s'
+            self.run_script_tmpl = 'source "%s"'
 
         else:
             raise NotImplementedError()
@@ -59,16 +58,17 @@ class Activator(object):
             return 'root'
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
+    def _prompt_modifier(self, conda_default_env):
+        return "(%s) " % conda_default_env if self.context.changeps1 else ""
+
     def build_activate(self, name_or_prefix):
-        from ._vendor.auxlib.path import expand
         from .base.context import locate_prefix_by_name
-        if isdir(expand(name_or_prefix)):
-            prefix = name_or_prefix
-        elif re.search(r'\\|/', name_or_prefix):
+        if isdir(expand(name_or_prefix)) or re.search(r'\\|/', name_or_prefix):
             prefix = name_or_prefix
         else:
             prefix = locate_prefix_by_name(self.context, name_or_prefix)
         conda_default_env = self._default_env(prefix)
+        conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
         old_conda_prefix = os.getenv('CONDA_PREFIX')
@@ -85,7 +85,7 @@ class Activator(object):
                 'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
                 'CONDA_DEFAULT_ENV': conda_default_env,
-                'CONDA_PROMPT_MODIFIER': "(%s) " % conda_default_env if self.context.changeps1 else "",
+                'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 1:
@@ -95,7 +95,7 @@ class Activator(object):
                 'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
                 'CONDA_DEFAULT_ENV': conda_default_env,
-                'CONDA_PROMPT_MODIFIER': "(%s) " % conda_default_env if self.context.changeps1 else "",
+                'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 2:
@@ -104,7 +104,7 @@ class Activator(object):
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_DEFAULT_ENV': conda_default_env,
-                'CONDA_PROMPT_MODIFIER': "(%s) " % conda_default_env if self.context.changeps1 else "",
+                'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
             deactivate_scripts = glob(join(
                 old_conda_prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
@@ -130,7 +130,6 @@ class Activator(object):
         if old_conda_shlvl == 1:
             # TODO: warn conda floor
             unset_vars = (
-                'CONDA_SHLVL',
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
                 'CONDA_PYTHON_PATH',
@@ -138,10 +137,13 @@ class Activator(object):
             )
             set_vars = {
                 'PATH': new_path,
+                'CONDA_SHLVL': new_conda_shlvl,
             }
         elif old_conda_shlvl == 2:
             new_prefix = os.getenv('CONDA_PREFIX_%d' % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
+            conda_prompt_modifier = self._prompt_modifier(conda_default_env)
+
             unset_vars = (
                 'CONDA_PREFIX_%d' % new_conda_shlvl,
             )
@@ -150,7 +152,7 @@ class Activator(object):
                 'CONDA_SHLVL': new_conda_shlvl,
                 'CONDA_PREFIX': new_prefix,
                 'CONDA_DEFAULT_ENV': conda_default_env,
-                'CONDA_PROMPT_MODIFIER': "(%s) " % conda_default_env if self.context.changeps1 else "",
+                'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
         else:
             raise NotImplementedError()

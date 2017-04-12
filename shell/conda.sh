@@ -24,7 +24,6 @@ _conda_deactivate() {
     eval "$(python -m conda.activate deactivate posix "$@")"
 
     if [ -z "$CONDA_PREFIX" ]; then
-        # PS1=${PS1:22}
         PS1=$(echo "$PS1" | awk '{ string=substr($0, 23); print string; }')
     fi
 
@@ -47,7 +46,7 @@ conda() {
         deactivate)
             _conda_deactivate "$@"
             ;;
-        install | update | uninstall | remove)
+        install|update|uninstall|remove)
             CONDA="$(which conda)"
             "$CONDA" "$cmd" "$@"
             _conda_reactivate
@@ -58,3 +57,7 @@ conda() {
             ;;
     esac
 }
+
+if [ -z "$CONDA_SHLVL" ]; then
+    export CONDA_SHLVL=0
+fi
