@@ -53,13 +53,8 @@ class Activator(object):
     def deactivate(self):
         return '\n'.join(self._make_commands(self.build_deactivate()))
 
-    def _default_env(self, prefix):
-        if prefix == self.context.root_prefix:
-            return 'root'
-        return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
-
-    def _prompt_modifier(self, conda_default_env):
-        return "(%s) " % conda_default_env if self.context.changeps1 else ""
+    def reactivate(self):
+        return '\n'.join(self._make_commands(self.build_reactivate()))
 
     def build_activate(self, name_or_prefix):
         from .base.context import locate_prefix_by_name
@@ -202,6 +197,14 @@ class Activator(object):
         _new_prefix_paths = re.escape(self.pathsep.join(self._get_path_dirs(new_prefix)))
         return re.sub(_old_prefix_paths, _new_prefix_paths, current_path, 1)
 
+    def _default_env(self, prefix):
+        if prefix == self.context.root_prefix:
+            return 'root'
+        return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
+
+    def _prompt_modifier(self, conda_default_env):
+        return "(%s) " % conda_default_env if self.context.changeps1 else ""
+
     def _make_commands(self, cmds_dict):
         for key in cmds_dict.get('unset_vars', ()):
             yield self.unset_var_tmpl % key
@@ -216,16 +219,21 @@ class Activator(object):
             yield self.run_script_tmpl % script
 
 
-if __name__ == '__main__':
+def main():
     command = sys.argv[1]
     shell = sys.argv[2]
     activator = Activator(shell)
-    if command == 'activate':
+    if command == 'shell.activate':
         name_or_prefix = sys.argv[3]
         print(activator.activate(name_or_prefix))
-    elif command == 'deactivate':
+    elif command == 'shell.deactivate':
         print(activator.deactivate())
-    elif command == 'reactivate':
+    elif command == 'shell.reactivate':
         print(activator.reactivate())
     else:
         raise NotImplementedError()
+    return 0
+
+
+if __name__ == '__main__':
+    main()

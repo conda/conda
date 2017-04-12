@@ -11,6 +11,7 @@ else
     echo "Only bash and zsh are supported"
     return 1
 fi
+_SCRIPT_DIR="$(dirname $_SCRIPT_LOCATION)"
 
 if [ $# -gt 1 ]; then
     (>&2 echo "Error: did not expect more than one argument.")
@@ -36,6 +37,6 @@ fi
 
 
 if [ -z "$CONDA_SHLVL" ]; then
-    source "$_SCRIPT_LOCATION/../etc/profile.d/conda.sh"
+    source "$_SCRIPT_DIR/../etc/profile.d/conda.sh"
 fi
 _conda_activate "$@"

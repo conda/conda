@@ -1,8 +1,14 @@
-#!/bin/dash
-# This file should be sourced by bash or zsh.  It should not itself be executed.
+if [[ -n $BASH_VERSION ]]; then
+    _SCRIPT_LOCATION=${BASH_SOURCE[0]}
+elif [[ -n $ZSH_VERSION ]]; then
+    _SCRIPT_LOCATION=${funcstack[1]}
+else
+    echo "Only bash and zsh are supported"
+    return 1
+fi
+_SCRIPT_DIR="$(dirname $_SCRIPT_LOCATION)"
+_CONDA_EXE="$_SCRIPT_DIR/../../bin/conda"
 
-# This file is WIP
-# For now, to test, try something like `source shell/conda.sh && conda activate /my/env`
 
 _conda_hashr() {
     [ -z "$BASH_VERSION" ] || hash -r
@@ -11,7 +17,7 @@ _conda_hashr() {
 
 
 _conda_activate() {
-    eval "$(python -m conda.activate activate posix "$@")"
+    eval "$($_CONDA_EXE shell.activate posix "$@")"
 
     if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
         PS1='$CONDA_PROMPT_MODIFIER'"$PS1"
@@ -21,7 +27,7 @@ _conda_activate() {
 }
 
 _conda_deactivate() {
-    eval "$(python -m conda.activate deactivate posix "$@")"
+    eval "$($_CONDA_EXE shell.deactivate posix "$@")"
 
     if [ -z "$CONDA_PREFIX" ]; then
         PS1=$(echo "$PS1" | awk '{ string=substr($0, 23); print string; }')
@@ -31,7 +37,7 @@ _conda_deactivate() {
 }
 
 _conda_reactivate() {
-    eval "$(python -m conda.activate reactivate posix)"
+    eval "$($_CONDA_EXE shell.reactivate posix)"
 
     _conda_hashr
 }
@@ -47,13 +53,11 @@ conda() {
             _conda_deactivate "$@"
             ;;
         install|update|uninstall|remove)
-            CONDA="$(which conda)"
-            "$CONDA" "$cmd" "$@"
+            "$_CONDA_EXE" "$cmd" "$@"
             _conda_reactivate
             ;;
         *)
-            CONDA="$(which conda)"
-            "$CONDA" "$cmd" "$@"
+            "$_CONDA_EXE" "$cmd" "$@"
             ;;
     esac
 }
