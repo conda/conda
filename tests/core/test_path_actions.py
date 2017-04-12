@@ -193,7 +193,7 @@ class PathActionsTests(TestCase):
         if not on_win:
             python_full_path = join(self.prefix, get_python_short_path(target_python_version))
             assert first_line == "#!%s" % python_full_path
-        assert last_line == "exit(%s())" % func
+        assert last_line == "sys.exit(%s())" % func
 
         py_ep_axn.reverse()
         assert not isfile(py_ep_axn.target_full_path)
