@@ -23,10 +23,12 @@ install_miniconda() {
 remove_conda() {
     local prefix=${1:-$INSTALL_PREFIX}
     local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
-    rm -rf $prefix/bin/activate \
+    rm -rf \
+       $prefix/bin/activate \
        $prefix/bin/conda \
        $prefix/bin/conda-env \
        $prefix/bin/deactivate \
+       $prefix/etc/profile.d/conda.sh \
        $prefix/conda-meta/conda-*.json \
        $prefix/conda-meta/requests-*.json \
        $prefix/conda-meta/pyopenssl-*.json \
@@ -67,6 +69,10 @@ install_conda_dev() {
 
     $prefix/bin/pip install -r utils/requirements-test.txt
     $prefix/bin/python utils/setup-testing.py develop
+
+    mkdir -p $prefix/etc/profile.d
+    ln -s $PWD/shell/conda.sh $prefix/etc/profile.d/
+
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
 
