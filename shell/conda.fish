@@ -43,6 +43,7 @@ if [ (echo (fish -v ^&1) | sed 's/^.*version \([0-9]\)\..*$/\1/') -lt 2 ]
     exit 1
 end
 
+set -gx CONDA_BACKUP_PATH $PATH
 
 function __conda_delete_function
     functions -e $argv
@@ -259,3 +260,7 @@ complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_
 complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)'
 complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)'
 complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)'
+
+if not set -q CONDA_LEFT_PROMPT
+    __conda_update_prompt activate
+end
