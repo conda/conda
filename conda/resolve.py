@@ -338,7 +338,7 @@ class Resolve(object):
                 res = self.trackers.get(ms.name[1:], [])
             else:
                 res = self.groups.get(ms.name, [])
-            res = [p for p in res if self.match(ms, p)]
+                res = [p for p in res if self.match(ms, p)]
             assert all(isinstance(d, Dist) for d in res)
             self.find_matches_[ms] = res
         return res
@@ -637,7 +637,7 @@ class Resolve(object):
                 spec = MatchSpec(name=name, target=pkg.full_name)
             else:
                 spec = MatchSpec(name=name, version=version,
-                                 build=build, channel=schannel)
+                                 build=build, schannel=schannel)
             specs.append(spec)
         return specs, preserve
 
