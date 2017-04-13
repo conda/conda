@@ -38,10 +38,14 @@ mkdir_p = mkdir_p  # in __init__.py to help with circular imports
 
 python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-
+import re
+import sys
+
+from %(module)s import %(import_name)s
+
 if __name__ == '__main__':
-    from sys import exit
-    from %(module)s import %(func)s
-    exit(%(func)s())
+    sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
+    sys.exit(%(func)s())
 """)
 
 application_entry_point_template = dals("""
@@ -64,7 +68,7 @@ def write_as_json_to_file(file_path, obj):
         fo.write(ensure_binary(json_str))
 
 
-def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
+def create_python_entry_point(target_full_path, python_full_path, module, func):
     if lexists(target_full_path):
         maybe_raise(BasicClobberError(
             source_path=None,
@@ -72,32 +76,30 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
             context=context,
         ), context)
 
-    pyscript = python_entry_point_template % {'module': module, 'func': func}
-    with open(target_full_path, str('w')) as fo:
+    import_name = func.split('.')[0]
+    pyscript = python_entry_point_template % {
+        'module': module,
+        'func': func,
+        'import_name': import_name,
+    }
+
+    if python_full_path is not None:
         shebang = '#!%s\n' % python_full_path
         if hasattr(shebang, 'encode'):
             shebang = shebang.encode()
         shebang = replace_long_shebang(FileMode.text, shebang)
         if hasattr(shebang, 'decode'):
             shebang = shebang.decode()
-        fo.write(shebang)
-        fo.write(pyscript)
-    make_executable(target_full_path)
+    else:
+        shebang = None
 
-    return target_full_path
-
-
-def create_windows_python_entry_point(target_full_path, module, func):
-    if lexists(target_full_path):
-        maybe_raise(BasicClobberError(
-            source_path=None,
-            target_path=target_full_path,
-            context=context,
-        ), context)
-
-    pyscript = python_entry_point_template % {'module': module, 'func': func}
     with open(target_full_path, str('w')) as fo:
+        if shebang is not None:
+            fo.write(shebang)
         fo.write(pyscript)
+
+    if shebang is not None:
+        make_executable(target_full_path)
 
     return target_full_path
 
@@ -258,9 +260,11 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             link(src, dst)
         except (IOError, OSError) as e:
             log.debug("%r", e)
-            log.debug("hard link failed\n  src: %s\n  dst: %s\nfalling back to copy", src, dst)
+            log.debug("hard-link failed. falling back to copy\n"
+                      "  error: %r\n"
+                      "  src: %s\n"
+                      "  dst: %s", e, src, dst)
             copy(src, dst)
-
     elif link_type == LinkType.softlink:
         _do_softlink(src, dst)
     elif link_type == LinkType.copy:
