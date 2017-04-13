@@ -181,9 +181,9 @@ def execute(args, parser):
     try:
         import requests
         requests_version = requests.__version__
-    except ImportError:
+    except ImportError:  # pragma: no cover
         requests_version = "could not import"
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         requests_version = "Error %s" % e
 
     try:

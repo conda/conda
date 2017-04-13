@@ -39,7 +39,7 @@ from ..models.enums import LinkType
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)

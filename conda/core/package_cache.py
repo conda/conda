@@ -26,7 +26,7 @@ from ..models.dist import Dist
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, remove
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby, remove  # NOQA
 
 

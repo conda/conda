@@ -39,12 +39,12 @@ from ..models.index_record import IndexRecord, Priority
 
 try:
     from cytoolz.itertoolz import take
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import take
 
 try:
     import cPickle as pickle
-except ImportError:
+except ImportError:  # pragma: no cover
     import pickle
 
 __all__ = ('collect_all_repodata',)

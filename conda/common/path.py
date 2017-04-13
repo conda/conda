@@ -14,14 +14,14 @@ try:
     # Python 3
     from urllib.parse import unquote, urlsplit
     from urllib.request import url2pathname
-except ImportError:
+except ImportError:  # pragma: no cover
     # Python 2
     from urllib import unquote, url2pathname  # NOQA
     from urlparse import urlsplit  # NOQA
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import accumulate, concat, take
 
 

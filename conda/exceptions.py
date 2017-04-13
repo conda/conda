@@ -17,7 +17,7 @@ from .common.url import maybe_unquote
 
 try:
     from cytoolz.itertoolz import groupby
-except ImportError:
+except ImportError:  # pragma: no cover
     from ._vendor.toolz.itertoolz import groupby  # NOQA
 
 log = logging.getLogger(__name__)

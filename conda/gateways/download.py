@@ -43,7 +43,7 @@ class SingleThreadCondaSession(CondaSession):
 def disable_ssl_verify_warning():
     try:
         from requests.packages.urllib3.connectionpool import InsecureRequestWarning
-    except ImportError:
+    except ImportError:  # pragma: no cover
         pass
     else:
         warnings.simplefilter('ignore', InsecureRequestWarning)

@@ -42,7 +42,7 @@ from .version import normalized_version
 
 try:
     from cytoolz.itertoolz import concatv, groupby
-except ImportError:
+except ImportError:  # pragma: no cover
     from ._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 log = getLogger(__name__)

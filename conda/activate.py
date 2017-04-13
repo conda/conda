@@ -9,7 +9,7 @@ import sys
 
 try:
     from cytoolz.itertoolz import concatv
-except ImportError:
+except ImportError:  # pragma: no cover
     from ._vendor.toolz.itertoolz import concatv  # NOQA
 
 on_win = bool(sys.platform == "win32")
@@ -17,7 +17,7 @@ PY2 = sys.version_info[0] == 2
 if PY2:  # pragma: py3 no cover
     def iteritems(d, **kw):
         return d.iteritems(**kw)
-else:
+else:  # pragma: py2 no cover
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
