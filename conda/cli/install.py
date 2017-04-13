@@ -330,6 +330,9 @@ def install(args, parser, command='install'):
         #     print("Package plan for installation in environment %s:" % actions["PREFIX"])
         #     display_actions(actions, index, show_channel_urls=context.show_channel_urls)
         #     # TODO: this is where the transactions should be instantiated
+        pfe = unlink_link_transaction.get_pfe()
+        pfe.prepare()
+        unlink_link_transaction.display_actions(pfe)
         common.confirm_yn(args)
 
     elif args.dry_run:
@@ -339,7 +342,6 @@ def install(args, parser, command='install'):
 
     with common.json_progress_bars(json=context.json and not context.quiet):
         try:
-            pfe = unlink_link_transaction.get_pfe()
             pfe.execute()
             unlink_link_transaction.execute()
             # execute_actions(actions, index, verbose=not context.quiet)

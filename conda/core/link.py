@@ -551,6 +551,24 @@ class UnlinkLinkTransaction(object):
             register_private_env_actions,
         ))
 
+    def display_actions(self, pfe):
+        from ..plan import display_actions
+
+        for q, (prefix, setup) in enumerate(iteritems(self.prefix_setups)):
+            actions = defaultdict(list)
+            if q == 0:
+                pfe.prepare()
+                for axn in pfe.cache_actions:
+                    actions['FETCH'].append(Dist(axn.url))
+
+            actions['PREFIX'] = setup.target_prefix
+            for dist in setup.unlink_dists:
+                actions['UNLINK'].append(dist)
+            for dist in setup.link_dists:
+                actions['LINK'].append(dist)
+
+            display_actions(actions, setup.index, show_channel_urls=context.show_channel_urls)
+
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
     """

@@ -61,6 +61,10 @@ def print_dists(dists_extras):
 
 
 def display_actions(actions, index, show_channel_urls=None):
+    prefix = actions.get("PREFIX")
+    if prefix:
+        print("Package plan for environment '%s':" % prefix)
+
     if show_channel_urls is None:
         show_channel_urls = context.show_channel_urls
 
