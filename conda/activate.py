@@ -41,7 +41,11 @@ class Activator(object):
 
         if shell == 'posix':
             self.pathsep = ':'
-            self.path_convert = identity
+            if on_win:
+                from .utils import win_path_to_unix
+                self.path_convert = win_path_to_unix
+            else:
+                self.path_convert = identity
             self.script_extension = '.sh'
 
             self.unset_var_tmpl = 'unset %s'
