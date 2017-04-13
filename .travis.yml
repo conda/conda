@@ -42,7 +42,7 @@ matrix:
       sudo: false
       language: generic
       os: osx
-    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.10
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.x
       sudo: false
       language: generic
       os: linux
