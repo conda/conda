@@ -64,14 +64,14 @@ class ActivatorUnitTests(TestCase):
             assert instructions['set_vars']['CONDA_PROMPT_MODIFIER'] == ''
 
     def test_add_prefix_to_path(self):
-        activator = Activator('posix')
-        old_path = os.environ['PATH']
-        test_prefix = join(os.getcwd(), 'mytestpath')
-        new_path = activator._add_prefix_to_path(old_path, test_prefix)
-        if not on_win:
-            assert new_path == "%s%s%s" % (join(test_prefix, 'bin'), activator.pathsep, old_path)
-        else:
-            assert False
+        path = '/path1/bin:/path2/bin:/usr/local/bin:/usr/bin:/bin'
+        test_prefix = '/usr/mytest/prefix'
+        with env_var('PATH', path):
+            activator = Activator('posix')
+            old_path = os.environ['PATH']
+            new_path = activator._add_prefix_to_path(old_path, test_prefix)
+            assert new_path == (activator.pathsep.join(activator._get_path_dirs(test_prefix))
+                                + activator.pathsep + path)
 
     def test_remove_prefix_from_path(self):
         activator = Activator('posix')
@@ -83,17 +83,19 @@ class ActivatorUnitTests(TestCase):
         assert new_path_expected == new_path
 
     def test_replace_prefix_in_path(self):
-        activator = Activator('posix')
-        test_prefix_1 = join(os.getcwd(), 'mytestpath1')
-        test_prefix_2 = join(os.getcwd(), 'mytestpath2')
-        old_path = activator._add_prefix_to_path(os.environ['PATH'], test_prefix_1)
-        old_path = activator.pathsep.join(('/keep/this/path', old_path))
+        path = '/path1/bin:/path2/bin:/usr/local/bin:/usr/bin:/bin'
+        with env_var('PATH', path):
+            activator = Activator('posix')
+            test_prefix_1 = join(os.getcwd(), 'mytestpath1')
+            test_prefix_2 = join(os.getcwd(), 'mytestpath2')
+            old_path = activator._add_prefix_to_path(os.environ['PATH'], test_prefix_1)
+            old_path = activator.pathsep.join(('/keep/this/path', old_path))
 
-        expected_new_path = activator._add_prefix_to_path(os.environ['PATH'], test_prefix_2)
-        expected_new_path = activator.pathsep.join(('/keep/this/path', expected_new_path))
+            expected_new_path = activator._add_prefix_to_path(os.environ['PATH'], test_prefix_2)
+            expected_new_path = activator.pathsep.join(('/keep/this/path', expected_new_path))
 
-        new_path = activator._replace_prefix_in_path(old_path, test_prefix_1, test_prefix_2)
-        assert expected_new_path == new_path
+            new_path = activator._replace_prefix_in_path(old_path, test_prefix_1, test_prefix_2)
+            assert expected_new_path == new_path
 
     def test_default_env(self):
         activator = Activator('posix')
