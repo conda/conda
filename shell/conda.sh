@@ -5,11 +5,11 @@ if [ "$_" = "$0" ]; then
 fi
 
 if [ -n "$BASH_VERSION" ]; then
-    _SCRIPT_DIR="$(dirname ${BASH_SOURCE[0]})"
+    _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 elif [ -n "$ZSH_VERSION" ]; then
-    _SCRIPT_DIR="$(dirname ${funcstack[1]})"
+    _SCRIPT_DIR="$(dirname "${funcstack[1]}")"
 elif [ -n "$KSH_VERSION" ]; then
-    _SCRIPT_DIR="$(cd $(dirname $_) && echo $PWD)"
+    _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")"
 else
     echo "Only bash and zsh are supported"
     return 1
@@ -24,10 +24,12 @@ _conda_hashr() {
 
 
 _conda_activate() {
-    local ask_conda="$($_CONDA_EXE shell.activate posix "$@")"
+    local ask_conda
+    ask_conda="$($_CONDA_EXE shell.activate posix "$@")"
     if not $?; then
         return $?
     fi
+    eval "$ask_conda"
 
     if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
         PS1='$CONDA_PROMPT_MODIFIER'"$PS1"
