@@ -1,12 +1,19 @@
-if [[ -n $BASH_VERSION ]]; then
-    _SCRIPT_LOCATION=${BASH_SOURCE[0]}
-elif [[ -n $ZSH_VERSION ]]; then
-    _SCRIPT_LOCATION=${funcstack[1]}
+# Ensure that this script is sourced, not executed
+if [ "$_" = "$0" ]; then
+    (>&2 echo "This script must be sourced, not executed.")
+    exit 1
+fi
+
+if [ -n "$BASH_VERSION" ]; then
+    _SCRIPT_DIR="$(dirname ${BASH_SOURCE[0]})"
+elif [ -n "$ZSH_VERSION" ]; then
+    _SCRIPT_DIR="$(dirname ${funcstack[1]})"
+elif [ -n "$KSH_VERSION" ]; then
+    _SCRIPT_DIR="$(cd $(dirname $_) && echo $PWD)"
 else
     echo "Only bash and zsh are supported"
     return 1
 fi
-_SCRIPT_DIR="$(dirname $_SCRIPT_LOCATION)"
 _CONDA_EXE="$_SCRIPT_DIR/../../bin/conda"
 
 
@@ -17,7 +24,10 @@ _conda_hashr() {
 
 
 _conda_activate() {
-    eval "$($_CONDA_EXE shell.activate posix "$@")"
+    local ask_conda="$($_CONDA_EXE shell.activate posix "$@")"
+    if not $?; then
+        return $?
+    fi
 
     if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
         PS1='$CONDA_PROMPT_MODIFIER'"$PS1"

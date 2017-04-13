@@ -22,7 +22,7 @@ from ..common.configuration import (Configuration, LoadError, MapParameter, Prim
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
+from ..exceptions import CondaValueError, EnvironmentNameNotFound
 
 try:
     from cytoolz.itertoolz import concat, concatv, unique
@@ -740,7 +740,7 @@ def locate_prefix_by_name(ctx, name):
         if isdir(prefix):
             return prefix
 
-    raise CondaEnvironmentNotFoundError(name)
+    raise EnvironmentNameNotFound(name)
 
 
 try:

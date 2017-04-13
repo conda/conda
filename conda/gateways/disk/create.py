@@ -160,6 +160,7 @@ def mkdir_p(path):
         log.trace('making directory %s', path)
         if path:
             makedirs(path)
+            return isdir(path) and path
     except OSError as e:
         if e.errno == EEXIST and isdir(path):
             return path

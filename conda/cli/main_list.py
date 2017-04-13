@@ -18,7 +18,7 @@ from ..base.context import context
 from ..common.compat import text_type
 from ..core.linked_data import is_linked, linked, linked_data
 from ..egg_info import get_egg_info
-from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
+from ..exceptions import CondaFileNotFoundError, EnvironmentLocationNotFound
 
 descr = "List linked packages in a conda environment."
 
@@ -154,7 +154,7 @@ def list_packages(prefix, installed, regex=None, format='human',
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=context.show_channel_urls):
     if not isdir(prefix):
-        raise CondaEnvironmentNotFoundError(prefix)
+        raise EnvironmentLocationNotFound(prefix)
 
     if not json:
         if format == 'human':
@@ -181,7 +181,7 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
 
 def print_explicit(prefix, add_md5=False):
     if not isdir(prefix):
-        raise CondaEnvironmentNotFoundError(prefix)
+        raise EnvironmentLocationNotFound(prefix)
     print_export_header()
     print("@EXPLICIT")
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):

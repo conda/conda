@@ -216,12 +216,12 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, list)
 
         stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --json')
-        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
+        assert json.loads(stdout.strip())['exception_name'] == 'EnvironmentNameNotFound'
         assert stderr == ''
         assert rc > 0
 
         stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --revisions --json')
-        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
+        assert json.loads(stdout.strip())['exception_name'] == 'EnvironmentNameNotFound'
         assert stderr == ''
         assert rc > 0
 
