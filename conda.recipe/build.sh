@@ -11,3 +11,8 @@ cp $SRC_DIR/shell/conda.fish $PREFIX/etc/fish/conf.d/
 
 mkdir -p $PREFIX/etc/profile.d
 cp $SRC_DIR/shell/conda.sh $PREFIX/etc/profile.d/
+
+mkdir -p $PREFIX/etc/conda/activate.d
+pushd $PREFIX/etc/profile.d/
+ln -s conda.sh ../conda/activate.d/conda.sh
+popd

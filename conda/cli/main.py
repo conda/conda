@@ -158,6 +158,8 @@ def main(*args):
                 raise CommandNotFoundError(argv1)
         except Exception as e:
             from ..exceptions import handle_exception
+            from ..gateways import initialize_logging
+            initialize_logging()
             return handle_exception(e)
 
     from ..exceptions import conda_exception_handler

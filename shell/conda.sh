@@ -25,10 +25,7 @@ _conda_hashr() {
 
 _conda_activate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.activate posix "$@")"
-    if not $?; then
-        return $?
-    fi
+    ask_conda="$($_CONDA_EXE shell.activate posix "$@")" || return $?
     eval "$ask_conda"
 
     if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
@@ -39,7 +36,9 @@ _conda_activate() {
 }
 
 _conda_deactivate() {
-    eval "$($_CONDA_EXE shell.deactivate posix "$@")"
+    local ask_conda
+    ask_conda="$($_CONDA_EXE shell.deactivate posix "$@")" || return $?
+    eval "$ask_conda"
 
     if [ -z "$CONDA_PREFIX" ]; then
         PS1=$(echo "$PS1" | awk '{ string=substr($0, 23); print string; }')
@@ -49,7 +48,9 @@ _conda_deactivate() {
 }
 
 _conda_reactivate() {
-    eval "$($_CONDA_EXE shell.reactivate posix)"
+    local ask_conda
+    ask_conda="$($_CONDA_EXE shell.reactivate posix "$@")" || return $?
+    eval "$ask_conda"
 
     _conda_hashr
 }

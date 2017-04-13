@@ -24,7 +24,8 @@ instead of 'deactivate'.
     exit 1
 fi
 
-if [ -z "$CONDA_SHLVL" ]; then
-    source "$_SCRIPT_DIR/../etc/profile.d/conda.sh"
-fi
+# if [ -z "$CONDA_SHLVL" ]; then
+#     source "$_SCRIPT_DIR/../etc/profile.d/conda.sh"
+# fi
+source "$_SCRIPT_DIR/../etc/profile.d/conda.sh"
 _conda_deactivate

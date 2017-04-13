@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 
 import os
-from os.path import dirname
+from os.path import dirname, join
 import stat
 import sys
 
@@ -14,6 +14,7 @@ import pytest
 
 from conda.compat import TemporaryDirectory, PY2
 from conda.config import root_dir, platform
+from conda.gateways.disk.create import mkdir_p
 from conda.install import symlink_conda
 from conda.utils import path_identity, shells, on_win, translate_stream
 from conda.cli.activate import binpath_from_arg
@@ -33,6 +34,7 @@ def gen_test_env_paths(envs, shell, num_test_folders=5):
     """
     paths = [os.path.join(envs, "test {}".format(test_folder+1)) for test_folder in range(num_test_folders)]
     for path in paths[:2]:      # Create symlinks ONLY for the first two folders.
+        mkdir_p(join(path, 'conda-meta'))
         symlink_conda(path, sys.prefix, shell)
     converter = shells[shell]["path_to"]
     paths = [converter(path) for path in paths]
@@ -144,6 +146,7 @@ def test_activate_test1(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),
                  stdout, shell)
 
@@ -175,7 +178,7 @@ def test_activate_bad_directory(shell):
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         # another semicolon here for comparison reasons with one above.
-        assert 'Could not find environment' in stderr
+        assert 'Not a conda environment' in stderr
         assert_not_in(env_dirs[2], stdout)
 
 
@@ -236,6 +239,7 @@ def test_activate_root_simple(shell):
 
 
 @pytest.mark.installed
+@pytest.mark.skip(reason="Test no longer relevant. Two envs activate at once is fine.")
 def test_activate_root_env_from_other_env(shell):
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
@@ -311,6 +315,7 @@ def test_activate_help(shell):
         #     assert_in("Usage: source deactivate", stderr)
 
 
+@pytest.mark.skip(reason="Test no longer relevant. Symlinking stops in conda 4.4.0.")
 @pytest.mark.installed
 def test_activate_symlinking(shell):
     """Symlinks or bat file redirects are created at activation time.  Make sure that the
@@ -362,7 +367,7 @@ def test_PS1(shell, bash_profile):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
-                                        raw_ps=shell_vars["raw_ps"], number=0), stderr)
+                                        raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
         # second activate replaces earlier activated env PS1
         commands = (shell_vars['command_setup'] + """
@@ -372,7 +377,7 @@ def test_PS1(shell, bash_profile):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, sterr = run_in(commands, shell)
         assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
-                                        raw_ps=shell_vars["raw_ps"], number=1), stderr)
+                                        raw_ps=shell_vars["raw_ps"], number=1).strip(), stderr)
 
         # failed activate does not touch raw PS1
         commands = (shell_vars['command_setup'] + """
@@ -390,7 +395,7 @@ def test_PS1(shell, bash_profile):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
-                                        raw_ps=shell_vars["raw_ps"], number=0), stderr)
+                                        raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
         # deactivate doesn't do anything bad to PS1 when no env active to deactivate
         commands = (shell_vars['command_setup'] + """
@@ -601,7 +606,7 @@ def test_activate_relative_path(shell):
             raise
         finally:
             os.chdir(cwd)
-        assert_equals(stdout.rstrip(), env_dir, stderr)
+        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
 
 
 @pytest.mark.skipif(not on_win, reason="only relevant on windows")
