@@ -305,8 +305,8 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        plan.insert(first_unlink_link_idx,
-                    (UNLINKLINKTRANSACTION, (prefix, unlink_dists, link_dists, axn, specs)))
+        stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, axn, specs)
+        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
         plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), axn, specs)))
@@ -322,7 +322,16 @@ def plan_from_actions(actions, index):
 
     assert PREFIX in actions and actions[PREFIX]
     prefix = actions[PREFIX]
-    plan = [('PREFIX', '%s' % actions[PREFIX])]
+    plan = [('PREFIX', '%s' % prefix)]
+
+    unlink_link_transaction = actions.get('UNLINKLINKTRANSACTION')
+    if unlink_link_transaction:
+        progressive_fetch_extract = actions.get('PROGRESSIVEFETCHEXTRACT')
+        if progressive_fetch_extract:
+            plan.append((PROGRESSIVEFETCHEXTRACT, progressive_fetch_extract))
+        plan.append((UNLINKLINKTRANSACTION, unlink_link_transaction))
+        return plan
+
     axn = actions.get('ACTION') or None
     specs = actions.get('SPECS', [])
 
@@ -479,7 +488,22 @@ def get_pinned_specs(prefix):
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
+    # this is for conda-build
+    txn = install_transaction(prefix, index, specs, force, only_names, always_copy,
+                              pinned, minimal_hint, update_deps, prune,
+                              channel_priority_map, is_update)
 
+    pfe = txn.get_pfe()
+    return {
+        'PREFIX': prefix,
+        'PROGRESSIVEFETCHEXTRACT': pfe,
+        'UNLINKLINKTRANSACTION': txn,
+    }
+
+
+def install_transaction(prefix, index, specs, force=False, only_names=None, always_copy=False,
+                        pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                        channel_priority_map=None, is_update=False):
     specs = set(MatchSpec(s) for s in specs)
     r = get_resolve_object(index.copy(), prefix)
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
@@ -524,9 +548,9 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
         if len(env_add_map) == len(registered_packages) == 0:
             # short-circuit the rest of this logic
-            return install_actions(prefix, index, spec_strs, force, only_names, always_copy,
-                                   pinned, minimal_hint, update_deps, prune,
-                                   channel_priority_map, is_update)
+            return install_transaction(prefix, index, spec_strs, force, only_names, always_copy,
+                                       pinned, minimal_hint, update_deps, prune,
+                                       channel_priority_map, is_update)
 
         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
@@ -609,9 +633,9 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
     else:
         # disregard any requested preferred env
-        return install_actions(prefix, index, spec_strs, force, only_names, always_copy,
-                               pinned, minimal_hint, update_deps, prune,
-                               channel_priority_map, is_update)
+        return install_transaction(prefix, index, spec_strs, force, only_names, always_copy,
+                                   pinned, minimal_hint, update_deps, prune,
+                                   channel_priority_map, is_update)
 
 
 def get_resolve_object(index, prefix):

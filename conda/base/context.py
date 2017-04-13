@@ -432,6 +432,10 @@ class Context(Configuration):
                 return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
         return self._channels
 
+    @property
+    def conda_private(self):
+        return conda_in_private_env()
+
     def get_descriptions(self):
         return get_help_dict()
 

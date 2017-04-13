@@ -10,13 +10,12 @@ import tarfile
 
 from .base.context import context
 from .common.compat import on_win
-from .core.link import UnlinkLinkTransaction, UnlinkLinkTransactionSetup
+from .core.link import UnlinkLinkTransaction
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
 from .gateways.disk.link import islink
 from .install import symlink_conda
 from .models.dist import Dist
-
 
 log = getLogger(__name__)
 
@@ -101,11 +100,9 @@ def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):
-    prefix, unlink_dists, link_dists, axn, specs = arg
-    index = state['index']
-    stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, axn, specs)
-    txn = UnlinkLinkTransaction(stp)
-    txn.execute()
+    unlink_link_transaction = arg
+    assert isinstance(unlink_link_transaction, UnlinkLinkTransaction)
+    unlink_link_transaction.execute()
 
 
 def check_files_in_package(source_dir, files):
