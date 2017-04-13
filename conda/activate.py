@@ -257,15 +257,27 @@ def main():
     command = sys.argv[1]
     shell = sys.argv[2]
     activator = Activator(shell)
-    remainder_args = sys.argv[3:] if len(sys.argv[4]) else ()
-    if '-h' in remainder_args or '--help' in remainder_args:
-        pass
-    elif command == 'shell.activate':
-        name_or_prefix = sys.argv[3]
-        print(activator.activate(name_or_prefix))
+    remainder_args = sys.argv[3:] if len(sys.argv) >= 4 else ()
+    # if '-h' in remainder_args or '--help' in remainder_args:
+    #     pass
+    if command == 'shell.activate':
+        if len(remainder_args) == 1:
+            print(activator.activate(remainder_args[0]))
+        elif len(remainder_args) == 0:
+            from .exceptions import ArgumentError
+            raise ArgumentError("activate requires one argument (environment name or prefix)")
+        else:
+            from .exceptions import ArgumentError
+            raise ArgumentError("activate only accepts a single argument")
     elif command == 'shell.deactivate':
+        if remainder_args:
+            from .exceptions import ArgumentError
+            raise ArgumentError("deactivate does not accept arguments")
         print(activator.deactivate())
     elif command == 'shell.reactivate':
+        if remainder_args:
+            from .exceptions import ArgumentError
+            raise ArgumentError("reactivate does not accept arguments")
         print(activator.reactivate())
     else:
         raise NotImplementedError()

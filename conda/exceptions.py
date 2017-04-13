@@ -47,6 +47,7 @@ class CondaSignalInterrupt(CondaError):
                                                    signal_name=signal_name,
                                                    signum=signum)
 
+
 class TooManyArgumentsError(ArgumentError):
     def __init__(self, expected, received, offending_arguments, optional_message='',
                  *args):
