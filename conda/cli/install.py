@@ -332,13 +332,13 @@ def install(args, parser, command='install'):
         #     # TODO: this is where the transactions should be instantiated
         pfe = unlink_link_transaction.get_pfe()
         pfe.prepare()
-        unlink_link_transaction.display_actions(pfe)
+        actions = unlink_link_transaction.display_actions(pfe)
         common.confirm_yn(args)
 
     elif args.dry_run:
-        common.stdout_json_success(unlink_link_transaction=unlink_link_transaction, prefix=prefix, dry_run=True)
+        common.stdout_json_success(unlink_link_transaction=unlink_link_transaction, prefix=prefix,
+                                   dry_run=True)
         raise DryRunExit()
-
 
     with common.json_progress_bars(json=context.json and not context.quiet):
         try:
@@ -362,9 +362,6 @@ def install(args, parser, command='install'):
 
     if context.json:
         common.stdout_json_success(actions=actions)
-
-
-
 
     # for actions in action_groups:
     #     # if newenv:

@@ -154,7 +154,8 @@ class UnlinkLinkTransaction(object):
 
     @property
     def nothing_to_do(self):
-        return not any((stp.unlink_dists or stp.link_dists) for stp in itervalues(self.prefix_setups))
+        return not any((stp.unlink_dists or stp.link_dists)
+                       for stp in itervalues(self.prefix_setups))
 
     def get_pfe(self):
         from .package_cache import ProgressiveFetchExtract
@@ -568,6 +569,8 @@ class UnlinkLinkTransaction(object):
                 actions['LINK'].append(dist)
 
             display_actions(actions, setup.index, show_channel_urls=context.show_channel_urls)
+
+        return actions
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):

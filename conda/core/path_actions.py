@@ -605,7 +605,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
     def __init__(self, transaction_context, target_prefix, target_short_path, requested_specs,
                  command_action):
         super(UpdateHistoryAction, self).__init__(transaction_context, None, None, None,
-                                                  target_prefix,target_short_path)
+                                                  target_prefix, target_short_path)
         self.requested_specs = requested_specs
         self.command_action = command_action
 

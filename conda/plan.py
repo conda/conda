@@ -484,10 +484,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     r = get_resolve_object(index.copy(), prefix)
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
 
-    stp = UnlinkLinkTransactionSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL', tuple(s.spec for s in specs))
+    stp = UnlinkLinkTransactionSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL',
+                                     tuple(s.spec for s in specs))
     txn = UnlinkLinkTransaction(stp)
     return txn
-
 
 
 def install_actions_list(prefix, index, spec_strs, force=False, only_names=None, always_copy=False,
@@ -936,7 +936,8 @@ def revert_actions(prefix, revision=-1, index=None):
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
-    stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, 'INSTALL', user_requested_specs)
+    stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, 'INSTALL',
+                                     user_requested_specs)
     txn = UnlinkLinkTransaction(stp)
     return txn
 

@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-from conda.cli import common
 from conda import plan
-from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
 from conda.api import get_index
-from conda.common.compat import text_type
+from conda.cli import common
 from conda.models.channel import prioritize_channels
 
 

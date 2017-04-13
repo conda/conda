@@ -129,7 +129,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
             self.check(specs, added)
 
 
-def test_display_actions():
+def test_display_actions_0():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
     actions = defaultdict(list, {"FETCH": [Dist('sympy-0.7.2-py27_0'), Dist("numpy-1.7.1-py27_0")]})
@@ -161,7 +161,9 @@ The following packages will be downloaded:
     with captured() as c:
         display_actions(actions, index)
 
-    assert c.stdout == """
+
+    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+
 The following NEW packages will be INSTALLED:
 
     python:   3.3.2-0 \n\
@@ -178,7 +180,8 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-    assert c.stdout == """
+    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+
 The following packages will be REMOVED:
 
     python:   3.3.2-0 \n\
@@ -302,7 +305,8 @@ The following packages will be downloaded:
     with captured() as c:
         display_actions(actions, index)
 
-    assert c.stdout == """
+    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+
 The following NEW packages will be INSTALLED:
 
     python:   3.3.2-0  <unknown>
@@ -319,7 +323,8 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-    assert c.stdout == """
+    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+
 The following packages will be REMOVED:
 
     python:   3.3.2-0  <unknown>
