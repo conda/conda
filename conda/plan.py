@@ -483,7 +483,7 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
     # Replace SpecsForPrefix specs with specs that were passed in in order to retain
     #   version information
-    required_solves = match_to_original_specs(str_specs, grouped_specs)
+    required_solves = match_to_original_specs(specs, grouped_specs)
 
     actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
                                      always_copy, prune, update_deps, pinned)
@@ -601,8 +601,8 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
     return prefix_with_dists_no_deps_has_resolve
 
 
-def match_to_original_specs(str_specs, specs_for_prefix):
-    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+def match_to_original_specs(specs, specs_for_prefix):
+    matches_any_spec = lambda dst: next(spc for spc in specs if spc.name == dst)
     matched_specs_for_prefix = []
     for prefix_with_dists in specs_for_prefix:
         linked = linked_data(prefix_with_dists.prefix)
