@@ -57,8 +57,8 @@ The source section specifies where the source code of the package is coming from
 The source may come from a tarball file, git, hg, or svn, may be a local path,
 and may contain patches.
 
-Source from tarball
-~~~~~~~~~~~~~~~~~~~
+Source from tarball/zip archive
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: yaml
 
@@ -67,6 +67,10 @@ Source from tarball
     md5: 29f6089290505fc1a852e176bd276c43
     sha1: f0a2c9a30073449cfb7d171c57552f3109d93894
     sha256: 5a022ff4c1d1de87232b1c70bde50afbb98212fd246be4a867d8737173cf1f8f
+
+If an extracted archive contains only one folder at its top level, its contents
+will be moved one level up (so that the extracted package contents sit in the
+root of the work folder).
 
 
 Source from git
@@ -131,6 +135,57 @@ Patches may optionally be applied to the source:
       - my.patch # the patch file is expected to be found in the recipe
 
 NOTE: Conda-build will automatically determine the patch strip level.
+
+
+Destination path
+~~~~~~~~~~~~~~~~
+
+Within conda-build's work directory, you may specify a particular folder to
+place source into. This feature is new in conda-build 3.0. Conda-build will
+always drop you into the same folder (build folder/work), but it's up to you
+whether you want your source extracted into that folder, or nested deeper. This
+feature is particularly useful when dealing with multiple sources, but can apply
+to recipes with single sources as well.
+
+.. code-block:: yaml
+
+  source:
+    #[source information here]
+    folder: my-destination/folder
+
+
+Multiple sources
+~~~~~~~~~~~~~~~~
+
+Some software is most easily built by aggregating several pieces. For this,
+conda-build 3.0 has added support for specifying aribtrarily many sources. The
+syntax for this is a list of source dictionaries. Each member of this list
+follows the same rules as the single source for earlier conda-build versions
+(listed above). All features for each member are supported.
+
+.. code-block:: yaml
+
+  source:
+    - url: https://package1.com/a.tar.bz2
+    - url: https://package1.com/b.tar.bz2
+    - git_url: https://github.com/conda/conda-build
+
+Note the dashes: these denote list items in YAML syntax. Each of these are
+entries are extracted/cloned into one folder. This example won't actually work,
+because git will not clone into a non-empty folder. Let's specify some folders:
+
+
+.. code-block:: yaml
+
+  source:
+    - url: https://package1.com/a.tar.bz2
+      folder: stuff
+    - url: https://package1.com/b.tar.bz2
+      folder: stuff
+    - git_url: https://github.com/conda/conda-build
+      folder: conda-build
+
+Here, the two URL tarballs will go into one folder, but the git repo will be checked out into its own space.
 
 
 .. _meta-build:
