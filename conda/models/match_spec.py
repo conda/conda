@@ -53,7 +53,7 @@ class MatchSpec(object):
         # only 0 or 1 specs arguments are allowed
         len_specs = len(specs)
         if len_specs > 1:
-            raise CondaValueError("Only one spec arument can be provided.\n%r" % specs)
+            raise CondaValueError("Only one spec argument can be provided.\n%r" % specs)
         elif len_specs == 1:
             spec = specs[0]
         else:

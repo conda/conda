@@ -353,7 +353,7 @@ class Resolve(object):
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
-            deps = [MatchSpec(d) for d in rec.get('depends', [])]
+            deps = [MatchSpec(d) for d in rec.combined_depends]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
         return deps
