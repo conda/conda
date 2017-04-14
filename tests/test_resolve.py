@@ -71,7 +71,7 @@ class TestMatchSpec(unittest.TestCase):
         self.assertFalse(MatchSpec('blas 1.0').is_simple())
         self.assertFalse(MatchSpec('blas 1.0').is_exact())
         self.assertFalse(MatchSpec('blas 1.0 1').is_simple())
-        self.assertTrue(MatchSpec('blas 1.0 1').is_exact())
+        self.assertFalse(MatchSpec('blas 1.0 1').is_exact())
         self.assertFalse(MatchSpec('blas 1.0 *').is_exact())
 
         m = MatchSpec('blas 1.0', optional=True)
