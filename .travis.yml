@@ -3,10 +3,18 @@ env:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
 
+# apt-get is only available to the Ubuntu tests (os: linux)
+# the other tests (os: osx) uses Homebrew to install shell
+# dependencies and is done in ./utils/travis-install.sh
 addons:
   apt:
     packages:
       - zsh
+      - csh
+      - tcsh
+      - posh
+      - ksh
+
 
 git:
   depth: 100
@@ -50,8 +58,15 @@ matrix:
     - os: osx
 
 install:
-  - source utils/functions.sh
-  - run_setup
+  - source ./utils/travis-install.sh
 
 script:
-  - run_tests
+  - source ./utils/travis-script.sh
+
+sudo: false
+
+after_success:
+  - ~/miniconda/bin/pip install codecov coveralls scrutinizer-ocular
+  - codecov --env PYTHON_VERSION
+  - coveralls || true
+  - ocular || true
