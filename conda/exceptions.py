@@ -423,7 +423,8 @@ class UnsatisfiableError(CondaError, RuntimeError):
         unsatisfiable specifications.
     """
     def __init__(self, bad_deps, chains=True):
-        from .resolve import dashlist, MatchSpec
+        from .models.match_spec import MatchSpec
+        from .resolve import dashlist
 
         bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
         if chains:

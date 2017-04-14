@@ -20,7 +20,7 @@ from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
 from .cli import common
 from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
-from .common.compat import odict, on_win
+from .common.compat import iterkeys, odict, on_win
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import _supplement_index_with_prefix
@@ -36,9 +36,9 @@ from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FE
 from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
+from .models.version import normalized_version
 from .resolve import MatchSpec, Resolve
 from .utils import human_bytes
-from .version import normalized_version
 
 try:
     from cytoolz.itertoolz import concatv, groupby
@@ -391,7 +391,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
             log.debug('H2A %s' % name)
             continue
 
-        if any(s.is_exact() for s in depends_on):
+        if any(s.exact_field('build') for s in depends_on):
             # If something depends on Python/Numpy, but the spec is very
             # explicit, we also don't need to add the default spec
             log.debug('H2B %s' % name)
@@ -499,7 +499,7 @@ def add_unlink_options_for_update(actions, required_solves, index):
     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
     linked_in_prefix = linked_data(context.root_prefix)
     spec_in_root = lambda spc: tuple(
-        mtch for mtch in linked_in_prefix.keys() if MatchSpec(spc).match(mtch))
+        mtch for mtch in iterkeys(linked_in_prefix) if MatchSpec(spc).match(index[mtch]))
     for solved in required_solves:
         # If the solved prefix is private
         if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
