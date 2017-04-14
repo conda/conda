@@ -426,11 +426,12 @@ class UnsatisfiableError(CondaError, RuntimeError):
         from .models.match_spec import MatchSpec
         from .resolve import dashlist
 
-        bad_deps = [list(map(lambda x: x.spec, dep)) for dep in bad_deps]
+        # Remove any target values from the MatchSpecs, convert to strings
+        bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
         if chains:
             chains = {}
             for dep in sorted(bad_deps, key=len, reverse=True):
-                dep1 = [str(MatchSpec(s)).partition(' ') for s in dep[1:]]
+                dep1 = [s.partition(' ') for s in dep[1:]]
                 key = (dep[0],) + tuple(v[0] for v in dep1)
                 vals = ('',) + tuple(v[2] for v in dep1)
                 found = False
