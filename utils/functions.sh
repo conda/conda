@@ -201,7 +201,7 @@ conda_build_unit_test() {
     conda info
 
     $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not test_subpackage"
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not test_pip_in_meta_yaml_fail"
     popd
 }
 
