@@ -26,6 +26,8 @@ class SplitSearch(object):
     def __init__(self, value):
         self.exact = value  # ensures this is considered an exact match
         self.match = re.compile(r'(?:^|.* )%s(?:$| )' % value).match
+    def __repr__(self):
+    	return "'%s'" % self.exact
 
 
 _implementors = {
@@ -203,6 +205,9 @@ class MatchSpec(object):
     def is_simple(self):
         return len(self._specs_map) == 1 and self.exact_field('name') is not None
 
+    def is_single(self):
+    	return len(self._specs_map) == 1
+
     def match(self, rec):
         """
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
@@ -271,6 +276,9 @@ class MatchSpec(object):
 
     def __repr__(self):
         return "MatchSpec(%s)" % (self._to_string(args=True, base=False),)
+
+    def __contains__(self, field):
+    	return field in self._specs_map
 
     def __str__(self):
         return self._to_string(args=True, base=True)

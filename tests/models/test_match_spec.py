@@ -41,6 +41,8 @@ class MatchSpecTests(unittest.TestCase):
         ]:
             m = MatchSpec(spec)
             assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
+            assert 'name' in m
+            assert m.name == 'python' or 'version' in m
 
         # both version numbers conforming to PEP 440
         assert not MatchSpec('numpy >=1.0.1').match(DPkg('numpy-1.0.1a-0.tar.bz2'))
@@ -185,6 +187,3 @@ class MatchSpecTests(unittest.TestCase):
         assert a.match(DPkg(dst, features='you test'))
         assert a.match(DPkg(dst, features='you test me'))
         assert a.exact_field('features') == 'test'
-
-
-
