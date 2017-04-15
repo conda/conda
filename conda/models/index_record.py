@@ -6,7 +6,7 @@ from functools import total_ordering
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
-from ..common.compat import string_types
+from ..common.compat import itervalues, string_types
 
 
 @total_ordering
@@ -85,8 +85,9 @@ class IndexRecord(DictSafeMixin, Entity):
     arch = StringField(required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()
+    constrains = ListField(string_types, required=False, nullable=True)
     date = StringField(required=False)
-    depends = ListField(string_types, required=False)
+    depends = ListField(string_types, required=False, nullable=True)
     features = StringField(required=False)
     has_prefix = BooleanField(required=False)
     license = StringField(required=False)
@@ -115,3 +116,11 @@ class IndexRecord(DictSafeMixin, Entity):
 
     # this is only for LinkedPackageRecord
     leased_paths = ListField(string_types, required=False, nullable=True)
+
+    @property
+    def combined_depends(self):
+        from .match_spec import MatchSpec
+        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
+        result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
+                                              for spec in self.constrains or ())})
+        return tuple(itervalues(result))

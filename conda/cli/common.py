@@ -472,15 +472,16 @@ def name_prefix(prefix):
 # -------------------------------------------------------------------------
 
 def arg2spec(arg, json=False, update=False):
+    spec = spec_from_line(arg)
+    if spec is None:
+        raise CondaValueError('invalid package specification: %s' % arg)
+
     try:
-        spec = MatchSpec(spec_from_line(arg), normalize=True)
+        spec = MatchSpec(spec, normalize=True)
     except:
         raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name
-    if name in context.disallow:
-        raise CondaValueError("specification '%s' is disallowed" % name)
-
     if not spec.is_simple() and update:
         raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or

@@ -10,27 +10,22 @@ import unittest
 import pytest
 
 from conda import CondaError
-from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.compat import iteritems
 from conda.common.io import env_var
-from conda.core.envs_manager import EnvsDirectory
 from conda.core.package_cache import ProgressiveFetchExtract
-from conda.exceptions import InstallError, NoPackagesFoundError
+from conda.exceptions import NoPackagesFoundError
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
-from conda.gateways.disk.update import touch
 import conda.instructions as inst
-from conda.models.channel import prioritize_channels
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.plan import display_actions
 import conda.plan as plan
-from conda.resolve import MatchSpec, Resolve
+from conda.resolve import Resolve
 from conda.utils import on_win
 from .decorators import skip_if_no_mock
-from .gateways.disk.test_permissions import create_temp_location, tempdir
+from .gateways.disk.test_permissions import tempdir
 from .helpers import captured, mock, tempdir
 
 try:
@@ -115,18 +110,20 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
     def test_4(self):
         self.linked = []
-        ps = ['python 2.7*'] if context.default_python == '2.7' else []
-        for specs, added in [
-            (['python'], ps),
-            (['numpy'], ps),
-            (['scipy'], ps),
-            (['anaconda'], ps),
-            (['anaconda 1.5.0 np17py27_0'], []),
-            (['sympy 0.7.2 py27_0'], []),
-            (['scipy 0.12.0 np16py27_0'], []),
-            (['anaconda', 'python 3*'], []),
-            ]:
-            self.check(specs, added)
+        for dp in ('2.7', '3.5'):
+            with env_var('CONDA_DEFAULT_PYTHON', dp, reset_context):
+                ps = ['python 2.7*'] if context.default_python == '2.7' else []
+                for specs, added in [
+                    (['python'], ps),
+                    (['numpy'], ps),
+                    (['scipy'], ps),
+                    (['anaconda'], ps),
+                    (['anaconda 1.5.0 np17py27_0'], []),
+                    (['sympy 0.7.2 py27_0'], []),
+                    (['scipy 0.12.0 np16py27_0'], []),
+                    (['anaconda', 'python 3*'], []),
+                    ]:
+                    self.check(specs, added)
 
 
 def test_display_actions_0():
@@ -1278,7 +1275,6 @@ def generate_remove_action(prefix, unlink):
 #                     plan.add_unlink_options_for_update(actions, required_solves, self.res.index)
 #                     expected_output = [action, generate_remove_action(env_path, [Dist("test3-1.2.0"), Dist("test4-2.1.0-22")])]
 #                     self.assertEquals(actions, expected_output)
-
 
 
 def test_pinned_specs():

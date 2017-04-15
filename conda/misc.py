@@ -224,7 +224,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 filter["conda-env"] = dist
                 found = True
                 break
-            for dep in info.get('depends', []):
+            for dep in info.combined_depends:
                 if MatchSpec(dep).name in filter:
                     filter[name] = dist
                     found = True

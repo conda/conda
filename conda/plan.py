@@ -36,9 +36,9 @@ from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FE
 from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
+from .models.version import normalized_version
 from .resolve import MatchSpec, Resolve
 from .utils import human_bytes
-from .version import normalized_version
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, remove
@@ -419,7 +419,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
             log.debug('H2A %s' % name)
             continue
 
-        if any(s.is_exact() for s in depends_on):
+        if any(s.exact_field('build') for s in depends_on):
             # If something depends on Python/Numpy, but the spec is very
             # explicit, we also don't need to add the default spec
             log.debug('H2B %s' % name)
