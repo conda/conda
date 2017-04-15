@@ -242,6 +242,7 @@ def install(args, parser, command='install'):
     try:
         if isinstall and args.revision:
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
+            progressive_fetch_extract = unlink_link_transaction.get_pfe()
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])
@@ -250,6 +251,7 @@ def install(args, parser, command='install'):
                     pinned=context.respect_pinned, always_copy=context.always_copy,
                     minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
                     channel_priority_map=_channel_priority_map, is_update=isupdate)
+                progressive_fetch_extract = unlink_link_transaction.get_pfe()
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
@@ -324,15 +326,7 @@ def install(args, parser, command='install'):
                     message='All requested packages already installed.')
             return
 
-        # TODO: display_actions()
-        # for actions in action_groups:
-        #     print()
-        #     print("Package plan for installation in environment %s:" % actions["PREFIX"])
-        #     display_actions(actions, index, show_channel_urls=context.show_channel_urls)
-        #     # TODO: this is where the transactions should be instantiated
-        pfe = unlink_link_transaction.get_pfe()
-        pfe.prepare()
-        actions = unlink_link_transaction.display_actions(pfe)
+        unlink_link_transaction.display_actions(progressive_fetch_extract)
         common.confirm_yn(args)
 
     elif args.dry_run:
@@ -342,7 +336,7 @@ def install(args, parser, command='install'):
 
     with common.json_progress_bars(json=context.json and not context.quiet):
         try:
-            pfe.execute()
+            progressive_fetch_extract.execute()
             unlink_link_transaction.execute()
             # execute_actions(actions, index, verbose=not context.quiet)
 
@@ -361,7 +355,7 @@ def install(args, parser, command='install'):
             print(print_activate(args.name if args.name else prefix))
 
     if context.json:
-        common.stdout_json_success(actions=actions)
+        common.stdout_json_success(actions=unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0])
 
     # for actions in action_groups:
     #     # if newenv:

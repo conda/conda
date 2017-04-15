@@ -22,7 +22,7 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_
 from .common.path import ensure_pad, is_private_env_path
 from .core.envs_manager import EnvsDirectory
 from .core.index import _supplement_index_with_prefix
-from .core.link import UnlinkLinkTransaction, UnlinkLinkTransactionSetup
+from .core.link import UnlinkLinkTransaction, PrefixSetup
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
@@ -305,7 +305,7 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, axn, specs)
+        stp = PrefixSetup(index, prefix, unlink_dists, link_dists, axn, specs)
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
@@ -508,8 +508,8 @@ def install_transaction(prefix, index, specs, force=False, only_names=None, alwa
     r = get_resolve_object(index.copy(), prefix)
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
 
-    stp = UnlinkLinkTransactionSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL',
-                                     tuple(s.spec for s in specs))
+    stp = PrefixSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL',
+                      tuple(s.spec for s in specs))
     txn = UnlinkLinkTransaction(stp)
     return txn
 
@@ -623,8 +623,8 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
         def make_txn_setup(pfx, unlink, link, specs):
             # TODO: this index here is probably wrong; needs to be per-prefix
-            return UnlinkLinkTransactionSetup(index, pfx, unlink, link, 'INSTALL',
-                                              tuple(s.spec for s in specs))
+            return PrefixSetup(index, pfx, unlink, link, 'INSTALL',
+                               tuple(s.spec for s in specs))
 
         txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
                          for env_name, oink in iteritems(unlink_link_map))
@@ -960,8 +960,8 @@ def revert_actions(prefix, revision=-1, index=None):
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
-    stp = UnlinkLinkTransactionSetup(index, prefix, unlink_dists, link_dists, 'INSTALL',
-                                     user_requested_specs)
+    stp = PrefixSetup(index, prefix, unlink_dists, link_dists, 'INSTALL',
+                      user_requested_specs)
     txn = UnlinkLinkTransaction(stp)
     return txn
 

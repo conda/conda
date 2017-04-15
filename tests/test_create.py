@@ -508,15 +508,8 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'python-3')
 
-            # prune is a feature used by conda-env
-            # conda itself does not provide a public API for it
-            index = get_index_trap(prefix=prefix)
-            actions_set = plan.install_actions_list(prefix,
-                                                    index,
-                                                    spec_strs=['pytz'],
-                                                    prune=True)
-            for actions in actions_set:
-                plan.execute_actions(actions, index, verbose=True)
+            with env_var("CONDA_PRUNE", "true", reset_context):
+                run_command(Commands.INSTALL, prefix, 'pytz')
 
             assert not package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'pytz')

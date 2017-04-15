@@ -106,7 +106,7 @@ def match_specs_to_dists(packages_info_to_link, specs):
     return tuple(matched_specs)
 
 
-UnlinkLinkTransactionSetup = namedtuple('UnlinkLinkTransactionSetup', (
+PrefixSetup = namedtuple('PrefixSetup', (
     'index',
     'target_prefix',
     'unlink_dists',
@@ -115,7 +115,7 @@ UnlinkLinkTransactionSetup = namedtuple('UnlinkLinkTransactionSetup', (
     'requested_specs',
 ))
 
-PrefixGroups = namedtuple('PrefixGroups', (
+PrefixActionGroups = namedtuple('PrefixActionGroups', (
     'unlink_action_groups',
     'unregister_action_groups',
     'link_action_groups',
@@ -134,7 +134,6 @@ ActionGroup = namedtuple('ActionGroup', (
 class UnlinkLinkTransaction(object):
 
     def __init__(self, *setups):
-        assert len(setups) >= 1
         self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
         self.prefix_groups = odict()
 
@@ -159,9 +158,12 @@ class UnlinkLinkTransaction(object):
 
     def get_pfe(self):
         from .package_cache import ProgressiveFetchExtract
-        index = next(itervalues(self.prefix_setups)).index
-        link_dists = set(concat(stp.link_dists for stp in itervalues(self.prefix_setups)))
-        return ProgressiveFetchExtract(index, link_dists)
+        if not self.prefix_setups:
+            return ProgressiveFetchExtract({}, ())
+        else:
+            index = next(itervalues(self.prefix_setups)).index
+            link_dists = set(concat(stp.link_dists for stp in itervalues(self.prefix_setups)))
+            return ProgressiveFetchExtract(index, link_dists)
 
     def prepare(self):
         if self._prepared:
@@ -170,7 +172,7 @@ class UnlinkLinkTransaction(object):
         for stp in itervalues(self.prefix_setups):
             grps = self._prepare(stp.index, stp.target_prefix, stp.unlink_dists, stp.link_dists,
                                  stp.command_action, stp.requested_specs)
-            self.prefix_groups[stp.target_prefix] = PrefixGroups(*grps)
+            self.prefix_groups[stp.target_prefix] = PrefixActionGroups(*grps)
 
         self._prepared = True
 
@@ -269,7 +271,7 @@ class UnlinkLinkTransaction(object):
                                              register_actions + history_actions,
                                              target_prefix),
 
-        return PrefixGroups(
+        return PrefixActionGroups(
             unlink_action_groups,
             unregister_action_groups,
             link_action_groups,
@@ -295,7 +297,7 @@ class UnlinkLinkTransaction(object):
                 yield error_result
 
     @staticmethod
-    def _verify_transaction_level(target_prefix, prefix_groups):
+    def _verify_prefix_level(target_prefix, prefix_groups):
         # further verification of the whole transaction
         # for each path we are creating in link_actions, we need to make sure
         #   1. each path either doesn't already exist in the prefix, or will be unlinked
@@ -303,7 +305,9 @@ class UnlinkLinkTransaction(object):
         #   3. if the target is a private env, leased paths need to be verified
         #   4. make sure conda-meta/history file is writable
         #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
-        # TODO: ensure 3 and 4 are happening
+        #   6. make sure we're not removing conda or a conda dependency from conda's env
+        #   7. make sure we're not removing pinned packages without no-pin flag
+        # TODO: 3, 4, 6, 7
 
         unlink_action_groups = (axn_grp
                                 for action_groups in prefix_groups
@@ -327,6 +331,7 @@ class UnlinkLinkTransaction(object):
                               for axn in grp.actions
                               if isinstance(axn, CreateLinkedPackageRecordAction))
 
+        # Verification 1. each path either doesn't already exist in the prefix, or will be unlinked
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
             for path in axn.linked_package_record.files:
@@ -346,6 +351,8 @@ class UnlinkLinkTransaction(object):
                     else:
                         yield UnknownPackageClobberError(path, Dist(axn.linked_package_record),
                                                          context)
+
+        # Verification 2. there's only a single instance of each path
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
                 yield SharedLinkPathClobberError(
@@ -356,7 +363,7 @@ class UnlinkLinkTransaction(object):
     def _verify(cls, target_prefix, prefix_groups):
         exceptions = tuple(exc for exc in concatv(
             cls._verify_individual_level(prefix_groups),
-            cls._verify_transaction_level(target_prefix, prefix_groups),
+            cls._verify_prefix_level(target_prefix, prefix_groups),
         ) if exc)
         return exceptions
 
@@ -552,8 +559,8 @@ class UnlinkLinkTransaction(object):
             register_private_env_actions,
         ))
 
-    def display_actions(self, pfe):
-        from ..plan import display_actions
+    def make_legacy_action_groups(self, pfe):
+        legacy_action_groups = []
 
         for q, (prefix, setup) in enumerate(iteritems(self.prefix_setups)):
             actions = defaultdict(list)
@@ -568,9 +575,18 @@ class UnlinkLinkTransaction(object):
             for dist in setup.link_dists:
                 actions['LINK'].append(dist)
 
+            legacy_action_groups.append(actions)
+
+        return legacy_action_groups
+
+    def display_actions(self, pfe):
+        from ..plan import display_actions
+        legacy_action_groups = self.make_legacy_action_groups(pfe)
+
+        for actions, (prefix, setup) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
             display_actions(actions, setup.index, show_channel_urls=context.show_channel_urls)
 
-        return actions
+        return legacy_action_groups
 
 
 def run_script(prefix, dist, action='post-link', env_prefix=None):
