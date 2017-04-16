@@ -665,8 +665,11 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     # add in specs from requested history,
     #   but not if we're requesting removal in this operation
     spec_names_to_remove = set(s.name for s in specs_to_remove)
-    user_requested_specs = History(prefix).get_requested_specs()
-    log.debug("user requested specs: %s", user_requested_specs)
+    user_requested_specs_and_dists = History(prefix).get_requested_specs()
+    user_requested_specs = tuple((MatchSpec(s, schannel=d.channel) if d else s)
+                                 for s, d in user_requested_specs_and_dists)
+    log.debug("user requested specs from history:\n    %s\n",
+              "\n    ".join(text_type(s) for s in user_requested_specs))
     specs_map = {s.name: s for s in user_requested_specs if s.name not in spec_names_to_remove}
 
     # replace specs matching same name with new specs_to_add
@@ -674,8 +677,7 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     specs_to_add = itervalues(specs_map)
 
     specs_to_add = augment_specs(prefix, specs_to_add)
-    log.debug("final specs to add:\n"
-              "    %s\n",
+    log.debug("final specs to add:\n    %s\n",
               "\n    ".join(text_type(s) for s in specs_to_add))
     solved_linked_dists = r.install(specs_to_add,
                                     solved_linked_dists,
@@ -935,7 +937,8 @@ def revert_actions(prefix, revision=-1, index=None):
     # change
     h = History(prefix)
     h.update()
-    user_requested_specs = h.get_requested_specs()
+    user_requested_specs_and_dists = h.get_requested_specs()
+    user_requested_specs = tuple(x[0] for x in user_requested_specs_and_dists)
     try:
         state = h.get_state(revision)
     except IndexError:

@@ -41,7 +41,7 @@ from ..resolve import MatchSpec
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, interleave, take
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby, interleave, take  # NOQA
 
 log = getLogger(__name__)

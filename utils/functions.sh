@@ -46,6 +46,7 @@ remove_conda() {
        $site_packages/pycrypto* \
        $site_packages/pycosat*
     ls -al $site_packages
+    cat $prefix/conda-meta/history
     hash -r
 }
 

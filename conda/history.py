@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import errno
 import json
 import logging
+from operator import itemgetter
 import os
 from os.path import isdir, isfile, join
 import re
@@ -17,6 +18,12 @@ from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
 from .models.dist import Dist
 from .resolve import MatchSpec
+
+try:
+    from cytoolz.itertoolz import groupby
+except ImportError:  # pragma: no cover
+    from ._vendor.toolz.itertoolz import groupby  # NOQA
+
 
 log = logging.getLogger(__name__)
 
@@ -168,6 +175,9 @@ class History(object):
                         item['specs'] = specs.split(',')
             if 'cmd' in item:
                 res.append(item)
+            dists = groupby(itemgetter(0), unused_cont)
+            item['unlink_dists'] = dists.get('-', ())
+            item['link_dists'] = dists.get('+', ())
         return res
 
     def get_requested_specs(self):
@@ -175,8 +185,11 @@ class History(object):
         for request in self.get_user_requests():
             axn = request.get('action', '')
             if axn.startswith('install'):
+                link_dists = tuple(Dist(d[1:]) for d in request.get('link_dists', ()))
                 specs = tuple(MatchSpec(s) for s in request['specs'] if s)
-                spec_map.update({s.name: s for s in specs})
+                match = lambda spec: next((d for d in link_dists if spec.match(d)), None)
+                dists = tuple(match(s) for s in specs)
+                spec_map.update({s.name: (s, d) for (s, d) in zip(specs, dists)})
             elif axn.startswith('remove'):
                 for name in (MatchSpec(s).name for s in request['specs']):
                     spec_map.pop(name, None)
