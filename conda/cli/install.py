@@ -20,7 +20,7 @@ from ..common.compat import on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..core.solve import get_pinned_specs, install_actions_list
+from ..core.solve import get_pinned_specs, get_install_transaction
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
@@ -247,7 +247,7 @@ def install(args, parser, command='install'):
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                unlink_link_transaction = install_actions_list(
+                unlink_link_transaction = get_install_transaction(
                     prefix, index, specs, force=args.force, only_names=only_names,
                     pinned=context.respect_pinned, always_copy=context.always_copy,
                     minimal_hint=args.alt_hint, update_deps=context.update_dependencies,

@@ -127,10 +127,6 @@ def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=Fals
                                                                         dists_for_linking,
                                                                         specs_to_add)
 
-    # actions = get_blank_actions(prefix)
-    # actions['UNLINK'].extend(reversed(dists_for_unlinking))
-    # actions['LINK'].extend(dists_for_linking)
-    # return actions
     dists_for_unlinking = IndexedSet(reversed(dists_for_unlinking))
     return dists_for_unlinking, dists_for_linking
 
@@ -164,7 +160,7 @@ def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
     dists_for_unlinking = old_linked_dists - solved_dists
     dists_for_linking = solved_dists - old_linked_dists
 
-    # TODO: back 'noarch: python' to unlink and link if python version changes
+    # TODO: add back 'noarch: python' to unlink and link if python version changes
 
     # r_linked = Resolve(linked_data(prefix))
     # for spec in remove_satisfied_specs:
@@ -187,9 +183,9 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def install_actions_list(prefix, index, spec_strs, force=False, only_names=None, always_copy=False,
-                         pinned=True, minimal_hint=False, update_deps=True, prune=False,
-                         channel_priority_map=None, is_update=False):
+def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
+                            always_copy=False, pinned=True, minimal_hint=False, update_deps=True,
+                            prune=False, channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
 
@@ -221,9 +217,9 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
         if len(env_add_map) == len(registered_packages) == 0:
             # short-circuit the rest of this logic
-            return install_transaction(prefix, index, spec_strs, force, only_names, always_copy,
-                                       pinned, minimal_hint, update_deps, prune,
-                                       channel_priority_map, is_update)
+            return get_install_transaction_single(prefix, index, spec_strs, force, only_names, always_copy,
+                                                  pinned, minimal_hint, update_deps, prune,
+                                                  channel_priority_map, is_update)
 
         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
@@ -282,18 +278,6 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
             # this needs to be added to odict last; the private envs need to be updated first
             unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
 
-        # def make_actions(pfx, unlink, link, specs):
-        #     actions = get_blank_actions(pfx)
-        #     actions['UNLINK'].extend(unlink)
-        #     actions['LINK'].extend(link)
-        #     actions['SPECS'].extend(s.spec for s in specs)
-        #     actions['ACTION'] = 'INSTALL'
-        #     return actions
-        #
-        # action_groups = [make_actions(ed.to_prefix(ensure_pad(env_name)), *oink)
-        #                  for env_name, oink in iteritems(unlink_link_map)]
-        # return action_groups
-
         def make_txn_setup(pfx, unlink, link, specs):
             # TODO: this index here is probably wrong; needs to be per-prefix
             return PrefixSetup(index, pfx, unlink, link, 'INSTALL',
@@ -306,14 +290,15 @@ def install_actions_list(prefix, index, spec_strs, force=False, only_names=None,
 
     else:
         # disregard any requested preferred env
-        return install_transaction(prefix, index, spec_strs, force, only_names, always_copy,
-                                   pinned, minimal_hint, update_deps, prune,
-                                   channel_priority_map, is_update)
+        return get_install_transaction_single(prefix, index, spec_strs, force, only_names, always_copy,
+                                              pinned, minimal_hint, update_deps, prune,
+                                              channel_priority_map, is_update)
 
 
-def install_transaction(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                        pinned=True, minimal_hint=False, update_deps=True, prune=False,
-                        channel_priority_map=None, is_update=False):
+def get_install_transaction_single(prefix, index, specs, force=False, only_names=None,
+                                   always_copy=False, pinned=True, minimal_hint=False,
+                                   update_deps=True, prune=False, channel_priority_map=None,
+                                   is_update=False):
     specs = set(MatchSpec(s) for s in specs)
     r = get_resolve_object(index.copy(), prefix)
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
