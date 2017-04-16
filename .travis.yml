@@ -47,6 +47,10 @@ matrix:
       sudo: false
       language: generic
       os: linux
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.9
+      sudo: false
+      language: generic
+      os: linux
   allow_failures:
     - os: osx
 
