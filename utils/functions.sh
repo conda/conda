@@ -13,7 +13,9 @@ export INSTALL_PREFIX=~/miniconda
 
 install_miniconda() {
     local prefix=${1:-$INSTALL_PREFIX}
-    curl -sSL $MINICONDA_URL -o ~/miniconda.sh
+    if ! [ -f ~/miniconda.sh ]; then
+        curl -sSL $MINICONDA_URL -o ~/miniconda.sh
+    fi
     chmod +x ~/miniconda.sh
     mkdir -p $prefix
     ~/miniconda.sh -bfp $prefix
