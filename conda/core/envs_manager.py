@@ -97,7 +97,11 @@ class EnvsDirectory(object):
         # TODO: move this to conda.gateways.disk
         if isfile(self.catalog_file):
             with open(self.catalog_file) as fh:
-                return json.loads(fh.read().strip())
+                catalog_file_content = fh.read()
+                if not catalog_file_content:
+                    return {}
+                else:
+                    return json.loads(catalog_file_content.strip())
         else:
             return {}
 

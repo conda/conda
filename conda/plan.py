@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from copy import copy
 from logging import getLogger
+from operator import itemgetter
 from os.path import abspath, basename, exists, join
 import sys
 
@@ -666,8 +667,15 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     #   but not if we're requesting removal in this operation
     spec_names_to_remove = set(s.name for s in specs_to_remove)
     user_requested_specs_and_dists = History(prefix).get_requested_specs()
+
+    # this effectively pins packages to channels on first use
+    #  might not ultimately be the desired behavior
     user_requested_specs = tuple((MatchSpec(s, schannel=d.channel) if d else s)
                                  for s, d in user_requested_specs_and_dists)
+
+    # # don't pin packages to channels on first use, in lieu of above code block
+    # user_requested_specs = tuple(map(itemgetter(0), user_requested_specs_and_dists))
+
     log.debug("user requested specs from history:\n    %s\n",
               "\n    ".join(text_type(s) for s in user_requested_specs))
     specs_map = {s.name: s for s in user_requested_specs if s.name not in spec_names_to_remove}
