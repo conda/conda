@@ -850,6 +850,7 @@ def augment_specs(prefix, specs, pinned=True):
     mss = [ms for ms in mss if ms.name in root_only]
     if is_root_prefix(prefix):
         if context.auto_update_conda and not context.offline and not mss:
+            log.debug("Adding 'conda' to specs.")
             _specs.append(MatchSpec('conda'))
             _specs.append(MatchSpec('conda-env'))
     elif basename(prefix).startswith('_'):
