@@ -389,10 +389,9 @@ class UnlinkLinkTransaction(object):
                                            or ())
             pkg_names_being_lnkd = ()
             pkg_names_being_unlnkd = ()
-            conda_linked_depends = next((record.depends
-                                         for record in get_linked_data(conda_final_prefix)
-                                         if record.name == 'conda'),
-                                        ())
+            _prefix_records = itervalues(get_linked_data(conda_final_prefix))
+            conda_linked_depends = next((record.depends for record in _prefix_records
+                                         if record.name == 'conda'), ())
         else:
             conda_final_prefix = conda_final_setup.target_prefix
             pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
