@@ -12,7 +12,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from copy import copy
 from logging import getLogger
-from operator import itemgetter
 from os.path import abspath, basename, exists, join
 import sys
 
@@ -23,7 +22,7 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_
 from .common.path import ensure_pad, is_private_env_path
 from .core.envs_manager import EnvsDirectory
 from .core.index import _supplement_index_with_prefix
-from .core.link import UnlinkLinkTransaction, PrefixSetup
+from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, InstallError,
@@ -495,11 +494,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                               channel_priority_map, is_update)
 
     pfe = txn.get_pfe()
-    return {
+    actions = defaultdict(list)
+    actions.update({
         'PREFIX': prefix,
         'PROGRESSIVEFETCHEXTRACT': pfe,
         'UNLINKLINKTRANSACTION': txn,
-    }
+    })
+    return actions
 
 
 def install_transaction(prefix, index, specs, force=False, only_names=None, always_copy=False,
