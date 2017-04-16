@@ -67,14 +67,21 @@ class UserRequestsTestCase(unittest.TestCase):
     def test_0(self):
         self.assertEqual(self.user_requests[0],
                          {'cmd': ['conda', 'update', 'conda'],
-                          'date': '2016-02-16 13:31:33'})
+                          'date': '2016-02-16 13:31:33',
+                          'unlink_dists': (),
+                          'link_dists': (),
+                          })
 
     def test_last(self):
         self.assertEqual(self.user_requests[-1],
                          {'action': 'install',
                           'cmd': ['conda', 'install', 'pyflakes'],
                           'date': '2016-02-18 22:53:20',
-                          'specs': ['pyflakes', 'conda', 'python 2.7*']})
+                          'specs': ['pyflakes', 'conda', 'python 2.7*'],
+                          'update_specs': ['pyflakes', 'conda', 'python 2.7*'],
+                          'unlink_dists': (),
+                          'link_dists': ['+pyflakes-1.0.0-py27_0'],
+                          })
 
     def test_conda_comment_version_parsing(self):
         assert History._parse_comment_line("# conda version: 4.5.1") == {"conda_version": "4.5.1"}
