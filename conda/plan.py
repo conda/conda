@@ -681,7 +681,7 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     specs_to_add = itervalues(specs_map)
 
     specs_to_add = augment_specs(prefix, specs_to_add)
-    
+
     log.debug("final specs to add:\n    %s\n",
               "\n    ".join(text_type(s) for s in specs_to_add))
     solved_linked_dists = r.install(specs_to_add,
