@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from conda import plan
 from conda.api import get_index
 from conda.cli import common
+import conda.core.solve
 from conda.models.channel import prioritize_channels
 
 
@@ -26,8 +27,8 @@ def install(prefix, specs, args, env, prune=False):
                       prepend='nodefaults' not in env.channels,
                       prefix=prefix)
     _channel_priority_map = prioritize_channels(channel_urls)
-    unlink_link_transaction = plan.install_actions_list(prefix, index, specs, prune=prune,
-                                                        channel_priority_map=_channel_priority_map)
+    unlink_link_transaction = conda.core.solve.install_actions_list(prefix, index, specs, prune=prune,
+                                                                    channel_priority_map=_channel_priority_map)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         pfe = unlink_link_transaction.get_pfe()

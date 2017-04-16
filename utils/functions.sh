@@ -86,7 +86,7 @@ install_conda_build() {
     install_conda_dev $prefix
 
     # install conda-build dependencies (runtime and test)
-    $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist -vv
+    $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
     $prefix/bin/conda install -y -q \
         anaconda-client numpy \
         filelock jinja2 patchelf conda-verify contextlib2 pkginfo
@@ -266,7 +266,7 @@ run_tests() {
         flake8 --statistics
     elif [[ -n $CONDA_BUILD ]]; then
         set_test_vars
-        # conda_build_smoke_test
+        conda_build_smoke_test
         conda_build_unit_test
     else
         set_test_vars

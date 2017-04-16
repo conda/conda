@@ -8,7 +8,6 @@ import textwrap
 from conda.cli import common, install as cli_install
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
-from conda.plan import is_root_prefix
 
 from .common import get_prefix
 from .. import exceptions, specs
@@ -88,7 +87,7 @@ def execute(args, parser):
 
     prefix = get_prefix(args, search=False)
 
-    if args.force and not is_root_prefix(prefix) and os.path.exists(prefix):
+    if args.force and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
 

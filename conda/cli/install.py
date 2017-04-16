@@ -20,6 +20,7 @@ from ..common.compat import on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
+from ..core.solve import get_pinned_specs, install_actions_list
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaImportError, CondaOSError,
                           CondaRuntimeError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
@@ -27,7 +28,7 @@ from ..exceptions import (CondaEnvironmentNotFoundError, CondaImportError, Conda
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
-from ..plan import get_pinned_specs, install_actions_list, is_root_prefix, revert_actions
+from ..plan import revert_actions
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ def install(args, parser, command='install'):
     prefix = context.prefix if newenv or args.mkdir else context.prefix_w_legacy_search
     if newenv:
         check_prefix(prefix, json=context.json)
-    if context.force_32bit and is_root_prefix(prefix):
+    if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
     if isupdate and not (args.file or args.all or args.packages):
         raise CondaValueError("""no package names supplied
@@ -357,45 +358,6 @@ def install(args, parser, command='install'):
     if context.json:
         actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]
         common.stdout_json_success(actions=actions)
-
-    # for actions in action_groups:
-    #     # if newenv:
-    #     #     # needed in the case of creating an empty env
-    #     #     from ..instructions import LINK, UNLINK, SYMLINK_CONDA
-    #     #     if not actions[LINK] and not actions[UNLINK]:
-    #     #         actions[SYMLINK_CONDA] = [context.root_prefix]
-    #
-    #
-    #
-    #     # if not context.json:
-    #     #     common.confirm_yn(args)
-    #     # elif args.dry_run:
-    #     #     common.stdout_json_success(actions=actions, dry_run=True)
-    #     #     raise DryRunExit()
-    #
-    #     with common.json_progress_bars(json=context.json and not context.quiet):
-    #         try:
-    #             pfe = unlink_link_transaction.get_pfe()
-    #             pfe.execute()
-    #             unlink_link_transaction.execute()
-    #             # execute_actions(actions, index, verbose=not context.quiet)
-    #
-    #         except RuntimeError as e:
-    #             if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-    #                 raise LockError('Already locked: %s' % text_type(e))
-    #             else:
-    #                 raise CondaRuntimeError('RuntimeError: %s' % e)
-    #         except SystemExit as e:
-    #             raise CondaSystemExit('Exiting', e)
-    #
-    #     if newenv:
-    #         append_env(prefix)
-    #         touch_nonadmin(prefix)
-    #         if not context.json:
-    #             print(print_activate(args.name if args.name else prefix))
-    #
-    #     if context.json:
-    #         common.stdout_json_success(actions=actions)
 
 
 def check_write(command, prefix, json=False):

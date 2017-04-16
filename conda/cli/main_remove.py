@@ -116,8 +116,9 @@ def execute(args, parser):
     from ..gateways.disk.delete import delete_trash, rm_rf
     from ..instructions import PREFIX
     from ..plan import (add_unlink, display_actions, execute_actions, get_blank_actions,
-                        get_resolve_object, is_root_prefix, nothing_to_do, remove_actions,
-                        solve_for_actions)
+                        nothing_to_do, remove_actions)
+    from ..core.solve import get_resolve_object
+    from ..core.solve import solve_for_actions
     from ..resolve import MatchSpec
 
     if not (args.all or args.package_names):
@@ -147,7 +148,7 @@ def execute(args, parser):
         actions['ACTION'] = 'REMOVE_FEATURE'
         action_groups = (actions, index),
     elif args.all:
-        if is_root_prefix(prefix):
+        if prefix == context.root_prefix:
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
         actions = defaultdict(list)
