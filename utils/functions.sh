@@ -266,7 +266,7 @@ run_tests() {
         flake8 --statistics
     elif [[ -n $CONDA_BUILD ]]; then
         set_test_vars
-        conda_build_smoke_test
+        # conda_build_smoke_test
         conda_build_unit_test
     else
         set_test_vars
