@@ -120,7 +120,7 @@ meta.yaml:
 .. code-block:: yaml
 
    package:
-       name: numpy_using_thing
+       name: numpy_using_pythonAPI_thing
        version: 1.0
 
    requirements:
@@ -132,15 +132,19 @@ meta.yaml:
            - numpy
 
 This example demonstrates a particular feature: reduction of builds when pins
-are unnecessary. There's more information at `Avoiding unnecessary builds`_. To
+are unnecessary. Since the example recipe above only requires the Python API to
+numpy, we will only build the package once and the version of numpy will not be pinned
+at runtime to match the compile-time version.  There's more information at `Avoiding unnecessary builds`_.
+
+For a different package that makes use of the numpy C API, we will need to
 actually pin numpy in this recipe (and only in this recipe, so that other
-recipes don't unnecessarily build lots of variants), it is sufficient to add a
-pin to numpy. You can use the variant key directly in meta.yaml:
+recipes don't unnecessarily build lots of variants).  To pin numpy, you can
+use the variant key directly in meta.yaml:
 
 .. code-block:: yaml
 
    package:
-       name: numpy_using_thing
+       name: numpy_using_cAPI_thing
        version: 1.0
 
    requirements:
