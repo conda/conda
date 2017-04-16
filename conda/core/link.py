@@ -28,8 +28,8 @@ from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_w
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
-from ..exceptions import (KnownPackageClobberError, LinkError, SharedLinkPathClobberError,
-                          UnknownPackageClobberError, maybe_raise)
+from ..exceptions import (KnownPackageClobberError, LinkError, RemoveError,
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -115,7 +115,7 @@ PrefixSetup = namedtuple('PrefixSetup', (
     'requested_specs',
 ))
 
-PrefixActionGroups = namedtuple('PrefixActionGroups', (
+PrefixActionGroup = namedtuple('PrefixActionGroup', (
     'unlink_action_groups',
     'unregister_action_groups',
     'link_action_groups',
@@ -135,7 +135,7 @@ class UnlinkLinkTransaction(object):
 
     def __init__(self, *setups):
         self.prefix_setups = odict((stp.target_prefix, stp) for stp in setups)
-        self.prefix_groups = odict()
+        self.prefix_action_groups = odict()
 
         for stp in itervalues(self.prefix_setups):
             log.debug("instantiating UnlinkLinkTransaction with\n"
@@ -172,7 +172,7 @@ class UnlinkLinkTransaction(object):
         for stp in itervalues(self.prefix_setups):
             grps = self._prepare(stp.index, stp.target_prefix, stp.unlink_dists, stp.link_dists,
                                  stp.command_action, stp.requested_specs)
-            self.prefix_groups[stp.target_prefix] = PrefixActionGroups(*grps)
+            self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
         self._prepared = True
 
@@ -184,9 +184,7 @@ class UnlinkLinkTransaction(object):
             self._verified = True
             return
 
-        exceptions = []
-        for target_prefix, prefix_groups in iteritems(self.prefix_groups):
-            exceptions.extend(self._verify(target_prefix, prefix_groups))
+        exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
 
         if exceptions:
             maybe_raise(CondaMultiError(exceptions), context)
@@ -198,7 +196,7 @@ class UnlinkLinkTransaction(object):
     def execute(self):
         if not self._verified:
             self.verify()
-        self._execute(tuple(concat(interleave(itervalues(self.prefix_groups)))))
+        self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
 
     @classmethod
     def _prepare(cls, index, target_prefix, unlink_dists, link_dists, command_action,
@@ -271,7 +269,7 @@ class UnlinkLinkTransaction(object):
                                              register_actions + history_actions,
                                              target_prefix),
 
-        return PrefixActionGroups(
+        return PrefixActionGroup(
             unlink_action_groups,
             unregister_action_groups,
             link_action_groups,
@@ -279,9 +277,9 @@ class UnlinkLinkTransaction(object):
         )
 
     @staticmethod
-    def _verify_individual_level(prefix_groups):
+    def _verify_individual_level(prefix_action_group):
         all_actions = concat(axngroup.actions
-                             for action_groups in prefix_groups
+                             for action_groups in prefix_action_group
                              for axngroup in action_groups)
 
         # run all per-action verify methods
@@ -297,7 +295,7 @@ class UnlinkLinkTransaction(object):
                 yield error_result
 
     @staticmethod
-    def _verify_prefix_level(target_prefix, prefix_groups):
+    def _verify_prefix_level(target_prefix, prefix_action_group):
         # further verification of the whole transaction
         # for each path we are creating in link_actions, we need to make sure
         #   1. each path either doesn't already exist in the prefix, or will be unlinked
@@ -305,16 +303,15 @@ class UnlinkLinkTransaction(object):
         #   3. if the target is a private env, leased paths need to be verified
         #   4. make sure conda-meta/history file is writable
         #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
-        #   6. make sure we're not removing conda or a conda dependency from conda's env
-        #   7. make sure we're not removing pinned packages without no-pin flag
-        # TODO: 3, 4, 6, 7
+        #   6. make sure we're not removing pinned packages without no-pin flag
+        # TODO: 3, 4, 6
 
         unlink_action_groups = (axn_grp
-                                for action_groups in prefix_groups
+                                for action_groups in prefix_action_group
                                 for axn_grp in action_groups
                                 if axn_grp.type == 'unlink')
         link_action_groups = (axn_grp
-                              for action_groups in prefix_groups
+                              for action_groups in prefix_action_group
                               for axn_grp in action_groups
                               if axn_grp.type == 'link')
 
@@ -359,11 +356,68 @@ class UnlinkLinkTransaction(object):
                     path, tuple(Dist(axn.linked_package_record) for axn in axns), context
                 )
 
+    @staticmethod
+    def _verify_transaction_level(prefix_setups):
+        # 1. make sure we're not removing conda or a conda dependency from conda's env
+        # 2. make sure we're not removing a conda dependency from conda's env
+        conda_prefixes = (join(context.root_prefix, 'envs', '_conda_'), context.root_prefix)
+        conda_setups = tuple(setup for setup in itervalues(prefix_setups)
+                             if setup.target_prefix in conda_prefixes)
+
+        conda_unlinked = any(d.name == 'conda'
+                             for setup in conda_setups
+                             for d in setup.unlink_dists)
+
+        conda_dist, conda_final_setup = next(
+            ((d, setup)
+             for setup in conda_setups
+             for d in setup.link_dists
+             if d.name == 'conda'),
+            (None, None)
+        )
+
+        if conda_unlinked and conda_final_setup is None:
+            # means conda is being unlinked and not re-linked anywhere
+            # this should never be able to be skipped, even with --force
+            yield RemoveError("This operation will remove conda without replacing it with\n"
+                              "another version of conda.")
+
+        if conda_final_setup is None:
+            # means we're not unlinking then linking a new package, so look up current conda record
+            conda_final_prefix = context.conda_prefix
+            pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
+                                           or ())
+            pkg_names_being_lnkd = ()
+            pkg_names_being_unlnkd = ()
+            conda_linked_depends = next((record.depends
+                                         for record in get_linked_data(conda_final_prefix)
+                                         if record.name == 'conda'),
+                                        ())
+        else:
+            conda_final_prefix = conda_final_setup.target_prefix
+            pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
+                                           or ())
+            pkg_names_being_lnkd = tuple(d.name for d in conda_final_setup.link_dists or ())
+            pkg_names_being_unlnkd = tuple(d.name for d in conda_final_setup.unlink_dists or ())
+            conda_linked_depends = conda_final_setup.index[conda_dist].depends
+
+        for conda_dependency in conda_linked_depends:
+            dep_name = MatchSpec(conda_dependency).name
+            if dep_name not in pkg_names_being_lnkd and (dep_name not in pkg_names_already_lnkd
+                                                         or dep_name in pkg_names_being_unlnkd):
+                # equivalent to not (dep_name in pkg_names_being_lnkd or
+                #  (dep_name in pkg_names_already_lnkd and dep_name not in pkg_names_being_unlnkd))
+                yield RemoveError("'%s' is a dependency of conda and cannot be removed from\n"
+                                  "conda's operating environment." % dep_name)
+
     @classmethod
-    def _verify(cls, target_prefix, prefix_groups):
+    def _verify(cls, prefix_setups, prefix_action_groups):
         exceptions = tuple(exc for exc in concatv(
-            cls._verify_individual_level(prefix_groups),
-            cls._verify_prefix_level(target_prefix, prefix_groups),
+            concat(cls._verify_individual_level(prefix_group)
+                   for prefix_group in itervalues(prefix_action_groups)),
+            concat(cls._verify_prefix_level(target_prefix, prefix_group)
+                   for target_prefix, prefix_group in iteritems(prefix_action_groups)),
+            cls._verify_transaction_level(prefix_setups),
         ) if exc)
         return exceptions
 

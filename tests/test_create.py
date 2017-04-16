@@ -965,26 +965,43 @@ class IntegrationTests(TestCase):
         finally:
             rmtree(prefix, ignore_errors=True)
 
-    # @pytest.mark.xfail(datetime.now() < datetime(2017, 4, 1), reason="Bring back when conda uninstall conda raises again", strict=True)
+    def test_dont_remove_conda(self):
+        pkgs_dirs = context.pkgs_dirs
+        prefix = make_temp_prefix()
+        with env_var('CONDA_ROOT_PREFIX', prefix, reset_context):
+            with env_var('CONDA_PKGS_DIRS', ','.join(pkgs_dirs), reset_context):
+                with make_temp_env(prefix=prefix):
+                    stdout, stderr = run_command(Commands.INSTALL, prefix, "conda")
+                    assert_package_is_installed(prefix, "conda-")
+                    assert_package_is_installed(prefix, "pycosat-")
+
+                    with pytest.raises(CondaMultiError) as exc:
+                        run_command(Commands.REMOVE, prefix, 'conda')
+
+                    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+                    assert_package_is_installed(prefix, "conda-")
+                    assert_package_is_installed(prefix, "pycosat-")
+
+                    with pytest.raises(CondaMultiError) as exc:
+                        run_command(Commands.REMOVE, prefix, 'pycosat')
+
+                    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+                    assert_package_is_installed(prefix, "conda-")
+                    assert_package_is_installed(prefix, "pycosat-")
+
     def test_force_remove(self):
-        prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        with make_temp_env(prefix=prefix):
-            stdout, stderr = run_command(Commands.INSTALL, prefix, "conda")
-            assert_package_is_installed(prefix, "conda-")
-            assert_package_is_installed(prefix, "pycosat-")
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "flask")
+            assert package_is_installed(prefix, "flask-")
+            assert package_is_installed(prefix, "jinja2-")
 
-            self.assertRaises(RemoveError, run_command, Commands.REMOVE, prefix, 'conda')
-            assert_package_is_installed(prefix, "conda-")
-            assert_package_is_installed(prefix, "pycosat-")
+            stdout, stderr = run_command(Commands.REMOVE, prefix, "jinja2", "--force")
+            assert not package_is_installed(prefix, "jinja2-")
+            assert package_is_installed(prefix, "flask-")
 
-            stdout, stderr = run_command(Commands.REMOVE, prefix, "conda", "--force")
+            stdout, stderr = run_command(Commands.REMOVE, prefix, "flask")
+            assert not package_is_installed(prefix, "flask-")
 
-            # assert conda is no longer in conda list
-            stdout, stderr = run_command(Commands.LIST, prefix)
-            stdout_lines = stdout.split('\n')
-            assert not any([line.startswith("conda   ") for line in stdout_lines])
-
-            assert package_is_installed(prefix, "pycosat-")
 
     def test_transactional_rollback_simple(self):
         from conda.core.path_actions import CreateLinkedPackageRecordAction

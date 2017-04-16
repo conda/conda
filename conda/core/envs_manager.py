@@ -19,7 +19,6 @@ from ..common.path import ensure_pad, right_pad_os_sep, win_path_ok
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError, NotWritableError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable
-from ..models.dist import Dist
 
 try:
     from cytoolz.itertoolz import concatv, groupby
@@ -75,6 +74,8 @@ class EnvsDirectory(object):
 
         package_name: package name
         conda_meta_path: path to the package's conda-meta/*.json file within the target_prefix
+        preferred_env_name: private environment name
+        requested_spec: spec used at install time
 
     A preferred env package cannot also be installed in the root env.
 
@@ -377,21 +378,15 @@ class EnvsDirectory(object):
         get_env_name = lambda x: x['preferred_env_name']
         return groupby(get_env_name, self._preferred_env_packages)
 
-    def prefix_if_in_private_env(self, spec_str):
-        # TODO: get rid of this
+    def get_private_env_prefix(self, spec_str):
         package_name = spec_str.split()[0]
         pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
         return join(self.envs_dir, pep['preferred_env_name']) if pep else None
 
-    def get_preferred_env_package(self, spec_str):
-        # TODO: get rid of this
+    def get_preferred_env_package_entry(self, spec_str):
         package_name = spec_str.split()[0]
         pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        if pep:
-            json_file_name = basename(pep['conda_meta_path'])
-            return Dist(json_file_name[:-5])
-        else:
-            return None
+        return pep or None
 
 
 def get_prefix(ctx, args, search=True):

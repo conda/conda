@@ -150,7 +150,7 @@ def install(args, parser, command='install'):
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names:
                 envs_dir = join(context.root_prefix, 'envs')
-                private_env_prefix = EnvsDirectory(envs_dir).prefix_if_in_private_env(name)
+                private_env_prefix = EnvsDirectory(envs_dir).get_private_env_prefix(name)
                 if private_env_prefix is None:
                     raise PackageNotInstalledError(prefix, name)
 
@@ -355,7 +355,8 @@ def install(args, parser, command='install'):
             print(print_activate(args.name if args.name else prefix))
 
     if context.json:
-        common.stdout_json_success(actions=unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0])
+        actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]
+        common.stdout_json_success(actions=actions)
 
     # for actions in action_groups:
     #     # if newenv:
