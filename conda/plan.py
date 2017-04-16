@@ -672,11 +672,16 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
               "\n    ".join(text_type(s) for s in user_requested_specs))
     specs_map = {s.name: s for s in user_requested_specs if s.name not in spec_names_to_remove}
 
+    if not context.auto_update_conda and not any(s.name == 'conda' for s in specs_to_add):
+        specs_map.pop('conda', None)
+        specs_map.pop('conda-env', None)
+
     # replace specs matching same name with new specs_to_add
     specs_map.update({s.name: s for s in specs_to_add})
     specs_to_add = itervalues(specs_map)
 
     specs_to_add = augment_specs(prefix, specs_to_add)
+    
     log.debug("final specs to add:\n    %s\n",
               "\n    ".join(text_type(s) for s in specs_to_add))
     solved_linked_dists = r.install(specs_to_add,
