@@ -9,7 +9,7 @@ addons:
       - zsh
 
 git:
-  depth: 100
+  depth: 1000
 
 
 cache:
