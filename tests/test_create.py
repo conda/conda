@@ -471,7 +471,6 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'mkl')
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 5, 1), reason="Bring back when we can pin packages to a channel by default", strict=True)
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:

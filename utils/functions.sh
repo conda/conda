@@ -204,8 +204,8 @@ conda_build_unit_test() {
     export PATH="$prefix/bin:$PATH"  # cheating
     conda info
 
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
     $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not test_pip_in_meta_yaml_fail"  # TODO: remove -k flag when conda/conda-build#1927 is merged
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
     popd
 }
 
