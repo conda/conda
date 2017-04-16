@@ -46,7 +46,7 @@ the amazing members of the conda community.  Some of them can be found
 
 Installation
 ------------
-
+Hello!
 Conda is a part of the `Anaconda distribution <https://store.continuum.io/cshop/anaconda/>`_.  You can also download a
 minimal installation that only includes conda and its dependencies, called
 `Miniconda <http://conda.pydata.org/miniconda.html>`_.
