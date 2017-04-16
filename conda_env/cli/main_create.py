@@ -70,6 +70,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    from conda.base.context import context
     name = args.remote_definition or args.name
 
     try:
@@ -98,7 +99,6 @@ def execute(args, parser):
     # special case for empty environment
     if not env.dependencies:
         from conda.install import symlink_conda
-        from conda.base.context import context
         symlink_conda(prefix, context.root_dir)
 
     for installer_type, pkg_specs in env.dependencies.items():

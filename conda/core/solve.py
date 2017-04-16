@@ -5,17 +5,16 @@ from collections import defaultdict
 from copy import copy
 from genericpath import exists
 from logging import getLogger
-from os.path import abspath, join, basename
+from os.path import basename, join
 
-from .._vendor.boltons.setutils import IndexedSet
-
-from ..base.context import context
-from ..common.compat import iterkeys, itervalues, odict, text_type, iteritems
-from ..common.path import ensure_pad
 from .envs_manager import EnvsDirectory
 from .index import _supplement_index_with_prefix
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import linked_data
+from .._vendor.boltons.setutils import IndexedSet
+from ..base.context import context
+from ..common.compat import iteritems, iterkeys, itervalues, odict, text_type
+from ..common.path import ensure_pad
 from ..exceptions import InstallError
 from ..gateways.disk.test import prefix_is_writable
 from ..history import History
@@ -46,40 +45,6 @@ def get_pinned_specs(prefix):
         return s if ' ' in s else spec_from_line(s)
 
     return tuple(munge_spec(s) for s in concatv(context.pinned_packages, from_file))
-
-
-def augment_specs(prefix, specs, pinned=True):
-    _specs = list(specs)
-
-    # get conda-meta/pinned
-    if context.respect_pinned:
-        pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s", pinned_specs)
-        _specs += [MatchSpec(spec) for spec in pinned_specs]
-
-    # support aggressive auto-update conda
-    #   Only add a conda spec if conda and conda-env are not in the specs.
-    #   Also skip this step if we're offline.
-    root_only = ('conda', 'conda-env')
-    mss = [MatchSpec(s) for s in _specs if s.name.startswith(root_only)]
-    mss = [ms for ms in mss if ms.name in root_only]
-
-    if prefix == context.root_prefix:
-        if context.auto_update_conda and not context.offline and not mss:
-            log.debug("Adding 'conda' to specs.")
-            _specs.append(MatchSpec('conda'))
-            _specs.append(MatchSpec('conda-env'))
-    elif basename(prefix).startswith('_'):
-        # anything (including conda) can be installed into environments
-        # starting with '_', mainly to allow conda-build to build conda
-        pass
-    elif mss:
-        raise InstallError("Error: 'conda' can only be installed into the root environment")
-
-    # support track_features config parameter
-    if context.track_features:
-        _specs.extend(x + '@' for x in context.track_features)
-    return _specs
 
 
 def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
@@ -357,3 +322,37 @@ def install_transaction(prefix, index, specs, force=False, only_names=None, alwa
                       tuple(s.spec for s in specs))
     txn = UnlinkLinkTransaction(stp)
     return txn
+
+
+def augment_specs(prefix, specs, pinned=True):
+    _specs = list(specs)
+
+    # get conda-meta/pinned
+    if context.respect_pinned:
+        pinned_specs = get_pinned_specs(prefix)
+        log.debug("Pinned specs=%s", pinned_specs)
+        _specs += [MatchSpec(spec) for spec in pinned_specs]
+
+    # support aggressive auto-update conda
+    #   Only add a conda spec if conda and conda-env are not in the specs.
+    #   Also skip this step if we're offline.
+    root_only = ('conda', 'conda-env')
+    mss = [MatchSpec(s) for s in _specs if s.name.startswith(root_only)]
+    mss = [ms for ms in mss if ms.name in root_only]
+
+    if prefix == context.root_prefix:
+        if context.auto_update_conda and not context.offline and not mss:
+            log.debug("Adding 'conda' to specs.")
+            _specs.append(MatchSpec('conda'))
+            _specs.append(MatchSpec('conda-env'))
+    elif basename(prefix).startswith('_'):
+        # anything (including conda) can be installed into environments
+        # starting with '_', mainly to allow conda-build to build conda
+        pass
+    elif mss:
+        raise InstallError("Error: 'conda' can only be installed into the root environment")
+
+    # support track_features config parameter
+    if context.track_features:
+        _specs.extend(x + '@' for x in context.track_features)
+    return _specs
