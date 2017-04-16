@@ -217,9 +217,9 @@ def get_install_transaction(prefix, index, spec_strs, force=False, only_names=No
 
         if len(env_add_map) == len(registered_packages) == 0:
             # short-circuit the rest of this logic
-            return get_install_transaction_single(prefix, index, spec_strs, force, only_names, always_copy,
-                                                  pinned, minimal_hint, update_deps, prune,
-                                                  channel_priority_map, is_update)
+            return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
+                                                  always_copy, pinned, minimal_hint, update_deps,
+                                                  prune, channel_priority_map, is_update)
 
         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
@@ -290,9 +290,9 @@ def get_install_transaction(prefix, index, spec_strs, force=False, only_names=No
 
     else:
         # disregard any requested preferred env
-        return get_install_transaction_single(prefix, index, spec_strs, force, only_names, always_copy,
-                                              pinned, minimal_hint, update_deps, prune,
-                                              channel_priority_map, is_update)
+        return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
+                                              always_copy, pinned, minimal_hint, update_deps,
+                                              prune, channel_priority_map, is_update)
 
 
 def get_install_transaction_single(prefix, index, specs, force=False, only_names=None,
