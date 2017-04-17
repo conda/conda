@@ -66,7 +66,7 @@ class UrlDistTests(TestCase):
 
     def test_dist_with_channel_url(self):
         # standard named channel
-        url = "https://repo.continuum.io/pkgs/anaconda/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+        url = "https://repo.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
         assert d.channel == 'defaults'
         assert d.name == 'spyder-app'
@@ -77,7 +77,7 @@ class UrlDistTests(TestCase):
         assert d.is_channel is True
 
         # standard url channel
-        url = "https://not.real.continuum.io/pkgs/anaconda/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+        url = "https://not.real.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
         assert d.channel == 'defaults'  # because pkgs/anaconda is in defaults
         assert d.name == 'spyder-app'

@@ -6,12 +6,13 @@ from os import W_OK, access
 from os.path import basename, dirname, isdir, isfile, join, lexists
 
 from .create import create_link
-from .delete import rm_rf
+from .delete import rm_rf, try_rmdir_all_empty
 from .link import islink
 from .read import find_first_existing
-from ... import CondaError
+from .update import touch
 from ..._vendor.auxlib.decorators import memoize
 from ..._vendor.auxlib.path import expand
+from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.path import get_python_short_path
 from ...models.enums import LinkType
 
@@ -56,15 +57,28 @@ def prefix_is_writable(prefix):
     """
     if isdir(prefix):
         test_path = find_first_existing(
-            join(prefix, 'conda-meta', 'history'),  # (1)
+            join(prefix, PREFIX_MAGIC_FILE),  # (1)
             join(prefix, 'conda-meta', 'conda-*.json'),  # (2)
             join(prefix, 'conda-meta', '*.json'),  # (3)
             join(prefix, get_python_short_path('*')),  # (4)
         )
         log.debug("testing write access for prefix '%s' using path '%s'", prefix, test_path)
-        if test_path is None:
-            raise CondaError("Unable to determine if prefix '%s' is writable." % prefix)
-        return file_path_is_writable(test_path)
+        if test_path:
+            return file_path_is_writable(test_path)
+        else:
+            # try creating the magic file, but then clean up after ourselves
+            try:
+                touch(PREFIX_MAGIC_FILE, True)
+            except (IOError, OSError) as e:
+                return False
+            else:
+                return True
+            finally:
+                try:
+                    rm_rf(PREFIX_MAGIC_FILE)
+                    try_rmdir_all_empty(dirname(PREFIX_MAGIC_FILE))
+                except (IOError, OSError) as e:
+                    log.trace('%r', e)
     else:
         # TODO: probably won't work well on Windows
         log.debug("testing write access for prefix '%s' using prefix directory", prefix)

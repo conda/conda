@@ -1,8 +1,8 @@
-# {% set setup_py_data = load_setup_py_data() %}
+{% set setup_py_data = load_setup_py_data() %}
 
 package:
   name: conda
-  # version: "{{ setup_py_data.version }}"
+  version: "{{ setup_py_data.version }}"
 
 source:
   path: ../
@@ -19,6 +19,7 @@ build:
     - Scripts/deactivate.bat    [win]
     - Scripts/activate          [win]
     - Scripts/deactivate        [win]
+  noarch: python
   entry_points:
     - conda = conda.cli:main
     - conda-env = conda_env.cli.main:main

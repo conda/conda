@@ -17,7 +17,6 @@ from .gateways.disk.link import islink
 from .install import symlink_conda
 from .models.dist import Dist
 
-
 log = getLogger(__name__)
 
 # op codes
@@ -101,11 +100,9 @@ def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
 
 
 def UNLINKLINKTRANSACTION_CMD(state, arg):
-    unlink_dists, link_dists = arg
-    index = state['index']
-    prefix = state['prefix']
-    txn = UnlinkLinkTransaction.create_from_dists(index, prefix, unlink_dists, link_dists)
-    txn.execute()
+    unlink_link_transaction = arg
+    assert isinstance(unlink_link_transaction, UnlinkLinkTransaction)
+    unlink_link_transaction.execute()
 
 
 def check_files_in_package(source_dir, files):

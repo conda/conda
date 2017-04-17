@@ -523,6 +523,37 @@ class CondaVerificationError(CondaError):
         super(CondaVerificationError, self).__init__(message)
 
 
+class NotWritableError(CondaError):
+
+    def __init__(self, path):
+        kwargs = {
+            'path': path,
+        }
+        if on_win:
+            message = dals("""
+            The current user does not have write permissions to a required path.
+              path: %(path)s
+            """)
+        else:
+            message = dals("""
+            The current user does not have write permissions to a required path.
+              path: %(path)s
+              uid: %(uid)s
+              gid: %(gid)s
+
+            If you feel that permissions on this path are set incorrectly, you can manually
+            change them by executing
+
+              $ sudo chmod %(uid)s:%(gid)s %(path)s
+            """)
+            import os
+            kwargs.update({
+                'uid': os.geteuid(),
+                'gid': os.getegid(),
+            })
+        super(NotWritableError, self).__init__(message, **kwargs)
+
+
 def print_conda_exception(exception):
     from conda.base.context import context
 
@@ -594,15 +625,15 @@ def maybe_raise(error, context):
                 raise error
             elif context.path_conflict == PathConflict.warn and not context.clobber:
                 print_conda_exception(CondaMultiError(clobber_errors))
-            if non_clobber_errors:
-                raise CondaMultiError(non_clobber_errors)
+        if non_clobber_errors:
+            raise CondaMultiError(non_clobber_errors)
     elif isinstance(error, ClobberError):
         if context.path_conflict == PathConflict.prevent and not context.clobber:
             raise error
         elif context.path_conflict == PathConflict.warn and not context.clobber:
             print_conda_exception(error)
     else:
-        raise NotImplementedError()
+        raise error
 
 
 def handle_exception(e):

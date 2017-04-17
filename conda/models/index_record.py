@@ -114,6 +114,9 @@ class IndexRecord(DictSafeMixin, Entity):
 
     preferred_env = StringField(default=None, required=False, nullable=True)
 
+    # this is only for LinkedPackageRecord
+    leased_paths = ListField(string_types, required=False, nullable=True)
+
     @property
     def combined_depends(self):
         from .match_spec import MatchSpec

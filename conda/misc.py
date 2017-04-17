@@ -103,6 +103,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     r = Resolve(index)
     actions[LINK].extend(link_dists)
     actions[LINK] = r.dependency_sort({r.package_name(dist): dist for dist in actions[LINK]})
+    actions['ACTION'] = 'EXPLICIT'
 
     execute_actions(actions, index, verbose=verbose)
     return actions

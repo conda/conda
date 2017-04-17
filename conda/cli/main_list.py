@@ -153,8 +153,8 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=context.show_channel_urls):
-    if not isdir(prefix):
-        raise CondaEnvironmentNotFoundError(prefix)
+    # if not isdir(prefix):
+    #     raise CondaEnvironmentNotFoundError(prefix)
 
     if not json:
         if format == 'human':
