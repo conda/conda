@@ -196,6 +196,8 @@ conda_activate_test() {
         $prefix/bin/python utils/setup-testing.py develop
         $prefix/bin/python -m conda._vendor.auxlib.packaging conda
     fi
+    cat conda/__init__.py
+    ls -al conda/_vendor
 
     $prefix/bin/python -c "import conda; print(conda.__version__)"
     $prefix/bin/python -m conda info
