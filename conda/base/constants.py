@@ -8,6 +8,8 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from os.path import join
+
 from enum import Enum
 import sys
 
@@ -59,12 +61,12 @@ PLATFORM_DIRECTORIES = ("linux-64",
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
 
-DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/anaconda',
+DEFAULT_CHANNELS_UNIX = ('https://repo.continuum.io/pkgs/free',
                          'https://repo.continuum.io/pkgs/r',
                          'https://repo.continuum.io/pkgs/pro',
                          )
 
-DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/anaconda',
+DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
                         'https://repo.continuum.io/pkgs/r',
                         'https://repo.continuum.io/pkgs/pro',
                         'https://repo.continuum.io/pkgs/msys2',
@@ -99,3 +101,9 @@ class PathConflict(Enum):
 
     def __str__(self):
         return self.value
+
+
+# Magic files for permissions determination
+PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
+ENVS_DIR_MAGIC_FILE = 'catalog.json'
+PREFIX_MAGIC_FILE = join('conda-meta', 'history')

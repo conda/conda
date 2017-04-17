@@ -186,7 +186,7 @@ def win_path_backout(path):
 
 
 def ensure_pad(name, pad="_"):
-    return "%s%s%s" % (pad, name.strip(pad), pad)
+    return name and "%s%s%s" % (pad, name.strip(pad), pad)
 
 
 def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
@@ -206,20 +206,28 @@ def prefix_to_env_name(prefix, root_prefix):
 def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     # type: (str, str, str) -> bool
     if preferred_env is None:
-        return True
+        return False
+
+    # check if prefix is within root_prefix/envs
     prefix_dir = dirname(prefix)
     if prefix_dir != join(root_dir, 'envs'):
         return False
+
     prefix_name = basename(prefix)
     padded_preferred_env = ensure_pad(preferred_env)
     return prefix_name == padded_preferred_env
 
 
-def is_private_env(env):
-    if env is not None:
-        env_name = basename(env)
-        if env_name.startswith("_") and env_name.endswith("_"):
-            return True
+def is_private_env_name(env_name):
+    return env_name and env_name[0] == env_name[-1] == "_"
+
+
+def is_private_env_path(env_path):
+    if env_path is not None:
+        envs_directory, env_name = split(env_path)
+        if basename(envs_directory) != "envs":
+            return False
+        return is_private_env_name(env_name)
     return False
 
 

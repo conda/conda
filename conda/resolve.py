@@ -1,17 +1,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-import re
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
-from .exceptions import CondaValueError, NoPackagesFoundError, UnsatisfiableError
+from .exceptions import NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
+from .models.match_spec import MatchSpec
+from .models.version import normalized_version
 from .toposort import toposort
-from .version import VersionSpec, normalized_version
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -24,115 +24,9 @@ setup_handlers()
 Unsatisfiable = UnsatisfiableError
 NoPackagesFound = NoPackagesFoundError
 
+
 def dashlist(iter):
     return ''.join('\n  - ' + str(x) for x in iter)
-
-
-class MatchSpec(object):
-    def __new__(cls, spec, target=Ellipsis, optional=Ellipsis, normalize=False):
-        if isinstance(spec, cls):
-            if target is Ellipsis and optional is Ellipsis and not normalize:
-                return spec
-            target = spec.target if target is Ellipsis else target
-            optional = spec.optional if optional is Ellipsis else optional
-            spec = spec.spec
-        self = object.__new__(cls)
-        self.target = None if target is Ellipsis else target
-        self.optional = False if optional is Ellipsis else bool(optional)
-        spec, _, oparts = spec.partition('(')
-        if oparts:
-            if oparts.strip()[-1] != ')':
-                raise CondaValueError("Invalid MatchSpec: %s" % spec)
-            for opart in oparts.strip()[:-1].split(','):
-                if opart == 'optional':
-                    self.optional = True
-                elif opart.startswith('target='):
-                    self.target = opart.split('=')[1].strip()
-                else:
-                    raise CondaValueError("Invalid MatchSpec: %s" % spec)
-        spec = self.spec = spec.strip()
-        parts = spec.split()
-        nparts = len(parts)
-        assert 1 <= nparts <= 3, repr(spec)
-        self.name = parts[0]
-        if nparts == 1:
-            self.match_fast = self._match_any
-            self.strictness = 1
-            return self
-        self.strictness = 2
-        vspec = VersionSpec(parts[1])
-        if vspec.is_exact():
-            if nparts > 2 and '*' not in parts[2]:
-                self.version, self.build = parts[1:]
-                self.match_fast = self._match_exact
-                self.strictness = 3
-                return self
-            if normalize and not parts[1].endswith('*'):
-                parts[1] += '*'
-                vspec = VersionSpec(parts[1])
-                self.spec = ' '.join(parts)
-        self.version = vspec
-        if nparts == 2:
-            self.match_fast = self._match_version
-        else:
-            rx = r'^(?:%s)$' % parts[2].replace('*', r'.*')
-            self.build = re.compile(rx)
-            self.match_fast = self._match_full
-        return self
-
-    def is_exact(self):
-        return self.match_fast == self._match_exact
-
-    def is_simple(self):
-        return self.match_fast == self._match_any
-
-    def _match_any(self, version, build):
-        return True
-
-    def _match_version(self, version, build):
-        return self.version.match(version)
-
-    def _match_exact(self, version, build):
-        return build == self.build and self.version == version
-
-    def _match_full(self, version, build):
-        return self.build.match(build) and self.version.match(version)
-
-    def match(self, dist):
-        # type: (Dist) -> bool
-        name, version, build, _ = dist.quad
-        if name != self.name:
-            return False
-        result = self.match_fast(version, build)
-        return result
-
-    def to_filename(self):
-        if self.is_exact() and not self.optional:
-            return self.name + '-%s-%s.tar.bz2' % (self.version, self.build)
-        else:
-            return None
-
-    def __eq__(self, other):
-        return (type(other) is MatchSpec and
-                (self.spec, self.optional, self.target) ==
-                (other.spec, other.optional, other.target))
-
-    def __hash__(self):
-        return hash(self.spec)
-
-    def __repr__(self):
-        return "MatchSpec('%s')" % self.__str__()
-
-    def __str__(self):
-        res = self.spec
-        if self.optional or self.target:
-            args = []
-            if self.optional:
-                args.append('optional')
-            if self.target:
-                args.append('target='+self.target)
-            res = '%s (%s)' % (res, ','.join(args))
-        return res
 
 
 class Resolve(object):
@@ -176,7 +70,7 @@ class Resolve(object):
             filter.update({Dist(fstr+'@'): True for fstr in features})
         return filter
 
-    def valid(self, spec_or_dist, filter):
+    def valid(self, spec_or_dist, filter, optional=True):
         """Tests if a package, MatchSpec, or a list of both has satisfiable
         dependencies, assuming cyclic dependencies are always valid.
 
@@ -184,6 +78,8 @@ class Resolve(object):
             spec_or_dist: a package key, a MatchSpec, or an iterable of these.
             filter: a dictionary of (fkey,valid) pairs, used to consider a subset
                 of dependencies, and to eliminate repeated searches.
+            optional: if True (default), do not enforce optional specifications
+                when considering validity. If False, enforce them.
 
         Returns:
             True if the full set of dependencies can be satisfied; False otherwise.
@@ -194,7 +90,8 @@ class Resolve(object):
             return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return ms.optional or any(v_fkey_(fkey) for fkey in self.find_matches(ms))
+            return ((optional and ms.optional) or
+                    any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
         def v_fkey_(dist):
             val = filter.get(dist)
@@ -206,7 +103,7 @@ class Resolve(object):
         result = v_(spec_or_dist)
         return result
 
-    def invalid_chains(self, spec, filter):
+    def invalid_chains(self, spec, filter, optional=True):
         """Constructs a set of 'dependency chains' for invalid specs.
 
         A dependency chain is a tuple of MatchSpec objects, starting with
@@ -219,6 +116,8 @@ class Resolve(object):
             spec: a package key or MatchSpec
             filter: a dictionary of (dist, valid) pairs to be used when
                 testing for package validity.
+            optional: if True (default), do not enforce optional specifications
+                when considering validity. If False, enforce them.
 
         Returns:
             A generator of tuples, empty if the MatchSpec is valid.
@@ -227,7 +126,7 @@ class Resolve(object):
             if spec.name in names:
                 return
             names.add(spec.name)
-            if self.valid(spec, filter):
+            if self.valid(spec, filter, optional):
                 return
             dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
             found = False
@@ -319,11 +218,11 @@ class Resolve(object):
             filter = {}
             for mn, v in sdep.items():
                 if mn != ms.name and mn in commkeys:
-                    # Mark this package's "unique" dependencies as invali
+                    # Mark this package's "unique" dependencies as invalid
                     for fkey in v - commkeys[mn]:
                         filter[fkey] = False
             # Find the dependencies that lead to those invalid choices
-            ndeps = set(self.invalid_chains(ms, filter))
+            ndeps = set(self.invalid_chains(ms, filter, False))
             # This may produce some additional invalid chains that we
             # don't care about. Select only those that terminate in our
             # predetermined set of "common" keys.
@@ -426,21 +325,14 @@ class Resolve(object):
                             slist.append(ms)
         return reduced_index
 
-    def match_any(self, mss, fkey):
-        rec = self.index[fkey]
-        n, v, b = rec['name'], rec['version'], rec['build']
-        return any(n == ms.name and ms.match_fast(v, b) for ms in mss)
+    def match_any(self, mss, dist):
+        rec = self.index[dist]
+        return any(ms.match(rec) for ms in mss)
 
     def match(self, ms, fkey):
         # type: (MatchSpec, Dist) -> bool
         rec = self.index[fkey]
-        ms = MatchSpec(ms)
-        return (ms.name == rec['name'] and
-                ms.match_fast(rec['version'], rec['build']))
-
-    def match_fast(self, ms, fkey):
-        rec = self.index[fkey]
-        return ms.match_fast(rec['version'], rec['build'])
+        return MatchSpec(ms).match(rec)
 
     def find_matches(self, ms):
         # type: (MatchSpec) -> List[Dist]
@@ -451,7 +343,8 @@ class Resolve(object):
                 res = self.trackers.get(ms.name[1:], [])
             else:
                 res = self.groups.get(ms.name, [])
-            res = [p for p in res if self.match_fast(ms, p)]
+                res = [p for p in res if self.match(ms, p)]
+            assert all(isinstance(d, Dist) for d in res)
             self.find_matches_[ms] = res
         return res
 
@@ -460,7 +353,7 @@ class Resolve(object):
         deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
-            deps = [MatchSpec(d) for d in rec.get('depends', [])]
+            deps = [MatchSpec(d) for d in rec.combined_depends]
             deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
         return deps
@@ -508,6 +401,9 @@ class Resolve(object):
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
+    def is_superceded(self, dist):
+        return dist in self.index or self.index.get('superceded', '')
+
     def get_pkgs(self, ms, emptyok=False):
         # legacy method for conda-build
         # TODO: remove in conda 4.4
@@ -534,7 +430,7 @@ class Resolve(object):
         tgroup = libs = (self.trackers.get(ms.name[1:], []) if ms.name[0] == '@'
                          else self.groups.get(ms.name, []))
         if not ms.is_simple():
-            libs = [fkey for fkey in tgroup if self.match_fast(ms, fkey)]
+            libs = [fkey for fkey in tgroup if self.match(ms, fkey)]
         if len(libs) == len(tgroup):
             if ms.optional:
                 m = True
@@ -746,9 +642,10 @@ class Resolve(object):
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
             if update_deps:
-                spec = MatchSpec('%s (target=%s)' % (name, pkg))
+                spec = MatchSpec(name=name, target=pkg.full_name)
             else:
-                spec = MatchSpec('%s %s %s' % (name, version, build))
+                spec = MatchSpec(name=name, version=version,
+                                 build=build, schannel=schannel)
             specs.append(spec)
         return specs, preserve
 
@@ -772,11 +669,11 @@ class Resolve(object):
                 continue
             elif limit is not None:
                 preserve.append(dist)
-            elif ver:
-                specs.append(MatchSpec('%s >=%s' % (nm, ver), optional=True,
-                                       target=dist.full_name))
             else:
-                specs.append(MatchSpec(nm, optional=True, target=dist.full_name))
+                specs.append(MatchSpec(name=nm,
+                                       version='>='+ver if ver else None,
+                                       optional=True,
+                                       target=dist.full_name))
         return specs, preserve
 
     def remove(self, specs, installed):

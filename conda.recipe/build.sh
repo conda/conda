@@ -4,7 +4,6 @@ unlink $PREFIX/bin/activate || true
 unlink $PREFIX/bin/deactivate || true
 
 $PYTHON conda.recipe/setup.py install
-$PYTHON conda.recipe/setup.py --version > __conda_version__.txt
 
 mkdir -p $PREFIX/etc/fish/conf.d/
 cp $SRC_DIR/shell/conda.fish $PREFIX/etc/fish/conf.d/

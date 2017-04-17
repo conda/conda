@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
-import json
 from logging import getLogger
 from os import listdir, removedirs, rename, unlink, walk
 from os.path import abspath, dirname, isdir, join, lexists
@@ -12,7 +11,6 @@ from uuid import uuid4
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink
 from .permissions import make_writable, recursive_make_writable
-from .read import get_json_content
 from ...base.context import context
 from ...common.compat import on_win, text_type
 
@@ -166,14 +164,3 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
     except (IOError, OSError) as e:
         # this function only guarantees trying, so we just swallow errors
         log.trace('%r', e)
-
-
-def remove_private_envs_meta(pkg):
-    private_envs_json = get_json_content(context.private_envs_json_path)
-    if pkg in private_envs_json.keys():
-        private_envs_json.pop(pkg)
-    if private_envs_json == {}:
-        rm_rf(context.private_envs_json_path)
-    else:
-        with open(context.private_envs_json_path, "w") as f:
-            json.dump(private_envs_json, f)
