@@ -1,31 +1,16 @@
-#!/bin/bash
 
-# Determine the directory containing this script
-if [[ -n $BASH_VERSION ]]; then
-    _SCRIPT_LOCATION=${BASH_SOURCE[0]}
-    _SHELL="bash"
-elif [[ -n $ZSH_VERSION ]]; then
-    _SCRIPT_LOCATION=${funcstack[1]}
-    _SHELL="zsh"
-else
-    echo "Only bash and zsh are supported"
-    return 1
+if [ -z "$_CONDA_ROOT" ]; then
+    _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")"
+    _CONDA_ROOT="$(dirname $_SCRIPT_DIR)"
 fi
-_SCRIPT_DIR="$(dirname $_SCRIPT_LOCATION)"
 
-# Ensure that this script is sourced, not executed
-# Note that if the script was executed, we're running inside bash!
-# Also note that errors are ignored as `activate foo` doesn't generate a bad
-# value for $0 which would cause errors.
-if [[ -n $BASH_VERSION ]] && [[ "$(basename "$0" 2> /dev/null)" == "deactivate" ]]; then
-    (>&2 echo "Error: deactivate must be sourced. Run 'source deactivate'
-instead of 'deactivate'.
-")
+if [ "$_" = "$0" ]; then
+    (
+      >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'"
+      >&2 echo "instead of 'deactivate'."
+    )
     exit 1
 fi
 
-# if [ -z "$CONDA_SHLVL" ]; then
-#     source "$_SCRIPT_DIR/../etc/profile.d/conda.sh"
-# fi
-source "$_SCRIPT_DIR/../etc/profile.d/conda.sh"
+source "$_CONDA_ROOT/etc/profile.d/conda.sh"
 _conda_deactivate

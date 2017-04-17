@@ -67,6 +67,24 @@ install_python() {
 }
 
 
+install_conda_shell_scripts() {
+    local prefix=${1:-$INSTALL_PREFIX}
+    local src_dir=${2:-${SRC_DIR:-$PWD}}
+
+    mkdir -p $prefix/etc/profile.d/
+    echo "_CONDA_EXE=\"$prefix/bin/conda\"" > $prefix/etc/profile.d/conda.sh
+    cat $src_dir/shell/conda.sh >> $prefix/etc/profile.d/conda.sh
+
+    mkdir -p $prefix/bin
+    echo "_CONDA_ROOT=\"$prefix\"" > $prefix/bin/activate
+    cat $src_dir/shell/activate >> $prefix/bin/activate
+    echo "_CONDA_ROOT=\"$prefix\"" > $prefix/bin/deactivate
+    cat $src_dir/shell/deactivate >> $prefix/bin/deactivate
+
+    mkdir -p $prefix/etc/fish/conf.d/
+    cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
+}
+
 install_conda_dev() {
     local prefix=${1:-$INSTALL_PREFIX}
     install_python $prefix
@@ -74,8 +92,7 @@ install_conda_dev() {
     $prefix/bin/pip install -r utils/requirements-test.txt
     $prefix/bin/python utils/setup-testing.py develop
 
-    mkdir -p $prefix/etc/profile.d
-    ln -s $PWD/shell/conda.sh $prefix/etc/profile.d/
+    install_conda_shell_scripts $prefix
 
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
@@ -145,7 +162,6 @@ conda_main_test() {
 }
 
 
-
 make_conda_entrypoint() {
     local filepath="$1"
     local pythonpath="$2"
@@ -163,8 +179,6 @@ make_conda_entrypoint() {
     chmod +x $filepath
     cat $filepath
 }
-
-
 
 
 conda_activate_test() {
@@ -190,7 +204,6 @@ conda_activate_test() {
 }
 
 
-
 conda_build_smoke_test() {
     local prefix=${1:-$INSTALL_PREFIX}
 
@@ -212,7 +225,7 @@ conda_build_unit_test() {
 
     # TODO: remove -k flag when conda/conda-build#1927 is merged
     $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests \
-        -k "not (pip_in_meta_yaml_fail or disable_pip or xattr)"
+        -k "not (pip_in_meta_yaml_fail or disable_pip or xattr or keeps_build_id)"
     $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
     popd
 }

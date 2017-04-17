@@ -265,14 +265,10 @@ def main():
     # if '-h' in remainder_args or '--help' in remainder_args:
     #     pass
     if command == 'shell.activate':
-        if len(remainder_args) == 1:
-            print(activator.activate(remainder_args[0]))
-        elif len(remainder_args) == 0:
-            from .exceptions import ArgumentError
-            raise ArgumentError("activate requires one argument (environment name or prefix)")
-        else:
+        if len(remainder_args) > 1:
             from .exceptions import ArgumentError
             raise ArgumentError("activate only accepts a single argument")
+        print(activator.activate(remainder_args and remainder_args[0] or "root"))
     elif command == 'shell.deactivate':
         if remainder_args:
             from .exceptions import ArgumentError

@@ -1,25 +1,48 @@
-# Ensure that this script is sourced, not executed
+
+
 if [ "$_" = "$0" ]; then
     (>&2 echo "This script must be sourced, not executed.")
     exit 1
 fi
 
-if [ -n "$BASH_VERSION" ]; then
-    _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-elif [ -n "$ZSH_VERSION" ]; then
-    _SCRIPT_DIR="$(dirname "${funcstack[1]}")"
-elif [ -n "$KSH_VERSION" ]; then
-    _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")"
-else
-    echo "Only bash and zsh are supported"
-    return 1
+
+if [ -z "${_CONDA_EXE}" ]; then
+    # hopefully _SCRIPT_DIR has already been set and we can avoid this whole mess
+    # it's useful for testing purposes though
+    if [ -n "${BASH_VERSION:+x}" ]; then
+        _CONDA_SHELL_FLAVOR=bash
+        _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+    elif [ -n "${ZSH_VERSION:+x}" ]; then
+        _CONDA_SHELL_FLAVOR=zsh
+        _SCRIPT_DIR="$(dirname "${funcstack[1]}")"
+    elif [ -n "${KSH_VERSION:+x}" ]; then
+        _CONDA_SHELL_FLAVOR=ksh
+        _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")"
+    else
+        # https://unix.stackexchange.com/a/120138/92065
+        q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
+        if [ q = dash ]; then
+            _CONDA_SHELL_FLAVOR=dash
+        else
+            unset __q
+            (>&2 echo "Unrecognized shell.")
+            return 1
+        fi
+        unset __q
+    fi
+    _CONDA_EXE="$_SCRIPT_DIR/../../bin/conda"
 fi
-_CONDA_EXE="$_SCRIPT_DIR/../../bin/conda"
 
 
 _conda_hashr() {
-    [ -z "$BASH_VERSION" ] || hash -r
-    [ -z "$ZSH_VERSION" ] || rehash
+    if [ -n "${ZSH_VERSION:+x}" ]; then
+        rehash
+    elif [ -n "${POSH_VERSION+x}" ]; then
+        # no rehash for POSH
+        :
+    else
+        hash -r
+    fi
 }
 
 
@@ -75,6 +98,8 @@ conda() {
     esac
 }
 
+
 if [ -z "$CONDA_SHLVL" ]; then
     export CONDA_SHLVL=0
 fi
+
