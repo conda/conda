@@ -48,7 +48,6 @@ remove_conda() {
        $site_packages/pycrypto* \
        $site_packages/pycosat*
     ls -al $site_packages
-    cat $prefix/conda-meta/history
     hash -r
 }
 
@@ -83,6 +82,8 @@ install_conda_shell_scripts() {
 
     mkdir -p $prefix/etc/fish/conf.d/
     cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
+
+    cat $prefix/bin/activate
 }
 
 install_conda_dev() {
@@ -93,6 +94,8 @@ install_conda_dev() {
     $prefix/bin/python utils/setup-testing.py develop
 
     install_conda_shell_scripts $prefix
+
+    $prefix/bin/python -m conda._vendor.auxlib.packaging conda
 
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
@@ -158,7 +161,7 @@ conda_main_test() {
 
     # make integration
     $PYTEST_EXE $ADD_COV -m "not integration and not installed"
-    $PYTEST_EXE $ADD_COV -m "integration and not installed"
+    # $PYTEST_EXE $ADD_COV -m "integration and not installed"
 }
 
 
