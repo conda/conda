@@ -5,7 +5,6 @@ from collections import defaultdict
 from copy import copy
 from genericpath import exists
 from logging import getLogger
-from operator import itemgetter
 from os.path import basename, join
 
 from .envs_manager import EnvsDirectory
