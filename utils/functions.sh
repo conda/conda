@@ -95,8 +95,6 @@ install_conda_dev() {
 
     install_conda_shell_scripts $prefix
 
-    $prefix/bin/python -m conda._vendor.auxlib.packaging conda
-
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
 
@@ -193,8 +191,10 @@ conda_activate_test() {
 
     if [[ $SUDO == true ]]; then
         sudo $prefix/bin/python utils/setup-testing.py develop
+        sudo $prefix/bin/python -m conda._vendor.auxlib.packaging conda
     else
         $prefix/bin/python utils/setup-testing.py develop
+        $prefix/bin/python -m conda._vendor.auxlib.packaging conda
     fi
 
     $prefix/bin/python -c "import conda; print(conda.__version__)"
