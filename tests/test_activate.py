@@ -10,7 +10,7 @@ import sys
 
 from conda.common.compat import on_win
 
-from conda.activate import Activator
+from conda.activate import Activator, native_path_list_to_unix
 from conda.base.context import reset_context, context
 from conda.common.io import env_var
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
@@ -127,7 +127,7 @@ class ActivatorUnitTests(TestCase):
 
                     set_vars = {
                         'CONDA_PYTHON_PATH': sys.executable,
-                        'PATH': new_path,
+                        'PATH': native_path_list_to_unix(new_path),
                         'CONDA_PREFIX': td,
                         'CONDA_SHLVL': 1,
                         'CONDA_DEFAULT_ENV': td,
@@ -157,7 +157,7 @@ class ActivatorUnitTests(TestCase):
                     assert builder['unset_vars'] == ()
 
                     set_vars = {
-                        'PATH': new_path,
+                        'PATH': native_path_list_to_unix(new_path),
                         'CONDA_PREFIX': td,
                         'CONDA_PREFIX_1': old_prefix,
                         'CONDA_SHLVL': 2,
@@ -194,7 +194,7 @@ class ActivatorUnitTests(TestCase):
                     assert builder['unset_vars'] == ()
 
                     set_vars = {
-                        'PATH': new_path,
+                        'PATH': native_path_list_to_unix(new_path),
                         'CONDA_PREFIX': td,
                         'CONDA_DEFAULT_ENV': td,
                         'CONDA_PROMPT_MODIFIER': "(%s) " % td,
@@ -255,7 +255,7 @@ class ActivatorUnitTests(TestCase):
                         assert builder['unset_vars'] == ('CONDA_PREFIX_1',)
 
                         set_vars = {
-                            'PATH': original_path,
+                            'PATH': native_path_list_to_unix(original_path),
                             'CONDA_SHLVL': 1,
                             'CONDA_PREFIX': old_prefix,
                             'CONDA_DEFAULT_ENV': old_prefix,
