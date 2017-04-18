@@ -127,7 +127,7 @@ install_conda_dev() {
     install_python $prefix
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
-    $PYTHON_EXE utils/setup-testing.py develop
+    $PYTHON_EXE utils/setup-testing.py install
 
     if [ $ON_WIN -eq 0 ]; then
         export CONDA_EXE="$prefix/Scripts/conda.exe"
