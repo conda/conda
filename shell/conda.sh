@@ -6,6 +6,8 @@ elif [ -n "${ZSH_VERSION:+x}" ]; then
     _CONDA_SHELL_FLAVOR=zsh
 elif [ -n "${KSH_VERSION:+x}" ]; then
     _CONDA_SHELL_FLAVOR=ksh
+elif [ -n "${POSH_VERSION:+x}" ]; then
+    _CONDA_SHELL_FLAVOR=posh
 else
     # https://unix.stackexchange.com/a/120138/92065
     _q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
