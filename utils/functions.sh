@@ -23,10 +23,12 @@ install_miniconda() {
     local prefix=${1:-$INSTALL_PREFIX}
 
     if [ $ON_WIN -eq 0 ]; then
+        local user_profile="$(cmd.exe /c "echo %USERPROFILE%")"
         if ! [ -f ~/miniconda.sh ]; then
-            curl -sSL $MINICONDA_URL -o ~/miniconda.exe
+            curl -sSL $MINICONDA_URL -o "$user_profile/miniconda.exe"
         fi
-        cmd.exe -k "start /wait "" ~/miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%UserProfile%\Miniconda3"
+        local install_prefix="$(cygpath --windows $prefix)"
+        cmd.exe /c "start /wait \"\" %UserProfile%\miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=$install_prefix"
     else
         if ! [ -f ~/miniconda.sh ]; then
             curl -sSL $MINICONDA_URL -o ~/miniconda.sh
