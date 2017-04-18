@@ -96,25 +96,6 @@ install_python() {
 }
 
 
-make_conda_entrypoint() {
-    local filepath="$1"
-    local pythonpath="$2"
-    local workingdir="$3"
-    ls -al $filepath
-    rm -rf $filepath
-	cat <<- EOF > $filepath
-	#!$pythonpath
-	if __name__ == '__main__':
-	   import sys
-	   sys.path.insert(0, '$workingdir')
-	   from conda.cli import main
-	   sys.exit(main())
-	EOF
-    chmod +x $filepath
-    cat $filepath
-}
-
-
 install_conda_shell_scripts() {
     # requires CONDA_EXE be set
 
@@ -142,19 +123,41 @@ install_conda_shell_scripts() {
 }
 
 
+make_conda_entrypoint() {
+    local filepath="$1"
+    local pythonpath="$2"
+    local workingdir="$3"
+    local function_import="$4"
+    ls -al $filepath
+    rm -rf $filepath
+	cat <<- EOF > $filepath
+	#!$pythonpath
+	if __name__ == '__main__':
+	   import sys
+	   sys.path.insert(0, '$workingdir')
+	   $function_import
+	   sys.exit(main())
+	EOF
+    chmod +x $filepath
+    cat $filepath
+}
+
+
 install_conda_dev() {
     local prefix=${1:-$INSTALL_PREFIX}
     install_python $prefix
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
-    $PYTHON_EXE utils/setup-testing.py develop
 
     if [ $ON_WIN -eq 0 ]; then
-        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")"
+        $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
+        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
+        make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
         export CONDA_EXE="$prefix/Scripts/conda.exe"
     else
-        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir"
         export CONDA_EXE="$prefix/bin/conda"
+        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
+        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
     fi
 
     install_conda_shell_scripts $prefix
@@ -342,7 +345,6 @@ run_tests() {
     set -e
     set -x
     env | sort
-
 
     if [[ $FLAKE8 == true ]]; then
         flake8 --statistics

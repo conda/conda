@@ -38,10 +38,6 @@ install:
   # purpose but it is problematic because it tends to cancel builds pushed
   # directly to master instead of just PR builds (or the converse).
   # credits: JuliaLang developers.
-  - bash -c "source utils/functions.sh && type -a install_conda_dev"
-  - bash -c "pwd && which bash"
-  - bash -c "uname -s"
-  - bash -c "uname -a"
   - bash -c "source utils/functions.sh && run_setup"
   - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
       https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
