@@ -140,7 +140,7 @@ install_conda_shell_scripts() {
     cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
 
     if [ $ON_WIN -eq 0 ]; then
-        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$PYTHON_EXE" "$src_dir"
+        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")"
     else
         make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir"
     fi
