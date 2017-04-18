@@ -184,6 +184,13 @@ install_conda_dev() {
 }
 
 
+install_conda_dev_usr_local() {
+    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
+    sudo chown -R root:root ./conda
+    ls -al ./conda
+}
+
+
 install_conda_build() {
     local prefix=${1:-$INSTALL_PREFIX}
 
@@ -242,9 +249,9 @@ conda_activate_test() {
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python $(pwd)
 
     if [[ $SUDO == true ]]; then
-        sudo $prefix/$BIN_DIR/python -m conda._vendor.auxlib.packaging conda
+        sudo $PYTHON_EXE -m conda._vendor.auxlib.packaging conda
     else
-        $prefix/$BIN_DIR/python -m conda._vendor.auxlib.packaging conda
+        $PYTHON_EXE -m conda._vendor.auxlib.packaging conda
     fi
 
     $PYTHON_EXE -c "import conda; print(conda.__version__)"
@@ -288,42 +295,6 @@ conda_build_unit_test() {
 }
 
 
-osx_setup() {
-    # brew update || brew update
-    # brew outdated openssl || brew upgrade openssl
-    brew install zsh
-
-    # rvm get head
-
-    install_conda_dev
-}
-
-
-usr_local_install() {
-    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
-    sudo chown -R root:root ./conda
-    ls -al ./conda
-}
-
-
-linux_setup() {
-    if [[ $FLAKE8 == true ]]; then
-        pip install flake8
-    elif [[ $SUDO == true ]]; then
-        usr_local_install
-    elif [[ -n $CONDA_BUILD ]]; then
-        install_conda_build
-    else
-        install_conda_dev
-    fi
-}
-
-
-windows_setup() {
-    install_conda_dev
-}
-
-
 run_setup() {
     set -e
     set -x
@@ -331,13 +302,22 @@ run_setup() {
 
     case "$(uname -s)" in
         'Darwin')
-            osx_setup
+            brew install zsh
+            install_conda_dev
             ;;
         'Linux')
-            linux_setup
+            if [[ $FLAKE8 == true ]]; then
+                pip install flake8
+            elif [[ $SUDO == true ]]; then
+                install_conda_dev_usr_local
+            elif [[ -n $CONDA_BUILD ]]; then
+                install_conda_build
+            else
+                install_conda_dev
+            fi
             ;;
         CYGWIN*|MINGW*|MSYS*)
-            windows_setup
+            install_conda_dev
             ;;
         *)  ;;
     esac
