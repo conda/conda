@@ -57,11 +57,15 @@ syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identit
                                                          "path_from": path_identity,
                                                          "sep": os.sep}))
 
-def print_ps1(env_dirs, raw_ps, number):
-    path = env_dirs[number]
+def make_win_ok(path):
     if on_win:
-        path = unix_path_to_win(env_dirs[number])
-    return u"(%s) %s" % (path, raw_ps)
+        return unix_path_to_win(path)
+    else:
+        return path
+
+
+def print_ps1(env_dirs, raw_ps, number):
+    return u"(%s) %s" % (make_win_ok(env_dirs[number]), raw_ps)
 
 
 CONDA_ENTRY_POINT = """\
@@ -491,7 +495,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         {printdefaultenv}
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
+        assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
@@ -499,7 +503,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         {printdefaultenv}
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout.rstrip(), env_dirs[1], stderr)
+        assert_equals(stdout.rstrip(), make_win_ok(env_dirs[1]), stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
@@ -514,7 +518,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
+        assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} {syspath}{binpath}deactivate
@@ -567,7 +571,7 @@ def test_activate_from_env(shell):
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         # rstrip on output is because the printing to console picks up an extra space
-        assert_equals(stdout.rstrip(), env_dirs[1], stderr)
+        assert_equals(stdout.rstrip(), make_win_ok(env_dirs[1]), stderr)
 
 
 @pytest.mark.installed
@@ -609,7 +613,7 @@ def test_activate_relative_path(shell):
             raise
         finally:
             os.chdir(cwd)
-        assert_equals(stdout.rstrip(), env_dirs[0], stderr)
+        assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
 
 
 @pytest.mark.skipif(not on_win, reason="only relevant on windows")
