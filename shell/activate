@@ -25,7 +25,7 @@ if ! _conda_script_is_sourced; then
       >&2 echo "Error: activate must be sourced. Run 'source activate envname'"
       >&2 echo "instead of 'activate envname'."
     )
-    # exit 1
+    exit 1
 fi
 
 source "$_CONDA_ROOT/etc/profile.d/conda.sh"
