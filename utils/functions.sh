@@ -96,6 +96,25 @@ install_python() {
 }
 
 
+make_conda_entrypoint() {
+    local filepath="$1"
+    local pythonpath="$2"
+    local workingdir="$3"
+    ls -al $filepath
+    rm -rf $filepath
+	cat <<- EOF > $filepath
+	#!$pythonpath
+	if __name__ == '__main__':
+	   import sys
+	   sys.path.insert(0, '$workingdir')
+	   import conda.cli.main
+	   sys.exit(conda.cli.main.main())
+	EOF
+    chmod +x $filepath
+    cat $filepath
+}
+
+
 install_conda_shell_scripts() {
     # requires CONDA_EXE be set
 
@@ -119,6 +138,13 @@ install_conda_shell_scripts() {
 
     mkdir -p $prefix/etc/fish/conf.d/
     cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
+
+    if [ $ON_WIN -eq 0 ]; then
+        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$PYTHON_EXE" "$src_dir"
+    else
+        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir"
+    fi
+
 }
 
 
@@ -127,7 +153,7 @@ install_conda_dev() {
     install_python $prefix
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
-    $PYTHON_EXE utils/setup-testing.py install
+    $PYTHON_EXE utils/setup-testing.py develop
 
     if [ $ON_WIN -eq 0 ]; then
         export CONDA_EXE="$prefix/Scripts/conda.exe"
