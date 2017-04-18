@@ -1,35 +1,53 @@
 # Set global variables
 case "$(uname -s)" in
     'Darwin')
-        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.2.12-MacOSX-x86_64.sh"
+        export ON_WIN=1
+        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-x86_64.sh"
+        export BIN_DIR="bin"
         ;;
     'Linux')
-        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.2.12-Linux-x86_64.sh"
+        export ON_WIN=1
+        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-x86_64.sh"
+        export BIN_DIR="bin"
+        ;;
+    CYGWIN*|MINGW*|MSYS*)
+        export ON_WIN=0
+        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-x86_64.exe"
+        export BIN_DIR="Scripts"
         ;;
     *)  ;;
 esac
-export INSTALL_PREFIX=~/miniconda
 
 
 install_miniconda() {
     local prefix=${1:-$INSTALL_PREFIX}
-    if ! [ -f ~/miniconda.sh ]; then
-        curl -sSL $MINICONDA_URL -o ~/miniconda.sh
+
+    if [ $ON_WIN -eq 0 ]; then
+        if ! [ -f ~/miniconda.sh ]; then
+            curl -sSL $MINICONDA_URL -o ~/miniconda.exe
+        fi
+        cmd.exe -k "start /wait "" ~/miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%UserProfile%\Miniconda3"
+    else
+        if ! [ -f ~/miniconda.sh ]; then
+            curl -sSL $MINICONDA_URL -o ~/miniconda.sh
+        fi
+        chmod +x ~/miniconda.sh
+        mkdir -p $prefix
+        ~/miniconda.sh -bfp $prefix
     fi
-    chmod +x ~/miniconda.sh
-    mkdir -p $prefix
-    ~/miniconda.sh -bfp $prefix
 }
 
 
 remove_conda() {
+    # requires $PYTHON_EXE
+
     local prefix=${1:-$INSTALL_PREFIX}
-    local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf \
-       $prefix/bin/activate \
-       $prefix/bin/conda \
-       $prefix/bin/conda-env \
-       $prefix/bin/deactivate \
+       $prefix/$BIN_DIR/activate \
+       $prefix/$BIN_DIR/conda \
+       $prefix/$BIN_DIR/conda-env \
+       $prefix/$BIN_DIR/deactivate \
        $prefix/etc/profile.d/conda.sh \
        $prefix/conda-meta/conda-*.json \
        $prefix/conda-meta/requests-*.json \
@@ -57,30 +75,40 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-    $prefix/bin/conda install -y -q python=$python_version setuptools pip
+    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
     remove_conda $prefix
 
-    which python
-    $prefix/bin/python --version
-    $prefix/bin/pip --version
+    if [ $ON_WIN -eq 0 ]; then
+        export PYTHON_EXE="$prefix/python.exe"
+    else
+        export PYTHON_EXE="$prefix/bin/python"
+    fi
+
+    $PYTHON_EXE --version
+    $prefix/$BIN_DIR/pip --version
 }
 
 
 install_conda_shell_scripts() {
+    # requires CONDA_EXE be set
+
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
 
     mkdir -p $prefix/etc/profile.d/
-    echo "_CONDA_EXE=\"$prefix/bin/conda\"" > $prefix/etc/profile.d/conda.sh
+    echo "_CONDA_EXE=\"$CONDA_EXE\"" > $prefix/etc/profile.d/conda.sh
     cat $src_dir/shell/conda.sh >> $prefix/etc/profile.d/conda.sh
 
-    mkdir -p $prefix/bin
-    echo "_CONDA_ROOT=\"$prefix\"" > $prefix/bin/activate
-    cat $src_dir/shell/activate >> $prefix/bin/activate
-    chmod +x $prefix/bin/activate  # we really shouldn't be doing this, but needed to make activate_help test pass
-    echo "_CONDA_ROOT=\"$prefix\"" > $prefix/bin/deactivate
-    cat $src_dir/shell/deactivate >> $prefix/bin/deactivate
-    chmod +x $prefix/bin/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
+    local bin_dir="$prefix/$BIN_DIR"
+    mkdir -p $bin_dir
+    echo "#!/bin/sh" > $bin_dir/activate
+    echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/activate
+    cat $src_dir/shell/activate >> $bin_dir/activate
+    chmod +x $bin_dir/activate  # we really shouldn't be doing this, but needed to make activate_help test pass
+    echo "#!/bin/sh" > $bin_dir/activate
+    echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/deactivate
+    cat $src_dir/shell/deactivate >> $bin_dir/deactivate
+    chmod +x $bin_dir/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
 
     mkdir -p $prefix/etc/fish/conf.d/
     cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
@@ -91,17 +119,23 @@ install_conda_dev() {
     local prefix=${1:-$INSTALL_PREFIX}
     install_python $prefix
 
-    $prefix/bin/pip install -r utils/requirements-test.txt
-    $prefix/bin/python utils/setup-testing.py develop
+    $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
+    $PYTHON_EXE utils/setup-testing.py develop
+
+    if [ $ON_WIN -eq 0 ]; then
+        export CONDA_EXE="$prefix/Scripts/conda.exe"
+    else
+        export CONDA_EXE="$prefix/bin/conda"
+    fi
 
     install_conda_shell_scripts $prefix
 
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
 
-    $prefix/bin/conda info
+    $CONDA_EXE info
 
-    $prefix/bin/conda config --set auto_update_conda false
+    $CONDA_EXE config --set auto_update_conda false
 }
 
 
@@ -133,19 +167,11 @@ install_conda_build() {
 }
 
 
-usr_local_install() {
-    export INSTALL_PREFIX="/usr/local"
-    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
-    sudo chown -R root:root ./conda
-    ls -al ./conda
-}
-
-
 set_test_vars() {
     local prefix=${1:-$INSTALL_PREFIX}
 
     export PYTEST_EXE="$prefix/bin/py.test"
-    export PYTHON_EXE=$(sed 's/^\#!//' $PYTEST_EXE | head -1)
+    # export PYTHON_EXE=$(sed 's/^\#!//' $PYTEST_EXE | head -1)
     export PYTHON_MAJOR_VERSION=$($PYTHON_EXE -c "import sys; print(sys.version_info[0])")
     export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
     export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
@@ -161,25 +187,6 @@ conda_main_test() {
     # make integration
     $PYTEST_EXE $ADD_COV -m "not integration and not installed"
     # $PYTEST_EXE $ADD_COV -m "integration and not installed"
-}
-
-
-make_conda_entrypoint() {
-    local filepath="$1"
-    local pythonpath="$2"
-    local workingdir="$3"
-    ls -al $filepath
-    rm -rf $filepath
-	cat <<- EOF > $filepath
-	#!$pythonpath
-	if __name__ == '__main__':
-	   import sys
-	   sys.path.insert(0, '$workingdir')
-	   import conda.cli.main
-	   sys.exit(conda.cli.main.main())
-	EOF
-    chmod +x $filepath
-    cat $filepath
 }
 
 
@@ -242,11 +249,22 @@ osx_setup() {
 
     # rvm get head
 
+    export INSTALL_PREFIX=~/miniconda
     install_conda_dev
 }
 
 
+usr_local_install() {
+    export INSTALL_PREFIX="/usr/local"
+    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
+    sudo chown -R root:root ./conda
+    ls -al ./conda
+}
+
+
 linux_setup() {
+    export INSTALL_PREFIX=~/miniconda
+
     if [[ $FLAKE8 == true ]]; then
         pip install flake8
     elif [[ $SUDO == true ]]; then
@@ -259,6 +277,12 @@ linux_setup() {
 }
 
 
+windows_setup() {
+    export INSTALL_PREFIX=/c/miniconda
+    install_conda_dev
+}
+
+
 run_setup() {
     set -e
     set -x
@@ -267,14 +291,18 @@ run_setup() {
     case "$(uname -s)" in
         'Darwin')
             osx_setup
+            export PATH="$INSTALL_PREFIX:$PATH"
             ;;
         'Linux')
             linux_setup
+            export PATH="$INSTALL_PREFIX:$PATH"
+            ;;
+        CYGWIN*|MINGW*|MSYS*)
+            windows_setup
+            export PATH="$INSTALL_PREFIX:$PATH"
             ;;
         *)  ;;
     esac
-
-    export PATH="$INSTALL_PREFIX:$PATH"
 
     set +e
     set +x
