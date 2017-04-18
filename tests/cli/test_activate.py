@@ -16,7 +16,7 @@ from conda.compat import TemporaryDirectory, PY2
 from conda.config import root_dir, platform
 from conda.gateways.disk.create import mkdir_p
 from conda.install import symlink_conda
-from conda.utils import path_identity, shells, on_win, translate_stream
+from conda.utils import path_identity, shells, on_win, translate_stream, unix_path_to_win
 from conda.cli.activate import binpath_from_arg
 
 from tests.helpers import assert_equals, assert_in, assert_not_in
@@ -58,7 +58,10 @@ syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identit
                                                          "sep": os.sep}))
 
 def print_ps1(env_dirs, raw_ps, number):
-    return (u"({}) ".format(env_dirs[number]) + raw_ps)
+    path = env_dirs[number]
+    if on_win:
+        path = unix_path_to_win(env_dirs[number])
+    return u"(%s) %s" % (path, raw_ps)
 
 
 CONDA_ENTRY_POINT = """\
@@ -198,8 +201,8 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
 
 @pytest.mark.installed
 def test_activate_deactivate(shell):
-    if shell == "bash.exe" and datetime.now() < datetime(2017, 5, 1):
-        pytest.xfail("fix this soon")
+    # if shell == "bash.exe" and datetime.now() < datetime(2017, 5, 1):
+    #     pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -215,8 +218,8 @@ def test_activate_deactivate(shell):
 
 @pytest.mark.installed
 def test_activate_root_simple(shell):
-    if shell == "bash.exe" and datetime.now() < datetime(2017, 5, 1):
-        pytest.xfail("fix this soon")
+    # if shell == "bash.exe" and datetime.now() < datetime(2017, 5, 1):
+    #     pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -238,21 +241,21 @@ def test_activate_root_simple(shell):
         assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
 
 
-@pytest.mark.installed
-@pytest.mark.skip(reason="Test no longer relevant. Two envs activate at once is fine.")
-def test_activate_root_env_from_other_env(shell):
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
-        {source} "{syspath}{binpath}activate" root
-        {printpath}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-
-        stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])),
-                  stdout)
-        assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])), stdout)
+# @pytest.mark.installed
+# @pytest.mark.skip(reason="Test no longer relevant. Two envs activate at once is fine.")
+# def test_activate_root_env_from_other_env(shell):
+#     shell_vars = _format_vars(shell)
+#     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
+#         commands = (shell_vars['command_setup'] + """
+#         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
+#         {source} "{syspath}{binpath}activate" root
+#         {printpath}
+#         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+#
+#         stdout, stderr = run_in(commands, shell)
+#         assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])),
+#                   stdout)
+#         assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])), stdout)
 
 
 @pytest.mark.installed
@@ -315,45 +318,45 @@ def test_activate_help(shell):
         #     assert_in("Usage: source deactivate", stderr)
 
 
-@pytest.mark.skip(reason="Test no longer relevant. Symlinking stops in conda 4.4.0.")
-@pytest.mark.installed
-def test_activate_symlinking(shell):
-    """Symlinks or bat file redirects are created at activation time.  Make sure that the
-    files/links exist, and that they point where they should."""
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-        where = 'Scripts' if on_win else 'bin'
-        for env in gen_test_env_paths(envs, shell)[:2]:
-            scripts = ["conda", "activate", "deactivate"]
-            for f in scripts:
-                if on_win:
-                    file_path = os.path.join(env, where, f + shells[shell]["shell_suffix"])
-                    # must translate path to windows representation for Python's sake
-                    file_path = shells[shell]["path_from"](file_path)
-                    assert(os.path.lexists(file_path))
-                else:
-                    file_path = os.path.join(env, where, f)
-                    assert(os.path.lexists(file_path))
-                    s = os.lstat(file_path)
-                    assert(stat.S_ISLNK(s.st_mode))
-                    assert(os.readlink(file_path) == '{root_path}'.format(root_path=os.path.join(sys.prefix, where, f)))
-
-        if platform != 'win':
-            # Test activate when there are no write permissions in the
-            # env.
-            prefix_bin_path = os.path.join(gen_test_env_paths(envs, shell)[2], 'bin')
-            commands = (shell_vars['command_setup'] + """
-            mkdir -p "{prefix_bin_path}"
-            chmod 444 "{prefix_bin_path}"
-            {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
-            """).format(prefix_bin_path=prefix_bin_path, envs=envs,
-                                env_dirs=gen_test_env_paths(envs, shell),
-                **shell_vars)
-            stdout, stderr = run_in(commands, shell)
-            assert_in("not have write access", stderr)
-
-            # restore permissions so the dir will get cleaned up
-            run_in('chmod 777 "{prefix_bin_path}"'.format(prefix_bin_path=prefix_bin_path), shell)
+# @pytest.mark.skip(reason="Test no longer relevant. Symlinking stops in conda 4.4.0.")
+# @pytest.mark.installed
+# def test_activate_symlinking(shell):
+#     """Symlinks or bat file redirects are created at activation time.  Make sure that the
+#     files/links exist, and that they point where they should."""
+#     shell_vars = _format_vars(shell)
+#     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
+#         where = 'Scripts' if on_win else 'bin'
+#         for env in gen_test_env_paths(envs, shell)[:2]:
+#             scripts = ["conda", "activate", "deactivate"]
+#             for f in scripts:
+#                 if on_win:
+#                     file_path = os.path.join(env, where, f + shells[shell]["shell_suffix"])
+#                     # must translate path to windows representation for Python's sake
+#                     file_path = shells[shell]["path_from"](file_path)
+#                     assert(os.path.lexists(file_path))
+#                 else:
+#                     file_path = os.path.join(env, where, f)
+#                     assert(os.path.lexists(file_path))
+#                     s = os.lstat(file_path)
+#                     assert(stat.S_ISLNK(s.st_mode))
+#                     assert(os.readlink(file_path) == '{root_path}'.format(root_path=os.path.join(sys.prefix, where, f)))
+#
+#         if platform != 'win':
+#             # Test activate when there are no write permissions in the
+#             # env.
+#             prefix_bin_path = os.path.join(gen_test_env_paths(envs, shell)[2], 'bin')
+#             commands = (shell_vars['command_setup'] + """
+#             mkdir -p "{prefix_bin_path}"
+#             chmod 444 "{prefix_bin_path}"
+#             {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
+#             """).format(prefix_bin_path=prefix_bin_path, envs=envs,
+#                                 env_dirs=gen_test_env_paths(envs, shell),
+#                 **shell_vars)
+#             stdout, stderr = run_in(commands, shell)
+#             assert_in("not have write access", stderr)
+#
+#             # restore permissions so the dir will get cleaned up
+#             run_in('chmod 777 "{prefix_bin_path}"'.format(prefix_bin_path=prefix_bin_path), shell)
 
 
 @pytest.mark.installed
@@ -626,7 +629,6 @@ def test_activate_does_not_leak_echo_setting(shell):
         assert_equals(stdout, u'ECHO is on.', stderr)
 
 
-@pytest.mark.skip(reason="I just can't with this test right now.")
 @pytest.mark.installed
 def test_activate_non_ascii_char_in_path(shell):
     shell_vars = _format_vars(shell)
@@ -691,6 +693,7 @@ def test_activate_keeps_PATH_order(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert stdout.startswith("somepath;" + sys.prefix)
+
 
 @pytest.mark.slow
 @pytest.mark.installed
