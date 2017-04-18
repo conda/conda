@@ -33,11 +33,21 @@ fi
 
 _CONDA_EXE="$_CONDA_ROOT/bin/conda"
 
-
-if [ "$_" = "$0" ]; then
-    (>&2 echo "This script must be sourced, not executed.")
-    exit 1
-fi
+_conda_script_is_sourced() {
+    # http://stackoverflow.com/a/28776166/2127762
+    sourced=0
+    if [ -n "$ZSH_EVAL_CONTEXT" ]; then
+      case $ZSH_EVAL_CONTEXT in *:file) sourced=1;; esac
+    elif [ -n "$KSH_VERSION" ]; then
+      [ "$(cd $(dirname -- $0) && pwd -P)/$(basename -- $0)" != "$(cd $(dirname -- ${.sh.file}) && pwd -P)/$(basename -- ${.sh.file})" ] && sourced=1
+    elif [ -n "$BASH_VERSION" ]; then
+      [ "$0" != "$BASH_SOURCE" ] && sourced=1
+    else # All other shells: examine $0 for known shell binary filenames
+      # Detects `sh` and `dash`; add additional shell filenames as needed.
+      case ${0##*/} in sh|dash) sourced=1;; esac
+    fi
+    return $sourced
+}
 
 
 _conda_hashr() {

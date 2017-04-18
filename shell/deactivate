@@ -4,15 +4,14 @@ if [ -z "$_CONDA_ROOT" ]; then
     _CONDA_ROOT="$(dirname $_SCRIPT_DIR)"
 fi
 
-_called=$_
-if [ "$_called" = "$0" ]; then
+source "$_CONDA_ROOT/etc/profile.d/conda.sh"
+
+if ! _conda_script_is_sourced; then
     (
       >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'"
       >&2 echo "instead of 'deactivate'."
     )
     exit 1
 fi
-unset _called
 
-source "$_CONDA_ROOT/etc/profile.d/conda.sh"
 _conda_deactivate
