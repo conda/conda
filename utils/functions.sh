@@ -1,25 +1,45 @@
-# Set global variables
-case "$(uname -s)" in
-    'Darwin')
-        export ON_WIN=1
-        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-x86_64.sh"
-        export BIN_DIR="bin"
-        export EXE_EXT=""
-        ;;
-    'Linux')
-        export ON_WIN=1
-        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-x86_64.sh"
-        export BIN_DIR="bin"
-        export EXE_EXT=""
-        ;;
-    CYGWIN*|MINGW*|MSYS*)
-        export ON_WIN=0
-        export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-x86_64.exe"
-        export BIN_DIR="Scripts"
-        export EXE_EXT=".exe"
-        ;;
-    *)  ;;
-esac
+set_vars() {
+    # Set global variables
+    case "$(uname -s)" in
+        'Darwin')
+            export ON_WIN=1
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-x86_64.sh"
+            export BIN_DIR="bin"
+            export EXE_EXT=""
+            export INSTALL_PREFIX=~/miniconda
+            ;;
+        'Linux')
+            export ON_WIN=1
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-x86_64.sh"
+            export BIN_DIR="bin"
+            export EXE_EXT=""
+            export INSTALL_PREFIX=~/miniconda
+            ;;
+        CYGWIN*|MINGW*|MSYS*)
+            export ON_WIN=0
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-x86_64.exe"
+            export BIN_DIR="Scripts"
+            export EXE_EXT=".exe"
+            export INSTALL_PREFIX=/c/conda-root
+            ;;
+        *)  ;;
+    esac
+
+    if [[ $SUDO == true ]]; then
+        export INSTALL_PREFIX=/usr/local
+    fi
+
+    if [ $ON_WIN -eq 0 ]; then
+        export PYTHON_EXE="$INSTALL_PREFIX/python.exe"
+        export CONDA_EXE="$INSTALL_PREFIX/Scripts/conda.exe"
+    else
+        export PYTHON_EXE="$INSTALL_PREFIX/bin/python"
+        export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
+    fi
+
+}
+
+set_vars
 
 
 install_miniconda() {
@@ -85,12 +105,6 @@ install_python() {
     $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
     remove_conda $prefix
 
-    if [ $ON_WIN -eq 0 ]; then
-        export PYTHON_EXE="$prefix/python.exe"
-    else
-        export PYTHON_EXE="$prefix/bin/python"
-    fi
-
     $PYTHON_EXE --version
     $prefix/$BIN_DIR/pip --version
 }
@@ -153,9 +167,7 @@ install_conda_dev() {
         $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
         make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
         make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
-        export CONDA_EXE="$prefix/Scripts/conda.exe"
     else
-        export CONDA_EXE="$prefix/bin/conda"
         make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
         make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
     fi
@@ -202,8 +214,7 @@ install_conda_build() {
 set_test_vars() {
     local prefix=${1:-$INSTALL_PREFIX}
 
-    export PYTEST_EXE="$prefix/bin/py.test"
-    # export PYTHON_EXE=$(sed 's/^\#!//' $PYTEST_EXE | head -1)
+    export PYTEST_EXE="$prefix/$BIN_DIR/py.test"
     export PYTHON_MAJOR_VERSION=$($PYTHON_EXE -c "import sys; print(sys.version_info[0])")
     export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
     export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
@@ -230,19 +241,21 @@ conda_activate_test() {
 #    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python $(pwd)
 
     if [[ $SUDO == true ]]; then
-        sudo $prefix/bin/python utils/setup-testing.py develop
-        sudo $prefix/bin/python -m conda._vendor.auxlib.packaging conda
+        sudo $prefix/$BIN_DIR/python -m conda._vendor.auxlib.packaging conda
     else
-        $prefix/bin/python utils/setup-testing.py develop
-        $prefix/bin/python -m conda._vendor.auxlib.packaging conda
+        $prefix/$BIN_DIR/python -m conda._vendor.auxlib.packaging conda
     fi
 
-    $prefix/bin/python -c "import conda; print(conda.__version__)"
-    $prefix/bin/python -m conda info
+    $PYTHON_EXE -c "import conda; print(conda.__version__)"
+    $CONDA_EXE info
 
     # make test-installed
     # $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
-    $PYTEST_EXE $ADD_COV -m "installed" --shell=bash
+    if [ $ON_WIN -eq 0 ]; then
+        $PYTEST_EXE $ADD_COV -m "installed" --shell=cmd.exe --shell=bash.exe
+    else
+        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash
+    fi
 
 }
 
@@ -281,13 +294,11 @@ osx_setup() {
 
     # rvm get head
 
-    export INSTALL_PREFIX=~/miniconda
     install_conda_dev
 }
 
 
 usr_local_install() {
-    export INSTALL_PREFIX="/usr/local"
     sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     sudo chown -R root:root ./conda
     ls -al ./conda
@@ -295,8 +306,6 @@ usr_local_install() {
 
 
 linux_setup() {
-    export INSTALL_PREFIX=~/miniconda
-
     if [[ $FLAKE8 == true ]]; then
         pip install flake8
     elif [[ $SUDO == true ]]; then
@@ -310,7 +319,6 @@ linux_setup() {
 
 
 windows_setup() {
-    export INSTALL_PREFIX=/c/conda-root
     install_conda_dev
 }
 
@@ -323,15 +331,12 @@ run_setup() {
     case "$(uname -s)" in
         'Darwin')
             osx_setup
-            export PATH="$INSTALL_PREFIX:$PATH"
             ;;
         'Linux')
             linux_setup
-            export PATH="$INSTALL_PREFIX:$PATH"
             ;;
         CYGWIN*|MINGW*|MSYS*)
             windows_setup
-            export PATH="$INSTALL_PREFIX:$PATH"
             ;;
         *)  ;;
     esac
@@ -355,10 +360,8 @@ run_tests() {
     else
         set_test_vars
         conda_main_test
-        if [[ "$(uname -s)" == "Linux" ]]; then
-            conda_activate_test
-        fi
-        $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
+        conda_activate_test
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
     fi
 
     set +e

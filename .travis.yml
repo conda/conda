@@ -56,8 +56,7 @@ matrix:
     - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.0alpha3
 
 install:
-  - source utils/functions.sh
-  - run_setup
+  - source utils/functions.sh && run_setup
 
 script:
-  - run_tests
+  - source utils/functions.sh && run_tests

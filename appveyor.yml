@@ -39,47 +39,45 @@ install:
   # directly to master instead of just PR builds (or the converse).
   # credits: JuliaLang developers.
   - bash -c "source utils/functions.sh && run_setup"
-  - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
-      https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
-      Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
-        throw "There are newer queued builds for this pull request, failing early." }
-  # - utils/win_build_env.cmd
-  - powershell ./utils/install.ps1
-  # set PATH for current shell
-  - set "ANACONDA_PATH=%PYTHON%;%PYTHON%/Scripts;%$PYTHON%/Library/bin;%$PYTHON%/Library/usr/bin;%$PYTHON%/Library/mingw-64/bin"
-  - setx ANACONDA_PATH "%ANACONDA_PATH%"
-  - set "PATH=%ANACONDA_PATH%;%PATH%"
-  # this one is user-local, and affects new shells
-  - setx PATH "%ANACONDA_PATH%"
-  - conda info
-  - conda config --set always_yes yes
-  - conda update conda
-  - conda install -q psutil ruamel_yaml requests
-  # - conda info python
-  - python -c "import sys; print(sys.version)"
-  - python -c "import sys; print(sys.executable)"
-  - python -c "import sys; print(sys.prefix)"
-  - conda install -q python=%PYTHON_VERSION%
-  - conda install -q pytest mock
-  - conda install -q pycrypto pyflakes pycosat
-  - conda install -q git menuinst
-  - conda install -q ruamel_yaml
-  - conda install -q anaconda-client
-  - conda install -q nbformat
-  - conda install -q enum34 || WHOAMI
-  - pip install flake8 pytest-cov pytest-timeout responses
-  - python --version
-  - python -c "import struct; print(struct.calcsize('P') * 8)"
-  - python utils\setup-testing.py install
+#  - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
+#      https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
+#      Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
+#        throw "There are newer queued builds for this pull request, failing early." }
+#  # - utils/win_build_env.cmd
+#  - powershell ./utils/install.ps1
+#  # set PATH for current shell
+#  - set "ANACONDA_PATH=%PYTHON%;%PYTHON%/Scripts;%$PYTHON%/Library/bin;%$PYTHON%/Library/usr/bin;%$PYTHON%/Library/mingw-64/bin"
+#  - setx ANACONDA_PATH "%ANACONDA_PATH%"
+#  - set "PATH=%ANACONDA_PATH%;%PATH%"
+#  # this one is user-local, and affects new shells
+#  - setx PATH "%ANACONDA_PATH%"
+#  - conda info
+#  - conda config --set always_yes yes
+#  - conda update conda
+#  - conda install -q psutil ruamel_yaml requests
+#  # - conda info python
+#  - python -c "import sys; print(sys.version)"
+#  - python -c "import sys; print(sys.executable)"
+#  - python -c "import sys; print(sys.prefix)"
+#  - conda install -q python=%PYTHON_VERSION%
+#  - conda install -q pytest mock
+#  - conda install -q pycrypto pyflakes pycosat
+#  - conda install -q git menuinst
+#  - conda install -q ruamel_yaml
+#  - conda install -q anaconda-client
+#  - conda install -q nbformat
+#  - conda install -q enum34 || WHOAMI
+#  - pip install flake8 pytest-cov pytest-timeout responses
+#  - python --version
+#  - python -c "import struct; print(struct.calcsize('P') * 8)"
+#  - python utils\setup-testing.py install
 
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
 
 test_script:
-  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "not integration and not installed"
-  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "integration and not installed"
-  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "installed" --shell=cmd.exe --shell=bash.exe
+  - - bash -c "source utils/functions.sh && run_tests"
+#  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "not integration and not installed"
+#  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "integration and not installed"
+#  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "installed" --shell=cmd.exe --shell=bash.exe
 
-on_success:
-  - pip install codecov coveralls scrutinizer-ocular
-  - codecov --env PYTHON_VERSION
