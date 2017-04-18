@@ -159,6 +159,8 @@ make_conda_entrypoint() {
 
 install_conda_dev() {
     local prefix=${1:-$INSTALL_PREFIX}
+    local src_dir=${2:-${SRC_DIR:-$PWD}}
+
     install_python $prefix
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
@@ -172,7 +174,7 @@ install_conda_dev() {
         make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
     fi
 
-    install_conda_shell_scripts $prefix
+    install_conda_shell_scripts "$prefix" "$src_dir"
 
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
