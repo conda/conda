@@ -21,30 +21,25 @@ else
     unset _q
 fi
 
-if [ -z "$_CONDA_ROOT" ]; then
-    # https://unix.stackexchange.com/a/4673/92065
-    case "$_CONDA_SHELL_FLAVOR" in
-        bash) _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")" ;;
-        zsh) _SCRIPT_DIR="$(dirname "${funcstack[1]}")" ;;
-        *) _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")" ;;
-    esac
-
-    _CONDA_ROOT="$_SCRIPT_DIR/../.."
-    unset _SCRIPT_DIR
-fi
-
-_CONDA_EXE="$_CONDA_ROOT/bin/conda"
+#if [ -z "$_CONDA_ROOT" ]; then
+#    # https://unix.stackexchange.com/a/4673/92065
+#    case "$_CONDA_SHELL_FLAVOR" in
+#        bash) _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")" ;;
+#        zsh) _SCRIPT_DIR="$(dirname "${funcstack[1]}")" ;;
+#        *) _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")" ;;
+#    esac
+#
+#    _CONDA_ROOT="$_SCRIPT_DIR/../.."
+#    unset _SCRIPT_DIR
+#fi
 
 
 _conda_hashr() {
-    if [ -n "${ZSH_VERSION:+x}" ]; then
-        rehash
-    elif [ -n "${POSH_VERSION+x}" ]; then
-        # no rehash for POSH
-        :
-    else
-        hash -r
-    fi
+    case "$_CONDA_SHELL_FLAVOR" in
+        zsh) rehash;;
+        posh) ;;
+        *) hash -r;;
+    esac
 }
 
 
@@ -53,9 +48,19 @@ _conda_activate() {
     ask_conda="$($_CONDA_EXE shell.activate posix "$@")" || return $?
     eval "$ask_conda"
 
-    if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
-        PS1='$CONDA_PROMPT_MODIFIER'"$PS1"
-    fi
+    case "$_CONDA_SHELL_FLAVOR" in
+        dash)
+            if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
+                PS1='$CONDA_PROMPT_MODIFIER'"$PS1"
+            fi
+            ;;
+        *)
+            if [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
+                PS1='$CONDA_PROMPT_MODIFIER'"$PS1"
+            fi
+            ;;
+    esac
+
 
     _conda_hashr
 }
@@ -66,7 +71,10 @@ _conda_deactivate() {
     eval "$ask_conda"
 
     if [ -z "$CONDA_PREFIX" ]; then
-        PS1=$(echo "$PS1" | awk '{ string=substr($0, 23); print string; }')
+        case "$_CONDA_SHELL_FLAVOR" in
+            dash) PS1=$(echo "$PS1" | awk '{ string=substr($0, 23); print string; }') ;;
+            *) PS1=${PS1:22} ;;
+        esac
     fi
 
     _conda_hashr

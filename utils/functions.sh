@@ -117,23 +117,28 @@ install_conda_shell_scripts() {
     local src_dir=${2:-${SRC_DIR:-$PWD}}
 
     mkdir -p $prefix/etc/profile.d/
+    rm -rf $prefix/etc/profile.d/conda.sh
     echo "_CONDA_EXE=\"$CONDA_EXE\"" > $prefix/etc/profile.d/conda.sh
     cat $src_dir/shell/conda.sh >> $prefix/etc/profile.d/conda.sh
 
     local bin_dir="$prefix/$BIN_DIR"
     mkdir -p $bin_dir
+
+    rm -rf $bin_dir/activate
     echo "#!/bin/sh" > $bin_dir/activate
     echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/activate
     cat $src_dir/shell/activate >> $bin_dir/activate
     chmod +x $bin_dir/activate  # we really shouldn't be doing this, but needed to make activate_help test pass
+
+    rm -rf $bin_dir/deactivate
     echo "#!/bin/sh" > $bin_dir/deactivate
     echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/deactivate
     cat $src_dir/shell/deactivate >> $bin_dir/deactivate
     chmod +x $bin_dir/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
 
     mkdir -p $prefix/etc/fish/conf.d/
-    cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
-
+    rm -rf $prefix/etc/fish/conf.d/conda.fish
+    cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/conda.fish
 }
 
 
