@@ -35,7 +35,7 @@ def native_path_list_to_unix(path_value):
         return path_value
     from subprocess import PIPE, Popen
     from shlex import split
-    command = 'cygpath.exe --path "%s"' % path_value.replace('\\', '\\\\')
+    command = 'cygpath.exe --path "%s"' % path_value
     p = Popen(split(command), stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
@@ -234,8 +234,10 @@ class Activator(object):
     def _replace_prefix_in_path(self, current_path, old_prefix, new_prefix):
         old_prefix_paths = self.pathsep.join(self._get_path_dirs(old_prefix))
         if old_prefix_paths in current_path:
+            # intermediate step here because backslash escaping gets messed up otherwise
             new_prefix_paths = self.pathsep.join(self._get_path_dirs(new_prefix))
-            return re.sub(re.escape(old_prefix_paths), new_prefix_paths, current_path, 1)
+            intermediate = re.sub(re.escape(old_prefix_paths), "HOLDER_HOLDER_HOLDER", current_path, 1)
+            return intermediate.replace("HOLDER_HOLDER_HOLDER", new_prefix_paths)
         else:
             return self._add_prefix_to_path(current_path, new_prefix)
 

@@ -10,7 +10,7 @@ import sys
 
 from conda.common.compat import on_win
 
-from conda.activate import Activator, native_path_list_to_unix
+from conda.activate import Activator, expand, native_path_list_to_unix
 from conda.base.context import reset_context, context
 from conda.common.io import env_var
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
@@ -83,16 +83,17 @@ class ActivatorUnitTests(TestCase):
         assert new_path_expected == new_path
 
     def test_replace_prefix_in_path(self):
-        path = '/path1/bin:/path2/bin:/usr/local/bin:/usr/bin:/bin'
+        path = os.environ['PATH']
+        prepend_path = expand('~')
         with env_var('PATH', path):
             activator = Activator('posix')
             test_prefix_1 = join(os.getcwd(), 'mytestpath1')
             test_prefix_2 = join(os.getcwd(), 'mytestpath2')
             old_path = activator._add_prefix_to_path(os.environ['PATH'], test_prefix_1)
-            old_path = activator.pathsep.join(('/keep/this/path', old_path))
+            old_path = activator.pathsep.join((prepend_path, old_path))
 
             expected_new_path = activator._add_prefix_to_path(os.environ['PATH'], test_prefix_2)
-            expected_new_path = activator.pathsep.join(('/keep/this/path', expected_new_path))
+            expected_new_path = activator.pathsep.join((prepend_path, expected_new_path))
 
             new_path = activator._replace_prefix_in_path(old_path, test_prefix_1, test_prefix_2)
             assert expected_new_path == new_path
@@ -287,7 +288,7 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER',
                     )
                     assert builder['set_vars'] == {
-                        'PATH': original_path,
+                        'PATH': native_path_list_to_unix(original_path),
                         'CONDA_SHLVL': 0,
                     }
                     assert builder['activate_scripts'] == ()
