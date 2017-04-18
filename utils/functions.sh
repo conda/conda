@@ -4,16 +4,19 @@ case "$(uname -s)" in
         export ON_WIN=1
         export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-x86_64.sh"
         export BIN_DIR="bin"
+        export EXE_EXT=""
         ;;
     'Linux')
         export ON_WIN=1
         export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-x86_64.sh"
         export BIN_DIR="bin"
+        export EXE_EXT=""
         ;;
     CYGWIN*|MINGW*|MSYS*)
         export ON_WIN=0
         export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-x86_64.exe"
         export BIN_DIR="Scripts"
+        export EXE_EXT=".exe"
         ;;
     *)  ;;
 esac
@@ -22,20 +25,22 @@ esac
 install_miniconda() {
     local prefix=${1:-$INSTALL_PREFIX}
 
-    if [ $ON_WIN -eq 0 ]; then
-        local user_profile="$(cmd.exe /c "echo %USERPROFILE%")"
-        if ! [ -f ~/miniconda.sh ]; then
-            curl -sSL $MINICONDA_URL -o "$user_profile/miniconda.exe"
+    if ! [ -f "$prefix/$BIN_DIR/conda$EXE_EXT" ]; then
+        if [ $ON_WIN -eq 0 ]; then
+            local user_profile="$(cmd.exe /c "echo %USERPROFILE%")"
+            if ! [ -f "$user_profile\miniconda.exe" ]; then
+                curl -sSL $MINICONDA_URL -o "$user_profile\miniconda.exe"
+            fi
+            local install_prefix="$(cygpath --windows $prefix)"
+            cmd.exe /c "start /wait \"\" %UserProfile%\miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=$install_prefix"
+        else
+            if ! [ -f ~/miniconda.sh ]; then
+                curl -sSL $MINICONDA_URL -o ~/miniconda.sh
+            fi
+            chmod +x ~/miniconda.sh
+            mkdir -p $prefix
+            ~/miniconda.sh -bfp $prefix
         fi
-        local install_prefix="$(cygpath --windows $prefix)"
-        cmd.exe /c "start /wait \"\" %UserProfile%\miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=$install_prefix"
-    else
-        if ! [ -f ~/miniconda.sh ]; then
-            curl -sSL $MINICONDA_URL -o ~/miniconda.sh
-        fi
-        chmod +x ~/miniconda.sh
-        mkdir -p $prefix
-        ~/miniconda.sh -bfp $prefix
     fi
 }
 
@@ -46,10 +51,9 @@ remove_conda() {
     local prefix=${1:-$INSTALL_PREFIX}
     local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf \
-       $prefix/$BIN_DIR/activate \
-       $prefix/$BIN_DIR/conda \
-       $prefix/$BIN_DIR/conda-env \
-       $prefix/$BIN_DIR/deactivate \
+       $prefix/$BIN_DIR/activate* \
+       $prefix/$BIN_DIR/conda* \
+       $prefix/$BIN_DIR/deactivate* \
        $prefix/etc/profile.d/conda.sh \
        $prefix/conda-meta/conda-*.json \
        $prefix/conda-meta/requests-*.json \
