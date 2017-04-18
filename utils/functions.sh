@@ -107,8 +107,8 @@ make_conda_entrypoint() {
 	if __name__ == '__main__':
 	   import sys
 	   sys.path.insert(0, '$workingdir')
-	   import conda.cli.main
-	   sys.exit(conda.cli.main.main())
+	   from conda.cli import main
+	   sys.exit(main())
 	EOF
     chmod +x $filepath
     cat $filepath
@@ -139,12 +139,6 @@ install_conda_shell_scripts() {
     mkdir -p $prefix/etc/fish/conf.d/
     cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
 
-    if [ $ON_WIN -eq 0 ]; then
-        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")"
-    else
-        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir"
-    fi
-
 }
 
 
@@ -156,8 +150,10 @@ install_conda_dev() {
     $PYTHON_EXE utils/setup-testing.py develop
 
     if [ $ON_WIN -eq 0 ]; then
+        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")"
         export CONDA_EXE="$prefix/Scripts/conda.exe"
     else
+        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir"
         export CONDA_EXE="$prefix/bin/conda"
     fi
 
