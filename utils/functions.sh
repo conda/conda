@@ -42,6 +42,7 @@ install_miniconda() {
             ~/miniconda.sh -bfp $prefix
         fi
     fi
+    "$prefix/$BIN_DIR/conda$EXE_EXT" info
 }
 
 
