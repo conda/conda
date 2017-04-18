@@ -126,7 +126,7 @@ install_conda_shell_scripts() {
     echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/activate
     cat $src_dir/shell/activate >> $bin_dir/activate
     chmod +x $bin_dir/activate  # we really shouldn't be doing this, but needed to make activate_help test pass
-    echo "#!/bin/sh" > $bin_dir/activate
+    echo "#!/bin/sh" > $bin_dir/deactivate
     echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/deactivate
     cat $src_dir/shell/deactivate >> $bin_dir/deactivate
     chmod +x $bin_dir/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
