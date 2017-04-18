@@ -285,7 +285,7 @@ linux_setup() {
 
 
 windows_setup() {
-    export INSTALL_PREFIX=/c/miniconda
+    export INSTALL_PREFIX=/c/conda-root
     install_conda_dev
 }
 
