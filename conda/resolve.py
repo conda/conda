@@ -514,7 +514,8 @@ class Resolve(object):
             stderrlog.info('...')
             hint = minimal_unsatisfiable_subset(specs, sat=minsat_prune, log=False)
             save_unsat.update((ms,) for ms in hint)
-            raise UnsatisfiableError(save_unsat)
+            if not context.force:
+                raise UnsatisfiableError(save_unsat)
 
         dists = {fkey: self.index[fkey] for fkey, val in iteritems(touched) if val}
         return dists, list(map(MatchSpec, snames - {ms.name for ms in specs}))
@@ -923,7 +924,8 @@ class Resolve(object):
                 eq_removal_count = r2.generate_removal_count(C, spec2)
                 solution, obj1 = C.minimize(eq_removal_count, solution)
                 specsol = [(s,) for s in spec2 if C.from_name(self.ms_to_v(s)) not in solution]
-                raise UnsatisfiableError(specsol, False)
+                if not context.force:
+                    raise UnsatisfiableError(specsol, False)
 
             speco = []  # optional packages
             specr = []  # requested packages
