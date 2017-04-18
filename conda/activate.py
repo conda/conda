@@ -35,14 +35,14 @@ def native_path_list_to_unix(path_value):
         return path_value
     from subprocess import PIPE, Popen
     from shlex import split
-    command = "/usr/bin/env cygpath --path %s" % path_value
+    command = 'cygpath.exe --path "%s"' % path_value
     p = Popen(split(command), stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
     if rc != 0 or stderr:
         from subprocess import CalledProcessError
         raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
-    return stdout.strip()
+    return stdout.strip().decode('utf-8')
 
 
 class Activator(object):
