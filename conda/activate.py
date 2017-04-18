@@ -30,6 +30,21 @@ def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
+def native_path_list_to_unix(path_value):
+    if not on_win:
+        return path_value
+    from subprocess import PIPE, Popen
+    from shlex import split
+    command = "/usr/bin/env cygpath --path %s" % path_value
+    p = Popen(split(command), stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    rc = p.returncode
+    if rc != 0 or stderr:
+        from subprocess import CalledProcessError
+        raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
+    return stdout.strip()
+
+
 class Activator(object):
     # Strategy is to use the Activator class, where all core logic is is build_activate()
     # or build_deactivate().  Each returns a map containing the keys: set_vars, unset_var,
@@ -40,12 +55,8 @@ class Activator(object):
         self.context = context
 
         if shell == 'posix':
-            self.pathsep = ':'
-            if on_win:
-                from .utils import win_path_to_unix
-                self.path_convert = win_path_to_unix
-            else:
-                self.path_convert = identity
+            self.pathsep = os.pathsep
+            self.path_conversion = native_path_list_to_unix
             self.script_extension = '.sh'
 
             self.unset_var_tmpl = 'unset %s'
@@ -97,9 +108,10 @@ class Activator(object):
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
         if old_conda_shlvl == 0:
+            new_path = self.path_conversion(self._add_prefix_to_path(old_path, prefix))
             set_vars = {
                 'CONDA_PYTHON_PATH': sys.executable,
-                'PATH': self._add_prefix_to_path(old_path, prefix),
+                'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
                 'CONDA_DEFAULT_ENV': conda_default_env,
@@ -107,8 +119,9 @@ class Activator(object):
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 1:
+            new_path = self.path_conversion(self._add_prefix_to_path(old_path, prefix))
             set_vars = {
-                'PATH': self._add_prefix_to_path(old_path, prefix),
+                'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
@@ -117,7 +130,9 @@ class Activator(object):
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 2:
-            new_path = self._replace_prefix_in_path(old_path, old_conda_prefix, prefix)
+            new_path = self.path_conversion(
+                self._replace_prefix_in_path(old_path, old_conda_prefix, prefix)
+            )
             set_vars = {
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
@@ -145,7 +160,7 @@ class Activator(object):
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
         new_conda_shlvl = old_conda_shlvl - 1
-        new_path = self._remove_prefix_from_path(old_path, old_conda_prefix)
+        new_path = self.path_conversion(self._remove_prefix_from_path(old_path, old_conda_prefix))
 
         if old_conda_shlvl == 1:
             # TODO: warn conda floor
@@ -196,15 +211,14 @@ class Activator(object):
         }
 
     def _get_path_dirs(self, prefix):
-        _path_convert = self.path_convert
         if on_win:
-            yield _path_convert(prefix.rstrip("\\"))
-            yield _path_convert(join(prefix, 'Library', 'mingw-w64', 'bin'))
-            yield _path_convert(join(prefix, 'Library', 'usr', 'bin'))
-            yield _path_convert(join(prefix, 'Library', 'bin'))
-            yield _path_convert(join(prefix, 'Scripts'))
+            yield prefix.rstrip("\\")
+            yield join(prefix, 'Library', 'mingw-w64', 'bin')
+            yield join(prefix, 'Library', 'usr', 'bin')
+            yield join(prefix, 'Library', 'bin')
+            yield join(prefix, 'Scripts')
         else:
-            yield _path_convert(join(prefix, 'bin'))
+            yield join(prefix, 'bin')
 
     def _add_prefix_to_path(self, old_path, prefix):
         return self.pathsep.join(concatv(

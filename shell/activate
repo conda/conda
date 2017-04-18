@@ -15,7 +15,7 @@ _conda_script_is_sourced() {
       [ "${BASH_SOURCE[0]}" = "$0" ] && sourced=1
     else # All other shells: examine $0 for known shell binary filenames
       # Detects `sh` and `dash`; add additional shell filenames as needed.
-      case ${0##*/} in sh|dash) sourced=1;; esac
+      case ${0##*/} in sh|dash) sourced=0;; *) source=1;; esac
     fi
     return $sourced
 }
