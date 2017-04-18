@@ -266,7 +266,7 @@ def test_wrong_args(shell):
 
         stdout, stderr = run_in(commands, shell)
         stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_equals(stderr, u'Error: did not expect more than one argument.\n    (got two args)')
+        assert_equals(stderr.strip(), u'ArgumentError: activate only accepts a single argument')
         assert_equals(stdout, shell_vars['base_path'], stderr)
 
 

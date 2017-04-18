@@ -1,36 +1,42 @@
 
+# set _CONDA_SHELL_FLAVOR
+if [ -n "${BASH_VERSION:+x}" ]; then
+    _CONDA_SHELL_FLAVOR=bash
+elif [ -n "${ZSH_VERSION:+x}" ]; then
+    _CONDA_SHELL_FLAVOR=zsh
+elif [ -n "${KSH_VERSION:+x}" ]; then
+    _CONDA_SHELL_FLAVOR=ksh
+else
+    # https://unix.stackexchange.com/a/120138/92065
+    _q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
+    if [ _q = dash ]; then
+        _CONDA_SHELL_FLAVOR=dash
+    else
+        unset _q
+        (>&2 echo "Unrecognized shell.")
+        return 1
+    fi
+    unset _q
+fi
+
+if [ -z "$_CONDA_ROOT" ]; then
+    # https://unix.stackexchange.com/a/4673/92065
+    case "$_CONDA_SHELL_FLAVOR" in
+        bash) _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")" ;;
+        zsh) _SCRIPT_DIR="$(dirname "${funcstack[1]}")" ;;
+        *) _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")" ;;
+    esac
+
+    _CONDA_ROOT="$_SCRIPT_DIR/../.."
+    unset _SCRIPT_DIR
+fi
+
+_CONDA_EXE="$_CONDA_ROOT/bin/conda"
+
 
 if [ "$_" = "$0" ]; then
     (>&2 echo "This script must be sourced, not executed.")
     exit 1
-fi
-
-
-if [ -z "${_CONDA_EXE}" ]; then
-    # hopefully _SCRIPT_DIR has already been set and we can avoid this whole mess
-    # it's useful for testing purposes though
-    if [ -n "${BASH_VERSION:+x}" ]; then
-        _CONDA_SHELL_FLAVOR=bash
-        _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-    elif [ -n "${ZSH_VERSION:+x}" ]; then
-        _CONDA_SHELL_FLAVOR=zsh
-        _SCRIPT_DIR="$(dirname "${funcstack[1]}")"
-    elif [ -n "${KSH_VERSION:+x}" ]; then
-        _CONDA_SHELL_FLAVOR=ksh
-        _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")"
-    else
-        # https://unix.stackexchange.com/a/120138/92065
-        q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
-        if [ q = dash ]; then
-            _CONDA_SHELL_FLAVOR=dash
-        else
-            unset __q
-            (>&2 echo "Unrecognized shell.")
-            return 1
-        fi
-        unset __q
-    fi
-    _CONDA_EXE="$_SCRIPT_DIR/../../bin/conda"
 fi
 
 

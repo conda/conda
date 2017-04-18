@@ -4,13 +4,15 @@ if [ -z "$_CONDA_ROOT" ]; then
     _CONDA_ROOT="$(dirname $_SCRIPT_DIR)"
 fi
 
-if [ "$_" = "$0" ]; then
+_called=$_
+if [ "$_called" = "$0" ]; then
     (
       >&2 echo "Error: activate must be sourced. Run 'source activate envname'"
       >&2 echo "instead of 'activate envname'."
     )
     exit 1
 fi
+unset _called
 
 source "$_CONDA_ROOT/etc/profile.d/conda.sh"
 _conda_activate "$@"
