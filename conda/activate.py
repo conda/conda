@@ -35,7 +35,7 @@ def native_path_list_to_unix(path_value):
         return path_value
     from subprocess import PIPE, Popen
     from shlex import split
-    command = 'cygpath.exe --path "%s"' % path_value
+    command = 'cygpath.exe --path "%s"' % path_value.replace('\\', '\\\\')
     p = Popen(split(command), stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     rc = p.returncode
