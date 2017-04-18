@@ -37,6 +37,8 @@ set_vars() {
         export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
     fi
 
+    export PYTHON_VERSION=${PYTHON_VERSION:-3.6}
+
 }
 
 set_vars

@@ -227,9 +227,19 @@ class Activator(object):
         ))
 
     def _remove_prefix_from_path(self, current_path, prefix):
-        _prefix_paths = (re.escape(self.pathsep.join(self._get_path_dirs(prefix)))
-                         + r'%s?' % re.escape(self.pathsep))
-        return re.sub(_prefix_paths, r'', current_path, 1)
+        path_list = current_path.split(self.pathsep)
+        if on_win:
+            # windows has a nasty habit of adding extra Library\bin directories
+            extra_win_path = join(prefix, 'Library', 'bin')
+            prefix_dirs = tuple(self._get_path_dirs(prefix))
+            first_idx = min(path_list.index(extra_win_path), path_list.index(prefix_dirs[0]))
+            last_idx = path_list.index(prefix_dirs[-1])
+            if path_list[last_idx + 1] == extra_win_path:
+                last_idx += 1
+            del path_list[first_idx:last_idx+1]
+        else:
+            path_list.remove(join(prefix, 'bin'))
+        return self.pathsep.join(path_list)
 
     def _replace_prefix_in_path(self, current_path, old_prefix, new_prefix):
         old_prefix_paths = self.pathsep.join(self._get_path_dirs(old_prefix))
