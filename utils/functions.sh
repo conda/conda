@@ -142,7 +142,6 @@ make_conda_entrypoint() {
     local pythonpath="$2"
     local workingdir="$3"
     local function_import="$4"
-    ls -al $filepath
     rm -rf $filepath
 	cat <<- EOF > $filepath
 	#!$pythonpath
