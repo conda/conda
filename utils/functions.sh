@@ -84,6 +84,7 @@ install_conda_shell_scripts() {
     cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/
 }
 
+
 install_conda_dev() {
     local prefix=${1:-$INSTALL_PREFIX}
     install_python $prefix
