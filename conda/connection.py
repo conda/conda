@@ -27,7 +27,7 @@ from .gateways.adapters.ftp import FTPAdapter
 from .gateways.adapters.localfs import LocalFSAdapter
 from .gateways.adapters.s3 import S3Adapter
 from .gateways.anaconda_client import read_binstar_tokens
-from .utils import gnu_get_libc_version
+from .utils import linux_get_libc_version
 
 RETRIES = 3
 
@@ -39,7 +39,7 @@ _user_agent = ("conda/{conda_ver} "
                "{python}/{py_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
-glibc_ver = gnu_get_libc_version()
+libc_family, libc_ver = linux_get_libc_version()
 if context.platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
@@ -56,8 +56,8 @@ user_agent = _user_agent.format(conda_ver=VERSION,
                                 py_ver=platform.python_version(),
                                 system=platform.system(), kernel=platform.release(),
                                 dist=dist, ver=ver)
-if glibc_ver:
-    user_agent += " glibc/{}".format(glibc_ver)
+if libc_ver:
+    user_agent += " {}/{}".format(libc_family, libc_ver)
 
 
 class EnforceUnusedAdapter(BaseAdapter):
