@@ -30,7 +30,7 @@ def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
-def native_path_list_to_unix(path_value):
+def native_path_list_to_unix_2(path_value):
     if not on_win:
         return path_value
     from subprocess import PIPE, Popen
@@ -43,6 +43,14 @@ def native_path_list_to_unix(path_value):
         from subprocess import CalledProcessError
         raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
     return stdout.strip().decode('utf-8')
+
+
+def native_path_list_to_unix(path_value):
+    if not on_win:
+        return path_value
+    from .utils import win_path_to_unix
+    path_list = path_value.split(os.pathsep)
+    return os.pathsep.join(win_path_to_unix(p) for p in path_list)
 
 
 class Activator(object):
