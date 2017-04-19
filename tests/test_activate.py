@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 from logging import getLogger
 import os
 from unittest import TestCase
@@ -9,6 +10,7 @@ import pytest
 import sys
 
 from conda.common.compat import on_win
+from conda._vendor.toolz.itertoolz import concatv
 
 from conda.activate import Activator, expand, native_path_list_to_unix
 from conda.base.context import reset_context, context
@@ -251,20 +253,23 @@ class ActivatorUnitTests(TestCase):
                 with env_var('CONDA_PREFIX_1', old_prefix):
                     with env_var('CONDA_PREFIX', td):
                         activator = Activator('posix')
-                        builder = activator.build_deactivate()
+                        start_path = concatv(activator._get_path_dirs(td),
+                                             original_path.split(os.pathsep))
+                        with env_var('PATH', os.pathsep.join(start_path)):
+                            builder = activator.build_deactivate()
 
-                        assert builder['unset_vars'] == ('CONDA_PREFIX_1',)
+                            assert builder['unset_vars'] == ('CONDA_PREFIX_1',)
 
-                        set_vars = {
-                            'PATH': native_path_list_to_unix(original_path),
-                            'CONDA_SHLVL': 1,
-                            'CONDA_PREFIX': old_prefix,
-                            'CONDA_DEFAULT_ENV': old_prefix,
-                            'CONDA_PROMPT_MODIFIER': "(%s) " % old_prefix,
-                        }
-                        assert builder['set_vars'] == set_vars
-                        assert builder['activate_scripts'] == [activate_d_1]
-                        assert builder['deactivate_scripts'] == [deactivate_d_1]
+                            set_vars = {
+                                'PATH': native_path_list_to_unix(original_path),
+                                'CONDA_SHLVL': 1,
+                                'CONDA_PREFIX': old_prefix,
+                                'CONDA_DEFAULT_ENV': old_prefix,
+                                'CONDA_PROMPT_MODIFIER': "(%s) " % old_prefix,
+                            }
+                            assert builder['set_vars'] == set_vars
+                            assert builder['activate_scripts'] == [activate_d_1]
+                            assert builder['deactivate_scripts'] == [deactivate_d_1]
 
     def test_build_deactivate_shlvl_1(self):
         with tempdir() as td:
@@ -279,20 +284,22 @@ class ActivatorUnitTests(TestCase):
             with env_var('CONDA_SHLVL', '1'):
                 with env_var('CONDA_PREFIX', td):
                     activator = Activator('posix')
-                    builder = activator.build_deactivate()
+                    start_path = concatv(activator._get_path_dirs(td), original_path.split(os.pathsep))
+                    with env_var('PATH', os.pathsep.join(start_path)):
+                        builder = activator.build_deactivate()
 
-                    assert builder['unset_vars'] == (
-                        'CONDA_PREFIX',
-                        'CONDA_DEFAULT_ENV',
-                        'CONDA_PYTHON_PATH',
-                        'CONDA_PROMPT_MODIFIER',
-                    )
-                    assert builder['set_vars'] == {
-                        'PATH': native_path_list_to_unix(original_path),
-                        'CONDA_SHLVL': 0,
-                    }
-                    assert builder['activate_scripts'] == ()
-                    assert builder['deactivate_scripts'] == [deactivate_d_1]
+                        assert builder['unset_vars'] == (
+                            'CONDA_PREFIX',
+                            'CONDA_DEFAULT_ENV',
+                            'CONDA_PYTHON_PATH',
+                            'CONDA_PROMPT_MODIFIER',
+                        )
+                        assert builder['set_vars'] == {
+                            'PATH': native_path_list_to_unix(original_path),
+                            'CONDA_SHLVL': 0,
+                        }
+                        assert builder['activate_scripts'] == ()
+                        assert builder['deactivate_scripts'] == [deactivate_d_1]
 
 
 @pytest.mark.integration
