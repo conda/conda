@@ -141,6 +141,11 @@ install_conda_shell_scripts() {
     cat $src_dir/shell/deactivate >> $bin_dir/deactivate
     chmod +x $bin_dir/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
 
+    if [ $ON_WIN -eq 0 ]; then
+        cp $src_dir/shell/activate.bat $bind_dir/activate.bat
+        cp $src_dir/shell/deactivate.bat $bind_dir/deactivate.bat
+    fi
+
     mkdir -p $prefix/etc/fish/conf.d/
     rm -rf $prefix/etc/fish/conf.d/conda.fish
     cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/conda.fish
