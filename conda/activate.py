@@ -15,9 +15,11 @@ except ImportError:  # pragma: no cover
 on_win = bool(sys.platform == "win32")
 PY2 = sys.version_info[0] == 2
 if PY2:  # pragma: py3 no cover
+    string_types = basestring,
     def iteritems(d, **kw):
         return d.iteritems(**kw)
 else:  # pragma: py2 no cover
+    string_types = str,
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
@@ -45,12 +47,11 @@ def native_path_list_to_unix_cygpath(path_value):
     return stdout.strip().decode('utf-8')
 
 
-def native_path_list_to_unix(path_value):
-    if not on_win:
-        return path_value
-    from .utils import win_path_to_unix
-    path_list = path_value.split(os.pathsep)
-    return ':'.join(win_path_to_unix(p) for p in path_list)
+def native_path_to_unix(*paths):
+    if on_win:
+        from .utils import win_path_to_unix
+        paths = tuple(win_path_to_unix(p) for p in paths)
+    return paths[0] if len(paths) == 1 else paths
 
 
 class Activator(object):
@@ -64,7 +65,7 @@ class Activator(object):
 
         if shell == 'posix':
             self.pathsep = os.pathsep
-            self.path_conversion = native_path_list_to_unix
+            self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
 
             self.unset_var_tmpl = 'unset %s'
@@ -102,7 +103,6 @@ class Activator(object):
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
         old_conda_prefix = os.getenv('CONDA_PREFIX')
-        old_path = os.environ['PATH']
 
         if old_conda_prefix == prefix:
             return self.build_reactivate()
@@ -116,7 +116,7 @@ class Activator(object):
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
         if old_conda_shlvl == 0:
-            new_path = self.path_conversion(self._add_prefix_to_path(old_path, prefix))
+            new_path = self.pathsep.join(self._add_prefix_to_path(prefix))
             set_vars = {
                 'CONDA_PYTHON_PATH': sys.executable,
                 'PATH': new_path,
@@ -127,7 +127,7 @@ class Activator(object):
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 1:
-            new_path = self.path_conversion(self._add_prefix_to_path(old_path, prefix))
+            new_path = self.pathsep.join(self._add_prefix_to_path(prefix))
             set_vars = {
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
@@ -138,9 +138,7 @@ class Activator(object):
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 2:
-            new_path = self.path_conversion(
-                self._replace_prefix_in_path(old_path, old_conda_prefix, prefix)
-            )
+            new_path = self.pathsep.join(self._replace_prefix_in_path(old_conda_prefix, prefix))
             set_vars = {
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
@@ -168,7 +166,7 @@ class Activator(object):
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
         new_conda_shlvl = old_conda_shlvl - 1
-        new_path = self.path_conversion(self._remove_prefix_from_path(old_path, old_conda_prefix))
+        new_path = self.pathsep.join(self._remove_prefix_from_path(old_conda_prefix))
 
         if old_conda_shlvl == 1:
             # TODO: warn conda floor
@@ -218,6 +216,14 @@ class Activator(object):
             'activate_scripts': self._get_activate_scripts(conda_prefix),
         }
 
+    def _get_starting_path_list(self):
+        path = os.environ['PATH']
+        if on_win:
+            # on Windows, the python interpreter prepends sys.prefix\Library\bin on startup WTF
+            return path.split(os.pathsep)[1:]
+        else:
+            return path.split(os.pathsep)
+
     def _get_path_dirs(self, prefix):
         if on_win:
             yield prefix.rstrip("\\")
@@ -228,36 +234,41 @@ class Activator(object):
         else:
             yield join(prefix, 'bin')
 
-    def _add_prefix_to_path(self, old_path, prefix):
-        return self.pathsep.join(concatv(
+    def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
+        if starting_path_dirs is None:
+            starting_path_dirs = self._get_starting_path_list()
+        return self.path_conversion(*tuple(concatv(
             self._get_path_dirs(prefix),
-            (old_path,),
-        ))
+            starting_path_dirs,
+        )))
 
-    def _remove_prefix_from_path(self, current_path, prefix):
-        path_list = current_path.split(self.pathsep)
+    def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
+        return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
+
+    def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
+        path_list = self._get_starting_path_list() if starting_path_dirs is None else list(starting_path_dirs)
         if on_win:
             # windows has a nasty habit of adding extra Library\bin directories
-            extra_win_path = join(prefix, 'Library', 'bin')
-            prefix_dirs = tuple(self._get_path_dirs(prefix))
-            first_idx = min(path_list.index(extra_win_path), path_list.index(prefix_dirs[0]))
-            last_idx = path_list.index(prefix_dirs[-1])
-            if path_list[last_idx + 1] == extra_win_path:
-                last_idx += 1
-            del path_list[first_idx:last_idx+1]
+            prefix_dirs = tuple(self._get_path_dirs(old_prefix))
+            try:
+                first_idx = path_list.index(prefix_dirs[0])
+            except ValueError:
+                first_idx = 0
+            else:
+                last_idx = path_list.index(prefix_dirs[-1])
+                del path_list[first_idx:last_idx+1]
+            if new_prefix is not None:
+                path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
         else:
-            path_list.remove(join(prefix, 'bin'))
-        return self.pathsep.join(path_list)
-
-    def _replace_prefix_in_path(self, current_path, old_prefix, new_prefix):
-        old_prefix_paths = self.pathsep.join(self._get_path_dirs(old_prefix))
-        if old_prefix_paths in current_path:
-            # intermediate step here because backslash escaping gets messed up otherwise
-            new_prefix_paths = self.pathsep.join(self._get_path_dirs(new_prefix))
-            intermediate = re.sub(re.escape(old_prefix_paths), "HOLDER_HOLDER_HOLDER", current_path, 1)
-            return intermediate.replace("HOLDER_HOLDER_HOLDER", new_prefix_paths)
-        else:
-            return self._add_prefix_to_path(current_path, new_prefix)
+            try:
+                idx = path_list.index(join(old_prefix, 'bin'))
+            except ValueError:
+                idx = 0
+            else:
+                del path_list[idx]
+            if new_prefix is not None:
+                path_list.insert(idx, join(new_prefix, 'bin'))
+        return self.path_conversion(*path_list)
 
     def _default_env(self, prefix):
         if prefix == self.context.root_prefix:

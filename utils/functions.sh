@@ -270,9 +270,9 @@ conda_activate_test() {
     # make test-installed
     # $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
     if [ $ON_WIN -eq 0 ]; then
-        $PYTEST_EXE $ADD_COV -m "installed" --shell=cmd.exe --shell=bash.exe
+        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe  # --shell=cmd.exe
     else
-        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash
+        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash  # --shell=dash
     fi
 
 }
