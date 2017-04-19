@@ -142,8 +142,8 @@ install_conda_shell_scripts() {
     chmod +x $bin_dir/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
 
     if [ $ON_WIN -eq 0 ]; then
-        cp $src_dir/shell/activate.bat $bind_dir/activate.bat
-        cp $src_dir/shell/deactivate.bat $bind_dir/deactivate.bat
+        cp $src_dir/shell/activate.bat $bin_dir/activate.bat
+        cp $src_dir/shell/deactivate.bat $bin_dir/deactivate.bat
     fi
 
     mkdir -p $prefix/etc/fish/conf.d/
@@ -275,7 +275,7 @@ conda_activate_test() {
     # make test-installed
     # $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
     if [ $ON_WIN -eq 0 ]; then
-        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe  # --shell=cmd.exe
+        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe --shell=cmd.exe
     else
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash  # --shell=dash
     fi
