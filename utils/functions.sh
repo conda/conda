@@ -37,7 +37,10 @@ set_vars() {
         export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
     fi
 
-    export PYTHON_VERSION=${PYTHON_VERSION:-3.6}
+    if [ -z "$PYTHON_VERSION" ]; then
+        echo "PYTHON_VERSION not set. Defaulting to PYTHON_VERSION=3.6"
+        export PYTHON_VERSION=3.6
+    fi
 
 }
 
