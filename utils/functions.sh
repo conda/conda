@@ -4,21 +4,19 @@ set_vars() {
     case "$PYTHON_ARCH" in 32) arch=x86;; *) arch=x86_64;; esac
     case "$(uname -s)" in
         'Darwin')
-            export ON_WIN=1
             export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             ;;
         'Linux')
-            export ON_WIN=1
             export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             ;;
         CYGWIN*|MINGW*|MSYS*)
-            export ON_WIN=0
+            export ON_WIN=true
             export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-$arch.exe"
             export BIN_DIR="Scripts"
             export EXE_EXT=".exe"
@@ -27,11 +25,11 @@ set_vars() {
         *)  ;;
     esac
 
-    if [ $SUDO = true ]; then
+    if [ "$SUDO" = true ]; then
         export INSTALL_PREFIX=/usr/local
     fi
 
-    if [ $ON_WIN -eq 0 ]; then
+    if [ "$ON_WIN" = true ]; then
         export PYTHON_EXE="$INSTALL_PREFIX/python.exe"
         export CONDA_EXE="$INSTALL_PREFIX/Scripts/conda.exe"
     else
@@ -51,7 +49,7 @@ install_miniconda() {
     local prefix=${1:-$INSTALL_PREFIX}
 
     if ! [ -f "$prefix/$BIN_DIR/conda$EXE_EXT" ]; then
-        if [ $ON_WIN -eq 0 ]; then
+        if [ "$ON_WIN" = true ]; then
             local user_profile="$(cmd.exe /c "echo %USERPROFILE%")"
             if ! [ -f "$user_profile\miniconda.exe" ]; then
                 curl -sSL $MINICONDA_URL -o "$user_profile\miniconda.exe"
@@ -120,7 +118,7 @@ install_conda_shell_scripts() {
 
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
-    local symlink_scripts=${3:-1}
+    local symlink_scripts=${3:-1}  # symlink might not ever work
 
     local link_cmd
     case "$symlink_scripts" in 0|true) link_cmd="ln -sf";; *) link_cmd="cp";; esac
@@ -132,12 +130,16 @@ install_conda_shell_scripts() {
     mkdir -p "$prefix/$BIN_DIR"
 
     rm -f "$prefix/$BIN_DIR/activate"
-    $link_cmd "$prefix/$BIN_DIR/shell/bin/activate" "$prefix/$BIN_DIR/activate"
+    echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
+    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
+    cat "$src_dir/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
 
     rm -f "$prefix/$BIN_DIR/deactivate"
-    $link_cmd "$src_dir/shell/bin/deactivate" "$prefix/$BIN_DIR/deactivate"
+    echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
+    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
+    cat "$src_dir/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
 
-    if [ $ON_WIN -eq 0 ]; then
+    if [ "$ON_WIN" = true ]; then
         rm -f "$prefix/$BIN_DIR/activate.bat"
         $link_cmd "$src_dir/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
 
@@ -178,7 +180,7 @@ install_conda_dev() {
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
 
-    if [ $ON_WIN -eq 0 ]; then
+    if [ "$ON_WIN" = true ]; then
         $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
         make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
         make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
@@ -253,16 +255,13 @@ conda_unit_test() {
 
 
 conda_integration_test() {
-    conda_unit_test
     $PYTEST_EXE $ADD_COV -m "integration and not installed"
 }
 
 
 conda_activate_test() {
-    conda_unit_test
-
     # this hard-codes __version__ in conda/__init__.py to speed up tests
-    if [ $SUDO == true ]; then
+    if [ "$SUDO" = true ]; then
         sudo $PYTHON_EXE -m conda._vendor.auxlib.packaging conda
     else
         $PYTHON_EXE -m conda._vendor.auxlib.packaging conda
@@ -271,7 +270,7 @@ conda_activate_test() {
     $PYTHON_EXE -c "import conda; print(conda.__version__)"
     $CONDA_EXE info
 
-    if [ $ON_WIN -eq 0 ]; then
+    if [ "$ON_WIN" = true ]; then
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe --shell=cmd.exe
     else
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=dash --shell=zsh
@@ -344,15 +343,17 @@ run_tests() {
     set -x
     env | sort
 
-    if [ $FLAKE8 = true ]; then
+    if [ "$FLAKE8" = true ]; then
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
         # conda_build_smoke_test
         conda_build_unit_test
     elif [ -n "$SHELL_INTEGRATION" ]; then
+        conda_unit_test
         conda_activate_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
     else
+        conda_unit_test
         conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
     fi

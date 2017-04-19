@@ -40,7 +40,7 @@ _conda_set_vars() {
             ;;
     esac
 
-    local _conda_root="$_script_dir/../.."
+    local _conda_root="$script_dir/.."
 
     _CONDA_EXE="$_conda_root/$bin_dir/conda$exe_ext"
 

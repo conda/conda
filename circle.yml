@@ -13,4 +13,4 @@ dependencies:
 
 test:
   override:
-    - source utils/functions.sh && run_tests
+    - source utils/functions.sh && run_tests && conda_activate_test
