@@ -14,12 +14,23 @@ except ImportError:  # pragma: no cover
 
 
 class Activator(object):
+    # Activate and deactivate have three tasks
+    #   1. Set and unset environment variables
+    #   2. Execute/source activate.d/deactivate.d scripts
+    #   3. Update the command prompt
+    #
+    # Shells should also use 'reactivate' following conda's install, update, and
+    #   remove/uninstall commands.
+    #
     # All core logic is in build_activate() or build_deactivate(), and is independent of
     # shell type.  Each returns a map containing the keys:
     #   set_vars
     #   unset_var
     #   activate_scripts
     #   deactivate_scripts
+    #
+    # The value of the CONDA_PROMPT_MODIFIER environment variable holds conda's contribution
+    #   to the command prompt.
     #
     # To implement support for a new shell, ideally one would only need to add shell-specific
     # information to the __init__ method of this class.
@@ -48,6 +59,19 @@ class Activator(object):
 
     def reactivate(self):
         return '\n'.join(self._make_commands(self.build_reactivate()))
+
+    def _make_commands(self, cmds_dict):
+        for key in cmds_dict.get('unset_vars', ()):
+            yield self.unset_var_tmpl % key
+
+        for key, value in iteritems(cmds_dict.get('set_vars', {})):
+            yield self.set_var_tmpl % (key, value)
+
+        for script in cmds_dict.get('deactivate_scripts', ()):
+            yield self.run_script_tmpl % script
+
+        for script in cmds_dict.get('activate_scripts', ()):
+            yield self.run_script_tmpl % script
 
     def build_activate(self, name_or_prefix):
         test_path = expand(name_or_prefix)
@@ -254,19 +278,6 @@ class Activator(object):
         return glob(join(
             prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
         ))
-
-    def _make_commands(self, cmds_dict):
-        for key in cmds_dict.get('unset_vars', ()):
-            yield self.unset_var_tmpl % key
-
-        for key, value in iteritems(cmds_dict.get('set_vars', {})):
-            yield self.set_var_tmpl % (key, value)
-
-        for script in cmds_dict.get('deactivate_scripts', ()):
-            yield self.run_script_tmpl % script
-
-        for script in cmds_dict.get('activate_scripts', ()):
-            yield self.run_script_tmpl % script
 
 
 def expand(path):
