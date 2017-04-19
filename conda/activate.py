@@ -64,7 +64,7 @@ class Activator(object):
         self.context = context
 
         if shell == 'posix':
-            self.pathsep = os.pathsep
+            self.pathsep = ':'
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
 
