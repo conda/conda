@@ -10,9 +10,8 @@ import pytest
 import sys
 
 from conda.common.compat import on_win, string_types
-from conda._vendor.toolz.itertoolz import concatv
 
-from conda.activate import Activator, expand, native_path_to_unix
+from conda.activate import Activator
 from conda.base.context import reset_context, context
 from conda.common.io import env_var
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
@@ -69,8 +68,9 @@ class ActivatorUnitTests(TestCase):
         activator = Activator('posix')
 
         path_dirs = activator.path_conversion(*['/path1/bin', '/path2/bin', '/usr/local/bin', '/usr/bin', '/bin'])
+        assert len(path_dirs) == 5
         test_prefix = '/usr/mytest/prefix'
-        added_paths = activator.path_conversion(*list(activator._get_path_dirs(test_prefix)))
+        added_paths = activator.path_conversion(*tuple(activator._get_path_dirs(test_prefix)))
         if isinstance(added_paths, string_types):
             added_paths = added_paths,
 

@@ -24,34 +24,29 @@ else:  # pragma: py2 no cover
         return iter(d.items(**kw))
 
 
-def identity(x):
-    return x
-
-
 def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
-def native_path_list_to_unix_cygpath(path_value):
+def native_path_to_unix(*paths):
     if not on_win:
-        return path_value
+        return paths[0] if len(paths) == 1 else paths
     from subprocess import PIPE, Popen
     from shlex import split
-    command = 'cygpath.exe --path "%s"' % path_value
-    p = Popen(split(command), stdout=PIPE, stderr=PIPE)
-    stdout, stderr = p.communicate()
+    command = 'cygpath.exe --path -f -'
+    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    joined = ("%s" % os.pathsep).join(paths)
+    if hasattr(joined, 'encode'):
+        joined = joined.encode('utf-8')
+    stdout, stderr = p.communicate(input=joined)
     rc = p.returncode
     if rc != 0 or stderr:
         from subprocess import CalledProcessError
         raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
-    return stdout.strip().decode('utf-8')
-
-
-def native_path_to_unix(*paths):
-    if on_win:
-        from .utils import win_path_to_unix
-        paths = tuple(win_path_to_unix(p) for p in paths)
-    return paths[0] if len(paths) == 1 else paths
+    if hasattr(stdout, 'decode'):
+        stdout = stdout.decode('utf-8')
+    final = stdout.strip().split(':')
+    return final[0] if len(final) == 1 else tuple(final)
 
 
 class Activator(object):
