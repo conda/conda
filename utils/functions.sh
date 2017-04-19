@@ -225,7 +225,7 @@ install_conda_build() {
     local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf $site_packages/conda_build
     pushd conda-build
-    $prefix/bin/pip install .
+    $prefix/bin/pip install --no-deps .
     popd
 
     git clone https://github.com/conda/conda_build_test_recipe.git
