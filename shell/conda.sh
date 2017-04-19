@@ -1,3 +1,4 @@
+# _CONDA_EXE is written above at build time or by install_conda_shell_scripts in utils/functions.sh
 
 # set _CONDA_SHELL_FLAVOR
 if [ -n "${BASH_VERSION:+x}" ]; then
@@ -45,7 +46,7 @@ _conda_hashr() {
 
 _conda_activate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.activate posix "$@")" || return $?
+    ask_conda="$("$_CONDA_EXE" shell.activate posix "$@")" || return $?
     eval "$ask_conda"
 
     case "$_CONDA_SHELL_FLAVOR" in
@@ -67,7 +68,7 @@ _conda_activate() {
 
 _conda_deactivate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.deactivate posix "$@")" || return $?
+    ask_conda="$("$_CONDA_EXE" shell.deactivate posix "$@")" || return $?
     eval "$ask_conda"
 
     if [ -z "$CONDA_PREFIX" ]; then
@@ -82,7 +83,7 @@ _conda_deactivate() {
 
 _conda_reactivate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.reactivate posix "$@")" || return $?
+    ask_conda="$("$_CONDA_EXE" shell.reactivate posix "$@")" || return $?
     eval "$ask_conda"
 
     _conda_hashr

@@ -12,49 +12,17 @@ try:
 except ImportError:  # pragma: no cover
     from ._vendor.toolz.itertoolz import concatv  # NOQA
 
-on_win = bool(sys.platform == "win32")
-PY2 = sys.version_info[0] == 2
-if PY2:  # pragma: py3 no cover
-    string_types = basestring,  # NOQA
-
-    def iteritems(d, **kw):
-        return d.iteritems(**kw)
-else:  # pragma: py2 no cover
-    string_types = str,
-
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
-
-
-def expand(path):
-    return abspath(expanduser(expandvars(path)))
-
-
-def native_path_to_unix(*paths):
-    if not on_win:
-        return paths[0] if len(paths) == 1 else paths
-    from subprocess import PIPE, Popen
-    from shlex import split
-    command = 'cygpath.exe --path -f -'
-    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    joined = ("%s" % os.pathsep).join(paths)
-    if hasattr(joined, 'encode'):
-        joined = joined.encode('utf-8')
-    stdout, stderr = p.communicate(input=joined)
-    rc = p.returncode
-    if rc != 0 or stderr:
-        from subprocess import CalledProcessError
-        raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
-    if hasattr(stdout, 'decode'):
-        stdout = stdout.decode('utf-8')
-    final = stdout.strip().split(':')
-    return final[0] if len(final) == 1 else tuple(final)
-
 
 class Activator(object):
-    # Strategy is to use the Activator class, where all core logic is is build_activate()
-    # or build_deactivate().  Each returns a map containing the keys: set_vars, unset_var,
-    # activate_scripts, deactivate_scripts.
+    # All core logic is in build_activate() or build_deactivate(), and is independent of
+    # shell type.  Each returns a map containing the keys:
+    #   set_vars
+    #   unset_var
+    #   activate_scripts
+    #   deactivate_scripts
+    #
+    # To implement support for a new shell, ideally one would only need to add shell-specific
+    # information to the __init__ method of this class.
 
     def __init__(self, shell):
         from .base.context import context
@@ -299,6 +267,46 @@ class Activator(object):
 
         for script in cmds_dict.get('activate_scripts', ()):
             yield self.run_script_tmpl % script
+
+
+def expand(path):
+    return abspath(expanduser(expandvars(path)))
+
+
+def native_path_to_unix(*paths):
+    # on windows, uses cygpath to convert windows native paths to posix paths
+    if not on_win:
+        return paths[0] if len(paths) == 1 else paths
+    from subprocess import PIPE, Popen
+    from shlex import split
+    command = 'cygpath.exe --path -f -'
+    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    joined = ("%s" % os.pathsep).join(paths)
+    if hasattr(joined, 'encode'):
+        joined = joined.encode('utf-8')
+    stdout, stderr = p.communicate(input=joined)
+    rc = p.returncode
+    if rc != 0 or stderr:
+        from subprocess import CalledProcessError
+        raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
+    if hasattr(stdout, 'decode'):
+        stdout = stdout.decode('utf-8')
+    final = stdout.strip().split(':')
+    return final[0] if len(final) == 1 else tuple(final)
+
+
+on_win = bool(sys.platform == "win32")
+PY2 = sys.version_info[0] == 2
+if PY2:  # pragma: py3 no cover
+    string_types = basestring,  # NOQA
+
+    def iteritems(d, **kw):
+        return d.iteritems(**kw)
+else:  # pragma: py2 no cover
+    string_types = str,
+
+    def iteritems(d, **kw):
+        return iter(d.items(**kw))
 
 
 def main():
