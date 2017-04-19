@@ -44,8 +44,6 @@ set_vars() {
 
 }
 
-set_vars
-
 
 install_miniconda() {
     local prefix=${1:-$INSTALL_PREFIX}
@@ -364,4 +362,5 @@ run_tests() {
     set +x
 }
 
-
+set_vars
+set_test_vars
