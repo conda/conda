@@ -185,7 +185,7 @@ def test_activate_bad_directory(shell):
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         # another semicolon here for comparison reasons with one above.
-        assert 'Not a conda environment' in stderr
+        assert_in('could not find conda environment', stderr)
         assert_not_in(env_dirs[2], stdout)
 
 
@@ -273,7 +273,7 @@ def test_wrong_args(shell):
 
         stdout, stderr = run_in(commands, shell)
         stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_equals(stderr.strip(), u'ArgumentError: activate only accepts a single argument')
+        assert_in("activate only accepts a single argument", stderr)
         assert_equals(stdout, shell_vars['base_path'], stderr)
 
 
@@ -684,6 +684,7 @@ def test_activate_has_extra_env_vars(shell):
         assert_equals(stdout, u'.', stderr)
 
 
+@pytest.mark.skip(reason="will be covered with cmd.exe implmentation in new framework")
 @pytest.mark.slow
 @pytest.mark.installed
 def test_activate_keeps_PATH_order(shell):
