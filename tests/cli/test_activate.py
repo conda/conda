@@ -185,7 +185,7 @@ def test_activate_bad_directory(shell):
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         # another semicolon here for comparison reasons with one above.
-        assert_in('could not find conda environment', stderr)
+        assert 'could not find conda environment' in stderr or 'not a conda environment' in stderr
         assert_not_in(env_dirs[2], stdout)
 
 
@@ -613,7 +613,10 @@ def test_activate_relative_path(shell):
             raise
         finally:
             os.chdir(cwd)
-        assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
+        if shell == 'cmd.exe':
+            assert_equals(stdout.rstrip(), env_dir, stderr)
+        else:
+            assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
 
 
 @pytest.mark.skipif(not on_win, reason="only relevant on windows")

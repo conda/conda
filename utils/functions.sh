@@ -1,23 +1,25 @@
 set_vars() {
     # Set global variables
+    local arch
+    case "$PYTHON_ARCH" in 32) arch=x86;; *) arch=x86_64;; esac
     case "$(uname -s)" in
         'Darwin')
             export ON_WIN=1
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-x86_64.sh"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             ;;
         'Linux')
             export ON_WIN=1
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-x86_64.sh"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             ;;
         CYGWIN*|MINGW*|MSYS*)
             export ON_WIN=0
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-x86_64.exe"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-$arch.exe"
             export BIN_DIR="Scripts"
             export EXE_EXT=".exe"
             export INSTALL_PREFIX=/c/conda-root
@@ -25,7 +27,7 @@ set_vars() {
         *)  ;;
     esac
 
-    if [[ $SUDO == true ]]; then
+    if [ $SUDO = true ]; then
         export INSTALL_PREFIX=/usr/local
     fi
 

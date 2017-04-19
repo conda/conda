@@ -15,11 +15,13 @@ except ImportError:  # pragma: no cover
 on_win = bool(sys.platform == "win32")
 PY2 = sys.version_info[0] == 2
 if PY2:  # pragma: py3 no cover
-    string_types = basestring,
+    string_types = basestring,  # NOQA
+
     def iteritems(d, **kw):
         return d.iteritems(**kw)
 else:  # pragma: py2 no cover
     string_types = str,
+
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
@@ -156,7 +158,6 @@ class Activator(object):
     def build_deactivate(self):
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
-        old_path = os.environ['PATH']
         old_conda_prefix = os.environ['CONDA_PREFIX']
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
@@ -241,7 +242,10 @@ class Activator(object):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
-        path_list = self._get_starting_path_list() if starting_path_dirs is None else list(starting_path_dirs)
+        if starting_path_dirs is None:
+            path_list = self._get_starting_path_list()
+        else:
+            path_list = list(starting_path_dirs)
         if on_win:
             # windows has a nasty habit of adding extra Library\bin directories
             prefix_dirs = tuple(self._get_path_dirs(old_prefix))
