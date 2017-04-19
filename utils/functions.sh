@@ -184,6 +184,7 @@ install_conda_dev() {
         make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
         make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
     else
+        $PYTHON_EXE setup.py develop
         make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
         make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
     fi
@@ -301,10 +302,12 @@ conda_build_unit_test() {
     export PATH="$prefix/bin:$PATH"  # cheating
     conda info
 
+    pushd conda-build
+
     # TODO: remove -k flag when conda/conda-build#1927 is merged
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" conda-build/tests \
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests \
         -k "not (pip_in_meta_yaml_fail or disable_pip or xattr or keeps_build_id)"
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" conda-build/tests
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
     popd
 }
 
