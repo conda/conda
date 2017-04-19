@@ -185,7 +185,7 @@ def test_activate_bad_directory(shell):
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         # another semicolon here for comparison reasons with one above.
-        assert 'could not find conda environment' in stderr or 'not a conda environment' in stderr
+        assert 'could not find conda environment' in stderr.lower() or 'not a conda environment' in stderr.lower()
         assert_not_in(env_dirs[2], stdout)
 
 
