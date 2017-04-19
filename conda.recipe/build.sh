@@ -5,6 +5,6 @@ unlink $PREFIX/bin/deactivate || true
 
 $PYTHON conda.recipe/setup.py install
 
-source utils/functions.sh
+. utils/functions.sh
 
 install_conda_shell_scripts $PREFIX

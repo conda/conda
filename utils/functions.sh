@@ -116,39 +116,38 @@ install_python() {
 
 
 install_conda_shell_scripts() {
-    # requires CONDA_EXE be set
+    # requires BIN_DIR
 
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
+    local symlink_scripts=${3:-1}
 
-    mkdir -p $prefix/etc/profile.d/
-    rm -rf $prefix/etc/profile.d/conda.sh
-    echo "_CONDA_EXE=\"$CONDA_EXE\"" > $prefix/etc/profile.d/conda.sh
-    cat $src_dir/shell/etc/profile.d/conda.sh >> $prefix/etc/profile.d/conda.sh
+    local link_cmd
+    case "$symlink_scripts" in 0|true) link_cmd="ln -sf";; *) link_cmd="cp";; esac
 
-    local bin_dir="$prefix/$BIN_DIR"
-    mkdir -p $bin_dir
+    mkdir -p "$prefix/etc/profile.d/"
+    rm -f "$prefix/etc/profile.d/conda.sh"
+    $link_cmd "$src_dir/shell/etc/profile.d/conda.sh" "$prefix/etc/profile.d/conda.sh"
 
-    rm -rf $bin_dir/activate
-    echo "#!/bin/sh" > $bin_dir/activate
-    echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/activate
-    cat $src_dir/shell/bin/activate >> $bin_dir/activate
-    chmod +x $bin_dir/activate  # we really shouldn't be doing this, but needed to make activate_help test pass
+    mkdir -p "$prefix/$BIN_DIR"
 
-    rm -rf $bin_dir/deactivate
-    echo "#!/bin/sh" > $bin_dir/deactivate
-    echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/deactivate
-    cat $src_dir/shell/bin/deactivate >> $bin_dir/deactivate
-    chmod +x $bin_dir/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
+    rm -f "$prefix/$BIN_DIR/activate"
+    $link_cmd "$prefix/$BIN_DIR/shell/bin/activate" "$prefix/$BIN_DIR/activate"
+
+    rm -f "$prefix/$BIN_DIR/deactivate"
+    $link_cmd "$src_dir/shell/bin/deactivate" "$prefix/$BIN_DIR/deactivate"
 
     if [ $ON_WIN -eq 0 ]; then
-        cp $src_dir/shell/Scripts/activate.bat $bin_dir/activate.bat
-        cp $src_dir/shell/Scripts/deactivate.bat $bin_dir/deactivate.bat
+        rm -f "$prefix/$BIN_DIR/activate.bat"
+        $link_cmd "$src_dir/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
+
+        rm -f $bin_dir/deactivate.bat
+        $link_cmd "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
     fi
 
-    mkdir -p $prefix/etc/fish/conf.d/
-    rm -rf $prefix/etc/fish/conf.d/conda.fish
-    cp $src_dir/shell/etc/fish/conf.d/conda.fish $prefix/etc/fish/conf.d/conda.fish
+    mkdir -p "$prefix/etc/fish/conf.d/"
+    rm -f "$prefix/etc/fish/conf.d/conda.fish"
+    $link_cmd "$src_dir/shell/etc/fish/conf.d/conda.fish" "$prefix/etc/fish/conf.d/conda.fish"
 }
 
 
@@ -157,7 +156,7 @@ make_conda_entrypoint() {
     local pythonpath="$2"
     local workingdir="$3"
     local function_import="$4"
-    rm -rf $filepath
+    rm -f $filepath
 	cat <<- EOF > $filepath
 	#!$pythonpath
 	if __name__ == '__main__':
@@ -189,7 +188,7 @@ install_conda_dev() {
         make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
     fi
 
-    install_conda_shell_scripts "$prefix" "$src_dir"
+    install_conda_shell_scripts "$prefix" "$src_dir" true
 
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
@@ -247,24 +246,23 @@ set_test_vars() {
 }
 
 
-conda_main_test() {
-    # make conda-version
+conda_unit_test() {
     $PYTHON_EXE utils/setup-testing.py --version
-
-    # make integration
     $PYTEST_EXE $ADD_COV -m "not integration and not installed"
-    # $PYTEST_EXE $ADD_COV -m "integration and not installed"
+}
+
+
+conda_integration_test() {
+    conda_unit_test
+    $PYTEST_EXE $ADD_COV -m "integration and not installed"
 }
 
 
 conda_activate_test() {
-    local prefix=${1:-$INSTALL_PREFIX}
-#    local prefix=$(python -c "import sys; print(sys.prefix)")
-#    ln -sf shell/activate $prefix/bin/activate
-#    ln -sf shell/deactivate $prefix/bin/deactivate
-#    make_conda_entrypoint $prefix/bin/conda $prefix/bin/python $(pwd)
+    conda_unit_test
 
-    if [[ $SUDO == true ]]; then
+    # this hard-codes __version__ in conda/__init__.py to speed up tests
+    if [ $SUDO == true ]; then
         sudo $PYTHON_EXE -m conda._vendor.auxlib.packaging conda
     else
         $PYTHON_EXE -m conda._vendor.auxlib.packaging conda
@@ -273,12 +271,10 @@ conda_activate_test() {
     $PYTHON_EXE -c "import conda; print(conda.__version__)"
     $CONDA_EXE info
 
-    # make test-installed
-    # $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh
     if [ $ON_WIN -eq 0 ]; then
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe --shell=cmd.exe
     else
-        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash  # --shell=dash
+        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=dash --shell=zsh
     fi
 
 }
@@ -287,8 +283,8 @@ conda_activate_test() {
 conda_build_smoke_test() {
     local prefix=${1:-$INSTALL_PREFIX}
 
-    $prefix/bin/conda config --add channels conda-canary
-    $prefix/bin/conda build conda.recipe
+    $prefix/$BIN_DIR/conda config --add channels conda-canary
+    $prefix/$BIN_DIR/conda build conda.recipe
 }
 
 
@@ -305,9 +301,9 @@ conda_build_unit_test() {
     pushd conda-build
 
     # TODO: remove -k flag when conda/conda-build#1927 is merged
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests \
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests \
         -k "not (pip_in_meta_yaml_fail or disable_pip or xattr or keeps_build_id)"
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
     popd
 }
 
@@ -319,7 +315,6 @@ run_setup() {
 
     case "$(uname -s)" in
         'Darwin')
-            brew install zsh
             install_conda_dev
             ;;
         'Linux')
@@ -349,16 +344,16 @@ run_tests() {
     set -x
     env | sort
 
-    if [[ $FLAKE8 == true ]]; then
+    if [ $FLAKE8 = true ]; then
         flake8 --statistics
-    elif [[ -n $CONDA_BUILD ]]; then
-        set_test_vars
+    elif [ -n "$CONDA_BUILD" ]; then
         # conda_build_smoke_test
         conda_build_unit_test
-    else
-        set_test_vars
-        conda_main_test
+    elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_activate_test
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
+    else
+        conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
     fi
 

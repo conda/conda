@@ -1,3 +1,4 @@
+#!/bin/sh
 
 if [ -z "$_CONDA_ROOT" ]; then
     _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")"

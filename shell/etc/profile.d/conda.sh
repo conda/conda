@@ -1,38 +1,50 @@
-# _CONDA_EXE is written above at build time or by install_conda_shell_scripts in utils/functions.sh
-
-# set _CONDA_SHELL_FLAVOR
-if [ -n "${BASH_VERSION:+x}" ]; then
-    _CONDA_SHELL_FLAVOR=bash
-elif [ -n "${ZSH_VERSION:+x}" ]; then
-    _CONDA_SHELL_FLAVOR=zsh
-elif [ -n "${KSH_VERSION:+x}" ]; then
-    _CONDA_SHELL_FLAVOR=ksh
-elif [ -n "${POSH_VERSION:+x}" ]; then
-    _CONDA_SHELL_FLAVOR=posh
-else
-    # https://unix.stackexchange.com/a/120138/92065
-    _q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
-    if [ _q = dash ]; then
-        _CONDA_SHELL_FLAVOR=dash
+_conda_set_vars() {
+    # set _CONDA_SHELL_FLAVOR
+    if [ -n "${BASH_VERSION:+x}" ]; then
+        _CONDA_SHELL_FLAVOR=bash
+    elif [ -n "${ZSH_VERSION:+x}" ]; then
+        _CONDA_SHELL_FLAVOR=zsh
+    elif [ -n "${KSH_VERSION:+x}" ]; then
+        _CONDA_SHELL_FLAVOR=ksh
+    elif [ -n "${POSH_VERSION:+x}" ]; then
+        _CONDA_SHELL_FLAVOR=posh
     else
+        # https://unix.stackexchange.com/a/120138/92065
+        _q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
+        if [ _q = dash ]; then
+            _CONDA_SHELL_FLAVOR=dash
+        else
+            unset _q
+            (>&2 echo "Unrecognized shell.")
+            return 1
+        fi
         unset _q
-        (>&2 echo "Unrecognized shell.")
-        return 1
     fi
-    unset _q
-fi
 
-#if [ -z "$_CONDA_ROOT" ]; then
-#    # https://unix.stackexchange.com/a/4673/92065
-#    case "$_CONDA_SHELL_FLAVOR" in
-#        bash) _SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")" ;;
-#        zsh) _SCRIPT_DIR="$(dirname "${funcstack[1]}")" ;;
-#        *) _SCRIPT_DIR="$(cd "$(dirname "$_")" && echo "$PWD")" ;;
-#    esac
-#
-#    _CONDA_ROOT="$_SCRIPT_DIR/../.."
-#    unset _SCRIPT_DIR
-#fi
+    # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
+    local script_dir
+    case "$_CONDA_SHELL_FLAVOR" in
+        bash) script_dir="$(dirname "${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}")";;
+        zsh) script_dir="$(dirname "${funcstack[1]}")";;
+        *) script_dir="$(cd "$(dirname "$_")" && echo "$PWD")";;
+    esac
+
+    case "$(uname -s)" in
+        CYGWIN*|MINGW*|MSYS*)
+            local bin_dir="Scripts"
+            local exe_ext=".exe"
+            ;;
+        *)
+            local bin_dir="bin"
+            local exe_ext=""
+            ;;
+    esac
+
+    local _conda_root="$_script_dir/../.."
+
+    _CONDA_EXE="$_conda_root/$bin_dir/conda$exe_ext"
+
+}
 
 
 _conda_hashr() {
@@ -109,6 +121,8 @@ conda() {
     esac
 }
 
+
+_conda_set_vars
 
 if [ -z "$CONDA_SHLVL" ]; then
     export CONDA_SHLVL=0
