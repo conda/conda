@@ -217,7 +217,11 @@ def test_activate_deactivate(shell):
 
         stdout, stderr = run_in(commands, shell)
         stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_equals(stdout, u"%s" % shell_vars['base_path'])
+        if on_win:
+            count = lambda x: len(x.strip().split(shells[shell]['pathsep']))
+            assert count(stdout) == count(shell_vars['base_path'])
+        else:
+            assert_equals(stdout, u"%s" % shell_vars['base_path'])
 
 
 @pytest.mark.installed
@@ -242,7 +246,11 @@ def test_activate_root_simple(shell):
 
         stdout, stderr = run_in(commands, shell)
         stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
+        if on_win:
+            count = lambda x: len(x.strip().split(shells[shell]['pathsep']))
+            assert count(stdout) == count(shell_vars['base_path'])
+        else:
+            assert_equals(stdout, u"%s" % shell_vars['base_path'])
 
 
 # @pytest.mark.installed
