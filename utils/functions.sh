@@ -124,7 +124,7 @@ install_conda_shell_scripts() {
     mkdir -p $prefix/etc/profile.d/
     rm -rf $prefix/etc/profile.d/conda.sh
     echo "_CONDA_EXE=\"$CONDA_EXE\"" > $prefix/etc/profile.d/conda.sh
-    cat $src_dir/shell/conda.sh >> $prefix/etc/profile.d/conda.sh
+    cat $src_dir/shell/etc/profile.d/conda.sh >> $prefix/etc/profile.d/conda.sh
 
     local bin_dir="$prefix/$BIN_DIR"
     mkdir -p $bin_dir
@@ -132,23 +132,23 @@ install_conda_shell_scripts() {
     rm -rf $bin_dir/activate
     echo "#!/bin/sh" > $bin_dir/activate
     echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/activate
-    cat $src_dir/shell/activate >> $bin_dir/activate
+    cat $src_dir/shell/bin/activate >> $bin_dir/activate
     chmod +x $bin_dir/activate  # we really shouldn't be doing this, but needed to make activate_help test pass
 
     rm -rf $bin_dir/deactivate
     echo "#!/bin/sh" > $bin_dir/deactivate
     echo "_CONDA_ROOT=\"$prefix\"" >> $bin_dir/deactivate
-    cat $src_dir/shell/deactivate >> $bin_dir/deactivate
+    cat $src_dir/shell/bin/deactivate >> $bin_dir/deactivate
     chmod +x $bin_dir/deactivate  # we really shouldn't be doing this, but needed to make activate_help test pass
 
     if [ $ON_WIN -eq 0 ]; then
-        cp $src_dir/shell/activate.bat $bin_dir/activate.bat
-        cp $src_dir/shell/deactivate.bat $bin_dir/deactivate.bat
+        cp $src_dir/shell/Scripts/activate.bat $bin_dir/activate.bat
+        cp $src_dir/shell/Scripts/deactivate.bat $bin_dir/deactivate.bat
     fi
 
     mkdir -p $prefix/etc/fish/conf.d/
     rm -rf $prefix/etc/fish/conf.d/conda.fish
-    cp $src_dir/shell/conda.fish $prefix/etc/fish/conf.d/conda.fish
+    cp $src_dir/shell/etc/fish/conf.d/conda.fish $prefix/etc/fish/conf.d/conda.fish
 }
 
 
