@@ -373,7 +373,7 @@ def test_PS1(shell, bash_profile):
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
+        assert_equals(stdout.strip(), print_ps1(env_dirs=gen_test_env_paths(envs, shell),
                                         raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
         # second activate replaces earlier activated env PS1
@@ -383,7 +383,7 @@ def test_PS1(shell, bash_profile):
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, sterr = run_in(commands, shell)
-        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
+        assert_equals(stdout.strip(), print_ps1(env_dirs=gen_test_env_paths(envs, shell),
                                         raw_ps=shell_vars["raw_ps"], number=1).strip(), stderr)
 
         # failed activate does not touch raw PS1
