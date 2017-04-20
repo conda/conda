@@ -134,11 +134,13 @@ install_conda_shell_scripts() {
     echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
     echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
     cat "$src_dir/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
+    chmod +x "$prefix/$BIN_DIR/activate"
 
     rm -f "$prefix/$BIN_DIR/deactivate"
     echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
     echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
     cat "$src_dir/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
+    chmod +x "$prefix/$BIN_DIR/deactivate"
 
     if [ -n "$ON_WIN" ]; then
         rm -f "$prefix/$BIN_DIR/activate.bat"
@@ -274,7 +276,7 @@ conda_activate_test() {
     if [ -n "$ON_WIN" ]; then
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe --shell=cmd.exe
     else
-        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=dash --shell=zsh
+        $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=zsh  # --shell=dash
     fi
 
 }
