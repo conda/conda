@@ -87,13 +87,12 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
 
     # replace specs matching same name with new specs_to_add
     specs_map.update({s.name: s for s in specs_to_add})
-    specs_to_add = itervalues(specs_map)
 
-    specs_to_add = augment_specs(prefix, specs_to_add)
+    augmented_specs_to_add = augment_specs(prefix, itervalues(specs_map))
 
     log.debug("final specs to add:\n    %s\n",
-              "\n    ".join(text_type(s) for s in specs_to_add))
-    solved_linked_dists = r.install(specs_to_add,
+              "\n    ".join(text_type(s) for s in augmented_specs_to_add))
+    solved_linked_dists = r.install(augmented_specs_to_add,
                                     solved_linked_dists,
                                     update_deps=context.update_dependencies)
 
@@ -299,7 +298,7 @@ def get_install_transaction_single(prefix, index, specs, force=False, only_names
                                    always_copy=False, pinned=True, minimal_hint=False,
                                    update_deps=True, prune=False, channel_priority_map=None,
                                    is_update=False):
-    specs = set(MatchSpec(s) for s in specs)
+    specs = tuple(MatchSpec(s) for s in specs)
     r = get_resolve_object(index.copy(), prefix)
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
 
