@@ -19,7 +19,7 @@
 )
 
 @if "%~2" == "" @goto skiptoomanyargs
-    (@echo Error: did not expect more than one argument.) 1>&2
+    (@echo Error: activate only accepts a single argument.) 1>&2
     (@echo     ^(Got %*^)) 1>&2
     @exit /b 1
 :skiptoomanyargs

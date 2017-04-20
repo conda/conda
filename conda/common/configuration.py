@@ -42,7 +42,7 @@ try:
     from cytoolz.dicttoolz import merge
     from cytoolz.functoolz import excepts
     from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.dicttoolz import merge
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concat, concatv, unique

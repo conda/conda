@@ -24,14 +24,14 @@ from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
 try:
     from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, unique
 
 log = getLogger(__name__)
 
 try:
     import cio_test  # NOQA
-except ImportError:
+except ImportError:  # pragma: no cover
     log.info("No cio_test package found.")
 
 _platform_map = {

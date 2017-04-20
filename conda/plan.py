@@ -37,7 +37,7 @@ from .utils import human_bytes
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, remove
-except ImportError:
+except ImportError:  # pragma: no cover
     from ._vendor.toolz.itertoolz import concat, concatv, groupby, remove  # NOQA
 
 log = getLogger(__name__)

@@ -20,10 +20,10 @@ from ..common.compat import on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..core.solve import get_pinned_specs, get_install_transaction
-from ..exceptions import (CondaEnvironmentNotFoundError, CondaImportError, CondaOSError,
-                          CondaRuntimeError, CondaSystemExit, CondaValueError,
-                          DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
+from ..core.solve import get_install_transaction, get_pinned_specs
+from ..exceptions import (CondaImportError, CondaOSError, CondaRuntimeError, CondaSystemExit,
+                          CondaValueError, DirectoryNotFoundError, DryRunExit,
+                          EnvironmentLocationNotFound, LockError, NoPackagesFoundError,
                           PackageNotFoundError, PackageNotInstalledError, TooManyArgumentsError,
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
@@ -238,7 +238,7 @@ def install(args, parser, command='install'):
             except OSError:
                 raise CondaOSError("Error: could not create directory: %s" % prefix)
         else:
-            raise CondaEnvironmentNotFoundError(prefix)
+            raise EnvironmentLocationNotFound(prefix)
 
     try:
         if isinstall and args.revision:

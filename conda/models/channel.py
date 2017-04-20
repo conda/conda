@@ -15,7 +15,7 @@ from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
 try:
     from cytoolz.functoolz import excepts
     from cytoolz.itertoolz import concatv, topk
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.functoolz import excepts  # NOQA
     from .._vendor.toolz.itertoolz import concatv, topk  # NOQA
 

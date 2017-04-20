@@ -176,7 +176,7 @@ unix_shell_base = dict(
                        pathsep=":",
                        printdefaultenv='echo $CONDA_DEFAULT_ENV',
                        printpath="echo $PATH",
-                       printps1='echo $PS1',
+                       printps1='echo $CONDA_PROMPT_MODIFIER',
                        promptvar='PS1',
                        sep="/",
                        set_var='export ',
@@ -193,6 +193,7 @@ msys2_shell_base = dict(
                         path_from=unix_path_to_win,
                         path_to=win_path_to_unix,
                         binpath="/Scripts/",  # mind the trailing slash.
+                        printpath="python -c \"import os; print(os.environ['PATH'])\" | cygpath --path -f -",  # NOQA
 )
 
 if on_win:
@@ -271,14 +272,18 @@ else:
     shells = {
         "bash": dict(
             unix_shell_base, exe="bash",
-                    ),
+        ),
+        "dash": dict(
+            unix_shell_base, exe="dash",
+            source_setup=".",
+        ),
         "zsh": dict(
             unix_shell_base, exe="zsh",
-                   ),
+        ),
         "fish": dict(
             unix_shell_base, exe="fish",
             pathsep=" ",
-                    ),
+        ),
     }
 
 # put back because of conda build

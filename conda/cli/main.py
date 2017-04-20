@@ -36,19 +36,15 @@ Additional help for each command can be accessed by using:
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-
-import importlib
 import sys
-from argparse import SUPPRESS
-from logging import CRITICAL, DEBUG, getLogger
-
-from .. import __version__
-
-log = getLogger(__name__)
 
 
 def generate_parser():
+    from argparse import SUPPRESS
+
+    from .. import __version__
     from ..cli import conda_argparse
+
     p = conda_argparse.ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
                     ' environments and packages.',
@@ -81,10 +77,14 @@ def generate_parser():
 
 
 def _main(*args):
+    import importlib
+    from logging import CRITICAL, DEBUG, getLogger
+
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
-
     from ..gateways.logging import set_all_logger_level, set_verbosity
+
+    log = getLogger(__name__)
 
     if len(args) == 1:
         args = args + ('-h',)
@@ -143,11 +143,13 @@ def main(*args):
     if not args:
         args = sys.argv
 
-    log.debug("conda.cli.main called with %s", args)
     if len(args) > 1:
         try:
             argv1 = args[1].strip()
-            if argv1.startswith('..'):
+            if argv1.startswith('shell.'):
+                from ..activate import main as activator_main
+                return activator_main()
+            elif argv1.startswith('..'):
                 import conda.cli.activate as activate
                 activate.main()
                 return
@@ -156,6 +158,8 @@ def main(*args):
                 raise CommandNotFoundError(argv1)
         except Exception as e:
             from ..exceptions import handle_exception
+            from ..gateways import initialize_logging
+            initialize_logging()
             return handle_exception(e)
 
     from ..exceptions import conda_exception_handler
