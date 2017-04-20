@@ -1256,32 +1256,40 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
 
 
 def test_pinned_specs():
-    specs_1 = ("numpy 1.11", "python >3")
-    with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_1), reset_context):
-        pinned = plan.get_pinned_specs("/none")
-        assert pinned == specs_1
+    # Test pinned specs environment variable
+    specs_str_1 = ("numpy 1.11", "python >3")
+    specs_1 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_1)
+    with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_1), reset_context):
+        pinned_specs = plan.get_pinned_specs("/none")
+        assert pinned_specs == specs_1
+        assert pinned_specs != specs_str_1
 
-    specs_2 = ("scipy ==0.14.2", "openjdk >=8")
+    # Test pinned specs conda environment file
+    specs_str_2 = ("scipy ==0.14.2", "openjdk >=8")
+    specs_2 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_2)
     with tempdir() as td:
         mkdir_p(join(td, 'conda-meta'))
         with open(join(td, 'conda-meta', 'pinned'), 'w') as fh:
-            fh.write("\n".join(specs_2))
+            fh.write("\n".join(specs_str_2))
             fh.write("\n")
-        pinned = plan.get_pinned_specs(td)
-        assert pinned == specs_2
+        pinned_specs = plan.get_pinned_specs(td)
+        assert pinned_specs == specs_2
+        assert pinned_specs != specs_str_2
 
+    # Test pinned specs conda configuration and pinned specs conda environment file
     with tempdir() as td:
         mkdir_p(join(td, 'conda-meta'))
         with open(join(td, 'conda-meta', 'pinned'), 'w') as fh:
-            fh.write("\n".join(specs_1))
+            fh.write("\n".join(specs_str_1))
             fh.write("\n")
 
         with env_var('CONDA_PREFIX', td, reset_context):
             run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
-            with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_2), reset_context):
-                pinned = plan.get_pinned_specs(td)
-                assert pinned == specs_2 + ("requests 2.13",) + specs_1
-
+            with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_2), reset_context):
+                pinned_specs = plan.get_pinned_specs(td)
+                expected = specs_2 + (MatchSpec("requests 2.13", optional=True),) + specs_1
+                assert pinned_specs == expected
+                assert pinned_specs != specs_str_1 + ("requests 2.13",) + specs_str_2
 
 
 

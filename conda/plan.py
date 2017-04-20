@@ -739,7 +739,7 @@ def augment_specs(prefix, specs, pinned=True):
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
 
-    return specs
+    return tuple(specs)
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
