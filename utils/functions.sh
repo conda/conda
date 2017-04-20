@@ -303,8 +303,8 @@ conda_build_test() {
     pushd conda-build
 
     # TODO: remove -k flag when conda/conda-build#1927 is merged
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests
-        # -k "not (pip_in_meta_yaml_fail or disable_pip or xattr or keeps_build_id)"
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests \
+        -k "not xattr"
     $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
     popd
 }
