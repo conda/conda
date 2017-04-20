@@ -55,6 +55,11 @@ meta.yaml contents like:
            - python
 
 
+The command to build recipes is unchanged relative to earlier conda-build
+versions. For example, with our shell in the same folder as meta.yaml and
+conda_build_config.yaml, we just call the ``conda build .`` command.
+
+
 General pinning examples
 ------------------------
 
@@ -91,7 +96,7 @@ meta.yaml:
            - boost
 
 This example demonstrates several features:
-  * site-wide configuration with a specifically named config file
+  * user-wide configuration with a specifically named config file
     (conda_build_config.yaml in your home folder). More options below in
     `Creating conda-build variant config files`_.
   * building against multiple versions of a single library (set versions
@@ -376,6 +381,24 @@ Selectors are not currently valid in conda_build_config.yaml, but we plan on
 adding them soon.
 
 
+About reproducibility
+---------------------
+
+A critical part of any build system is ensuring that you can reproduce the same
+output at some future point in time. This is often essential for troubleshooting
+bugs. For example, if a package contains only binaries, it is helpful to
+understand what source code created those binaries, and thus what bugs might be
+present.
+
+Since conda-build 2.0, conda-build has recorded its rendered meta.yaml files
+into the ``info/recipe`` folder of each package it builds. Conda-build 3.0 is no
+different in this regard, but the meta.yaml that is recorded is a frozen set of
+the variables that make up the variant for that build.
+
+Note that package builders may disable including the recipe with the
+``build/include_recipe`` key in meta.yaml. If the recipe is omitted from the
+package, then the package is not reproducible without the source recipe.
+
 
 Special variant keys
 --------------------
@@ -395,7 +418,6 @@ There are some special keys that behave differently and can be more nested:
 * ``extend_keys``: specifies keys that should be aggregated, rather than
   clobbered, by later variants. These are detailed below in the `Extended keys`_
   section.
-* ``runtimes``: detailed further in `Extra Jinja2 functions`_.
 * ``ignore_version``: list of package names whose versions should be excluded
   from meta.yaml's requirements/build when computing hash. Described further in
   `Avoiding unnecessary builds`_.
@@ -736,7 +758,7 @@ recipe/conda_build_config.yaml:
 
 
 When our two proper yaml config files are combined, ordinarily the recipe-local
-variant would clobber the site-wide variant, yielding ``{'some_trait':
+variant would clobber the user-wide variant, yielding ``{'some_trait':
 'pony'}``. However, with the extend_keys entry, we end up with what we've always
 wanted: a dog *and* pony show: ``{'some_trait': ['dog', 'pony'])}``
 
@@ -1029,9 +1051,8 @@ evaluating ``meta.yaml`` templates:
   outputs a single compiler package name. For example, this could be used to
   compile outputs targeting x86_64 and arm in one recipe, with a variant.
 
-There are default "native" compilers that and runtimes that are used when no
-compiler is specified in any variant. These are defined in `conda-build's
-jinja_context.py file
+There are default "native" compilers that are used when no compiler is specified
+in any variant. These are defined in `conda-build's jinja_context.py file
 <https://github.com/conda/conda-build/blob/master/conda_build/jinja_context.py>`_.
 Most of the time, users will not need to provide compilers in their variants -
 just leave them empty, and conda-build will use the defaults appropriate for
@@ -1113,7 +1134,11 @@ already-installed compiler (such as Visual Studio.)
 Note also the ``run_exports`` key in meta.yaml. This is useful for compiler
 recipes to impose runtime constraints based on the versions of subpackages
 created by the compiler recipe. For more information, see the :ref:`run_exports`
-section of the meta.yaml docs.
+section of the meta.yaml docs. Compiler packages provided by Continuum use the
+run_exports key extensively. For example, recipes that include the
+``gcc_linux-cos5-x86_64`` package as a build time dependency (either directly,
+or via a ``{{ compilers('c') }}`` jinja2 function) will automatically have a
+compatible libgcc runtime dependency added.
 
 
 Cross-compiling
