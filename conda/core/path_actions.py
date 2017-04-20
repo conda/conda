@@ -263,8 +263,12 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         # TODO: consider checking hashsums
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):
-            for n in range(6):
-                sleep(((2 ** n) + random()) * 0.1)
+            # This backoff loop is added because of some weird race condition conda-build
+            # experiences. Would be nice at some point to get to the bottom of why it happens.
+            for n in range(6):  # with retries = 6, max total time ~= 3.2 sec
+                sleep_time = ((2 ** n) + random()) * 0.1
+                log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)
+                sleep(sleep_time)
                 if lexists(self.source_full_path):
                     break
             else:

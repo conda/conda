@@ -290,7 +290,7 @@ conda_build_smoke_test() {
 }
 
 
-conda_build_unit_test() {
+conda_build_test() {
     local prefix=${1:-$INSTALL_PREFIX}
 
     echo
@@ -342,15 +342,11 @@ run_setup() {
 
 
 run_tests() {
-    set -e
-    set -x
-    env | sort
-
     if [ "$FLAKE8" = true ]; then
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
         # conda_build_smoke_test
-        conda_build_unit_test
+        conda_build_test
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
         conda_activate_test
@@ -360,9 +356,6 @@ run_tests() {
         conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
     fi
-
-    set +e
-    set +x
 }
 
 set_vars
