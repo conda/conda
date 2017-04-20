@@ -6,7 +6,9 @@ from errno import EXDEV
 import json
 from logging import getLogger
 from os.path import dirname, join
+from random import random
 import re
+from time import sleep
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
@@ -261,13 +263,18 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         # TODO: consider checking hashsums
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):
-            return CondaVerificationError(dals("""
-            The package for %s located at %s
-            appears to be corrupted. The path '%s'
-            specified in the package manifest cannot be found.
-            """ % (self.package_info.index_json_record.name,
-                   self.package_info.extracted_package_dir,
-                   self.source_short_path)))
+            for n in range(6):
+                sleep(((2 ** n) + random()) * 0.1)
+                if lexists(self.source_full_path):
+                    break
+            else:
+                return CondaVerificationError(dals("""
+                The package for %s located at %s
+                appears to be corrupted. The path '%s'
+                specified in the package manifest cannot be found.
+                """ % (self.package_info.index_json_record.name,
+                       self.package_info.extracted_package_dir,
+                       self.source_short_path)))
         self._verified = True
 
     def execute(self):
