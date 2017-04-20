@@ -401,7 +401,7 @@ def test_PS1(shell, bash_profile):
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, print_ps1(env_dirs=gen_test_env_paths(envs, shell),
+        assert_equals(stdout.strip(), print_ps1(env_dirs=gen_test_env_paths(envs, shell),
                                         raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
         # deactivate doesn't do anything bad to PS1 when no env active to deactivate
