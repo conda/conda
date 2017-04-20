@@ -29,5 +29,5 @@ if ! _conda_script_is_sourced; then
     exit 1
 fi
 
-source "$_CONDA_ROOT/etc/profile.d/conda.sh"
+. "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
 _conda_activate "$@"

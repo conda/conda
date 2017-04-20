@@ -29,7 +29,7 @@ set_vars() {
         export INSTALL_PREFIX=/usr/local
     fi
 
-    if [ "$ON_WIN" = true ]; then
+    if [ -n "$ON_WIN" ]; then
         export PYTHON_EXE="$INSTALL_PREFIX/python.exe"
         export CONDA_EXE="$INSTALL_PREFIX/Scripts/conda.exe"
     else
@@ -49,7 +49,7 @@ install_miniconda() {
     local prefix=${1:-$INSTALL_PREFIX}
 
     if ! [ -f "$prefix/$BIN_DIR/conda$EXE_EXT" ]; then
-        if [ "$ON_WIN" = true ]; then
+        if [ -n "$ON_WIN" ]; then
             local user_profile="$(cmd.exe /c "echo %USERPROFILE%")"
             if ! [ -f "$user_profile\miniconda.exe" ]; then
                 curl -sSL $MINICONDA_URL -o "$user_profile\miniconda.exe"
@@ -118,7 +118,7 @@ install_conda_shell_scripts() {
 
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
-    local symlink_scripts=${3:-1}  # symlink might not ever work
+    local symlink_scripts=${3:-1}
 
     local link_cmd
     case "$symlink_scripts" in 0|true) link_cmd="ln -sf";; *) link_cmd="cp";; esac
@@ -129,6 +129,7 @@ install_conda_shell_scripts() {
 
     mkdir -p "$prefix/$BIN_DIR"
 
+    # can't symlink activate and deactivate as written
     rm -f "$prefix/$BIN_DIR/activate"
     echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
     echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
@@ -139,7 +140,7 @@ install_conda_shell_scripts() {
     echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
     cat "$src_dir/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
 
-    if [ "$ON_WIN" = true ]; then
+    if [ -n "$ON_WIN" ]; then
         rm -f "$prefix/$BIN_DIR/activate.bat"
         $link_cmd "$src_dir/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
 
@@ -180,7 +181,7 @@ install_conda_dev() {
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
 
-    if [ "$ON_WIN" = true ]; then
+    if [ -n "$ON_WIN" ]; then
         $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
         make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
         make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
@@ -190,7 +191,7 @@ install_conda_dev() {
         make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
     fi
 
-    install_conda_shell_scripts "$prefix" "$src_dir" true
+    install_conda_shell_scripts "$prefix" "$src_dir" false  # "$([ -n "$ON_WIN" ] && echo false || echo true)"
 
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
@@ -270,7 +271,7 @@ conda_activate_test() {
     $PYTHON_EXE -c "import conda; print(conda.__version__)"
     $CONDA_EXE info
 
-    if [ "$ON_WIN" = true ]; then
+    if [ -n "$ON_WIN" ]; then
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe --shell=cmd.exe
     else
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash --shell=dash --shell=zsh

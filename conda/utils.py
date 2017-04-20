@@ -272,18 +272,18 @@ else:
     shells = {
         "bash": dict(
             unix_shell_base, exe="bash",
-                    ),
+        ),
         "dash": dict(
             unix_shell_base, exe="dash",
             source_setup=".",
-            ),
+        ),
         "zsh": dict(
             unix_shell_base, exe="zsh",
-                   ),
+        ),
         "fish": dict(
             unix_shell_base, exe="fish",
             pathsep=" ",
-                    ),
+        ),
     }
 
 # put back because of conda build

@@ -10,22 +10,21 @@ _conda_set_vars() {
         _CONDA_SHELL_FLAVOR=posh
     else
         # https://unix.stackexchange.com/a/120138/92065
-        _q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
-        if [ _q = dash ]; then
+        local _q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
+        if [ "$_q" = dash ]; then
             _CONDA_SHELL_FLAVOR=dash
         else
-            unset _q
             (>&2 echo "Unrecognized shell.")
             return 1
         fi
-        unset _q
     fi
 
     # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
     local script_dir
     case "$_CONDA_SHELL_FLAVOR" in
-        bash) script_dir="$(dirname "${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}")";;
-        zsh) script_dir="$(dirname "${funcstack[1]}")";;
+        bash) script_dir="$(dirname "${BASH_SOURCE[0]}")";;
+        zsh) script_dir="$(dirname "${(%):-%x}")";;  # http://stackoverflow.com/a/28336473/2127762
+        dash) x=$(lsof -p $$ -Fn0 | tail -1); script_dir="$(dirname "${x#n}")";;
         *) script_dir="$(cd "$(dirname "$_")" && echo "$PWD")";;
     esac
 
@@ -40,7 +39,7 @@ _conda_set_vars() {
             ;;
     esac
 
-    local _conda_root="$script_dir/.."
+    local _conda_root="$script_dir/../.."
 
     _CONDA_EXE="$_conda_root/$bin_dir/conda$exe_ext"
 
