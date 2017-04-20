@@ -1,17 +1,17 @@
 ## 4.4.0 (unreleased)
 
 ### New Features
-* general support for all bourne- and c-based shells (#3175)
-
-### Deprecations/Breaking Changes
-* The default channel repo.continuum.io/pkgs/free is moved to
-  repo.continuum.io/pkgs/anaconda (#4635)
+* constrained, optional dependencies (#4982)
+* conda shell function (#5044)
 
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
+* envs_manager, requested spec history, declarative solve, and private env tests (#4676)
+* make python entry point format match pip entry points (#5010)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
+* new MatchSpec implementation (#4158)
 
 
 ## 4.3.17 (unreleased)
