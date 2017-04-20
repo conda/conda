@@ -714,24 +714,23 @@ def augment_specs(prefix, specs, pinned=True):
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s", pinned_specs)
-        specs += list(pinned_specs)
+        specs.extend(pinned_specs)
 
     # Support aggressive auto-update conda
     #   Only add a conda spec if conda and conda-env are not in the specs.
     #   Also skip this step if we're offline.
-    root_only = ('conda', 'conda-env')
-    mss = [spec for spec in specs if spec.name.startswith(root_only)]
-    mss = [ms for ms in mss if ms.name in root_only]
+    root_only_specs_str = ('conda', 'conda-env')
+    conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
 
     if is_root_prefix(prefix):
-        if context.auto_update_conda and not context.offline and not mss:
+        if context.auto_update_conda and not context.offline and not conda_in_specs_str:
             specs.append(MatchSpec('conda'))
             specs.append(MatchSpec('conda-env'))
     elif basename(prefix).startswith('_'):
         # Anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
         pass
-    elif mss:
+    elif conda_in_specs_str:
         raise InstallError("Error: 'conda' can only be installed into the "
                            "root environment")
 
