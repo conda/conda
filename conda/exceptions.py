@@ -559,22 +559,6 @@ def print_conda_exception(exception):
         stderrlogger.info("\n\n%r", exception)
 
 
-def get_info():
-    from .cli import conda_argparse
-    from .cli.main_info import configure_parser
-    from shlex import split
-    from .common.io import captured
-
-    p = conda_argparse.ArgumentParser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-    configure_parser(sub_parsers)
-
-    args = p.parse_args(split("info"))
-    with captured() as c:
-        args.func(args, p)
-    return c.stdout, c.stderr
-
-
 def print_unexpected_error_message(e):
     # bomb = "\U0001F4A3 "
     # explosion = "\U0001F4A5 "
@@ -600,9 +584,8 @@ conda GitHub issue tracker at:
         stderrlogger.info(message)
         command = ' '.join(sys.argv)
         if ' info' not in command:
-            # get and print `conda info`
-            info_stdout, info_stderr = get_info()
-            stderrlogger.info(info_stdout if info_stdout else info_stderr)
+            from .cli.main_info import get_info_dict, get_main_info_str
+            stderrlogger.info(get_main_info_str(get_info_dict()))
         stderrlogger.info("`$ {0}`".format(command))
         stderrlogger.info('\n')
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))

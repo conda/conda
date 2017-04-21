@@ -247,12 +247,13 @@ def get_info_dict(system=False):
     return info_dict
 
 
-def print_main_info(info_dict):
+def get_main_info_str(info_dict):
     for key in 'pkgs_dirs', 'envs_dirs', 'channels':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
-    print("""\
+    builder = []
+    builder.append("""\
     Current conda install:
 
                    platform : %(platform)s
@@ -273,11 +274,13 @@ def print_main_info(info_dict):
     """ % info_dict)
 
     if not on_win:
-        print("""\
+        builder.append("""\
                     UID:GID : %(UID)s:%(GID)s
     """ % info_dict)
     else:
-        print()
+        builder.append("")
+
+    return '\n'.join(builder)
 
 
 def execute(args, parser):
@@ -310,7 +313,7 @@ def execute(args, parser):
     info_dict = get_info_dict(args.system)
 
     if (args.all or all(not getattr(args, opt) for opt in options)) and not context.json:
-        print_main_info(info_dict)
+        print(get_main_info_str(info_dict))
 
     if args.envs:
         handle_envs_list(info_dict['envs'], not context.json)
