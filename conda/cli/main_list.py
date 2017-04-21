@@ -200,7 +200,7 @@ def execute(args, parser):
         regex = r'^%s$' % regex
 
     if args.revisions:
-        from conda.history import History
+        from ..history import History
         h = History(prefix)
         if isfile(h.path):
             if not context.json:

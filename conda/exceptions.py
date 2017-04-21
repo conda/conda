@@ -547,7 +547,7 @@ class InvalidSpecError(CondaError):
 
 
 def print_conda_exception(exception):
-    from conda.base.context import context
+    from .base.context import context
 
     stdoutlogger = getLogger('stdout')
     stderrlogger = getLogger('stderr')
@@ -559,22 +559,6 @@ def print_conda_exception(exception):
         stderrlogger.info("\n\n%r", exception)
 
 
-def get_info():
-    from conda.cli import conda_argparse
-    from conda.cli.main_info import configure_parser
-    from shlex import split
-    from conda.common.io import captured
-
-    p = conda_argparse.ArgumentParser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-    configure_parser(sub_parsers)
-
-    args = p.parse_args(split("info"))
-    with captured() as c:
-        args.func(args, p)
-    return c.stdout, c.stderr
-
-
 def print_unexpected_error_message(e):
     # bomb = "\U0001F4A3 "
     # explosion = "\U0001F4A5 "
@@ -584,9 +568,9 @@ def print_unexpected_error_message(e):
 
     stderrlogger = getLogger('stderr')
 
-    from conda.base.context import context
+    from .base.context import context
     if context.json:
-        from conda.cli.common import stdout_json
+        from .cli.common import stdout_json
         stdout_json(dict(error=traceback))
     else:
         message = """\
@@ -600,9 +584,8 @@ conda GitHub issue tracker at:
         stderrlogger.info(message)
         command = ' '.join(sys.argv)
         if ' info' not in command:
-            # get and print `conda info`
-            info_stdout, info_stderr = get_info()
-            stderrlogger.info(info_stdout if info_stdout else info_stderr)
+            from .cli.main_info import get_info_dict, get_main_info_str
+            stderrlogger.info(get_main_info_str(get_info_dict()))
         stderrlogger.info("`$ {0}`".format(command))
         stderrlogger.info('\n')
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
@@ -633,7 +616,7 @@ def handle_exception(e):
     if isinstance(e, CondaExitZero):
         return 0
     elif isinstance(e, CondaError):
-        from conda.base.context import context
+        from .base.context import context
         if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:
