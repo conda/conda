@@ -485,9 +485,9 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
     #   version information
     required_solves = match_to_original_specs(specs, grouped_specs)
 
-    actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+    actions = [get_actions_for_dists(specs_by_prefix, only_names, index, force,
                                      always_copy, prune, update_deps, pinned)
-               for dists_by_prefix in required_solves]
+               for specs_by_prefix in required_solves]
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
@@ -618,13 +618,12 @@ def match_to_original_specs(specs, specs_for_prefix):
     return matched_specs_for_prefix
 
 
-def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+def get_actions_for_dists(specs_by_prefix, only_names, index, force, always_copy, prune,
                           update_deps, pinned):
     root_only = ('conda', 'conda-env')
-    prefix = dists_for_prefix.prefix
-    dists = dists_for_prefix.specs
-    r = dists_for_prefix.r
-    specs = [MatchSpec(dist) for dist in dists]
+    prefix = specs_by_prefix.prefix
+    r = specs_by_prefix.r
+    specs = [MatchSpec(s) for s in specs_by_prefix.specs]
     specs = augment_specs(prefix, specs, pinned)
 
     linked = linked_data(prefix)

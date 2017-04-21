@@ -1062,13 +1062,14 @@ class TestGroupDistsForPrefix(unittest.TestCase):
                                 specs=IndexedSet(("test",))),
             plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
                                 specs=IndexedSet(("test-spec", "test-spec2")))]
-        matched = plan.match_to_original_specs(str_specs, grouped_specs)
+        matched = plan.match_to_original_specs(tuple(MatchSpec(s) for s in str_specs),
+                                               grouped_specs)
         expected_output = [
             plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
                                 r=test_r,
-                                specs=["test 1.2.0"]),
+                                specs=[MatchSpec("test 1.2.0")]),
             plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
-                                specs=["test-spec 1.1*", "test-spec2 <4.3"])]
+                                specs=[MatchSpec("test-spec 1.1*"), MatchSpec("test-spec2 <4.3")])]
 
         assert len(matched) == len(expected_output)
         assert matched == expected_output
