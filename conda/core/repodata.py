@@ -265,7 +265,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
 
                 If the remote site is anaconda.org or follows the Anaconda Server API, you
                 will need to
-                  (a) login to the site with `anaconda login`, or
+                  (a) remove the invalid token from your system with `anaconda logout`, optionally
+                      followed by collecting a new token with `anaconda login`, or
                   (b) provide conda with a valid token directly.
 
                 Further configuration help can be found at <%s>.
