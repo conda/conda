@@ -273,9 +273,15 @@ class MatchSpec(object):
             return 1
 
     @property
+    def spec(self):
+        return self._to_string(args=False, base=True)
+
+    @property
     def name(self):
         return self.exact_field('name') or '*'
 
     @property
-    def spec(self):
-        return self._to_string(args=False, base=True)
+    def version(self):
+        # in the old MatchSpec object, version was a VersionSpec, not a str
+        # so we'll keep that API here
+        return self._specs_map.get('version')
