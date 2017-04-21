@@ -925,13 +925,16 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix()
             assert isdir(prefix)
-            run_command(Commands.INSTALL, prefix, "python=3.5", "--mkdir")
-            assert_package_is_installed(prefix, "python-3.5")
+            run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
+            assert_package_is_installed(prefix, "python-3.5.2")
 
             rm_rf(prefix)
             assert not isdir(prefix)
-            run_command(Commands.INSTALL, prefix, "python=3.5", "--mkdir")
-            assert_package_is_installed(prefix, "python-3.5")
+
+            # this part also a regression test for #4849
+            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.0", "python=3.5.2", "--mkdir")
+            assert_package_is_installed(prefix, "python-3.5.2")
+            assert_package_is_installed(prefix, "python-dateutil-2.6.0")
 
         finally:
             rmtree(prefix, ignore_errors=True)
