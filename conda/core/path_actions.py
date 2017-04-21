@@ -26,7 +26,7 @@ from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
                                     create_fake_executable_softlink, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
-                                    make_menu, write_linked_package_record)
+                                    make_menu, write_linked_package_record, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.link import symlink
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
@@ -1092,11 +1092,13 @@ class CacheUrlAction(PathAction):
 
 class ExtractPackageAction(PathAction):
 
-    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname):
+    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
+                 record):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + '.c~'
+        self.record = record
 
     def verify(self):
         self._verified = True
@@ -1123,6 +1125,8 @@ class ExtractPackageAction(PathAction):
                 else:
                     raise
         extract_tarball(self.source_full_path, self.target_full_path)
+        meta = join(self.target_full_path, 'info', 'repodata_record.json')
+        write_as_json_to_file(meta, self.record)
 
         target_package_cache = PackageCache(self.target_pkgs_dir)
 
