@@ -6,6 +6,7 @@
 ### Bug Fixes
 * remove incorrect elision of delete_prefix_from_linked_data() (#4813)
 * fix CB #1825 context clobbering (#4867)
+* fix #5101 api->conda regex substitution for Anaconda API channels (#5100)
 
 ### Non-User-Facing Changes
 * build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
