@@ -88,7 +88,7 @@ class Packages(Completer):
 
     def _get_items(self):
         # TODO: Include .tar.bz2 files for local installs.
-        from conda.core.index import get_index
+        from ..core.index import get_index
         args = self.parsed_args
         call_dict = dict(channel_urls=args.channel or (),
                          use_cache=True,
@@ -106,7 +106,7 @@ class InstalledPackages(Completer):
 
     @memoize
     def _get_items(self):
-        from conda.core.linked_data import linked
+        from ..core.linked_data import linked
         packages = linked(context.prefix_w_legacy_search)
         return [dist.quad[0] for dist in packages]
 
@@ -573,7 +573,7 @@ def get_index_trap(*args, **kwargs):
     Retrieves the package index, but traps exceptions and reports them as
     JSON if necessary.
     """
-    from conda.core.index import get_index
+    from ..core.index import get_index
     kwargs.pop('json', None)
     return get_index(*args, **kwargs)
 
@@ -603,7 +603,7 @@ def stdout_json_success(success=True, **kwargs):
 
 
 def handle_envs_list(acc, output=True):
-    from conda import misc
+    from .. import misc
 
     if output:
         print("# conda environments:")

@@ -547,7 +547,7 @@ class InvalidSpecError(CondaError):
 
 
 def print_conda_exception(exception):
-    from conda.base.context import context
+    from .base.context import context
 
     stdoutlogger = getLogger('stdout')
     stderrlogger = getLogger('stderr')
@@ -560,10 +560,10 @@ def print_conda_exception(exception):
 
 
 def get_info():
-    from conda.cli import conda_argparse
-    from conda.cli.main_info import configure_parser
+    from .cli import conda_argparse
+    from .cli.main_info import configure_parser
     from shlex import split
-    from conda.common.io import captured
+    from .common.io import captured
 
     p = conda_argparse.ArgumentParser()
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
@@ -584,9 +584,9 @@ def print_unexpected_error_message(e):
 
     stderrlogger = getLogger('stderr')
 
-    from conda.base.context import context
+    from .base.context import context
     if context.json:
-        from conda.cli.common import stdout_json
+        from .cli.common import stdout_json
         stdout_json(dict(error=traceback))
     else:
         message = """\
@@ -633,7 +633,7 @@ def handle_exception(e):
     if isinstance(e, CondaExitZero):
         return 0
     elif isinstance(e, CondaError):
-        from conda.base.context import context
+        from .base.context import context
         if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:

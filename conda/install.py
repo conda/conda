@@ -60,7 +60,7 @@ if on_win:
 
         Works of course only with callable files, e.g. `.bat` or `.exe` files.
         """
-        from conda.utils import shells
+        from .utils import shells
         try:
             makedirs(dirname(dst))
         except OSError as exc:  # Python >2.5

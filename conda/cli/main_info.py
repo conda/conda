@@ -112,7 +112,7 @@ def dump_record(pkg):
 
 
 def pretty_package(dist, pkg):
-    from conda.utils import human_bytes
+    from ..utils import human_bytes
 
     pkg = dump_record(pkg)
     d = OrderedDict([
@@ -141,12 +141,12 @@ def execute(args, parser):
     import os
     from os.path import dirname
 
-    import conda
-    from conda.base.context import context
-    from conda.models.channel import offline_keep
-    from conda.resolve import Resolve
-    from conda.api import get_index
-    from conda.connection import user_agent
+    from .. import CONDA_PACKAGE_ROOT, __version__ as CONDA_VERSION
+    from ..base.context import context
+    from ..models.channel import offline_keep
+    from ..resolve import Resolve
+    from ..api import get_index
+    from ..connection import user_agent
 
     if args.root:
         if context.json:
@@ -173,7 +173,7 @@ def execute(args, parser):
     options = 'envs', 'system', 'license'
 
     try:
-        from conda.install import linked_data
+        from ..install import linked_data
         root_pkgs = linked_data(context.root_prefix)
     except:
         root_pkgs = None
@@ -222,7 +222,7 @@ def execute(args, parser):
 
     info_dict = dict(
         platform=context.subdir,
-        conda_version=conda.__version__,
+        conda_version=CONDA_VERSION,
         conda_env_version=conda_env_version,
         conda_build_version=conda_build_version,
         root_prefix=context.root_prefix,
@@ -287,7 +287,7 @@ Current conda install:
         handle_envs_list(info_dict['envs'], not context.json)
 
     if args.system:
-        from conda.cli.find_commands import find_commands, find_executable
+        from .find_commands import find_commands, find_executable
 
         site_dirs = get_user_site()
         evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
@@ -308,7 +308,7 @@ Current conda install:
             print("sys.version: %s..." % (sys.version[:40]))
             print("sys.prefix: %s" % sys.prefix)
             print("sys.executable: %s" % sys.executable)
-            print("conda location: %s" % dirname(conda.__file__))
+            print("conda location: %s" % CONDA_PACKAGE_ROOT)
             for cmd in sorted(set(find_commands() + ['build'])):
                 print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
             print("user site dirs: ", end='')
