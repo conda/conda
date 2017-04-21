@@ -4,6 +4,7 @@ from collections import Hashable, OrderedDict
 from functools import partial
 from glob import glob
 import logging
+from os import readlink
 from os.path import dirname, exists
 import re
 import sys
@@ -74,7 +75,6 @@ class memoize(object):  # 577452
 
 @memoized
 def linux_get_libc_version():
-
     """
     If on linux, returns (libc_family, version), otherwise (None, None)
     """
@@ -82,28 +82,31 @@ def linux_get_libc_version():
     if not sys.platform.startswith('linux'):
         return None, None
 
-    from os import confstr, confstr_names, readlink
+    from os import confstr, confstr_names
 
     # Python 2.7 does not have either of these keys in confstr_names, so provide
     # hard-coded defaults and assert if the key is in confstr_names but differs.
     # These are defined by POSIX anyway so should never change.
     confstr_names_fallback = OrderedDict([('CS_GNU_LIBC_VERSION', 2),
                                           ('CS_GNU_LIBPTHREAD_VERSION', 3)])
+
+    val = None
     for k, v in confstr_names_fallback.items():
-        assert k not in confstr_names or confstr_names[k] == v,\
-            "confstr_names_fallback for {} is {} yet in confstr_names it is {}"\
-            .format(k, confstr_names_fallback[k], confstr_names[k])
+        assert (k not in confstr_names or confstr_names[k] == v,
+                "confstr_names_fallback for %s is %s yet in confstr_names it is %s"
+                "" % (k, confstr_names_fallback[k], confstr_names[k]))
         try:
             val = str(confstr(v))
-            if val:
-                break
         except:
             pass
+
+        if val:
+            break
+
     if not val:
         # Weird, play it safe and assume glibc 2.5
         family, version = 'glibc', '2.5'
-        log.warning("Failed to detect libc family and version, assuming {}/{}"
-                    .format(family, version))
+        log.warning("Failed to detect libc family and version, assuming %s/%s", family, version)
         return family, version
     family, version = val.split(' ')
 
@@ -120,11 +123,10 @@ def linux_get_libc_version():
                         family = 'uClibc'
                     else:
                         family = 'uClibc-ng'
-                    return (family, version)
+                    return family, version
         # This could be some other C library; it is unlikely though.
         family = 'uClibc'
-        log.warning("Failed to detect non-glibc family, assuming {} ({})"
-                    .format(family, version))
+        log.warning("Failed to detect non-glibc family, assuming %s (%s)", family, version)
         return family, version
     return family, version
 
