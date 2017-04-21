@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 from json import JSONEncoder
-from logging import getLogger, INFO, Handler, Formatter, StreamHandler, DEBUG
+from logging import getLogger, INFO, Formatter, StreamHandler, DEBUG
 from pprint import pformat
 from sys import stderr
 
+from . import NullHandler
 from .compat import text_type
 
 log = getLogger(__name__)
 root_log = getLogger()
+
+NullHandler = NullHandler
 
 DEBUG_FORMATTER = Formatter(
     "[%(levelname)s] [%(asctime)s.%(msecs)03d] %(process)d %(name)s:%(funcName)s(%(lineno)d):\n"
@@ -48,11 +51,6 @@ def detach_stderr():
 
 def initialize_logging(level=INFO):
     attach_stderr(level)
-
-
-class NullHandler(Handler):
-    def emit(self, record):
-        pass
 
 
 class DumpEncoder(JSONEncoder):
