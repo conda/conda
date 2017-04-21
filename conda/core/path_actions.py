@@ -6,14 +6,16 @@ from errno import EXDEV
 import json
 from logging import getLogger
 from os.path import dirname, join
+from random import random
 import re
+from time import sleep
 
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, on_win
+from ..common.compat import iteritems, on_win, range
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
@@ -133,6 +135,7 @@ class CreateInPrefixPathAction(PrefixPathAction):
 
 
 class LinkPathAction(CreateInPrefixPathAction):
+    _verify_max_backoff_reached = False
 
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
@@ -213,13 +216,28 @@ class LinkPathAction(CreateInPrefixPathAction):
     def verify(self):
         # TODO: consider checking hashsums
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):
-            return CondaVerificationError(dals("""
-            The package for %s located at %s
-            appears to be corrupted. The path '%s'
-            specified in the package manifest cannot be found.
-            """ % (self.package_info.index_json_record.name,
-                   self.package_info.extracted_package_dir,
-                   self.source_short_path)))
+            # This backoff loop is added because of some weird race condition conda-build
+            # experiences. Would be nice at some point to get to the bottom of why it happens.
+
+            # with max_retries = 2, max total time ~= 0.4 sec
+            # with max_retries = 6, max total time ~= 6.5 sec
+            max_retries = 2 if LinkPathAction._verify_max_backoff_reached else 6
+            for n in range(max_retries):
+                sleep_time = ((2 ** n) + random()) * 0.1
+                log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)
+                sleep(sleep_time)
+                if lexists(self.source_full_path):
+                    break
+            else:
+                # only run the 6.5 second backoff time once
+                LinkPathAction._verify_max_backoff_reached = True
+                return CondaVerificationError(dals("""
+                The package for %s located at %s
+                appears to be corrupted. The path '%s'
+                specified in the package manifest cannot be found.
+                """ % (self.package_info.index_json_record.name,
+                       self.package_info.extracted_package_dir,
+                       self.source_short_path)))
         self._verified = True
 
     def execute(self):
