@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
+from collections import Hashable
 from functools import partial
 import logging
 from os.path import dirname
@@ -30,7 +30,7 @@ class memoized(object):
         for arg in args:
             if isinstance(arg, list):
                 newargs.append(tuple(arg))
-            elif not isinstance(arg, collections.Hashable):
+            elif not isinstance(arg, Hashable):
                 # uncacheable. a list, for instance.
                 # better to not cache than blow up.
                 return self.func(*args, **kw)
@@ -69,27 +69,6 @@ class memoize(object):  # 577452
         except KeyError:
             res = cache[key] = self.func(*args, **kw)
         return res
-
-@memoized
-def gnu_get_libc_version():
-    """
-    If on linux, get installed version of glibc, otherwise return None
-    """
-
-    if not sys.platform.startswith('linux'):
-        return None
-
-    from ctypes import CDLL, cdll, c_char_p
-
-    cdll.LoadLibrary('libc.so.6')
-    libc = CDLL('libc.so.6')
-    f = libc.gnu_get_libc_version
-    f.restype = c_char_p
-
-    result = f()
-    if hasattr(result, 'decode'):
-        result = result.decode('utf-8')
-    return result
 
 
 def path_identity(path):
