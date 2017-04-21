@@ -5,7 +5,6 @@ from collections import OrderedDict
 from genericpath import exists
 from glob import glob
 from logging import getLogger
-from os import readlink
 import sys
 
 from .._vendor.auxlib.decorators import memoize
@@ -22,7 +21,7 @@ def linux_get_libc_version():
     if not sys.platform.startswith('linux'):
         return None, None
 
-    from os import confstr, confstr_names
+    from os import confstr, confstr_names, readlink
 
     # Python 2.7 does not have either of these keys in confstr_names, so provide
     # hard-coded defaults and assert if the key is in confstr_names but differs.
