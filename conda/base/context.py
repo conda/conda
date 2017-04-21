@@ -103,8 +103,10 @@ class Context(Configuration):
     # remote connection details
     ssl_verify = PrimitiveParameter(True, element_type=string_types + (bool,),
                                     validation=ssl_verify_validation)
-    client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
-    client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
+    client_ssl_cert = PrimitiveParameter(None, aliases=('client_cert',),
+                                         element_type=string_types + (NoneType,))
+    client_ssl_cert_key = PrimitiveParameter(None, aliases=('client_cert_key',),
+                                             element_type=string_types + (NoneType,))
     proxy_servers = MapParameter(string_types)
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
