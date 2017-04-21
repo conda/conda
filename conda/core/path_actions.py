@@ -15,7 +15,7 @@ from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import iteritems, on_win
+from ..common.compat import iteritems, on_win, range
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
@@ -214,15 +214,15 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def verify(self):
         # TODO: consider checking hashsums
-        if self.link_type != LinkType.directory and not lexists(self.source_full_path):
+        if self.link_type != LinkType.directory:
             # This backoff loop is added because of some weird race condition conda-build
             # experiences. Would be nice at some point to get to the bottom of why it happens.
             for n in range(6):  # with retries = 6, max total time ~= 3.2 sec
+                if lexists(self.source_full_path):
+                    break
                 sleep_time = ((2 ** n) + random()) * 0.1
                 log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)
                 sleep(sleep_time)
-                if lexists(self.source_full_path):
-                    break
             else:
                 return CondaVerificationError(dals("""
                 The package for %s located at %s
