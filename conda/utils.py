@@ -1,9 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
+from collections import Hashable, OrderedDict
 from functools import partial
+from glob import glob
 import logging
-from os.path import dirname
+from os.path import dirname, exists
 import re
 import sys
 import threading
@@ -30,7 +31,7 @@ class memoized(object):
         for arg in args:
             if isinstance(arg, list):
                 newargs.append(tuple(arg))
-            elif not isinstance(arg, collections.Hashable):
+            elif not isinstance(arg, Hashable):
                 # uncacheable. a list, for instance.
                 # better to not cache than blow up.
                 return self.func(*args, **kw)
@@ -70,26 +71,62 @@ class memoize(object):  # 577452
             res = cache[key] = self.func(*args, **kw)
         return res
 
+
 @memoized
-def gnu_get_libc_version():
+def linux_get_libc_version():
+
     """
-    If on linux, get installed version of glibc, otherwise return None
+    If on linux, returns (libc_family, version), otherwise (None, None)
     """
 
     if not sys.platform.startswith('linux'):
-        return None
+        return None, None
 
-    from ctypes import CDLL, cdll, c_char_p
+    from os import confstr, confstr_names, readlink
 
-    cdll.LoadLibrary('libc.so.6')
-    libc = CDLL('libc.so.6')
-    f = libc.gnu_get_libc_version
-    f.restype = c_char_p
+    # Python 2.7 does not have either of these keys in confstr_names, so provide
+    # hard-coded defaults and assert if the key is in confstr_names but differs.
+    # These are defined by POSIX anyway so should never change.
+    confstr_names_fallback = OrderedDict([('CS_GNU_LIBC_VERSION', 2),
+                                          ('CS_GNU_LIBPTHREAD_VERSION', 3)])
+    for k, v in confstr_names_fallback.items():
+        assert k not in confstr_names or confstr_names[k] == v,\
+            "confstr_names_fallback for {} is {} yet in confstr_names it is {}"\
+            .format(k, confstr_names_fallback[k], confstr_names[k])
+        try:
+            val = str(confstr(v))
+            if val:
+                break
+        except:
+            pass
+    if not val:
+        # Weird, play it safe and assume glibc 2.5
+        family, version = 'glibc', '2.5'
+        log.warning("Failed to detect libc family and version, assuming {}/{}"
+                    .format(family, version))
+        return family, version
+    family, version = val.split(' ')
 
-    result = f()
-    if hasattr(result, 'decode'):
-        result = result.decode('utf-8')
-    return result
+    # NPTL is just the name of the threading library, even though the
+    # version refers to that of uClibc. readlink() can help to try to
+    # figure out a better name instead.
+    if family == 'NPTL':
+        clibs = glob('/lib/libc.so*')
+        for clib in clibs:
+            clib = readlink(clib)
+            if exists(clib):
+                if clib.startswith('libuClibc'):
+                    if version.startswith('0.'):
+                        family = 'uClibc'
+                    else:
+                        family = 'uClibc-ng'
+                    return (family, version)
+        # This could be some other C library; it is unlikely though.
+        family = 'uClibc'
+        log.warning("Failed to detect non-glibc family, assuming {} ({})"
+                    .format(family, version))
+        return family, version
+    return family, version
 
 
 def path_identity(path):
