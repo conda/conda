@@ -5,7 +5,7 @@ import operator as op
 import re
 
 from ..common.compat import string_types, zip, zip_longest
-from ..exceptions import CondaRuntimeError, CondaValueError
+from ..exceptions import CondaValueError, InvalidVersionSpecError
 
 
 # normalized_version() is needed by conda-env
@@ -305,7 +305,7 @@ def treeify(spec):
         # cstop: operators with lower precedence
         while stack and stack[-1] not in cstop:
             if len(output) < 2:
-                raise CondaRuntimeError('Invalid version spec: %s' % spec)
+                raise InvalidVersionSpecError(spec)
             c = stack.pop()
             r = output.pop()
             # Fuse expressions with the same operator; e.g.,
@@ -333,12 +333,12 @@ def treeify(spec):
         elif item == ')':
             apply_ops('(')
             if not stack or stack[-1] != '(':
-                raise CondaRuntimeError('Invalid version spec: %s' % spec)
+                raise InvalidVersionSpecError(spec)
             stack.pop()
         else:
             output.append(item)
     if stack:
-        raise CondaRuntimeError('Invalid version spec: %s' % spec)
+        raise InvalidVersionSpecError(spec)
     return output[0]
 
 
@@ -398,13 +398,13 @@ class VersionSpec(object):
         self.spec = spec = spec.strip()
         if spec.startswith('^') or spec.endswith('$'):
             if not spec.startswith('^') or not spec.endswith('$'):
-                raise CondaRuntimeError('Invalid version spec: %s' % spec)
+                raise InvalidVersionSpecError(spec)
             self.regex = re.compile(spec)
             self.match = self.regex_match_
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
-                raise CondaRuntimeError('Invalid version spec: %s' % spec)
+                raise InvalidVersionSpecError(spec)
             op, b = m.groups()
             self.op = opdict[op]
             self.cmp = VersionOrder(b)

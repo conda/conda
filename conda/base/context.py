@@ -108,6 +108,7 @@ class Context(Configuration):
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
     _subdir = PrimitiveParameter('', aliases=('subdir',))
+    _subdirs = SequenceParameter(string_types, aliases=('subdirs',))
 
     local_repodata_ttl = PrimitiveParameter(1, element_type=(bool, int))
     # number of seconds to cache repodata locally
@@ -259,6 +260,10 @@ class Context(Configuration):
             return 'zos-z'
         else:
             return '%s-%d' % (self.platform, self.bits)
+
+    @property
+    def subdirs(self):
+        return self._subdirs if self._subdirs else (self.subdir, 'noarch')
 
     @property
     def bits(self):
@@ -473,6 +478,7 @@ class Context(Configuration):
             'root_prefix',
             'skip_safety_checks',
             'subdir',
+            'subdirs',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
 # I don't think this documentation is correct any longer. # NOQA
             'update_dependencies',

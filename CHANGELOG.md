@@ -9,18 +9,36 @@
 * envs_manager, requested spec history, declarative solve, and private env tests (#4676)
 * make python entry point format match pip entry points (#5010)
 
+### Bug Fixes
+* fix some conda-build compatibility issues (#5089)
+
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
 * new MatchSpec implementation (#4158)
+* update conda.recipe for 4.4 (#5086)
 
 
 ## 4.3.17 (unreleased)
 
 ### Improvements
 * fall back to copy if hardlink fails (#5002)
+* add timestamp metadata for tiebreaking conda-build 3 hashed packages (#5018)
+* resolve #5034 add subdirs configuration parameter (#5030)
+* resolve #5081 make pinned packages optional/constrained dependencies (#5088)
 
 ### Bug Fixes
 * quote prefix paths for locations with spaces (#5009)
+* remove binstar logger configuration overrides (#4989)
+* fix #4969 error in DirectoryNotFoundError (#4990)
+* fix #4998 pinned string format (#5011)
+* fix #5039 collecting main_info shouldn't fail on requests import (#5090)
+* fix #5055 improve bad token message for anaconda.org (#5091)
+* fix #5033 only re-register valid signal handlers (#5092)
+* fix #5028 imports in main_list (#5093)
+
+### Non-User-Facing Changes
+* resolve #5012 remove CondaRuntimeError and RuntimeError (#4818)
+* full audit ensuring relative import paths within project (#5090)
 
 
 ## 4.3.16 (2017-03-30)

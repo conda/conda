@@ -139,7 +139,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     if context.offline and unknown is None:
         unknown = True
 
-    channel_priority_map = prioritize_channels(channel_urls, platform=platform)
+    subdirs = (platform, 'noarch') if platform is not None else context.subdirs
+    channel_priority_map = prioritize_channels(channel_urls, subdirs=subdirs)
     index = fetch_index(channel_priority_map, use_cache=use_cache)
 
     if prefix or unknown:
@@ -167,7 +168,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 
     if index is None:
         index = {}
-    for _, repodata in repodatas:
+    for _, repodata in reversed(repodatas):
         if repodata:
             index.update(repodata.get('packages', {}))
 

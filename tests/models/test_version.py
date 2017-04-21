@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import unittest
 
+from conda.exceptions import InvalidVersionSpecError
 from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval
 
 
@@ -158,9 +159,9 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.4+5*'), False)
 
     def test_ver_eval_errors(self):
-        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '><2.4.5')
-        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!!2.4.5')
-        self.assertRaises(RuntimeError, ver_eval, '3.0.0', '!')
+        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '><2.4.5')
+        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!!2.4.5')
+        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!')
 
     def test_version_spec(self):
         v1 = VersionSpec('1.7.1')
@@ -178,10 +179,10 @@ class TestVersionSpec(unittest.TestCase):
         self.assertNotEqual(hash(v1), hash(v2))
         v1 = VersionSpec('( (1.5|((1.6|1.7), 1.8), 1.9 |2.0))|2.1')
         self.assertEqual(v1.spec, '1.5|(1.6|1.7),1.8,1.9|2.0|2.1')
-        self.assertRaises(RuntimeError, VersionSpec, '(1.5')
-        self.assertRaises(RuntimeError, VersionSpec, '1.5)')
-        self.assertRaises(RuntimeError, VersionSpec, '1.5||1.6')
-        self.assertRaises(RuntimeError, VersionSpec, '^1.5')
+        self.assertRaises(InvalidVersionSpecError, VersionSpec, '(1.5')
+        self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5)')
+        self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5||1.6')
+        self.assertRaises(InvalidVersionSpecError, VersionSpec, '^1.5')
 
     def test_match(self):
         for vspec, res in [

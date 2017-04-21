@@ -24,7 +24,7 @@ from os.path import basename, dirname, join
 from unittest import TestCase
 
 
-class ContextTests(TestCase):
+class ContextCustomRcTests(TestCase):
 
     def setUp(self):
         string = dals("""
@@ -171,3 +171,13 @@ class ContextTests(TestCase):
         from pprint import pprint
         for name in paramter_names:
             pprint(context.describe_parameter(name))
+
+
+class ContextDefaultRcTests(TestCase):
+
+    def test_subdirs(self):
+        assert context.subdirs == (context.subdir, 'noarch')
+
+        subdirs = ('linux-highest', 'linux-64', 'noarch')
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+            assert context.subdirs == subdirs

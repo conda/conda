@@ -12,7 +12,7 @@ from requests.structures import CaseInsensitiveDict
 from tempfile import SpooledTemporaryFile
 
 from ...common.compat import ensure_binary
-from conda.common.path import url_to_path
+from ...common.path import url_to_path
 
 log = getLogger(__name__)
 

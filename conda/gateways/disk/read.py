@@ -18,7 +18,7 @@ from .link import islink
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
+from ...exceptions import CondaFileNotFoundError, CondaUpgradeError, CondaVerificationError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
 from ...models.index_record import IndexRecord
@@ -194,7 +194,7 @@ def read_has_prefix(path):
         elif len(parts) == 3:
             return ParseResult(parts[0], FileMode(parts[1]), parts[2])
         else:
-            raise RuntimeError("Invalid has_prefix file at path: %s" % path)
+            raise CondaVerificationError("Invalid has_prefix file at path: %s" % path)
 
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
@@ -211,7 +211,7 @@ def read_files(path):
         elif len(parts) == 1:
             return ParseResult(parts[0], None, None, None)
         else:
-            raise RuntimeError("Invalid files at path: %s" % path)
+            raise CondaVerificationError("Invalid files at path: %s" % path)
 
     return tuple(parse_line(line) for line in yield_lines(path))
 

@@ -105,7 +105,6 @@ def configure_parser(sub_parsers, name='remove'):
 
 def execute(args, parser):
     from .install import check_write
-    from ..core.linked_data import linked_data
     from ..base.constants import ROOT_NO_RM
     from ..base.context import context
     from ..common.compat import iteritems, iterkeys
@@ -113,13 +112,16 @@ def execute(args, parser):
     from ..console import json_progress_bars
     from ..core.index import get_index
     from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
-    from ..gateways.disk.delete import delete_trash, rm_rf
-    from ..instructions import PREFIX
-    from ..plan import (add_unlink, display_actions, execute_actions, get_blank_actions,
-                        nothing_to_do, remove_actions)
+    from ..gateways.disk.delete import delete_trash
+    from ..plan import (get_blank_actions)
     from ..core.solve import get_resolve_object
     from ..core.solve import solve_for_actions
     from ..resolve import MatchSpec
+    from ..core.linked_data import linked_data
+    from ..gateways.disk.delete import rm_rf
+    from ..instructions import PREFIX
+    from ..plan import (add_unlink, display_actions, execute_actions,
+                        nothing_to_do, remove_actions)
 
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
@@ -180,7 +182,6 @@ def execute(args, parser):
             actions['ACTION'] = 'REMOVE'
             action_groups.append((actions, r.index))
         action_groups = tuple(action_groups)
-
     else:
         specs = specs_from_args(args.package_names)
         if sys.prefix == abspath(prefix) and names_in_specs(ROOT_NO_RM, specs) and not args.force:

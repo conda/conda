@@ -8,7 +8,7 @@ from os import chmod as os_chmod, lstat
 from os.path import abspath, isdir, islink as os_islink
 
 from ...common.compat import PY2, on_win
-from ...exceptions import CondaOSError
+from ...exceptions import CondaOSError, ParseError
 
 __all__ = ('islink', 'lchmod', 'link', 'readlink', 'stat_nlink', 'symlink')
 
@@ -351,7 +351,7 @@ else:  # pragma: unix no cover
         p_rdb = cast(bytes, POINTER(REPARSE_DATA_BUFFER))
         rdb = p_rdb.contents
         if not rdb.tag == IO_REPARSE_TAG_SYMLINK:
-            raise RuntimeError("Expected IO_REPARSE_TAG_SYMLINK, but got %d" % rdb.tag)
+            raise ParseError("Expected IO_REPARSE_TAG_SYMLINK, but got %d" % rdb.tag)
 
         handle_nonzero_success(CloseHandle(handle))
         return rdb.get_substitute_name()

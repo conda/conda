@@ -31,6 +31,7 @@ log = getLogger(__name__)
 
 
 def get_pinned_specs(prefix):
+    """Find pinned specs from file and return a tuple of MatchSpec."""
     pinfile = join(prefix, 'conda-meta', 'pinned')
     if exists(pinfile):
         with open(pinfile) as f:
@@ -44,7 +45,8 @@ def get_pinned_specs(prefix):
     def munge_spec(s):
         return s if ' ' in s else spec_from_line(s)
 
-    return tuple(munge_spec(s) for s in concatv(context.pinned_packages, from_file))
+    return tuple(MatchSpec(munge_spec(s), optional=True) for s in
+                 concatv(context.pinned_packages, from_file))
 
 
 def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
