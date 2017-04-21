@@ -20,6 +20,7 @@ from ._vendor.auxlib.ish import dals
 from .base.constants import CONDA_HOMEPAGE_URL
 from .base.context import context
 from .common.compat import iteritems
+from .common.platform import linux_get_libc_version
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
                          split_anaconda_token, urlparse)
 from .exceptions import ProxyError
@@ -27,7 +28,6 @@ from .gateways.adapters.ftp import FTPAdapter
 from .gateways.adapters.localfs import LocalFSAdapter
 from .gateways.adapters.s3 import S3Adapter
 from .gateways.anaconda_client import read_binstar_tokens
-from .utils import linux_get_libc_version
 
 RETRIES = 3
 
