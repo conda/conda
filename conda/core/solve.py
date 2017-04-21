@@ -91,8 +91,8 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
 
 def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
     # add in specs from requested history,
-    #   but not if we're requesting removal in this operation
-    spec_names_to_remove = set(s.name for s in specs_to_remove)
+    #   but not if we're requesting a spec with the same name in this operation
+    ignore_these_spec_names = set(s.name for s in concatv(specs_to_remove, specs_to_add))
     user_requested_specs_and_dists = History(prefix).get_requested_specs()
 
     # this effectively pins packages to channels on first use
@@ -106,7 +106,7 @@ def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
     log.debug("user requested specs from history:\n    %s\n",
               "\n    ".join(text_type(s) for s in requested_specs_from_history))
     specs_map = {s.name: s for s in requested_specs_from_history
-                 if s.name not in spec_names_to_remove}
+                 if s.name not in ignore_these_spec_names}
 
     if not context.auto_update_conda and not any(s.name == 'conda' for s in specs_to_add):
         specs_map.pop('conda', None)
