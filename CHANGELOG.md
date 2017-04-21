@@ -15,6 +15,9 @@
 * fix #5055 improve bad token message for anaconda.org (#5091)
 * fix #5033 only re-register valid signal handlers (#5092)
 * fix #5028 imports in main_list (#5093)
+* fix #5073 allow client_ssl_cert{_key} to be of type None (#5096)
+* fix #4671 backoff for package validate race condition (#5098)
+* fix #5022 gnu_get_libc_version => linux_get_libc_version (#5099)
 
 ### Non-User-Facing Changes
 * resolve #5012 remove CondaRuntimeError and RuntimeError (#4818)
