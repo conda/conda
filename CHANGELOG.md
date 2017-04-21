@@ -9,9 +9,13 @@
 * envs_manager, requested spec history, declarative solve, and private env tests (#4676)
 * make python entry point format match pip entry points (#5010)
 
+### Bug Fixes
+* fix some conda-build compatibility issues (#5089)
+
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
 * new MatchSpec implementation (#4158)
+* update conda.recipe for 4.4 (#5086)
 
 
 ## 4.3.17 (unreleased)
