@@ -91,7 +91,7 @@ def SYMLINK_CONDA_CMD(state, arg):
         log.debug("Conda environment at %s "
                   "start with '_'. Skipping symlinking conda.", state['prefix'])
         return
-    symlink_conda(prefix, arg)
+    # symlink_conda(prefix, arg)
 
 
 def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):

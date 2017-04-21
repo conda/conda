@@ -161,18 +161,18 @@ def main():
         except ValueError as e:
             raise CondaValueError(text_type(e))
 
-        # Make sure an env always has the conda symlink
-        try:
-            from ..base.context import context
-            from ..install import symlink_conda
-            symlink_conda(prefix, context.root_prefix, shell)
-        except (IOError, OSError) as e:
-            if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                msg = ("Cannot activate environment {0}.\n"
-                       "User does not have write access for conda symlinks."
-                       .format(sys.argv[2]))
-                raise CondaEnvironmentError(msg)
-            raise
+        # # Make sure an env always has the conda symlink
+        # try:
+        #     from conda.base.context import context
+        #     import conda.install
+        #     conda.install.symlink_conda(prefix, context.root_prefix, shell)
+        # except (IOError, OSError) as e:
+        #     if e.errno == errno.EPERM or e.errno == errno.EACCES:
+        #         msg = ("Cannot activate environment {0}.\n"
+        #                "User does not have write access for conda symlinks."
+        #                .format(sys.argv[2]))
+        #         raise CondaEnvironmentError(msg)
+        #     raise
         sys.exit(0)
         # raise CondaSystemExit
     elif sys.argv[1] == '..changeps1':
