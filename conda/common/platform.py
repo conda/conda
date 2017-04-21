@@ -8,6 +8,7 @@ from logging import getLogger
 import sys
 
 from .._vendor.auxlib.decorators import memoize
+from .compat import iteritems
 
 log = getLogger(__name__)
 
@@ -30,7 +31,7 @@ def linux_get_libc_version():
                                           ('CS_GNU_LIBPTHREAD_VERSION', 3)])
 
     val = None
-    for k, v in confstr_names_fallback.items():
+    for k, v in iteritems(confstr_names_fallback):
         assert k not in confstr_names or confstr_names[k] == v, (
             "confstr_names_fallback for %s is %s yet in confstr_names it is %s"
             "" % (k, confstr_names_fallback[k], confstr_names[k])
@@ -39,9 +40,9 @@ def linux_get_libc_version():
             val = str(confstr(v))
         except:
             pass
-
-        if val:
-            break
+        else:
+            if val:
+                break
 
     if not val:
         # Weird, play it safe and assume glibc 2.5
