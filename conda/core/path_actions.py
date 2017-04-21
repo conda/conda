@@ -1042,3 +1042,34 @@ class ExtractPackageAction(PathAction):
     def __str__(self):
         return ('ExtractPackageAction<source_full_path=%r, target_full_path=%r>'
                 % (self.source_full_path, self.target_full_path))
+
+
+class DumpRecordAction(PathAction):
+
+    def __init__(self, target_pkgs_dir, target_extracted_dirname, record):
+        self.target_pkgs_dir = target_pkgs_dir
+        self.target_extracted_dirname = target_extracted_dirname
+        self.record = record
+
+    def verify(self):
+        self._verified = True
+
+    def execute(self):
+
+        meta = join(self.target_full_path, 'info', 'record.json')
+        log.trace("writing record to %s", meta)
+        with open(meta, 'w') as out:
+            out.write(self.record.pretty_json())
+
+    def reverse(self):
+        return
+
+    def cleanup(self):
+        return
+
+    @property
+    def target_full_path(self):
+        return join(self.target_pkgs_dir, self.target_extracted_dirname)
+
+    def __str__(self):
+        return ('DumpRecordAction<target_full_path=%r>'%self.target_full_path)

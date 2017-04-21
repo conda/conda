@@ -7,7 +7,7 @@ from os import listdir
 from os.path import basename, join
 from traceback import format_exc
 
-from .path_actions import CacheUrlAction, ExtractPackageAction
+from .path_actions import CacheUrlAction, ExtractPackageAction, DumpRecordAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
@@ -392,7 +392,7 @@ class ProgressiveFetchExtract(object):
             key=lambda pce: pce and pce.is_extracted and pce.tarball_matches_md5_if(md5)
         )
         if extracted_pc_entry:
-            return None, None
+            return None, None, None
 
         # there is no extracted dist that can work, so now we look for tarballs that
         #   aren't extracted
@@ -411,7 +411,12 @@ class ProgressiveFetchExtract(object):
                 target_pkgs_dir=pc_entry_writable_cache.pkgs_dir,
                 target_extracted_dirname=pc_entry_writable_cache.dist.dist_name,
             )
-            return None, extract_axn
+            dr_axn = DumpRecordAction(
+                target_pkgs_dir=pc_entry_writable_cache.pkgs_dir,
+                target_extracted_dirname=pc_entry_writable_cache.dist.dist_name,
+                record=record,
+            )
+            return None, extract_axn, dr_axn
 
         pc_entry_read_only_cache = first(
             (pce_read_only.get(dist) for pce_read_only in PackageCache.read_only_caches()),
@@ -432,7 +437,12 @@ class ProgressiveFetchExtract(object):
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=dist.dist_name,
             )
-            return cache_axn, extract_axn
+            dr_axn = DumpRecordAction(
+                target_pkgs_dir=first_writable_cache.pkgs_dir,
+                target_extracted_dirname=dist.dist_name,
+                record=record,
+            )
+            return cache_axn, extract_axn, dr_axn
 
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
@@ -447,7 +457,12 @@ class ProgressiveFetchExtract(object):
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_extracted_dirname=dist.dist_name,
         )
-        return cache_axn, extract_axn
+        dr_axn = DumpRecordAction(
+            target_pkgs_dir=first_writable_cache.pkgs_dir,
+            target_extracted_dirname=dist.dist_name,
+            record=record,
+        )
+        return cache_axn, extract_axn, dr_axn
 
     def __init__(self, index, link_dists):
         self.index = index
@@ -458,6 +473,7 @@ class ProgressiveFetchExtract(object):
 
         self.cache_actions = ()
         self.extract_actions = ()
+        self.dump_record_actions = ()
 
         self._prepared = False
 
@@ -465,22 +481,26 @@ class ProgressiveFetchExtract(object):
         if self._prepared:
             return
 
-        paired_actions = tuple(self.make_actions_for_dist(dist, self.index[dist])
-                               for dist in self.link_dists)
-        if len(paired_actions) > 0:
-            cache_actions, extract_actions = zip(*paired_actions)
+        actions = tuple(self.make_actions_for_dist(dist, self.index[dist])
+                        for dist in self.link_dists)
+        if len(actions) > 0:
+            cache_actions, extract_actions, dra_actions = zip(*actions)
             self.cache_actions = tuple(ca for ca in cache_actions if ca)
             self.extract_actions = tuple(ea for ea in extract_actions if ea)
+            self.dump_record_actions = tuple(dra for dra in dra_actions if dra)
         else:
-            self.cache_actions = self.extract_actions = ()
+            self.cache_actions = self.extract_actions = self.dump_record_actions = ()
 
         log.debug("prepared package cache actions:\n"
                   "  cache_actions:\n"
                   "    %s\n"
                   "  extract_actions:\n"
                   "    %s\n",
+                  "  dump_record_actions:\n"
+                  "    %s\n",
                   '\n    '.join(text_type(ca) for ca in self.cache_actions),
-                  '\n    '.join(text_type(ea) for ea in self.extract_actions))
+                  '\n    '.join(text_type(ea) for ea in self.extract_actions),
+                  '\n    '.join(text_type(dra) for dra in self.dump_record_actions))
 
         self._prepared = True
 
@@ -489,7 +509,7 @@ class ProgressiveFetchExtract(object):
             self.prepare()
 
         with signal_handler(conda_signal_handler):
-            for action in concatv(self.cache_actions, self.extract_actions):
+            for action in concatv(self.cache_actions, self.extract_actions, self.dump_record_actions):
                 self._execute_action(action)
 
     @staticmethod
