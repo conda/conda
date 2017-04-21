@@ -21,10 +21,10 @@ from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
 from ..core.solve import get_install_transaction, get_pinned_specs
-from ..exceptions import (CondaImportError, CondaOSError, CondaRuntimeError, CondaSystemExit,
+from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
-                          EnvironmentLocationNotFound, LockError, NoPackagesFoundError,
-                          PackageNotFoundError, PackageNotInstalledError, TooManyArgumentsError,
+                          EnvironmentLocationNotFound, NoPackagesFoundError, PackageNotFoundError,
+                          PackageNotInstalledError, TooManyArgumentsError,
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
@@ -53,7 +53,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
+            raise DirectoryNotFoundError(src_arg)
     else:
         src_prefix = context.clone_src
 
@@ -304,7 +304,7 @@ def install(args, parser, command='install'):
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
                 error_message.append("\n\nNote that you have pinned specs in %s:" % path)
-                error_message.append("\n\n    %r" % pinned_specs)
+                error_message.append("\n\n    %r" % (pinned_specs,))
 
             error_message = ''.join(error_message)
             raise PackageNotFoundError(error_message)
@@ -341,11 +341,6 @@ def install(args, parser, command='install'):
             unlink_link_transaction.execute()
             # execute_actions(actions, index, verbose=not context.quiet)
 
-        except RuntimeError as e:
-            if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                raise LockError('Already locked: %s' % text_type(e))
-            else:
-                raise CondaRuntimeError('RuntimeError: %s' % e)
         except SystemExit as e:
             raise CondaSystemExit('Exiting', e)
 
@@ -362,7 +357,7 @@ def install(args, parser, command='install'):
 
 def check_write(command, prefix, json=False):
     if inroot_notwritable(prefix):
-        from conda.cli.help import root_read_only
+        from .help import root_read_only
         root_read_only(command, prefix, json=json)
 
 

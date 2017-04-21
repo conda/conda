@@ -39,13 +39,13 @@ The progressbar module is very easy to use, yet very powerful. It will also
 automatically enable features like auto-resizing when the system supports it.
 '''
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
-import math
 import os
 import signal
 import sys
 import time
+
 
 try:
     from fcntl import ioctl

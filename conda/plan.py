@@ -11,7 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath
+from os.path import abspath, basename
 import sys
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -22,7 +22,8 @@ from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .core.solve import get_install_transaction_single, get_pinned_specs, get_resolve_object
-from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError, RemoveError)
+from .exceptions import (ArgumentError, CondaIndexError,
+                         InstallError, RemoveError)
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -437,29 +438,6 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     log.debug('HF specs=%r' % specs)
 
 
-# def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-#                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
-#                     channel_priority_map=None, is_update=False):  # pragma: no cover
-#     """
-#     This function ignores all preferred_env preference.
-#     """
-#     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
-#     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
-#
-#     r = get_resolve_object(index.copy(), prefix)
-#     str_specs = specs
-#
-#     specs_for_prefix = SpecsForPrefix(prefix=prefix, specs=tuple(str_specs), r=r)
-#
-#     # TODO: Don't we need add_defaults_to_sepcs here?
-#
-#     actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy,
-#                                     prune, update_deps, pinned)
-#     actions['SPECS'].extend(str_specs)
-#     actions['ACTION'] = 'INSTALL'
-#     return actions
-
-
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
@@ -472,6 +450,57 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     actions['UNLINK'].extend(prefix_setup.unlink_dists)
     actions['LINK'].extend(prefix_setup.link_dists)
     return actions
+
+
+def augment_specs(prefix, specs, pinned=True):
+    """
+    Include additional specs for conda and (optionally) pinned packages.
+
+    Parameters
+    ----------
+    prefix : str
+        Environment prefix.
+    specs : list of MatchSpec
+        List of package specifications to augment.
+    pinned : bool, optional
+        Optionally include pinned specs for the current environment.
+
+    Returns
+    -------
+    augmented_specs : list of MatchSpec
+       List of augmented package specifications.
+    """
+    specs = list(specs)
+
+    # Get conda-meta/pinned
+    if pinned:
+        pinned_specs = get_pinned_specs(prefix)
+        log.debug("Pinned specs=%s", pinned_specs)
+        specs.extend(pinned_specs)
+
+    # Support aggressive auto-update conda
+    #   Only add a conda spec if conda and conda-env are not in the specs.
+    #   Also skip this step if we're offline.
+    root_only_specs_str = ('conda', 'conda-env')
+    conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
+
+    if abspath(prefix) == context.root_prefix:
+        if context.auto_update_conda and not context.offline and not conda_in_specs_str:
+            specs.append(MatchSpec('conda'))
+            specs.append(MatchSpec('conda-env'))
+    elif basename(prefix).startswith('_'):
+        # Anything (including conda) can be installed into environments
+        # starting with '_', mainly to allow conda-build to build conda
+        pass
+    elif conda_in_specs_str:
+        raise InstallError("Error: 'conda' can only be installed into the "
+                           "root environment")
+
+    # Support track_features config parameter
+    if context.track_features:
+        specs.extend(x + '@' for x in context.track_features)
+
+    return tuple(specs)
 
 
 def _remove_actions(prefix, specs, index, force=False, pinned=True):
@@ -503,7 +532,7 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):
             continue
         if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
-            raise CondaRuntimeError(msg % old_dist.to_filename())
+            raise RemoveError(msg % old_dist.to_filename())
         if (abspath(prefix) == sys.prefix and name == 'conda' and name not in nlinked
                 and not context.force):
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):

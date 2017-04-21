@@ -2,16 +2,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
-from logging import getLogger, DEBUG
-from os.path import exists, basename
+from logging import DEBUG, getLogger
+from os.path import basename, exists
 from threading import Lock
 import warnings
 
-from conda._vendor.auxlib.logz import stringify
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
+from .._vendor.auxlib.logz import stringify
 from ..base.context import context
 from ..connection import CondaSession
 from ..exceptions import BasicClobberError, CondaHTTPError, MD5MismatchError, maybe_raise

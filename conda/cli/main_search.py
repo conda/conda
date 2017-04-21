@@ -128,7 +128,7 @@ def execute(args, parser):
 
 def execute_search(args, parser):
     import re
-    from conda.resolve import Resolve
+    from ..resolve import Resolve
 
     if args.reverse_dependency:
         if not args.regex:

@@ -381,8 +381,9 @@ class Resolve(object):
         ver = normalized_version(rec.get('version', ''))
         bld = rec.get('build_number', 0)
         bs = rec.get('build_string')
-        return ((valid, -cpri, ver, bld, bs) if context.channel_priority else
-                (valid, ver, -cpri, bld, bs))
+        ts = rec.get('timestamp', 0)
+        return ((valid, -cpri, ver, bld, bs, ts) if context.channel_priority else
+                (valid, ver, -cpri, bld, bs, ts))
 
     def features(self, dist):
         return set(self.index[dist].get('features', '').split())
@@ -506,15 +507,23 @@ class Resolve(object):
         for name, targets in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
             pkey = None
+            # keep in mind that pkgs is already sorted according to version_key (a tuple,
+            #    so composite sort key).  Later entries in the list are, by definition,
+            #    greater in some way, so simply comparing with != suffices.
             for version_key, dist in pkgs:
                 if targets and any(dist == t for t in targets):
                     continue
                 if pkey is None:
                     iv = ib = 0
+                # any version number mismatch (each character compared one by one)
                 elif any(pk != vk for pk, vk in zip(pkey[:3], version_key[:3])):
                     iv += 1
                     ib = 0
+                # build number
                 elif pkey[3] != version_key[3]:
+                    ib += 1
+                # last field is timestamp. Use it as differentiator when build numbers are similar
+                elif pkey[5] != version_key[5]:
                     ib += 1
 
                 if iv or include0:
