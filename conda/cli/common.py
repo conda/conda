@@ -477,13 +477,13 @@ def arg2spec(arg, json=False, update=False):
         # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
         #   a space in the path
         _arg = spec_from_line(arg)
-        if _arg is None and arg.endswith(CONDA_TARBALL_EXTENSION):
-            _arg = arg
+        if _arg is None:
+            if arg.endswith(CONDA_TARBALL_EXTENSION):
+                _arg = arg
+            else:
+                raise CondaValueError("Cannot construct MatchSpec from: %r" % None)
         spec = MatchSpec(_arg, normalize=True)
     except:
-        import traceback
-        exc = traceback.format_exc()
-        import pdb; pdb.set_trace()
         raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name
