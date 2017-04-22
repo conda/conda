@@ -15,19 +15,19 @@ from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
 from requests.utils import get_auth_from_url, get_netrc_auth
 
-from . import __version__ as VERSION
-from ._vendor.auxlib.ish import dals
-from .base.constants import CONDA_HOMEPAGE_URL
-from .base.context import context
-from .common.compat import iteritems
-from .common.platform import linux_get_libc_version
-from .common.url import (add_username_and_password, get_proxy_username_and_pass,
-                         split_anaconda_token, urlparse)
-from .exceptions import ProxyError
-from .gateways.adapters.ftp import FTPAdapter
-from .gateways.adapters.localfs import LocalFSAdapter
-from .gateways.adapters.s3 import S3Adapter
-from .gateways.anaconda_client import read_binstar_tokens
+from conda import __version__ as VERSION
+from conda._vendor.auxlib.ish import dals
+from conda.base.constants import CONDA_HOMEPAGE_URL
+from conda.base.context import context
+from conda.common.compat import iteritems
+from conda.common.platform import linux_get_libc_version
+from conda.common.url import (add_username_and_password, get_proxy_username_and_pass,
+                              split_anaconda_token, urlparse)
+from conda.exceptions import ProxyError
+from conda.gateways.adapters.ftp import FTPAdapter
+from conda.gateways.adapters.localfs import LocalFSAdapter
+from conda.gateways.adapters.s3 import S3Adapter
+from conda.gateways.anaconda_client import read_binstar_tokens
 
 RETRIES = 3
 

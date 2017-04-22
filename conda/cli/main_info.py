@@ -160,7 +160,7 @@ def get_info_dict(system=False):
     from ..base.context import conda_in_private_env, context
     from ..common.url import mask_anaconda_token
     from ..config import rc_path, sys_rc_path, user_rc_path
-    from ..connection import user_agent
+    from ..gateways.connection import user_agent
     from ..models.channel import offline_keep, prioritize_channels
 
     try:
