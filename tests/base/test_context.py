@@ -45,6 +45,13 @@ class ContextCustomRcTests(TestCase):
         channel_alias: ftp://new.url:8082
         conda-build:
           root-dir: /some/test/path
+        proxy_servers:
+          http: http://user:pass@corp.com:8080
+          https: none
+          ftp:
+          sftp: ''
+          ftps: false
+          rsync: 'false'
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -156,6 +163,14 @@ class ContextCustomRcTests(TestCase):
             Channel('passion'),
             Channel('learn_from_every_thing'),
         )
+
+    def test_proxy_servers(self):
+        assert context.proxy_servers['http'] == 'http://user:pass@corp.com:8080'
+        assert context.proxy_servers['https'] is None
+        assert context.proxy_servers['ftp'] is None
+        assert context.proxy_servers['sftp'] == ''
+        assert context.proxy_servers['ftps'] == 'False'
+        assert context.proxy_servers['rsync'] == 'False'
 
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"
