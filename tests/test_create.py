@@ -393,7 +393,7 @@ class IntegrationTests(TestCase):
             # install tarball with full path, outside channel
             tar_new_path = join(prefix, flask_fname)
             copyfile(tar_old_path, tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
+            run_command(Commands.INSTALL, prefix, '"%s"' % tar_new_path)
             assert_package_is_installed(prefix, 'flask-0')
 
             # regression test for #2626
@@ -401,7 +401,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             tar_new_path = relpath(tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
+            run_command(Commands.INSTALL, prefix, '"%s"' % tar_new_path)
             assert_package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2886 (part 2 of 2)
