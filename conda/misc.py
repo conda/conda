@@ -15,7 +15,7 @@ from ._vendor.auxlib.path import expand
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win, open
 from .common.path import url_to_path, win_path_ok
-from .common.url import is_url, join_url, path_to_url
+from .common.url import is_url, join_url, path_to_url, unquote_plus
 from .core.index import get_index, _supplement_index_with_cache
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
@@ -55,7 +55,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             continue
 
         if not is_url(spec):
-            spec = path_to_url(expand(spec))
+            spec = unquote_plus(path_to_url(expand(spec)))
 
         # parse URL
         m = url_pat.match(spec)
@@ -88,6 +88,9 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     link_dists = tuple(iterkeys(fetch_recs))
     pfe = ProgressiveFetchExtract(fetch_recs, link_dists)
     pfe.execute()
+
+    # dists could have been updated with more accurate urls
+    # TODO: I'm stuck here
 
     # Now get the index---but the only index we need is the package cache
     index = {}

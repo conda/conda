@@ -29,7 +29,7 @@ class TestArg2Spec(unittest.TestCase):
         self.assertEqual(arg2spec('zope.int>=1.3,<3.0'), 'zope.int >=1.3,<3.0')
         self.assertEqual(arg2spec('numpy >=1.9'), 'numpy >=1.9')
 
-    def test_invalid(self):
+    def test_invalid_arg2spec(self):
         self.assertRaises(CondaValueError, arg2spec, '!xyz 1.3')
 
 

@@ -143,10 +143,12 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
+    args_packages = [s.strip('"\'') for s in args.packages]
+
     linked_dists = install_linked(prefix)
     linked_names = tuple(ld.quad[0] for ld in linked_dists)
     if isupdate and not args.all:
-        for name in args.packages:
+        for name in args_packages:
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names and common.prefix_if_in_private_env(name) is None:
                 raise PackageNotInstalledError(prefix, name)
@@ -155,9 +157,9 @@ def install(args, parser, command='install'):
         default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
         for default_pkg in context.create_default_packages:
-            if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
+            if any(pkg.split('=')[0] == default_pkg for pkg in args_packages):
                 default_packages.remove(default_pkg)
-        args.packages.extend(default_packages)
+                args_packages.extend(default_packages)
     else:
         default_packages = []
 
@@ -183,25 +185,25 @@ def install(args, parser, command='install'):
             log.info("There are no packages installed in prefix %s", prefix)
             return
         specs.extend(d.quad[0] for d in linked_dists)
-    specs.extend(common.specs_from_args(args.packages, json=context.json))
+    specs.extend(common.specs_from_args(args_packages, json=context.json))
 
     if isinstall and args.revision:
         get_revision(args.revision, json=context.json)
-    elif isinstall and not (args.file or args.packages):
+    elif isinstall and not (args.file or args_packages):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
 
-    num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
+    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
     if num_cp:
-        if num_cp == len(args.packages):
-            explicit(args.packages, prefix, verbose=not context.quiet)
+        if num_cp == len(args_packages):
+            explicit(args_packages, prefix, verbose=not context.quiet)
             return
         else:
             raise CondaValueError("cannot mix specifications with conda package"
                                   " filenames")
 
     if newenv and args.clone:
-        package_diff = set(args.packages) - set(default_packages)
+        package_diff = set(args_packages) - set(default_packages)
         if package_diff:
             raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
                                         'did not expect any arguments for --clone')
