@@ -34,7 +34,6 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 import sys
 
@@ -43,7 +42,7 @@ def generate_parser():
     from argparse import SUPPRESS
 
     from .. import __version__
-    from ..cli.conda_argparse import ArgumentParser
+    from .conda_argparse import ArgumentParser
 
     p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
