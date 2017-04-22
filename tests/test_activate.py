@@ -218,7 +218,7 @@ def test_activate_root_simple(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell)), stdout, stderr)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell=shell)), stdout, stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root
@@ -242,7 +242,7 @@ def test_activate_root_env_from_other_env(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell)),
+        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell=shell)),
                   stdout)
         assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)), stdout)
 
