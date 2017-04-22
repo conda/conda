@@ -1,16 +1,15 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import errno
 import os
+from os.path import abspath, isdir
 import re as regex
 import sys
-from os.path import isdir, abspath
 
-from ..common.compat import text_type, on_win
-from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError,
-                          TooManyArgumentsError, TooFewArgumentsError)
+from ..common.compat import on_win, text_type
+from ..exceptions import (ArgumentError, CondaEnvironmentError, CondaSystemExit, CondaValueError,
+                          TooFewArgumentsError, TooManyArgumentsError)
 from ..utils import shells
-
 
 
 def help(command, shell):
@@ -108,7 +107,6 @@ def get_activate_path(prefix, shell):
 
 def main():
     from ..base.constants import ROOT_ENV_NAME
-    from ..utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
         # all execution paths sys.exit at end.
         help(sys.argv[1], sys.argv[2])
