@@ -28,9 +28,9 @@ from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode
 from ..common.url import join_url, maybe_unquote
-from ..connection import CondaSession
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaHTTPError, CondaIndexError
+from ..gateways.connection import CondaSession
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel

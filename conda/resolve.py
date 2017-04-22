@@ -5,13 +5,13 @@ import logging
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
+from .common.toposort import toposort
 from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.match_spec import MatchSpec
 from .models.version import normalized_version
-from .toposort import toposort
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
