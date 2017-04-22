@@ -129,5 +129,15 @@ ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
 from .core.repodata import cache_fn_url  # NOQA
 cache_fn_url = cache_fn_url
 
-class Completer(object): pass  # NOQA
+
+class Completer(object):
+    def get_items(self):
+        return self._get_items()
+
+    def __contains__(self, item):
+        return True
+
+    def __iter__(self):
+        return iter(self.get_items())
+
 class InstalledPackages(object): pass  # NOQA
