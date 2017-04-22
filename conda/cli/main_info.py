@@ -15,7 +15,7 @@ from os.path import exists, expanduser, join
 import re
 import sys
 
-from .common import add_parser_json, add_parser_offline, arg2spec, handle_envs_list, stdout_json
+from .conda_argparse import add_parser_json, add_parser_offline
 from ..common.compat import iteritems, itervalues, on_win
 
 log = getLogger(__name__)
@@ -137,6 +137,7 @@ def pretty_package(dist, pkg):
 
 
 def print_package_info(packages):
+    from .common import arg2spec, stdout_json
     from ..api import get_index
     from ..base.context import context
     from ..resolve import Resolve
@@ -284,6 +285,7 @@ def get_main_info_str(info_dict):
 
 
 def execute(args, parser):
+    from .common import handle_envs_list, stdout_json
     from ..base.context import context
 
     if args.root:

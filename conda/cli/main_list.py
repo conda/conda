@@ -11,6 +11,9 @@ import logging
 from os.path import isdir, isfile
 import re
 
+from .conda_argparse import (add_parser_help, add_parser_json, add_parser_prefix,
+                             add_parser_show_channel_urls)
+
 descr = "List linked packages in a conda environment."
 
 # Note, the formatting of this is designed to work well with help2man
@@ -38,9 +41,6 @@ log = logging.getLogger(__name__)
 
 
 def configure_parser(sub_parsers):
-    from .common import (add_parser_help, add_parser_json, add_parser_prefix,
-                         add_parser_show_channel_urls)
-
     p = sub_parsers.add_parser(
         'list',
         description=descr,

@@ -6,16 +6,13 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .common import (Completer, Packages, add_parser_channels, add_parser_json, add_parser_known,
-                     add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
-                     add_parser_use_local, disp_features, arg2spec,
-                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
-from ..api import get_index
+from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
+                     ensure_use_local, stdout_json)
+from .conda_argparse import (add_parser_channels, add_parser_json, add_parser_known,
+                             add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
+                             add_parser_use_local)
 from ..base.context import context
 from ..common.compat import text_type
-from ..exceptions import CommandArgumentError, PackageNotFoundError
-from ..misc import make_icon_url
-from ..resolve import MatchSpec, NoPackagesFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -43,15 +40,6 @@ platform are shown):
    conda search --platform linux-64
 '''
 
-class Platforms(Completer):
-    """
-    Tab completion for platforms
-
-    There is no limitation on the platform string, except by what is in the
-    repo, but we want to tab complete the most common ones.
-    """
-    def _get_items(self):
-        return ['win-32', 'win-64', 'osx-64', 'linux-32', 'linux-64']
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -89,7 +77,6 @@ def configure_parser(sub_parsers):
         dest='platform',
         help="""Search the given platform. Should be formatted like 'osx-64', 'linux-32',
         'win-64', and so on. The default is to search the current platform.""",
-        choices=Platforms(),
         default=None,
     )
     p.add_argument(
@@ -112,23 +99,31 @@ package.""",
         nargs="?",
         help="""Package specification or Python regular expression to search for (default: display
         all packages).""",
-    ).completer = Packages
+    )
     add_parser_offline(p)
     add_parser_channels(p)
     add_parser_json(p)
     add_parser_use_local(p)
     p.set_defaults(func=execute)
 
+
 def execute(args, parser):
+    from ..exceptions import NoPackagesFoundError, PackageNotFoundError
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
         error_message = text_type(e)
         raise PackageNotFoundError(error_message)
 
+
 def execute_search(args, parser):
     import re
     from ..resolve import Resolve
+    from ..api import get_index
+    from ..misc import make_icon_url
+    from ..models.match_spec import MatchSpec
+    from ..core.linked_data import linked as linked_data
+    from ..core.package_cache import PackageCache
 
     if args.reverse_dependency:
         if not args.regex:
@@ -148,15 +143,13 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
+                from ..exceptions import CommandArgumentError
                 raise CommandArgumentError("Failed to compile regex pattern for "
                                            "search: %(regex)s\n"
                                            "regex error: %(regex_error)s",
                                            regex=regex, regex_error=repr(e))
 
     prefix = context.prefix_w_legacy_search
-
-    from ..core.linked_data import linked as linked_data
-    from ..core.package_cache import PackageCache
 
     linked = linked_data(prefix)
     extracted = set(pc_entry.dist.name for pc_entry in PackageCache.get_all_extracted_entries())

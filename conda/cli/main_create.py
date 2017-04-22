@@ -6,11 +6,9 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .common import add_parser_install, add_parser_json
-from .install import install
+from .conda_argparse import add_parser_install, add_parser_json
 from ..common.compat import on_win
 from ..common.constants import NULL
-from ..gateways.disk.delete import delete_trash
 
 help = "Create a new conda environment from a list of specified packages. "
 descr = (help +
@@ -65,5 +63,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    from .install import install
+    from ..gateways.disk.delete import delete_trash
     install(args, parser, 'create')
     delete_trash()
