@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, absolute_import, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
-import subprocess
-import tempfile
-
+from datetime import datetime
 import os
 from os.path import dirname
 import stat
+import subprocess
 import sys
+import tempfile
 
-from datetime import datetime
 import pytest
 
-from conda.compat import TemporaryDirectory, PY2
-from conda.config import root_dir, platform
+from conda.base.context import context
+from conda.cli.activate import _get_prefix_paths, binpath_from_arg
+from conda.compat import TemporaryDirectory
+from conda.config import platform, root_dir
 from conda.install import symlink_conda
-from conda.utils import path_identity, shells, on_win, translate_stream
-from conda.cli.activate import binpath_from_arg
-
+from conda.utils import on_win, shells, translate_stream
 from tests.helpers import assert_equals, assert_in, assert_not_in
-
 
 # ENVS_PREFIX = "envs" if PY2 else "envsßôç"
 ENVS_PREFIX = "envs"
@@ -38,22 +36,20 @@ def gen_test_env_paths(envs, shell, num_test_folders=5):
     paths = [converter(path) for path in paths]
     return paths
 
-def _envpaths(env_root, env_name="", shelldict={}):
+def _envpaths(env_root, env_name="", shell=None):
     """Supply the appropriate platform executable folders.  rstrip on root removes
        trailing slash if env_name is empty (the default)
 
     Assumes that any prefix used here exists.  Will not work on prefixes that don't.
     """
-    sep = shelldict['sep']
-    return binpath_from_arg(sep.join([env_root, env_name]), shelldict=shelldict)
+    sep = shells[shell]['sep']
+    return binpath_from_arg(sep.join([env_root, env_name]), shell)
 
 
 PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
 
 # Make sure the subprocess activate calls this python
-syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identity,
-                                                         "path_from": path_identity,
-                                                         "sep": os.sep}))
+syspath = os.pathsep.join(_get_prefix_paths(context.root_prefix))
 
 def print_ps1(env_dirs, raw_ps, number):
     return (u"({}) ".format(env_dirs[number]) + raw_ps)
@@ -144,7 +140,7 @@ def test_activate_test1(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)),
                  stdout, shell)
 
 
@@ -159,7 +155,7 @@ def test_activate_env_from_env_with_root_activate(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shelldict=shells[shell])), stdout)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shell)), stdout)
 
 
 @pytest.mark.installed
@@ -190,7 +186,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),stdout)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)),stdout)
 
 
 @pytest.mark.installed
@@ -222,7 +218,7 @@ def test_activate_root_simple(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])), stdout, stderr)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell)), stdout, stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root
@@ -246,9 +242,9 @@ def test_activate_root_env_from_other_env(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])),
+        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell)),
                   stdout)
-        assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])), stdout)
+        assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)), stdout)
 
 
 @pytest.mark.installed

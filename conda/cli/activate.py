@@ -64,24 +64,23 @@ def prefix_from_arg(arg, shell):
     return prefix
 
 
+def _get_prefix_paths(prefix):
+    if on_win:
+        yield prefix.rstrip("\\")
+        yield os.path.join(prefix, 'Library', 'mingw-w64', 'bin')
+        yield os.path.join(prefix, 'Library', 'usr', 'bin')
+        yield os.path.join(prefix, 'Library', 'bin')
+        yield os.path.join(prefix, 'Scripts')
+    else:
+        yield os.path.join(prefix, 'bin')
+
+
 def binpath_from_arg(arg, shell):
     shelldict = shells[shell] if shell else {}
     # prefix comes back as platform-native path
     prefix = prefix_from_arg(arg, shell)
-    if on_win:
-        paths = [
-            prefix.rstrip("\\"),
-            os.path.join(prefix, 'Library', 'mingw-w64', 'bin'),
-            os.path.join(prefix, 'Library', 'usr', 'bin'),
-            os.path.join(prefix, 'Library', 'bin'),
-            os.path.join(prefix, 'Scripts'),
-                ]
-    else:
-        paths = [
-            os.path.join(prefix, 'bin'),
-                ]
     # convert paths to shell-native paths
-    return [shelldict['path_to'](path) for path in paths]
+    return [shelldict['path_to'](path) for path in _get_prefix_paths(prefix)]
 
 
 def pathlist_to_str(paths, escape_backslashes=True):
