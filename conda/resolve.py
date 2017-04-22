@@ -487,7 +487,8 @@ class Resolve(object):
         return [(self.push_MatchSpec(C, ms),) for ms in specs]
 
     def generate_feature_count(self, C):
-        return {self.push_MatchSpec(C, MatchSpec(track_features=name)): 1 for name in iterkeys(self.trackers)}
+        return {self.push_MatchSpec(C, MatchSpec(track_features=name)): 1
+                for name in iterkeys(self.trackers)}
 
     def generate_update_count(self, C, specs):
         return {'!'+ms.target: 1 for ms in specs if ms.target and C.from_name(ms.target)}
@@ -684,11 +685,31 @@ class Resolve(object):
         return pkgs
 
     def remove_specs(self, specs, installed):
-        # Adding ' @ @' to the MatchSpec forces its removal
-        specs = [s if ' ' in s else s + ' @ @' for s in specs]
-        specs = [MatchSpec(s, optional=True) for s in specs]
-        snames = {s.name for s in specs}
-        limit, _ = self.bad_installed(installed, specs)
+        nspecs = []
+        snames = set()
+        # There's an imperfect thing happening here. "specs" nominally contains
+        # a list of package names or track_feature values to be removed. But
+        # because of add_defaults_to_specs it may also contain version contraints
+        # like "python 2.7*", which are *not* asking for python to be removed.
+        # We need to separate these two kinds of specs here.
+        for s in map(MatchSpec, specs):
+            if s.is_simple():
+                snames.add(s.name)
+            elif s.is_single() and s.exact_field('track_features'):
+                # The best we can do here, currently, is to specify that any
+                # package containing a track_feature field should be removed.
+                # This works great with feature metapackages. It will fail if
+                # a package has versions with track_features and without. To
+                # the best of my knowledge nobody does this yet.
+                snames.update(self.package_name(d) for d in installed
+                              if self.match(s, d))
+            else:
+                nspecs.append(MatchSpec(s, optional=True))
+        # Since '@' is an illegal version number, this ensures that all of
+        # these matches will never match an actual package. Combined with
+        # optional=True, this has the effect of forcing their removal.
+        nspecs.extend(MatchSpec(name=s, version='@', optional=True) for s in snames)
+        limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
         for dist in installed:
             nm, ver, build, schannel = self.package_quad(dist)
@@ -697,11 +718,11 @@ class Resolve(object):
             elif limit is not None:
                 preserve.append(dist)
             else:
-                specs.append(MatchSpec(name=nm,
-                                       version='>='+ver if ver else None,
-                                       optional=True,
-                                       target=dist.full_name))
-        return specs, preserve
+                nspecs.append(MatchSpec(name=nm,
+                                        version='>='+ver if ver else None,
+                                        optional=True,
+                                        target=dist.full_name))
+        return nspecs, preserve
 
     def remove(self, specs, installed):
         specs, preserve = self.remove_specs(specs, installed)
