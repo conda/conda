@@ -26,6 +26,7 @@ class SplitSearch(object):
     def __init__(self, value):
         self.exact = value  # ensures this is considered an exact match
         self.match = re.compile(r'(?:^|.* )%s(?:$| )' % value).match
+
     def __repr__(self):
         return "'%s'" % self.exact
 
@@ -127,7 +128,8 @@ class MatchSpec(object):
                         kwargs.setdefault('optional', bool(value) if eq else True)
                         if bool(_exact_field('name')) + bool(_exact_field('track_features')) != 1:
                             raise CondaValueError("Optional MatchSpec must be tied"
-                                " to a name or track_feature (and not both): %s" % spec)
+                                                  " to a name or track_feature (and not both): %s"
+                                                  "" % spec)
                     elif field == 'target':
                         kwargs.setdefault('target', value)
                     else:
