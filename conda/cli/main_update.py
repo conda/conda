@@ -7,8 +7,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .conda_argparse import add_parser_install, add_parser_json
-from .install import install
-from ..gateways.disk.delete import delete_trash
 
 help = "Updates conda packages to the latest compatible version."
 descr = help + """
@@ -36,6 +34,7 @@ Examples:
 
 alias_help = "Alias for conda update.  See conda update --help."
 
+
 def configure_parser(sub_parsers, name='update'):
     if name == 'update':
         p = sub_parsers.add_parser(
@@ -62,5 +61,7 @@ def configure_parser(sub_parsers, name='update'):
 
 
 def execute(args, parser):
+    from .install import install
+    from ..gateways.disk.delete import delete_trash
     install(args, parser, 'update')
     delete_trash()

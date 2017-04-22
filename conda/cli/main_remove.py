@@ -12,9 +12,6 @@ import logging
 from os.path import abspath, join
 import sys
 
-from .common import (confirm_yn,
-                     ensure_override_channels_requires_channel, ensure_use_local, names_in_specs,
-                     specs_from_args, stdout_json)
 from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_json,
                              add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                              add_parser_prefix, add_parser_pscheck, add_parser_quiet,
@@ -105,6 +102,8 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
+    from .common import (confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
+                         names_in_specs, specs_from_args, stdout_json)
     from .install import check_write
     from ..base.constants import ROOT_NO_RM
     from ..base.context import context
