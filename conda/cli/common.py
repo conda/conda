@@ -6,12 +6,10 @@ from os.path import abspath, basename
 import re
 import sys
 
-from .. import console
-from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import ROOT_ENV_NAME, CONDA_TARBALL_EXTENSION
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import itervalues
-from ..resolve import MatchSpec
+from ..models.match_spec import MatchSpec
 
 get_prefix = partial(context_get_prefix, context)
 
@@ -196,7 +194,7 @@ def disp_features(features):
 
 def stdout_json(d):
     import json
-
+    from .._vendor.auxlib.entity import EntityEncoder
     json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
     sys.stdout.write('\n')
 
@@ -214,7 +212,8 @@ def get_index_trap(*args, **kwargs):
 @contextlib.contextmanager
 def json_progress_bars(json=False):
     if json:
-        with console.json_progress_bars():
+        from ..console import json_progress_bars
+        with json_progress_bars():
             yield
     else:
         yield

@@ -10,7 +10,6 @@ import threading
 
 from .common.compat import on_win
 from .common.url import path_to_url
-from .gateways.disk.read import compute_md5sum
 
 log = logging.getLogger(__name__)
 
@@ -265,14 +264,21 @@ else:
         ),
     }
 
-# put back because of conda build
-urlpath = url_path = path_to_url
-md5_file = compute_md5sum
 
-import hashlib  # NOQA
+# ##########################################
+# put back because of conda build
+# ##########################################
+
+urlpath = url_path = path_to_url
+
+
+def md5_file(path):
+    from .gateways.disk.read import compute_md5sum
+    return compute_md5sum(path)
 
 
 def hashsum_file(path, mode='md5'):
+    import hashlib
     h = hashlib.new(mode)
     with open(path, 'rb') as fi:
         while True:
