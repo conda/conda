@@ -1,4 +1,5 @@
 import pytest
+from glob import glob
 from conda.lock import DirectoryLock, FileLock, LockError
 from os.path import basename, exists, isfile, join
 
@@ -110,6 +111,47 @@ def test_lock_retries(tmpdir):
     t.join()
     # lock should clean up after itself
     assert not tmpdir.join(path).exists()
+
+
+def _lock_process(tmpdir, file_path):
+    """
+        Helper function for test_stale_lock_file. Can't be local
+        because it needs to be pickled so it can be executed by
+        another process using the multiprocessing module.
+    """
+    import os
+    with FileLock(file_path):
+        # Use os._exit to prevent cleanup
+        os._exit(1)
+
+
+def test_stale_lock_file(tmpdir):
+    """
+        Test that if a process leaves a lock file behind it
+        gets cleaned up
+    """
+    from multiprocessing import Process
+    package_name = "conda_file_4"
+    tmpfile = join(tmpdir.strpath, package_name)
+    p = Process(target=_lock_process, args=(tmpdir, tmpfile))
+    p.start()
+    p.join()
+
+    # Find the conda lock file left behind:
+    lock_files = glob(join(tmpdir.strpath, "*.conda_lock"))
+    assert len(lock_files) == 1
+    stale_path = basename(lock_files[0])
+
+    with FileLock(tmpfile, retries=0) as lock1:
+        # Stale lock should have been cleared
+        assert not tmpdir.join(stale_path).exists()
+
+        path = basename(lock1.lock_file_path)
+        assert tmpdir.join(path).exists()
+
+    # lock should clean up after itself
+    assert not tmpdir.join(path).exists()
+    assert not tmpdir.join(stale_path).exists()
 
 
 def test_permission_file():
