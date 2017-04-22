@@ -529,13 +529,13 @@ class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
         source_short_path = 'Scripts/conda.exe'
         target_short_path = exe_path
         return cls(transaction_context, package_info, source_directory,
-                   source_short_path, target_prefix, target_short_path)
+                   source_short_path, target_prefix, target_short_path, requested_link_type)
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path):
+                 target_prefix, target_short_path, requested_link_type):
         super(CreateApplicationEntryPointWindowsExeAction, self).__init__(
             transaction_context, package_info, source_prefix, source_short_path,
-            target_prefix, target_short_path, None,
+            target_prefix, target_short_path, requested_link_type,
         )
         self.leased_path_entry = LeasedPathEntry(
             _path=target_short_path,
