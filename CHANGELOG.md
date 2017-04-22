@@ -5,6 +5,7 @@
 * add timestamp metadata for tiebreaking conda-build 3 hashed packages (#5018)
 * resolve #5034 add subdirs configuration parameter (#5030)
 * resolve #5081 make pinned packages optional/constrained dependencies (#5088)
+* resolve #5108 improve behavior and add tests for spaces in paths (#4786)
 
 ### Bug Fixes
 * quote prefix paths for locations with spaces (#5009)
@@ -18,6 +19,8 @@
 * fix #5073 allow client_ssl_cert{_key} to be of type None (#5096)
 * fix #4671 backoff for package validate race condition (#5098)
 * fix #5022 gnu_get_libc_version => linux_get_libc_version (#5099)
+* fix #4849 package name match bug (#5103)
+* fixes #5102 allow proxy_servers to be of type None (#5107)
 
 ### Non-User-Facing Changes
 * resolve #5012 remove CondaRuntimeError and RuntimeError (#4818)
