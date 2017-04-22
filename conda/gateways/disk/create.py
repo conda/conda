@@ -7,7 +7,7 @@ import json
 from logging import getLogger
 import os
 from os import X_OK, access, makedirs
-from os.path import basename, dirname, isdir, isfile, join, lexists
+from os.path import basename, dirname, isdir, isfile, join, lexists, splitext
 import shutil
 import sys
 import tarfile
@@ -219,6 +219,17 @@ def _do_softlink(src, dst):
         copy(src, dst)
     else:
         symlink(src, dst)
+
+
+def create_fake_executable_softlink(src, dst):
+    assert on_win
+    src_root, _ = splitext(src)
+    # TODO: this open will clobber, consider raising
+    with open(dst, 'w') as f:
+        f.write("@echo off\n"
+                "call \"%s\" %%*\n"
+                "" % src_root)
+    return dst
 
 
 def copy(src, dst):

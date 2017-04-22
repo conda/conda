@@ -15,10 +15,11 @@ from .._vendor.auxlib.path import expand
 from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import text_type, with_metaclass
-from ..common.path import ensure_pad, right_pad_os_sep, win_path_ok
+from ..common.path import ensure_pad, right_pad_os_sep
 from ..exceptions import CondaValueError, EnvironmentNameNotFound, NotWritableError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable
+from ..models.leased_path_entry import LeasedPathEntry
 
 try:
     from cytoolz.itertoolz import concatv, groupby
@@ -66,7 +67,7 @@ class EnvsDirectory(object):
         target_prefix: the full path to the private environment
         leased_path: the full path for the lease in the root prefix
         package_name: the package holding the lease
-        path_type: application_entry_point
+        leased_path_type: application_entry_point
 
     The 'preferred_env_packages' key is a list of packages associated with a private env, and
     therefore potentially having application entry points in the root env.  Each
@@ -101,7 +102,11 @@ class EnvsDirectory(object):
                 if not catalog_file_content:
                     return {}
                 else:
-                    return json.loads(catalog_file_content)
+                    _envs_dir_data = json.loads(catalog_file_content)
+                    _envs_dir_data['leased_paths'] = [
+                        LeasedPathEntry(**lpe) for lpe in _envs_dir_data.get('leased_paths', ())
+                    ]
+                    return _envs_dir_data
         else:
             return {}
 
@@ -295,7 +300,7 @@ class EnvsDirectory(object):
 
     def get_leased_path_entry(self, target_short_path, default=None):
         current_lp = next((lp for lp in self._leased_paths
-                           if lp['_path'] == target_short_path),
+                           if lp._path == target_short_path),
                           default)
         return current_lp
 
@@ -308,36 +313,34 @@ class EnvsDirectory(object):
               path: %(target_short_path)s
               current prefix: %(current_prefix)s
             """)
-            current_prefix = current_lp['target_prefix']
+            current_prefix = current_lp.target_prefix
             raise CondaError(message,
                              root_prefix=self.root_dir,
                              target_short_path=target_short_path,
                              current_prefix=current_prefix)
 
-    def add_leased_path(self, target_prefix, target_short_path, root_prefix, package_name,
-                        path_type):
-        self.assert_path_not_leased(target_short_path)
-
-        leased_path_entry = {
-            "_path": target_short_path,
-            "target_path": join(target_prefix, win_path_ok(target_short_path)),
-            "target_prefix": target_prefix,
-            "leased_path": join(root_prefix, win_path_ok(target_short_path)),
-            "package_name": package_name,
-            "path_type": path_type,
-        }
-
+    def add_leased_path(self, leased_path_entry):
+        self.assert_path_not_leased(leased_path_entry._path)
         self._leased_paths.append(leased_path_entry)
 
-    def remove_leased_path(self, target_short_path):
-        lp_idx = next((q for q, lp in enumerate(self._leased_paths)
-                       if lp['_path'] == target_short_path),
-                      None)
-        if lp_idx is not None:
-            self._leased_paths.pop(lp_idx)
+    def remove_leased_paths_for_pacakge(self, package_name):
+        q = 0
+        while q < len(self._leased_paths):
+            leased_path_entry = self._leased_paths[q]
+            if leased_path_entry.package_name == package_name:
+                self._leased_paths.pop(q)
+            else:
+                q += 1
+
+    # def remove_leased_path(self, target_short_path):
+    #     lp_idx = next((q for q, lp in enumerate(self._leased_paths)
+    #                    if lp._path == target_short_path),
+    #                   None)
+    #     if lp_idx is not None:
+    #         self._leased_paths.pop(lp_idx)
 
     def get_leased_path_entries_for_package(self, package_name):
-        return tuple(lpe for lpe in self._leased_paths if lpe['package_name'] == package_name)
+        return tuple(lpe for lpe in self._leased_paths if lpe.package_name == package_name)
 
     # ############################
     # preferred env packages
@@ -359,16 +362,8 @@ class EnvsDirectory(object):
         lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages)
                        if lp['package_name'] == package_name),
                       None)
-        package_record = self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
-
-        if package_record:
-            q = 0
-            while q < len(self._leased_paths):
-                lpr = self._leased_paths[q]
-                if lpr['package_name'] == package_name:
-                    self._leased_paths.pop(q)
-                else:
-                    q += 1
+        self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
+        self.remove_leased_paths_for_pacakge(package_name)
 
     def get_registered_preferred_env(self, package_name):
         pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)

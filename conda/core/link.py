@@ -14,12 +14,12 @@ from .linked_data import (get_python_version_for_prefix, linked_data as get_link
                           load_meta)
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
-                           CreateLinkedPackageRecordAction, CreateNonadminAction,
-                           CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
-                           RegisterEnvironmentLocationAction, RegisterPrivateEnvAction,
-                           RemoveLinkedPackageRecordAction, RemoveMenuAction, UnlinkPathAction,
-                           UnregisterEnvironmentLocationAction, UnregisterPrivateEnvAction,
-                           UpdateHistoryAction)
+                           CreateApplicationSoftlinkAction, CreateLinkedPackageRecordAction,
+                           CreateNonadminAction, CreatePythonEntryPointAction, LinkPathAction,
+                           MakeMenuAction, RegisterEnvironmentLocationAction,
+                           RegisterPrivateEnvAction, RemoveLinkedPackageRecordAction,
+                           RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
+                           UnregisterPrivateEnvAction, UpdateHistoryAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -574,8 +574,12 @@ class UnlinkLinkTransaction(object):
             application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
                 *required_quad
             )
+            application_softlink_actions = CreateApplicationSoftlinkAction.create_actions(
+                *required_quad
+            )
         else:
             application_entry_point_actions = ()
+            application_softlink_actions = ()
 
         all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
             file_link_actions,
@@ -583,8 +587,9 @@ class UnlinkLinkTransaction(object):
             compile_pyc_actions,
         ))
 
-        leased_paths = tuple(axn.target_short_path for axn in concatv(
+        leased_paths = tuple(axn.leased_path_entry for axn in concatv(
             application_entry_point_actions,
+            application_softlink_actions,
         ))
 
         meta_create_actions = CreateLinkedPackageRecordAction.create_actions(

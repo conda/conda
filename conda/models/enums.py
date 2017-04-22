@@ -100,6 +100,17 @@ class PathType(Enum):
         return self.name
 
 
+class LeasedPathType(Enum):
+    application_entry_point = 'application_entry_point'
+    application_softlink = 'application_softlink'
+
+    def __str__(self):
+        return self.name
+
+    def __json__(self):
+        return self.name
+
+
 class NoarchType(Enum):
     generic = 'generic'
     python = 'python'
