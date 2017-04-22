@@ -11,7 +11,7 @@ import sys
 
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME, CONDA_TARBALL_EXTENSION
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import iteritems
 from ..common.constants import NULL
@@ -477,7 +477,12 @@ def name_prefix(prefix):
 
 def arg2spec(arg, json=False, update=False):
     try:
-        spec = MatchSpec(spec_from_line(arg), normalize=True)
+        # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
+        #   a space in the path
+        _arg = spec_from_line(arg)
+        if _arg is None and arg.endswith(CONDA_TARBALL_EXTENSION):
+            _arg = arg
+        spec = MatchSpec(_arg, normalize=True)
     except:
         raise CondaValueError('invalid package specification: %s' % arg)
 
