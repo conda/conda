@@ -141,7 +141,7 @@ class Dist(Entity):
         if channel_override != NULL:
             channel = channel_override
         elif channel is None:
-            channel = DEFAULTS_CHANNEL_NAME
+            channel = UNKNOWN_CHANNEL
 
         # enforce dist format
         dist_details = cls.parse_dist_name(original_dist)
