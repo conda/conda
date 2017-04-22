@@ -16,8 +16,12 @@ globally (such as downloading packages).
 We don't raise an error if the lock is named with the current PID
 """
 from __future__ import absolute_import, division, print_function
+
+import errno
 import logging
+import re
 import os
+import platform
 import time
 from glob import glob
 from os.path import abspath, isdir, dirname, basename, join
@@ -37,6 +41,101 @@ You can also use: $ conda clean --lock
 
 stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
+
+
+def _safe_node_name():
+    """Return a computer name with dangerous characters replaced.
+
+    So that the name can be used on the filesystem.
+    """
+    return re.sub('\W+', '_', platform.node())
+
+def _pid_possibly_running(pid):
+    """Return whether a process with a given PID is possibly running.
+
+    This allows for false positives where the function returns True even
+    though a process with the given PID is not actually running. This
+    primarily happens when an unhandled error code is returned from the
+    operating system.
+    """
+    if platform.system() == 'Windows':
+        import sys, ctypes
+        kernel32 = ctypes.windll.kernel32
+
+        # TODO: below Vista, PROCESS_QUERY_LIMITED_INFORMATION is not supported:
+        # https://msdn.microsoft.com/en-us/library/windows/desktop/ms684880(v=vs.85).aspx
+        PROCESS_QUERY_INFORMATION = 0x0400
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        ERROR_ACCESS_DENIED = 5
+        STILL_ACTIVE = 259
+
+        # Reference for Windows version numbers:
+        # https://msdn.microsoft.com/en-us/library/windows/desktop/ms724833(v=vs.85).aspx
+        if sys.getwindowsversion().major >= 6:
+            rights = PROCESS_QUERY_LIMITED_INFORMATION
+        else:
+            rights = PROCESS_QUERY_INFORMATION
+
+        handle = kernel32.OpenProcess(rights, 0, pid)
+        if handle == 0:
+            # If we are not allowed to open the process, it probably
+            # exists.
+            if kernel32.GetLastError() == ERROR_ACCESS_DENIED:
+                return True
+            return False
+
+        try:
+            ec = ctypes.c_ulong(0)
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(ec)):
+                # Failed to obtain exit code, assume that the
+                # process might still be alive.
+                return True
+
+            return ec.value == STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
+    else:
+        try:
+            os.kill(pid, 0)
+        except OSError as ex:
+            if ex.errno == errno.ESRCH:
+                # No such process
+                return False
+            elif ex.errno == errno.EPERM:
+                # There's probably a process, we just don't have access to it
+                return True
+            else:
+                # Some other error occurred, assume there's a process.
+                return True
+        else:
+            # The signal could be delivered, so there is a process
+            return True
+
+
+def _validate_lock(hostname, pid):
+    """Validates a lock file.
+
+    Validates that a lock file that was written by a process on the given
+    host with the given PID is not stale. It does this by checking if there
+    is a process running with the given PID.
+
+    Note that there might be situations where this function treats a lock
+    file valid even if it has gone stale, this is if a PID gets reused by
+    the operating system or if the lock file was written by a different host
+    on a network file system. All such cases are false positives, i.e. the
+    lock file is considered valid even if it is not. There is no possibility
+    for false negatives where we would have valid lock file but consider it
+    stale.
+    """
+
+    if _safe_node_name() != hostname:
+        return True
+
+    if _pid_possibly_running(pid):
+        return True
+
+    return False
+
 
 def touch(file_name, times=None):
     """ Touch function like touch in Unix shell
@@ -64,21 +163,40 @@ class FileLock(object):
         """
         self.path_to_lock = abspath(path_to_lock)
         self.retries = retries
-        self.lock_file_path = "%s.pid{0}.%s" % (self.path_to_lock, LOCK_EXTENSION)
+        self.lock_file_path = "%s.pid{0}.host{1}.%s" % (self.path_to_lock, LOCK_EXTENSION)
         # e.g. if locking path `/conda`, lock file will be `/conda.pidXXXX.conda_lock`
-        self.lock_file_glob_str = "%s.pid*.%s" % (self.path_to_lock, LOCK_EXTENSION)
+        self.lock_file_glob_str = "%s.pid*.host*.%s" % (self.path_to_lock, LOCK_EXTENSION)
+        self.lock_file_regex = re.compile(r"%s\.pid([0-9]+)\.host([\w_]+)\.%s" %
+                                          (re.escape(self.path_to_lock), re.escape(LOCK_EXTENSION)))
         assert isdir(dirname(self.path_to_lock)), "{0} doesn't exist".format(self.path_to_lock)
         assert "::" not in self.path_to_lock, self.path_to_lock
 
     def __enter__(self):
         sleep_time = 1
-        self.lock_file_path = self.lock_file_path.format(os.getpid())
+        self.lock_file_path = self.lock_file_path.format(os.getpid(), _safe_node_name())
         last_glob_match = None
 
         for _ in range(self.retries + 1):
 
             # search, whether there is process already locked on this file
-            glob_result = glob(self.lock_file_glob_str)
+            # Remove lock files that no longer seem active, e.g. if we can
+            # detect that the process that created them has terminated.
+            glob_result = []
+            for lock_file in glob(self.lock_file_glob_str):
+                match = self.lock_file_regex.match(lock_file)
+                assert match is not None
+
+                pid = int(match.group(1))
+                host = match.group(2)
+
+                if not _validate_lock(host, pid):
+                    from conda.common.disk import rm_rf
+                    rm_rf(lock_file)
+                else:
+                    glob_result.append(lock_file)
+
+            # Hold off of entering the critical section if there are valid
+            # lock files left.
             if glob_result:
                 log.debug(LOCKSTR.format(glob_result))
                 log.debug("Sleeping for %s seconds", sleep_time)
@@ -97,7 +215,6 @@ class FileLock(object):
         from conda.common.disk import rm_rf
         rm_rf(self.lock_file_path)
 
-
 class DirectoryLock(FileLock):
     """Lock a directory with the lock file sitting *within* the directory being locked.
 
@@ -112,9 +229,11 @@ class DirectoryLock(FileLock):
         directory_name = basename(self.directory_path)
         self.retries = retries
         lock_path_pre = join(self.directory_path, directory_name)
-        self.lock_file_path = "%s.pid{0}.%s" % (lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_path = "%s.pid{0}.host{1}.%s" % (lock_path_pre, LOCK_EXTENSION)
         # e.g. if locking directory `/conda`, lock file will be `/conda/conda.pidXXXX.conda_lock`
-        self.lock_file_glob_str = "%s.pid*.%s" % (lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_glob_str = "%s.pid*.host*.%s" % (lock_path_pre, LOCK_EXTENSION)
+        self.lock_file_regex = re.compile(r"%s\.pid([0-9]+)\.host([\w_]+)\.%s" %
+                                          (re.escape(lock_path_pre), re.escape(LOCK_EXTENSION)))
         # make sure '/' exists
         assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
         if not isdir(self.directory_path):
