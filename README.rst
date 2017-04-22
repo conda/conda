@@ -190,6 +190,6 @@ separate instance of `Miniconda <http://conda.pydata.org/miniconda.html>`_ and
 work off it. This is also the only way to test conda in both Python 2 and
 Python 3, as conda can only be installed into a root environment.
 
-Run the conda tests by ``conda install pytest pytest-cov pytest-timeout mock responses``
+Run the conda tests by ``conda install pytest pytest-cov pytest-timeout mock responses pyyaml``
 and then running ``py.test`` in the conda directory. The tests are also run by Travis
 CI when you make a pull request.
