@@ -473,10 +473,6 @@ def name_prefix(prefix):
 # -------------------------------------------------------------------------
 
 def arg2spec(arg, json=False, update=False):
-    spec = spec_from_line(arg)
-    if spec is None:
-        raise CondaValueError('invalid package specification: %s' % arg)
-
     try:
         # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
         #   a space in the path
@@ -485,6 +481,9 @@ def arg2spec(arg, json=False, update=False):
             _arg = arg
         spec = MatchSpec(_arg, normalize=True)
     except:
+        import traceback
+        exc = traceback.format_exc()
+        import pdb; pdb.set_trace()
         raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name

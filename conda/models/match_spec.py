@@ -5,6 +5,8 @@ from ast import literal_eval
 import re
 import sys
 
+from conda.base.constants import CONDA_TARBALL_EXTENSION
+
 from .dist import Dist
 from .index_record import IndexRecord
 from .version import VersionSpec
@@ -69,8 +71,7 @@ class MatchSpec(object):
 
         if isinstance(spec, string_types):
             spec, _, oparts = spec.partition('(')
-            parts = spec.strip().split()
-            # parts = (spec,) if spec.endswith(CONDA_TARBALL_EXTENSION) else spec.split()
+            parts = [spec] if spec.endswith(CONDA_TARBALL_EXTENSION) else spec.split()
             assert 1 <= len(parts) <= 3, repr(spec)
             name, version, build = (parts + ['*', '*'])[:3]
             self._push(_specs_map,
