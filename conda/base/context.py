@@ -31,11 +31,6 @@ except ImportError:  # pragma: no cover
 
 log = getLogger(__name__)
 
-try:
-    import cio_test  # NOQA
-except ImportError:  # pragma: no cover
-    log.info("No cio_test package found.")
-
 _platform_map = {
     'linux2': 'linux',
     'linux': 'linux',
