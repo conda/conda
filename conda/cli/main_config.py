@@ -13,20 +13,16 @@ from os.path import join
 import sys
 from textwrap import wrap
 
-from .common import stdout_json_success
 from .conda_argparse import add_parser_json
 from .. import CondaError
-from .._vendor.auxlib.compat import isiterable
-from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import iteritems, string_types, text_type
+from ..common.compat import isiterable, iteritems, string_types, text_type
 from ..common.configuration import pretty_list, pretty_map
 from ..common.constants import NULL
 from ..common.yaml import yaml_dump, yaml_load
 from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
                       user_rc_path)
-from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -204,6 +200,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
 
 
 def execute(args, parser):
+    from ..exceptions import CouldntParseError
     try:
         execute_config(args, parser)
     except (CouldntParseError, NotImplementedError) as e:
@@ -231,6 +228,7 @@ def format_dict(d):
 
 
 def execute_config(args, parser):
+    from .._vendor.auxlib.entity import EntityEncoder
     json_warnings = []
     json_get = {}
 
@@ -370,8 +368,10 @@ def execute_config(args, parser):
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
             if key not in sequence_parameters:
+                from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
             if not isinstance(rc_config.get(key, []), list):
+                from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
             if key == 'default_channels' and rc_path != sys_rc_path:
@@ -394,6 +394,7 @@ def execute_config(args, parser):
         primitive_parameters = [p for p in context.list_parameters()
                                 if context.describe_parameter(p)['parameter_type'] == 'primitive']
         if key not in primitive_parameters:
+            from ..exceptions import CondaValueError
             raise CondaValueError("Key '%s' is not a known primitive parameter." % key)
         value = context.typify_parameter(key, item)
         rc_config[key] = value
@@ -402,9 +403,11 @@ def execute_config(args, parser):
     for key, item in args.remove:
         if key not in rc_config:
             if key != 'channels':
+                from ..exceptions import CondaKeyError
                 raise CondaKeyError(key, "key %r is not in the config file" % key)
             rc_config[key] = ['defaults']
         if item not in rc_config[key]:
+            from ..exceptions import CondaKeyError
             raise CondaKeyError(key, "%r is not in the %r key of the config file" %
                                 (item, key))
         rc_config[key] = [i for i in rc_config[key] if i != item]
@@ -412,6 +415,7 @@ def execute_config(args, parser):
     # Remove Key
     for key, in args.remove_key:
         if key not in rc_config:
+            from ..exceptions import CondaKeyError
             raise CondaKeyError(key, "key %r is not in the config file" %
                                 key)
         del rc_config[key]
@@ -422,6 +426,7 @@ def execute_config(args, parser):
             rc.write(yaml_dump(rc_config))
 
     if context.json:
+        from .common import stdout_json_success
         stdout_json_success(
             rc_path=rc_path,
             warnings=json_warnings,

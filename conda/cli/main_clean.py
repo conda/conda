@@ -12,14 +12,9 @@ from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
 import sys
 
-from .common import confirm_yn, stdout_json
 from .conda_argparse import add_parser_json, add_parser_yes
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..exceptions import ArgumentError
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.link import CrossPlatformStLink
-from ..utils import human_bytes
 
 log = getLogger(__name__)
 
@@ -96,6 +91,10 @@ def find_tarballs():
 
 
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
+    from .common import confirm_yn
+    from ..gateways.disk.delete import rm_rf
+    from ..utils import human_bytes
+
     if verbose:
         for pkgs_dir in pkgs_dirs:
             print('Cache location: %s' % pkgs_dir)
@@ -147,6 +146,7 @@ def find_pkgs():
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     warnings = []
 
+    from ..gateways.disk.link import CrossPlatformStLink
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in context.pkgs_dirs:
@@ -192,8 +192,10 @@ def find_pkgs():
     return pkgs_dirs, warnings, totalsize, pkgsizes
 
 
-def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
-            verbose=True):
+def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
+    from .common import confirm_yn
+    from ..gateways.disk.delete import rm_rf
+    from ..utils import human_bytes
     if verbose:
         for pkgs_dir in pkgs_dirs:
             print('Cache location: %s' % pkgs_dir)
@@ -266,6 +268,10 @@ def find_source_cache():
 
 
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
+    from .common import confirm_yn
+    from ..gateways.disk.delete import rm_rf
+    from ..utils import human_bytes
+
     verbose = not context.json
     if warnings:
         if verbose:
@@ -291,6 +297,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
 
 
 def execute(args, parser):
+    from .common import stdout_json
     json_result = {
         'success': True
     }
@@ -332,6 +339,7 @@ def execute(args, parser):
 
     if not any((args.lock, args.tarballs, args.index_cache, args.packages,
                 args.source_cache, args.all)):
+        from ..exceptions import ArgumentError
         raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
                             "--source-cache, --all} required")
 
