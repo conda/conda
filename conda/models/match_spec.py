@@ -70,6 +70,7 @@ class MatchSpec(object):
         if isinstance(spec, string_types):
             spec, _, oparts = spec.partition('(')
             parts = spec.strip().split()
+            # parts = (spec,) if spec.endswith(CONDA_TARBALL_EXTENSION) else spec.split()
             assert 1 <= len(parts) <= 3, repr(spec)
             name, version, build = (parts + ['*', '*'])[:3]
             self._push(_specs_map,
