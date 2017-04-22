@@ -107,7 +107,7 @@ class Context(Configuration):
                                          element_type=string_types + (NoneType,))
     client_ssl_cert_key = PrimitiveParameter(None, aliases=('client_cert_key',),
                                              element_type=string_types + (NoneType,))
-    proxy_servers = MapParameter(string_types)
+    proxy_servers = MapParameter(string_types + (NoneType,))
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
     remote_max_retries = PrimitiveParameter(3)
