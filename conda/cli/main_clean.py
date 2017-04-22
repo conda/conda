@@ -12,7 +12,8 @@ from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
 import sys
 
-from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
+from .common import confirm_yn, stdout_json
+from .conda_argparse import add_parser_json, add_parser_yes
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..exceptions import ArgumentError

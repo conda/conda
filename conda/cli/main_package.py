@@ -12,21 +12,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import hashlib
 import json
 import os
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 import re
 import shutil
 import tarfile
 import tempfile
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
+from .conda_argparse import add_parser_prefix
 from .._vendor.auxlib.entity import EntityEncoder
-from ..core.linked_data import is_linked, linked, linked_data
-from ..exceptions import CondaVerificationError
-from .common import add_parser_prefix
 from ..base.context import context, get_prefix
 from ..common.compat import PY3, itervalues
+from ..core.linked_data import is_linked, linked, linked_data
+from ..exceptions import CondaVerificationError
 from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
-
 
 descr = "Low-level conda package utility. (EXPERIMENTAL)"
 

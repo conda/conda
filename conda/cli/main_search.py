@@ -6,10 +6,11 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .common import (add_parser_channels, add_parser_json, add_parser_known,
-                     add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
-                     add_parser_use_local, disp_features, arg2spec,
-                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
+from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
+                     ensure_use_local, stdout_json)
+from .conda_argparse import (add_parser_channels, add_parser_json, add_parser_known,
+                             add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
+                             add_parser_use_local)
 from ..api import get_index
 from ..base.context import context
 from ..common.compat import text_type

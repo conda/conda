@@ -6,6 +6,7 @@ import sys
 from conda import config
 from conda.cli import common
 from conda.cli import install as cli_install
+import conda.cli.conda_argparse
 from conda.misc import touch_nonadmin
 from ..installers.base import get_installer, InvalidInstaller
 from .. import specs as install_specs
@@ -65,7 +66,7 @@ def configure_parser(sub_parsers):
         default=None,
         nargs='?'
     )
-    common.add_parser_json(p)
+    conda.cli.conda_argparse.add_parser_json(p)
     p.set_defaults(func=execute)
 
 

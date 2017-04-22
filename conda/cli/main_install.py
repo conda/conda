@@ -6,7 +6,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .common import add_parser_install, add_parser_json
+from .conda_argparse import add_parser_install, add_parser_json
 from .install import install
 from ..common.compat import on_win
 from ..gateways.disk.delete import delete_trash

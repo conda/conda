@@ -1,10 +1,10 @@
-import textwrap
 from argparse import RawDescriptionHelpFormatter
-from conda.cli import common
+import textwrap
+
+from conda.cli.conda_argparse import add_parser_json
 from .. import exceptions
 from ..env import from_file
-from ..utils.uploader import is_installed, Uploader
-
+from ..utils.uploader import Uploader, is_installed
 
 description = """
 Upload an environment to anaconda.org
@@ -57,7 +57,7 @@ def configure_parser(sub_parsers):
         default=None,
         nargs='?'
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 

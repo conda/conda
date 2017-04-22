@@ -13,7 +13,8 @@ from os.path import join
 import sys
 from textwrap import wrap
 
-from .common import add_parser_json, stdout_json_success
+from .common import stdout_json_success
+from .conda_argparse import add_parser_json
 from .. import CondaError
 from .._vendor.auxlib.compat import isiterable
 from .._vendor.auxlib.entity import EntityEncoder

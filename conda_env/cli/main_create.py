@@ -5,7 +5,8 @@ import os
 import sys
 import textwrap
 
-from conda.cli import common, install as cli_install
+from conda.cli import install as cli_install
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
 
@@ -44,7 +45,7 @@ def configure_parser(sub_parsers):
     )
 
     # Add name and prefix args
-    common.add_parser_prefix(p)
+    add_parser_prefix(p)
 
     p.add_argument(
         '-q', '--quiet',
@@ -65,7 +66,7 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 

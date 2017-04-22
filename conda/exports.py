@@ -16,8 +16,8 @@ compat, plan = compat, plan
 from .api import get_index  # NOQA
 get_index = get_index
 
-from .cli.common import (add_parser_channels, add_parser_prefix, specs_from_args, spec_from_line,
-                         specs_from_url)  # NOQA
+from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
+from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA
 add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix
 specs_from_args, spec_from_line = specs_from_args, spec_from_line
 specs_from_url = specs_from_url
