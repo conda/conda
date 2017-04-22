@@ -175,6 +175,33 @@ class CreateInPrefixPathAction(PrefixPathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
+@with_metaclass(ABCMeta)
+class CreateLeasedPathAction(CreateInPrefixPathAction):
+    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+                 target_prefix, target_short_path):
+        super(CreateLeasedPathAction, self).__init__(transaction_context, package_info,
+                                                     source_prefix, source_short_path,
+                                                     target_prefix, target_short_path)
+        self.leased_path_entry = LeasedPathEntry(
+            _path=target_short_path,
+            target_path=self.source_full_path,
+            target_prefix=source_prefix,
+            leased_path=self.target_full_path,
+            package_name=package_info.index_json_record.name,
+            leased_path_type=self.leased_path_type,
+        )
+        self._execute_successful = False
+
+    def reverse(self):
+        if self._execute_successful:
+            log.trace("reversing leased path creation %s", self.target_full_path)
+            rm_rf(self.target_full_path)
+
+    @abstractproperty
+    def leased_path_type(self):
+        raise NotImplementedError()
+
+
 class LinkPathAction(CreateInPrefixPathAction):
     _verify_max_backoff_reached = False
 
@@ -241,17 +268,6 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_short_path = 'Scripts/conda.exe'
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = "Scripts/%s.exe" % command
-        return cls(transaction_context, package_info, source_directory,
-                   source_short_path, target_prefix, target_short_path,
-                   requested_link_type)
-
-    @classmethod
-    def create_application_entry_point_windows_exe_action(cls, transaction_context, package_info,
-                                                          target_prefix, requested_link_type,
-                                                          exe_path):
-        source_directory = context.conda_prefix
-        source_short_path = 'Scripts/conda.exe'
-        target_short_path = exe_path
         return cls(transaction_context, package_info, source_directory,
                    source_short_path, target_prefix, target_short_path,
                    requested_link_type)
@@ -504,7 +520,39 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
+class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       exe_path):
+        source_directory = context.conda_prefix
+        source_short_path = 'Scripts/conda.exe'
+        target_short_path = exe_path
+        return cls(transaction_context, package_info, source_directory,
+                   source_short_path, target_prefix, target_short_path,
+                   requested_link_type)
+
+    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+                 target_prefix, target_short_path):
+        super(CreateApplicationEntryPointWindowsExeAction, self).__init__(
+            transaction_context, package_info, source_prefix, source_short_path,
+            target_prefix, target_short_path, None,
+        )
+        self.leased_path_entry = LeasedPathEntry(
+            _path=target_short_path,
+            target_path=self.source_full_path,
+            target_prefix=source_prefix,
+            leased_path=self.target_full_path,
+            package_name=package_info.index_json_record.name,
+            leased_path_type=self.leased_path_type,
+        )
+
+    @property
+    def leased_path_type(self):
+        return LeasedPathType.application_entry_point_windows_exe
+
+
+class CreateApplicationEntryPointAction(CreateLeasedPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
@@ -527,7 +575,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                     yield cls(transaction_context, package_info, target_prefix, exe_path,
                               root_prefix, target_short_path)
 
-                    yield LinkPathAction.create_application_entry_point_windows_exe_action(
+                    yield CreateApplicationEntryPointWindowsExeAction.create_actions(
                         transaction_context, package_info, root_prefix,
                         LinkType.hardlink, exe_path[:-4] + ".exe"
                     )
@@ -542,21 +590,6 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                 )
         else:
             return ()
-
-    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path):
-        super(CreateApplicationEntryPointAction, self).__init__(transaction_context, package_info,
-                                                                source_prefix, source_short_path,
-                                                                target_prefix, target_short_path)
-        self.leased_path_entry = LeasedPathEntry(
-            _path=target_short_path,
-            target_path=self.source_full_path,
-            target_prefix=self.source_prefix,
-            leased_path=self.target_full_path,
-            package_name=package_info.index_json_record.name,
-            leased_path_type=LeasedPathType.application_entry_point,
-        )
-        self._execute_successful = False
 
     def execute(self):
         log.trace("creating application entry point %s => %s",
@@ -574,14 +607,12 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                                        conda_python_full_path)
         self._execute_successful = True
 
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing application entry point creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+    @property
+    def leased_path_type(self):
+        return LeasedPathType.application_entry_point
 
 
-class CreateApplicationSoftlinkAction(CreateInPrefixPathAction):
-    # I guess like ApplicationEntryPoint, but a fakeable softlink
+class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
@@ -620,15 +651,6 @@ class CreateApplicationSoftlinkAction(CreateInPrefixPathAction):
                                                               source_prefix, source_short_path,
                                                               target_prefix, target_short_path)
         self.fake_softlink = fake_softlink
-        self.leased_path_entry = LeasedPathEntry(
-            _path=target_short_path,
-            target_path=self.source_full_path,
-            target_prefix=self.source_prefix,
-            leased_path=self.target_full_path,
-            package_name=package_info.index_json_record.name,
-            leased_path_type=LeasedPathType.application_softlink,
-        )
-        self._execute_successful = False
 
     def execute(self):
         log.trace("creating application softlink %s => %s",
@@ -642,10 +664,9 @@ class CreateApplicationSoftlinkAction(CreateInPrefixPathAction):
 
         self._execute_successful = True
 
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing application softlink creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+    @property
+    def leased_path_type(self):
+        return LeasedPathType.application_softlink
 
 
 class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):

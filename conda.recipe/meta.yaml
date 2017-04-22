@@ -26,7 +26,7 @@ build:
   preferred_env_executable_paths:
     - bin/conda                 [unix]
     - Scripts/conda.exe         [win]
-  preferred_env_softlinked_paths:
+  preferred_env_softlink_paths:
     - bin/activate              [unix]
     - bin/deactivate            [unix]
     - Scripts/activate          [win]
@@ -59,7 +59,7 @@ test:
     # - py.test -m "not integration and not installed" $SRC_DIR/tests $SRC_DIR/conda
 
 about:
-  home: http://conda.pydata.org/
+  home: https://conda.io/
   license: BSD
   license_file: LICENSE.txt
   summary: OS-agnostic, system-level binary package and environment manager.

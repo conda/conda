@@ -102,6 +102,7 @@ class PathType(Enum):
 
 class LeasedPathType(Enum):
     application_entry_point = 'application_entry_point'
+    application_entry_point_windows_exe = 'application_entry_point_windows_exe'
     application_softlink = 'application_softlink'
 
     def __str__(self):
