@@ -19,6 +19,7 @@ import tarfile
 import tempfile
 
 from .conda_argparse import add_parser_prefix
+from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context, get_prefix
 from ..common.compat import PY3, itervalues
 
