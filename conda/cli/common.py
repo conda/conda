@@ -480,7 +480,7 @@ def arg2spec(arg, json=False, update=False):
         # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
         #   a space in the path
         _arg = spec_from_line(arg)
-        if _arg is None and _arg.endswith(CONDA_TARBALL_EXTENSION):
+        if _arg is None and arg.endswith(CONDA_TARBALL_EXTENSION):
             _arg = arg
         spec = MatchSpec(_arg, normalize=True)
     except:
