@@ -467,7 +467,6 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
                          channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
-    str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
 
