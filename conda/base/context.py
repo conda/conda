@@ -10,6 +10,7 @@ import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
                         PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -20,6 +21,7 @@ from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, stri
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
+from ..common.platform import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
 try:
@@ -493,6 +495,10 @@ class Context(Configuration):
         # backward compatibility for conda-build
         return self.anaconda_upload
 
+    @property
+    def user_agent(self):
+        return _get_user_agent(self.platform)
+
 
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda_'
@@ -730,6 +736,41 @@ def envs_dir_has_writable_pkg_cache(envs_dir):
 def locate_prefix_by_name(ctx, name):
     from ..core.envs_manager import EnvsDirectory
     return EnvsDirectory.locate_prefix_by_name(name, ctx.envs_dirs)
+
+
+@memoize
+def _get_user_agent(context_platform):
+    import platform
+    try:
+        from requests import __version__ as REQUESTS_VERSION
+    except ImportError:
+        REQUESTS_VERSION = "unknown"
+
+    _user_agent = ("conda/{conda_ver} "
+                   "requests/{requests_ver} "
+                   "{python}/{py_ver} "
+                   "{system}/{kernel} {dist}/{ver}")
+
+    libc_family, libc_ver = linux_get_libc_version()
+    if context_platform == 'linux':
+        distinfo = platform.linux_distribution()
+        dist, ver = distinfo[0], distinfo[1]
+    elif context_platform == 'osx':
+        dist = 'OSX'
+        ver = platform.mac_ver()[0]
+    else:
+        dist = platform.system()
+        ver = platform.version()
+
+    user_agent = _user_agent.format(conda_ver=CONDA_VERSION,
+                                    requests_ver=REQUESTS_VERSION,
+                                    python=platform.python_implementation(),
+                                    py_ver=platform.python_version(),
+                                    system=platform.system(), kernel=platform.release(),
+                                    dist=dist, ver=ver)
+    if libc_ver:
+        user_agent += " {}/{}".format(libc_family, libc_ver)
+    return user_agent
 
 
 try:

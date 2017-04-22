@@ -1,63 +1,28 @@
-# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-import platform
 
-from requests import Session, __version__ as REQUESTS_VERSION
+from requests import Session
 from requests.adapters import BaseAdapter, HTTPAdapter
 from requests.auth import AuthBase, _basic_auth_str
 from requests.cookies import extract_cookies_to_jar
 from requests.utils import get_auth_from_url, get_netrc_auth
 
-from conda import __version__ as VERSION
-from conda._vendor.auxlib.ish import dals
-from conda.base.constants import CONDA_HOMEPAGE_URL
-from conda.base.context import context
-from conda.common.compat import iteritems
-from conda.common.platform import linux_get_libc_version
-from conda.common.url import (add_username_and_password, get_proxy_username_and_pass,
-                              split_anaconda_token, urlparse)
-from conda.exceptions import ProxyError
-from conda.gateways.adapters.ftp import FTPAdapter
-from conda.gateways.adapters.localfs import LocalFSAdapter
-from conda.gateways.adapters.s3 import S3Adapter
-from conda.gateways.anaconda_client import read_binstar_tokens
-
-RETRIES = 3
+from .adapters.ftp import FTPAdapter
+from .adapters.localfs import LocalFSAdapter
+from .adapters.s3 import S3Adapter
+from .anaconda_client import read_binstar_tokens
+from .._vendor.auxlib.ish import dals
+from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.context import context
+from ..common.compat import iteritems
+from ..common.url import (add_username_and_password, get_proxy_username_and_pass,
+                          split_anaconda_token, urlparse)
+from ..exceptions import ProxyError
 
 log = getLogger(__name__)
-
-# Collect relevant info from OS for reporting purposes (present in User-Agent)
-_user_agent = ("conda/{conda_ver} "
-               "requests/{requests_ver} "
-               "{python}/{py_ver} "
-               "{system}/{kernel} {dist}/{ver}")
-
-libc_family, libc_ver = linux_get_libc_version()
-if context.platform == 'linux':
-    distinfo = platform.linux_distribution()
-    dist, ver = distinfo[0], distinfo[1]
-elif context.platform == 'osx':
-    dist = 'OSX'
-    ver = platform.mac_ver()[0]
-else:
-    dist = platform.system()
-    ver = platform.version()
-
-user_agent = _user_agent.format(conda_ver=VERSION,
-                                requests_ver=REQUESTS_VERSION,
-                                python=platform.python_implementation(),
-                                py_ver=platform.python_version(),
-                                system=platform.system(), kernel=platform.release(),
-                                dist=dist, ver=ver)
-if libc_ver:
-    user_agent += " {}/{}".format(libc_family, libc_ver)
+RETRIES = 3
 
 
 class EnforceUnusedAdapter(BaseAdapter):
@@ -101,7 +66,7 @@ class CondaSession(Session):
 
         self.mount("file://", LocalFSAdapter())
 
-        self.headers['User-Agent'] = user_agent
+        self.headers['User-Agent'] = context.user_agent
 
         self.verify = context.ssl_verify
 
@@ -142,7 +107,7 @@ class CondaHttpAuth(AuthBase):
             for binstar_url, token in iteritems(read_binstar_tokens()):
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
-                    from .models.channel import Channel
+                    from ..models.channel import Channel
                     channel = Channel(clean_url)
                     channel.token = token
                     return channel.url(with_credentials=True)
