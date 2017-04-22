@@ -467,7 +467,6 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
                          channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
-    str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
 
@@ -483,11 +482,11 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
     # Replace SpecsForPrefix specs with specs that were passed in in order to retain
     #   version information
-    required_solves = match_to_original_specs(str_specs, grouped_specs)
+    required_solves = match_to_original_specs(specs, grouped_specs)
 
-    actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+    actions = [get_actions_for_dists(specs_by_prefix, only_names, index, force,
                                      always_copy, prune, update_deps, pinned)
-               for dists_by_prefix in required_solves]
+               for specs_by_prefix in required_solves]
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
@@ -601,8 +600,8 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
     return prefix_with_dists_no_deps_has_resolve
 
 
-def match_to_original_specs(str_specs, specs_for_prefix):
-    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+def match_to_original_specs(specs, specs_for_prefix):
+    matches_any_spec = lambda dst: next(spc for spc in specs if spc.name == dst)
     matched_specs_for_prefix = []
     for prefix_with_dists in specs_for_prefix:
         linked = linked_data(prefix_with_dists.prefix)
@@ -618,13 +617,12 @@ def match_to_original_specs(str_specs, specs_for_prefix):
     return matched_specs_for_prefix
 
 
-def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+def get_actions_for_dists(specs_by_prefix, only_names, index, force, always_copy, prune,
                           update_deps, pinned):
     root_only = ('conda', 'conda-env')
-    prefix = dists_for_prefix.prefix
-    dists = dists_for_prefix.specs
-    r = dists_for_prefix.r
-    specs = [MatchSpec(dist) for dist in dists]
+    prefix = specs_by_prefix.prefix
+    r = specs_by_prefix.r
+    specs = [MatchSpec(s) for s in specs_by_prefix.specs]
     specs = augment_specs(prefix, specs, pinned)
 
     linked = linked_data(prefix)
