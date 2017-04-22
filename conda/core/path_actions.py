@@ -172,7 +172,7 @@ class CreateInPrefixPathAction(PrefixPathAction):
 
 
 class LinkPathAction(CreateInPrefixPathAction):
-    _verify_max_backoff_reached = False
+    _verify_max_backoff_reached_count = 0
 
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
@@ -269,7 +269,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
             # with max_retries = 2, max total time ~= 0.4 sec
             # with max_retries = 6, max total time ~= 6.5 sec
-            max_retries = 2 if LinkPathAction._verify_max_backoff_reached else 6
+            max_retries = 2 if LinkPathAction._verify_max_backoff_reached_count > 2 else 6
             for n in range(max_retries):
                 sleep_time = ((2 ** n) + random()) * 0.1
                 log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)
@@ -278,7 +278,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                     break
             else:
                 # only run the 6.5 second backoff time once
-                LinkPathAction._verify_max_backoff_reached = True
+                LinkPathAction._verify_max_backoff_reached_count += 1
                 return CondaVerificationError(dals("""
                 The package for %s located at %s
                 appears to be corrupted. The path '%s'
