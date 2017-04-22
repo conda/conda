@@ -1,14 +1,13 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import errno
 import os
+from os.path import abspath, isdir
 import re
 import sys
-from os.path import isdir, abspath
 
-from ..common.compat import text_type, on_win
-from ..exceptions import (CondaSystemExit, ArgumentError, CondaValueError, CondaEnvironmentError,
-                          TooManyArgumentsError, TooFewArgumentsError)
+from ..common.compat import on_win
+from ..exceptions import (ArgumentError, CondaSystemExit, CondaValueError, TooFewArgumentsError,
+                          TooManyArgumentsError)
 
 
 def help(command, shell):
@@ -155,12 +154,12 @@ def main():
             sys.exit(0)
             # raise CondaSystemExit
 
-        # this should throw an error and exit if the env or path can't be found.
-        try:
-            prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
-        except ValueError as e:
-            raise CondaValueError(text_type(e))
-
+        # # this should throw an error and exit if the env or path can't be found.
+        # try:
+        #     prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
+        # except ValueError as e:
+        #     raise CondaValueError(text_type(e))
+        #
         # # Make sure an env always has the conda symlink
         # try:
         #     from conda.base.context import context

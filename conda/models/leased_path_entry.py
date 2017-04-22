@@ -26,6 +26,3 @@ class LeasedPathEntry(Entity):
     leased_path = StringField()
     package_name = StringField()
     leased_path_type = EnumField(LeasedPathType)
-
-
-

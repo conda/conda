@@ -14,7 +14,6 @@ from .core.link import UnlinkLinkTransaction
 from .core.package_cache import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError, CondaIOError
 from .gateways.disk.link import islink
-from .install import symlink_conda
 from .models.dist import Dist
 
 log = getLogger(__name__)

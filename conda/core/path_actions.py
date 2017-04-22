@@ -618,9 +618,9 @@ class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
         preferred_env = package_info.repodata_record.preferred_env
         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
             softlink_paths = (package_info.package_metadata
-                                and package_info.package_metadata.preferred_env
-                                and package_info.package_metadata.preferred_env.softlink_paths
-                                or ())
+                              and package_info.package_metadata.preferred_env
+                              and package_info.package_metadata.preferred_env.softlink_paths
+                              or ())
 
             # target_prefix for the instantiated path action is the root prefix, not the same
             #   as target_prefix for the larger transaction
