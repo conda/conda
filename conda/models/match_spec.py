@@ -125,6 +125,9 @@ class MatchSpec(object):
                         raise CondaValueError("Invalid MatchSpec: %s" % spec)
                     elif field == 'optional':
                         kwargs.setdefault('optional', bool(value) if eq else True)
+                        if bool(_exact_field('name')) + bool(_exact_field('track_features')) != 1:
+                            raise CondaValueError("Optional MatchSpec must be tied"
+                                " to a name or track_feature (and not both): %s" % spec)
                     elif field == 'target':
                         kwargs.setdefault('target', value)
                     else:

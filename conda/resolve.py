@@ -441,10 +441,12 @@ class Resolve(object):
         if m is not None:
             return name
         simple = ms.is_single()
-        if ms.exact_field('name'):
-            tgroup = libs = self.groups.get(ms.name, [])
-        elif ms.exact_field('track_features'):
-            tgroup = libs = self.trackers.get(ms.exact_field('track_features'), [])
+        nm = ms.exact_field('name')
+        tf = ms.exact_field('track_features')
+        if nm:
+            tgroup = libs = self.groups.get(nm, [])
+        elif tf:
+            tgroup = libs = self.trackers.get(tf, [])
         else:
             tgroup = libs = self.index.keys()
             simple = False
@@ -453,13 +455,15 @@ class Resolve(object):
         if len(libs) == len(tgroup):
             if ms.optional:
                 m = True
-            elif not simple and ms.exact_field('name'):
-                m = C.from_name(self.push_MatchSpec(C, ms.name))
+            elif not simple:
+                ms2 = MatchSpec(track_features=tf) if tf else nm
+                m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
-            libs = [dist.full_name for dist in libs]
+            dists = [dist.full_name for dist in libs]
             if ms.optional:
-                libs.append('!@s@'+ms.name)
-            m = C.Any(libs)
+                ms2 = MatchSpec(track_features=tf) if tf else nm
+                dists.append('!' + self.ms_to_v(ms2))
+            m = C.Any(dists)
         C.name_var(m, name)
         return name
 
@@ -693,22 +697,14 @@ class Resolve(object):
         # like "python 2.7*", which are *not* asking for python to be removed.
         # We need to separate these two kinds of specs here.
         for s in map(MatchSpec, specs):
-            if s.is_simple():
-                snames.add(s.name)
-            elif s.is_single() and s.exact_field('track_features'):
-                # The best we can do here, currently, is to specify that any
-                # package containing a track_feature field should be removed.
-                # This works great with feature metapackages. It will fail if
-                # a package has versions with track_features and without. To
-                # the best of my knowledge nobody does this yet.
-                snames.update(self.package_name(d) for d in installed
-                              if self.match(s, d))
+            # Since '@' is an illegal version number, this ensures that all of
+            # these matches will never match an actual package. Combined with
+            # optional=True, this has the effect of forcing their removal.
+            if s.is_single():
+                nspecs.append(MatchSpec(s, version='@', optional=True))
             else:
                 nspecs.append(MatchSpec(s, optional=True))
-        # Since '@' is an illegal version number, this ensures that all of
-        # these matches will never match an actual package. Combined with
-        # optional=True, this has the effect of forcing their removal.
-        nspecs.extend(MatchSpec(name=s, version='@', optional=True) for s in snames)
+        snames = set(s.name for s in nspecs if s.name)
         limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
         for dist in installed:
