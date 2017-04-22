@@ -4,6 +4,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from os.path import join
 from tempfile import gettempdir
 
+from conda.base.constants import UNKNOWN_CHANNEL
+
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.common.url import join_url, path_to_url
@@ -20,7 +22,7 @@ class DistTests(TestCase):
 
     def test_dist(self):
         d = Dist.from_string("spyder-app-2.3.8-py27_0.tar.bz2")
-        assert d.channel == 'defaults'
+        assert d.channel == UNKNOWN_CHANNEL
         assert d.quad[0] == "spyder-app"
         assert d.quad[1] == "2.3.8"
         assert d.quad[2] == "py27_0"

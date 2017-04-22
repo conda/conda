@@ -290,8 +290,8 @@ The following packages will be downloaded:
 
     package                    |            build
     ---------------------------|-----------------
-    sympy-0.7.2                |           py27_0         4.2 MB  defaults
-    numpy-1.7.1                |           py27_0         5.7 MB  defaults
+    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>
+    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>
     ------------------------------------------------------------
                                            Total:         9.9 MB
 
