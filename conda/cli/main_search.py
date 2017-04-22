@@ -11,12 +11,8 @@ from .common import (arg2spec, disp_features, ensure_override_channels_requires_
 from .conda_argparse import (add_parser_channels, add_parser_json, add_parser_known,
                              add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
                              add_parser_use_local)
-from ..api import get_index
 from ..base.context import context
 from ..common.compat import text_type
-from ..exceptions import CommandArgumentError, PackageNotFoundError
-from ..misc import make_icon_url
-from ..resolve import MatchSpec, NoPackagesFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -110,16 +106,24 @@ package.""",
     add_parser_use_local(p)
     p.set_defaults(func=execute)
 
+
 def execute(args, parser):
+    from ..exceptions import NoPackagesFoundError, PackageNotFoundError
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
         error_message = text_type(e)
         raise PackageNotFoundError(error_message)
 
+
 def execute_search(args, parser):
     import re
     from ..resolve import Resolve
+    from ..api import get_index
+    from ..misc import make_icon_url
+    from ..models.match_spec import MatchSpec
+    from ..core.linked_data import linked as linked_data
+    from ..core.package_cache import PackageCache
 
     if args.reverse_dependency:
         if not args.regex:
@@ -139,15 +143,13 @@ def execute_search(args, parser):
             try:
                 pat = re.compile(regex, re.I)
             except re.error as e:
+                from ..exceptions import CommandArgumentError
                 raise CommandArgumentError("Failed to compile regex pattern for "
                                            "search: %(regex)s\n"
                                            "regex error: %(regex_error)s",
                                            regex=regex, regex_error=repr(e))
 
     prefix = context.prefix_w_legacy_search
-
-    from ..core.linked_data import linked as linked_data
-    from ..core.package_cache import PackageCache
 
     linked = linked_data(prefix)
     extracted = set(pc_entry.dist.name for pc_entry in PackageCache.get_all_extracted_entries())
