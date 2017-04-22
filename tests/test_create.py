@@ -566,7 +566,6 @@ class IntegrationTests(TestCase):
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
             assert package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "itsdangerous-0.23")
-            assert package_is_installed(prefix, "openssl")
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):
