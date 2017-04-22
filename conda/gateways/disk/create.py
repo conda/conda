@@ -1,32 +1,34 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EEXIST
+from errno import EACCES, EEXIST, EPERM
 from io import open
 import json
 from logging import getLogger
 import os
-from os import makedirs
-from os.path import basename, isdir, isfile, islink, join, lexists
-from shlex import split as shlex_split
+from os import X_OK, access, makedirs
+from os.path import basename, isdir, isfile, join, lexists
 import shutil
-from subprocess import PIPE, Popen
 import sys
 import tarfile
 import traceback
 
 from .delete import rm_rf
+from .link import islink, link, readlink, symlink
 from .permissions import make_executable
 from .read import get_json_content
+from .update import touch
+from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.context import context
-from ...common.compat import on_win
+from ...common.compat import ensure_binary, on_win
 from ...common.path import win_path_ok
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
-from ...models.enums import LinkType
+from ...models.enums import LinkType, FileMode
+from ...core.portability import replace_long_shebang
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
@@ -49,6 +51,14 @@ if __name__ == '__main__':
 """)
 
 
+def write_as_json_to_file(file_path, obj):
+    log.trace("writing json to file %s", file_path)
+    with open(file_path, str('wb')) as fo:
+        json_str = json.dumps(obj, indent=2, sort_keys=True, separators=(',', ': '),
+                              cls=EntityEncoder)
+        fo.write(ensure_binary(json_str))
+
+
 def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
     if lexists(target_full_path):
         maybe_raise(BasicClobberError(
@@ -58,8 +68,14 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
         ), context)
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
-    with open(target_full_path, 'w') as fo:
-        fo.write('#!%s\n' % python_full_path)
+    with open(target_full_path, str('w')) as fo:
+        shebang = '#!%s\n' % python_full_path
+        if hasattr(shebang, 'encode'):
+            shebang = shebang.encode()
+        shebang = replace_long_shebang(FileMode.text, shebang)
+        if hasattr(shebang, 'decode'):
+            shebang = shebang.decode()
+        fo.write(shebang)
         fo.write(pyscript)
     make_executable(target_full_path)
 
@@ -75,7 +91,7 @@ def create_windows_python_entry_point(target_full_path, module, func):
         ), context)
 
     pyscript = python_entry_point_template % {'module': module, 'func': func}
-    with open(target_full_path, 'w') as fo:
+    with open(target_full_path, str('w')) as fo:
         fo.write(pyscript)
 
     return target_full_path
@@ -113,11 +129,7 @@ def write_linked_package_record(prefix, record):
             target_path=conda_meta_full_path,
             context=context,
         ), context)
-    with open(conda_meta_full_path, 'w') as fo:
-        json_str = json.dumps(record, indent=2, sort_keys=True, cls=EntityEncoder)
-        if hasattr(json_str, 'decode'):
-            json_str = json_str.decode('utf-8')
-        fo.write(json_str)
+    write_as_json_to_file(conda_meta_full_path, record)
 
 
 def make_menu(prefix, file_path, remove=False):
@@ -133,8 +145,8 @@ def make_menu(prefix, file_path, remove=False):
         log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
-    import menuinst
     try:
+        import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except:
         stdoutlog.error("menuinst Exception:")
@@ -153,35 +165,6 @@ def mkdir_p(path):
             raise
 
 
-if on_win:
-    import ctypes
-    from ctypes import wintypes
-
-    CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
-    CreateHardLink.restype = wintypes.BOOL
-    CreateHardLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                               wintypes.LPVOID]
-    try:
-        CreateSymbolicLink = ctypes.windll.kernel32.CreateSymbolicLinkW
-        CreateSymbolicLink.restype = wintypes.BOOL
-        CreateSymbolicLink.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR,
-                                       wintypes.DWORD]
-    except AttributeError:
-        CreateSymbolicLink = None
-
-    def win_hard_link(src, dst):
-        "Equivalent to os.link, using the win32 CreateHardLink call."
-        if not CreateHardLink(dst, src, None):
-            raise CondaOSError('win32 hard link failed')
-
-    def win_soft_link(src, dst):
-        "Equivalent to os.symlink, using the win32 CreateSymbolicLink call."
-        if CreateSymbolicLink is None:
-            raise CondaOSError('win32 soft link not supported')
-        if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise CondaOSError('win32 soft link failed')
-
-
 def create_hard_link_or_copy(src, dst):
     if islink(src):
         message = dals("""
@@ -196,19 +179,50 @@ def create_hard_link_or_copy(src, dst):
 
     try:
         log.trace("creating hard link %s => %s", src, dst)
-        if on_win:
-            win_hard_link(src, dst)
-        else:
-            os.link(src, dst)
+        link(src, dst)
     except (IOError, OSError):
         log.info('hard link failed, so copying %s => %s', src, dst)
         shutil.copy2(src, dst)
+
+
+def _is_unix_executable_using_ORIGIN(path):
+    if on_win:
+        return False
+    else:
+        return isfile(path) and not islink(path) and access(path, X_OK)
+
+
+def _do_softlink(src, dst):
+    if _is_unix_executable_using_ORIGIN(src):
+        # for extra details, see https://github.com/conda/conda/pull/4625#issuecomment-280696371
+        # We only need to do this copy for executables which have an RPATH containing $ORIGIN
+        #   on Linux, so `is_executable()` is currently overly aggressive.
+        # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
+        _do_copy(src, dst)
+    else:
+        symlink(src, dst)
+
+
+def _do_copy(src, dst):
+    # on unix, make sure relative symlinks stay symlinks
+    if not on_win and islink(src):
+        src_points_to = readlink(src)
+        if not src_points_to.startswith('/'):
+            # copy relative symlinks as symlinks
+            symlink(src_points_to, dst)
+            return
+    shutil.copy2(src, dst)
 
 
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.directory:
         # A directory is technically not a link.  So link_type is a misnomer.
         #   Naming is hard.
+        if lexists(dst) and not isdir(dst):
+            if not force:
+                maybe_raise(BasicClobberError(src, dst, context), context)
+            log.info("file exists, but clobbering for directory: %r" % dst)
+            rm_rf(dst)
         mkdir_p(dst)
         return
 
@@ -224,56 +238,39 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.hardlink:
         if isdir(src):
             raise CondaError("Cannot hard link a directory. %s" % src)
-        if on_win:
-            win_hard_link(src, dst)
-        else:
-            os.link(src, dst)
+        try:
+            link(src, dst)
+        except (IOError, OSError) as e:
+            log.debug("hard-link failed. falling back to copy\n"
+                      "  error: %r\n"
+                      "  src: %s\n"
+                      "  dst: %s", e, src, dst)
+            _do_copy(src, dst)
     elif link_type == LinkType.softlink:
-        if on_win:
-            win_soft_link(src, dst)
-        else:
-            os.symlink(src, dst)
+        _do_softlink(src, dst)
     elif link_type == LinkType.copy:
-        # copy relative symlinks as symlinks
-        if not on_win and islink(src) and not os.readlink(src).startswith('/'):
-            os.symlink(os.readlink(src), dst)
-        else:
-            shutil.copy2(src, dst)
+        _do_copy(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
-
-
-def _split_on_unix(command):
-    # I guess windows doesn't like shlex.split
-    return command if on_win else shlex_split(command)
 
 
 def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     if lexists(pyc_full_path):
         maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
+    command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
     log.trace(command)
-    process = Popen(_split_on_unix(command), stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
-
-    rc = process.returncode
-    if rc != 0:
-        log.error("$ %s\n"
-                  "  stdout: %s\n"
-                  "  stderr: %s\n"
-                  "  rc: %d", command, stdout, stderr, rc)
-        raise RuntimeError()
+    subprocess_call(command, raise_on_error=False)
 
     if not isfile(pyc_full_path):
         message = dals("""
         pyc file failed to compile successfully
-          python_exe_full_path: %(python_exe_full_path)s\n
-          py_full_path: %(py_full_path)s\n
-          pyc_full_path: %(pyc_full_path)s\n
+          python_exe_full_path: %()s\n
+          py_full_path: %()s\n
+          pyc_full_path: %()s\n
         """)
-        raise CondaError(message, python_exe_full_path=python_exe_full_path,
-                         py_full_path=py_full_path, pyc_full_path=pyc_full_path)
+        log.info(message, python_exe_full_path, py_full_path, pyc_full_path)
+        return None
 
     return pyc_full_path
 
@@ -287,8 +284,7 @@ def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
 
     private_envs_json = get_json_content(context.private_envs_json_path)
     private_envs_json[pkg] = private_env_prefix
-    with open(context.private_envs_json_path, "w") as f:
-        json.dump(private_envs_json, f)
+    write_as_json_to_file(context.private_envs_json_path, private_envs_json)
 
 
 def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
@@ -300,7 +296,23 @@ def create_private_pkg_entry_point(source_full_path, target_full_path, python_fu
         ), context)
 
     entry_point = application_entry_point_template % {"source_full_path": source_full_path}
-    with open(target_full_path, "w") as fo:
+    with open(target_full_path, str("w")) as fo:
         fo.write('#!%s\n' % python_full_path)
         fo.write(entry_point)
     make_executable(target_full_path)
+
+
+def create_package_cache_directory(pkgs_dir):
+    # returns False if package cache directory cannot be created
+    try:
+        log.trace("creating package cache directory '%s'", pkgs_dir)
+        mkdir_p(pkgs_dir)
+        touch(join(pkgs_dir, 'urls'))
+        touch(join(pkgs_dir, 'urls.txt'))
+    except (IOError, OSError) as e:
+        if e.errno in (EACCES, EPERM):
+            log.trace("Cannot create package cache directory '%s'", pkgs_dir)
+            return False
+        else:
+            raise
+    return True

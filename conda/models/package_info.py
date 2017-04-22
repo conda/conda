@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .channel import Channel
-from .enums import FileMode, PathType
+from .enums import FileMode, NoarchType, PathType
 from .index_record import IndexRecord
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
                                      ImmutableEntity, IntegerField, ListField, StringField)
@@ -13,21 +13,26 @@ from ..common.compat import string_types
 log = getLogger(__name__)
 
 
+class NoarchField(EnumField):
+    def box(self, instance, val):
+        return super(NoarchField, self).box(instance, NoarchType.coerce(val))
+
+
 class Noarch(Entity):
-    type = StringField()
-    entry_points = ListField(string_types, required=False)
+    type = NoarchField(NoarchType)
+    entry_points = ListField(string_types, required=False, nullable=True)
 
 
 class PreferredEnv(Entity):
     name = StringField()
-    executable_paths = ListField(string_types, required=False)
+    executable_paths = ListField(string_types, required=False, nullable=True)
 
 
 class PackageMetadata(Entity):
     # from info/package_metadata.json
     package_metadata_version = IntegerField()
-    noarch = ComposableField(Noarch, required=False)
-    preferred_env = ComposableField(PreferredEnv, required=False)
+    noarch = ComposableField(Noarch, required=False, nullable=True)
+    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True)
 
 
 class PathData(Entity):
@@ -44,8 +49,9 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    sha256 = StringField()
-    size_in_bytes = IntegerField()
+    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    sha256 = StringField(required=False, nullable=True)
+    size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(string_types, required=False, nullable=True)
 
 

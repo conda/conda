@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from conda.base.context import reset_context
+from conda.common.io import env_var
+
 from conda.exports import text_type
 from contextlib import contextmanager
 from logging import getLogger, Handler
@@ -12,6 +15,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 import mock
+import pytest
 
 from conda.cli import conda_argparse
 from conda.install import on_win
@@ -65,8 +69,7 @@ def run_command(command, envs_dir, env_name, *arguments):
     command_line = "{0} -n {1} -f {2}".format(command, env_name, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
-    with mock.patch('conda_env.cli.common.envs_dirs', new=(envs_dir,)):
-        args.func(args, p)
+    args.func(args, p)
 
 
 @contextmanager
@@ -93,6 +96,7 @@ def assert_package_is_installed(prefix, package, exact=False):
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
+@pytest.mark.integration
 class IntegrationTests(TestCase):
 
     def setUp(self):
@@ -103,14 +107,15 @@ class IntegrationTests(TestCase):
 
     def test_create_update(self):
         with make_temp_envs_dir() as envs_dir:
-            env_name = str(uuid4())[:8]
-            prefix = join(envs_dir, env_name)
-            python_path = join(prefix, PYTHON_BINARY)
+            with env_var('CONDA_ENVS_DIRS', envs_dir, reset_context):
+                env_name = str(uuid4())[:8]
+                prefix = join(envs_dir, env_name)
+                python_path = join(prefix, PYTHON_BINARY)
 
-            run_command(Commands.CREATE, envs_dir, env_name, utils.support_file('example/environment_pinned.yml'))
-            assert exists(python_path)
-            assert_package_is_installed(prefix, 'flask-0.9')
+                run_command(Commands.CREATE, envs_dir, env_name, utils.support_file('example/environment_pinned.yml'))
+                assert exists(python_path)
+                assert_package_is_installed(prefix, 'flask-0.9')
 
-            run_command(Commands.UPDATE, envs_dir, env_name, utils.support_file('example/environment_pinned_updated.yml'))
-            assert_package_is_installed(prefix, 'flask-0.10.1')
-            assert not package_is_installed(prefix, 'flask-0.9')
+                run_command(Commands.UPDATE, envs_dir, env_name, utils.support_file('example/environment_pinned_updated.yml'))
+                assert_package_is_installed(prefix, 'flask-0.10.1')
+                assert not package_is_installed(prefix, 'flask-0.9')

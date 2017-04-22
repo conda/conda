@@ -11,10 +11,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict, namedtuple
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir, join
+from os.path import abspath, basename, exists, join
 import sys
 
-from . import CondaError, instructions as inst
+from . import instructions as inst
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
@@ -23,12 +23,11 @@ from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
 from .common.compat import odict, on_win
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
-from .core.index import supplement_index_with_prefix
+from .core.index import _supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
-from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
+from .exceptions import (ArgumentError, CondaIndexError,
                          InstallError, RemoveError)
-from .gateways.disk.create import mkdir_p
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -231,7 +230,7 @@ def display_actions(actions, index, show_channel_urls=None):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if channeled:
-        print("\nThe following packages will be SUPERCEDED by a higher-priority channel:\n")
+        print("\nThe following packages will be SUPERSEDED by a higher-priority channel:\n")
         for pkg in sorted(channeled):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
@@ -259,24 +258,6 @@ def add_unlink(actions, dist):
     if UNLINK not in actions:
         actions[UNLINK] = []
     actions[UNLINK].append(dist)
-
-
-def add_checks(actions):
-    """
-    Adds appropriate checks to a given dict of actions. For example, if arg 'actions'
-    has a LINK action, add a CHECK_LINK, which will check if permissions are
-    suitable for linking.
-
-    Args:
-        actions: a defaultdict(list) of actions that are to be performed, e.g. FETCH
-
-    Returns:
-        the actions dict with the appropriate checks added
-    """
-    if FETCH in actions:
-        actions.setdefault(CHECK_FETCH, [True])
-    if EXTRACT in actions:
-        actions.setdefault(CHECK_EXTRACT, [True])
 
 
 def handle_menuinst(unlink_dists, link_dists):
@@ -316,16 +297,6 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
 
-        # make sure prefix directory exists
-        if link_dists:
-            if not isdir(prefix):
-                try:
-                    mkdir_p(prefix)
-                except (IOError, OSError) as e:
-                    log.debug(repr(e))
-                    raise CondaError("Unable to create prefix directory '%s'.\n"
-                                     "Check that you have sufficient permissions." % prefix)
-
         # TODO: ideally we'd move these two lines before both the y/n confirmation and the --dry-run exit  # NOQA
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
@@ -333,8 +304,6 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix):
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, (unlink_dists, link_dists)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
 
-        # plan = [p for p in plan if p[0] not in (UNLINK, LINK)]  # filter out unlink/link
-        # don't filter LINK and UNLINK, just don't do anything with them
     return plan
 
 
@@ -392,19 +361,18 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
 
 
 def is_root_prefix(prefix):
-    return abspath(prefix) == abspath(context.root_dir)
+    return abspath(prefix) == abspath(context.root_prefix)
 
 
-def add_defaults_to_specs(r, linked, specs, update=False):
-    # TODO: This should use the pinning mechanism. But don't change the API:
-    # cas uses it.
-    if r.explicit(specs):
+def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
+    # TODO: This should use the pinning mechanism. But don't change the API because cas uses it
+    if r.explicit(specs) or is_private_env(prefix):
         return
     log.debug('H0 specs=%r' % specs)
     names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
 
-    for name, def_ver in [('python', context.default_python),
+    for name, def_ver in [('python', context.default_python or None),
                           # Default version required, but only used for Python
                           ('lua', None)]:
         if any(s.name == name and not s.is_simple() for s in mspecs):
@@ -439,7 +407,7 @@ def add_defaults_to_specs(r, linked, specs, update=False):
             specs.append(spec)
             continue
 
-        if name == 'python' and def_ver.startswith('3.'):
+        if name == 'python' and def_ver and def_ver.startswith('3.'):
             # Don't include Python 3 in the specs if this is the Python 3
             # version of conda.
             continue
@@ -450,11 +418,22 @@ def add_defaults_to_specs(r, linked, specs, update=False):
 
 
 def get_pinned_specs(prefix):
+    """Find pinned specs from file and return a tuple of MatchSpec."""
     pinfile = join(prefix, 'conda-meta', 'pinned')
-    if not exists(pinfile):
-        return []
-    with open(pinfile) as f:
-        return [i for i in f.read().strip().splitlines() if i and not i.strip().startswith('#')]
+    if exists(pinfile):
+        with open(pinfile) as f:
+            from_file = (i for i in f.read().strip().splitlines()
+                         if i and not i.strip().startswith('#'))
+    else:
+        from_file = ()
+
+    from .cli.common import spec_from_line
+
+    def munge_spec(s):
+        return s if ' ' in s else spec_from_line(s)
+
+    return tuple(MatchSpec(munge_spec(s), optional=True) for s in
+                 concatv(context.pinned_packages, from_file))
 
 
 # Has one spec (string) for each env
@@ -465,20 +444,15 @@ SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False):
+                    channel_priority_map=None, is_update=False):  # pragma: no cover
+    """
+    This function ignores preferred_env.  It's currently used extensively by conda-build, but
+    it is no longer used within the conda code.  Instead, we now use `install_actions_list()`.
+    """
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
-    str_specs = specs
-    specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
-
-    linked_in_root = linked_data(context.root_prefix)
-
-    # Ensure that there is only one prefix to install into
-    dists_for_envs = determine_all_envs(r, specs)
-    ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
-    preferred_envs = set(d.env for d in dists_for_envs)
-    assert len(preferred_envs) == 1
+    str_specs = specs
 
     specs_for_prefix = SpecsForPrefix(
         prefix=prefix, specs=tuple(str_specs), r=r
@@ -493,7 +467,6 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
                          channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
-    str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
 
@@ -509,11 +482,11 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
     # Replace SpecsForPrefix specs with specs that were passed in in order to retain
     #   version information
-    required_solves = match_to_original_specs(str_specs, grouped_specs)
+    required_solves = match_to_original_specs(specs, grouped_specs)
 
-    actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+    actions = [get_actions_for_dists(specs_by_prefix, only_names, index, force,
                                      always_copy, prune, update_deps, pinned)
-               for dists_by_prefix in required_solves]
+               for specs_by_prefix in required_solves]
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
@@ -540,7 +513,7 @@ def add_unlink_options_for_update(actions, required_solves, index):
                     else:
                         actions.append(remove_actions(context.root_prefix, matched_in_root, index))
         # If the solved prefix is root
-        elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
+        elif preferred_env_matches_prefix(None, solved.prefix, context.root_prefix):
             for spec in solved.specs:
                 spec_in_private_env = prefix_if_in_private_env(spec)
                 if spec_in_private_env:
@@ -555,7 +528,7 @@ def add_unlink_options_for_update(actions, required_solves, index):
 
 def get_resolve_object(index, prefix):
     # instantiate resolve object
-    supplement_index_with_prefix(index, prefix, {})
+    _supplement_index_with_prefix(index, prefix, {})
     r = Resolve(index)
     return r
 
@@ -583,8 +556,8 @@ def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_r
 
 
 def not_requires_private_env(prefix, preferred_envs):
-    if (context.prefix_specified is True or not context.prefix == context.root_dir or
-            all(preferred_env_matches_prefix(preferred_env, prefix, context.root_dir) for
+    if (context.prefix_specified is True or not context.prefix == context.root_prefix or
+            all(preferred_env_matches_prefix(preferred_env, prefix, context.root_prefix) for
                 preferred_env in preferred_envs)):
         return True
     return False
@@ -605,30 +578,30 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
         prefix_with_dists_no_deps_has_resolve = [SpecsForPrefix(prefix=prefix, r=r, specs=dists)]
     else:
         # Ensure that conda is working in the root dir
-        assert(context.prefix == context.root_dir)
+        assert context.prefix == context.root_prefix
 
         def get_r(preferred_env):
             # don't make r for the prefix where we already have it created
-            if preferred_env_matches_prefix(preferred_env, prefix, context.root_dir):
+            if preferred_env_matches_prefix(preferred_env, prefix, context.root_prefix):
                 return r
             else:
                 return get_resolve_object(index.copy(), preferred_env_to_prefix(
-                    preferred_env, context.root_dir, context.envs_dirs))
+                    preferred_env, context.root_prefix, context.envs_dirs))
 
         prefix_with_dists_no_deps_has_resolve = []
         for env in preferred_envs:
             dists = IndexedSet(d.spec for d in dists_for_envs if d.env == env)
             prefix_with_dists_no_deps_has_resolve.append(
                 SpecsForPrefix(
-                    prefix=preferred_env_to_prefix(env, context.root_dir, context.envs_dirs),
+                    prefix=preferred_env_to_prefix(env, context.root_prefix, context.envs_dirs),
                     r=get_r(env),
                     specs=dists)
             )
     return prefix_with_dists_no_deps_has_resolve
 
 
-def match_to_original_specs(str_specs, specs_for_prefix):
-    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+def match_to_original_specs(specs, specs_for_prefix):
+    matches_any_spec = lambda dst: next(spc for spc in specs if spc.name == dst)
     matched_specs_for_prefix = []
     for prefix_with_dists in specs_for_prefix:
         linked = linked_data(prefix_with_dists.prefix)
@@ -638,19 +611,18 @@ def match_to_original_specs(str_specs, specs_for_prefix):
             matched = matches_any_spec(spec)
             if matched:
                 new_matches.append(matched)
-        add_defaults_to_specs(r, linked, new_matches)
+        add_defaults_to_specs(r, linked, new_matches, prefix=prefix_with_dists.prefix)
         matched_specs_for_prefix.append(SpecsForPrefix(
             prefix=prefix_with_dists.prefix, r=prefix_with_dists.r, specs=new_matches))
     return matched_specs_for_prefix
 
 
-def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+def get_actions_for_dists(specs_by_prefix, only_names, index, force, always_copy, prune,
                           update_deps, pinned):
     root_only = ('conda', 'conda-env')
-    prefix = dists_for_prefix.prefix
-    dists = dists_for_prefix.specs
-    r = dists_for_prefix.r
-    specs = [MatchSpec(dist) for dist in dists]
+    prefix = specs_by_prefix.prefix
+    r = specs_by_prefix.r
+    specs = [MatchSpec(s) for s in specs_by_prefix.specs]
     specs = augment_specs(prefix, specs, pinned)
 
     linked = linked_data(prefix)
@@ -703,7 +675,7 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
         force=force, always_copy=always_copy)
 
     if actions[LINK]:
-        actions[SYMLINK_CONDA] = [context.root_dir]
+        actions[SYMLINK_CONDA] = [context.root_prefix]
 
     for dist in sorted(linked):
         dist = Dist(dist)
@@ -717,33 +689,54 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
 
 
 def augment_specs(prefix, specs, pinned=True):
-    # get conda-meta/pinned
+    """
+    Include additional specs for conda and (optionally) pinned packages.
+
+    Parameters
+    ----------
+    prefix : str
+        Environment prefix.
+    specs : list of MatchSpec
+        List of package specifications to augment.
+    pinned : bool, optional
+        Optionally include pinned specs for the current environment.
+
+    Returns
+    -------
+    augmented_specs : list of MatchSpec
+       List of augmented package specifications.
+    """
+    specs = list(specs)
+
+    # Get conda-meta/pinned
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
-        specs += [MatchSpec(spec) for spec in pinned_specs]
+        log.debug("Pinned specs=%s", pinned_specs)
+        specs.extend(pinned_specs)
 
-    # support aggressive auto-update conda
+    # Support aggressive auto-update conda
     #   Only add a conda spec if conda and conda-env are not in the specs.
     #   Also skip this step if we're offline.
-    root_only = ('conda', 'conda-env')
-    mss = [MatchSpec(s) for s in specs if s.name.startswith(root_only)]
-    mss = [ms for ms in mss if ms.name in root_only]
+    root_only_specs_str = ('conda', 'conda-env')
+    conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
+
     if is_root_prefix(prefix):
-        if context.auto_update_conda and not context.offline and not mss:
+        if context.auto_update_conda and not context.offline and not conda_in_specs_str:
             specs.append(MatchSpec('conda'))
             specs.append(MatchSpec('conda-env'))
     elif basename(prefix).startswith('_'):
-        # anything (including conda) can be installed into environments
+        # Anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
         pass
-    elif mss:
-        raise InstallError("Error: 'conda' can only be installed into the root environment")
+    elif conda_in_specs_str:
+        raise InstallError("Error: 'conda' can only be installed into the "
+                           "root environment")
 
-    # support track_features config parameter
+    # Support track_features config parameter
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
-    return specs
+
+    return tuple(specs)
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
@@ -763,7 +756,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s" % pinned_specs)
+        log.debug("Pinned specs=%s", pinned_specs)
 
     linked = {r.package_name(dist): dist for dist in linked_dists}
 
@@ -775,7 +768,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             continue
         if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
-            raise CondaRuntimeError(msg % old_dist.to_filename())
+            raise RemoveError(msg % old_dist.to_filename())
         if context.conda_in_root and name == 'conda' and name not in nlinked and not context.force:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")

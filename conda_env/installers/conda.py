@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from conda.cli import common
 from conda import plan
-from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
+from conda.exceptions import LockError, CondaSystemExit, CondaHTTPError
 from conda.api import get_index
 from conda.common.compat import text_type
 from conda.models.channel import prioritize_channels
@@ -39,6 +39,6 @@ def install(prefix, specs, args, env, prune=False):
                 if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
                     raise LockError('Already locked: %s' % text_type(e))
                 else:
-                    raise CondaRuntimeError('RuntimeError: %s' % e)
+                    raise CondaHTTPError('CondaHTTPError: %s' % e)
             except SystemExit as e:
                 raise CondaSystemExit('Exiting', e)

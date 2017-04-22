@@ -48,7 +48,7 @@ activate' from PATH. """)
 
 def prefix_from_arg(arg, shell):
     shelldict = shells[shell] if shell else {}
-    from conda.base.context import context, locate_prefix_by_name
+    from ..base.context import context, locate_prefix_by_name
     'Returns a platform-native path'
     # MSYS2 converts Unix paths to Windows paths with unix seps
     # so we must check for the drive identifier too.
@@ -108,7 +108,8 @@ def get_activate_path(prefix, shell):
 
 
 def main():
-    from conda.base.constants import ROOT_ENV_NAME
+    from ..base.constants import ROOT_ENV_NAME
+    from ..utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
         # all execution paths sys.exit at end.
         help(sys.argv[1], sys.argv[2])
@@ -167,9 +168,9 @@ def main():
 
         # Make sure an env always has the conda symlink
         try:
-            from conda.base.context import context
-            import conda.install
-            conda.install.symlink_conda(prefix, context.root_dir, shell)
+            from ..base.context import context
+            from ..install import symlink_conda
+            symlink_conda(prefix, context.root_prefix, shell)
         except (IOError, OSError) as e:
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}.\n"
@@ -180,7 +181,7 @@ def main():
         sys.exit(0)
         # raise CondaSystemExit
     elif sys.argv[1] == '..changeps1':
-        from conda.base.context import context
+        from ..base.context import context
         path = int(context.changeps1)
 
     else:

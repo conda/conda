@@ -17,7 +17,7 @@ log = getLogger(__name__)
 
 def replace_first_api_with_conda(url):
     # replace first occurrence of 'api' with 'conda' in url
-    return re.sub(r'([./])api([./])', r'\1conda\2', url, count=1)
+    return re.sub(r'([./])api([./]|$)', r'\1conda\2', url, count=1)
 
 
 def _get_binstar_token_directory():

@@ -3,15 +3,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 import os
+from tempfile import gettempdir
 
+from conda.base.constants import APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNELS_UNIX
 from conda.common.io import env_var
 
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, Context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
-from conda.common.url import join_url
+from conda.common.url import join_url, join
 from conda.common.yaml import yaml_load
+from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
 from logging import getLogger
@@ -233,7 +237,7 @@ class CustomConfigChannelTests(TestCase):
     """
 
     @classmethod
-    def setUpClass(cls):
+    def setUp(cls):
         string = dals("""
         custom_channels:
           darwin: https://some.url.somewhere/stuff
@@ -267,7 +271,7 @@ class CustomConfigChannelTests(TestCase):
                             ]
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDown(cls):
         reset_context()
 
     def test_pkgs_free(self):
@@ -456,29 +460,35 @@ class CustomConfigChannelTests(TestCase):
         ]
 
     def test_local_channel(self):
-        Channel._reset_state()
-        channel = Channel('local')
-        assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
-        assert channel.channel_name == "local"
-        assert channel.platform is None
-        assert channel.package_filename is None
-        assert channel.auth is None
-        assert channel.token is None
-        assert channel.scheme is None
-        assert channel.canonical_name == "local"
-        local_channel_first_subchannel = channel._channels[0].name
+        conda_bld_path = join(gettempdir(), 'conda-bld')
+        mkdir_p(conda_bld_path)
+        try:
+            with env_var('CONDA_CROOT', conda_bld_path, reset_context):
+                Channel._reset_state()
+                channel = Channel('local')
+                assert channel._channels[0].name.rsplit('/', 1)[-1] == 'conda-bld'
+                assert channel.channel_name == "local"
+                assert channel.platform is None
+                assert channel.package_filename is None
+                assert channel.auth is None
+                assert channel.token is None
+                assert channel.scheme is None
+                assert channel.canonical_name == "local"
+                local_channel_first_subchannel = channel._channels[0].name
 
-        channel = Channel(local_channel_first_subchannel)
-        assert channel.channel_name == local_channel_first_subchannel
-        assert channel.platform is None
-        assert channel.package_filename is None
-        assert channel.auth is None
-        assert channel.token is None
-        assert channel.scheme == "file"
-        assert channel.canonical_name == "local"
+                channel = Channel(local_channel_first_subchannel)
+                assert channel.channel_name == local_channel_first_subchannel
+                assert channel.platform is None
+                assert channel.package_filename is None
+                assert channel.auth is None
+                assert channel.token is None
+                assert channel.scheme == "file"
+                assert channel.canonical_name == "local"
 
-        assert channel.urls() == Channel('local').urls()
-        assert channel.urls()[0].startswith('file:///')
+                assert channel.urls() == Channel(local_channel_first_subchannel).urls()
+                assert channel.urls()[0].startswith('file:///')
+        finally:
+            rm_rf(conda_bld_path)
 
     def test_defaults_channel(self):
         channel = Channel('defaults')
@@ -766,23 +776,59 @@ class UrlChannelTests(TestCase):
         ]
 
     def test_env_var_file_urls(self):
-        channels = ("file://\\\\network_share\\shared_folder\\path\\conda,"
-                    "https://some.url/ch_name,"
-                    "file:///some/place/on/my/machine")
-        with env_var("CONDA_CHANNELS", channels, reset_context):
-            assert context.channels == (
+        channels = ("file://\\\\network_share\\shared_folder\\path\\conda",
+                    "https://some.url/ch_name",
+                    "file:///some/place/on/my/machine",)
+        with env_var("CONDA_CHANNELS", ','.join(channels)):
+            new_context = Context((), APP_NAME)
+            assert new_context.channels == (
                 "file://\\\\network_share\\shared_folder\\path\\conda",
                 "https://some.url/ch_name",
-                "file:///some/place/on/my/machine",
-            )
-            prioritized = prioritize_channels(context.channels)
+                "file:///some/place/on/my/machine",)
+
+            prioritized = prioritize_channels(new_context.channels)
             assert prioritized == OrderedDict((
                 ("file://network_share/shared_folder/path/conda/%s" % context.subdir, ("file://network_share/shared_folder/path/conda", 0)),
-                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 0)),
-                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 1)),
-                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 1)),
-                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 2)),
-                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
+                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 1)),
+                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 2)),
+                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 3)),
+                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 4)),
+                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 5)),
+            ))
+
+    def test_subdirs(self):
+        subdirs = ('linux-highest', 'linux-64', 'noarch')
+
+        def _channel_urls(channels=None):
+            for channel in channels or DEFAULT_CHANNELS_UNIX:
+                channel = Channel(channel)
+                for subdir in subdirs:
+                    yield join_url(channel.base_url, subdir)
+
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+            c = Channel('defaults')
+            assert c.urls() == list(_channel_urls())
+
+            c = Channel('conda-forge')
+            assert c.urls() == list(_channel_urls(('conda-forge',)))
+
+            channels = ('bioconda', 'conda-forge')
+            prioritized = prioritize_channels(channels)
+            assert prioritized == OrderedDict((
+                ("https://conda.anaconda.org/bioconda/linux-highest", ("bioconda", 0)),
+                ("https://conda.anaconda.org/bioconda/linux-64", ("bioconda", 1)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 2)),
+                ("https://conda.anaconda.org/conda-forge/linux-highest", ("conda-forge", 3)),
+                ("https://conda.anaconda.org/conda-forge/linux-64", ("conda-forge", 4)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 5)),
+            ))
+
+            prioritized = prioritize_channels(channels, subdirs=('linux-again', 'noarch'))
+            assert prioritized == OrderedDict((
+                ("https://conda.anaconda.org/bioconda/linux-again", ("bioconda", 0)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 1)),
+                ("https://conda.anaconda.org/conda-forge/linux-again", ("conda-forge", 2)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 3)),
             ))
 
 

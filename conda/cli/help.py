@@ -35,9 +35,9 @@ Missing write permissions in: ${root_dir}
 # then make changes to it.
 # This may be done using the command:
 #
-# $ conda create -n my_${name} --clone=${prefix}
+# $ conda create -n my_${name} --clone="${prefix}"
 """
-    msg = msg.replace('${root_dir}', context.root_dir)
+    msg = msg.replace('${root_dir}', context.root_prefix)
     msg = msg.replace('${prefix}', prefix)
     msg = msg.replace('${name}', name_prefix(prefix))
     msg = msg.replace('${command}', command)

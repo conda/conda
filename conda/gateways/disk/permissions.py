@@ -4,12 +4,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EACCES, ENOENT, EPERM
 from itertools import chain
 from logging import getLogger
-from os import chmod, lstat, walk
+from os import X_OK, access, chmod, lstat, walk
 from os.path import isdir, isfile, join
 from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from . import MAX_TRIES, exp_backoff_fn
-from ...common.compat import lchmod
+from .link import lchmod
+from ...common.compat import on_win
 
 log = getLogger(__name__)
 
@@ -25,6 +26,7 @@ def make_writable(path):
             lchmod(path, S_IMODE(mode) | S_IWRITE)
         else:
             log.debug("path cannot be made writable: %s", path)
+        return True
     except Exception as e:
         eno = getattr(e, 'errno', None)
         if eno in (ENOENT,):
@@ -32,6 +34,7 @@ def make_writable(path):
             raise
         elif eno in (EACCES, EPERM):
             log.debug("tried make writable but failed: %s\n%r", path, e)
+            return False
         else:
             log.warn("Error making path writable: %s\n%r", path, e)
             raise
@@ -59,6 +62,12 @@ def make_executable(path):
     if isfile(path):
         mode = lstat(path).st_mode
         log.trace('chmod +x %s', path)
-        lchmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
+        chmod(path, S_IMODE(mode) | S_IXUSR | S_IXGRP | S_IXOTH)
     else:
         log.error("Cannot make path '%s' executable", path)
+
+
+def is_executable(path):
+    if isfile(path):  # for now, leave out `and not islink(path)`
+        return path.endswith(('.exe', '.bat')) if on_win else access(path, X_OK)
+    return False

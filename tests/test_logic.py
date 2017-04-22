@@ -1,5 +1,7 @@
 from itertools import combinations, permutations, product, chain
 
+import pytest
+
 from conda.logic import (Clauses, evaluate_eq, minimal_unsatisfiable_subset)
 from tests.helpers import raises
 from conda.common.compat import string_types, iteritems
@@ -149,6 +151,7 @@ def test_AND():
     my_TEST(my_AND, Clauses.And, 2,2, False)
 
 
+@pytest.mark.integration  # only because this test is slow
 def test_ALL():
     my_TEST(my_AND, Clauses.All, 0, 4, True)
 
@@ -157,6 +160,7 @@ def test_OR():
     my_TEST(my_OR,  Clauses.Or,  2,2, False)
 
 
+@pytest.mark.integration  # only because this test is slow
 def test_ANY():
     my_TEST(my_OR,  Clauses.Any, 0,4, True)
 
@@ -180,12 +184,14 @@ def test_AMONE():
     assert x1 == x2 and C1.clauses == C2.clauses
 
 
+@pytest.mark.integration  # only because this test is slow
 def test_XONE():
     my_TEST(my_XONE, Clauses.ExactlyOne_NSQ, 0,3, True)
     my_TEST(my_XONE, Clauses.ExactlyOne_BDD, 0,3, True)
     my_TEST(my_XONE, Clauses.ExactlyOne, 0,3, True)
 
 
+@pytest.mark.integration  # only because this test is slow
 def test_LinearBound():
     L = [
         ([], [0, 1], 10),

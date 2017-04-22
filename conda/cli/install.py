@@ -6,30 +6,28 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from difflib import get_close_matches
 import errno
 import logging
 import os
-import re
-from difflib import get_close_matches
 from os.path import abspath, basename, exists, isdir, join
+import re
 
 from . import common
-from .find_commands import find_executable
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import check_write, context
+from ..base.context import context
 from ..common.compat import on_win, text_type
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..exceptions import (CondaEnvironmentNotFoundError,
-                          CondaIOError, CondaImportError, CondaOSError,
-                          CondaRuntimeError, CondaSystemExit, CondaValueError,
-                          DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
-                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError)
+from ..exceptions import (CondaEnvironmentNotFoundError, CondaIOError, CondaImportError,
+                          CondaOSError, CondaSystemExit, CondaValueError, DirectoryNotFoundError,
+                          DryRunExit, NoPackagesFoundError, PackageNotFoundError,
+                          PackageNotInstalledError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
-from ..plan import (display_actions, execute_actions, get_pinned_specs,
-                    is_root_prefix, nothing_to_do, revert_actions, install_actions_list)
+from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
+                    is_root_prefix, nothing_to_do, revert_actions)
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +52,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
+            raise DirectoryNotFoundError(src_arg)
     else:
         src_prefix = context.clone_src
 
@@ -91,15 +89,27 @@ def print_activate(arg):
         #
         """)
     else:
-        message = dals("""
-        #
-        # To activate this environment, use:
-        # > source activate %s
-        #
-        # To deactivate this environment, use:
-        # > source deactivate %s
-        #
-        """)
+        shell = os.path.split(os.environ.get('SHELL', ''))[-1]
+        if 'fish' == shell:
+            message = dals("""
+            #
+            # To activate this environment, use:
+            # > conda activate %s
+            #
+            # To deactivate this environment, use:
+            # > conda deactivate %s
+            #
+            """)
+        else:
+            message = dals("""
+            #
+            # To activate this environment, use:
+            # > source activate %s
+            #
+            # To deactivate this environment, use:
+            # > source deactivate %s
+            #
+            """)
 
     return message % (arg, arg)
 
@@ -133,22 +143,23 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
+    args_packages = [s.strip('"\'') for s in args.packages]
+
     linked_dists = install_linked(prefix)
     linked_names = tuple(ld.quad[0] for ld in linked_dists)
     if isupdate and not args.all:
-        for name in args.packages:
+        for name in args_packages:
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names and common.prefix_if_in_private_env(name) is None:
-                raise PackageNotFoundError(name, "Package '%s' is not installed in %s" %
-                                           (name, prefix))
+                raise PackageNotInstalledError(prefix, name)
 
     if newenv and not args.no_default_packages:
         default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
         for default_pkg in context.create_default_packages:
-            if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
+            if any(pkg.split('=')[0] == default_pkg for pkg in args_packages):
                 default_packages.remove(default_pkg)
-        args.packages.extend(default_packages)
+                args_packages.extend(default_packages)
     else:
         default_packages = []
 
@@ -171,28 +182,28 @@ def install(args, parser, command='install'):
             return
     elif getattr(args, 'all', False):
         if not linked_dists:
-            raise PackageNotFoundError('', "There are no packages installed in the "
-                                       "prefix %s" % prefix)
+            log.info("There are no packages installed in prefix %s", prefix)
+            return
         specs.extend(d.quad[0] for d in linked_dists)
-    specs.extend(common.specs_from_args(args.packages, json=context.json))
+    specs.extend(common.specs_from_args(args_packages, json=context.json))
 
     if isinstall and args.revision:
         get_revision(args.revision, json=context.json)
-    elif isinstall and not (args.file or args.packages):
+    elif isinstall and not (args.file or args_packages):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
 
-    num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
+    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
     if num_cp:
-        if num_cp == len(args.packages):
-            explicit(args.packages, prefix, verbose=not context.quiet)
+        if num_cp == len(args_packages):
+            explicit(args_packages, prefix, verbose=not context.quiet)
             return
         else:
             raise CondaValueError("cannot mix specifications with conda package"
                                   " filenames")
 
     if newenv and args.clone:
-        package_diff = set(args.packages) - set(default_packages)
+        package_diff = set(args_packages) - set(default_packages)
         if package_diff:
             raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
                                         'did not expect any arguments for --clone')
@@ -274,26 +285,25 @@ def install(args, parser, command='install'):
                     error_message.append("\n\nClose matches found; did you mean one of these?\n")
                 error_message.append("\n    %s: %s" % (pkg, ', '.join(close)))
                 nfound += 1
-            error_message.append('\n\nYou can search for packages on anaconda.org with')
-            error_message.append('\n\n    anaconda search -t conda %s' % pkg)
+            # error_message.append('\n\nYou can search for packages on anaconda.org with')
+            # error_message.append('\n\n    anaconda search -t conda %s' % pkg)
             if len(e.pkgs) > 1:
                 # Note this currently only happens with dependencies not found
                 error_message.append('\n\n(and similarly for the other packages)')
 
-            if not find_executable('anaconda', include_others=False):
-                error_message.append('\n\nYou may need to install the anaconda-client')
-                error_message.append(' command line client with')
-                error_message.append('\n\n    conda install anaconda-client')
+            # if not find_executable('anaconda', include_others=False):
+            #     error_message.append('\n\nYou may need to install the anaconda-client')
+            #     error_message.append(' command line client with')
+            #     error_message.append('\n\n    conda install anaconda-client')
 
             pinned_specs = get_pinned_specs(prefix)
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
                 error_message.append("\n\nNote that you have pinned specs in %s:" % path)
-                error_message.append("\n\n    %r" % pinned_specs)
+                error_message.append("\n\n    %r" % (pinned_specs,))
 
             error_message = ''.join(error_message)
-
-            raise PackageNotFoundError('', error_message)
+            raise PackageNotFoundError(error_message)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
@@ -331,7 +341,7 @@ def install(args, parser, command='install'):
             # needed in the case of creating an empty env
             from ..instructions import LINK, UNLINK, SYMLINK_CONDA
             if not actions[LINK] and not actions[UNLINK]:
-                actions[SYMLINK_CONDA] = [context.root_dir]
+                actions[SYMLINK_CONDA] = [context.root_prefix]
 
         if command in {'install', 'update'}:
             check_write(command, prefix)
@@ -354,12 +364,6 @@ def install(args, parser, command='install'):
                             log.debug("Can't write the history file")
                         else:
                             raise CondaIOError("Can't write the history file", e)
-
-            except RuntimeError as e:
-                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                    raise LockError('Already locked: %s' % text_type(e))
-                else:
-                    raise CondaRuntimeError('RuntimeError: %s' % e)
             except SystemExit as e:
                 raise CondaSystemExit('Exiting', e)
 
@@ -371,3 +375,17 @@ def install(args, parser, command='install'):
 
         if context.json:
             common.stdout_json_success(actions=actions)
+
+
+def check_write(command, prefix, json=False):
+    if inroot_notwritable(prefix):
+        from .help import root_read_only
+        root_read_only(command, prefix, json=json)
+
+
+def inroot_notwritable(prefix):
+    """
+    return True if the prefix is under root and root is not writeable
+    """
+    return (abspath(prefix).startswith(context.root_prefix) and
+            not context.root_writable)

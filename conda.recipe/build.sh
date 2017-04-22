@@ -15,5 +15,6 @@ $PYTHON conda.recipe/setup.py --version > __conda_version__.txt
 #EOF
 #
 
+# fish setup
 mkdir -p $PREFIX/etc/fish/conf.d/
 cp $SRC_DIR/shell/conda.fish $PREFIX/etc/fish/conf.d/

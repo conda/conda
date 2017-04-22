@@ -7,7 +7,8 @@ from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
 from conda.common.configuration import (Configuration, MapParameter, ParameterFlag,
                                         PrimitiveParameter, SequenceParameter, YamlRawParameter,
-                                        load_file_configs, MultiValidationError, InvalidTypeError)
+                                        load_file_configs, MultiValidationError, InvalidTypeError,
+                                        CustomValidationError)
 from conda.common.yaml import yaml_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
@@ -125,6 +126,8 @@ test_yaml_raw = {
           an_int: 2
           a_float: 1.2
           a_complex: 1+2j
+        proxy_servers:
+        channels:
     """),
 
 }
@@ -263,9 +266,13 @@ class ConfigurationTests(TestCase):
             assert raw_data[f2]['proxy_servers'].value(None)['http'] == "marv"
 
             config = SampleConfiguration(search_path)
+
+            from pprint import pprint
+            for key, val in config.collect_all().items():
+                print(key)
+                pprint(val)
             assert config.channels == ('wile', 'porky', 'bugs', 'elmer', 'daffy',
                                        'tweety', 'foghorn')
-
         finally:
             rmtree(tempdir, ignore_errors=True)
 
@@ -385,7 +392,15 @@ class ConfigurationTests(TestCase):
         config.validate_configuration()
 
         config = SampleConfiguration()._set_raw_data(load_from_string_data('bad_boolean_map'))
-        raises(ValidationError, config.validate_configuration)
+        try:
+            config.validate_configuration()
+        except ValidationError as e:
+            # the `proxy_servers: ~` part of 'bad_boolean_map' is a regression test for #4757
+            #   in the future, the below should probably be a MultiValidationError
+            #   with TypeValidationError for 'proxy_servers' and 'channels'
+            assert isinstance(e, CustomValidationError)
+        else:
+            assert False
 
     def test_cross_parameter_validation(self):
         pass
@@ -407,3 +422,9 @@ class ConfigurationTests(TestCase):
         with env_var("MYAPP_CHANGEPS1", "false"):
             config.__init__(app_name=appname)
             assert config.changeps1 is False
+
+    def test_empty_map_parameter(self):
+
+        config = SampleConfiguration()._set_raw_data(load_from_string_data('bad_boolean_map'))
+        config.check_source('bad_boolean_map')
+

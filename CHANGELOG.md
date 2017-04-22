@@ -1,7 +1,184 @@
-## 4.4.0 (unreleased)
+## 4.3.17 (unreleased)
 
-### New Features
-* general support for all bourne- and c-based shells #3175
+### Improvements
+* fall back to copy if hardlink fails (#5002)
+* add timestamp metadata for tiebreaking conda-build 3 hashed packages (#5018)
+* resolve #5034 add subdirs configuration parameter (#5030)
+* resolve #5081 make pinned packages optional/constrained dependencies (#5088)
+* resolve #5108 improve behavior and add tests for spaces in paths (#4786)
+
+### Bug Fixes
+* quote prefix paths for locations with spaces (#5009)
+* remove binstar logger configuration overrides (#4989)
+* fix #4969 error in DirectoryNotFoundError (#4990)
+* fix #4998 pinned string format (#5011)
+* fix #5039 collecting main_info shouldn't fail on requests import (#5090)
+* fix #5055 improve bad token message for anaconda.org (#5091)
+* fix #5033 only re-register valid signal handlers (#5092)
+* fix #5028 imports in main_list (#5093)
+* fix #5073 allow client_ssl_cert{_key} to be of type None (#5096)
+* fix #4671 backoff for package validate race condition (#5098)
+* fix #5022 gnu_get_libc_version => linux_get_libc_version (#5099)
+* fix #4849 package name match bug (#5103)
+* fixes #5102 allow proxy_servers to be of type None (#5107)
+
+### Non-User-Facing Changes
+* resolve #5012 remove CondaRuntimeError and RuntimeError (#4818)
+* full audit ensuring relative import paths within project (#5090)
+
+
+## 4.3.16 (2017-03-30)
+
+### Improvements
+* additions to configuration SEARCH_PATH to improve consistency (#4966)
+* add 'conda config --describe' and extra config documentation (#4913)
+* enable packaging pinning in condarc using pinned_packages config parameter
+  as beta feature (#4921, #4964)
+
+### Bug Fixes
+* fix #4914 handle directory creation on top of file paths (#4922)
+* fix #3982 issue with CONDA_ENV and using powerline (#4925)
+* fix #2611 update instructions on how to source conda.fish (#4924)
+* fix #4860 missing information on package not found error (#4935)
+* fix #4944 command not found error error (#4963)
+
+
+## 4.3.15 (2017-03-20)
+
+### Improvements
+* allow pkgs_dirs to be configured using `conda config` (#4895)
+
+### Bug Fixes
+* remove incorrect elision of delete_prefix_from_linked_data() (#4814)
+* fix envs_dirs order for read-only root prefix (#4821)
+* fix break-point in conda clean (#4801)
+* fix long shebangs when creating entry points (#4828)
+* fix spelling and typos (#4868, #4869)
+* fix #4840 TypeError reduce() of empty sequence with no initial value (#4843)
+* fix zos subdir (#4875)
+* fix exceptions triggered during activate (#4873)
+
+
+## 4.3.14 (2017-03-03)
+
+### Improvements
+* use cPickle in place of pickle for repodata (#4717)
+* ignore pyc compile failure (#4719)
+* use conda.exe for windows entry point executable (#4716, #4720)
+* localize use of conda_signal_handler (#4730)
+* add skip_safety_checks configuration parameter (#4767)
+* never symlink executables using ORIGIN (#4625)
+* set activate.bat codepage to CP_ACP (#4558)
+
+### Bug Fixes
+* fix #4777 package cache initialization speed (#4778)
+* fix #4703 menuinst PathNotFoundException (#4709)
+* ignore permissions error if user_site can't be read (#4710)
+* fix #4694 don't import requests directly in models (#4711)
+* fix #4715 include resources directory in recipe (#4716)
+* fix CondaHttpError for URLs that contain '%' (#4769)
+* bug fixes for preferred envs (#4678)
+* fix #4745 check for info/index.json with package is_extracted (#4776)
+* make sure url gets included in CondaHTTPError (#4779)
+* fix #4757 map-type configs set to None (#4774)
+* fix #4788 partial package extraction (#4789)
+
+### Non-User-Facing Changes
+* test coverage improvement (#4607)
+* CI configuration improvements (#4713, #4773, #4775)
+* allow sha256 to be None (#4759)
+* add cache_fn_url to exports (#4729)
+* add unicode paths for PY3 integration tests (#4760)
+* additional unit tests (#4728, #4783)
+* fix conda-build compatibility and tests (#4785)
+
+
+## 4.3.13 (2017-02-17)
+
+### Improvements
+* resolve #4636 environment variable expansion for pkgs_dirs (#4637)
+* link, symlink, islink, and readlink for Windows (#4652, #4661)
+* add extra information to CondaHTTPError (#4638, #4672)
+
+### Bug Fixes
+* maximize requested builds after feature determination (#4647)
+* fix #4649 incorrect assert statement concerning package cache directory (#4651)
+* multi-user mode bug fixes (#4663)
+
+### Non-User-Facing Changes
+* path_actions unit tests (#4654)
+* remove dead code (#4369, #4655, #4660)
+* separate repodata logic from index into a new core/repodata.py module (#4669)
+
+
+## 4.3.12 (2017-02-14)
+
+### Improvements
+* prepare conda for uploading to pypi (#4619)
+* better general http error message (#4627)
+* disable old python noarch warning (#4576)
+
+### Bug Fixes
+* fix UnicodeDecodeError for ensure_text_type (#4585)
+* fix determination of if file path is writable (#4604)
+* fix #4592 BufferError cannot close exported pointers exist (#4628)
+* fix run_script current working directory (#4629)
+* fix pkgs_dirs permissions regression (#4626)
+
+### Non-User-Facing Changes
+* fixes for tests when conda-bld directory doesn't exist (#4606)
+* use requirements.txt and Makefile for travis-ci setup (#4600, #4633)
+* remove hasattr use from compat functions (#4634)
+
+
+## 4.3.11 (2017-02-09)
+
+### Bug Fixes
+* fix attribute error in add_defaults_to_specs (#4577)
+
+
+## 4.3.10 (2017-02-07)
+
+### Improvements
+* remove .json from pickle path (#4498)
+* improve empty repodata noarch warning and error messages (#4499)
+* don't add python and lua as default specs for private envs (#4529, #4533)
+* let default_python be None (#4547, #4550)
+
+### Bug Fixes
+* fix #4513 null pointer exception for channel without noarch (#4518)
+* fix ssl_verify set type (#4517)
+* fix bug for windows multiuser (#4524)
+* fix clone with noarch python packages (#4535)
+* fix ipv6 for python 2.7 on Windows (#4554)
+
+### Non-User-Facing Changes
+* separate integration tests with a marker (#4532)
+
+
+## 4.3.9 (2017-01-31)
+
+### Improvements
+* improve repodata caching for performance (#4478, #4488)
+* expand scope of packages included by bad_installed (#4402)
+* silence pre-link warning for old noarch (#4451)
+* add configuration to optionally require noarch repodata (#4450)
+* improve conda subprocessing (#4447)
+* respect info/link.json (#4482)
+
+### Bug Fixes
+* fix #4398 'hard' was used for link type at one point (#4409)
+* fixed "No matches for wildcard '$activate_d/*.fish'" warning (#4415)
+* print correct activate/deactivate message for fish shell (#4423)
+* fix 'Dist' object has no attribute 'fn' (#4424)
+* fix noarch generic and add additional integration test (#4431)
+* fix #4425 unknown encoding (#4433)
+
+### Non-User-Facing Changes
+* fail CI on conda-build fail (#4405)
+* run doctests (#4414)
+* make index record mutable again (#4461)
+* additional test for conda list --json (#4480)
 
 
 ## 4.3.8 (2017-01-23)
@@ -259,6 +436,20 @@
 * make Record immutable (#3965)
 * project housekeeping (#3994, #4065)
 * context-dependent setup.py files (#4057)
+
+
+## 4.2.17 (unreleased)
+
+## Improvements
+* silence pre-link warning for old noarch 4.2.x backport (#4453)
+
+### Bug Fixes
+* remove incorrect elision of delete_prefix_from_linked_data() (#4813)
+* fix CB #1825 context clobbering (#4867)
+* fix #5101 api->conda regex substitution for Anaconda API channels (#5100)
+
+### Non-User-Facing Changes
+* build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
 
 
 ## 4.2.16 (2017-01-20)

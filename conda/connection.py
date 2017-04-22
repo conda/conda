@@ -20,6 +20,7 @@ from ._vendor.auxlib.ish import dals
 from .base.constants import CONDA_HOMEPAGE_URL
 from .base.context import context
 from .common.compat import iteritems
+from .common.platform import linux_get_libc_version
 from .common.url import (add_username_and_password, get_proxy_username_and_pass,
                          split_anaconda_token, urlparse)
 from .exceptions import ProxyError
@@ -27,7 +28,6 @@ from .gateways.adapters.ftp import FTPAdapter
 from .gateways.adapters.localfs import LocalFSAdapter
 from .gateways.adapters.s3 import S3Adapter
 from .gateways.anaconda_client import read_binstar_tokens
-from .utils import gnu_get_libc_version
 
 RETRIES = 3
 
@@ -39,7 +39,7 @@ _user_agent = ("conda/{conda_ver} "
                "{python}/{py_ver} "
                "{system}/{kernel} {dist}/{ver}")
 
-glibc_ver = gnu_get_libc_version()
+libc_family, libc_ver = linux_get_libc_version()
 if context.platform == 'linux':
     distinfo = platform.linux_distribution()
     dist, ver = distinfo[0], distinfo[1]
@@ -56,8 +56,8 @@ user_agent = _user_agent.format(conda_ver=VERSION,
                                 py_ver=platform.python_version(),
                                 system=platform.system(), kernel=platform.release(),
                                 dist=dist, ver=ver)
-if glibc_ver:
-    user_agent += " glibc/{}".format(glibc_ver)
+if libc_ver:
+    user_agent += " {}/{}".format(libc_family, libc_ver)
 
 
 class EnforceUnusedAdapter(BaseAdapter):
@@ -138,11 +138,11 @@ class CondaHttpAuth(AuthBase):
     @staticmethod
     def add_binstar_token(url):
         clean_url, token = split_anaconda_token(url)
-        if not token:
+        if not token and context.add_anaconda_token:
             for binstar_url, token in iteritems(read_binstar_tokens()):
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
-                    from conda.models.channel import Channel
+                    from .models.channel import Channel
                     channel = Channel(clean_url)
                     channel.token = token
                     return channel.url(with_credentials=True)

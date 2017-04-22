@@ -1,26 +1,28 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from functools import reduce
 from logging import getLogger
 from os import listdir
-from os.path import basename, isdir, isfile, islink, join
+from os.path import basename, join
 from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
-from .. import CondaError, CondaMultiError
+from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
-from ..common.path import url_to_path, safe_basename
+from ..common.path import url_to_path
+from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..gateways.disk.read import compute_md5sum
-from ..gateways.disk.test import try_write
+from ..gateways.disk.create import create_package_cache_directory
+from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink
+from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
-from ..utils import md5_file
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, remove
@@ -64,7 +66,7 @@ class UrlsData(object):
         package_path = basename(package_path)
         if not package_path.endswith(CONDA_TARBALL_EXTENSION):
             package_path += CONDA_TARBALL_EXTENSION
-        return first(self, lambda url: safe_basename(url) == package_path)
+        return first(self, lambda url: basename(url) == package_path)
 
 
 class PackageCacheEntry(object):
@@ -90,7 +92,8 @@ class PackageCacheEntry(object):
 
     @property
     def is_extracted(self):
-        return isdir(self.extracted_package_dir)
+        epd = self.extracted_package_dir
+        return isdir(epd) and isfile(join(epd, 'info', 'index.json'))
 
     @property
     def tarball_basename(self):
@@ -116,7 +119,7 @@ class PackageCacheEntry(object):
     @memoizemethod
     def _calculate_md5sum(self):
         assert self.is_fetched
-        return md5_file(self.package_tarball_full_path)
+        return compute_md5sum(self.package_tarball_full_path)
 
     def __repr__(self):
         args = ('%s=%r' % (key, getattr(self, key))
@@ -148,7 +151,7 @@ class PackageCache(object):
     _cache_ = {}
 
     def __init__(self, pkgs_dir):
-        self._packages_map = {}
+        self.__packages_map = None
         # type: Dict[Dist, PackageCacheEntry]
 
         self.pkgs_dir = pkgs_dir
@@ -156,8 +159,6 @@ class PackageCache(object):
 
         # caching object for is_writable property
         self._is_writable = None
-
-        self._init_dir()
 
     # ##########################################################################################
     # these class methods reach across all package cache directories (usually context.pkgs_dirs)
@@ -176,7 +177,7 @@ class PackageCache(object):
         if not writable_caches:
             # TODO: raise NoWritablePackageCacheError()
             raise CondaError("No writable package cache directories found in\n"
-                             "%s" % context.pkgs_dirs)
+                             "%s" % text_type(context.pkgs_dirs))
         return writable_caches
 
     @classmethod
@@ -223,12 +224,6 @@ class PackageCache(object):
             return pc_entry
         raise CondaError("No package '%s' found in cache directories." % dist)
 
-    def scan_for_dist_no_channel(self, dist):
-        # type: (Dist) -> PackageCacheEntry
-        return next((pc_entry for this_dist, pc_entry in iteritems(self)
-                     if this_dist.dist_name == dist.dist_name),
-                    None)
-
     @classmethod
     def tarball_file_in_cache(cls, tarball_path, md5sum=None):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
@@ -250,31 +245,58 @@ class PackageCache(object):
                                          and pce.tarball_matches_md5(md5sum))  # NOQA
         return pc_entry
 
-    def _init_dir(self):
+    @property
+    def _packages_map(self):
+        # don't actually populate _packages_map until we need it
+        return self.__packages_map or self._init_packages_map()
+
+    def _init_packages_map(self):
+        if self.__packages_map is not None:
+            return self.__packages_map
+        self.__packages_map = __packages_map = {}
         pkgs_dir = self.pkgs_dir
         if not isdir(pkgs_dir):
-            return
-        pkgs_dir_contents = listdir(pkgs_dir)
-        while pkgs_dir_contents:
-            base_name = pkgs_dir_contents.pop(0)
+            return __packages_map
+
+        def _add_entry(__packages_map, pkgs_dir, package_filename):
+            if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
+                package_filename += CONDA_TARBALL_EXTENSION
+
+            dist = first(self.urls_data, lambda x: basename(x) == package_filename,
+                         apply=Dist)
+            if not dist:
+                dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
+            pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
+            __packages_map[pc_entry.dist] = pc_entry
+
+        def dedupe_pkgs_dir_contents(pkgs_dir_contents):
+            # if both 'six-1.10.0-py35_0/' and 'six-1.10.0-py35_0.tar.bz2' are in pkgs_dir,
+            #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
+            if not pkgs_dir_contents:
+                return []
+
+            contents = []
+
+            def _process(x, y):
+                if x + CONDA_TARBALL_EXTENSION != y:
+                    contents.append(x)
+                return y
+
+            last = reduce(_process, sorted(pkgs_dir_contents))
+            _process(last, contents and contents[-1] or '')
+            return contents
+
+        pkgs_dir_contents = dedupe_pkgs_dir_contents(listdir(pkgs_dir))
+
+        for base_name in pkgs_dir_contents:
             full_path = join(pkgs_dir, base_name)
             if islink(full_path):
                 continue
-            elif isdir(full_path) and isfile(join(full_path, 'info', 'index.json')):
-                package_filename = base_name + CONDA_TARBALL_EXTENSION
-                self._add_entry(pkgs_dir, package_filename)
-                self._remove_match(pkgs_dir_contents, base_name)
-            elif isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION):
-                package_filename = base_name
-                self._add_entry(pkgs_dir, package_filename)
-                self._remove_match(pkgs_dir_contents, base_name)
+            elif ((isdir(full_path) and isfile(join(full_path, 'info', 'index.json')))
+                  or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
+                _add_entry(__packages_map, pkgs_dir, base_name)
 
-    def _add_entry(self, pkgs_dir, package_filename):
-        dist = first(self.urls_data, lambda x: safe_basename(x) == package_filename, apply=Dist)
-        if not dist:
-            dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
-        pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
-        self._packages_map[pc_entry.dist] = pc_entry
+        return __packages_map
 
     @property
     def cache_directory(self):
@@ -283,20 +305,16 @@ class PackageCache(object):
     @property
     def is_writable(self):
         # lazy and cached
+        # This method takes the action of creating an empty package cache if it does not exist.
+        #   Logic elsewhere, both in conda and in code that depends on conda, seems to make that
+        #   assumption.
         if self._is_writable is None:
-            self._is_writable = try_write(self.pkgs_dir)
+            if isdir(self.pkgs_dir):
+                self._is_writable = file_path_is_writable(self.urls_data.urls_txt_path)
+            else:
+                log.debug("package cache directory '%s' does not exist", self.pkgs_dir)
+                self._is_writable = create_package_cache_directory(self.pkgs_dir)
         return self._is_writable
-
-    @staticmethod
-    def _remove_match(pkg_dir_contents, base_name):
-        # pop and return the matching tarball or directory to base_name
-        #   if not match, return None
-        try:
-            pkg_dir_contents.remove(base_name[:-len(CONDA_TARBALL_EXTENSION)]
-                                    if base_name.endswith(CONDA_TARBALL_EXTENSION)
-                                    else base_name + CONDA_TARBALL_EXTENSION)
-        except ValueError:
-            pass
 
     @staticmethod
     def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
@@ -308,6 +326,12 @@ class PackageCache(object):
             md5sum = compute_md5sum(tarball_full_path)
 
         return tarball_full_path, md5sum
+
+    def scan_for_dist_no_channel(self, dist):
+        # type: (Dist) -> PackageCacheEntry
+        return next((pc_entry for this_dist, pc_entry in iteritems(self)
+                     if this_dist.dist_name == dist.dist_name),
+                    None)
 
     def __getitem__(self, dist):
         return self._packages_map[dist]
@@ -462,8 +486,9 @@ class ProgressiveFetchExtract(object):
         if not self._prepared:
             self.prepare()
 
-        for action in concatv(self.cache_actions, self.extract_actions):
-            self._execute_action(action)
+        with signal_handler(conda_signal_handler):
+            for action in concatv(self.cache_actions, self.extract_actions):
+                self._execute_action(action)
 
     @staticmethod
     def _execute_action(action):

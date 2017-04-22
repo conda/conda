@@ -102,7 +102,7 @@ def _main(*args):
         if "remove" in module:
             imported.configure_parser(sub_parsers, name='uninstall')
 
-    from conda.cli.find_commands import find_commands
+    from .find_commands import find_commands
 
     def completer(prefix, **kwargs):
         return [i for i in list(sub_parsers.choices) + find_commands()
@@ -121,10 +121,7 @@ def _main(*args):
     context.__init__(SEARCH_PATH, 'conda', args)
 
     if getattr(args, 'json', False):
-        # # Silence logging info to avoid interfering with JSON output
-        # for logger in Logger.manager.loggerDict:
-        #     if logger not in ('fetch', 'progress'):
-        #         getLogger(logger).setLevel(CRITICAL + 1)
+        # Silence logging info to avoid interfering with JSON output
         for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 
@@ -148,20 +145,18 @@ def main(*args):
 
     log.debug("conda.cli.main called with %s", args)
     if len(args) > 1:
-        argv1 = args[1].strip()
-        if argv1.startswith('..'):
-            import conda.cli.activate as activate
-            activate.main()
-            return
-        if argv1 in ('activate', 'deactivate'):
-
-            message = "'%s' is not a conda command.\n" % argv1
-            from ..common.compat import on_win
-            if not on_win:
-                message += ' Did you mean "source %s" ?\n' % ' '.join(args[1:])
-
-            from ..exceptions import CommandNotFoundError
-            raise CommandNotFoundError(argv1, message)
+        try:
+            argv1 = args[1].strip()
+            if argv1.startswith('..'):
+                import conda.cli.activate as activate
+                activate.main()
+                return
+            if argv1 in ('activate', 'deactivate'):
+                from ..exceptions import CommandNotFoundError
+                raise CommandNotFoundError(argv1)
+        except Exception as e:
+            from ..exceptions import handle_exception
+            return handle_exception(e)
 
     from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main, *args)

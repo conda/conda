@@ -13,14 +13,13 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
 from ..common.compat import on_win
-from ..exceptions import CondaValueError
 
-try:
+try:  # pragma: py2 no cover
     # Python 3
     from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
                               urlunparse as stdlib_urlparse, urljoin)  # NOQA
     from urllib.request import pathname2url  # NOQA
-except ImportError:
+except ImportError:  # pragma: py3 no cover
     # Python 2
     from urllib import quote, quote_plus, unquote, unquote_plus, pathname2url  # NOQA
     from urlparse import urlunparse as stdlib_urlparse, urljoin  # NOQA
@@ -40,6 +39,7 @@ def path_to_url(path):
         Empty argument to `path_to_url()` not allowed.
         path cannot be '%r'
         """ % path)
+        from ..exceptions import CondaValueError
         raise CondaValueError(message)
     if path.startswith('file:/'):
         return path
@@ -101,10 +101,31 @@ def is_ipv6_address(string_ip):
         [False, False]
     """
     try:
-        socket.inet_pton(socket.AF_INET6, string_ip)
+        inet_pton = socket.inet_pton
+    except AttributeError:
+        return is_ipv6_address_win_py27(string_ip)
+    try:
+        inet_pton(socket.AF_INET6, string_ip)
     except socket.error:
         return False
     return True
+
+
+def is_ipv6_address_win_py27(string_ip):
+    """
+    Examples:
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('::1', '1234:'*7+'1234')]
+        [True, True]
+        >>> [is_ipv6_address_win_py27(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
+        [False, False]
+    """
+    # python 2.7 on windows does not have socket.inet_pton
+    return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
+                         r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
+                         r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
+                         r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
+                         string_ip,
+                         flags=re.DOTALL | re.IGNORECASE))
 
 
 def is_ip_address(string_ip):
@@ -133,6 +154,13 @@ def has_scheme(value):
 
 
 def strip_scheme(url):
+    """
+    Examples:
+        >>> strip_scheme("https://www.conda.io")
+        'www.conda.io'
+        >>> strip_scheme("s3://some.bucket/plus/a/path.ext")
+        'some.bucket/plus/a/path.ext'
+    """
     return url.split('://', 1)[-1]
 
 
@@ -195,6 +223,13 @@ def _split_package_filename(url):
 
 
 def split_scheme_auth_token(url):
+    """
+    Examples:
+        >>> split_scheme_auth_token("https://u:p@conda.io/t/x1029384756/more/path")
+        ('conda.io/more/path', 'https', 'u:p', 'x1029384756')
+        >>> split_scheme_auth_token(None)
+        (None, None, None, None)
+    """
     if not url:
         return None, None, None, None
     cleaned_url, token = split_anaconda_token(url)
@@ -240,6 +275,8 @@ def maybe_add_auth(url, auth, force=False):
     Examples:
         >>> maybe_add_auth("https://www.conda.io", "user:passwd")
         'https://user:passwd@www.conda.io'
+        >>> maybe_add_auth("https://www.conda.io", "")
+        'https://www.conda.io'
     """
     if not auth:
         return url
@@ -248,6 +285,10 @@ def maybe_add_auth(url, auth, force=False):
         return url
     url_parts['auth'] = auth
     return Url(**url_parts).url
+
+
+def maybe_unquote(url):
+    return unquote_plus(url) if url else url
 
 
 if __name__ == "__main__":

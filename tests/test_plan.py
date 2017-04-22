@@ -1,7 +1,13 @@
 import os
+
+from conda.gateways.disk.create import mkdir_p
+
+from conda.common.io import env_var
+
 from conda._vendor.boltons.setutils import IndexedSet
 
 from conda.cli import common
+from conda.cli.python_api import run_command, Commands
 from conda.core import linked_data
 from conda.core.package_cache import ProgressiveFetchExtract
 from conda.exceptions import NoPackagesFoundError, InstallError
@@ -28,7 +34,7 @@ from conda.utils import on_win
 from conda.common.compat import iteritems
 
 # FIXME This should be a relative import
-from tests.helpers import captured
+from tests.helpers import captured, tempdir
 from conda import CondaError
 
 from .decorators import skip_if_no_mock
@@ -934,9 +940,9 @@ def generate_mocked_record(dist_name):
     return mocked_record(dist_name=dist_name)
 
 
-def generate_mocked_context(prefix, root_dir, envs_dirs):
-    mocked_context = namedtuple("Context", ["prefix", "root_dir", "envs_dirs"])
-    return mocked_context(prefix=prefix, root_dir=root_dir, envs_dirs=envs_dirs)
+def generate_mocked_context(prefix, root_prefix, envs_dirs):
+    mocked_context = namedtuple("Context", ["prefix", "root_prefix", "envs_dirs"])
+    return mocked_context(prefix=prefix, root_prefix=root_prefix, envs_dirs=envs_dirs)
 
 
 class TestDetermineAllEnvs(unittest.TestCase):
@@ -1056,13 +1062,14 @@ class TestGroupDistsForPrefix(unittest.TestCase):
                                 specs=IndexedSet(("test",))),
             plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
                                 specs=IndexedSet(("test-spec", "test-spec2")))]
-        matched = plan.match_to_original_specs(str_specs, grouped_specs)
+        matched = plan.match_to_original_specs(tuple(MatchSpec(s) for s in str_specs),
+                                               grouped_specs)
         expected_output = [
             plan.SpecsForPrefix(prefix="some/prefix/envs/_ranenv_",
                                 r=test_r,
-                                specs=["test 1.2.0"]),
+                                specs=[MatchSpec("test 1.2.0")]),
             plan.SpecsForPrefix(prefix="some/prefix", r=self.res,
-                                specs=["test-spec 1.1*", "test-spec2 <4.3"])]
+                                specs=[MatchSpec("test-spec 1.1*"), MatchSpec("test-spec2 <4.3")])]
 
         assert len(matched) == len(expected_output)
         assert matched == expected_output
@@ -1247,6 +1254,45 @@ class TestAddUnlinkOptionsForUpdate(unittest.TestCase):
         expected_output = [action, generate_remove_action(
             "some/prefix/envs/_env_", [Dist("test3-1.2.0"), Dist("test4-2.1.0-22")])]
         self.assertEquals(actions, expected_output)
+
+
+def test_pinned_specs():
+    # Test pinned specs environment variable
+    specs_str_1 = ("numpy 1.11", "python >3")
+    specs_1 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_1)
+    with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_1), reset_context):
+        pinned_specs = plan.get_pinned_specs("/none")
+        assert pinned_specs == specs_1
+        assert pinned_specs != specs_str_1
+
+    # Test pinned specs conda environment file
+    specs_str_2 = ("scipy ==0.14.2", "openjdk >=8")
+    specs_2 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_2)
+    with tempdir() as td:
+        mkdir_p(join(td, 'conda-meta'))
+        with open(join(td, 'conda-meta', 'pinned'), 'w') as fh:
+            fh.write("\n".join(specs_str_2))
+            fh.write("\n")
+        pinned_specs = plan.get_pinned_specs(td)
+        assert pinned_specs == specs_2
+        assert pinned_specs != specs_str_2
+
+    # Test pinned specs conda configuration and pinned specs conda environment file
+    with tempdir() as td:
+        mkdir_p(join(td, 'conda-meta'))
+        with open(join(td, 'conda-meta', 'pinned'), 'w') as fh:
+            fh.write("\n".join(specs_str_1))
+            fh.write("\n")
+
+        with env_var('CONDA_PREFIX', td, reset_context):
+            run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
+            with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_2), reset_context):
+                pinned_specs = plan.get_pinned_specs(td)
+                expected = specs_2 + (MatchSpec("requests 2.13", optional=True),) + specs_1
+                assert pinned_specs == expected
+                assert pinned_specs != specs_str_1 + ("requests 2.13",) + specs_str_2
+
+
 
 if __name__ == '__main__':
     unittest.main()

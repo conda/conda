@@ -2,6 +2,8 @@ import json
 
 import unittest
 
+from conda.base.context import context
+from conda.gateways.disk.delete import rm_rf
 import pytest
 
 from conda.cli.common import arg2spec, spec_from_line
@@ -27,7 +29,7 @@ class TestArg2Spec(unittest.TestCase):
         self.assertEqual(arg2spec('zope.int>=1.3,<3.0'), 'zope.int >=1.3,<3.0')
         self.assertEqual(arg2spec('numpy >=1.9'), 'numpy >=1.9')
 
-    def test_invalid(self):
+    def test_invalid_arg2spec(self):
         self.assertRaises(CondaValueError, arg2spec, '!xyz 1.3')
 
 
@@ -68,6 +70,9 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, dict)
         self.assertIn('error', res)
 
+    def tearDown(self):
+        rm_rf('tempfile.rc')
+
     # def test_clean(self):
     #     res = capture_json_with_argv('conda', 'clean', '--index-cache', '--lock',
     #                                  '--packages', '--tarballs', '--json')
@@ -80,8 +85,9 @@ class TestJson(unittest.TestCase):
         res = capture_json_with_argv('conda config --get channels --json')
         self.assertJsonSuccess(res)
 
-        res = capture_json_with_argv('conda config --get channels --system --json')
-        self.assertJsonSuccess(res)
+        if context.root_writable:
+            res = capture_json_with_argv('conda config --get channels --system --json')
+            self.assertJsonSuccess(res)
 
         res = capture_json_with_argv('conda config --get channels --file tempfile.rc --json')
         self.assertJsonSuccess(res)
@@ -133,7 +139,7 @@ class TestJson(unittest.TestCase):
         #                              '--force', '--json')
         # self.assertJsonError(res)
 
-    @pytest.mark.slow
+    @pytest.mark.integration
     def test_info(self):
         res = capture_json_with_argv('conda info --json')
         keys = ('channels', 'conda_version', 'default_prefix', 'envs',
@@ -219,7 +225,7 @@ class TestJson(unittest.TestCase):
         assert stderr == ''
         assert rc > 0
 
-    @pytest.mark.timeout(300)
+    @pytest.mark.integration
     def test_search_0(self):
         with captured():
             res = capture_json_with_argv('conda search --json')
@@ -240,24 +246,31 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], text_type)
 
+    @pytest.mark.integration
     def test_search_1(self):
         self.assertIsInstance(capture_json_with_argv('conda search ipython --json'), dict)
 
+    @pytest.mark.integration
     def test_search_2(self):
         self.assertIsInstance(capture_json_with_argv('conda search --unknown --json'), dict)
 
+    @pytest.mark.integration
     def test_search_3(self):
         self.assertIsInstance(capture_json_with_argv('conda search --json --use-index-cache'), dict)
 
+    @pytest.mark.integration
     def test_search_4(self):
         self.assertIsInstance(capture_json_with_argv('conda search --json --outdated'), dict)
 
+    @pytest.mark.integration
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search -c https://conda.anaconda.org/conda --json nose'), dict)
 
+    @pytest.mark.integration
     def test_search_6(self):
         self.assertIsInstance(capture_json_with_argv('conda search -c https://conda.anaconda.org/conda --override-channel --json nose'), dict)
 
+    @pytest.mark.integration
     def test_search_7(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 

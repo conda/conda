@@ -6,7 +6,7 @@ from re import IGNORECASE, compile
 from enum import Enum
 
 from .compat import NoneType, integer_types, isiterable, iteritems, string_types, text_type
-from .decorators import memoize, memoizedproperty
+from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
 __all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
@@ -181,7 +181,6 @@ def typify_str_no_hint(value):
     return candidate if candidate is not NO_MATCH else value
 
 
-@memoize
 def typify(value, type_hint=None):
     """Take a primitive value, usually a string, and try to make a more relevant type out of it.
     An optional type_hint will try to coerce the value to that type.
@@ -231,6 +230,9 @@ def typify(value, type_hint=None):
             return boolify(value, nullable=True)
         elif not (type_hint - (STRING_TYPES_SET | {bool})):
             return boolify(value, return_string=True)
+        elif not (type_hint - (STRING_TYPES_SET | {NoneType})):
+            value = text_type(value)
+            return None if value.lower() == 'none' else value
         elif not (type_hint - {bool, int}):
             return typify_str_no_hint(text_type(value))
         else:

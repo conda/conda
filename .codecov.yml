@@ -11,3 +11,5 @@ ignore:
   - conda/gateways/adapters/ftp.py
   - conda/gateways/adapters/s3.py
   - tests/.*
+
+comment: off

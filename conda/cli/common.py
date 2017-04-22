@@ -11,14 +11,13 @@ import sys
 
 from .. import console
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME, CONDA_TARBALL_EXTENSION
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import iteritems
 from ..common.constants import NULL
 from ..common.path import is_private_env, prefix_to_env_name
 from ..core.linked_data import linked_data
-from ..exceptions import (CondaFileIOError, CondaRuntimeError, CondaSystemExit, CondaValueError,
-                          DryRunExit)
+from ..exceptions import CondaFileIOError, CondaSystemExit, CondaValueError, DryRunExit
 from ..resolve import MatchSpec
 from ..utils import memoize
 
@@ -89,7 +88,7 @@ class Packages(Completer):
 
     def _get_items(self):
         # TODO: Include .tar.bz2 files for local installs.
-        from conda.core.index import get_index
+        from ..core.index import get_index
         args = self.parsed_args
         call_dict = dict(channel_urls=args.channel or (),
                          use_cache=True,
@@ -107,7 +106,7 @@ class InstalledPackages(Completer):
 
     @memoize
     def _get_items(self):
-        from conda.core.linked_data import linked
+        from ..core.linked_data import linked
         packages = linked(context.prefix_w_legacy_search)
         return [dist.quad[0] for dist in packages]
 
@@ -402,11 +401,7 @@ def add_parser_create_install_update(p):
 def ensure_use_local(args):
     if not args.use_local:
         return
-    try:
-        from conda_build.config import croot  # noqa
-    except ImportError as e:
-        raise CondaRuntimeError("%s: you need to have 'conda-build >= 1.7.1' installed"
-                                " to use the --use-local option." % e)
+
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
@@ -416,6 +411,7 @@ def ensure_override_channels_requires_channel(args, dashc=True):
         else:
             raise CondaValueError('--override-channels requires --channel'
                                   'or --use-local')
+
 
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
@@ -472,7 +468,7 @@ def ensure_name_or_prefix(args, command):
 
 
 def name_prefix(prefix):
-    if abspath(prefix) == context.root_dir:
+    if abspath(prefix) == context.root_prefix:
         return ROOT_ENV_NAME
     return basename(prefix)
 
@@ -481,7 +477,12 @@ def name_prefix(prefix):
 
 def arg2spec(arg, json=False, update=False):
     try:
-        spec = MatchSpec(spec_from_line(arg), normalize=True)
+        # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
+        #   a space in the path
+        _arg = spec_from_line(arg)
+        if _arg is None and arg.endswith(CONDA_TARBALL_EXTENSION):
+            _arg = arg
+        spec = MatchSpec(_arg, normalize=True)
     except:
         raise CondaValueError('invalid package specification: %s' % arg)
 
@@ -577,7 +578,7 @@ def get_index_trap(*args, **kwargs):
     Retrieves the package index, but traps exceptions and reports them as
     JSON if necessary.
     """
-    from conda.core.index import get_index
+    from ..core.index import get_index
     kwargs.pop('json', None)
     return get_index(*args, **kwargs)
 
@@ -607,7 +608,7 @@ def stdout_json_success(success=True, **kwargs):
 
 
 def handle_envs_list(acc, output=True):
-    from conda import misc
+    from .. import misc
 
     if output:
         print("# conda environments:")
@@ -616,14 +617,14 @@ def handle_envs_list(acc, output=True):
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
         default = '*' if prefix == context.default_prefix else ' '
-        name = (ROOT_ENV_NAME if prefix == context.root_dir else
+        name = (ROOT_ENV_NAME if prefix == context.root_prefix else
                 basename(prefix))
         if output:
             print(fmt % (name, default, prefix))
 
     for prefix in misc.list_prefixes():
         disp_env(prefix)
-        if prefix != context.root_dir:
+        if prefix != context.root_prefix:
             acc.append(prefix)
 
     if output:
@@ -631,7 +632,7 @@ def handle_envs_list(acc, output=True):
 
 
 def get_private_envs_json():
-    path_to_private_envs = join(context.root_dir, "conda-meta", "private_envs")
+    path_to_private_envs = join(context.root_prefix, "conda-meta", "private_envs")
     if not isfile(path_to_private_envs):
         return None
     try:

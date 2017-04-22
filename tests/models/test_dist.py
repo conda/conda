@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.base.context import context
+from os.path import join
+from tempfile import gettempdir
+
+from conda.base.context import context, reset_context
+from conda.common.io import env_var
 from conda.common.url import join_url, path_to_url
+from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.delete import rm_rf
 from conda.models.dist import Dist
 from logging import getLogger
 from unittest import TestCase
@@ -93,15 +99,21 @@ class UrlDistTests(TestCase):
         assert d.is_channel is True
 
         # local file url that is a named channel
-        url = path_to_url(join_url(context.croot, 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2'))
-        d = Dist(url)
-        assert d.channel == 'local'
-        assert d.name == 'bcrypt'
-        assert d.version == '3.1.1'
-        assert d.build_string == 'py35_2'
+        conda_bld_path = join(gettempdir(), 'conda-bld')
+        try:
+            mkdir_p(conda_bld_path)
+            with env_var('CONDA_BLD_PATH', conda_bld_path, reset_context):
+                url = path_to_url(join_url(context.croot, 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2'))
+                d = Dist(url)
+                assert d.channel == 'local'
+                assert d.name == 'bcrypt'
+                assert d.version == '3.1.1'
+                assert d.build_string == 'py35_2'
 
-        assert d.to_url() == url
-        assert d.is_channel is True
+                assert d.to_url() == url
+                assert d.is_channel is True
+        finally:
+            rm_rf(conda_bld_path)
 
         # local file url that is not a named channel
         url = join_url('file:///some/location/on/disk', 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2')
@@ -113,6 +125,8 @@ class UrlDistTests(TestCase):
 
         assert d.to_url() == url
         assert d.is_channel is True
+
+
 
     def test_dist_with_non_channel_url(self):
         # contrived url

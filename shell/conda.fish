@@ -11,7 +11,7 @@
 #     Source this file from the fish shell to enable activate / deactivate functions.
 #     In order to automatically load these functions on fish startup, append
 #
-#         source (conda info --root)/bin/conda.fish
+#         source (conda info --root)/etc/fish/conf.d/conda.fish
 #
 #     to the end of your ~/.config/config.fish file.
 #
@@ -145,10 +145,10 @@ end
 # Equivalent to bash version of conda deactivate script
 function deactivate --description 'Deactivate the current conda environment.'
     if set -q CONDA_DEFAULT_ENV  # don't deactivate the root environment
-          # check if there are any *.fish scripts in deactivate.d
-          set -l deactivate_d $CONDA_PREFIX/etc/conda/deactivate.d
-          if test -d "$deactivate_d"
-              source $deactivate_d/*.fish
+          # execute all *.fish scripts in deactivate.d
+          set -l deactivate_scripts $CONDA_PREFIX/etc/conda/deactivate.d/*.fish
+          for script in $deactivate_scripts
+              source $script
           end
           set -gx PATH $CONDA_BACKUP_PATH
           set -e CONDA_DEFAULT_ENV
@@ -193,10 +193,10 @@ function activate --description 'Activate a conda environment.'
         # Always store the full prefix path as CONDA_PREFIX
         set -gx CONDA_PREFIX (echo $PATH[1] | sed 's|/bin$||g')
 
-        # check if there are any *.fish scripts in activate.d
-        set -l activate_d $CONDA_PREFIX/etc/conda/activate.d
-        if test -d "$activate_d"
-            source $activate_d/*.fish
+        # execute all *.fish scripts in activate.d
+        set -l activate_scripts $CONDA_PREFIX/etc/conda/activate.d/*.fish
+        for script in $activate_scripts
+            source $script
         end
 
         if [ (conda '..changeps1') = "1" ]

@@ -1,18 +1,55 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .enums import LinkType, Platform
+from functools import total_ordering
+
+from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, ImmutableEntity, IntegerField, ListField,
-                                     MapField, StringField)
+                                     EnumField, Field, IntegerField, ListField, MapField,
+                                     StringField)
 from ..common.compat import string_types
+
+
+@total_ordering
+class Priority(object):
+
+    def __init__(self, priority):
+        self._priority = priority
+
+    def __int__(self):
+        return self._priority
+
+    def __lt__(self, other):
+        return self._priority < int(other)
+
+    def __eq__(self, other):
+        return self._priority == int(other)
+
+    def __repr__(self):
+        return "Priority(%d)" % self._priority
+
+
+class PriorityField(Field):
+    _type = (int, Priority)
+
+    def unbox(self, instance, instance_type, val):
+        return int(val)
 
 
 class LinkTypeField(EnumField):
     def box(self, instance, val):
         if isinstance(val, string_types):
             val = val.replace('-', '').replace('_', '').lower()
+            if val == 'hard':
+                val = LinkType.hardlink
+            elif val == 'soft':
+                val = LinkType.softlink
         return super(LinkTypeField, self).box(instance, val)
+
+
+class NoarchField(EnumField):
+    def box(self, instance, val):
+        return super(NoarchField, self).box(instance, NoarchType.coerce(val))
 
 
 class Link(DictSafeMixin, Entity):
@@ -43,7 +80,7 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
-class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
+class IndexRecord(DictSafeMixin, Entity):
     _lazy_validate = True
 
     arch = StringField(required=False, nullable=True)
@@ -57,18 +94,19 @@ class IndexRecord(DictSafeMixin, ImmutableEntity):  # rename to IndexRecord
     license_family = StringField(required=False)
     md5 = StringField(required=False, nullable=True)
     name = StringField()
-    # TODO: noarch should support being a string or bool
+    noarch = NoarchField(NoarchType, required=False, nullable=True)
     platform = EnumField(Platform, required=False, nullable=True)
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)
     subdir = StringField(required=False)
+    timestamp = IntegerField(required=False)
     track_features = StringField(required=False)
     version = StringField()
 
     fn = StringField(required=False, nullable=True)
     schannel = StringField(required=False, nullable=True)
     channel = StringField(required=False, nullable=True)
-    priority = IntegerField(required=False)
+    priority = PriorityField(required=False)
     url = StringField(required=False, nullable=True)
     auth = StringField(required=False, nullable=True)
 

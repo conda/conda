@@ -75,7 +75,7 @@ def execute(args, parser):
             permission read the file's contents.  Note, you can specify the
             file to use by explictly adding --file=/path/to/file when calling
             conda env create.""").lstrip()))
-        raise exceptions.CondaEnvRuntimeError(msg)
+        raise exceptions.CondaEnvException(msg)
 
     if args.old_name:
         print("`--name` is deprecated. Use:\n"
@@ -93,7 +93,7 @@ def execute(args, parser):
                  You can specify on the command line as in:
                  \tconda env upload name
                  or you can add a name property to your {} file.""".lstrip().format(args.file)
-        raise exceptions.CondaEnvRuntimeError(msg)
+        raise exceptions.CondaEnvException(msg)
 
     uploader = Uploader(name, args.file, summary=summary, env_data=dict(env.to_dict()))
 

@@ -3,15 +3,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from itertools import chain
 from logging import getLogger
-from requests.packages.urllib3.util import Url
 
 from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
                               MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, odict, with_metaclass
+from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
-from ..common.url import (has_scheme, is_url, join_url, path_to_url, split_conda_url_easy_parts,
-                          split_scheme_auth_token, urlparse)
+from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
+                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
 
 try:
     from cytoolz.functoolz import excepts
@@ -262,10 +261,6 @@ class Channel(object):
                for c in concatv((context.channel_alias,), context.migrated_channel_aliases)):
             return self.name
 
-        # if self.scheme == 'file' and self.package_filename:
-        #     # at this point, the url isn't included in any known local channel names
-        #     return self.get_channel_from_package_cache(self).canonical_name
-
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
@@ -273,35 +268,14 @@ class Channel(object):
         else:
             return join_url(self.location, self.name).lstrip('/')
 
-    # @staticmethod
-    # def get_channel_from_package_cache(channel):
-    #     assert channel.scheme == 'file', channel.scheme
-    #     assert channel.platform is None, channel.platform
-    #     assert channel.package_filename
-    #
-    #     local_file_dir = join_url(channel.location, channel.name)
-    #
-    #     if win_path_ok(local_file_dir) in context.pkgs_dirs:
-    #         from ..core.package_cache import PackageCache
-    #         package_cache = PackageCache(local_file_dir)
-    #         recorded_url = package_cache.urls_data.get_url(channel.package_filename)
-    #         if recorded_url.startswith('file:/'):
-    #             # make sure path actually is a channel
-    #             _, platform = split_platform(recorded_url)
-    #             if platform:
-    #                 return Channel(recorded_url)
-    #             else:
-    #                 return Channel(None)
-    #         else:
-    #             return Channel(recorded_url)
-    #     else:
-    #         # we can't use the channel name 'local' because that's already taken by conda-build
-    #         #   maybe the path really doesn't have a channel name
-    #         return Channel(None)
+    def urls(self, with_credentials=False, subdirs=None):
+        if subdirs is None:
+            subdirs = context.subdirs
 
-    def urls(self, with_credentials=False, platform=None):
+        assert isiterable(subdirs), subdirs  # subdirs must be a non-string iterable
+
         if self.canonical_name == UNKNOWN_CHANNEL:
-            return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, platform)
+            return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, subdirs)
 
         base = [self.location]
         if with_credentials and self.token:
@@ -310,8 +284,14 @@ class Channel(object):
         base = join_url(*base)
 
         def _platforms():
-            p = platform or self.platform or context.subdir
-            return (p, 'noarch') if p != 'noarch' else ('noarch',)
+            if self.platform:
+                yield self.platform
+                if self.platform != 'noarch':
+                    yield 'noarch'
+            else:
+                for subdir in subdirs:
+                    yield subdir
+
         bases = (join_url(base, p) for p in _platforms())
 
         if with_credentials and self.auth:
@@ -332,7 +312,8 @@ class Channel(object):
             if self.package_filename:
                 base.append(self.package_filename)
         else:
-            base.append(context.subdir)
+            first_non_noarch = next((s for s in context.subdirs if s != 'noarch'), 'noarch')
+            base.append(first_non_noarch)
 
         base = join_url(*base)
 
@@ -404,15 +385,16 @@ class MultiChannel(Channel):
     def canonical_name(self):
         return self.name
 
-    def urls(self, with_credentials=False, platform=None):
-        if platform and platform != context.subdir and self.name == 'defaults':
-            # necessary shenanigan because different platforms have different default channels
-            urls = DEFAULT_CHANNELS_WIN if 'win' in platform else DEFAULT_CHANNELS_UNIX
-            ca = context.channel_alias
-            _channels = tuple(Channel.make_simple_channel(ca, v) for v in urls)
-        else:
-            _channels = self._channels
-        return list(chain.from_iterable(c.urls(with_credentials, platform) for c in _channels))
+    def urls(self, with_credentials=False, subdirs=None):
+        _channels = self._channels
+        if self.name == 'defaults':
+            platform = next((s for s in reversed(subdirs or context.subdirs) if s != 'noarch'), '')
+            if platform != context.subdir:
+                # necessary shenanigan because different platforms have different default channels
+                urls = DEFAULT_CHANNELS_WIN if 'win' in platform else DEFAULT_CHANNELS_UNIX
+                ca = context.channel_alias
+                _channels = tuple(Channel.make_simple_channel(ca, v) for v in urls)
+        return list(chain.from_iterable(c.urls(with_credentials, subdirs) for c in _channels))
 
     @property
     def base_url(self):
@@ -422,17 +404,19 @@ class MultiChannel(Channel):
         return None
 
 
-def prioritize_channels(channels, with_credentials=True, platform=None):
+def prioritize_channels(channels, with_credentials=True, subdirs=None):
     # prioritize_channels returns and OrderedDict with platform-specific channel
     #   urls as the key, and a tuple of canonical channel name and channel priority
     #   number as the value
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
     result = odict()
-    for q, chn in enumerate(channels):
+    q = -1  # channel priority counter
+    for chn in channels:
         channel = Channel(chn)
-        for url in channel.urls(with_credentials, platform):
+        for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
+            q += 1
             result[url] = channel.canonical_name, min(q, MAX_CHANNEL_PRIORITY - 1)
     return result
 

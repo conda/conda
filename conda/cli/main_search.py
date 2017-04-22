@@ -123,11 +123,12 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
-        raise PackageNotFoundError('', text_type(e))
+        error_message = text_type(e)
+        raise PackageNotFoundError(error_message)
 
 def execute_search(args, parser):
     import re
-    from conda.resolve import Resolve
+    from ..resolve import Resolve
 
     if args.reverse_dependency:
         if not args.regex:

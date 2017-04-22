@@ -17,26 +17,26 @@
 # limitations under the License.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from base64 import b64decode
 import cgi
 import ftplib
-import os
-from base64 import b64decode
 from io import BytesIO
-from conda.gateways.logging import getLogger
+import os
+
 from requests import Response
 from requests.adapters import BaseAdapter
 from requests.hooks import dispatch_hook
 
+from ..logging import getLogger
 from ...common.compat import StringIO
 from ...common.url import urlparse
 from ...exceptions import AuthenticationError
-
 
 log = getLogger(__name__)
 
 
 class FTPAdapter(BaseAdapter):
-    '''A Requests Transport Adapter that handles FTP urls.'''
+    """A Requests Transport Adapter that handles FTP urls."""
     def __init__(self):
         super(FTPAdapter, self).__init__()
 
@@ -50,8 +50,7 @@ class FTPAdapter(BaseAdapter):
                            'GET': self.retr}
 
     def send(self, request, **kwargs):
-        '''Sends a PreparedRequest object over FTP. Returns a response object.
-        '''
+        """Sends a PreparedRequest object over FTP. Returns a response object."""
         # Get the authentication from the prepared request, if any.
         auth = self.get_username_password_from_header(request)
 
@@ -80,12 +79,12 @@ class FTPAdapter(BaseAdapter):
         return resp
 
     def close(self):
-        '''Dispose of any internal state.'''
+        """Dispose of any internal state."""
         # Currently this is a no-op.
         pass
 
     def list(self, path, request):
-        '''Executes the FTP LIST command on the given path.'''
+        """Executes the FTP LIST command on the given path."""
         data = StringIO()
 
         # To ensure the StringIO gets cleaned up, we need to alias its close
@@ -105,7 +104,7 @@ class FTPAdapter(BaseAdapter):
         return response
 
     def retr(self, path, request):
-        '''Executes the FTP RETR command on the given path.'''
+        """Executes the FTP RETR command on the given path."""
         data = BytesIO()
 
         # To ensure the BytesIO gets cleaned up, we need to alias its close
@@ -122,7 +121,7 @@ class FTPAdapter(BaseAdapter):
         return response
 
     def stor(self, path, request):
-        '''Executes the FTP STOR command on the given path.'''
+        """Executes the FTP STOR command on the given path."""
 
         # First, get the file handle. We assume (bravely)
         # that there is only one file to be sent to a given URL. We also
@@ -146,7 +145,7 @@ class FTPAdapter(BaseAdapter):
         return response
 
     def nlst(self, path, request):
-        '''Executes the FTP NLST command on the given path.'''
+        """Executes the FTP NLST command on the given path."""
         data = StringIO()
 
         # Alias the close method.
@@ -164,10 +163,10 @@ class FTPAdapter(BaseAdapter):
         return response
 
     def get_username_password_from_header(self, request):
-        '''Given a PreparedRequest object, reverse the process of adding HTTP
+        """Given a PreparedRequest object, reverse the process of adding HTTP
         Basic auth to obtain the username and password. Allows the FTP adapter
         to piggyback on the basic auth notation without changing the control
-        flow.'''
+        flow."""
         auth_header = request.headers.get('Authorization')
 
         if auth_header:
@@ -193,11 +192,10 @@ class FTPAdapter(BaseAdapter):
             return None
 
     def get_host_and_path_from_url(self, request):
-        '''Given a PreparedRequest object, split the URL in such a manner as to
+        """Given a PreparedRequest object, split the URL in such a manner as to
         determine the host and the path. This is a separate method to wrap some
-        of urlparse's craziness.'''
+        of urlparse's craziness."""
         url = request.url
-        # scheme, netloc, path, params, query, fragment = urlparse(url)
         parsed = urlparse(url)
         path = parsed.path
 
@@ -212,9 +210,9 @@ class FTPAdapter(BaseAdapter):
 
 
 def data_callback_factory(variable):
-    '''Returns a callback suitable for use by the FTP library. This callback
+    """Returns a callback suitable for use by the FTP library. This callback
     will repeatedly save data into the variable provided to this function. This
-    variable should be a file-like structure.'''
+    variable should be a file-like structure."""
     def callback(data):
         variable.write(data)
         return
@@ -223,18 +221,18 @@ def data_callback_factory(variable):
 
 
 def build_text_response(request, data, code):
-    '''Build a response for textual data.'''
+    """Build a response for textual data."""
     return build_response(request, data, code, 'ascii')
 
 
 def build_binary_response(request, data, code):
-    '''Build a response for data whose encoding is unknown.'''
+    """Build a response for data whose encoding is unknown."""
     return build_response(request, data, code,  None)
 
 
 def build_response(request, data, code, encoding):
-    '''Builds a response object from the data returned by ftplib, using the
-    specified encoding.'''
+    """Builds a response object from the data returned by ftplib, using the
+    specified encoding."""
     response = Response()
 
     response.encoding = encoding
@@ -254,8 +252,8 @@ def build_response(request, data, code, encoding):
 
 
 def parse_multipart_files(request):
-    '''Given a prepared reqest, return a file-like object containing the
-    original data. This is pretty hacky.'''
+    """Given a prepared reqest, return a file-like object containing the
+    original data. This is pretty hacky."""
     # Start by grabbing the pdict.
     _, pdict = cgi.parse_header(request.headers['Content-Type'])
 

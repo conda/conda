@@ -6,8 +6,8 @@ import os
 from os.path import basename, dirname, join, split, splitext
 import re
 
-from conda import CondaError
 from .compat import on_win, string_types
+from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 
 try:
@@ -216,8 +216,10 @@ def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
 
 
 def is_private_env(env):
-    if env is not None and env.startswith("_") and env.endswith("_"):
-        return True
+    if env is not None:
+        env_name = basename(env)
+        if env_name.startswith("_") and env_name.endswith("_"):
+            return True
     return False
 
 
@@ -239,10 +241,3 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path.replace('python-scripts', bin_dir, 1)
     else:
         return source_short_path
-
-
-def safe_basename(value):
-    # basename that should be safe regardless of OS
-    match = re.search(r'[/\\]((?:\\ |[^ \n\r\t\\/])+)$', value.rstrip('\\/'))
-    if match:
-        return match.groups()[0]

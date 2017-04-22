@@ -6,6 +6,7 @@ from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 
+from ..exceptions import CondaDependencyError
 from ..base.constants import UNKNOWN_CHANNEL
 from ..common.compat import itervalues, odict
 from ..gateways.disk.delete import rm_rf
@@ -30,6 +31,7 @@ def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
     meta_file = join(prefix, 'conda-meta', dist_name + '.json')
     if rec is None:
         try:
+            log.trace("loading linked data for %s", meta_file)
             with open(meta_file) as fi:
                 rec = json.load(fi)
         except IOError:
@@ -143,6 +145,6 @@ def get_python_version_for_prefix(prefix):
         return None
     next_record = next(py_record_iter, None)
     if next_record is not None:
-        raise RuntimeError("multiple python records found in prefix %s" % prefix)
+        raise CondaDependencyError("multiple python records found in prefix %s" % prefix)
     else:
         return record.version[:3]

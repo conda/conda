@@ -1,16 +1,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
-import hashlib
+from collections import Hashable
+from functools import partial
 import logging
+from os.path import dirname
 import re
 import sys
 import threading
-from functools import partial
-from os.path import dirname
 
 from .common.compat import on_win
 from .common.url import path_to_url
+from .gateways.disk.read import compute_md5sum
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class memoized(object):
         for arg in args:
             if isinstance(arg, list):
                 newargs.append(tuple(arg))
-            elif not isinstance(arg, collections.Hashable):
+            elif not isinstance(arg, Hashable):
                 # uncacheable. a list, for instance.
                 # better to not cache than blow up.
                 return self.func(*args, **kw)
@@ -69,42 +69,6 @@ class memoize(object):  # 577452
         except KeyError:
             res = cache[key] = self.func(*args, **kw)
         return res
-
-@memoized
-def gnu_get_libc_version():
-    """
-    If on linux, get installed version of glibc, otherwise return None
-    """
-
-    if not sys.platform.startswith('linux'):
-        return None
-
-    from ctypes import CDLL, cdll, c_char_p
-
-    cdll.LoadLibrary('libc.so.6')
-    libc = CDLL('libc.so.6')
-    f = libc.gnu_get_libc_version
-    f.restype = c_char_p
-
-    result = f()
-    if hasattr(result, 'decode'):
-        result = result.decode('utf-8')
-    return result
-
-
-def hashsum_file(path, mode='md5'):
-    h = hashlib.new(mode)
-    with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def md5_file(path):
-    return hashsum_file(path, 'md5')
 
 
 def path_identity(path):
@@ -298,6 +262,20 @@ else:
 
 # put back because of conda build
 urlpath = url_path = path_to_url
+md5_file = compute_md5sum
+
+import hashlib  # NOQA
+
+
+def hashsum_file(path, mode='md5'):
+    h = hashlib.new(mode)
+    with open(path, 'rb') as fi:
+        while True:
+            chunk = fi.read(262144)  # process chunks of 256KB
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 @memoized
