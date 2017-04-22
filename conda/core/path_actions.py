@@ -20,7 +20,7 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
                            win_path_ok)
-from ..common.url import path_to_url, unquote_plus
+from ..common.url import path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
                                     create_private_envs_meta, create_private_pkg_entry_point,
@@ -738,7 +738,7 @@ class CacheUrlAction(PathAction):
                 backoff_rename(self.target_full_path, self.hold_path, force=True)
 
         if self.url.startswith('file:/'):
-            source_path = unquote_plus(url_to_path(self.url))
+            source_path = unquote(url_to_path(self.url))
             if dirname(source_path) in context.pkgs_dirs:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)
