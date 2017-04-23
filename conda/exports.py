@@ -30,6 +30,9 @@ PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  inpu
 from .gateways.connection import CondaSession  # NOQA
 CondaSession = CondaSession
 
+from .common.toposort import _toposort
+_toposort = _toposort
+
 from .gateways.disk.link import lchmod  # NOQA
 lchmod = lchmod
 
