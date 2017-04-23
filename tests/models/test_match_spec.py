@@ -178,6 +178,13 @@ class MatchSpecTests(unittest.TestCase):
         assert MatchSpec('test* 1.2').strictness == 3
         assert MatchSpec('foo', build_number=2).strictness == 3
 
+    def test_build_number_and_filename(self):
+        ms = MatchSpec('zlib 1.2.7 0')
+        assert ms.exact_field('name') == 'zlib'
+        assert ms.exact_field('version') == '1.2.7'
+        assert ms.exact_field('build') == '0'
+        assert ms.to_filename() == 'zlib-1.2.7-0.tar.bz2'
+
     def test_features(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')

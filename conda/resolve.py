@@ -586,13 +586,16 @@ class Resolve(object):
              return the filenames of those (not thier dependencies)
           C. None in all other cases
         """
+        def add_defaults_if_no_channel(string):
+            return 'defaults::' + string if '::' not in string else string
+
         specs = list(map(MatchSpec, specs))
         if len(specs) == 1:
             ms = MatchSpec(specs[0])
             fn = ms.to_filename()
             if fn is None:
                 return None
-            fkey = Dist(fn)
+            fkey = Dist(add_defaults_if_no_channel(fn))
             if fkey not in self.index:
                 return None
             res = [ms2.to_filename() for ms2 in self.ms_depends(fkey)]
@@ -602,7 +605,7 @@ class Resolve(object):
 
         if None in res:
             return None
-        res = [Dist(f) for f in sorted(res)]
+        res = [Dist(add_defaults_if_no_channel(f)) for f in sorted(res)]
         log.debug('explicit(%r) finished', specs)
         return res
 

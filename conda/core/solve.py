@@ -12,6 +12,7 @@ from .index import _supplement_index_with_prefix
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import linked_data
 from .._vendor.boltons.setutils import IndexedSet
+from ..base.constants import UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, odict, text_type
 from ..common.path import ensure_pad
@@ -99,8 +100,15 @@ def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
 
     # this effectively pins packages to channels on first use
     #  might not ultimately be the desired behavior
-    requested_specs_from_history = tuple((MatchSpec(s, schannel=d.channel) if d else s)
-                                         for s, d in user_requested_specs_and_dists)
+    user_requested_specs_and_schannels = (
+        (s, (d and d.channel or UNKNOWN_CHANNEL))
+        for s, d in user_requested_specs_and_dists
+    )
+    requested_specs_from_history = tuple(
+        (MatchSpec(s, schannel=schannel) if schannel != UNKNOWN_CHANNEL else s)
+        for s, schannel in user_requested_specs_and_schannels
+        if not s.name.endswith('@')  # no clue
+    )
 
     # # don't pin packages to channels on first use, in lieu of above code block
     # user_requested_specs = tuple(map(itemgetter(0), user_requested_specs_and_dists))
@@ -114,7 +122,7 @@ def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
         specs_map.pop('conda', None)
         specs_map.pop('conda-env', None)
 
-    return itervalues(specs_map)
+    return tuple(s for s in itervalues(specs_map))
 
 
 def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):

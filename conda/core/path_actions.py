@@ -42,7 +42,6 @@ except ImportError:  # pragma: no cover
 
 log = getLogger(__name__)
 
-
 REPR_IGNORE_KWARGS = (
     'transaction_context',
     'package_info',
@@ -269,7 +268,7 @@ class LinkPathAction(CreateInPrefixPathAction):
             # with max_retries = 2, max total time ~= 0.4 sec
             # with max_retries = 6, max total time ~= 6.5 sec
             count = self.transaction_context.get('_verify_backoff_count', 0)
-            max_retries = 2 if count < 2 else 6
+            max_retries = 6 if count < 2 else 2
             for n in range(max_retries):
                 sleep_time = ((2 ** n) + random()) * 0.1
                 log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)
@@ -905,7 +904,6 @@ class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):
 # ######################################################
 #  Fetch / Extract Actions
 # ######################################################
-
 
 class CacheUrlAction(PathAction):
 
