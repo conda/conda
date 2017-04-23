@@ -270,13 +270,15 @@ class Resolve(object):
             # Perform the same filtering steps on any dependencies shared across
             # *all* packages in the group. Even if just one of the packages does
             # not have a particular dependency, it must be ignored in this pass.
+            # Otherwise, we might do more filtering than we should---and it is
+            # better to have extra packages here than missing ones.
             if reduced or name not in snames:
                 snames.add(name)
                 cdeps = {}
                 for fkey in group:
                     if filter.get(fkey, True):
                         for m2 in self.ms_depends(fkey):
-                            if m2.name[0] != '@' and not m2.optional:
+                            if m2.exact_field('name') and not m2.optional:
                                 cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
                     if len(deps) >= nnew:
@@ -321,7 +323,15 @@ class Resolve(object):
                 if reduced_index.get(dist) is None and self.valid(dist, filter):
                     reduced_index[dist] = self.index[dist]
                     for ms in self.ms_depends(dist):
-                        if ms.name[0] != '@':
+                        # We do not pull packages into the reduced index due
+                        # to a track_features dependency. Remember, a feature
+                        # specifies a "soft" dependency: it must be in the
+                        # environment, but it is not _pulled_ in. The SAT
+                        # logic doesn't do a perfect job of capturing this
+                        # behavior, but keeping these packags out of the
+                        # reduced index helps. Of course, if _another_
+                        # package pulls it in by dependency, that's fine.
+                        if 'track_features' not in ms:
                             slist.append(ms)
         return reduced_index
 
@@ -339,22 +349,24 @@ class Resolve(object):
         assert isinstance(ms, MatchSpec)
         res = self.find_matches_.get(ms, None)
         if res is None:
-            if ms.name[0] == '@':
-                res = self.trackers.get(ms.name[1:], [])
-            else:
+            if ms.exact_field('name'):
                 res = self.groups.get(ms.name, [])
-                res = [p for p in res if self.match(ms, p)]
+            elif ms.exact_field('track_features'):
+                res = self.trackers.get(ms.exact_field('track_features'))
+            else:
+                res = self.index.keys()
+            res = [p for p in res if self.match(ms, p)]
             assert all(isinstance(d, Dist) for d in res)
             self.find_matches_[ms] = res
         return res
 
     def ms_depends(self, dist):
         # type: (Dist) -> List[MatchSpec]
-        deps = self.ms_depends_.get(dist, None)
+        deps = self.ms_depends_.get(dist)
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
-            deps.extend(MatchSpec('@'+feat) for feat in self.features(dist))
+            deps.extend(MatchSpec(track_features=feat) for feat in self.features(dist))
             self.ms_depends_[dist] = deps
         return deps
 
@@ -428,20 +440,30 @@ class Resolve(object):
         m = C.from_name(name)
         if m is not None:
             return name
-        tgroup = libs = (self.trackers.get(ms.name[1:], []) if ms.name[0] == '@'
-                         else self.groups.get(ms.name, []))
-        if not ms.is_simple():
+        simple = ms.is_single()
+        nm = ms.exact_field('name')
+        tf = ms.exact_field('track_features')
+        if nm:
+            tgroup = libs = self.groups.get(nm, [])
+        elif tf:
+            tgroup = libs = self.trackers.get(tf, [])
+        else:
+            tgroup = libs = self.index.keys()
+            simple = False
+        if not simple:
             libs = [fkey for fkey in tgroup if self.match(ms, fkey)]
         if len(libs) == len(tgroup):
             if ms.optional:
                 m = True
-            elif not ms.is_simple():
-                m = C.from_name(self.push_MatchSpec(C, ms.name))
+            elif not simple:
+                ms2 = MatchSpec(track_features=tf) if tf else nm
+                m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
-            libs = [dist.full_name for dist in libs]
+            dists = [dist.full_name for dist in libs]
             if ms.optional:
-                libs.append('!@s@'+ms.name)
-            m = C.Any(libs)
+                ms2 = MatchSpec(track_features=tf) if tf else nm
+                dists.append('!' + self.ms_to_v(ms2))
+            m = C.Any(dists)
         C.name_var(m, name)
         return name
 
@@ -469,7 +491,8 @@ class Resolve(object):
         return [(self.push_MatchSpec(C, ms),) for ms in specs]
 
     def generate_feature_count(self, C):
-        return {self.push_MatchSpec(C, '@'+name): 1 for name in iterkeys(self.trackers)}
+        return {self.push_MatchSpec(C, MatchSpec(track_features=name)): 1
+                for name in iterkeys(self.trackers)}
 
     def generate_update_count(self, C, specs):
         return {'!'+ms.target: 1 for ms in specs if ms.target and C.from_name(ms.target)}
@@ -666,11 +689,23 @@ class Resolve(object):
         return pkgs
 
     def remove_specs(self, specs, installed):
-        # Adding ' @ @' to the MatchSpec forces its removal
-        specs = [s if ' ' in s else s + ' @ @' for s in specs]
-        specs = [MatchSpec(s, optional=True) for s in specs]
-        snames = {s.name for s in specs}
-        limit, _ = self.bad_installed(installed, specs)
+        nspecs = []
+        snames = set()
+        # There's an imperfect thing happening here. "specs" nominally contains
+        # a list of package names or track_feature values to be removed. But
+        # because of add_defaults_to_specs it may also contain version contraints
+        # like "python 2.7*", which are *not* asking for python to be removed.
+        # We need to separate these two kinds of specs here.
+        for s in map(MatchSpec, specs):
+            # Since '@' is an illegal version number, this ensures that all of
+            # these matches will never match an actual package. Combined with
+            # optional=True, this has the effect of forcing their removal.
+            if s.is_single():
+                nspecs.append(MatchSpec(s, version='@', optional=True))
+            else:
+                nspecs.append(MatchSpec(s, optional=True))
+        snames = set(s.name for s in nspecs if s.name)
+        limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
         for dist in installed:
             nm, ver, build, schannel = self.package_quad(dist)
@@ -679,11 +714,11 @@ class Resolve(object):
             elif limit is not None:
                 preserve.append(dist)
             else:
-                specs.append(MatchSpec(name=nm,
-                                       version='>='+ver if ver else None,
-                                       optional=True,
-                                       target=dist.full_name))
-        return specs, preserve
+                nspecs.append(MatchSpec(name=nm,
+                                        version='>='+ver if ver else None,
+                                        optional=True,
+                                        target=dist.full_name))
+        return nspecs, preserve
 
     def remove(self, specs, installed):
         specs, preserve = self.remove_specs(specs, installed)

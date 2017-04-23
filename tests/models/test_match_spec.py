@@ -8,7 +8,7 @@ from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
 
 
-def DPkg(s):
+def DPkg(s, **kwargs):
     d = Dist(s)
     return IndexRecord(
         fn=d.to_filename(),
@@ -16,7 +16,8 @@ def DPkg(s):
         version=d.version,
         build=d.build_string,
         build_number=int(d.build_string.rsplit('_', 1)[-1]),
-        schannel=d.channel)
+        schannel=d.channel,
+        **kwargs)
 
 
 class MatchSpecTests(unittest.TestCase):
@@ -40,6 +41,8 @@ class MatchSpecTests(unittest.TestCase):
         ]:
             m = MatchSpec(spec)
             assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
+            assert 'name' in m
+            assert m.name == 'python' or 'version' in m
 
         # both version numbers conforming to PEP 440
         assert not MatchSpec('numpy >=1.0.1').match(DPkg('numpy-1.0.1a-0.tar.bz2'))
@@ -174,3 +177,13 @@ class MatchSpecTests(unittest.TestCase):
         # Seems odd, but this is needed for compatibility
         assert MatchSpec('test* 1.2').strictness == 3
         assert MatchSpec('foo', build_number=2).strictness == 3
+
+    def test_features(self):
+        dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
+        a = MatchSpec(features='test')
+        assert a.match(DPkg(dst, features='test'))
+        assert not a.match(DPkg(dst, features='test2'))
+        assert a.match(DPkg(dst, features='test me'))
+        assert a.match(DPkg(dst, features='you test'))
+        assert a.match(DPkg(dst, features='you test me'))
+        assert a.exact_field('features') == 'test'

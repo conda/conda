@@ -15,6 +15,29 @@ from ..common.compat import iteritems, string_types, text_type
 from ..exceptions import CondaValueError
 
 
+class SplitSearch(object):
+    """Implements matching on features or track_features. These strings are actually
+       split by whitespace into sets. We want a string match to be True if it matches
+       any of the elements of this set. However, we also want this to be considered an
+       "exact" match for the purposes of the rest of MatchSpec logic, even though it is
+       possible that there are multiple entries in the set, and only one is matching."""
+    __slots__ = ['exact', 'match']
+
+    def __init__(self, value):
+        self.exact = value  # ensures this is considered an exact match
+        self.match = re.compile(r'(?:^|.* )%s(?:$| )' % value).match
+
+    def __repr__(self):
+        return "'%s'" % self.exact
+
+
+_implementors = {
+    'features': SplitSearch,
+    'track_features': SplitSearch,
+    'version': VersionSpec
+}
+
+
 class MatchSpec(object):
     """
     The easiest way to build `MatchSpec` objects that match to arbitrary fields is to
@@ -82,7 +105,7 @@ class MatchSpec(object):
             def _exact_field(field_name):
                 # duplicated self.exact_field(), but for the local _specs_map
                 v = _specs_map.get(field_name)
-                return None if v is None or hasattr(v, 'match') else v
+                return getattr(v, 'exact', None if hasattr(v, 'match') else v)
 
             if normalize and _exact_field('build') is None:
                 if _exact_field('name') is not None and _exact_field('version') is not None:
@@ -103,6 +126,10 @@ class MatchSpec(object):
                         raise CondaValueError("Invalid MatchSpec: %s" % spec)
                     elif field == 'optional':
                         kwargs.setdefault('optional', bool(value) if eq else True)
+                        if bool(_exact_field('name')) + bool(_exact_field('track_features')) != 1:
+                            raise CondaValueError("Optional MatchSpec must be tied"
+                                                  " to a name or track_feature (and not both): %s"
+                                                  "" % spec)
                     elif field == 'target':
                         kwargs.setdefault('target', value)
                     else:
@@ -159,12 +186,12 @@ class MatchSpec(object):
 
             if hasattr(value, 'match'):
                 pass
+            elif field_name in _implementors:
+                value = _implementors[field_name](value)
             elif not isinstance(value, string_types):
                 pass
             elif value.startswith('^') and value.endswith('$'):
                 value = re.compile(value)
-            elif field_name == 'version':
-                value = VersionSpec(value)
             elif '*' in value:
                 value = re.compile(r'^(?:%s)$' % value.replace('*', r'.*'))
 
@@ -175,13 +202,16 @@ class MatchSpec(object):
 
     def exact_field(self, field_name):
         v = self._specs_map.get(field_name)
-        return None if v is None or hasattr(v, 'match') else v
+        return getattr(v, 'exact', None if hasattr(v, 'match') else v)
 
     def is_exact(self):
         return all(self.exact_field(x) is not None for x in ('fn', 'schannel'))
 
     def is_simple(self):
         return len(self._specs_map) == 1 and self.exact_field('name') is not None
+
+    def is_single(self):
+        return len(self._specs_map) == 1
 
     def match(self, rec):
         """
@@ -251,6 +281,9 @@ class MatchSpec(object):
 
     def __repr__(self):
         return "MatchSpec(%s)" % (self._to_string(args=True, base=False),)
+
+    def __contains__(self, field):
+        return field in self._specs_map
 
     def __str__(self):
         return self._to_string(args=True, base=True)
