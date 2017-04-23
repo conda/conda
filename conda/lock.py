@@ -59,7 +59,8 @@ def _pid_possibly_running(pid):
     operating system.
     """
     if platform.system() == 'Windows':
-        import sys, ctypes
+        import ctypes
+        import sys
         kernel32 = ctypes.windll.kernel32
 
         # TODO: below Vista, PROCESS_QUERY_LIMITED_INFORMATION is not supported:
@@ -167,7 +168,8 @@ class FileLock(object):
         # e.g. if locking path `/conda`, lock file will be `/conda.pidXXXX.conda_lock`
         self.lock_file_glob_str = "%s.pid*.host*.%s" % (self.path_to_lock, LOCK_EXTENSION)
         self.lock_file_regex = re.compile(r"%s\.pid([0-9]+)\.host([\w_]+)\.%s" %
-                                          (re.escape(self.path_to_lock), re.escape(LOCK_EXTENSION)))
+                                          (re.escape(self.path_to_lock),
+                                           re.escape(LOCK_EXTENSION)))
         assert isdir(dirname(self.path_to_lock)), "{0} doesn't exist".format(self.path_to_lock)
         assert "::" not in self.path_to_lock, self.path_to_lock
 
@@ -233,7 +235,8 @@ class DirectoryLock(FileLock):
         # e.g. if locking directory `/conda`, lock file will be `/conda/conda.pidXXXX.conda_lock`
         self.lock_file_glob_str = "%s.pid*.host*.%s" % (lock_path_pre, LOCK_EXTENSION)
         self.lock_file_regex = re.compile(r"%s\.pid([0-9]+)\.host([\w_]+)\.%s" %
-                                          (re.escape(lock_path_pre), re.escape(LOCK_EXTENSION)))
+                                          (re.escape(lock_path_pre),
+                                           re.escape(LOCK_EXTENSION)))
         # make sure '/' exists
         assert isdir(dirname(self.directory_path)), "{0} doesn't exist".format(self.directory_path)
         if not isdir(self.directory_path):
