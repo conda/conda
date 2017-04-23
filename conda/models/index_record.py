@@ -100,7 +100,7 @@ class IndexRecord(DictSafeMixin, Entity):
     size = IntegerField(required=False)
     subdir = StringField(required=False)
     timestamp = IntegerField(required=False)
-    track_features = StringField(required=False)
+    track_features = StringField(default='', required=False)
     version = StringField()
 
     fn = StringField(required=False, nullable=True)

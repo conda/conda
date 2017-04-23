@@ -9,11 +9,11 @@ import warnings
 
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 
+from .connection import CondaSession
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.context import context
-from ..connection import CondaSession
 from ..exceptions import BasicClobberError, CondaHTTPError, MD5MismatchError, maybe_raise
 
 log = getLogger(__name__)

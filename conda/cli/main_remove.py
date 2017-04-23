@@ -145,7 +145,7 @@ def execute(args, parser):
                           prefix=prefix)
     specs = None
     if args.features:
-        specs = ['@' + f for f in set(args.package_names)]
+        specs = [MatchSpec(track_features=f) for f in set(args.package_names)]
         actions = remove_actions(prefix, specs, index, pinned=context.respect_pinned)
         actions['ACTION'] = 'REMOVE_FEATURE'
         action_groups = (actions, index),

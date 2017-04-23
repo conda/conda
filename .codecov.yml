@@ -2,6 +2,9 @@ coverage:
   precision: 2
   round: nearest
   range: 60...100
+  status:
+    patch: off
+    project: off
 
 ignore:
   - conda_env/.*

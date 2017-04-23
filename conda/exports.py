@@ -27,7 +27,7 @@ ArgumentParser = ArgumentParser
 
 from .common.compat import PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
 PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
-from .connection import CondaSession  # NOQA
+from .gateways.connection import CondaSession  # NOQA
 CondaSession = CondaSession
 
 from .gateways.disk.link import lchmod  # NOQA
