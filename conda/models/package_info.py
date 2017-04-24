@@ -26,6 +26,7 @@ class Noarch(Entity):
 class PreferredEnv(Entity):
     name = StringField()
     executable_paths = ListField(string_types, required=False, nullable=True)
+    softlink_paths = ListField(string_types, required=False, nullable=True)
 
 
 class PackageMetadata(Entity):

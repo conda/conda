@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 import json
 from logging import getLogger
-from os.path import dirname, join
+from os.path import dirname, join, splitext
 from random import random
 import re
 from time import sleep
@@ -14,6 +14,7 @@ from .linked_data import delete_linked_data, get_python_version_for_prefix, load
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
+from ..base.constants import PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import iteritems, on_win, range
 from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_directories,
@@ -23,17 +24,20 @@ from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_di
 from ..common.url import path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
-                                    create_hard_link_or_copy, create_link,
-                                    create_python_entry_point, extract_tarball, make_menu,
-                                    write_linked_package_record)
+                                    create_fake_executable_softlink, create_hard_link_or_copy,
+                                    create_link, create_python_entry_point, extract_tarball,
+                                    make_menu, write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+from ..gateways.disk.link import symlink
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
+from ..gateways.disk.test import softlink_supported
 from ..gateways.disk.update import backoff_rename, touch
 from ..gateways.download import download
 from ..history import History
 from ..models.dist import Dist
-from ..models.enums import LinkType, NoarchType, PathType
+from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
 from ..models.index_record import IndexRecord, Link
+from ..models.leased_path_entry import LeasedPathEntry
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -47,6 +51,7 @@ REPR_IGNORE_KWARGS = (
     'package_info',
     'hold_path',
 )
+
 
 @with_metaclass(ABCMeta)
 class PathAction(object):
@@ -170,6 +175,33 @@ class CreateInPrefixPathAction(PrefixPathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
+@with_metaclass(ABCMeta)
+class CreateLeasedPathAction(CreateInPrefixPathAction):
+    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+                 target_prefix, target_short_path):
+        super(CreateLeasedPathAction, self).__init__(transaction_context, package_info,
+                                                     source_prefix, source_short_path,
+                                                     target_prefix, target_short_path)
+        self.leased_path_entry = LeasedPathEntry(
+            _path=target_short_path,
+            target_path=self.source_full_path,
+            target_prefix=source_prefix,
+            leased_path=self.target_full_path,
+            package_name=package_info.index_json_record.name,
+            leased_path_type=self.leased_path_type,
+        )
+        self._execute_successful = False
+
+    def reverse(self):
+        if self._execute_successful:
+            log.trace("reversing leased path creation %s", self.target_full_path)
+            rm_rf(self.target_full_path)
+
+    @abstractproperty
+    def leased_path_type(self):
+        raise NotImplementedError()
+
+
 class LinkPathAction(CreateInPrefixPathAction):
 
     @classmethod
@@ -235,17 +267,6 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_short_path = 'Scripts/conda.exe'
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = "Scripts/%s.exe" % command
-        return cls(transaction_context, package_info, source_directory,
-                   source_short_path, target_prefix, target_short_path,
-                   requested_link_type)
-
-    @classmethod
-    def create_application_entry_point_windows_exe_action(cls, transaction_context, package_info,
-                                                          target_prefix, requested_link_type,
-                                                          exe_path):
-        source_directory = context.conda_prefix
-        source_short_path = 'Scripts/conda.exe'
-        target_short_path = exe_path
         return cls(transaction_context, package_info, source_directory,
                    source_short_path, target_prefix, target_short_path,
                    requested_link_type)
@@ -499,7 +520,38 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
+class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       exe_path):
+        source_directory = context.conda_prefix
+        source_short_path = 'Scripts/conda.exe'
+        target_short_path = exe_path
+        return cls(transaction_context, package_info, source_directory,
+                   source_short_path, target_prefix, target_short_path, requested_link_type)
+
+    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+                 target_prefix, target_short_path, requested_link_type):
+        super(CreateApplicationEntryPointWindowsExeAction, self).__init__(
+            transaction_context, package_info, source_prefix, source_short_path,
+            target_prefix, target_short_path, requested_link_type,
+        )
+        self.leased_path_entry = LeasedPathEntry(
+            _path=target_short_path,
+            target_path=self.source_full_path,
+            target_prefix=source_prefix,
+            leased_path=self.target_full_path,
+            package_name=package_info.index_json_record.name,
+            leased_path_type=self.leased_path_type,
+        )
+
+    @property
+    def leased_path_type(self):
+        return LeasedPathType.application_entry_point_windows_exe
+
+
+class CreateApplicationEntryPointAction(CreateLeasedPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
@@ -522,7 +574,7 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                     yield cls(transaction_context, package_info, target_prefix, exe_path,
                               root_prefix, target_short_path)
 
-                    yield LinkPathAction.create_application_entry_point_windows_exe_action(
+                    yield CreateApplicationEntryPointWindowsExeAction.create_actions(
                         transaction_context, package_info, root_prefix,
                         LinkType.hardlink, exe_path[:-4] + ".exe"
                     )
@@ -537,13 +589,6 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                 )
         else:
             return ()
-
-    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path):
-        super(CreateApplicationEntryPointAction, self).__init__(transaction_context, package_info,
-                                                                source_prefix, source_short_path,
-                                                                target_prefix, target_short_path)
-        self._execute_successful = False
 
     def execute(self):
         log.trace("creating application entry point %s => %s",
@@ -561,10 +606,66 @@ class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
                                        conda_python_full_path)
         self._execute_successful = True
 
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing application entry point creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+    @property
+    def leased_path_type(self):
+        return LeasedPathType.application_entry_point
+
+
+class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+        preferred_env = package_info.repodata_record.preferred_env
+        if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+            softlink_paths = (package_info.package_metadata
+                              and package_info.package_metadata.preferred_env
+                              and package_info.package_metadata.preferred_env.softlink_paths
+                              or ())
+
+            # target_prefix for the instantiated path action is the root prefix, not the same
+            #   as target_prefix for the larger transaction
+            assert is_private_env_path(target_prefix)
+            root_prefix = dirname(dirname(target_prefix))
+            softlink_supported_test_file = join(target_prefix, PREFIX_MAGIC_FILE)
+
+            def make_softlink_exe_axn(softlink_short_path):
+                if on_win and not softlink_supported(softlink_supported_test_file, root_prefix):
+                    root_short_path = splitext(softlink_short_path)[0] + '.bat'
+                    fake_softlink = True
+                else:
+                    root_short_path = softlink_short_path
+                    fake_softlink = False
+                return cls(transaction_context, package_info, target_prefix, softlink_short_path,
+                           root_prefix, root_short_path, fake_softlink)
+
+            return tuple(make_softlink_exe_axn(softlink_short_path)
+                         for softlink_short_path in softlink_paths)
+
+        else:
+            return ()
+
+    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+                 target_prefix, target_short_path, fake_softlink):
+        super(CreateApplicationSoftlinkAction, self).__init__(transaction_context, package_info,
+                                                              source_prefix, source_short_path,
+                                                              target_prefix, target_short_path)
+        self.fake_softlink = fake_softlink
+
+    def execute(self):
+        log.trace("creating application softlink %s => %s",
+                  self.source_full_path, self.target_full_path)
+
+        if self.fake_softlink:
+            create_fake_executable_softlink(self.source_full_path, self.target_full_path)
+        else:
+            symlink(self.source_full_path, self.target_full_path)
+            assert islink(self.target_full_path)
+
+        self._execute_successful = True
+
+    @property
+    def leased_path_type(self):
+        return LeasedPathType.application_softlink
 
 
 class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
@@ -709,9 +810,8 @@ class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
 
         self.envs_dir_state = ed._get_state()
 
-        for leased_path in self.leased_paths:
-            ed.add_leased_path(self.target_prefix, leased_path, self.root_prefix,
-                               self.package_name, 'application_entry_point')
+        for leased_path_entry in self.leased_paths:
+            ed.add_leased_path(leased_path_entry)
 
         ed.add_preferred_env_package(self.env_name, self.package_name, self.conda_meta_path,
                                      self.requested_spec)
@@ -860,7 +960,7 @@ class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):
             ed.get_leased_path_entries_for_package(package_name)
 
             leased_path_entries = ed.get_leased_path_entries_for_package(package_name)
-            leased_paths_to_remove = tuple(lpe["_path"] for lpe in leased_path_entries)
+            leased_paths_to_remove = tuple(lpe._path for lpe in leased_path_entries)
             unlink_leased_path_actions = (UnlinkPathAction(transaction_context, None,
                                                            context.root_prefix, lp)
                                           for lp in leased_paths_to_remove)
