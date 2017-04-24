@@ -21,10 +21,12 @@
 * fix #5022 gnu_get_libc_version => linux_get_libc_version (#5099)
 * fix #4849 package name match bug (#5103)
 * fixes #5102 allow proxy_servers to be of type None (#5107)
+* fix #5111 incorrect typify for str + NoneType (#5112)
 
 ### Non-User-Facing Changes
 * resolve #5012 remove CondaRuntimeError and RuntimeError (#4818)
 * full audit ensuring relative import paths within project (#5090)
+* resolve #5116 refactor conda/cli/activate.py to help menuinst (#4406)
 
 
 ## 4.3.16 (2017-03-30)
