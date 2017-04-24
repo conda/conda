@@ -1,4 +1,4 @@
-## 4.3.17 (unreleased)
+## 4.3.17 (2017-04-24)
 
 ### Improvements
 * fall back to copy if hardlink fails (#5002)
