@@ -6,7 +6,6 @@ from errno import EXDEV
 import json
 from logging import getLogger
 from os.path import dirname, join, splitext
-from os.path import dirname, join
 from random import random
 import re
 from time import sleep
@@ -22,10 +21,6 @@ from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_di
                            get_python_noarch_target_path, get_python_short_path,
                            is_private_env_path, parse_entry_point_def,
                            preferred_env_matches_prefix, pyc_path, url_to_path, win_path_ok)
-from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
-                           get_python_noarch_target_path, get_python_short_path,
-                           parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
-                           win_path_ok)
 from ..common.url import path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,

@@ -1,7 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from contextlib import contextmanager
 from functools import partial
 from os.path import abspath, basename
+import re
 import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION, ROOT_ENV_NAME
@@ -207,7 +209,7 @@ def get_index_trap(*args, **kwargs):
     return get_index(*args, **kwargs)
 
 
-@contextlib.contextmanager
+@contextmanager
 def json_progress_bars(json=False):
     if json:
         from ..console import json_progress_bars
