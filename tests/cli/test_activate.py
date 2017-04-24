@@ -14,6 +14,7 @@ from conda.cli.activate import _get_prefix_paths, binpath_from_arg
 from conda.compat import TemporaryDirectory
 from conda.config import root_dir
 from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.update import touch
 from conda.install import symlink_conda
 from conda.utils import on_win, shells, translate_stream, unix_path_to_win
 from tests.helpers import assert_equals, assert_in, assert_not_in
@@ -29,9 +30,12 @@ def gen_test_env_paths(envs, shell, num_test_folders=5):
     Also encapsulates paths in double quotes.
     """
     paths = [os.path.join(envs, "test {}".format(test_folder+1)) for test_folder in range(num_test_folders)]
-    for path in paths[:2]:      # Create symlinks ONLY for the first two folders.
-        mkdir_p(join(path, 'conda-meta'))
+    for path in paths[:2]:
+        # Create symlinks ONLY for the first two folders.
         symlink_conda(path, sys.prefix, shell)
+    for path in paths:
+        mkdir_p(join(path, 'conda-meta'))
+        touch(join(path, 'conda-meta', 'history'))
     converter = shells[shell]["path_to"]
     paths = [converter(path) for path in paths]
     return paths
