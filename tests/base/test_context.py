@@ -170,7 +170,7 @@ class ContextCustomRcTests(TestCase):
         assert context.proxy_servers['ftp'] is None
         assert context.proxy_servers['sftp'] == ''
         assert context.proxy_servers['ftps'] == 'False'
-        assert context.proxy_servers['rsync'] == 'False'
+        assert context.proxy_servers['rsync'] == 'false'
 
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"

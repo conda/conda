@@ -2,12 +2,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 from os.path import abspath, isdir
-import re
+import re as regex
 import sys
 
 from ..common.compat import on_win
 from ..exceptions import (ArgumentError, CondaSystemExit, CondaValueError, TooFewArgumentsError,
                           TooManyArgumentsError)
+from ..utils import shells
 
 
 def help(command, shell):
@@ -43,12 +44,13 @@ activate' from PATH. """)
         raise CondaSystemExit("No help available for command %s" % sys.argv[1])
 
 
-def prefix_from_arg(arg, shelldict):
+def prefix_from_arg(arg, shell):
+    shelldict = shells[shell] if shell else {}
     from ..base.context import context, locate_prefix_by_name
     'Returns a platform-native path'
     # MSYS2 converts Unix paths to Windows paths with unix seps
     # so we must check for the drive identifier too.
-    if shelldict['sep'] in arg and not re.match('[a-zA-Z]:', arg):
+    if shelldict['sep'] in arg and not regex.match('[a-zA-Z]:', arg):
         # strip is removing " marks, not \ - look carefully
         native_path = shelldict['path_from'](arg)
         if isdir(abspath(native_path.strip("\""))):
@@ -60,23 +62,23 @@ def prefix_from_arg(arg, shelldict):
     return prefix
 
 
-def binpath_from_arg(arg, shelldict):
-    # prefix comes back as platform-native path
-    prefix = prefix_from_arg(arg, shelldict=shelldict)
+def _get_prefix_paths(prefix):
     if on_win:
-        paths = [
-            prefix.rstrip("\\"),
-            os.path.join(prefix, 'Library', 'mingw-w64', 'bin'),
-            os.path.join(prefix, 'Library', 'usr', 'bin'),
-            os.path.join(prefix, 'Library', 'bin'),
-            os.path.join(prefix, 'Scripts'),
-                ]
+        yield prefix.rstrip("\\")
+        yield os.path.join(prefix, 'Library', 'mingw-w64', 'bin')
+        yield os.path.join(prefix, 'Library', 'usr', 'bin')
+        yield os.path.join(prefix, 'Library', 'bin')
+        yield os.path.join(prefix, 'Scripts')
     else:
-        paths = [
-            os.path.join(prefix, 'bin'),
-                ]
+        yield os.path.join(prefix, 'bin')
+
+
+def binpath_from_arg(arg, shell):
+    shelldict = shells[shell] if shell else {}
+    # prefix comes back as platform-native path
+    prefix = prefix_from_arg(arg, shell)
     # convert paths to shell-native paths
-    return [shelldict['path_to'](path) for path in paths]
+    return [shelldict['path_to'](path) for path in _get_prefix_paths(prefix)]
 
 
 def pathlist_to_str(paths, escape_backslashes=True):
@@ -87,25 +89,15 @@ def pathlist_to_str(paths, escape_backslashes=True):
     path = ' and '.join(paths)
     if on_win and escape_backslashes:
         # escape for printing to console - ends up as single \
-        path = re.sub(r'(?<!\\)\\(?!\\)', r'\\\\', path)
+        path = regex.sub(r'(?<!\\)\\(?!\\)', r'\\\\', path)
     else:
         path = path.replace("\\\\", "\\")
     return path
 
 
-def get_activate_path(shelldict):
-    arg_num = len(sys.argv)
-    if arg_num != 4:
-        num_expected = 2
-        if arg_num < 4:
-            raise TooFewArgumentsError(num_expected, arg_num - num_expected,
-                                       "..activate expected exactly two arguments:\
-                                        shell and env name")
-        if arg_num > 4:
-            raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
-                                        "..activate expected exactly two arguments:\
-                                         shell and env name")
-    binpath = binpath_from_arg(sys.argv[3], shelldict=shelldict)
+def get_activate_path(prefix, shell):
+    shelldict = shells[shell] if shell else {}
+    binpath = binpath_from_arg(prefix, shell)
 
     # prepend our new entries onto the existing path and make sure that the separator is native
     path = shelldict['pathsep'].join(binpath)
@@ -114,32 +106,42 @@ def get_activate_path(shelldict):
 
 def main():
     from ..base.constants import ROOT_ENV_NAME
-    from ..utils import shells
     if '-h' in sys.argv or '--help' in sys.argv:
         # all execution paths sys.exit at end.
         help(sys.argv[1], sys.argv[2])
 
     if len(sys.argv) > 2:
         shell = sys.argv[2]
-        shelldict = shells[shell]
     else:
-        shelldict = {}
+        shell = ''
+
+    if regex.match('^..(?:de|)activate$', sys.argv[1]):
+        arg_num = len(sys.argv)
+        if arg_num != 4:
+            num_expected = 2
+            if arg_num < 4:
+                raise TooFewArgumentsError(num_expected, arg_num - num_expected,
+                                           "{} expected exactly two arguments:\
+                                            shell and env name".format(sys.argv[1]))
+            if arg_num > 4:
+                raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
+                                            "{} expected exactly two arguments:\
+                                             shell and env name".format(sys.argv[1]))
 
     if sys.argv[1] == '..activate':
-        print(get_activate_path(shelldict))
+        print(get_activate_path(sys.argv[3], shell))
         sys.exit(0)
 
     elif sys.argv[1] == '..deactivate.path':
-        import re
-        activation_path = get_activate_path(shelldict)
+        activation_path = get_activate_path(sys.argv[3], shell)
 
         if os.getenv('_CONDA_HOLD'):
-            new_path = re.sub(r'%s(:?)' % re.escape(activation_path),
-                              r'CONDA_PATH_PLACEHOLDER\1',
-                              os.environ[str('PATH')], 1)
+            new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path),
+                                 r'CONDA_PATH_PLACEHOLDER\1',
+                                 os.environ[str('PATH')], 1)
         else:
-            new_path = re.sub(r'%s(:?)' % re.escape(activation_path), r'',
-                              os.environ[str('PATH')], 1)
+            new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path), r'',
+                                 os.environ[str('PATH')], 1)
 
         print(new_path)
         sys.exit(0)
@@ -172,6 +174,7 @@ def main():
         #                .format(sys.argv[2]))
         #         raise CondaEnvironmentError(msg)
         #     raise
+
         sys.exit(0)
         # raise CondaSystemExit
     elif sys.argv[1] == '..changeps1':
