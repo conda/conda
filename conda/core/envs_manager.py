@@ -23,7 +23,7 @@ from ..models.leased_path_entry import LeasedPathEntry
 
 try:
     from cytoolz.itertoolz import concatv, groupby
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concatv, groupby
 
 log = getLogger(__name__)
@@ -220,12 +220,6 @@ class EnvsDirectory(object):
         else:
             return join(context.root_prefix, 'envs', ensure_pad(preferred_env, '_'))
 
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.write_to_disk()
-
     # ############################
     # registered envs
     # ############################
@@ -234,7 +228,7 @@ class EnvsDirectory(object):
         if env_name in (None, ROOT_ENV_NAME):
             return self.root_dir
         else:
-            return join(self.envs_dir, ensure_pad(env_name))
+            return join(self.envs_dir, env_name)
 
     def get_registered_env_by_name(self, env_name, default=None):
         if env_name is None:
@@ -323,7 +317,7 @@ class EnvsDirectory(object):
         self.assert_path_not_leased(leased_path_entry._path)
         self._leased_paths.append(leased_path_entry)
 
-    def remove_leased_paths_for_pacakge(self, package_name):
+    def remove_leased_paths_for_package(self, package_name):
         q = 0
         while q < len(self._leased_paths):
             leased_path_entry = self._leased_paths[q]
@@ -363,7 +357,7 @@ class EnvsDirectory(object):
                        if lp['package_name'] == package_name),
                       None)
         self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
-        self.remove_leased_paths_for_pacakge(package_name)
+        self.remove_leased_paths_for_package(package_name)
 
     def get_registered_preferred_env(self, package_name):
         pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
