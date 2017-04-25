@@ -2,7 +2,7 @@
 
 ### New Features
 * constrained, optional dependencies (#4982)
-* conda shell function (#5044)
+* conda shell function (#5044, #5141)
 
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
