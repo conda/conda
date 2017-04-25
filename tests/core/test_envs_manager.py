@@ -14,6 +14,7 @@ from conda.base.context import reset_context, context
 from conda.common.io import env_var
 import pytest
 
+from conda.common.path import ensure_pad
 from conda.core.envs_manager import EnvsDirectory
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -141,3 +142,39 @@ class EnvsManagerUnitTests(TestCase):
 
             assert len(ed.get_leased_path_entries_for_package('alamos')) == 0
             assert ed.get_leased_path_entry('bin/itsamalbec') is None
+
+    def test_preferred_env_packages_too_simple(self):
+        with env_var('CONDA_ROOT_PREFIX', self.prefix, reset_context):
+            envs_dir = join(self.prefix, 'envs')
+            ed = EnvsDirectory(envs_dir)
+            assert ed.is_writable
+
+            preferred_env_name = "monster"
+            package_name = "monster-zero-ultra"
+            env_root = join(self.prefix, 'envs', ensure_pad(preferred_env_name))
+            conda_meta_path = join(env_root, 'conda-meta', "%s-1.2.3-4.json" % package_name)
+            requested_spec = "monster-zero-ultra 1.2.*"
+            ed.add_preferred_env_package(preferred_env_name, package_name, conda_meta_path,
+                                         requested_spec)
+
+            assert ed.get_registered_preferred_env(package_name) == ensure_pad(preferred_env_name)
+            assert len(ed.get_registered_packages()) == 1
+
+            assert ed.get_registered_packages_keyed_on_env_name() == {
+                ensure_pad(preferred_env_name): [{
+                    'package_name': package_name,
+                    'conda_meta_path': conda_meta_path,
+                    'preferred_env_name': ensure_pad(preferred_env_name),
+                    'requested_spec': requested_spec,
+                }],
+            }
+
+            assert ed.get_private_env_prefix(package_name) == env_root
+
+            assert ed.get_preferred_env_package_entry(package_name) == {
+                    'package_name': package_name,
+                    'conda_meta_path': conda_meta_path,
+                    'preferred_env_name': ensure_pad(preferred_env_name),
+                    'requested_spec': requested_spec,
+                }
+

@@ -631,10 +631,10 @@ class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
             softlink_supported_test_file = join(target_prefix, PREFIX_MAGIC_FILE)
 
             def make_softlink_exe_axn(softlink_short_path):
-                if not on_win:
+                if not on_win:  # pragma: win no cover
                     root_short_path = softlink_short_path
                     softlink_method = 'softlink'
-                else:
+                else:  # pragma: unix no cover
                     windows_pathext = os.getenv('PATHEXT', '').lower().split(';')
                     path_root, path_ext = splitext(softlink_short_path)
 
@@ -674,10 +674,10 @@ class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
         symlink(self.source_full_path, self.target_full_path)
         assert islink(self.target_full_path)
 
-    def fake_exe_softlink(self):
+    def fake_exe_softlink(self):  # pragma: unix no cover
         create_fake_executable_softlink(self.source_full_path, self.target_full_path)
 
-    def softlink_or_fail_ok(self):
+    def softlink_or_fail_ok(self):  # pragma: unix no cover
         try:
             symlink(self.source_full_path, self.target_full_path)
         except (IOError, OSError) as e:
