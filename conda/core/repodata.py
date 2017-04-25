@@ -420,6 +420,12 @@ def fetch_repodata(url, schannel, priority,
     else:
         mod_etag_headers = read_mod_and_etag(cache_path)
 
+        if use_cache:
+            log.debug("Using cached repodata for %s at %s because use_cache=True",
+                      url, cache_path)
+            return read_local_repodata(cache_path, url, schannel, priority,
+                                       mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod'))
+
         if context.local_repodata_ttl > 1:
             max_age = context.local_repodata_ttl
         elif context.local_repodata_ttl == 1:
