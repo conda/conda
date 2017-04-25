@@ -8,13 +8,14 @@
 * filter out unwritable package caches from conda clean command (#4620)
 * envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094)
 * make python entry point format match pip entry points (#5010)
-* resolve #5133 clean up CLI imports to improve process startup time (#4799)
+* resolve #5113 clean up CLI imports to improve process startup time (#4799)
 * resolve #5121 add features/track_features support for MatchSpec (#5054)
 * resolve #4671 hold verify backoff count in transaction context (#5122)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
 * resolve #5123 export toposort (#5124)
+* fix #5132 signal handler can only be used in main thread (#5133)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
