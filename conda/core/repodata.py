@@ -413,7 +413,7 @@ def fetch_repodata(url, schannel, priority,
         mtime = getmtime(cache_path)
     except (IOError, OSError):
         log.debug("No local cache found for %s at %s", url, cache_path)
-        if use_cache:
+        if context.offline or use_cache:
             return {'packages': {}}
         else:
             mod_etag_headers = {}
