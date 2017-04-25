@@ -360,10 +360,11 @@ class PathActionsTests(TestCase):
 
             axn = axns[0]
             assert axn.target_full_path == target_full_path_1
-            assert axn.softlink_method == "softlink_or_fail_ok"
+            assert axn.softlink_method in ("softlink", "softlink_or_fail_ok")
             axn.verify()
             axn.execute()
-            if islink(axn.target_full_path):
+            if axn.softlink_method == "softlink":
+                assert islink(axn.target_full_path)
                 assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"red"
             axn.reverse()
             assert not lexists(axn.target_full_path)
