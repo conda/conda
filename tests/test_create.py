@@ -912,6 +912,25 @@ class IntegrationTests(TestCase):
                 mock_method.side_effect = side_effect
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
+    def test_offline_with_empty_index_cache(self):
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        with make_temp_env(prefix=prefix):
+            # Clear the index cache.
+            index_cache_dir = create_cache_dir()
+            run_command(Commands.CLEAN, '', "--index-cache")
+            assert not exists(index_cache_dir)
+
+            # Then attempt to install a package with --offline. Make sure
+            # that a) it fails because neither the package tarball nor the repodata
+            # cache should be available locally and b) we don't try to download
+            # the repodata.
+            from conda.connection import CondaSession
+            with patch.object(CondaSession, 'get', autospec=True) as mock_method:
+                mock_method.side_effect = AssertionError('Attempt to fetch repodata')
+                with pytest.raises(PackageNotFoundError):
+                    run_command(Commands.INSTALL, prefix, "flask", "--json", "--offline")
+                assert not mock_method.called
+
     def test_clean_tarballs_and_packages(self):
         pkgs_dir = PackageCache.first_writable().pkgs_dir
         mkdir_p(pkgs_dir)
