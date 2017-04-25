@@ -5,7 +5,7 @@ from os.path import abspath, isdir
 import re as regex
 import sys
 
-from ..common.compat import on_win
+from ..common.compat import on_win, text_type
 from ..exceptions import (ArgumentError, CondaSystemExit, CondaValueError, TooFewArgumentsError,
                           TooManyArgumentsError)
 from ..utils import shells
@@ -156,12 +156,12 @@ def main():
             sys.exit(0)
             # raise CondaSystemExit
 
-        # # this should throw an error and exit if the env or path can't be found.
-        # try:
-        #     prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
-        # except ValueError as e:
-        #     raise CondaValueError(text_type(e))
-        #
+        # this should throw an error and exit if the env or path can't be found.
+        try:
+            prefix_from_arg(sys.argv[3], shell)
+        except ValueError as e:
+            raise CondaValueError(text_type(e))
+
         # # Make sure an env always has the conda symlink
         # try:
         #     from conda.base.context import context
