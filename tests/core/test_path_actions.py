@@ -323,4 +323,45 @@ class PathActionsTests(TestCase):
             axn.reverse()
             assert not islink(axn.target_full_path)
 
+    @pytest.mark.skipif(not on_win, reason="windows-only test")
+    def test_CreateApplicationSoftlinkAction_basic_symlink_windows(self):
+        source_prefix = join(self.prefix, 'envs', '_green_')
+
+        test_file_1 = make_test_file(join(source_prefix, 'Scripts'), suffix='', contents='echo red')
+        test_file_1 = test_file_1[len(source_prefix)+1:]
+        assert check_output(shlex_split("sh -c '. \"%s\"'" % join(source_prefix, test_file_1))).strip() == b"red"
+
+        test_file_2 = make_test_file(join(source_prefix, 'Scripts'), suffix='.bat', contents='echo blue')
+        test_file_2 = test_file_2[len(source_prefix)+1:]
+
+        # cmd.exe /c "start /wait \"\" %UserProfile%\miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=$install_prefix"
+        assert check_output(shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
+
+        package_info = AttrDict(
+            index_json_record=AttrDict(name="green_package"),
+            repodata_record=AttrDict(preferred_env="green"),
+            package_metadata=AttrDict(
+                preferred_env=AttrDict(
+                    softlink_paths=[
+                        test_file_1,
+                        test_file_2,
+                    ]
+                )
+            ),
+        )
+        target_full_path_1 = join(self.prefix, test_file_1)
+        mkdir_p(join(dirname(target_full_path_1)))
+
+        with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+            axns = CreateApplicationSoftlinkAction.create_actions({}, package_info, source_prefix, None)
+            assert len(axns) == 1
+            axn = axns[0]
+
+            assert axn.target_full_path == target_full_path_1
+            axn.verify()
+            axn.execute()
+            assert islink(axn.target_full_path)
+            assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"yellow"
+            axn.reverse()
+            assert not islink(axn.target_full_path)
 
