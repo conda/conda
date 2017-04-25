@@ -31,9 +31,9 @@ def gen_test_env_paths(envs, shell, num_test_folders=5):
     """
     paths = [os.path.join(envs, "test {}".format(test_folder+1)) for test_folder in range(num_test_folders)]
     for path in paths[:2]:
+        # These tests assume only the first two paths can be activated
         # Create symlinks ONLY for the first two folders.
         symlink_conda(path, sys.prefix, shell)
-    for path in paths:
         mkdir_p(join(path, 'conda-meta'))
         touch(join(path, 'conda-meta', 'history'))
     converter = shells[shell]["path_to"]
@@ -121,26 +121,25 @@ def _format_vars(shell):
         'binpath': shelldict['binpath'],
         'shell_suffix': shelldict['shell_suffix'],
         'syspath': shelldict['path_to'](sys.prefix),
-        'binpath': shelldict['binpath'],
         'command_setup': command_setup,
         'base_path': base_path,
 }
 
 
-@pytest.fixture(scope="module")
-def bash_profile(request):
-    profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
-    if os.path.isfile(profile):
-        os.rename(profile, profile+"_backup")
-    with open(profile, "w") as f:
-        f.write("export PS1=test_ps1\n")
-        f.write("export PROMPT=test_ps1\n")
-    def fin():
-        if os.path.isfile(profile+"_backup"):
-            os.remove(profile)
-            os.rename(profile+"_backup", profile)
-    request.addfinalizer(fin)
-    return request  # provide the fixture value
+# @pytest.fixture(scope="module")
+# def bash_profile(request):
+#     # profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
+#     # if os.path.isfile(profile):
+#     #     os.rename(profile, profile+"_backup")
+#     # with open(profile, "w") as f:
+#     #     f.write("export PS1=test_ps1\n")
+#     #     f.write("export PROMPT=test_ps1\n")
+#     # def fin():
+#     #     if os.path.isfile(profile+"_backup"):
+#     #         os.remove(profile)
+#     #         os.rename(profile+"_backup", profile)
+#     # request.addfinalizer(fin)
+#     return request  # provide the fixture value
 
 
 @pytest.mark.installed
@@ -363,7 +362,7 @@ def test_activate_help(shell):
 
 
 @pytest.mark.installed
-def test_PS1(shell, bash_profile):
+def test_PS1_changeps1(shell):  # , bash_profile
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         # activate changes PS1 correctly
@@ -430,7 +429,7 @@ def test_PS1(shell, bash_profile):
 
 
 @pytest.mark.installed
-def test_PS1_no_changeps1(shell, bash_profile):
+def test_PS1_no_changeps1(shell):  # , bash_profile
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
