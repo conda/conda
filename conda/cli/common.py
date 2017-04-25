@@ -1,12 +1,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import contextlib
+from contextlib import contextmanager
 from functools import partial
 from os.path import abspath, basename
 import re
 import sys
 
-from ..base.constants import ROOT_ENV_NAME, CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSION, ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
@@ -209,7 +209,7 @@ def get_index_trap(*args, **kwargs):
     return get_index(*args, **kwargs)
 
 
-@contextlib.contextmanager
+@contextmanager
 def json_progress_bars(json=False):
     if json:
         from ..console import json_progress_bars

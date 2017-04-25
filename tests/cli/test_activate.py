@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, absolute_import, unicode_literals
-
-import subprocess
-import tempfile
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 from os.path import dirname, join
-import stat
+import subprocess
 import sys
+import tempfile
 
-from datetime import datetime
 import pytest
 
-from conda.compat import TemporaryDirectory, PY2
-from conda.config import root_dir, platform
+from conda.base.context import context
+from conda.cli.activate import _get_prefix_paths, binpath_from_arg
+from conda.compat import TemporaryDirectory
+from conda.config import root_dir
 from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.update import touch
 from conda.install import symlink_conda
-from conda.utils import path_identity, shells, on_win, translate_stream, unix_path_to_win
-from conda.cli.activate import binpath_from_arg
-
+from conda.utils import on_win, shells, translate_stream, unix_path_to_win
 from tests.helpers import assert_equals, assert_in, assert_not_in
-
 
 # ENVS_PREFIX = "envs" if PY2 else "envsßôç"
 ENVS_PREFIX = "envs"
@@ -33,29 +30,32 @@ def gen_test_env_paths(envs, shell, num_test_folders=5):
     Also encapsulates paths in double quotes.
     """
     paths = [os.path.join(envs, "test {}".format(test_folder+1)) for test_folder in range(num_test_folders)]
-    for path in paths[:2]:      # Create symlinks ONLY for the first two folders.
-        mkdir_p(join(path, 'conda-meta'))
+    for path in paths[:2]:
+        # These tests assume only the first two paths can be activated
+        # Create symlinks ONLY for the first two folders.
         symlink_conda(path, sys.prefix, shell)
+        mkdir_p(join(path, 'conda-meta'))
+        touch(join(path, 'conda-meta', 'history'))
     converter = shells[shell]["path_to"]
     paths = [converter(path) for path in paths]
     return paths
 
-def _envpaths(env_root, env_name="", shelldict={}):
+
+def _envpaths(env_root, env_name="", shell=None):
     """Supply the appropriate platform executable folders.  rstrip on root removes
        trailing slash if env_name is empty (the default)
 
     Assumes that any prefix used here exists.  Will not work on prefixes that don't.
     """
-    sep = shelldict['sep']
-    return binpath_from_arg(sep.join([env_root, env_name]), shelldict=shelldict)
+    sep = shells[shell]['sep']
+    return binpath_from_arg(sep.join([env_root, env_name]), shell)
 
 
 PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
 
 # Make sure the subprocess activate calls this python
-syspath = os.pathsep.join(_envpaths(root_dir, shelldict={"path_to": path_identity,
-                                                         "path_from": path_identity,
-                                                         "sep": os.sep}))
+syspath = os.pathsep.join(_get_prefix_paths(context.root_prefix))
+
 
 def make_win_ok(path):
     if on_win:
@@ -121,26 +121,25 @@ def _format_vars(shell):
         'binpath': shelldict['binpath'],
         'shell_suffix': shelldict['shell_suffix'],
         'syspath': shelldict['path_to'](sys.prefix),
-        'binpath': shelldict['binpath'],
         'command_setup': command_setup,
         'base_path': base_path,
 }
 
 
-@pytest.fixture(scope="module")
-def bash_profile(request):
-    profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
-    if os.path.isfile(profile):
-        os.rename(profile, profile+"_backup")
-    with open(profile, "w") as f:
-        f.write("export PS1=test_ps1\n")
-        f.write("export PROMPT=test_ps1\n")
-    def fin():
-        if os.path.isfile(profile+"_backup"):
-            os.remove(profile)
-            os.rename(profile+"_backup", profile)
-    request.addfinalizer(fin)
-    return request  # provide the fixture value
+# @pytest.fixture(scope="module")
+# def bash_profile(request):
+#     # profile=os.path.join(os.path.expanduser("~"), ".bash_profile")
+#     # if os.path.isfile(profile):
+#     #     os.rename(profile, profile+"_backup")
+#     # with open(profile, "w") as f:
+#     #     f.write("export PS1=test_ps1\n")
+#     #     f.write("export PROMPT=test_ps1\n")
+#     # def fin():
+#     #     if os.path.isfile(profile+"_backup"):
+#     #         os.remove(profile)
+#     #         os.rename(profile+"_backup", profile)
+#     # request.addfinalizer(fin)
+#     return request  # provide the fixture value
 
 
 @pytest.mark.installed
@@ -153,8 +152,7 @@ def test_activate_test1(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert not stderr
-        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)),
                  stdout, shell)
 
 
@@ -169,7 +167,7 @@ def test_activate_env_from_env_with_root_activate(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shelldict=shells[shell])), stdout)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shell)), stdout)
 
 
 @pytest.mark.installed
@@ -200,7 +198,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])),stdout)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)),stdout)
 
 
 @pytest.mark.installed
@@ -232,7 +230,7 @@ def test_activate_root_simple(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])), stdout, stderr)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell=shell)), stdout, stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root
@@ -364,7 +362,7 @@ def test_activate_help(shell):
 
 
 @pytest.mark.installed
-def test_PS1(shell, bash_profile):
+def test_PS1_changeps1(shell):  # , bash_profile
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         # activate changes PS1 correctly
@@ -431,7 +429,7 @@ def test_PS1(shell, bash_profile):
 
 
 @pytest.mark.installed
-def test_PS1_no_changeps1(shell, bash_profile):
+def test_PS1_no_changeps1(shell):  # , bash_profile
     """Ensure that people's PS1 remains unchanged if they have that setting in their RC file."""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:

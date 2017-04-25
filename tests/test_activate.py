@@ -3,16 +3,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
+from os.path import join
+import sys
 from unittest import TestCase
 
-from os.path import join
 import pytest
-import sys
-
-from conda.common.compat import on_win, string_types
 
 from conda.activate import Activator
-from conda.base.context import reset_context, context
+from conda.base.context import context, reset_context
+from conda.common.compat import on_win, string_types
 from conda.common.io import env_var
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
@@ -342,6 +341,3 @@ class ActivatorIntegrationTests(TestCase):
     def test_activate_has_extra_env_vars(shell):
         """Test that environment variables in activate.d show up when activated"""
         pass
-
-
-

@@ -203,6 +203,7 @@ class CreateLeasedPathAction(CreateInPrefixPathAction):
 
 
 class LinkPathAction(CreateInPrefixPathAction):
+    _verify_max_backoff_reached = False
 
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
