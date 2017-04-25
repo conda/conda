@@ -144,12 +144,12 @@ class ActivatorUnitTests(TestCase):
                 with env_var('CONDA_PREFIX', ''):
                     activator = Activator('posix')
                     builder = activator.build_activate(td)
-                    new_path = activator.pathsep.join(activator._add_prefix_to_path(td))
+                    new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
 
                     assert builder['unset_vars'] == ()
 
                     set_vars = {
-                        'CONDA_PYTHON_PATH': sys.executable,
+                        'CONDA_PYTHON_EXE': sys.executable,
                         'PATH': new_path,
                         'CONDA_PREFIX': td,
                         'CONDA_SHLVL': 1,
@@ -174,7 +174,7 @@ class ActivatorUnitTests(TestCase):
                 with env_var('CONDA_PREFIX', old_prefix):
                     activator = Activator('posix')
                     builder = activator.build_activate(td)
-                    new_path = activator.pathsep.join(activator._add_prefix_to_path(td))
+                    new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
 
                     assert builder['unset_vars'] == ()
 
@@ -210,7 +210,7 @@ class ActivatorUnitTests(TestCase):
                 with env_var('CONDA_PREFIX', old_prefix):
                     activator = Activator('posix')
                     builder = activator.build_activate(td)
-                    new_path = activator.pathsep.join(activator._add_prefix_to_path(td))
+                    new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
 
                     assert builder['unset_vars'] == ()
 
@@ -276,7 +276,7 @@ class ActivatorUnitTests(TestCase):
 
                         assert builder['unset_vars'] == ('CONDA_PREFIX_1',)
 
-                        new_path = activator.pathsep.join(activator.path_conversion(*original_path))
+                        new_path = activator.pathsep_join(activator.path_conversion(*original_path))
 
                         set_vars = {
                             'PATH': new_path,
@@ -307,11 +307,11 @@ class ActivatorUnitTests(TestCase):
                     assert builder['unset_vars'] == (
                         'CONDA_PREFIX',
                         'CONDA_DEFAULT_ENV',
-                        'CONDA_PYTHON_PATH',
+                        'CONDA_PYTHON_EXE',
                         'CONDA_PROMPT_MODIFIER',
                     )
 
-                    new_path = activator.pathsep.join(activator.path_conversion(*original_path))
+                    new_path = activator.pathsep_join(activator.path_conversion(*original_path))
                     assert builder['set_vars'] == {
                         'PATH': new_path,
                         'CONDA_SHLVL': 0,

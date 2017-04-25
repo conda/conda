@@ -40,13 +40,31 @@ class Activator(object):
         self.context = context
 
         if shell == 'posix':
-            self.pathsep = ':'
+            self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
             self.run_script_tmpl = '. "%s"'
+
+        elif shell == 'csh':
+            self.pathsep_join = ':'.join
+            self.path_conversion = native_path_to_unix
+            self.script_extension = '.csh'
+
+            self.unset_var_tmpl = 'unset %s'
+            self.set_var_tmpl = 'setenv %s "%s"'
+            self.run_script_tmpl = 'source "%s"'
+
+        elif shell == 'xonsh':
+            self.pathsep_join = lambda x: "['%s']" % "', '".join(x)
+            self.path_conversion = lambda x: x  # not sure if you want unix paths on windows or not
+            self.script_extension = '.xsh'
+
+            self.unset_var_tmpl = 'del $%s'
+            self.set_var_tmpl = '$%s = "%s"'
+            self.run_script_tmpl = 'source "%s"'
 
         else:
             raise NotImplementedError()
@@ -105,9 +123,9 @@ class Activator(object):
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
         if old_conda_shlvl == 0:
-            new_path = self.pathsep.join(self._add_prefix_to_path(prefix))
+            new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             set_vars = {
-                'CONDA_PYTHON_PATH': sys.executable,
+                'CONDA_PYTHON_EXE': sys.executable,
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
@@ -116,7 +134,7 @@ class Activator(object):
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 1:
-            new_path = self.pathsep.join(self._add_prefix_to_path(prefix))
+            new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             set_vars = {
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
@@ -127,7 +145,7 @@ class Activator(object):
             }
             deactivate_scripts = ()
         elif old_conda_shlvl == 2:
-            new_path = self.pathsep.join(self._replace_prefix_in_path(old_conda_prefix, prefix))
+            new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
             set_vars = {
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
@@ -154,14 +172,14 @@ class Activator(object):
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
         new_conda_shlvl = old_conda_shlvl - 1
-        new_path = self.pathsep.join(self._remove_prefix_from_path(old_conda_prefix))
+        new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
 
         if old_conda_shlvl == 1:
             # TODO: warn conda floor
             unset_vars = (
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
-                'CONDA_PYTHON_PATH',
+                'CONDA_PYTHON_EXE',
                 'CONDA_PROMPT_MODIFIER',
             )
             set_vars = {
