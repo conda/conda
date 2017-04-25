@@ -195,5 +195,7 @@ To run the tests, set up a testing environment by running
 * ``$CONDA/bin/python -m pip install -r utils/requirements-test.txt``.
 * ``$CONDA/bin/python utils/setup-testing.py develop``
 
-and then running ``py.test`` in the conda directory. The tests are also run by
-various CI systems when you make a pull request.
+and then running ``py.test`` in the conda directory.  You can also run tests using the
+Makefile by running ``make unit``, ``make smoketest`` (a single integration test), or
+``make integration``.  The tests are also run by various CI systems when you make a
+pull request.
