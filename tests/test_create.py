@@ -898,7 +898,7 @@ class IntegrationTests(TestCase):
 
                 mock_method.side_effect = side_effect
                 stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
-                mock_method.assert_called()
+                assert mock_method.called
 
             # Next run with --use-index-cache and make sure it actually hits the cache
             # and does not go out fetching index data remotely.
