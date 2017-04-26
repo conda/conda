@@ -81,12 +81,7 @@ class PathActionsTests(TestCase):
 
     def tearDown(self):
         rm_rf(self.prefix)
-        if not (on_win and PY2):
-            # this assertion fails for the Softlink action windows tests
-            # line 141 in backoff_rmdir
-            #  exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-            # leaves a directory self.prefix\\Scripts that cannot be accessed or removed
-            assert not lexists(self.prefix)
+        assert not lexists(self.prefix)
         rm_rf(self.pkgs_dir)
         assert not lexists(self.pkgs_dir)
 
