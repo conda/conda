@@ -4,12 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from logging import getLogger
 from os import listdir, removedirs, rename, unlink, walk
-from os.path import abspath, dirname, isdir, join, lexists
+from os.path import abspath, dirname, isdir, join
 from shutil import rmtree
 from uuid import uuid4
 
 from . import MAX_TRIES, exp_backoff_fn
-from .link import islink
+from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import on_win, text_type
