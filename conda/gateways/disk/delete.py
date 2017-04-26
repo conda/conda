@@ -174,7 +174,7 @@ else:  # pragma: unix no cover
     # licensed under the CC0 License 1.0 ("Public Domain")
 
     from ctypes import (Structure, byref, WinDLL, c_int, c_ubyte, c_ssize_t, _SimpleCData,
-                        cast, sizeof, WinError)
+                        cast, sizeof, WinError, POINTER as _POINTER)
     from ctypes.wintypes import DWORD, INT, LPWSTR, LONG, WORD, BYTE
     from os import rmdir
     import sys
@@ -232,7 +232,7 @@ else:  # pragma: unix no cover
             super(c_void, self).__init__(value)
 
     def POINTER(obj):
-        ptr = POINTER(obj)
+        ptr = _POINTER(obj)
         # Convert None to a real NULL pointer to work around bugs
         # in how ctypes handles None on 64-bit platforms
         if not isinstance(ptr.from_param, classmethod):
