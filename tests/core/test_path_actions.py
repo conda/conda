@@ -3,23 +3,32 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os.path import basename, isdir, join, lexists, isfile, dirname
+from shlex import split as shlex_split
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
 import sys
 
+from subprocess import check_output
+
+import pytest
+
+from conda.common.io import env_var
+
 from conda import CONDA_PACKAGE_ROOT
 
 from conda._vendor.toolz.itertoolz import groupby
 
 from conda._vendor.auxlib.collection import AttrDict
-from conda.base.context import context
+from conda.base.context import context, reset_context
 
 from conda.common.path import get_python_site_packages_short_path, get_python_noarch_target_path, \
     get_python_short_path, pyc_path, parse_entry_point_def, get_bin_directory_short_path, \
     win_path_ok
-from conda.core.path_actions import LinkPathAction, CompilePycAction, CreatePythonEntryPointAction
+from conda.core.envs_manager import EnvsDirectory
+from conda.core.path_actions import LinkPathAction, CompilePycAction, CreatePythonEntryPointAction, \
+    CreateApplicationSoftlinkAction
 from conda.exceptions import ParseError
 from conda.gateways.disk.create import mkdir_p, create_link
 from conda.gateways.disk.delete import rm_rf
@@ -33,13 +42,13 @@ from conda.common.compat import PY2, on_win
 log = getLogger(__name__)
 
 
-def make_test_file(target_dir, suffix=''):
+def make_test_file(target_dir, suffix='', contents=''):
     if not isdir(target_dir):
         mkdir_p(target_dir)
     fn = str(uuid4())[:8]
     full_path = join(target_dir, fn + suffix)
     with open(full_path, 'w') as fh:
-        fh.write(str(uuid4()))
+        fh.write(contents or str(uuid4()))
     return full_path
 
 
@@ -278,3 +287,81 @@ class PathActionsTests(TestCase):
 
         axn.reverse()
         assert not lexists(axn.target_full_path)
+
+    @pytest.mark.skipif(on_win, reason="unix-only test")
+    def test_CreateApplicationSoftlinkAction_basic_symlink_unix(self):
+        source_prefix = join(self.prefix, 'envs', '_yellow_')
+        test_file = make_test_file(join(source_prefix, 'bin'), suffix='', contents='echo yellow')
+        test_file = test_file[len(source_prefix)+1:]
+
+        assert check_output(shlex_split("sh -c '. \"%s\"'" % join(source_prefix, test_file))).strip() == b"yellow"
+
+        package_info = AttrDict(
+            index_json_record=AttrDict(name="yellow_package"),
+            repodata_record=AttrDict(preferred_env="yellow"),
+            package_metadata=AttrDict(
+                preferred_env=AttrDict(
+                    softlink_paths=[
+                        test_file,
+                    ]
+                )
+            ),
+        )
+        target_full_path = join(self.prefix, test_file)
+        mkdir_p(join(dirname(target_full_path)))
+
+        with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+            axns = CreateApplicationSoftlinkAction.create_actions({}, package_info, source_prefix, None)
+            assert len(axns) == 1
+            axn = axns[0]
+
+            assert axn.target_full_path == target_full_path
+            axn.verify()
+            axn.execute()
+            assert islink(axn.target_full_path)
+            assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"yellow"
+            axn.reverse()
+            assert not islink(axn.target_full_path)
+
+    @pytest.mark.skipif(not on_win, reason="windows-only test")
+    def test_CreateApplicationSoftlinkAction_basic_symlink_windows(self):
+        source_prefix = join(self.prefix, 'envs', '_green_')
+
+        test_file_1 = make_test_file(join(source_prefix, 'Scripts'), suffix='', contents='echo red')
+        test_file_1 = test_file_1[len(source_prefix)+1:]
+        assert check_output(shlex_split("sh -c '. \"%s\"'" % join(source_prefix, test_file_1))).strip() == b"red"
+
+        test_file_2 = make_test_file(join(source_prefix, 'Scripts'), suffix='.bat', contents='echo blue')
+        test_file_2 = test_file_2[len(source_prefix)+1:]
+
+        # cmd.exe /c "start /wait \"\" %UserProfile%\miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=$install_prefix"
+        assert check_output(shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
+
+        package_info = AttrDict(
+            index_json_record=AttrDict(name="green_package"),
+            repodata_record=AttrDict(preferred_env="green"),
+            package_metadata=AttrDict(
+                preferred_env=AttrDict(
+                    softlink_paths=[
+                        test_file_1,
+                        test_file_2,
+                    ]
+                )
+            ),
+        )
+        target_full_path_1 = join(self.prefix, test_file_1)
+        mkdir_p(join(dirname(target_full_path_1)))
+
+        with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+            axns = CreateApplicationSoftlinkAction.create_actions({}, package_info, source_prefix, None)
+            assert len(axns) == 1
+            axn = axns[0]
+
+            assert axn.target_full_path == target_full_path_1
+            axn.verify()
+            axn.execute()
+            assert islink(axn.target_full_path)
+            assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"yellow"
+            axn.reverse()
+            assert not islink(axn.target_full_path)
+

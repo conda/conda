@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 import json
 from logging import getLogger
+import os
 from os.path import dirname, join, splitext
 from random import random
 import re
@@ -630,14 +631,25 @@ class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
             softlink_supported_test_file = join(target_prefix, PREFIX_MAGIC_FILE)
 
             def make_softlink_exe_axn(softlink_short_path):
-                if on_win and not softlink_supported(softlink_supported_test_file, root_prefix):
-                    root_short_path = splitext(softlink_short_path)[0] + '.bat'
-                    fake_softlink = True
-                else:
+                if not on_win:
                     root_short_path = softlink_short_path
-                    fake_softlink = False
+                    softlink_method = 'softlink'
+                else:
+                    windows_pathext = os.getenv('PATHEXT', '').lower().split(';')
+                    path_root, path_ext = splitext(softlink_short_path)
+
+                    if softlink_supported(softlink_supported_test_file, root_prefix):
+                        root_short_path = softlink_short_path
+                        softlink_method = 'softlink'
+                    elif path_ext.lower() in windows_pathext:
+                        root_short_path = splitext(softlink_short_path)[0] + '.bat'
+                        softlink_method = 'fake_exe_softlink'
+                    else:
+                        root_short_path = softlink_short_path
+                        softlink_method = 'softlink_or_fail_ok'
+
                 return cls(transaction_context, package_info, target_prefix, softlink_short_path,
-                           root_prefix, root_short_path, fake_softlink)
+                           root_prefix, root_short_path, softlink_method)
 
             return tuple(make_softlink_exe_axn(softlink_short_path)
                          for softlink_short_path in softlink_paths)
@@ -646,23 +658,30 @@ class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
             return ()
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path, fake_softlink):
+                 target_prefix, target_short_path, softlink_method):
         super(CreateApplicationSoftlinkAction, self).__init__(transaction_context, package_info,
                                                               source_prefix, source_short_path,
                                                               target_prefix, target_short_path)
-        self.fake_softlink = fake_softlink
+        self.softlink_method = softlink_method
 
     def execute(self):
-        log.trace("creating application softlink %s => %s",
-                  self.source_full_path, self.target_full_path)
-
-        if self.fake_softlink:
-            create_fake_executable_softlink(self.source_full_path, self.target_full_path)
-        else:
-            symlink(self.source_full_path, self.target_full_path)
-            assert islink(self.target_full_path)
-
+        log.trace("creating application softlink via %s %s => %s",
+                  self.softlink_method, self.source_full_path, self.target_full_path)
+        getattr(self, self.softlink_method)()
         self._execute_successful = True
+
+    def softlink(self):
+        symlink(self.source_full_path, self.target_full_path)
+        assert islink(self.target_full_path)
+
+    def fake_exe_softlink(self):
+        create_fake_executable_softlink(self.source_full_path, self.target_full_path)
+
+    def softlink_or_fail_ok(self):
+        try:
+            symlink(self.source_full_path, self.target_full_path)
+        except (IOError, OSError) as e:
+            log.trace('%r', e)
 
     @property
     def leased_path_type(self):
