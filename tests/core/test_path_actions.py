@@ -419,8 +419,7 @@ class PathActionsTests(TestCase):
         test_file_2 = make_test_file(join(source_prefix, 'Scripts'), suffix='.bat',
                                      contents='@echo off\necho blue')
         test_file_2 = test_file_2[len(source_prefix) + 1:]
-        assert check_output(
-            shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
+        assert check_output(shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
 
         package_info = AttrDict(
             index_json_record=AttrDict(name="green_package"),
