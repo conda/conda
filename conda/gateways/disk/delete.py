@@ -12,7 +12,7 @@ from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import on_win, text_type
+from ...common.compat import PY2, on_win, text_type
 
 log = getLogger(__name__)
 
