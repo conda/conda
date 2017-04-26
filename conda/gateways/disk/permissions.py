@@ -6,7 +6,7 @@ from itertools import chain
 from logging import getLogger
 from os import X_OK, access, chmod, lstat, walk
 from os.path import isdir, isfile, join
-from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
+from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lchmod

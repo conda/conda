@@ -168,16 +168,21 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
 
 if not (on_win and PY2):
     rmtree = shutil_rmtree
-else:
-    # source is http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/  # NOQA
+else:  # pragma: unix no cover
+    # adapted from http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/  # NOQA
     # revision #3 http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/history/3/  # NOQA
     # licensed under the CC0 License 1.0 ("Public Domain")
 
-    from ctypes import (POINTER, Structure, byref, WinDLL, c_int, c_ubyte, c_ssize_t, _SimpleCData,
+    from ctypes import (Structure, byref, WinDLL, c_int, c_ubyte, c_ssize_t, _SimpleCData,
                         cast, sizeof, WinError)
     from ctypes.wintypes import DWORD, INT, LPWSTR, LONG, WORD, BYTE
     from os import rmdir
     import sys
+
+    if PY2:
+        _long = long  # NOQA
+    else:
+        _long = int
 
     def rmtree(filepath, ignore_errors=False, onerror=None):
         """
@@ -266,7 +271,7 @@ else:
     SE_BACKUP_NAME = 'SeBackupPrivilege'
 
     # SE Privilege Attributes
-    SE_PRIVILEGE_ENABLED = 0x00000002L  # NOQA
+    SE_PRIVILEGE_ENABLED = _long(0x00000002)
 
     # Access
     FILE_ANY_ACCESS = 0
@@ -276,8 +281,8 @@ else:
     FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
 
     # Generic access
-    GENERIC_READ = 0x80000000L  # NOQA
-    GENERIC_WRITE = 0x40000000L  # NOQA
+    GENERIC_READ = _long(0x80000000)  # NOQA
+    GENERIC_WRITE = _long(0x40000000)  # NOQA
     GENERIC_RW = GENERIC_READ | GENERIC_WRITE
 
     # File shared access
@@ -536,7 +541,7 @@ else:
             hFile = open_file(filepath, autoclose=True)
 
         obj = ReparsePoint()
-        result, dwRet = DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, None, 0L, byref(obj),
+        result, dwRet = DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, None, _long(0), byref(obj),
                                         MAX_REPARSE_BUFFER)
         return obj if result else None
 
@@ -548,7 +553,7 @@ else:
             info = ReparsePoint()
             info.ReparseTag = 0
             result, dwRet = DeviceIoControl(hFile, FSCTL_DELETE_REPARSE_POINT, byref(info),
-                                            REPARSE_GUID_DATA_BUFFER_HEADER_SIZE, None, 0L)
+                                            REPARSE_GUID_DATA_BUFFER_HEADER_SIZE, None, _long(0))
 
             if not result:
                 # If the first try fails, we'll set the GUID and try again
@@ -556,7 +561,8 @@ else:
                 info.ReparseTag = buffer.ReparseTag
                 info.ReparseGuid = info.ReparseGuid
                 result, dwRet = DeviceIoControl(hFile, FSCTL_DELETE_REPARSE_POINT, byref(info),
-                                                REPARSE_GUID_DATA_BUFFER_HEADER_SIZE, None, 0L)
+                                                REPARSE_GUID_DATA_BUFFER_HEADER_SIZE, None,
+                                                _long(0))
                 if not result:
                     raise WinError()
 
