@@ -12,7 +12,7 @@ from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import PY2, on_win, text_type
+from ...common.compat import PY2, on_win, text_type, ensure_binary
 
 log = getLogger(__name__)
 
@@ -173,6 +173,8 @@ else:  # pragma: unix no cover
     # revision #3 http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/history/3/  # NOQA
     # licensed under the CC0 License 1.0 ("Public Domain")
 
+    # TODO: this code should probably be unified with the jaraco code in conda.gateways.disk.link
+
     from ctypes import (Structure, byref, WinDLL, c_int, c_ubyte, c_ssize_t, _SimpleCData,
                         cast, sizeof, WinError, POINTER as _POINTER)
     from ctypes.wintypes import DWORD, INT, LPWSTR, LONG, WORD, BYTE
@@ -224,7 +226,7 @@ else:  # pragma: unix no cover
         # c_void_p is a buggy return type, converting to int, so
         # POINTER(None) == c_void_p is actually written as
         # POINTER(c_void), so it can be treated as a real pointer.
-        _fields_ = [('dummy', c_int)]
+        _fields_ = [(ensure_binary('dummy'), c_int)]
 
         def __init__(self, value=None):
             if value is None:
@@ -249,8 +251,8 @@ else:  # pragma: unix no cover
 
     # Globals
     NULL = LPVOID()
-    kernel32 = WinDLL('kernel32')
-    advapi32 = WinDLL('advapi32')
+    kernel32 = WinDLL(ensure_binary('kernel32'))
+    advapi32 = WinDLL(ensure_binary('advapi32'))
     _obtained_privileges = []
 
     # Aliases to functions/classes, and utility lambdas
@@ -267,8 +269,8 @@ else:  # pragma: unix no cover
     TOKEN_ADJUST_PRIVILEGES = 0x0020
 
     # SE Privilege Names
-    SE_RESTORE_NAME = 'SeRestorePrivilege'
-    SE_BACKUP_NAME = 'SeBackupPrivilege'
+    SE_RESTORE_NAME = ensure_binary('SeRestorePrivilege')
+    SE_BACKUP_NAME = ensure_binary('SeBackupPrivilege')
 
     # SE Privilege Attributes
     SE_PRIVILEGE_ENABLED = _long(0x00000002)
@@ -397,24 +399,24 @@ else:  # pragma: unix no cover
     class GUID(Structure):
         """ Borrowed small parts of this from the comtypes module. """
         _fields_ = [
-            ('Data1', DWORD),
-            ('Data2', WORD),
-            ('Data3', WORD),
-            ('Data4', (BYTE * 8)),
+            (ensure_binary('Data1'), DWORD),
+            (ensure_binary('Data2'), WORD),
+            (ensure_binary('Data3'), WORD),
+            (ensure_binary('Data4'), (BYTE * 8)),
         ]
 
     # Ctypes Structures
     class LUID(Structure):
         _fields_ = [
-            ('LowPart', DWORD),
-            ('HighPart', LONG),
+            (ensure_binary('LowPart'), DWORD),
+            (ensure_binary('HighPart'), LONG),
         ]
 
     class LUID_AND_ATTRIBUTES(LUID):
-        _fields_ = [('Attributes', DWORD)]
+        _fields_ = [(ensure_binary('Attributes'), DWORD)]
 
     class GenericReparseBuffer(Structure):
-        _fields_ = [('PathBuffer', UCHAR * MAX_GENERIC_REPARSE_BUFFER)]
+        _fields_ = [(ensure_binary('PathBuffer'), UCHAR * MAX_GENERIC_REPARSE_BUFFER)]
 
     class ReparsePoint(Structure):
         """
@@ -425,11 +427,11 @@ else:  # pragma: unix no cover
         """
 
         _fields_ = [
-            ('ReparseTag', DWORD),
-            ('ReparseDataLength', WORD),
-            ('Reserved', WORD),
-            ('ReparseGuid', GUID),
-            ('Buffer', GenericReparseBuffer)
+            (ensure_binary('ReparseTag'), DWORD),
+            (ensure_binary('ReparseDataLength'), WORD),
+            (ensure_binary('Reserved'), WORD),
+            (ensure_binary('ReparseGuid'), GUID),
+            (ensure_binary('Buffer'), GenericReparseBuffer)
         ]
 
     # Common uses of HANDLE
@@ -499,8 +501,8 @@ else:  # pragma: unix no cover
         class TOKEN_PRIVILEGES(Structure):
             # noinspection PyTypeChecker
             _fields_ = [
-                ('PrivilegeCount', DWORD),
-                ('Privileges', LUID_AND_ATTRIBUTES * privcount),
+                (ensure_binary('PrivilegeCount'), DWORD),
+                (ensure_binary('Privileges'), LUID_AND_ATTRIBUTES * privcount),
             ]
 
         with HANDLE() as hToken:
@@ -513,8 +515,7 @@ else:  # pragma: unix no cover
             for i, privilege in enumerate(privileges):
                 tp.Privileges[i].Attributes = SE_PRIVILEGE_ENABLED
                 if not LookupPrivilegeValue(None, privilege, byref(tp.Privileges[i])):
-                    raise Exception(
-                        'LookupPrivilegeValue failed for privilege: {0}'.format(privilege))
+                    raise Exception('LookupPrivilegeValue failed for privilege: %s' % privilege)
 
             if not AdjustTokenPrivileges(hToken, False, byref(tp), sizeof(TOKEN_PRIVILEGES), None,
                                          None):
