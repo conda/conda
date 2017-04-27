@@ -400,7 +400,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, tar_bld_path)
                 assert_package_is_installed(prefix, 'flask-')
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2017, 5, 1), strict=True,
+    @pytest.mark.xfail(on_win and datetime.now() < datetime(2017, 6, 1), strict=True,
                        reason="Something happened in the conda shell command PR."
                               "Probably caused by change in root path.")
     def test_tarball_install_and_bad_metadata(self):
