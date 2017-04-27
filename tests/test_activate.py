@@ -367,6 +367,61 @@ class ShellWrapperUnitTests(TestCase):
         else:
             assert native_path_to_unix(*paths) == paths
 
+    def test_posix_basic(self):
+        activator = Activator('posix')
+        self.make_dot_d_files(activator.script_extension)
+
+        activate_data = activator.activate(self.prefix)
+
+        new_path = activator.pathsep_join(activator._add_prefix_to_path(self.prefix))
+        assert activate_data == dals("""
+        export CONDA_DEFAULT_ENV="%(prefix)s"
+        export CONDA_PREFIX="%(prefix)s"
+        export CONDA_PROMPT_MODIFIER="(%(prefix)s) "
+        export CONDA_PYTHON_EXE="%(sys_executable)s"
+        export CONDA_SHLVL="1"
+        export PATH = "%(new_path)s"
+        source "%(activate1)s"
+        """) % {
+            'prefix': self.prefix,
+            'new_path': new_path,
+            'sys_executable': sys.executable,
+            'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')
+        }
+
+        with env_var('CONDA_PREFIX', self.prefix):
+            with env_var('CONDA_SHLVL', '1'):
+                with env_var('PATH', new_path):
+                    reactivate_data = activator.reactivate()
+
+                    assert reactivate_data == dals("""
+                    source "%(deactivate1)s"
+                    source "%(activate1)s"
+                    """) % {
+                        'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh'),
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh'),
+                    }
+
+                    deactivate_result = activator.deactivate()
+                    with open(deactivate_result) as fh:
+                        deactivate_data = fh.read()
+                    rm_rf(deactivate_result)
+
+                    new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+                    assert deactivate_data == dals("""
+                    del $CONDA_DEFAULT_ENV
+                    del $CONDA_PREFIX
+                    del $CONDA_PROMPT_MODIFIER
+                    del $CONDA_PYTHON_EXE
+                    $CONDA_SHLVL = "0"
+                    $PATH = "%(new_path)s"
+                    source "%(deactivate1)s"
+                    """) % {
+                        'new_path': new_path,
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh'),
+
+                    }
+
     @pytest.mark.xfail(on_win, strict=True, reason="native_path_to_unix is broken on appveyor; "
                                                    "will fix in future PR")
     def test_xonsh_basic(self):
