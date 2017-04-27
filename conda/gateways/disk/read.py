@@ -11,10 +11,10 @@ from itertools import chain
 import json
 from logging import getLogger
 from os import listdir
-from os.path import isdir, isfile, join, lexists
+from os.path import isdir, isfile, join
 import shlex
 
-from .link import islink
+from .link import islink, lexists
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER

@@ -4,21 +4,40 @@ try:
 except ImportError:
     import mock
 
+import os
 from conda_env.installers import pip
 from conda.exceptions import CondaValueError
 
+
 class PipInstallerTest(unittest.TestCase):
     def test_straight_install(self):
-        with mock.patch.object(pip.subprocess, 'Popen') as popen:
-            popen.return_value.returncode = 0
-            with mock.patch.object(pip, 'pip_args') as pip_args:
-                pip_args.return_value = ['pip']
 
-                pip.install('/some/prefix', ['foo'], '', '')
+        # To check that the correct file would be written
+        written_deps = []
 
-                popen.assert_called_with(['pip', 'install', 'foo'],
-                                         universal_newlines=True)
-                self.assertEqual(1, popen.return_value.communicate.call_count)
+        def log_write(text):
+            written_deps.append(text)
+            return mock.DEFAULT
+
+        with mock.patch.object(pip.subprocess, 'Popen') as mock_popen, \
+                mock.patch.object(pip, 'pip_args') as mock_pip_args, \
+                mock.patch('tempfile.NamedTemporaryFile', mock.mock_open()) as mock_namedtemp:
+            # Mock
+            mock_popen.return_value.returncode = 0
+            mock_pip_args.return_value = ['pip']
+            mock_namedtemp.return_value.write.side_effect = log_write
+            mock_namedtemp.return_value.name = 'tmp-file'
+            args = mock.Mock()
+            root_dir = '/whatever' if os.name != 'nt' else 'C:\\whatever'
+            args.file = os.path.join(root_dir, 'environment.yml')
+            # Run
+            pip.install('/some/prefix', ['foo', '-e ./bar'], args)
+            # Check expectations
+            mock_popen.assert_called_with(['pip', 'install', '-r', 'tmp-file'],
+                                          cwd=root_dir,
+                                          universal_newlines=True)
+            self.assertEqual(1, mock_popen.return_value.communicate.call_count)
+            self.assertEqual(written_deps, ['foo\n-e ./bar'])
 
     def test_stops_on_exception(self):
         with mock.patch.object(pip.subprocess, 'Popen') as popen:
@@ -28,4 +47,4 @@ class PipInstallerTest(unittest.TestCase):
                 pip_args.return_value = ['pip']
 
                 self.assertRaises(CondaValueError, pip.install,
-                                  '/some/prefix', ['foo'], '', '')
+                                  '/some/prefix', ['foo'], None)

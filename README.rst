@@ -7,17 +7,17 @@
 
 ----------------------------------------
 
-.. image:: https://img.shields.io/travis/conda/conda/4.3.x.svg?maxAge=900&label=Linux%20%26%20MacOS
+.. image:: https://img.shields.io/travis/conda/conda/4.4.x.svg?maxAge=900&label=Linux%20%26%20MacOS
     :target: https://travis-ci.org/conda/conda
     :alt: Linux & MacOS tests (Travis)
 
-.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/4.3.x.svg?maxAge=900&label=Windows
+.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/4.4.x.svg?maxAge=900&label=Windows
     :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
     :alt: Windows tests (Appveyor)
 
-.. image:: https://img.shields.io/codecov/c/github/conda/conda/4.3.x.svg?label=coverage
+.. image:: https://img.shields.io/codecov/c/github/conda/conda/4.4.x.svg?label=coverage
    :alt: Codecov Status
-   :target: https://codecov.io/gh/conda/conda/branch/4.3.x
+   :target: https://codecov.io/gh/conda/conda/branch/4.4.x
 
 .. image:: https://img.shields.io/github/release/conda/conda.svg
    :alt: latest release version

@@ -907,6 +907,45 @@ class IntegrationTests(TestCase):
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
+    def test_use_index_cache(self):
+        from conda.connection import CondaSession
+
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        with make_temp_env(prefix=prefix):
+            # First, clear the index cache to make sure we start with an empty cache.
+            index_cache_dir = create_cache_dir()
+            run_command(Commands.CLEAN, '', "--index-cache")
+            assert not glob(join(index_cache_dir, "*.json"))
+
+            # Then, populate the index cache.
+            orig_get = CondaSession.get
+            with patch.object(CondaSession, 'get', autospec=True) as mock_method:
+                def side_effect(self, url, **kwargs):
+                    # Make sure that we don't use the cache because of the
+                    # corresponding HTTP header. This test is supposed to test
+                    # whether the --use-index-cache causes the cache to be used.
+                    result = orig_get(self, url, **kwargs)
+                    for header in ['Etag', 'Last-Modified', 'Cache-Control']:
+                        if header in result.headers:
+                            del result.headers[header]
+                    return result
+
+                mock_method.side_effect = side_effect
+                stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
+                assert mock_method.called
+
+            # Next run with --use-index-cache and make sure it actually hits the cache
+            # and does not go out fetching index data remotely.
+            with patch.object(CondaSession, 'get', autospec=True) as mock_method:
+                def side_effect(self, url, **kwargs):
+                    if url.endswith('/repodata.json') or url.endswith('/repodata.json.bz2'):
+                        raise AssertionError('Index cache was not hit')
+                    else:
+                        return orig_get(self, url, **kwargs)
+
+                mock_method.side_effect = side_effect
+                run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
+
     def test_clean_tarballs_and_packages(self):
         pkgs_dir = PackageCache.first_writable().pkgs_dir
         mkdir_p(pkgs_dir)

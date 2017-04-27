@@ -5,14 +5,14 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import shutil
-import tempfile
 from logging import getLogger
 from os.path import basename, join
+import tempfile
 from warnings import warn
 
 # for conda-build backward compatibility
 from .core.package_cache import download  # NOQA
+
 download = download
 from .core.index import fetch_index  # NOQA
 fetch_index = fetch_index
@@ -47,4 +47,5 @@ class TmpDownload(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.tmp_dir:
-            shutil.rmtree(self.tmp_dir)
+            from .gateways.disk.delete import rmtree
+            rmtree(self.tmp_dir)

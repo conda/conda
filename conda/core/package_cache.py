@@ -410,6 +410,7 @@ class ProgressiveFetchExtract(object):
                 source_full_path=pc_entry_writable_cache.package_tarball_full_path,
                 target_pkgs_dir=pc_entry_writable_cache.pkgs_dir,
                 target_extracted_dirname=pc_entry_writable_cache.dist.dist_name,
+                record=record,
             )
             return None, extract_axn
 
@@ -431,6 +432,7 @@ class ProgressiveFetchExtract(object):
                 source_full_path=cache_axn.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=dist.dist_name,
+                record=record,
             )
             return cache_axn, extract_axn
 
@@ -446,6 +448,7 @@ class ProgressiveFetchExtract(object):
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_extracted_dirname=dist.dist_name,
+            record=record,
         )
         return cache_axn, extract_axn
 

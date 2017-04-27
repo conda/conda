@@ -2,15 +2,18 @@
 
 ### New Features
 * constrained, optional dependencies (#4982)
-* conda shell function (#5044)
+* conda shell function (#5044, #5141)
 
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
-* envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094)
+* envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094, #5145)
 * make python entry point format match pip entry points (#5010)
 * resolve #5113 clean up CLI imports to improve process startup time (#4799)
 * resolve #5121 add features/track_features support for MatchSpec (#5054)
 * resolve #4671 hold verify backoff count in transaction context (#5122)
+* resolve #5078 record package metadata after tarball extraction (#5148)
+* resolve #3580 support stacking environments (#5159)
+* resolve #3763, #4378 allow pip requirements.txt syntax in environment files (#3969)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -24,7 +27,16 @@
 * resolve #5118 organization and cleanup for 4.4 release (#5115)
 
 
-## 4.3.17 (unreleased)
+## 4.3.18 (unreleased)
+
+### Bug Fixes
+* fix --use-index-cache actually hitting the index cache (#5134)
+
+### Non-User-Facing Changes
+* resolve #5138 add test of rm_rf of symlinked files (#4373)
+
+
+## 4.3.17 (2017-04-24)
 
 ### Improvements
 * fall back to copy if hardlink fails (#5002)

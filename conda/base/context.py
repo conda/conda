@@ -91,8 +91,9 @@ class Context(Configuration):
     default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
                                         element_type=string_types + (NoneType,))
     disallow = SequenceParameter(string_types)
-    force_32bit = PrimitiveParameter(False)
     enable_private_envs = PrimitiveParameter(False)
+    force_32bit = PrimitiveParameter(False)
+    max_shlvl = PrimitiveParameter(2)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
     pinned_packages = SequenceParameter(string_types, string_delimiter='/')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
@@ -471,6 +472,7 @@ class Context(Configuration):
             'default_python',
             'enable_private_envs',
             'force_32bit',
+            'max_shlvl',
             'migrated_custom_channels',
             'prune',
             'respect_pinned',
