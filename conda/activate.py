@@ -39,6 +39,7 @@ class Activator(object):
     def __init__(self, shell):
         from .base.context import context
         self.context = context
+        self.shell = shell
 
         if shell == 'posix':
             self.pathsep_join = ':'.join
@@ -78,8 +79,8 @@ class Activator(object):
             return '\n'.join(commands)
         elif ext:
             with NamedTemporaryFile(suffix=ext, delete=False) as tf:
-                tf.write('\n'.join(commands))
-                tf.write('\n')
+                tf.write(ensure_binary('\n'.join(commands)))
+                tf.write(ensure_binary('\n'))
             return tf.name
         else:
             raise NotImplementedError()
@@ -97,10 +98,10 @@ class Activator(object):
                               self.finalizer_extension)
 
     def _yield_commands(self, cmds_dict):
-        for key in cmds_dict.get('unset_vars', ()):
+        for key in sorted(cmds_dict.get('unset_vars', ())):
             yield self.unset_var_tmpl % key
 
-        for key, value in iteritems(cmds_dict.get('set_vars', {})):
+        for key, value in sorted(iteritems(cmds_dict.get('set_vars', {}))):
             yield self.set_var_tmpl % (key, value)
 
         for script in cmds_dict.get('deactivate_scripts', ()):
@@ -320,6 +321,15 @@ def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
+def ensure_binary(value):
+    try:
+        return value.encode('utf-8')
+    except AttributeError:
+        # AttributeError: '<>' object has no attribute 'encode'
+        # In this case assume already binary type and do nothing
+        return value
+
+
 def native_path_to_unix(*paths):
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
@@ -328,9 +338,7 @@ def native_path_to_unix(*paths):
     from shlex import split
     command = 'cygpath.exe --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    joined = ("%s" % os.pathsep).join(paths)
-    if hasattr(joined, 'encode'):
-        joined = joined.encode('utf-8')
+    joined = ensure_binary(("%s" % os.pathsep).join(paths))
     stdout, stderr = p.communicate(input=joined)
     rc = p.returncode
     if rc != 0 or stderr:

@@ -3,10 +3,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import join
+from os.path import join, isdir
 import sys
+from tempfile import gettempdir
 from unittest import TestCase
+from uuid import uuid4
 
+from conda._vendor.auxlib.ish import dals
 import pytest
 
 from conda.activate import Activator
@@ -15,6 +18,7 @@ from conda.common.compat import on_win, string_types
 from conda.common.io import env_var
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
+from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 from tests.helpers import tempdir
 
@@ -318,6 +322,80 @@ class ActivatorUnitTests(TestCase):
                     }
                     assert builder['activate_scripts'] == ()
                     assert builder['deactivate_scripts'] == [deactivate_d_1]
+
+
+class ShellWrapperUnitTests(TestCase):
+
+    def setUp(self):
+        self.environ_save = os.environ.copy()
+        tempdirdir = gettempdir()
+
+        prefix_dirname = str(uuid4())[:4] + ' ' + str(uuid4())[:4]
+        self.prefix = join(tempdirdir, prefix_dirname)
+        mkdir_p(join(self.prefix, 'conda-meta'))
+        assert isdir(self.prefix)
+        touch(join(self.prefix, 'conda-meta', 'history'))
+
+    def tearDown(self):
+        rm_rf(self.prefix)
+        os.environ = self.environ_save
+
+    def make_dot_d_files(self, extension):
+        mkdir_p(join(self.prefix, 'etc', 'conda', 'activate.d'))
+        mkdir_p(join(self.prefix, 'etc', 'conda', 'deactivate.d'))
+
+        touch(join(self.prefix, 'etc', 'conda', 'activate.d', 'ignore.txt'))
+        touch(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'ignore.txt'))
+
+        touch(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1' + extension))
+        touch(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1' + extension))
+
+    def test_xonsh_basic(self):
+        activator = Activator('xonsh')
+        self.make_dot_d_files(activator.script_extension)
+
+        activate_result = activator.activate(self.prefix)
+        with open(activate_result) as fh:
+            activate_data = fh.read()
+        rm_rf(activate_result)
+
+        new_path = activator.pathsep_join(activator._add_prefix_to_path(self.prefix))
+        assert activate_data == dals("""
+        $CONDA_DEFAULT_ENV = "%(prefix)s"
+        $CONDA_PREFIX = "%(prefix)s"
+        $CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+        $CONDA_PYTHON_EXE = "%(sys_executable)s"
+        $CONDA_SHLVL = "1"
+        $PATH = "%(new_path)s"
+        source "%(prefix)s/etc/conda/activate.d/activate1.xsh"
+        """) % {
+            'prefix': self.prefix,
+            'new_path': new_path,
+            'sys_executable': sys.executable,
+        }
+
+        os.environ['CONDA_PREFIX'] = self.prefix
+        os.environ['CONDA_SHLVL'] = '1'
+        os.environ['PATH'] = new_path
+
+        deactivate_result = activator.deactivate()
+        with open(deactivate_result) as fh:
+            deactivate_data = fh.read()
+        rm_rf(deactivate_result)
+
+        new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+        assert deactivate_data == dals("""
+        del $CONDA_DEFAULT_ENV
+        del $CONDA_PREFIX
+        del $CONDA_PROMPT_MODIFIER
+        del $CONDA_PYTHON_EXE
+        $CONDA_SHLVL = "0"
+        $PATH = "%(new_path)s"
+        source "%(prefix)s/etc/conda/deactivate.d/deactivate1.xsh"
+        """) % {
+            'new_path': new_path,
+            'prefix': self.prefix,
+        }
 
 
 @pytest.mark.integration
