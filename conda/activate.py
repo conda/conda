@@ -58,8 +58,8 @@ class Activator(object):
             self.run_script_tmpl = 'source "%s"'
 
         elif shell == 'xonsh':
-            self.pathsep_join = lambda x: "['%s']" % "', '".join(x)
-            self.path_conversion = lambda x: x  # not sure if you want unix paths on windows or not
+            self.pathsep_join = ':'.join
+            self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
 
             self.unset_var_tmpl = 'del $%s'
