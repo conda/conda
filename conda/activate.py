@@ -71,6 +71,16 @@ class Activator(object):
             self.set_var_tmpl = '$%s = "%s"'
             self.run_script_tmpl = 'source "%s"'
 
+        elif shell == 'cmd.exe':
+            self.pathsep_join = ';'.join
+            self.path_conversion = path_identity
+            self.script_extension = '.bat'
+            self.finalizer_extension = '.bat'
+
+            self.unset_var_tmpl = '@SET %s='
+            self.set_var_tmpl = '@SET "%s=%s"'
+            self.run_script_tmpl = '@CALL "%s"'
+
         else:
             raise NotImplementedError()
 
@@ -334,7 +344,7 @@ def ensure_binary(value):
 def native_path_to_unix(*paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
-        return paths[0] if len(paths) == 1 else paths
+        return path_identity(paths)
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
@@ -353,6 +363,10 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
         stdout = stdout.decode('utf-8')
     final = stdout.strip().split(':')
     return final[0] if len(final) == 1 else tuple(final)
+
+
+def path_identity(*paths):
+    return paths[0] if len(paths) == 1 else paths
 
 
 on_win = bool(sys.platform == "win32")
