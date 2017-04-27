@@ -1,18 +1,12 @@
 from __future__ import absolute_import, division, print_function
 
-import ctypes
-from functools import reduce
 from logging import getLogger
-from operator import add
-import os
-from os.path import basename, isdir, isfile, join
-import tarfile
+from os.path import basename, isfile, join
 
 from .base.context import context
-from .common.compat import on_win
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache import ProgressiveFetchExtract
-from .exceptions import CondaFileIOError, CondaIOError
+from .exceptions import CondaFileIOError
 from .gateways.disk.link import islink
 from .models.dist import Dist
 
@@ -113,80 +107,13 @@ def check_files_in_package(source_dir, files):
             raise CondaFileIOError(source_file, "File %s does not exist in tarball" % f)
 
 
-def get_free_space(dir_name):
-    """
-        Return folder/drive free space (in bytes).
-    :param dir_name: the dir name need to check
-    :return: amount of free space
-    """
-    if on_win:
-        free_bytes = ctypes.c_ulonglong(0)
-        ctypes.windll.kernel32.GetDiskFreeSpaceExW(
-            ctypes.c_wchar_p(dir_name), None, None, ctypes.pointer(free_bytes))
-        return free_bytes.value
-    else:
-        st = os.statvfs(dir_name)
-        return st.f_bavail * st.f_frsize
-
-
-def check_size(path, size):
-    """
-        check whether the directory has enough space
-    :param path:    the directory to check
-    :param size:    whether has that size
-    :return:    True or False
-    """
-    free = get_free_space(path)
-    if free < size:
-        raise CondaIOError("Not enough space in {}".format(path))
-
-
-def CHECK_FETCH_CMD(state, fetch_dists):
-    """
-        Check whether there is enough space for download packages
-    :param state: the state of plan
-    :param plan: the plan for the action
-    :return:
-    """
-    if not fetch_dists:
-        return
-
-    prefix = state['prefix']
-    index = state['index']
-    assert isdir(prefix)
-    size = reduce(add, (index[dist].get('size', 0) for dist in fetch_dists), 0)
-    check_size(prefix, size)
-
-
-def CHECK_EXTRACT_CMD(state, package_tarball_paths):
-    """
-        check whether there is enough space for extract packages
-    :param plan: the plan for the action
-    :param state : the state of plan
-    :return:
-    """
-    if not package_tarball_paths:
-        return
-
-    def extracted_size(tarball_path):
-        with tarfile.open(tarball_path) as tar_bz2:
-            return reduce(add, (m.size for m in tar_bz2.getmembers()), 0)
-
-    size = reduce(add, (extracted_size(dist)for dist in package_tarball_paths), 0)
-
-    prefix = state['prefix']
-    assert isdir(prefix)
-    check_size(prefix, size)
-
 
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,
     PRINT: PRINT_CMD,
-    CHECK_FETCH: CHECK_FETCH_CMD,
     FETCH: FETCH_CMD,
     PROGRESS: PROGRESS_CMD,
-    CHECK_EXTRACT: CHECK_EXTRACT_CMD,
     EXTRACT: EXTRACT_CMD,
     RM_EXTRACTED: RM_EXTRACTED_CMD,
     RM_FETCHED: RM_FETCHED_CMD,
@@ -198,10 +125,8 @@ commands = {
 }
 
 
-OP_ORDER = (CHECK_FETCH,
-            RM_FETCHED,
+OP_ORDER = (RM_FETCHED,
             FETCH,
-            CHECK_EXTRACT,
             RM_EXTRACTED,
             EXTRACT,
             UNLINK,
