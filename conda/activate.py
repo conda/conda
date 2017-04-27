@@ -67,7 +67,7 @@ class Activator(object):
             self.finalizer_extension = '.xsh'
 
             self.unset_var_tmpl = 'del $%s'
-            self.set_var_tmpl = '$%s="%s"'
+            self.set_var_tmpl = '$%s = "%s"'
             self.run_script_tmpl = 'source "%s"'
 
         else:
