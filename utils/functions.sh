@@ -120,6 +120,8 @@ install_conda_shell_scripts() {
     local src_dir=${2:-${SRC_DIR:-$PWD}}
     local symlink_scripts=${3:-1}
 
+    local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
+
     local link_cmd
     case "$symlink_scripts" in 0|true) link_cmd="ln -sf";; *) link_cmd="cp";; esac
 
@@ -148,6 +150,11 @@ install_conda_shell_scripts() {
 
         rm -f $bin_dir/deactivate.bat
         $link_cmd "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
+
+        rm -f "$prefix/Library/bin/conda.bat"
+        local win_conda_exe="$(cygpath --windows "$conda_exe")"
+        echo "@SET \"CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
+        cat "$src_dir/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
     fi
 
     mkdir -p "$prefix/etc/fish/conf.d/"

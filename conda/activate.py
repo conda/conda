@@ -144,7 +144,7 @@ class Activator(object):
         if old_conda_prefix == prefix:
             return self.build_reactivate()
         elif os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
-            # in this case, user is attenmpting to activate the previous environment,
+            # in this case, user is attempting to activate the previous environment,
             #  i.e. step back down
             return self.build_deactivate()
 

@@ -14,7 +14,7 @@
 @IF "%1"=="remove" GOTO :DO_DEACTIVATE
 @IF "%1"=="uninstall" GOTO :DO_DEACTIVATE
 
-@GOTO :eof
+@GOTO :End
 
 
 :DO_ACTIVATE
@@ -26,7 +26,7 @@
 @DEL /F /Q "%TEMP_SCRIPT%"
 @SET TEMP_SCRIPT=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
-@GOTO :eof
+@GOTO :End
 
 :DO_DEACTIVATE
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_deactivate
@@ -37,11 +37,15 @@
 @DEL /F /Q "%TEMP_SCRIPT%"
 @SET TEMP_SCRIPT=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
-@GOTO :eof
+@GOTO :End
 
 :DO_REACTIVATE
 @FOR /F "delims=" %%i IN ('@call python -m conda shell.reactivate cmd.exe') DO @SET "TEMP_SCRIPT=%%i"
 @CALL "%TEMP_SCRIPT%"
 @DEL /F /Q "%TEMP_SCRIPT%"
 @SET TEMP_SCRIPT=
+@GOTO :End
+
+:End
+@SET CONDA_EXE=
 @GOTO :eof
