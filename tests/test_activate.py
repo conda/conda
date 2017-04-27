@@ -350,20 +350,22 @@ class ShellWrapperUnitTests(TestCase):
         touch(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1' + extension))
 
     def test_native_path_to_unix(self):
+        def test_a_b(a, b):
+            assert b.lower().endswith(a.lower())
+
         path1 = join(self.prefix, 'path', 'number', 'one')
         path2 = join(self.prefix, 'path', 'two')
         path3 = join(self.prefix, 'three')
         paths = (path1, path2, path3)
 
         if on_win:
-            assert native_path_to_unix(path1).lower() == win_path_to_unix(path1).lower()
+            test_a_b(native_path_to_unix(path1), win_path_to_unix(path1))
         else:
             assert native_path_to_unix(path1) == path1
 
         if on_win:
-            lowered_a = tuple(p.lower() for p in native_path_to_unix(*paths))
-            lowered_b = tuple(win_path_to_unix(p).lower() for p in paths)
-            assert lowered_a == lowered_b
+            for a, b in zip(native_path_to_unix(*paths), (win_path_to_unix(p) for p in paths)):
+                test_a_b(a, b)
         else:
             assert native_path_to_unix(*paths) == paths
 
@@ -419,8 +421,6 @@ class ShellWrapperUnitTests(TestCase):
 
                     }
 
-    @pytest.mark.xfail(on_win, strict=True, reason="native_path_to_unix is broken on appveyor; "
-                                                   "will fix in future PR")
     def test_xonsh_basic(self):
         activator = Activator('xonsh')
         self.make_dot_d_files(activator.script_extension)
@@ -467,7 +467,7 @@ class ShellWrapperUnitTests(TestCase):
                         deactivate_data = fh.read()
                     rm_rf(deactivate_result)
 
-                    new_path = activatgor.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+                    new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
                     assert deactivate_data == dals("""
                     del $CONDA_DEFAULT_ENV
                     del $CONDA_PREFIX
