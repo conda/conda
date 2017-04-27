@@ -253,19 +253,6 @@
 @REM # scope                                                             #
 @SET "_CONDA_DIR=%CONDA_PREFIX%\etc\conda\deactivate.d"
 @ENDLOCAL && (
-	@REM load post-deactivate scripts
-	@REM scripts found in %CONDA_PREFIX%\etc\conda\deactivate.d
-	@IF EXIST "%_CONDA_DIR%" (
-		@PUSHD "%_CONDA_DIR%"
-		@FOR %%f IN (*.bat) DO @(
-			@IF "%CONDA_VERBOSE%"=="%TRUE%" (
-				@ECHO [DEACTIVATE]: Sourcing %_CONDA_DIR%\%%f.
-			)
-			@CALL "%%f"
-		)
-		@POPD
-	)
-
 	@SET "PATH=%PATH%"
 	@SET "PROMPT=%PROMPT%"
 
@@ -279,6 +266,19 @@
 	)
 	@IF /I "%IS_ENV_CONDA_HELP%"=="%TRUE%" (
 		@SET "CONDA_HELP=%CONDA_HELP%"
+	)
+
+	@REM load post-deactivate scripts
+	@REM scripts found in %CONDA_PREFIX%\etc\conda\deactivate.d
+	@IF EXIST "%_CONDA_DIR%" (
+		@PUSHD "%_CONDA_DIR%"
+		@FOR %%f IN (*.bat) DO @(
+			@IF "%CONDA_VERBOSE%"=="%TRUE%" (
+				@ECHO [DEACTIVATE]: Sourcing %_CONDA_DIR%\%%f.
+			)
+			@CALL "%%f"
+		)
+		@POPD
 	)
 
 	@REM #################################################################
