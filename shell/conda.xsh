@@ -29,14 +29,14 @@ def _conda_activate_handler(env_name_or_prefix):
     pipeline = !(python -m conda shell.activate xonsh @(env_name_or_prefix))
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
-    rm @(stdout)
+    os.unlink(stdout)
 
 
 def _conda_deactivate_handler():
     pipeline = !(python -m conda shell.deactivate xonsh)
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
-    rm @(stdout)
+    os.unlink(stdout)
 
 
 def _conda_passthrough_handler(args):
@@ -51,7 +51,7 @@ def _conda_reactivate_handler(args):
     pipeline = !(python -m conda shell.reactivate xonsh)
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
-    rm @(stdout)
+    os.unlink(stdout)
 
 
 def _conda_main(args=None):
