@@ -6,6 +6,7 @@ import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
 import sys
+from tempfile import NamedTemporaryFile
 
 try:
     from cytoolz.itertoolz import concatv
@@ -43,6 +44,7 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
+            self.finalizer_extension = None  # don't write to file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
@@ -52,6 +54,7 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.csh'
+            self.finalizer_extension = None  # don't write to file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'setenv %s "%s"'
@@ -61,24 +64,39 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
+            self.finalizer_extension = '.xsh'
 
             self.unset_var_tmpl = 'del $%s'
-            self.set_var_tmpl = '$%s = "%s"'
+            self.set_var_tmpl = '$%s="%s"'
             self.run_script_tmpl = 'source "%s"'
 
         else:
             raise NotImplementedError()
 
+    def _finalize(self, commands, ext):
+        if ext is None:
+            return '\n'.join(commands)
+        elif ext:
+            with NamedTemporaryFile(suffix=ext, delete=False) as tf:
+                tf.write('\n'.join(commands))
+                tf.write('\n')
+            return tf.name
+        else:
+            raise NotImplementedError()
+
     def activate(self, name_or_prefix):
-        return '\n'.join(self._make_commands(self.build_activate(name_or_prefix)))
+        return self._finalize(self._yield_commands(self.build_activate(name_or_prefix)),
+                              self.finalizer_extension)
 
     def deactivate(self):
-        return '\n'.join(self._make_commands(self.build_deactivate()))
+        return self._finalize(self._yield_commands(self.build_deactivate()),
+                              self.finalizer_extension)
 
     def reactivate(self):
-        return '\n'.join(self._make_commands(self.build_reactivate()))
+        return self._finalize(self._yield_commands(self.build_reactivate()),
+                              self.finalizer_extension)
 
-    def _make_commands(self, cmds_dict):
+    def _yield_commands(self, cmds_dict):
         for key in cmds_dict.get('unset_vars', ()):
             yield self.unset_var_tmpl % key
 
