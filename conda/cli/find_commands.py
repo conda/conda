@@ -1,13 +1,14 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+from os.path import basename, expanduser, isdir, isfile, join
 import re
 import sys
 import sysconfig
-from ..common.compat import on_win
-from os.path import isdir, isfile, join, expanduser, basename
 
+from ..common.compat import on_win
 from ..utils import memoized, sys_prefix_unfollowed
+
 
 def find_executable(executable, include_others=True):
     # backwards compatibility

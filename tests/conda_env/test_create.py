@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
+from argparse import ArgumentParser
+from unittest import TestCase
+
 from conda.base.context import reset_context
 from conda.common.io import env_var
 
@@ -14,10 +17,8 @@ from shutil import rmtree
 from tempfile import mkdtemp
 from uuid import uuid4
 
-from unittest import TestCase
 import pytest
 
-from conda.cli import conda_argparse
 from conda.install import on_win
 from conda_env.cli.main_create import configure_parser as create_configure_parser
 from conda_env.cli.main_update import configure_parser as update_configure_parser
@@ -61,7 +62,7 @@ parser_config = {
 
 
 def run_command(command, env_name, *arguments):
-    p = conda_argparse.ArgumentParser()
+    p = ArgumentParser()
     sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
     parser_config[command](sub_parsers)
 

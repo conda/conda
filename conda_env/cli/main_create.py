@@ -5,10 +5,10 @@ import os
 import sys
 import textwrap
 
-from conda.cli import common, install as cli_install
+from conda.cli import install as cli_install
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
-from conda.plan import is_root_prefix
 
 from .common import get_prefix
 from .. import exceptions, specs
@@ -45,7 +45,7 @@ def configure_parser(sub_parsers):
     )
 
     # Add name and prefix args
-    common.add_parser_prefix(p)
+    add_parser_prefix(p)
 
     p.add_argument(
         '-q', '--quiet',
@@ -66,11 +66,12 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    from conda.base.context import context
     name = args.remote_definition or args.name
 
     try:
@@ -88,7 +89,7 @@ def execute(args, parser):
 
     prefix = get_prefix(args, search=False)
 
-    if args.force and not is_root_prefix(prefix) and os.path.exists(prefix):
+    if args.force and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
 
@@ -96,11 +97,10 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
-    # special case for empty environment
-    if not env.dependencies:
-        from conda.install import symlink_conda
-        from conda.base.context import context
-        symlink_conda(prefix, context.root_dir)
+    # # special case for empty environment
+    # if not env.dependencies:
+    #     from conda.install import symlink_conda
+    #     symlink_conda(prefix, context.root_dir)
 
     for installer_type, pkg_specs in env.dependencies.items():
         try:

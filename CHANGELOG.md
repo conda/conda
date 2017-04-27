@@ -1,7 +1,124 @@
 ## 4.4.0 (unreleased)
 
 ### New Features
-* general support for all bourne- and c-based shells #3175
+* constrained, optional dependencies (#4982)
+* conda shell function (#5044, #5141)
+
+### Improvements
+* filter out unwritable package caches from conda clean command (#4620)
+* envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094)
+* make python entry point format match pip entry points (#5010)
+* resolve #5113 clean up CLI imports to improve process startup time (#4799)
+* resolve #5121 add features/track_features support for MatchSpec (#5054)
+* resolve #4671 hold verify backoff count in transaction context (#5122)
+
+### Bug Fixes
+* fix some conda-build compatibility issues (#5089)
+* resolve #5123 export toposort (#5124)
+* fix #5132 signal handler can only be used in main thread (#5133)
+
+### Non-User-Facing Changes
+* eliminate index modification in Resolve.__init__ (#4333)
+* new MatchSpec implementation (#4158)
+* update conda.recipe for 4.4 (#5086)
+* resolve #5118 organization and cleanup for 4.4 release (#5115)
+
+
+## 4.3.17 (unreleased)
+
+### Improvements
+* fall back to copy if hardlink fails (#5002)
+* add timestamp metadata for tiebreaking conda-build 3 hashed packages (#5018)
+* resolve #5034 add subdirs configuration parameter (#5030)
+* resolve #5081 make pinned packages optional/constrained dependencies (#5088)
+* resolve #5108 improve behavior and add tests for spaces in paths (#4786)
+
+### Bug Fixes
+* quote prefix paths for locations with spaces (#5009)
+* remove binstar logger configuration overrides (#4989)
+* fix #4969 error in DirectoryNotFoundError (#4990)
+* fix #4998 pinned string format (#5011)
+* fix #5039 collecting main_info shouldn't fail on requests import (#5090)
+* fix #5055 improve bad token message for anaconda.org (#5091)
+* fix #5033 only re-register valid signal handlers (#5092)
+* fix #5028 imports in main_list (#5093)
+* fix #5073 allow client_ssl_cert{_key} to be of type None (#5096)
+* fix #4671 backoff for package validate race condition (#5098)
+* fix #5022 gnu_get_libc_version => linux_get_libc_version (#5099)
+* fix #4849 package name match bug (#5103)
+* fixes #5102 allow proxy_servers to be of type None (#5107)
+* fix #5111 incorrect typify for str + NoneType (#5112)
+
+### Non-User-Facing Changes
+* resolve #5012 remove CondaRuntimeError and RuntimeError (#4818)
+* full audit ensuring relative import paths within project (#5090)
+* resolve #5116 refactor conda/cli/activate.py to help menuinst (#4406)
+
+
+## 4.3.16 (2017-03-30)
+
+### Improvements
+* additions to configuration SEARCH_PATH to improve consistency (#4966)
+* add 'conda config --describe' and extra config documentation (#4913)
+* enable packaging pinning in condarc using pinned_packages config parameter
+  as beta feature (#4921, #4964)
+
+### Bug Fixes
+* fix #4914 handle directory creation on top of file paths (#4922)
+* fix #3982 issue with CONDA_ENV and using powerline (#4925)
+* fix #2611 update instructions on how to source conda.fish (#4924)
+* fix #4860 missing information on package not found error (#4935)
+* fix #4944 command not found error error (#4963)
+
+
+## 4.3.15 (2017-03-20)
+
+### Improvements
+* allow pkgs_dirs to be configured using `conda config` (#4895)
+
+### Bug Fixes
+* remove incorrect elision of delete_prefix_from_linked_data() (#4814)
+* fix envs_dirs order for read-only root prefix (#4821)
+* fix break-point in conda clean (#4801)
+* fix long shebangs when creating entry points (#4828)
+* fix spelling and typos (#4868, #4869)
+* fix #4840 TypeError reduce() of empty sequence with no initial value (#4843)
+* fix zos subdir (#4875)
+* fix exceptions triggered during activate (#4873)
+
+
+## 4.3.14 (2017-03-03)
+
+### Improvements
+* use cPickle in place of pickle for repodata (#4717)
+* ignore pyc compile failure (#4719)
+* use conda.exe for windows entry point executable (#4716, #4720)
+* localize use of conda_signal_handler (#4730)
+* add skip_safety_checks configuration parameter (#4767)
+* never symlink executables using ORIGIN (#4625)
+* set activate.bat codepage to CP_ACP (#4558)
+
+### Bug Fixes
+* fix #4777 package cache initialization speed (#4778)
+* fix #4703 menuinst PathNotFoundException (#4709)
+* ignore permissions error if user_site can't be read (#4710)
+* fix #4694 don't import requests directly in models (#4711)
+* fix #4715 include resources directory in recipe (#4716)
+* fix CondaHttpError for URLs that contain '%' (#4769)
+* bug fixes for preferred envs (#4678)
+* fix #4745 check for info/index.json with package is_extracted (#4776)
+* make sure url gets included in CondaHTTPError (#4779)
+* fix #4757 map-type configs set to None (#4774)
+* fix #4788 partial package extraction (#4789)
+
+### Non-User-Facing Changes
+* test coverage improvement (#4607)
+* CI configuration improvements (#4713, #4773, #4775)
+* allow sha256 to be None (#4759)
+* add cache_fn_url to exports (#4729)
+* add unicode paths for PY3 integration tests (#4760)
+* additional unit tests (#4728, #4783)
+* fix conda-build compatibility and tests (#4785)
 
 
 ## 4.3.13 (2017-02-17)
@@ -292,7 +409,7 @@
 
 ### Improvements
 * create a new "trace" log level enabled by `-v -v -v` or `-vvv` (#3833)
-* allow conda to be installed with pip, but only when used as a library/dependecy (#4028)
+* allow conda to be installed with pip, but only when used as a library/dependency (#4028)
 * the 'r' channel is now part of defaults (#3677)
 * private environment support for conda (#3988)
 * support v1 info/paths.json file (#3927, #3943)
@@ -338,7 +455,7 @@
 * revert boto patch from #2380 (#3676)
 * move and update ROOT_NO_RM (#3697)
 * integration tests for conda clean (#3695, #3699)
-* disable coverage on s3 and ftp requests adapaters (#3696, #3701)
+* disable coverage on s3 and ftp requests adapters (#3696, #3701)
 * github repo hygiene (#3705, #3706)
 * major install refactor (#3712)
 * remove test timebombs (#4012)
@@ -353,6 +470,11 @@
 
 ## Improvements
 * silence pre-link warning for old noarch 4.2.x backport (#4453)
+
+### Bug Fixes
+* remove incorrect elision of delete_prefix_from_linked_data() (#4813)
+* fix CB #1825 context clobbering (#4867)
+* fix #5101 api->conda regex substitution for Anaconda API channels (#5100)
 
 ### Non-User-Facing Changes
 * build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)
@@ -519,7 +641,7 @@
 * conda-env version matches conda version (#3422)
 
 ### Bug Fixes
-* fix #3409 unsatisfiable dependecy error message (#3412)
+* fix #3409 unsatisfiable dependency error message (#3412)
 * fix #3408 quiet rm_rf (#3413)
 * fix #3407 padding error messaging (#3416)
 * account for the Windows Python 2.7 os.environ unicode aversion (#3363 via #3420)
@@ -896,7 +1018,7 @@
 * quiets some logging for package downloads under python 3, #2217
 * more urls for `conda list --explicit`, #1855
 * prefer more "latest builds" for more packages, #2227
-* fixes a bug with dependecy resolution and features, #2226
+* fixes a bug with dependency resolution and features, #2226
 
 
 ## 4.0.2 (2016-03-08)

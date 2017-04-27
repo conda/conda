@@ -3,6 +3,9 @@
 @REM   For debugging, remove the @ on the section you need to study.
 @setlocal enabledelayedexpansion
 
+@FOR /F "delims=" %%i IN ('@"%~dp0..\python.exe" -c "import ctypes; print(ctypes.cdll.kernel32.GetACP())"') DO @SET "PYTHONIOENCODING=%%i"
+@chcp !PYTHONIOENCODING! > NUL
+
 @set "CONDA_NEW_ENV=%~1"
 @SET "CONDA_EXE=%~dp0\..\Scripts\conda.exe"
 
@@ -16,7 +19,7 @@
 )
 
 @if "%~2" == "" @goto skiptoomanyargs
-    (@echo Error: did not expect more than one argument.) 1>&2
+    (@echo Error: activate only accepts a single argument.) 1>&2
     (@echo     ^(Got %*^)) 1>&2
     @exit /b 1
 :skiptoomanyargs

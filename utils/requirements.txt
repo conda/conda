@@ -1,5 +1,6 @@
-ruamel.yaml
 pycosat
-pycrypto
+requests
+ruamel.yaml
 enum34; python_version < '3.3'
 futures; python_version < '3'
+menuinst; sys.platform == 'win32'

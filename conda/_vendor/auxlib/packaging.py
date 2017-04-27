@@ -258,3 +258,10 @@ def find_packages(where='.', exclude=()):
     for pat in list(exclude) + ['ez_setup', 'distribute_setup']:
         out = [item for item in out if not fnmatchcase(item, pat)]
     return out
+
+
+if __name__ == "__main__":
+    # rewrite __init__.py in target_dir
+    target_dir = abspath(sys.argv[1])
+    version = get_version(join(target_dir, "__init__.py"))
+    write_version_into_init(target_dir, version)

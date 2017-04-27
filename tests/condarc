@@ -27,6 +27,11 @@ envs_dirs:
   - ~/my-envs
   - /opt/anaconda/envs
 
+# directories in which package cache can be present
+pkgs_dirs:
+  - ~/my-pkgs
+  - /opt/anaconda/pkgs
+
 # implies always using the --yes option whenever asked to proceed
 always_yes: True
 

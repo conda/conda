@@ -9,7 +9,7 @@ import os
 import sys
 from os.path import abspath, expanduser, isfile, join
 
-from conda.base.context import context, non_x86_linux_machines
+from .base.context import context, non_x86_linux_machines
 non_x86_linux_machines = non_x86_linux_machines
 
 
@@ -28,7 +28,9 @@ rc_list_keys = [
     'create_default_packages',
     'track_features',
     'envs_dirs',
+    'pkgs_dirs',
     'default_channels',
+    'pinned_packages',
 ]
 
 rc_bool_keys = [
@@ -75,7 +77,7 @@ get_rc_urls = lambda: context.channels
 
 
 def get_local_urls():
-    from conda.models.channel import get_conda_build_local_url
+    from .models.channel import get_conda_build_local_url
     return get_conda_build_local_url() or []
 
 
@@ -113,4 +115,4 @@ platform = context.platform
 
 # put back because of conda build
 default_python = context.default_python
-binstar_upload = context.binstar_upload
+binstar_upload = context.anaconda_upload

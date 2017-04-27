@@ -29,7 +29,7 @@ class TestArg2Spec(unittest.TestCase):
         self.assertEqual(arg2spec('zope.int>=1.3,<3.0'), 'zope.int >=1.3,<3.0')
         self.assertEqual(arg2spec('numpy >=1.9'), 'numpy >=1.9')
 
-    def test_invalid(self):
+    def test_invalid_arg2spec(self):
         self.assertRaises(CondaValueError, arg2spec, '!xyz 1.3')
 
 
@@ -78,7 +78,6 @@ class TestJson(unittest.TestCase):
     #                                  '--packages', '--tarballs', '--json')
     #     self.assertJsonSuccess(res)
 
-    @pytest.mark.integration
     def test_config(self):
         res = capture_json_with_argv('conda config --get --json')
         self.assertJsonSuccess(res)
@@ -140,7 +139,6 @@ class TestJson(unittest.TestCase):
         #                              '--force', '--json')
         # self.assertJsonError(res)
 
-    @pytest.mark.slow
     @pytest.mark.integration
     def test_info(self):
         res = capture_json_with_argv('conda info --json')
@@ -206,7 +204,6 @@ class TestJson(unittest.TestCase):
     #                                  '-n', 'testing2', '--json', '--quiet')
     #     self.assertJsonSuccess(res)
 
-    @pytest.mark.integration
     def test_list(self):
         res = capture_json_with_argv('conda list --json')
         self.assertIsInstance(res, list)
@@ -219,12 +216,12 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, list)
 
         stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --json')
-        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
+        assert json.loads(stdout.strip())['exception_name'] == 'EnvironmentNameNotFound'
         assert stderr == ''
         assert rc > 0
 
         stdout, stderr, rc = run_inprocess_conda_command('conda list --name nonexistent --revisions --json')
-        assert json.loads(stdout.strip())['exception_name'] == 'CondaEnvironmentNotFoundError'
+        assert json.loads(stdout.strip())['exception_name'] == 'EnvironmentNameNotFound'
         assert stderr == ''
         assert rc > 0
 

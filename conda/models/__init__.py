@@ -14,4 +14,3 @@ Conda modules importable from ``conda.models`` are
 - ``conda.models``
 
 """
-from __future__ import absolute_import, division, print_function

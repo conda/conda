@@ -34,22 +34,17 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-
 from __future__ import absolute_import, division, print_function, unicode_literals
-
-import importlib
 import sys
-from argparse import SUPPRESS
-from logging import CRITICAL, DEBUG, getLogger
-
-from .. import __version__
-
-log = getLogger(__name__)
 
 
 def generate_parser():
-    from ..cli import conda_argparse
-    p = conda_argparse.ArgumentParser(
+    from argparse import SUPPRESS
+
+    from .. import __version__
+    from .conda_argparse import ArgumentParser
+
+    p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
                     ' environments and packages.',
     )
@@ -81,10 +76,14 @@ def generate_parser():
 
 
 def _main(*args):
+    import importlib
+    from logging import CRITICAL, DEBUG, getLogger
+
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
-
     from ..gateways.logging import set_all_logger_level, set_verbosity
+
+    log = getLogger(__name__)
 
     if len(args) == 1:
         args = args + ('-h',)
@@ -102,11 +101,7 @@ def _main(*args):
         if "remove" in module:
             imported.configure_parser(sub_parsers, name='uninstall')
 
-    from conda.cli.find_commands import find_commands
-
-    def completer(prefix, **kwargs):
-        return [i for i in list(sub_parsers.choices) + find_commands()
-                if i.startswith(prefix)]
+    from .find_commands import find_commands
 
     # when using sys.argv, first argument is generally conda or __main__.py.  Ignore it.
     if (any(sname in args[0] for sname in ('conda', 'conda.exe', '__main__.py', 'conda-script.py'))
@@ -115,7 +110,6 @@ def _main(*args):
         log.debug("Ignoring first argument (%s), as it is not a subcommand", args[0])
         args = args[1:]
 
-    sub_parsers.completer = completer
     args = p.parse_args(args)
 
     context.__init__(SEARCH_PATH, 'conda', args)
@@ -143,22 +137,24 @@ def main(*args):
     if not args:
         args = sys.argv
 
-    log.debug("conda.cli.main called with %s", args)
     if len(args) > 1:
-        argv1 = args[1].strip()
-        if argv1.startswith('..'):
-            import conda.cli.activate as activate
-            activate.main()
-            return
-        if argv1 in ('activate', 'deactivate'):
-
-            message = "'%s' is not a conda command.\n" % argv1
-            from ..common.compat import on_win
-            if not on_win:
-                message += ' Did you mean "source %s" ?\n' % ' '.join(args[1:])
-
-            from ..exceptions import CommandNotFoundError
-            raise CommandNotFoundError(argv1, message)
+        try:
+            argv1 = args[1].strip()
+            if argv1.startswith('shell.'):
+                from ..activate import main as activator_main
+                return activator_main()
+            elif argv1.startswith('..'):
+                import conda.cli.activate as activate
+                activate.main()
+                return
+            if argv1 in ('activate', 'deactivate'):
+                from ..exceptions import CommandNotFoundError
+                raise CommandNotFoundError(argv1)
+        except Exception as e:
+            from ..exceptions import handle_exception
+            from ..gateways import initialize_logging
+            initialize_logging()
+            return handle_exception(e)
 
     from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main, *args)

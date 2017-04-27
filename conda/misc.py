@@ -13,13 +13,13 @@ import sys
 
 from ._vendor.auxlib.path import expand
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, on_win
+from .common.compat import iteritems, iterkeys, itervalues, on_win, open
 from .common.path import url_to_path, win_path_ok
-from .common.url import is_url, join_url, path_to_url
+from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import get_index, _supplement_index_with_cache
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import CondaFileNotFoundError, CondaRuntimeError, ParseError
+from .exceptions import CondaFileNotFoundError, ParseError, PackageNotFoundError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink
 from .instructions import LINK, UNLINK
@@ -55,7 +55,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             continue
 
         if not is_url(spec):
-            spec = path_to_url(expand(spec))
+            spec = unquote(path_to_url(expand(spec)))
 
         # parse URL
         m = url_pat.match(spec)
@@ -89,6 +89,9 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     pfe = ProgressiveFetchExtract(fetch_recs, link_dists)
     pfe.execute()
 
+    # dists could have been updated with more accurate urls
+    # TODO: I'm stuck here
+
     # Now get the index---but the only index we need is the package cache
     index = {}
     _supplement_index_with_cache(index, ())
@@ -103,6 +106,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     r = Resolve(index)
     actions[LINK].extend(link_dists)
     actions[LINK] = r.dependency_sort({r.package_name(dist): dist for dist in actions[LINK]})
+    actions['ACTION'] = 'EXPLICIT'
 
     execute_actions(actions, index, verbose=verbose)
     return actions
@@ -223,7 +227,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 filter["conda-env"] = dist
                 found = True
                 break
-            for dep in info.get('depends', []):
+            for dep in info.combined_depends:
                 if MatchSpec(dep).name in filter:
                     filter[name] = dist
                     found = True
@@ -257,9 +261,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 notfound.append(fn)
     if notfound:
         what = "Package%s " % ('' if len(notfound) == 1 else 's')
-        notfound = '\n'.join(' - ' + fn for fn in notfound)
-        msg = '%s missing in current %s channels:%s' % (what, context.subdir, notfound)
-        raise CondaRuntimeError(msg)
+        raise PackageNotFoundError(what)
 
     # Assemble the URL and channel list
     urls = {}

@@ -1,7 +1,9 @@
 from __future__ import absolute_import, print_function
-from argparse import RawDescriptionHelpFormatter, Namespace
 
-from conda.cli import common
+from argparse import Namespace, RawDescriptionHelpFormatter
+
+from conda.cli.conda_argparse import (add_parser_json, add_parser_prefix, add_parser_quiet,
+                                      add_parser_yes)
 
 _help = "Remove an environment"
 _description = _help + """
@@ -28,10 +30,10 @@ def configure_parser(sub_parsers):
         epilog=_example,
     )
 
-    common.add_parser_prefix(p)
-    common.add_parser_json(p)
-    common.add_parser_quiet(p)
-    common.add_parser_yes(p)
+    add_parser_prefix(p)
+    add_parser_json(p)
+    add_parser_quiet(p)
+    add_parser_yes(p)
 
     p.set_defaults(func=execute)
 

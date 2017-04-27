@@ -4,10 +4,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from functools import total_ordering
 
 from .enums import LinkType, NoarchType, Platform
+from .leased_path_entry import LeasedPathEntry
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, Field, IntegerField, ListField, MapField,
-                                     StringField)
-from ..common.compat import string_types
+                                     EnumField, Field, IntegerField, ListField, StringField)
+from ..common.compat import itervalues, string_types
 
 
 @total_ordering
@@ -86,8 +86,9 @@ class IndexRecord(DictSafeMixin, Entity):
     arch = StringField(required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()
+    constrains = ListField(string_types, required=False, nullable=True)
     date = StringField(required=False)
-    depends = ListField(string_types, required=False)
+    depends = ListField(string_types, required=False, nullable=True)
     features = StringField(required=False)
     has_prefix = BooleanField(required=False)
     license = StringField(required=False)
@@ -99,7 +100,8 @@ class IndexRecord(DictSafeMixin, Entity):
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)
     subdir = StringField(required=False)
-    track_features = StringField(required=False)
+    timestamp = IntegerField(required=False)
+    track_features = StringField(default='', required=False)
     version = StringField()
 
     fn = StringField(required=False, nullable=True)
@@ -112,5 +114,15 @@ class IndexRecord(DictSafeMixin, Entity):
     files = ListField(string_types, default=(), required=False)
     link = ComposableField(Link, required=False)
 
-    with_features_depends = MapField(required=False)
     preferred_env = StringField(default=None, required=False, nullable=True)
+
+    # this is only for LinkedPackageRecord
+    leased_paths = ListField(LeasedPathEntry, required=False)
+
+    @property
+    def combined_depends(self):
+        from .match_spec import MatchSpec
+        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
+        result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
+                                              for spec in self.constrains or ())})
+        return tuple(itervalues(result))

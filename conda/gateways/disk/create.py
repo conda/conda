@@ -1,44 +1,51 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, EEXIST, EPERM
+from errno import EACCES, EPERM
 from io import open
 import json
 from logging import getLogger
 import os
-from os import makedirs
-from os.path import basename, isdir, isfile, join, lexists
+from os import X_OK, access, makedirs
+from os.path import basename, dirname, isdir, isfile, join, splitext
 import shutil
 import sys
 import tarfile
 import traceback
 
+from . import mkdir_p
 from .delete import rm_rf
-from .link import islink, link, readlink, symlink
+from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
-from .read import get_json_content
 from .update import touch
 from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
+from ...base.constants import ENVS_DIR_MAGIC_FILE, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import ensure_binary, on_win
-from ...common.path import win_path_ok
+from ...common.path import ensure_pad, win_path_double_escape, win_path_ok
+from ...core.portability import replace_long_shebang
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.dist import Dist
-from ...models.enums import LinkType
+from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
 
+mkdir_p = mkdir_p  # in __init__.py to help with circular imports
 
 python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-
+import re
+import sys
+
+from %(module)s import %(import_name)s
+
 if __name__ == '__main__':
-    from sys import exit
-    from %(module)s import %(func)s
-    exit(%(func)s())
+    sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
+    sys.exit(%(func)s())
 """)
 
 application_entry_point_template = dals("""
@@ -46,7 +53,10 @@ application_entry_point_template = dals("""
 if __name__ == '__main__':
     import os
     import sys
-    os.execv(%(source_full_path)s, sys.argv)
+    args = ["%(source_full_path)s"]
+    if len(sys.argv) > 1:
+        args += sys.argv[1:]
+    os.execv(args[0], args)
 """)
 
 
@@ -58,7 +68,7 @@ def write_as_json_to_file(file_path, obj):
         fo.write(ensure_binary(json_str))
 
 
-def create_unix_python_entry_point(target_full_path, python_full_path, module, func):
+def create_python_entry_point(target_full_path, python_full_path, module, func):
     if lexists(target_full_path):
         maybe_raise(BasicClobberError(
             source_path=None,
@@ -66,28 +76,55 @@ def create_unix_python_entry_point(target_full_path, python_full_path, module, f
             context=context,
         ), context)
 
-    pyscript = python_entry_point_template % {'module': module, 'func': func}
+    import_name = func.split('.')[0]
+    pyscript = python_entry_point_template % {
+        'module': module,
+        'func': func,
+        'import_name': import_name,
+    }
+
+    if python_full_path is not None:
+        shebang = '#!%s\n' % python_full_path
+        if hasattr(shebang, 'encode'):
+            shebang = shebang.encode()
+        shebang = replace_long_shebang(FileMode.text, shebang)
+        if hasattr(shebang, 'decode'):
+            shebang = shebang.decode()
+    else:
+        shebang = None
+
     with open(target_full_path, str('w')) as fo:
+        if shebang is not None:
+            fo.write(shebang)
+        fo.write(pyscript)
+
+    if shebang is not None:
+        make_executable(target_full_path)
+
+    return target_full_path
+
+
+def create_application_entry_point(source_full_path, target_full_path, python_full_path):
+    # source_full_path: where the entry point file points to
+    # target_full_path: the location of the new entry point file being created
+    if lexists(target_full_path):
+        maybe_raise(BasicClobberError(
+            source_path=None,
+            target_path=target_full_path,
+            context=context,
+        ), context)
+
+    entry_point = application_entry_point_template % {
+        "source_full_path": win_path_double_escape(source_full_path),
+    }
+    if not isdir(dirname(target_full_path)):
+        mkdir_p(dirname(target_full_path))
+    with open(target_full_path, str("w")) as fo:
+        if ' ' in python_full_path:
+            python_full_path = ensure_pad(python_full_path, '"')
         fo.write('#!%s\n' % python_full_path)
-        fo.write(pyscript)
+        fo.write(entry_point)
     make_executable(target_full_path)
-
-    return target_full_path
-
-
-def create_windows_python_entry_point(target_full_path, module, func):
-    if lexists(target_full_path):
-        maybe_raise(BasicClobberError(
-            source_path=None,
-            target_path=target_full_path,
-            context=context,
-        ), context)
-
-    pyscript = python_entry_point_template % {'module': module, 'func': func}
-    with open(target_full_path, str('w')) as fo:
-        fo.write(pyscript)
-
-    return target_full_path
 
 
 def extract_tarball(tarball_full_path, destination_directory=None):
@@ -146,18 +183,6 @@ def make_menu(prefix, file_path, remove=False):
         stdoutlog.error(traceback.format_exc())
 
 
-def mkdir_p(path):
-    try:
-        log.trace('making directory %s', path)
-        if path:
-            makedirs(path)
-    except OSError as e:
-        if e.errno == EEXIST and isdir(path):
-            return path
-        else:
-            raise
-
-
 def create_hard_link_or_copy(src, dst):
     if islink(src):
         message = dals("""
@@ -178,10 +203,55 @@ def create_hard_link_or_copy(src, dst):
         shutil.copy2(src, dst)
 
 
+def _is_unix_executable_using_ORIGIN(path):
+    if on_win:
+        return False
+    else:
+        return isfile(path) and not islink(path) and access(path, X_OK)
+
+
+def _do_softlink(src, dst):
+    if _is_unix_executable_using_ORIGIN(src):
+        # for extra details, see https://github.com/conda/conda/pull/4625#issuecomment-280696371
+        # We only need to do this copy for executables which have an RPATH containing $ORIGIN
+        #   on Linux, so `is_executable()` is currently overly aggressive.
+        # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
+        copy(src, dst)
+    else:
+        symlink(src, dst)
+
+
+def create_fake_executable_softlink(src, dst):
+    assert on_win
+    src_root, _ = splitext(src)
+    # TODO: this open will clobber, consider raising
+    with open(dst, 'w') as f:
+        f.write("@echo off\n"
+                "call \"%s\" %%*\n"
+                "" % src_root)
+    return dst
+
+
+def copy(src, dst):
+    # on unix, make sure relative symlinks stay symlinks
+    if not on_win and islink(src):
+        src_points_to = readlink(src)
+        if not src_points_to.startswith('/'):
+            # copy relative symlinks as symlinks
+            symlink(src_points_to, dst)
+            return
+    shutil.copy2(src, dst)
+
+
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.directory:
         # A directory is technically not a link.  So link_type is a misnomer.
         #   Naming is hard.
+        if lexists(dst) and not isdir(dst):
+            if not force:
+                maybe_raise(BasicClobberError(src, dst, context), context)
+            log.info("file exists, but clobbering for directory: %r" % dst)
+            rm_rf(dst)
         mkdir_p(dst)
         return
 
@@ -197,18 +267,19 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.hardlink:
         if isdir(src):
             raise CondaError("Cannot hard link a directory. %s" % src)
-        link(src, dst)
+        try:
+            link(src, dst)
+        except (IOError, OSError) as e:
+            log.debug("%r", e)
+            log.debug("hard-link failed. falling back to copy\n"
+                      "  error: %r\n"
+                      "  src: %s\n"
+                      "  dst: %s", e, src, dst)
+            copy(src, dst)
     elif link_type == LinkType.softlink:
-        symlink(src, dst)
+        _do_softlink(src, dst)
     elif link_type == LinkType.copy:
-        # on unix, make sure relative symlinks stay symlinks
-        if not on_win and islink(src):
-            src_points_to = readlink(src)
-            if not src_points_to.startswith('/'):
-                # copy relative symlinks as symlinks
-                symlink(src_points_to, dst)
-                return
-        shutil.copy2(src, dst)
+        copy(src, dst)
     else:
         raise CondaError("Did not expect linktype=%r" % link_type)
 
@@ -217,7 +288,7 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     if lexists(pyc_full_path):
         maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
+    command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
     log.trace(command)
     subprocess_call(command, raise_on_error=False)
 
@@ -234,43 +305,31 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     return pyc_full_path
 
 
-def create_private_envs_meta(pkg, root_prefix, private_env_prefix):
-    # type: (str, str, str) -> ()
-    path_to_conda_meta = join(root_prefix, "conda-meta")
-
-    if not isdir(path_to_conda_meta):
-        mkdir_p(path_to_conda_meta)
-
-    private_envs_json = get_json_content(context.private_envs_json_path)
-    private_envs_json[pkg] = private_env_prefix
-    write_as_json_to_file(context.private_envs_json_path, private_envs_json)
-
-
-def create_private_pkg_entry_point(source_full_path, target_full_path, python_full_path):
-    if lexists(target_full_path):
-        maybe_raise(BasicClobberError(
-            source_path=None,
-            target_path=target_full_path,
-            context=context,
-        ), context)
-
-    entry_point = application_entry_point_template % {"source_full_path": source_full_path}
-    with open(target_full_path, str("w")) as fo:
-        fo.write('#!%s\n' % python_full_path)
-        fo.write(entry_point)
-    make_executable(target_full_path)
-
-
 def create_package_cache_directory(pkgs_dir):
     # returns False if package cache directory cannot be created
     try:
         log.trace("creating package cache directory '%s'", pkgs_dir)
         mkdir_p(pkgs_dir)
         touch(join(pkgs_dir, 'urls'))
-        touch(join(pkgs_dir, 'urls.txt'))
+        touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
     except (IOError, OSError) as e:
         if e.errno in (EACCES, EPERM):
-            log.trace("Cannot create package cache directory '%s'", pkgs_dir)
+            log.trace("cannot create package cache directory '%s'", pkgs_dir)
+            return False
+        else:
+            raise
+    return True
+
+
+def create_envs_directory(envs_dir):
+    # returns False if envs directory cannot be created
+    try:
+        log.trace("creating envs directory '%s'", envs_dir)
+        mkdir_p(envs_dir)
+        touch(join(envs_dir, ENVS_DIR_MAGIC_FILE))
+    except (IOError, OSError) as e:
+        if e.errno in (EACCES, EPERM):
+            log.trace("cannot create envs directory '%s'", envs_dir)
             return False
         else:
             raise

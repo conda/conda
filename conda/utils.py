@@ -1,13 +1,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
-import hashlib
+from collections import Hashable
+from functools import partial
 import logging
+from os.path import dirname
 import re
 import sys
 import threading
-from functools import partial
-from os.path import dirname
 
 from .common.compat import on_win
 from .common.url import path_to_url
@@ -30,7 +29,7 @@ class memoized(object):
         for arg in args:
             if isinstance(arg, list):
                 newargs.append(tuple(arg))
-            elif not isinstance(arg, collections.Hashable):
+            elif not isinstance(arg, Hashable):
                 # uncacheable. a list, for instance.
                 # better to not cache than blow up.
                 return self.func(*args, **kw)
@@ -69,42 +68,6 @@ class memoize(object):  # 577452
         except KeyError:
             res = cache[key] = self.func(*args, **kw)
         return res
-
-@memoized
-def gnu_get_libc_version():
-    """
-    If on linux, get installed version of glibc, otherwise return None
-    """
-
-    if not sys.platform.startswith('linux'):
-        return None
-
-    from ctypes import CDLL, cdll, c_char_p
-
-    cdll.LoadLibrary('libc.so.6')
-    libc = CDLL('libc.so.6')
-    f = libc.gnu_get_libc_version
-    f.restype = c_char_p
-
-    result = f()
-    if hasattr(result, 'decode'):
-        result = result.decode('utf-8')
-    return result
-
-
-def hashsum_file(path, mode='md5'):
-    h = hashlib.new(mode)
-    with open(path, 'rb') as fi:
-        while True:
-            chunk = fi.read(262144)  # process chunks of 256KB
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def md5_file(path):
-    return hashsum_file(path, 'md5')
 
 
 def path_identity(path):
@@ -191,7 +154,7 @@ unix_shell_base = dict(
                        pathsep=":",
                        printdefaultenv='echo $CONDA_DEFAULT_ENV',
                        printpath="echo $PATH",
-                       printps1='echo $PS1',
+                       printps1='echo $CONDA_PROMPT_MODIFIER',
                        promptvar='PS1',
                        sep="/",
                        set_var='export ',
@@ -208,6 +171,7 @@ msys2_shell_base = dict(
                         path_from=unix_path_to_win,
                         path_to=win_path_to_unix,
                         binpath="/Scripts/",  # mind the trailing slash.
+                        printpath="python -c \"import os; print(os.environ['PATH'])\" | cygpath --path -f -",  # NOQA
 )
 
 if on_win:
@@ -286,18 +250,43 @@ else:
     shells = {
         "bash": dict(
             unix_shell_base, exe="bash",
-                    ),
+        ),
+        "dash": dict(
+            unix_shell_base, exe="dash",
+            source_setup=".",
+        ),
         "zsh": dict(
             unix_shell_base, exe="zsh",
-                   ),
+        ),
         "fish": dict(
             unix_shell_base, exe="fish",
             pathsep=" ",
-                    ),
+        ),
     }
 
+
+# ##########################################
 # put back because of conda build
+# ##########################################
+
 urlpath = url_path = path_to_url
+
+
+def md5_file(path):
+    from .gateways.disk.read import compute_md5sum
+    return compute_md5sum(path)
+
+
+def hashsum_file(path, mode='md5'):
+    import hashlib
+    h = hashlib.new(mode)
+    with open(path, 'rb') as fi:
+        while True:
+            chunk = fi.read(262144)  # process chunks of 256KB
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 @memoized

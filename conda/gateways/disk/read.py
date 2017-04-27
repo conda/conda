@@ -10,16 +10,15 @@ import hashlib
 from itertools import chain
 import json
 from logging import getLogger
-from os import X_OK, access, listdir
-from os.path import isdir, isfile, join, lexists
+from os import listdir
+from os.path import isdir, isfile, join
 import shlex
 
-from .link import islink
+from .link import islink, lexists
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import on_win
-from ...exceptions import CondaFileNotFoundError, CondaUpgradeError
+from ...exceptions import CondaFileNotFoundError, CondaUpgradeError, CondaVerificationError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
 from ...models.index_record import IndexRecord
@@ -28,7 +27,7 @@ from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathD
 log = getLogger(__name__)
 
 listdir = listdir
-lexists, isdir, isfile, islink = lexists, isdir, isfile, islink
+lexists, isdir, isfile = lexists, isdir, isfile
 
 
 def yield_lines(path):
@@ -61,13 +60,9 @@ def compute_md5sum(file_full_path):
 
     hash_md5 = hashlib.md5()
     with open(file_full_path, "rb") as fh:
-        for chunk in iter(partial(fh.read, 4096), b''):
+        for chunk in iter(partial(fh.read, 8192), b''):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
-
-def is_exe(path):
-    return isfile(path) and (access(path, X_OK) or (on_win and path.endswith(('.exe', '.bat'))))
 
 
 def find_first_existing(*globs):
@@ -199,7 +194,7 @@ def read_has_prefix(path):
         elif len(parts) == 3:
             return ParseResult(parts[0], FileMode(parts[1]), parts[2])
         else:
-            raise RuntimeError("Invalid has_prefix file at path: %s" % path)
+            raise CondaVerificationError("Invalid has_prefix file at path: %s" % path)
 
     parsed_lines = (parse_line(line) for line in yield_lines(path))
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
@@ -216,7 +211,7 @@ def read_files(path):
         elif len(parts) == 1:
             return ParseResult(parts[0], None, None, None)
         else:
-            raise RuntimeError("Invalid files at path: %s" % path)
+            raise CondaVerificationError("Invalid files at path: %s" % path)
 
     return tuple(parse_line(line) for line in yield_lines(path))
 

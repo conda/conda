@@ -5,10 +5,11 @@ from collections import OrderedDict
 import os
 from tempfile import gettempdir
 
+from conda.base.constants import APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNELS_UNIX
 from conda.common.io import env_var
 
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, Context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.url import join_url, join
@@ -231,7 +232,7 @@ class AnacondaServerChannelTests(TestCase):
 class CustomConfigChannelTests(TestCase):
     """
     Some notes about the tests in this class:
-      * The 'pkgs/free' channel is 'migrated' while the 'pkgs/pro' channel is not.
+      * The 'pkgs/anaconda' channel is 'migrated' while the 'pkgs/pro' channel is not.
         Thus test_pkgs_free and test_pkgs_pro have substantially different behavior.
     """
 
@@ -241,16 +242,16 @@ class CustomConfigChannelTests(TestCase):
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://user1:pass2@another.url:8080/t/tk-1234/with/path
-          pkgs/free: http://192.168.0.15:8080
+          pkgs/anaconda: http://192.168.0.15:8080
         migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
-          pkgs/free: https://repo.continuum.io
+          pkgs/anaconda: https://repo.continuum.io
         migrated_channel_aliases:
           - https://conda.anaconda.org
         channel_alias: ftp://new.url:8082
         default_channels:
-          - http://192.168.0.15:8080/pkgs/free
+          - http://192.168.0.15:8080/pkgs/anaconda
           - http://192.168.0.15:8080/pkgs/pro
           - http://192.168.0.15:8080/pkgs/msys2
         """)
@@ -261,8 +262,8 @@ class CustomConfigChannelTests(TestCase):
 
         cls.platform = context.subdir
 
-        cls.DEFAULT_URLS = ['http://192.168.0.15:8080/pkgs/free/%s' % cls.platform,
-                            'http://192.168.0.15:8080/pkgs/free/noarch',
+        cls.DEFAULT_URLS = ['http://192.168.0.15:8080/pkgs/anaconda/%s' % cls.platform,
+                            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
                             'http://192.168.0.15:8080/pkgs/pro/%s' % cls.platform,
                             'http://192.168.0.15:8080/pkgs/pro/noarch',
                             'http://192.168.0.15:8080/pkgs/msys2/%s' % cls.platform,
@@ -274,49 +275,49 @@ class CustomConfigChannelTests(TestCase):
         reset_context()
 
     def test_pkgs_free(self):
-        channel = Channel('pkgs/free')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('pkgs/anaconda')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/%s' % self.platform,
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/%s' % self.platform,
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/noarch')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda/noarch')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/label/dev')
-        assert channel.channel_name == "pkgs/free/label/dev"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda/label/dev')
+        assert channel.channel_name == "pkgs/anaconda/label/dev"
         assert channel.channel_location == "192.168.0.15:8080"
-        assert channel.canonical_name == "pkgs/free/label/dev"
+        assert channel.canonical_name == "pkgs/anaconda/label/dev"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/label/dev/%s' % self.platform,
-            'http://192.168.0.15:8080/pkgs/free/label/dev/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/label/dev/%s' % self.platform,
+            'http://192.168.0.15:8080/pkgs/anaconda/label/dev/noarch',
         ]
 
-        channel = Channel('https://repo.continuum.io/pkgs/free/noarch/flask-1.0.tar.bz2')
-        assert channel.channel_name == "pkgs/free"
+        channel = Channel('https://repo.continuum.io/pkgs/anaconda/noarch/flask-1.0.tar.bz2')
+        assert channel.channel_name == "pkgs/anaconda"
         assert channel.channel_location == "192.168.0.15:8080"
         assert channel.platform == "noarch"
         assert channel.package_filename == "flask-1.0.tar.bz2"
         assert channel.canonical_name == "defaults"
         assert channel.urls() == [
-            'http://192.168.0.15:8080/pkgs/free/noarch',
+            'http://192.168.0.15:8080/pkgs/anaconda/noarch',
         ]
 
     def test_pkgs_pro(self):
@@ -552,7 +553,7 @@ class ChannelAuthTokenPriorityTests(TestCase):
           - https://conda.anaconda.cloud/t/tk-12-token/minnie
           - http://dont-do:this@4.3.2.1/daffy/label/main
         default_channels:
-          - http://192.168.0.15:8080/pkgs/free
+          - http://192.168.0.15:8080/pkgs/anaconda
           - donald/label/main
           - http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r
         """)
@@ -709,16 +710,16 @@ class ChannelAuthTokenPriorityTests(TestCase):
         assert channel.url() is None
         assert channel.url(True) is None
         assert channel.urls() == [
-            "http://192.168.0.15:8080/pkgs/free/%s" % self.platform,
-            "http://192.168.0.15:8080/pkgs/free/noarch",
+            "http://192.168.0.15:8080/pkgs/anaconda/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
             "ftp://new.url:8082/donald/label/main/%s" % self.platform,
             "ftp://new.url:8082/donald/label/main/noarch",
             "http://192.168.0.15:8080/pkgs/r/%s" % self.platform,
             "http://192.168.0.15:8080/pkgs/r/noarch",
         ]
         assert channel.urls(True) == [
-            "http://192.168.0.15:8080/pkgs/free/%s" % self.platform,
-            "http://192.168.0.15:8080/pkgs/free/noarch",
+            "http://192.168.0.15:8080/pkgs/anaconda/%s" % self.platform,
+            "http://192.168.0.15:8080/pkgs/anaconda/noarch",
             "ftp://nm:ps@new.url:8082/t/zyx-wvut/donald/label/main/%s" % self.platform,
             "ftp://nm:ps@new.url:8082/t/zyx-wvut/donald/label/main/noarch",
             "http://us:pw@192.168.0.15:8080/t/tkn-123/pkgs/r/%s" % self.platform,
@@ -775,23 +776,59 @@ class UrlChannelTests(TestCase):
         ]
 
     def test_env_var_file_urls(self):
-        channels = ("file://\\\\network_share\\shared_folder\\path\\conda,"
-                    "https://some.url/ch_name,"
-                    "file:///some/place/on/my/machine")
-        with env_var("CONDA_CHANNELS", channels, reset_context):
-            assert context.channels == (
+        channels = ("file://\\\\network_share\\shared_folder\\path\\conda",
+                    "https://some.url/ch_name",
+                    "file:///some/place/on/my/machine",)
+        with env_var("CONDA_CHANNELS", ','.join(channels)):
+            new_context = Context((), APP_NAME)
+            assert new_context.channels == (
                 "file://\\\\network_share\\shared_folder\\path\\conda",
                 "https://some.url/ch_name",
-                "file:///some/place/on/my/machine",
-            )
-            prioritized = prioritize_channels(context.channels)
+                "file:///some/place/on/my/machine",)
+
+            prioritized = prioritize_channels(new_context.channels)
             assert prioritized == OrderedDict((
                 ("file://network_share/shared_folder/path/conda/%s" % context.subdir, ("file://network_share/shared_folder/path/conda", 0)),
-                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 0)),
-                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 1)),
-                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 1)),
-                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 2)),
-                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
+                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 1)),
+                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 2)),
+                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 3)),
+                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 4)),
+                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 5)),
+            ))
+
+    def test_subdirs(self):
+        subdirs = ('linux-highest', 'linux-64', 'noarch')
+
+        def _channel_urls(channels=None):
+            for channel in channels or DEFAULT_CHANNELS_UNIX:
+                channel = Channel(channel)
+                for subdir in subdirs:
+                    yield join_url(channel.base_url, subdir)
+
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+            c = Channel('defaults')
+            assert c.urls() == list(_channel_urls())
+
+            c = Channel('conda-forge')
+            assert c.urls() == list(_channel_urls(('conda-forge',)))
+
+            channels = ('bioconda', 'conda-forge')
+            prioritized = prioritize_channels(channels)
+            assert prioritized == OrderedDict((
+                ("https://conda.anaconda.org/bioconda/linux-highest", ("bioconda", 0)),
+                ("https://conda.anaconda.org/bioconda/linux-64", ("bioconda", 1)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 2)),
+                ("https://conda.anaconda.org/conda-forge/linux-highest", ("conda-forge", 3)),
+                ("https://conda.anaconda.org/conda-forge/linux-64", ("conda-forge", 4)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 5)),
+            ))
+
+            prioritized = prioritize_channels(channels, subdirs=('linux-again', 'noarch'))
+            assert prioritized == OrderedDict((
+                ("https://conda.anaconda.org/bioconda/linux-again", ("bioconda", 0)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 1)),
+                ("https://conda.anaconda.org/conda-forge/linux-again", ("conda-forge", 2)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 3)),
             ))
 
 

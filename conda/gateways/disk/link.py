@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 # Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
 #   which is MIT licensed by Jason R. Coombs.
+# https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 from os import chmod as os_chmod, lstat
-from os.path import abspath, isdir, islink as os_islink
+from os.path import abspath, isdir, islink as os_islink, lexists as os_lexists
 
 from ...common.compat import PY2, on_win
-from ...exceptions import CondaOSError
+from ...exceptions import CondaOSError, ParseError
 
-__all__ = ('islink', 'lchmod', 'link', 'readlink', 'stat_nlink', 'symlink')
+__all__ = ('islink', 'lchmod', 'lexists', 'link', 'readlink', 'stat_nlink', 'symlink')
 
 log = getLogger(__name__)
 
@@ -58,14 +59,14 @@ else:  # pragma: unix no cover
     def win_hard_link(src, dst):
         """Equivalent to os.link, using the win32 CreateHardLink call."""
         if not CreateHardLink(dst, src, None):
-            raise CondaOSError('win32 hard link failed')
+            raise CondaOSError('win32 hard link failed\n  src: %s\n  dst: %s' % (src, dst))
 
     def win_soft_link(src, dst):
         """Equivalent to os.symlink, using the win32 CreateSymbolicLink call."""
         if CreateSymbolicLink is None:
             raise CondaOSError('win32 soft link not supported')
         if not CreateSymbolicLink(dst, src, isdir(src)):
-            raise CondaOSError('win32 soft link failed')
+            raise CondaOSError('win32 soft link failed\n  src: %s\n  dst: %s' % (src, dst))
 
     link = win_hard_link
     symlink = win_soft_link
@@ -74,20 +75,31 @@ else:  # pragma: unix no cover
 if not (on_win and PY2):
     from os import readlink
     islink = os_islink
+    lexists = os_lexists
     readlink = readlink
 
 else:  # pragma: unix no cover
-    from os import getcwd
-    import sys
     from ctypes import (POINTER, Structure, byref, c_uint64, cast, windll,
                         wintypes)
     import inspect
+    from os import getcwd
+    from os.path import isfile
+    import sys
     from ..._vendor.auxlib._vendor import six
     builtins = six.moves.builtins
 
     def islink(path):
         """Determine if the given path is a symlink"""
         return is_reparse_point(path) and is_symlink(path)
+
+    def lexists(path):
+        if islink(path):
+            return True
+        if isdir(path):
+            return True
+        if isfile(path):
+            return True
+        return False
 
     MAX_PATH = 260
     IO_REPARSE_TAG_SYMLINK = 0xA000000C
@@ -351,7 +363,7 @@ else:  # pragma: unix no cover
         p_rdb = cast(bytes, POINTER(REPARSE_DATA_BUFFER))
         rdb = p_rdb.contents
         if not rdb.tag == IO_REPARSE_TAG_SYMLINK:
-            raise RuntimeError("Expected IO_REPARSE_TAG_SYMLINK, but got %d" % rdb.tag)
+            raise ParseError("Expected IO_REPARSE_TAG_SYMLINK, but got %d" % rdb.tag)
 
         handle_nonzero_success(CloseHandle(handle))
         return rdb.get_substitute_name()
