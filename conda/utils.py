@@ -9,6 +9,7 @@ import sys
 import threading
 
 from .common.compat import on_win
+from .common.path import win_path_to_unix
 from .common.url import path_to_url
 
 log = logging.getLogger(__name__)
@@ -72,20 +73,6 @@ class memoize(object):  # 577452
 
 def path_identity(path):
     """Used as a dummy path converter where no conversion necessary"""
-    return path
-
-
-def win_path_to_unix(path, root_prefix=""):
-    """Convert a path or ;-separated string of paths into a unix representation
-
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
-
-    def _translation(found_path):
-        found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
-        return root_prefix + "/" + found
-    path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path
 
 

@@ -75,12 +75,12 @@ class Activator(object):
             raise NotImplementedError()
 
     def _finalize(self, commands, ext):
+        commands = concatv(commands, ('',))  # add terminating newline
         if ext is None:
             return '\n'.join(commands)
         elif ext:
             with NamedTemporaryFile(suffix=ext, delete=False) as tf:
                 tf.write(ensure_binary('\n'.join(commands)))
-                tf.write(ensure_binary('\n'))
             return tf.name
         else:
             raise NotImplementedError()
@@ -339,12 +339,16 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
     from shlex import split
     command = 'cygpath --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    joined = ensure_binary(("%s" % os.pathsep).join(paths))
+    joined = ("%s" % os.pathsep).join(paths)
+    if hasattr(joined, 'encode'):
+        joined = joined.encode('utf-8')
     stdout, stderr = p.communicate(input=joined)
     rc = p.returncode
     if rc != 0 or stderr:
         from subprocess import CalledProcessError
-        raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
+        message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
+        print(message, file=sys.stderr)
+        raise CalledProcessError(rc, command, message)
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
     final = stdout.strip().split(':')
