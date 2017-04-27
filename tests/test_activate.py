@@ -12,10 +12,11 @@ from uuid import uuid4
 from conda._vendor.auxlib.ish import dals
 import pytest
 
-from conda.activate import Activator
+from conda.activate import Activator, native_path_to_unix
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win, string_types
 from conda.common.io import env_var
+from conda.common.path import win_path_to_unix
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -347,6 +348,24 @@ class ShellWrapperUnitTests(TestCase):
 
         touch(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1' + extension))
         touch(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1' + extension))
+
+    def test_native_path_to_unix(self):
+        path1 = join(self.prefix, 'path', 'number', 'one')
+        path2 = join(self.prefix, 'path', 'two')
+        path3 = join(self.prefix, 'three')
+        paths = (path1, path2, path3)
+
+        if on_win:
+            assert native_path_to_unix(path1).lower() == win_path_to_unix(path1).lower()
+        else:
+            assert native_path_to_unix(path1) == path1
+
+        if on_win:
+            lowered_a = tuple(p.lower() for p in native_path_to_unix(*paths))
+            lowered_b = tuple(win_path_to_unix(p).lower() for p in paths)
+            assert lowered_a == lowered_b
+        else:
+            assert native_path_to_unix(*paths) == paths
 
     @pytest.mark.xfail(on_win, strict=True, reason="native_path_to_unix is broken on appveyor; "
                                                    "will fix in future PR")
