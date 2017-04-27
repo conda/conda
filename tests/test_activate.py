@@ -380,8 +380,8 @@ class ShellWrapperUnitTests(TestCase):
         export CONDA_PROMPT_MODIFIER="(%(prefix)s) "
         export CONDA_PYTHON_EXE="%(sys_executable)s"
         export CONDA_SHLVL="1"
-        export PATH = "%(new_path)s"
-        source "%(activate1)s"
+        export PATH="%(new_path)s"
+        . "%(activate1)s"
         """) % {
             'prefix': self.prefix,
             'new_path': new_path,
@@ -395,30 +395,27 @@ class ShellWrapperUnitTests(TestCase):
                     reactivate_data = activator.reactivate()
 
                     assert reactivate_data == dals("""
-                    source "%(deactivate1)s"
-                    source "%(activate1)s"
+                    . "%(deactivate1)s"
+                    . "%(activate1)s"
                     """) % {
-                        'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh'),
-                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh'),
+                        'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh'),
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh'),
                     }
 
-                    deactivate_result = activator.deactivate()
-                    with open(deactivate_result) as fh:
-                        deactivate_data = fh.read()
-                    rm_rf(deactivate_result)
+                    deactivate_data = activator.deactivate()
 
                     new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
                     assert deactivate_data == dals("""
-                    del $CONDA_DEFAULT_ENV
-                    del $CONDA_PREFIX
-                    del $CONDA_PROMPT_MODIFIER
-                    del $CONDA_PYTHON_EXE
-                    $CONDA_SHLVL = "0"
-                    $PATH = "%(new_path)s"
-                    source "%(deactivate1)s"
+                    unset CONDA_DEFAULT_ENV
+                    unset CONDA_PREFIX
+                    unset CONDA_PROMPT_MODIFIER
+                    unset CONDA_PYTHON_EXE
+                    export CONDA_SHLVL="0"
+                    export PATH="%(new_path)s"
+                    . "%(deactivate1)s"
                     """) % {
                         'new_path': new_path,
-                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh'),
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.sh'),
 
                     }
 
@@ -470,7 +467,7 @@ class ShellWrapperUnitTests(TestCase):
                         deactivate_data = fh.read()
                     rm_rf(deactivate_result)
 
-                    new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+                    new_path = activatgor.pathsep_join(activator._remove_prefix_from_path(self.prefix))
                     assert deactivate_data == dals("""
                     del $CONDA_DEFAULT_ENV
                     del $CONDA_PREFIX

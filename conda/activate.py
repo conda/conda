@@ -75,12 +75,12 @@ class Activator(object):
             raise NotImplementedError()
 
     def _finalize(self, commands, ext):
+        commands = concatv(commands, ('',))  # add terminating newline
         if ext is None:
             return '\n'.join(commands)
         elif ext:
             with NamedTemporaryFile(suffix=ext, delete=False) as tf:
                 tf.write(ensure_binary('\n'.join(commands)))
-                tf.write(ensure_binary('\n'))
             return tf.name
         else:
             raise NotImplementedError()
