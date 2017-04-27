@@ -2,21 +2,23 @@ from argparse import ArgumentParser
 import os
 import sys
 
-
 if '_CONDA_EXE' not in locals():
     _CONDA_EXE = "python -m conda"  # development mode
 
+_REACTIVATE_COMMANDS = ('install', 'update', 'remove', 'uninstall')
 
-def _conda_command_parser(args=None):
+
+def _parse_args(args=None):
     p = ArgumentParser(add_help=False)
     p.add_argument('command')
-    ns, unknown = p.parse_known_args(args)
+    ns, _ = p.parse_known_args(args)
     if ns.command == 'activate':
         p.add_argument('env_name_or_prefix', default='root')
-    elif ns.command in ('install', 'update', 'remove', 'uninstall'):
+    elif ns.command in _REACTIVATE_COMMANDS:
         p.add_argument('-n', '--name')
         p.add_argument('-p', '--prefix')
-    return p
+    parsed_args, _ = p.parse_known_args(args)
+    return parsed_args
 
 
 def _raise_pipeline_error(pipeline):
@@ -60,14 +62,13 @@ def _conda_reactivate_handler(args, name_or_prefix_given):
 
 
 def _conda_main(args=None):
-    p = _conda_command_parser(args)
-    ns, unknown = p.parse_known_args(args)
-    if ns.command == 'activate':
-        _conda_activate_handler(ns.env_name_or_prefix)
-    elif ns.command == 'deactivate':
+    parsed_args = _parse_args(args)
+    if parsed_args.command == 'activate':
+        _conda_activate_handler(parsed_args.env_name_or_prefix)
+    elif parsed_args.command == 'deactivate':
         _conda_deactivate_handler()
-    elif ns.command in ('install', 'update', 'remove', 'uninstall'):
-        name_or_prefix_given = bool(args.name or args.prefix)
+    elif parsed_args.command in _REACTIVATE_COMMANDS:
+        name_or_prefix_given = bool(parsed_args.name or parsed_args.prefix)
         _conda_reactivate_handler(args, name_or_prefix_given)
     else:
         _conda_passthrough_handler(args)
