@@ -155,7 +155,7 @@ install_conda_shell_scripts() {
         rm -f "$prefix/Library/bin/conda.bat"
         # local win_conda_exe="$(cygpath --windows "$conda_exe")"
         # echo "@SET \"CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
-        cat "$src_dir/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
+        cat "$src_dir/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
     fi
 
     mkdir -p "$prefix/etc/fish/conf.d/"
