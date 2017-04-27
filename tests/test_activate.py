@@ -17,7 +17,6 @@ from conda.activate import Activator, native_path_to_unix
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win, string_types
 from conda.common.io import env_var
-from conda.common.path import win_path_to_unix
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -351,8 +350,10 @@ class ShellWrapperUnitTests(TestCase):
         touch(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1' + extension))
 
     def test_native_path_to_unix(self):
-        def test_a_b(a, b):
-            assert b.lower().endswith(a.lower())
+        def assert_unix_path(path):
+            assert '\\' not in path, path
+            assert ':' not in path, path
+            return True
 
         path1 = join(self.prefix, 'path', 'number', 'one')
         path2 = join(self.prefix, 'path', 'two')
@@ -360,13 +361,12 @@ class ShellWrapperUnitTests(TestCase):
         paths = (path1, path2, path3)
 
         if on_win:
-            test_a_b(native_path_to_unix(path1), win_path_to_unix(path1))
+            assert_unix_path(native_path_to_unix(path1))
         else:
             assert native_path_to_unix(path1) == path1
 
         if on_win:
-            for a, b in zip(native_path_to_unix(*paths), (win_path_to_unix(p) for p in paths)):
-                test_a_b(a, b)
+            assert all(assert_unix_path(p) for p in native_path_to_unix(*paths))
         else:
             assert native_path_to_unix(*paths) == paths
 
