@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
-from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, CONDA_TARBALL_EXTENSION
+from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .common.toposort import toposort
