@@ -344,7 +344,7 @@ def ensure_binary(value):
 def native_path_to_unix(*paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
-        return path_identity(paths)
+        return path_identity(*paths)
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
