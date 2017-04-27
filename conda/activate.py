@@ -250,7 +250,7 @@ class Activator(object):
             return path.split(os.pathsep)
 
     def _get_path_dirs(self, prefix):
-        if on_win:
+        if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
             yield join(prefix, 'Library', 'mingw-w64', 'bin')
             yield join(prefix, 'Library', 'usr', 'bin')
@@ -275,7 +275,7 @@ class Activator(object):
             path_list = self._get_starting_path_list()
         else:
             path_list = list(starting_path_dirs)
-        if on_win:
+        if on_win:  # pragma: unix no cover
             # windows has a nasty habit of adding extra Library\bin directories
             prefix_dirs = tuple(self._get_path_dirs(old_prefix))
             try:
@@ -324,13 +324,13 @@ def expand(path):
 def ensure_binary(value):
     try:
         return value.encode('utf-8')
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing
         return value
 
 
-def native_path_to_unix(*paths):
+def native_path_to_unix(*paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
         return paths[0] if len(paths) == 1 else paths
@@ -392,4 +392,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
