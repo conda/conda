@@ -6,8 +6,8 @@ import re as regex
 import sys
 
 from ..common.compat import on_win, text_type
-from ..exceptions import (ArgumentError, CondaSystemExit, CondaValueError, TooFewArgumentsError,
-                          TooManyArgumentsError)
+from ..exceptions import (ArgumentError, CondaSystemExit, CondaValueError,
+                          TooFewArgumentsError, TooManyArgumentsError)
 from ..utils import shells
 
 

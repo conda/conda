@@ -27,7 +27,16 @@
 * resolve #5118 organization and cleanup for 4.4 release (#5115)
 
 
-## 4.3.17 (unreleased)
+## 4.3.18 (unreleased)
+
+### Bug Fixes
+* fix --use-index-cache actually hitting the index cache (#5134)
+
+### Non-User-Facing Changes
+* resolve #5138 add test of rm_rf of symlinked files (#4373)
+
+
+## 4.3.17 (2017-04-24)
 
 ### Improvements
 * fall back to copy if hardlink fails (#5002)

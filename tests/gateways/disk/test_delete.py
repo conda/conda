@@ -2,13 +2,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
+import os
 from os.path import isdir, isfile, islink, join, lexists
 
 import pytest
 
+from conda.compat import TemporaryDirectory
+from conda.gateways.disk.create import create_link
 from conda.gateways.disk.delete import move_to_trash, rm_rf
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.update import touch
+from conda.models.enums import LinkType
 from .test_permissions import _make_read_only, _try_open, tempdir
 
 
@@ -89,6 +93,25 @@ def test_remove_link_to_dir():
         assert not isdir(src_dir)
         assert not islink(src_dir)
         assert not lexists(dst_link)
+
+
+def test_rm_rf_does_not_follow_symlinks():
+    with TemporaryDirectory() as tmp:
+        # make a file in some temp folder
+        real_file = os.path.join(tmp, 'testfile')
+        with open(real_file, 'w') as f:
+            f.write('weee')
+        # make a subfolder
+        subdir = os.path.join(tmp, 'subfolder')
+        os.makedirs(subdir)
+        # link to the file in the subfolder
+        link_path = join(subdir, 'file_link')
+        create_link(real_file, link_path, link_type=LinkType.softlink)
+        assert islink(link_path)
+        # rm_rf the subfolder
+        rm_rf(subdir)
+        # assert that the file still exists in the root folder
+        assert os.path.isfile(real_file)
 
 
 def test_move_to_trash():
