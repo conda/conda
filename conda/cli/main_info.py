@@ -248,12 +248,14 @@ def get_info_dict(system=False):
 
 
 def get_main_info_str(info_dict):
+    from .._vendor.auxlib.ish import dals
+
     for key in 'pkgs_dirs', 'envs_dirs', 'channels':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
     builder = []
-    builder.append("""\
+    builder.append(dals("""
     Current conda install:
 
                    platform : %(platform)s
@@ -271,12 +273,10 @@ def get_main_info_str(info_dict):
                 config file : %(rc_path)s
                offline mode : %(offline)s
                  user-agent : %(user_agent)s\
-    """ % info_dict)
+    """) % info_dict)
 
     if not on_win:
-        builder.append("""\
-                    UID:GID : %(UID)s:%(GID)s
-    """ % info_dict)
+        builder.append("                UID:GID : %(UID)s:%(GID)s" % info_dict)
     else:
         builder.append("")
 
