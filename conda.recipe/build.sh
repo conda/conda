@@ -18,3 +18,6 @@ $PYTHON conda.recipe/setup.py --version > __conda_version__.txt
 # fish setup
 mkdir -p $PREFIX/etc/fish/conf.d/
 cp $SRC_DIR/shell/conda.fish $PREFIX/etc/fish/conf.d/
+
+mkdir -p $SP_DIR/xontrib
+cp $SRC_DIR/shell/conda.xsh $SP_DIR/xontrib
