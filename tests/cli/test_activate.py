@@ -570,8 +570,9 @@ def test_activate_does_not_leak_echo_setting(shell):
 
 
 @pytest.mark.installed
-@pytest.mark.xfail(on_win and datetime.now() < datetime(2017, 6, 1), reason="save for later", strict=True)
 def test_activate_non_ascii_char_in_path(shell):
+    if on_win and datetime.now() < datetime(2017, 6, 1) and shell == "bash.exe":
+        pytest.mark.xfail(reason="save for later", strict=True)
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """

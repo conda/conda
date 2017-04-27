@@ -45,7 +45,7 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
-            self.finalizer_extension = None  # don't write to file
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
@@ -55,7 +55,7 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.csh'
-            self.finalizer_extension = None  # don't write to file
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'setenv %s "%s"'
@@ -65,7 +65,7 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
-            self.finalizer_extension = '.xsh'
+            self.tempfile_extension = '.xsh'
 
             self.unset_var_tmpl = 'del $%s'
             self.set_var_tmpl = '$%s = "%s"'
@@ -75,7 +75,7 @@ class Activator(object):
             self.pathsep_join = ';'.join
             self.path_conversion = path_identity
             self.script_extension = '.bat'
-            self.finalizer_extension = '.bat'
+            self.tempfile_extension = '.bat'
 
             self.unset_var_tmpl = '@SET %s='
             self.set_var_tmpl = '@SET "%s=%s"'
@@ -97,15 +97,15 @@ class Activator(object):
 
     def activate(self, name_or_prefix):
         return self._finalize(self._yield_commands(self.build_activate(name_or_prefix)),
-                              self.finalizer_extension)
+                              self.tempfile_extension)
 
     def deactivate(self):
         return self._finalize(self._yield_commands(self.build_deactivate()),
-                              self.finalizer_extension)
+                              self.tempfile_extension)
 
     def reactivate(self):
         return self._finalize(self._yield_commands(self.build_reactivate()),
-                              self.finalizer_extension)
+                              self.tempfile_extension)
 
     def _yield_commands(self, cmds_dict):
         for key in sorted(cmds_dict.get('unset_vars', ())):
