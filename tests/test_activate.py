@@ -12,6 +12,7 @@ from uuid import uuid4
 from conda._vendor.auxlib.ish import dals
 import pytest
 
+from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import Activator, native_path_to_unix
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win, string_types
@@ -375,7 +376,7 @@ class ShellWrapperUnitTests(TestCase):
 
         activate_data = activator.activate(self.prefix)
 
-        new_path = activator.pathsep_join(activator._add_prefix_to_path(self.prefix))
+        new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
         export CONDA_DEFAULT_ENV="%(prefix)s"
         export CONDA_PREFIX="%(prefix)s"
@@ -386,14 +387,14 @@ class ShellWrapperUnitTests(TestCase):
         . "%(activate1)s"
         """) % {
             'prefix': self.prefix,
-            'new_path': new_path,
+            'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': sys.executable,
             'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')
         }
 
         with env_var('CONDA_PREFIX', self.prefix):
             with env_var('CONDA_SHLVL', '1'):
-                with env_var('PATH', new_path):
+                with env_var('PATH', os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],)))):
                     reactivate_data = activator.reactivate()
 
                     assert reactivate_data == dals("""
@@ -430,7 +431,7 @@ class ShellWrapperUnitTests(TestCase):
             activate_data = fh.read()
         rm_rf(activate_result)
 
-        new_path = activator.pathsep_join(activator._add_prefix_to_path(self.prefix))
+        new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
         $CONDA_DEFAULT_ENV = "%(prefix)s"
         $CONDA_PREFIX = "%(prefix)s"
@@ -441,14 +442,14 @@ class ShellWrapperUnitTests(TestCase):
         source "%(activate1)s"
         """) % {
             'prefix': self.prefix,
-            'new_path': new_path,
+            'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': sys.executable,
             'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh')
         }
 
         with env_var('CONDA_PREFIX', self.prefix):
             with env_var('CONDA_SHLVL', '1'):
-                with env_var('PATH', new_path):
+                with env_var('PATH', os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],)))):
                     reactivate_result = activator.reactivate()
                     with open(reactivate_result) as fh:
                         reactivate_data = fh.read()

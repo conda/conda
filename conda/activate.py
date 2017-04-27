@@ -338,7 +338,7 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
-    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
     joined = ("%s" % os.pathsep).join(paths)
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
@@ -346,7 +346,9 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
     rc = p.returncode
     if rc != 0 or stderr:
         from subprocess import CalledProcessError
-        raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
+        message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
+        print(message, file=sys.stderr)
+        raise CalledProcessError(rc, command, message)
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
     final = stdout.strip().split(':')
