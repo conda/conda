@@ -21,7 +21,7 @@
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_activate
 @CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%replacement%%%
 :skip_prompt_set_activate
-@FOR /F "delims=" %%i IN ('@call python -m conda shell.activate cmd.exe %2') DO @SET "TEMP_SCRIPT=%%i"
+@FOR /F "delims=" %%i IN ('@call %CONDA_EXE% shell.activate cmd.exe %2') DO @SET "TEMP_SCRIPT=%%i"
 @CALL "%TEMP_SCRIPT%"
 @DEL /F /Q "%TEMP_SCRIPT%"
 @SET TEMP_SCRIPT=
@@ -32,7 +32,7 @@
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_deactivate
 @CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%replacement%%%
 :skip_prompt_set_deactivate
-@FOR /F "delims=" %%i IN ('@call python -m conda shell.deactivate cmd.exe') DO @SET "TEMP_SCRIPT=%%i"
+@FOR /F "delims=" %%i IN ('@call %CONDA_EXE% shell.deactivate cmd.exe') DO @SET "TEMP_SCRIPT=%%i"
 @CALL "%TEMP_SCRIPT%"
 @DEL /F /Q "%TEMP_SCRIPT%"
 @SET TEMP_SCRIPT=
@@ -40,7 +40,7 @@
 @GOTO :End
 
 :DO_REACTIVATE
-@FOR /F "delims=" %%i IN ('@call python -m conda shell.reactivate cmd.exe') DO @SET "TEMP_SCRIPT=%%i"
+@FOR /F "delims=" %%i IN ('@call %CONDA_EXE% shell.reactivate cmd.exe') DO @SET "TEMP_SCRIPT=%%i"
 @CALL "%TEMP_SCRIPT%"
 @DEL /F /Q "%TEMP_SCRIPT%"
 @SET TEMP_SCRIPT=
