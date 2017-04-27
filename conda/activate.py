@@ -338,31 +338,19 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
-    try:
-        p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        joined = ("%s" % os.pathsep).join(paths)
-        if hasattr(joined, 'encode'):
-            joined = joined.encode('utf-8')
-        stdout, stderr = p.communicate(input=joined)
-        rc = p.returncode
-        if rc != 0 or stderr:
-            from subprocess import CalledProcessError
-            raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
-        if hasattr(stdout, 'decode'):
-            stdout = stdout.decode('utf-8')
-        final = stdout.strip().split(':')
-        return final[0] if len(final) == 1 else tuple(final)
-    except OSError as e:
-        from errno import ENOENT
-        if e.errno == ENOENT:
-            print("Warning: The system cannot find the file 'cygpath'", file=sys.stderr)
-            from .common.path import win_path_to_unix
-            if len(paths) == 1:
-                return win_path_to_unix(paths[0])
-            else:
-                return tuple(win_path_to_unix(p) for p in paths)
-        else:
-            raise
+    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    joined = ("%s" % os.pathsep).join(paths)
+    if hasattr(joined, 'encode'):
+        joined = joined.encode('utf-8')
+    stdout, stderr = p.communicate(input=joined)
+    rc = p.returncode
+    if rc != 0 or stderr:
+        from subprocess import CalledProcessError
+        raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
+    if hasattr(stdout, 'decode'):
+        stdout = stdout.decode('utf-8')
+    final = stdout.strip().split(':')
+    return final[0] if len(final) == 1 else tuple(final)
 
 
 on_win = bool(sys.platform == "win32")
