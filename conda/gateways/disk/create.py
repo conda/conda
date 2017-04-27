@@ -7,7 +7,7 @@ import json
 from logging import getLogger
 import os
 from os import X_OK, access, makedirs
-from os.path import basename, dirname, isdir, isfile, join, lexists, splitext
+from os.path import basename, dirname, isdir, isfile, join, splitext
 import shutil
 import sys
 import tarfile
@@ -15,7 +15,7 @@ import traceback
 
 from . import mkdir_p
 from .delete import rm_rf
-from .link import islink, link, readlink, symlink
+from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
 from ..subprocess import subprocess_call

@@ -4,10 +4,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 from logging import getLogger
 from os import rename as os_rename, utime
-from os.path import dirname, isdir, join, lexists
+from os.path import dirname, isdir, join
 import re
 
 from . import exp_backoff_fn, mkdir_p
+from .link import lexists
 from .delete import rm_rf
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
