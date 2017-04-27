@@ -1,10 +1,5 @@
 @SET "_CONDA_EXE=%~dp0..\..\Scripts\conda.exe"
 
-@IF NOT "%_CONDA_EXE%" == "" GOTO skip_set__CONDA_EXE
-@SET "_CONDA_EXE=python -m conda"
-:skip_set__CONDA_EXE
-
-
 @IF "%1"=="activate" GOTO :DO_ACTIVATE
 @IF "%1"=="deactivate" GOTO :DO_DEACTIVATE
 
@@ -20,31 +15,31 @@
 
 :DO_ACTIVATE
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_activate
-@CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%replacement%%%
+    @CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%replacement%%%
 :skip_prompt_set_activate
-@FOR /F "delims=" %%i IN ('@call %_CONDA_EXE% shell.activate cmd.exe %2') DO @SET "TEMP_SCRIPT=%%i"
-@CALL "%TEMP_SCRIPT%"
-@DEL /F /Q "%TEMP_SCRIPT%"
-@SET TEMP_SCRIPT=
+@FOR /F "delims=" %%i IN ('@call %_CONDA_EXE% shell.activate cmd.exe %2') DO @SET "_TEMP_SCRIPT_PATH=%%i"
+@CALL "%_TEMP_SCRIPT_PATH%"
+@DEL /F /Q "%_TEMP_SCRIPT_PATH%"
+@SET _TEMP_SCRIPT_PATH=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
 @GOTO :End
 
 :DO_DEACTIVATE
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_deactivate
-@CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%replacement%%%
+    @CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%replacement%%%
 :skip_prompt_set_deactivate
-@FOR /F "delims=" %%i IN ('@call %_CONDA_EXE% shell.deactivate cmd.exe') DO @SET "TEMP_SCRIPT=%%i"
-@CALL "%TEMP_SCRIPT%"
-@DEL /F /Q "%TEMP_SCRIPT%"
-@SET TEMP_SCRIPT=
+@FOR /F "delims=" %%i IN ('@call %_CONDA_EXE% shell.deactivate cmd.exe') DO @SET "_TEMP_SCRIPT_PATH=%%i"
+@CALL "%_TEMP_SCRIPT_PATH%"
+@DEL /F /Q "%_TEMP_SCRIPT_PATH%"
+@SET _TEMP_SCRIPT_PATH=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
 @GOTO :End
 
 :DO_REACTIVATE
-@FOR /F "delims=" %%i IN ('@call %_CONDA_EXE% shell.reactivate cmd.exe') DO @SET "TEMP_SCRIPT=%%i"
-@CALL "%TEMP_SCRIPT%"
-@DEL /F /Q "%TEMP_SCRIPT%"
-@SET TEMP_SCRIPT=
+@FOR /F "delims=" %%i IN ('@call %_CONDA_EXE% shell.reactivate cmd.exe') DO @SET "_TEMP_SCRIPT_PATH=%%i"
+@CALL "%_TEMP_SCRIPT_PATH%"
+@DEL /F /Q "%_TEMP_SCRIPT_PATH%"
+@SET _TEMP_SCRIPT_PATH=
 @GOTO :End
 
 :End
