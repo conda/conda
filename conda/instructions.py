@@ -107,7 +107,6 @@ def check_files_in_package(source_dir, files):
             raise CondaFileIOError(source_file, "File %s does not exist in tarball" % f)
 
 
-
 # Map instruction to command (a python function)
 commands = {
     PREFIX: PREFIX_CMD,

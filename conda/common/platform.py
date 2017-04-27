@@ -75,15 +75,13 @@ def linux_get_libc_version():
 
 
 def get_free_space(dir_name):
-    """
-        Return folder/drive free space (in bytes).
+    """Return folder/drive free space (in bytes).
     :param dir_name: the dir name need to check
     :return: amount of free space
-    
+
     Examples:
         >>> get_free_space(os.getcwd()) > 0
         True
-    
     """
     if on_win:
         free_bytes = ctypes.c_ulonglong(0)
