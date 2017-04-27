@@ -28,10 +28,6 @@ the "conda install" command.
 their dependencies. As with Miniconda, over 250 additional scientific packages can be installed individually with
 the "conda install" command.
 
-**pip install conda** uses the released version on pypi.  This version allows you to create new conda environments using
-any python installation, and a new version of Python will then be installed into those environments.  These environments
-are still considered "Anaconda installations."
-
 The `conda` command is the primary interface for managing `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations. It can query
 and search the Anaconda package index and current Anaconda installation,
