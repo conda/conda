@@ -264,12 +264,6 @@ set_test_vars() {
 
     export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
 
-    if [ -n "$ON_WIN" ]; then
-        if ! $(which cygpath > /dev/null); then
-            export PATH="/c/msys64/usr/bin:$PATH"
-        fi
-    fi
-
 }
 
 
@@ -355,7 +349,9 @@ run_setup() {
         CYGWIN*|MINGW*|MSYS*)
             install_conda_dev
             ;;
-        *)  ;;
+        *)  echo "setup not configured for $(uname -s)"
+            return 1
+            ;;
     esac
 
     set +e
@@ -373,11 +369,11 @@ run_tests() {
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
         conda_activate_test
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --file "coverage.xml"
     else
         conda_unit_test
         conda_integration_test
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --file "coverage.xml"
     fi
 }
 
