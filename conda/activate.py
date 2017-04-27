@@ -336,7 +336,7 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
         return paths[0] if len(paths) == 1 else paths
     from subprocess import PIPE, Popen
     from shlex import split
-    command = 'cygpath.exe --path -f -'
+    command = 'cygpath --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
     joined = ensure_binary(("%s" % os.pathsep).join(paths))
     stdout, stderr = p.communicate(input=joined)
