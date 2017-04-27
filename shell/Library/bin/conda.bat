@@ -1,4 +1,4 @@
-@SET "_CONDA_EXE=%~dp0\..\..\Scripts\conda.exe"
+@SET "_CONDA_EXE=%~dp0..\..\Scripts\conda.exe"
 
 @IF NOT "%_CONDA_EXE%" == "" GOTO skip_set__CONDA_EXE
 @SET "_CONDA_EXE=python -m conda"

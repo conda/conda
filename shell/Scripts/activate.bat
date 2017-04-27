@@ -20,7 +20,7 @@
 :skipmissingarg
 
 
-@SET "_CONDA_BAT=%~dp0\..\Library\bin\conda.bat"
+@SET "_CONDA_BAT=%~dp0..\Library\bin\conda.bat"
 
 @CALL %_CONDA_BAT% activate "%_CONDA_NEW_ENV%"
 
