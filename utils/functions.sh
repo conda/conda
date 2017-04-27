@@ -151,6 +151,7 @@ install_conda_shell_scripts() {
         rm -f $bin_dir/deactivate.bat
         $link_cmd "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
 
+        mkdir -p "$prefix/Library/bin"
         rm -f "$prefix/Library/bin/conda.bat"
         # local win_conda_exe="$(cygpath --windows "$conda_exe")"
         # echo "@SET \"CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
