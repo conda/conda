@@ -3,6 +3,10 @@ import os
 import sys
 
 
+if '_CONDA_EXE' not in locals():
+    _CONDA_EXE = "python -m conda"  # development mode
+
+
 def _conda_command_parser(args=None):
     p = ArgumentParser(add_help=False)
     p.add_argument('command')
@@ -26,29 +30,29 @@ def _raise_pipeline_error(pipeline):
 
 
 def _conda_activate_handler(env_name_or_prefix):
-    pipeline = !(python -m conda shell.activate xonsh @(env_name_or_prefix))
+    pipeline = !(@(_CONDA_EXE) shell.activate xonsh @(env_name_or_prefix))
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
 
 
 def _conda_deactivate_handler():
-    pipeline = !(python -m conda shell.deactivate xonsh)
+    pipeline = !(@(_CONDA_EXE) shell.deactivate xonsh)
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
 
 
 def _conda_passthrough_handler(args):
-    pipeline = ![python -m conda @(' '.join(args))]
+    pipeline = ![@(_CONDA_EXE) @(' '.join(args))]
     _raise_pipeline_error(pipeline)
 
 
 def _conda_reactivate_handler(args):
-    pipeline = ![python -m conda @(' '.join(args))]
+    pipeline = ![@(_CONDA_EXE) @(' '.join(args))]
     _raise_pipeline_error(pipeline)
 
-    pipeline = !(python -m conda shell.reactivate xonsh)
+    pipeline = !(@(_CONDA_EXE) shell.reactivate xonsh)
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)

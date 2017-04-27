@@ -153,6 +153,13 @@ install_conda_shell_scripts() {
     mkdir -p "$prefix/etc/fish/conf.d/"
     rm -f "$prefix/etc/fish/conf.d/conda.fish"
     $link_cmd "$src_dir/shell/etc/fish/conf.d/conda.fish" "$prefix/etc/fish/conf.d/conda.fish"
+
+    local sp_dir=$("$PYTHON_EXE" -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    mkdir -p "$sp_dir/xonsh"
+    rm -f "$sp_dir/xonsh/conda.xsh"
+    echo "_CONDA_EXE = \"$CONDA_EXE\"" > "$sp_dir/xonsh/conda.xsh"
+    cat "$src_dir/shell/conda.xsh" >> "$sp_dir/xonsh/conda.xsh"
+
 }
 
 
