@@ -48,14 +48,15 @@ def _conda_passthrough_handler(args):
     _raise_pipeline_error(pipeline)
 
 
-def _conda_reactivate_handler(args):
+def _conda_reactivate_handler(args, name_or_prefix_given):
     pipeline = ![@(_CONDA_EXE) @(' '.join(args))]
     _raise_pipeline_error(pipeline)
 
-    pipeline = !(@(_CONDA_EXE) shell.reactivate xonsh)
-    stdout = _raise_pipeline_error(pipeline)
-    source @(stdout)
-    os.unlink(stdout)
+    if not name_or_prefix_given:
+        pipeline = !(@(_CONDA_EXE) shell.reactivate xonsh)
+        stdout = _raise_pipeline_error(pipeline)
+        source @(stdout)
+        os.unlink(stdout)
 
 
 def _conda_main(args=None):
@@ -66,7 +67,8 @@ def _conda_main(args=None):
     elif ns.command == 'deactivate':
         _conda_deactivate_handler()
     elif ns.command in ('install', 'update', 'remove', 'uninstall'):
-        _conda_reactivate_handler(args)
+        name_or_prefix_given = bool(args.name or args.prefix)
+        _conda_reactivate_handler(args, name_or_prefix_given)
     else:
         _conda_passthrough_handler(args)
 
