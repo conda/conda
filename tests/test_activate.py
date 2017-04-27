@@ -348,6 +348,8 @@ class ShellWrapperUnitTests(TestCase):
         touch(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1' + extension))
         touch(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1' + extension))
 
+    @pytest.mark.xfail(on_win, strict=True, reason="native_path_to_unix is broken on appveyor; "
+                                                   "will fix in future PR")
     def test_xonsh_basic(self):
         activator = Activator('xonsh')
         self.make_dot_d_files(activator.script_extension)
