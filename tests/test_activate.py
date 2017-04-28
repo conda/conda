@@ -593,3 +593,55 @@ class ShellWrapperUnitTests(TestCase):
                         'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.fish'),
 
                     }
+
+    def test_powershell_basic(self):
+        activator = Activator('powershell')
+        self.make_dot_d_files(activator.script_extension)
+
+        activate_data = activator.activate(self.prefix)
+
+        new_path_parts = activator._add_prefix_to_path(self.prefix)
+        assert activate_data == dals("""
+        $env:CONDA_DEFAULT_ENV = "%(prefix)s"
+        $env:CONDA_PREFIX = "%(prefix)s"
+        $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
+        $env:CONDA_PYTHON_EXE = "%(sys_executable)s"
+        $env:CONDA_SHLVL = "1"
+        $env:PATH = "%(new_path)s"
+        . "%(activate1)s"
+        """) % {
+            'prefix': self.prefix,
+            'new_path': activator.pathsep_join(new_path_parts),
+            'sys_executable': sys.executable,
+            'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1')
+        }
+
+        with env_var('CONDA_PREFIX', self.prefix):
+            with env_var('CONDA_SHLVL', '1'):
+                with env_var('PATH', os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],)))):
+                    reactivate_data = activator.reactivate()
+
+                    assert reactivate_data == dals("""
+                    . "%(deactivate1)s"
+                    . "%(activate1)s"
+                    """) % {
+                        'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1'),
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.ps1'),
+                    }
+
+                    deactivate_data = activator.deactivate()
+
+                    new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+                    assert deactivate_data == dals("""
+                    Remove-Variable CONDA_DEFAULT_ENV
+                    Remove-Variable CONDA_PREFIX
+                    Remove-Variable CONDA_PROMPT_MODIFIER
+                    Remove-Variable CONDA_PYTHON_EXE
+                    $env:CONDA_SHLVL = "0"
+                    $env:PATH = "%(new_path)s"
+                    . "%(deactivate1)s"
+                    """) % {
+                        'new_path': new_path,
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.ps1'),
+
+                    }
