@@ -259,12 +259,12 @@ else:
 urlpath = url_path = path_to_url
 
 
-def md5_file(path):
+def md5_file(path):  # pragma: no cover
     from .gateways.disk.read import compute_md5sum
     return compute_md5sum(path)
 
 
-def hashsum_file(path, mode='md5'):
+def hashsum_file(path, mode='md5'):  # pragma: no cover
     import hashlib
     h = hashlib.new(mode)
     with open(path, 'rb') as fi:
