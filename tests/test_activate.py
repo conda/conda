@@ -482,6 +482,66 @@ class ShellWrapperUnitTests(TestCase):
                         'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.xsh'),
                     }
 
+    def test_cmd_exe_basic(self):
+        activator = Activator('cmd.exe')
+        self.make_dot_d_files(activator.script_extension)
+
+        activate_result = activator.activate(self.prefix)
+        with open(activate_result) as fh:
+            activate_data = fh.read()
+        rm_rf(activate_result)
+
+        new_path_parts = activator._add_prefix_to_path(self.prefix)
+        assert activate_data == dals("""
+        @SET "CONDA_DEFAULT_ENV=%(prefix)s"
+        @SET "CONDA_PREFIX=%(prefix)s"
+        @SET "CONDA_PROMPT_MODIFIER=(%(prefix)s) "
+        @SET "CONDA_PYTHON_EXE=%(sys_executable)s"
+        @SET "CONDA_SHLVL=1"
+        @SET "PATH=%(new_path)s"
+        @CALL "%(activate1)s"
+        """) % {
+            'prefix': self.prefix,
+            'new_path': activator.pathsep_join(new_path_parts),
+            'sys_executable': sys.executable,
+            'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')
+        }
+
+        with env_var('CONDA_PREFIX', self.prefix):
+            with env_var('CONDA_SHLVL', '1'):
+                with env_var('PATH', os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],)))):
+                    reactivate_result = activator.reactivate()
+                    with open(reactivate_result) as fh:
+                        reactivate_data = fh.read()
+                    rm_rf(reactivate_result)
+
+                    assert reactivate_data == dals("""
+                    @CALL "%(deactivate1)s"
+                    @CALL "%(activate1)s"
+                    """) % {
+                        'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat'),
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'),
+                    }
+
+                    deactivate_result = activator.deactivate()
+                    with open(deactivate_result) as fh:
+                        deactivate_data = fh.read()
+                    rm_rf(deactivate_result)
+
+                    new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
+                    assert deactivate_data == dals("""
+                    @SET CONDA_DEFAULT_ENV=
+                    @SET CONDA_PREFIX=
+                    @SET CONDA_PROMPT_MODIFIER=
+                    @SET CONDA_PYTHON_EXE=
+                    @SET "CONDA_SHLVL=0"
+                    @SET "PATH=%(new_path)s"
+                    @CALL "%(deactivate1)s"
+                    """) % {
+                        'new_path': new_path,
+                        'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.bat'),
+                    }
+
 
 @pytest.mark.integration
 class ActivatorIntegrationTests(TestCase):

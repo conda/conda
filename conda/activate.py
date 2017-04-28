@@ -45,7 +45,7 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
-            self.finalizer_extension = None  # don't write to file
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
@@ -55,7 +55,7 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.csh'
-            self.finalizer_extension = None  # don't write to file
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'setenv %s "%s"'
@@ -65,11 +65,21 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
-            self.finalizer_extension = '.xsh'
+            self.tempfile_extension = '.xsh'
 
             self.unset_var_tmpl = 'del $%s'
             self.set_var_tmpl = '$%s = "%s"'
             self.run_script_tmpl = 'source "%s"'
+
+        elif shell == 'cmd.exe':
+            self.pathsep_join = ';'.join
+            self.path_conversion = path_identity
+            self.script_extension = '.bat'
+            self.tempfile_extension = '.bat'
+
+            self.unset_var_tmpl = '@SET %s='
+            self.set_var_tmpl = '@SET "%s=%s"'
+            self.run_script_tmpl = '@CALL "%s"'
 
         else:
             raise NotImplementedError()
@@ -87,15 +97,15 @@ class Activator(object):
 
     def activate(self, name_or_prefix):
         return self._finalize(self._yield_commands(self.build_activate(name_or_prefix)),
-                              self.finalizer_extension)
+                              self.tempfile_extension)
 
     def deactivate(self):
         return self._finalize(self._yield_commands(self.build_deactivate()),
-                              self.finalizer_extension)
+                              self.tempfile_extension)
 
     def reactivate(self):
         return self._finalize(self._yield_commands(self.build_reactivate()),
-                              self.finalizer_extension)
+                              self.tempfile_extension)
 
     def _yield_commands(self, cmds_dict):
         for key in sorted(cmds_dict.get('unset_vars', ())):
@@ -134,7 +144,7 @@ class Activator(object):
         if old_conda_prefix == prefix:
             return self.build_reactivate()
         elif os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
-            # in this case, user is attenmpting to activate the previous environment,
+            # in this case, user is attempting to activate the previous environment,
             #  i.e. step back down
             return self.build_deactivate()
 
@@ -334,7 +344,7 @@ def ensure_binary(value):
 def native_path_to_unix(*paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
-        return paths[0] if len(paths) == 1 else paths
+        return path_identity(*paths)
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
@@ -353,6 +363,10 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
         stdout = stdout.decode('utf-8')
     final = stdout.strip().split(':')
     return final[0] if len(final) == 1 else tuple(final)
+
+
+def path_identity(*paths):
+    return paths[0] if len(paths) == 1 else paths
 
 
 on_win = bool(sys.platform == "win32")

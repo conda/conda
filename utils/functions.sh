@@ -120,6 +120,8 @@ install_conda_shell_scripts() {
     local src_dir=${2:-${SRC_DIR:-$PWD}}
     local symlink_scripts=${3:-1}
 
+    local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
+
     local link_cmd
     case "$symlink_scripts" in 0|true) link_cmd="ln -sf";; *) link_cmd="cp";; esac
 
@@ -148,6 +150,12 @@ install_conda_shell_scripts() {
 
         rm -f $bin_dir/deactivate.bat
         $link_cmd "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
+
+        mkdir -p "$prefix/Library/bin"
+        rm -f "$prefix/Library/bin/conda.bat"
+        # local win_conda_exe="$(cygpath --windows "$conda_exe")"
+        # echo "@SET \"CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
+        cat "$src_dir/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
     fi
 
     mkdir -p "$prefix/etc/fish/conf.d/"
@@ -256,12 +264,6 @@ set_test_vars() {
 
     export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
 
-    if [ -n "$ON_WIN" ]; then
-        if ! $(which cygpath > /dev/null); then
-            export PATH="/c/msys64/usr/bin:$PATH"
-        fi
-    fi
-
 }
 
 
@@ -347,7 +349,9 @@ run_setup() {
         CYGWIN*|MINGW*|MSYS*)
             install_conda_dev
             ;;
-        *)  ;;
+        *)  echo "setup not configured for $(uname -s)"
+            return 1
+            ;;
     esac
 
     set +e

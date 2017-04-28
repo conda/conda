@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 
+from datetime import datetime
 import pytest
 
 from conda.base.context import context
@@ -203,8 +204,6 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
 
 @pytest.mark.installed
 def test_activate_deactivate(shell):
-    # if shell == "bash.exe" and datetime.now() < datetime(2017, 5, 1):
-    #     pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -220,8 +219,6 @@ def test_activate_deactivate(shell):
 
 @pytest.mark.installed
 def test_activate_root_simple(shell):
-    # if shell == "bash.exe" and datetime.now() < datetime(2017, 5, 1):
-    #     pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -241,23 +238,6 @@ def test_activate_root_simple(shell):
         stdout, stderr = run_in(commands, shell)
         stdout = strip_leading_library_bin(stdout, shells[shell])
         assert_equals(stdout, u"%s" % shell_vars['base_path'])
-
-
-# @pytest.mark.installed
-# @pytest.mark.skip(reason="Test no longer relevant. Two envs activate at once is fine.")
-# def test_activate_root_env_from_other_env(shell):
-#     shell_vars = _format_vars(shell)
-#     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-#         commands = (shell_vars['command_setup'] + """
-#         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
-#         {source} "{syspath}{binpath}activate" root
-#         {printpath}
-#         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-#
-#         stdout, stderr = run_in(commands, shell)
-#         assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shelldict=shells[shell])),
-#                   stdout)
-#         assert_not_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shelldict=shells[shell])), stdout)
 
 
 @pytest.mark.installed
@@ -318,47 +298,6 @@ def test_activate_help(shell):
         #     assert_in("Usage: deactivate", stderr)
         # else:
         #     assert_in("Usage: source deactivate", stderr)
-
-
-# @pytest.mark.skip(reason="Test no longer relevant. Symlinking stops in conda 4.4.0.")
-# @pytest.mark.installed
-# def test_activate_symlinking(shell):
-#     """Symlinks or bat file redirects are created at activation time.  Make sure that the
-#     files/links exist, and that they point where they should."""
-#     shell_vars = _format_vars(shell)
-#     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-#         where = 'Scripts' if on_win else 'bin'
-#         for env in gen_test_env_paths(envs, shell)[:2]:
-#             scripts = ["conda", "activate", "deactivate"]
-#             for f in scripts:
-#                 if on_win:
-#                     file_path = os.path.join(env, where, f + shells[shell]["shell_suffix"])
-#                     # must translate path to windows representation for Python's sake
-#                     file_path = shells[shell]["path_from"](file_path)
-#                     assert(os.path.lexists(file_path))
-#                 else:
-#                     file_path = os.path.join(env, where, f)
-#                     assert(os.path.lexists(file_path))
-#                     s = os.lstat(file_path)
-#                     assert(stat.S_ISLNK(s.st_mode))
-#                     assert(os.readlink(file_path) == '{root_path}'.format(root_path=os.path.join(sys.prefix, where, f)))
-#
-#         if platform != 'win':
-#             # Test activate when there are no write permissions in the
-#             # env.
-#             prefix_bin_path = os.path.join(gen_test_env_paths(envs, shell)[2], 'bin')
-#             commands = (shell_vars['command_setup'] + """
-#             mkdir -p "{prefix_bin_path}"
-#             chmod 444 "{prefix_bin_path}"
-#             {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
-#             """).format(prefix_bin_path=prefix_bin_path, envs=envs,
-#                                 env_dirs=gen_test_env_paths(envs, shell),
-#                 **shell_vars)
-#             stdout, stderr = run_in(commands, shell)
-#             assert_in("not have write access", stderr)
-#
-#             # restore permissions so the dir will get cleaned up
-#             run_in('chmod 777 "{prefix_bin_path}"'.format(prefix_bin_path=prefix_bin_path), shell)
 
 
 @pytest.mark.installed
@@ -611,16 +550,12 @@ def test_activate_relative_path(shell):
             raise
         finally:
             os.chdir(cwd)
-        if shell == 'cmd.exe':
-            assert_equals(stdout.rstrip(), env_dir, stderr)
-        else:
-            assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
+        assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
 
 
-@pytest.mark.skipif(not on_win, reason="only relevant on windows")
+@pytest.mark.installed
 def test_activate_does_not_leak_echo_setting(shell):
     """Test that activate's setting of echo to off does not disrupt later echo calls"""
-
     if not on_win or shell != "cmd.exe":
         pytest.skip("test only relevant for cmd.exe on win")
     shell_vars = _format_vars(shell)
@@ -634,9 +569,10 @@ def test_activate_does_not_leak_echo_setting(shell):
         assert_equals(stdout, u'ECHO is on.', stderr)
 
 
-@pytest.mark.skip(reason="need to get 4.4. alpha outs")
 @pytest.mark.installed
 def test_activate_non_ascii_char_in_path(shell):
+    if on_win and datetime.now() < datetime(2017, 6, 1) and shell == "bash.exe":
+        pytest.xfail("save for later")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
@@ -683,40 +619,6 @@ def test_activate_has_extra_env_vars(shell):
         stdout, stderr = run_in(commands, shell)
         # period here is because when var is blank, windows prints out the current echo setting.
         assert_equals(stdout, u'.', stderr)
-
-
-@pytest.mark.skip(reason="will be covered with cmd.exe implmentation in new framework")
-@pytest.mark.slow
-@pytest.mark.installed
-def test_activate_keeps_PATH_order(shell):
-    if not on_win or shell != "cmd.exe":
-        pytest.xfail("test only implemented for cmd.exe on win")
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        @set "PATH=somepath;CONDA_PATH_PLACEHOLDER;%PATH%"
-        @call "{syspath}{binpath}activate.bat"
-        {printpath}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert stdout.startswith("somepath;" + sys.prefix)
-
-
-@pytest.mark.slow
-@pytest.mark.installed
-def test_deactivate_placeholder(shell):
-    if not on_win or shell != "cmd.exe":
-        pytest.xfail("test only implemented for cmd.exe on win")
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
-        @set "PATH=flag;%PATH%"
-        @call "{syspath}{binpath}activate.bat"
-        @call "{syspath}{binpath}deactivate.bat" "hold"
-        {printpath}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert stdout.startswith("CONDA_PATH_PLACEHOLDER;flag")
 
 
 # This test depends on files that are copied/linked in the conda recipe.  It is unfortunately not going to run after

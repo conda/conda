@@ -38,7 +38,7 @@ from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
 from .._vendor.boltons.setutils import IndexedSet
 
-try:
+try:  # pragma: no cover
     from cytoolz.dicttoolz import merge
     from cytoolz.functoolz import excepts
     from cytoolz.itertoolz import concat, concatv, unique
@@ -46,7 +46,7 @@ except ImportError:  # pragma: no cover
     from .._vendor.toolz.dicttoolz import merge
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concat, concatv, unique
-try:
+try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
     from ruamel_yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
