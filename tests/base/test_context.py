@@ -190,7 +190,7 @@ class ContextCustomRcTests(TestCase):
             pprint(context.describe_parameter(name))
 
     def test_local_build_root_custom_rc(self):
-        assert context.local_build_root == "/some/test/path"
+        assert context.local_build_root == "C:\\some\\test\\path" if on_win else "/some/test/path"
 
         test_path_1 = join(os.getcwd(), 'test_path_1')
         with env_var("CONDA_CROOT", test_path_1, reset_context):
