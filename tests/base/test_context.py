@@ -215,4 +215,3 @@ class ContextDefaultRcTests(TestCase):
             assert context.local_build_root == join(context.root_prefix, 'conda-bld')
         else:
             assert context.local_build_root == expand('~/conda-bld')
-c

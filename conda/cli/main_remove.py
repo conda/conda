@@ -131,7 +131,6 @@ def execute(args, parser):
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
-    check_write('remove', prefix, json=context.json)
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
     if not args.features and args.all:
