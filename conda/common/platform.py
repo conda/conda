@@ -2,13 +2,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
+import ctypes
 from genericpath import exists
 from glob import glob
 from logging import getLogger
+import os
 import sys
 
 from .._vendor.auxlib.decorators import memoize
-from .compat import iteritems
+from .compat import iteritems, on_win
 
 log = getLogger(__name__)
 
@@ -70,3 +72,22 @@ def linux_get_libc_version():
         log.warning("Failed to detect non-glibc family, assuming %s (%s)", family, version)
         return family, version
     return family, version
+
+
+def get_free_space(dir_name):
+    """Return folder/drive free space (in bytes).
+    :param dir_name: the dir name need to check
+    :return: amount of free space
+
+    Examples:
+        >>> get_free_space(os.getcwd()) > 0
+        True
+    """
+    if on_win:
+        free_bytes = ctypes.c_ulonglong(0)
+        ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(dir_name), None, None,
+                                                   ctypes.pointer(free_bytes))
+        return free_bytes.value
+    else:
+        st = os.statvfs(dir_name)
+        return st.f_bavail * st.f_frsize

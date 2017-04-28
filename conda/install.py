@@ -50,7 +50,7 @@ def package_cache():
     return package_cache()
 
 
-if on_win:
+if on_win:  # pragma: unix no cover
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
