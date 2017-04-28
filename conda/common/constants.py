@@ -7,8 +7,17 @@ EMPTY_MAP = frozendict()
 
 
 class _Null(object):
+    """
+    Examples:
+        >>> len(_Null())
+        0
+        >>> bool(_Null())
+        False
+        >>> _Null().__nonzero__()
+        False
+    """
     def __nonzero__(self):
-        return False
+        return self.__bool__()
 
     def __bool__(self):
         return False
