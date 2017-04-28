@@ -2,10 +2,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+from tempfile import NamedTemporaryFile
 from unittest import TestCase
 
+import pytest
+from requests import HTTPError
+
+from conda.common.compat import ensure_binary
+from conda.common.url import path_to_url
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
-from conda.gateways.connection import CondaHttpAuth
+from conda.gateways.connection import CondaHttpAuth, CondaSession
+from conda.gateways.disk.delete import rm_rf
 
 log = getLogger(__name__)
 
@@ -29,3 +36,33 @@ class CondaHttpAuthTests(TestCase):
             assert CondaHttpAuth.add_binstar_token(url) == new_url
         finally:
             remove_binstar_token("https://api.anaconda.test")
+
+
+class CondaSessionTests(TestCase):
+
+    def test_local_file_adapter_404(self):
+        session = CondaSession()
+        test_path = 'file:///some/location/doesnt/exist'
+        r = session.get(test_path)
+        with pytest.raises(HTTPError) as exc:
+            r.raise_for_status()
+        assert r.status_code == 404
+        assert r.json()['path'] == test_path[len('file://'):]
+
+    def test_local_file_adapter_200(self):
+        test_path = None
+        try:
+            with NamedTemporaryFile(delete=False) as fh:
+                test_path = fh.name
+                fh.write(ensure_binary('{"content": "file content"}'))
+
+            test_url = path_to_url(test_path)
+            session = CondaSession()
+            r = session.get(test_url)
+            r.raise_for_status()
+            assert r.status_code == 200
+            assert r.json()['content'] == "file content"
+        finally:
+            if test_path is not None:
+                rm_rf(test_path)
+

@@ -78,7 +78,7 @@ if not (on_win and PY2):
     lexists = os_lexists
     readlink = readlink
 
-else:  # pragma: unix no cover
+else:  # pragma: no cover
     from ctypes import (POINTER, Structure, byref, c_uint64, cast, windll,
                         wintypes)
     import inspect

@@ -168,7 +168,7 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
 
 if not (on_win and PY2):
     rmtree = shutil_rmtree
-else:  # pragma: unix no cover
+else:  # pragma: no cover
     # adapted from http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/  # NOQA
     # revision #3 http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/history/3/  # NOQA
     # licensed under the CC0 License 1.0 ("Public Domain")
