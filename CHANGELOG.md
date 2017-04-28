@@ -1,12 +1,47 @@
-## 4.4.0 (unreleased)
+## 4.3.18 (unreleased)
 
-### New Features
-* general support for all bourne- and c-based shells #3175
+### Bug Fixes
+* fix --use-index-cache actually hitting the index cache (#5134)
+
+### Non-User-Facing Changes
+* resolve #5138 add test of rm_rf of symlinked files (#4373)
 
 
-## 4.3.16 (2017-03-29)
+## 4.3.17 (2017-04-24)
 
 ### Improvements
+* fall back to copy if hardlink fails (#5002)
+* add timestamp metadata for tiebreaking conda-build 3 hashed packages (#5018)
+* resolve #5034 add subdirs configuration parameter (#5030)
+* resolve #5081 make pinned packages optional/constrained dependencies (#5088)
+* resolve #5108 improve behavior and add tests for spaces in paths (#4786)
+
+### Bug Fixes
+* quote prefix paths for locations with spaces (#5009)
+* remove binstar logger configuration overrides (#4989)
+* fix #4969 error in DirectoryNotFoundError (#4990)
+* fix #4998 pinned string format (#5011)
+* fix #5039 collecting main_info shouldn't fail on requests import (#5090)
+* fix #5055 improve bad token message for anaconda.org (#5091)
+* fix #5033 only re-register valid signal handlers (#5092)
+* fix #5028 imports in main_list (#5093)
+* fix #5073 allow client_ssl_cert{_key} to be of type None (#5096)
+* fix #4671 backoff for package validate race condition (#5098)
+* fix #5022 gnu_get_libc_version => linux_get_libc_version (#5099)
+* fix #4849 package name match bug (#5103)
+* fixes #5102 allow proxy_servers to be of type None (#5107)
+* fix #5111 incorrect typify for str + NoneType (#5112)
+
+### Non-User-Facing Changes
+* resolve #5012 remove CondaRuntimeError and RuntimeError (#4818)
+* full audit ensuring relative import paths within project (#5090)
+* resolve #5116 refactor conda/cli/activate.py to help menuinst (#4406)
+
+
+## 4.3.16 (2017-03-30)
+
+### Improvements
+* additions to configuration SEARCH_PATH to improve consistency (#4966)
 * add 'conda config --describe' and extra config documentation (#4913)
 * enable packaging pinning in condarc using pinned_packages config parameter
   as beta feature (#4921, #4964)
@@ -422,6 +457,7 @@
 ### Bug Fixes
 * remove incorrect elision of delete_prefix_from_linked_data() (#4813)
 * fix CB #1825 context clobbering (#4867)
+* fix #5101 api->conda regex substitution for Anaconda API channels (#5100)
 
 ### Non-User-Facing Changes
 * build 4.2.x against conda-build 2.1.2 and enforce passing (#4462)

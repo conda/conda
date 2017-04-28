@@ -43,6 +43,8 @@ def signal_handler(handler):
     try:
         yield
     finally:
+        standard_handlers = signal.SIG_IGN, signal.SIG_DFL
         for sig, previous_handler in previous_handlers:
-            log.debug("de-registering handler for %s", signame)
-            signal.signal(sig, previous_handler)
+            if callable(previous_handler) or previous_handler in standard_handlers:
+                log.debug("de-registering handler for %s", signame)
+                signal.signal(sig, previous_handler)

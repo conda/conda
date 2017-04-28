@@ -238,7 +238,14 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if link_type == LinkType.hardlink:
         if isdir(src):
             raise CondaError("Cannot hard link a directory. %s" % src)
-        link(src, dst)
+        try:
+            link(src, dst)
+        except (IOError, OSError) as e:
+            log.debug("hard-link failed. falling back to copy\n"
+                      "  error: %r\n"
+                      "  src: %s\n"
+                      "  dst: %s", e, src, dst)
+            _do_copy(src, dst)
     elif link_type == LinkType.softlink:
         _do_softlink(src, dst)
     elif link_type == LinkType.copy:
@@ -251,7 +258,7 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
     if lexists(pyc_full_path):
         maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    command = "%s -Wi -m py_compile %s" % (python_exe_full_path, py_full_path)
+    command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
     log.trace(command)
     subprocess_call(command, raise_on_error=False)
 

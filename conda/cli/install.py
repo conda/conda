@@ -20,12 +20,10 @@ from ..base.context import context
 from ..common.compat import on_win, text_type
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..exceptions import (CondaEnvironmentNotFoundError,
-                          CondaIOError, CondaImportError, CondaOSError,
-                          CondaRuntimeError, CondaSystemExit, CondaValueError,
-                          DirectoryNotFoundError, DryRunExit, LockError, NoPackagesFoundError,
-                          PackageNotFoundError, TooManyArgumentsError, UnsatisfiableError,
-                          PackageNotInstalledError)
+from ..exceptions import (CondaEnvironmentNotFoundError, CondaIOError, CondaImportError,
+                          CondaOSError, CondaSystemExit, CondaValueError, DirectoryNotFoundError,
+                          DryRunExit, NoPackagesFoundError, PackageNotFoundError,
+                          PackageNotInstalledError, TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
@@ -54,7 +52,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     if os.sep in src_arg:
         src_prefix = abspath(src_arg)
         if not isdir(src_prefix):
-            raise DirectoryNotFoundError(src_arg, 'no such directory: %s' % src_arg, json)
+            raise DirectoryNotFoundError(src_arg)
     else:
         src_prefix = context.clone_src
 
@@ -145,10 +143,12 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
+    args_packages = [s.strip('"\'') for s in args.packages]
+
     linked_dists = install_linked(prefix)
     linked_names = tuple(ld.quad[0] for ld in linked_dists)
     if isupdate and not args.all:
-        for name in args.packages:
+        for name in args_packages:
             common.arg2spec(name, json=context.json, update=True)
             if name not in linked_names and common.prefix_if_in_private_env(name) is None:
                 raise PackageNotInstalledError(prefix, name)
@@ -157,9 +157,9 @@ def install(args, parser, command='install'):
         default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
         for default_pkg in context.create_default_packages:
-            if any(pkg.split('=')[0] == default_pkg for pkg in args.packages):
+            if any(pkg.split('=')[0] == default_pkg for pkg in args_packages):
                 default_packages.remove(default_pkg)
-        args.packages.extend(default_packages)
+                args_packages.extend(default_packages)
     else:
         default_packages = []
 
@@ -185,25 +185,25 @@ def install(args, parser, command='install'):
             log.info("There are no packages installed in prefix %s", prefix)
             return
         specs.extend(d.quad[0] for d in linked_dists)
-    specs.extend(common.specs_from_args(args.packages, json=context.json))
+    specs.extend(common.specs_from_args(args_packages, json=context.json))
 
     if isinstall and args.revision:
         get_revision(args.revision, json=context.json)
-    elif isinstall and not (args.file or args.packages):
+    elif isinstall and not (args.file or args_packages):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
 
-    num_cp = sum(s.endswith('.tar.bz2') for s in args.packages)
+    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
     if num_cp:
-        if num_cp == len(args.packages):
-            explicit(args.packages, prefix, verbose=not context.quiet)
+        if num_cp == len(args_packages):
+            explicit(args_packages, prefix, verbose=not context.quiet)
             return
         else:
             raise CondaValueError("cannot mix specifications with conda package"
                                   " filenames")
 
     if newenv and args.clone:
-        package_diff = set(args.packages) - set(default_packages)
+        package_diff = set(args_packages) - set(default_packages)
         if package_diff:
             raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
                                         'did not expect any arguments for --clone')
@@ -300,7 +300,7 @@ def install(args, parser, command='install'):
             if pinned_specs:
                 path = join(prefix, 'conda-meta', 'pinned')
                 error_message.append("\n\nNote that you have pinned specs in %s:" % path)
-                error_message.append("\n\n    %r" % pinned_specs)
+                error_message.append("\n\n    %r" % (pinned_specs,))
 
             error_message = ''.join(error_message)
             raise PackageNotFoundError(error_message)
@@ -364,12 +364,6 @@ def install(args, parser, command='install'):
                             log.debug("Can't write the history file")
                         else:
                             raise CondaIOError("Can't write the history file", e)
-
-            except RuntimeError as e:
-                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                    raise LockError('Already locked: %s' % text_type(e))
-                else:
-                    raise CondaRuntimeError('RuntimeError: %s' % e)
             except SystemExit as e:
                 raise CondaSystemExit('Exiting', e)
 
@@ -385,7 +379,7 @@ def install(args, parser, command='install'):
 
 def check_write(command, prefix, json=False):
     if inroot_notwritable(prefix):
-        from conda.cli.help import root_read_only
+        from .help import root_read_only
         root_read_only(command, prefix, json=json)
 
 

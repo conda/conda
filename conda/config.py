@@ -9,7 +9,7 @@ import os
 import sys
 from os.path import abspath, expanduser, isfile, join
 
-from conda.base.context import context, non_x86_linux_machines
+from .base.context import context, non_x86_linux_machines
 non_x86_linux_machines = non_x86_linux_machines
 
 
@@ -77,7 +77,7 @@ get_rc_urls = lambda: context.channels
 
 
 def get_local_urls():
-    from conda.models.channel import get_conda_build_local_url
+    from .models.channel import get_conda_build_local_url
     return get_conda_build_local_url() or []
 
 

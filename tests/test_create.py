@@ -81,7 +81,7 @@ def make_temp_prefix(name=None, create_directory=True):
         dirpath = str(uuid4())[:8] if name is None else name
     else:
         random_unicode = ''.join(sample(UINCODE_CHARACTERS, len(UINCODE_CHARACTERS)))
-        dirpath = (str(uuid4())[:4] + random_unicode) if name is None else name
+        dirpath = (str(uuid4())[:4] + ' ' + random_unicode) if name is None else name
     prefix = join(tempdir, dirpath)
     os.makedirs(prefix)
     if create_directory:
@@ -123,10 +123,10 @@ def run_command(command, prefix, *arguments, **kwargs):
     parser_config[command](sub_parsers)
 
     if command is Commands.CONFIG:
-        arguments.append("--file {0}".format(join(prefix, 'condarc')))
+        arguments.append('--file "{0}"'.format(join(prefix, 'condarc')))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE):
-        arguments.append("-p {0}". format(prefix))
+        arguments.append('-p "{0}"'.format(prefix))
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
@@ -393,7 +393,7 @@ class IntegrationTests(TestCase):
             # install tarball with full path, outside channel
             tar_new_path = join(prefix, flask_fname)
             copyfile(tar_old_path, tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
+            run_command(Commands.INSTALL, prefix, '"%s"' % tar_new_path)
             assert_package_is_installed(prefix, 'flask-0')
 
             # regression test for #2626
@@ -401,7 +401,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             tar_new_path = relpath(tar_new_path)
-            run_command(Commands.INSTALL, prefix, tar_new_path)
+            run_command(Commands.INSTALL, prefix, '"%s"' % tar_new_path)
             assert_package_is_installed(prefix, 'flask-0.')
 
             # regression test for #2886 (part 2 of 2)
@@ -449,7 +449,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "decorator")
             assert_package_is_installed(prefix, 'conda-forge::python-3.5')
 
-            with make_temp_env("--clone", prefix) as clone_prefix:
+            with make_temp_env('--clone "%s"' % prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'conda-forge::python-3.5')
                 assert_package_is_installed(clone_prefix, "decorator")
 
@@ -464,7 +464,7 @@ class IntegrationTests(TestCase):
                 json.dump(data, f)
             linked_data_.clear()
 
-            with make_temp_env("-c conda-forge --clone", prefix) as clone_prefix:
+            with make_temp_env('-c conda-forge --clone "%s"' % prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
@@ -500,7 +500,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')
 
-            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+            with make_temp_env('--clone "%s"' % prefix, "--offline") as clone_prefix:
                 assert context.offline
                 assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                 assert_package_is_installed(clone_prefix, 'python')
@@ -541,32 +541,31 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "-c conda-test flask")
 
             touch(join(prefix, 'test.file'))  # untracked file
-            with make_temp_env("--clone", prefix, "--offline") as clone_prefix:
+            with make_temp_env("--clone '%s'" % prefix, "--offline") as clone_prefix:
                 assert context.offline
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'flask-0.11.1-py_0')
                 assert isfile(join(clone_prefix, 'test.file'))  # untracked file
 
     def test_package_pinning(self):
-        with make_temp_env("python=3.5 openssl=1.0.2g pytz=2015.7") as prefix:
-            assert package_is_installed(prefix, "openssl-1.0.2g")
-            assert package_is_installed(prefix, "python-3.5")
+        with make_temp_env("python=2.7 itsdangerous=0.23 pytz=2015.7") as prefix:
+            assert package_is_installed(prefix, "itsdangerous-0.23")
+            assert package_is_installed(prefix, "python-2.7")
             assert package_is_installed(prefix, "pytz-2015.7")
 
             with open(join(prefix, 'conda-meta', 'pinned'), 'w') as fh:
-                fh.write("openssl 1.0.2g\n")
+                fh.write("itsdangerous 0.23\n")
 
             run_command(Commands.UPDATE, prefix, "--all")
-            assert package_is_installed(prefix, "openssl-1.0.2g")
+            assert package_is_installed(prefix, "itsdangerous-0.23")
             # assert not package_is_installed(prefix, "python-3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
-            assert package_is_installed(prefix, "python-3.5")
+            assert package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "pytz-2015.7")
             assert package_is_installed(prefix, "pytz-")
 
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
-            assert package_is_installed(prefix, "python-3.5")
-            assert not package_is_installed(prefix, "openssl-1.0.2g")
-            assert package_is_installed(prefix, "openssl")
+            assert package_is_installed(prefix, "python-2.7")
+            assert not package_is_installed(prefix, "itsdangerous-0.23")
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):
@@ -874,6 +873,45 @@ class IntegrationTests(TestCase):
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
+    def test_use_index_cache(self):
+        from conda.connection import CondaSession
+
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        with make_temp_env(prefix=prefix):
+            # First, clear the index cache to make sure we start with an empty cache.
+            index_cache_dir = create_cache_dir()
+            run_command(Commands.CLEAN, '', "--index-cache")
+            assert not glob(join(index_cache_dir, "*.json"))
+
+            # Then, populate the index cache.
+            orig_get = CondaSession.get
+            with patch.object(CondaSession, 'get', autospec=True) as mock_method:
+                def side_effect(self, url, **kwargs):
+                    # Make sure that we don't use the cache because of the
+                    # corresponding HTTP header. This test is supposed to test
+                    # whether the --use-index-cache causes the cache to be used.
+                    result = orig_get(self, url, **kwargs)
+                    for header in ['Etag', 'Last-Modified', 'Cache-Control']:
+                        if header in result.headers:
+                            del result.headers[header]
+                    return result
+
+                mock_method.side_effect = side_effect
+                stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
+                assert mock_method.called
+
+            # Next run with --use-index-cache and make sure it actually hits the cache
+            # and does not go out fetching index data remotely.
+            with patch.object(CondaSession, 'get', autospec=True) as mock_method:
+                def side_effect(self, url, **kwargs):
+                    if url.endswith('/repodata.json') or url.endswith('/repodata.json.bz2'):
+                        raise AssertionError('Index cache was not hit')
+                    else:
+                        return orig_get(self, url, **kwargs)
+
+                mock_method.side_effect = side_effect
+                run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
+
     def test_clean_tarballs_and_packages(self):
         pkgs_dir = PackageCache.first_writable().pkgs_dir
         mkdir_p(pkgs_dir)
@@ -925,13 +963,16 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix()
             assert isdir(prefix)
-            run_command(Commands.INSTALL, prefix, "python=3.5", "--mkdir")
-            assert_package_is_installed(prefix, "python-3.5")
+            run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
+            assert_package_is_installed(prefix, "python-3.5.2")
 
             rm_rf(prefix)
             assert not isdir(prefix)
-            run_command(Commands.INSTALL, prefix, "python=3.5", "--mkdir")
-            assert_package_is_installed(prefix, "python-3.5")
+
+            # this part also a regression test for #4849
+            run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.0", "python=3.5.2", "--mkdir")
+            assert_package_is_installed(prefix, "python-3.5.2")
+            assert_package_is_installed(prefix, "python-dateutil-2.6.0")
 
         finally:
             rmtree(prefix, ignore_errors=True)

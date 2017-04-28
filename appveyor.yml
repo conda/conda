@@ -8,25 +8,25 @@ environment:
     secure: ZaE7K9EHorv40AjYhSuWtQeRAsMN1+QqPf7u8rOlvEY50kdaHj87Mh5GIDZgJBzj
 
   matrix:
-    # - PYTHON: "C:\\Python35_64"
-    #   PYTHON_VERSION: "3.5"
-    #   PYTHON_ARCH: "64"
+     - PYTHON: "C:\\Python36_64"
+       PYTHON_VERSION: "3.6"
+       PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python27_64"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "64"
+    # - PYTHON: "C:\\Python27_64"
+    #   PYTHON_VERSION: "2.7"
+    #   PYTHON_ARCH: "64"
 
     # - PYTHON: "C:\\Python34_64"
     #   PYTHON_VERSION: "3.4"
     #   PYTHON_ARCH: "64"
 
-    - PYTHON: "C:\\Python35_32"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "32"
-
-    # - PYTHON: "C:\\Python27_32"
-    #   PYTHON_VERSION: "2.7"
+    # - PYTHON: "C:\\Python35_32"
+    #   PYTHON_VERSION: "3.5"
     #   PYTHON_ARCH: "32"
+
+     - PYTHON: "C:\\Python27_32"
+       PYTHON_VERSION: "2.7"
+       PYTHON_ARCH: "32"
 
 init:
   - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOME%

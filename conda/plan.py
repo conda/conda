@@ -26,7 +26,7 @@ from .common.path import (is_private_env, preferred_env_matches_prefix,
 from .core.index import _supplement_index_with_prefix
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
-from .exceptions import (ArgumentError, CondaIndexError, CondaRuntimeError,
+from .exceptions import (ArgumentError, CondaIndexError,
                          InstallError, RemoveError)
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
@@ -418,6 +418,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 
 def get_pinned_specs(prefix):
+    """Find pinned specs from file and return a tuple of MatchSpec."""
     pinfile = join(prefix, 'conda-meta', 'pinned')
     if exists(pinfile):
         with open(pinfile) as f:
@@ -431,7 +432,8 @@ def get_pinned_specs(prefix):
     def munge_spec(s):
         return s if ' ' in s else spec_from_line(s)
 
-    return tuple(munge_spec(s) for s in concatv(context.pinned_packages, from_file))
+    return tuple(MatchSpec(munge_spec(s), optional=True) for s in
+                 concatv(context.pinned_packages, from_file))
 
 
 # Has one spec (string) for each env
@@ -465,7 +467,6 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
                          channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
-    str_specs = specs
     specs = [MatchSpec(spec) for spec in specs]
     r = get_resolve_object(index.copy(), prefix)
 
@@ -481,11 +482,11 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
 
     # Replace SpecsForPrefix specs with specs that were passed in in order to retain
     #   version information
-    required_solves = match_to_original_specs(str_specs, grouped_specs)
+    required_solves = match_to_original_specs(specs, grouped_specs)
 
-    actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+    actions = [get_actions_for_dists(specs_by_prefix, only_names, index, force,
                                      always_copy, prune, update_deps, pinned)
-               for dists_by_prefix in required_solves]
+               for specs_by_prefix in required_solves]
 
     # Need to add unlink actions if updating a private env from root
     if is_update and prefix == context.root_prefix:
@@ -599,8 +600,8 @@ def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs,
     return prefix_with_dists_no_deps_has_resolve
 
 
-def match_to_original_specs(str_specs, specs_for_prefix):
-    matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+def match_to_original_specs(specs, specs_for_prefix):
+    matches_any_spec = lambda dst: next(spc for spc in specs if spc.name == dst)
     matched_specs_for_prefix = []
     for prefix_with_dists in specs_for_prefix:
         linked = linked_data(prefix_with_dists.prefix)
@@ -616,13 +617,12 @@ def match_to_original_specs(str_specs, specs_for_prefix):
     return matched_specs_for_prefix
 
 
-def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+def get_actions_for_dists(specs_by_prefix, only_names, index, force, always_copy, prune,
                           update_deps, pinned):
     root_only = ('conda', 'conda-env')
-    prefix = dists_for_prefix.prefix
-    dists = dists_for_prefix.specs
-    r = dists_for_prefix.r
-    specs = [MatchSpec(dist) for dist in dists]
+    prefix = specs_by_prefix.prefix
+    r = specs_by_prefix.r
+    specs = [MatchSpec(s) for s in specs_by_prefix.specs]
     specs = augment_specs(prefix, specs, pinned)
 
     linked = linked_data(prefix)
@@ -689,33 +689,54 @@ These packages need to be removed before conda can proceed.""" % (' '.join(linke
 
 
 def augment_specs(prefix, specs, pinned=True):
-    # get conda-meta/pinned
+    """
+    Include additional specs for conda and (optionally) pinned packages.
+
+    Parameters
+    ----------
+    prefix : str
+        Environment prefix.
+    specs : list of MatchSpec
+        List of package specifications to augment.
+    pinned : bool, optional
+        Optionally include pinned specs for the current environment.
+
+    Returns
+    -------
+    augmented_specs : list of MatchSpec
+       List of augmented package specifications.
+    """
+    specs = list(specs)
+
+    # Get conda-meta/pinned
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s", pinned_specs)
-        specs += [MatchSpec(spec) for spec in pinned_specs]
+        specs.extend(pinned_specs)
 
-    # support aggressive auto-update conda
+    # Support aggressive auto-update conda
     #   Only add a conda spec if conda and conda-env are not in the specs.
     #   Also skip this step if we're offline.
-    root_only = ('conda', 'conda-env')
-    mss = [MatchSpec(s) for s in specs if s.name.startswith(root_only)]
-    mss = [ms for ms in mss if ms.name in root_only]
+    root_only_specs_str = ('conda', 'conda-env')
+    conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
+
     if is_root_prefix(prefix):
-        if context.auto_update_conda and not context.offline and not mss:
+        if context.auto_update_conda and not context.offline and not conda_in_specs_str:
             specs.append(MatchSpec('conda'))
             specs.append(MatchSpec('conda-env'))
     elif basename(prefix).startswith('_'):
-        # anything (including conda) can be installed into environments
+        # Anything (including conda) can be installed into environments
         # starting with '_', mainly to allow conda-build to build conda
         pass
-    elif mss:
-        raise InstallError("Error: 'conda' can only be installed into the root environment")
+    elif conda_in_specs_str:
+        raise InstallError("Error: 'conda' can only be installed into the "
+                           "root environment")
 
-    # support track_features config parameter
+    # Support track_features config parameter
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
-    return specs
+
+    return tuple(specs)
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
@@ -747,7 +768,7 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
             continue
         if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
             msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
-            raise CondaRuntimeError(msg % old_dist.to_filename())
+            raise RemoveError(msg % old_dist.to_filename())
         if context.conda_in_root and name == 'conda' and name not in nlinked and not context.force:
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
                 raise RemoveError("'conda' cannot be removed from the root environment")

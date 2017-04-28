@@ -16,14 +16,13 @@ import re
 import shutil
 import tarfile
 import tempfile
-from conda._vendor.auxlib.entity import EntityEncoder
-from conda.core.linked_data import is_linked, linked_data
-from conda.core.linked_data import linked
-from os.path import basename, dirname, isfile, islink, join, abspath, isdir
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
-from ..base.context import context, get_prefix
-
+from .._vendor.auxlib.entity import EntityEncoder
+from ..core.linked_data import is_linked, linked, linked_data
+from ..exceptions import CondaVerificationError
 from .common import add_parser_prefix
+from ..base.context import context, get_prefix
 from ..common.compat import PY3, itervalues
 from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
@@ -261,7 +260,7 @@ def which_package(path):
     path = abspath(path)
     prefix = which_prefix(path)
     if prefix is None:
-        raise RuntimeError("could not determine conda prefix from: %s" % path)
+        raise CondaVerificationError("could not determine conda prefix from: %s" % path)
     for dist in linked(prefix):
         meta = is_linked(prefix, dist)
         if any(abspath(join(prefix, f)) == path for f in meta['files']):

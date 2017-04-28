@@ -21,20 +21,21 @@ machine_bits = 8 * tuple.__itemsize__
 APP_NAME = 'conda'
 
 SEARCH_PATH = (
+    '/etc/conda/.condarc',
     '/etc/conda/condarc',
     '/etc/conda/condarc.d/',
+    '/var/lib/conda/.condarc',
     '/var/lib/conda/condarc',
     '/var/lib/conda/condarc.d/',
-    '%s/condarc' % sys.prefix,
-    '%s/.condarc' % sys.prefix,
-    '%s/condarc.d/' % sys.prefix,
-    '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/.condarc',
+    '$CONDA_ROOT/condarc',
     '$CONDA_ROOT/condarc.d/',
+    '~/.conda/.condarc',
     '~/.conda/condarc',
     '~/.conda/condarc.d/',
     '~/.condarc',
     '$CONDA_PREFIX/.condarc',
+    '$CONDA_PREFIX/condarc',
     '$CONDA_PREFIX/condarc.d/',
     '$CONDARC',
 )
@@ -51,6 +52,7 @@ PLATFORM_DIRECTORIES = ("linux-64",
                         "linux-ppc64le",
                         "linux-armv6l",
                         "linux-armv7l",
+                        "linux-aarch64",
                         "zos-z",
                         "noarch",
                         )

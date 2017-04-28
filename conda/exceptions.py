@@ -23,7 +23,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-class LockError(CondaError, RuntimeError):
+class LockError(CondaError):
     def __init__(self, message):
         msg = "Lock error: %s" % message
         super(LockError, self).__init__(msg)
@@ -46,6 +46,7 @@ class CondaSignalInterrupt(CondaError):
         super(CondaSignalInterrupt, self).__init__("Signal interrupt %(signal_name)s",
                                                    signal_name=signal_name,
                                                    signum=signum)
+
 
 class TooManyArgumentsError(ArgumentError):
     def __init__(self, expected, received, offending_arguments, optional_message='',
@@ -73,7 +74,6 @@ class TooFewArgumentsError(ArgumentError):
 
 
 class ClobberError(CondaError):
-
     def __init__(self, message, path_conflict, **kwargs):
         self.path_conflict = path_conflict
         super(ClobberError, self).__init__(message, **kwargs)
@@ -99,7 +99,6 @@ class BasicClobberError(ClobberError):
 
 
 class KnownPackageClobberError(ClobberError):
-
     def __init__(self, target_path, colliding_dist_being_linked, colliding_linked_dist, context):
         message = dals("""
         The package '%(colliding_dist_being_linked)s' cannot be installed due to a
@@ -120,7 +119,6 @@ class KnownPackageClobberError(ClobberError):
 
 
 class UnknownPackageClobberError(ClobberError):
-
     def __init__(self, target_path, colliding_dist_being_linked, context):
         message = dals("""
         The package '%(colliding_dist_being_linked)s' cannot be installed due to a
@@ -140,7 +138,6 @@ class UnknownPackageClobberError(ClobberError):
 
 
 class SharedLinkPathClobberError(ClobberError):
-
     def __init__(self, target_path, incompatible_package_dists, context):
         message = dals("""
         This transaction has incompatible packages due to a shared path.
@@ -208,6 +205,7 @@ class CondaEnvironmentNotFoundError(CondaError, EnvironmentError):
     args:
         environment_name_or_prefix (str): either the name or location of an environment
     """
+
     def __init__(self, environment_name_or_prefix, *args, **kwargs):
         msg = ("Could not find environment: %s .\n"
                "You can list all discoverable environments with `conda info --envs`."
@@ -381,7 +379,7 @@ class AuthenticationError(CondaError):
     pass
 
 
-class NoPackagesFoundError(CondaError, RuntimeError):
+class NoPackagesFoundError(CondaError):
     """An exception to report that requested packages are missing.
 
     Args:
@@ -392,6 +390,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
         Raises an exception with a formatted message detailing the
         missing packages and/or dependencies.
     """
+
     def __init__(self, bad_deps):
         from .resolve import dashlist
         from .base.context import context
@@ -409,7 +408,7 @@ class NoPackagesFoundError(CondaError, RuntimeError):
         self.pkgs = deps
 
 
-class UnsatisfiableError(CondaError, RuntimeError):
+class UnsatisfiableError(CondaError):
     """An exception to report unsatisfiable dependencies.
 
     Args:
@@ -422,6 +421,7 @@ class UnsatisfiableError(CondaError, RuntimeError):
         Raises an exception with a formatted message detailing the
         unsatisfiable specifications.
     """
+
     def __init__(self, bad_deps, chains=True):
         from .resolve import dashlist, MatchSpec
 
@@ -486,12 +486,6 @@ class CondaIndexError(CondaError, IndexError):
         super(CondaIndexError, self).__init__(msg)
 
 
-class CondaRuntimeError(CondaError, RuntimeError):
-    def __init__(self, message):
-        msg = 'Runtime error: %s' % message
-        super(CondaRuntimeError, self).__init__(msg)
-
-
 class CondaValueError(CondaError, ValueError):
     def __init__(self, message, *args):
         msg = 'Value error: %s' % message
@@ -521,8 +515,39 @@ class CondaVerificationError(CondaError):
         super(CondaVerificationError, self).__init__(message)
 
 
+class CondaDependencyError(CondaError):
+    def __init__(self, message):
+        super(CondaDependencyError, self).__init__(message)
+
+
+class BinaryPrefixReplacementError(CondaError):
+    def __init__(self, path, placeholder, new_prefix, original_data_length, new_data_length):
+        message = dals("""
+        Refusing to replace mismatched data length in binary file.
+          path: %(path)s
+          placeholder: %(placeholder)s
+          new prefix: %(new_prefix)s
+          original data Length: %(original_data_length)d
+          new data length: %(new_data_length)d
+        """)
+        kwargs = {
+            'path': path,
+            'placeholder': placeholder,
+            'new_prefix': new_prefix,
+            'original_data_length': original_data_length,
+            'new_data_length': new_data_length,
+        }
+        super(BinaryPrefixReplacementError, self).__init__(message, **kwargs)
+
+
+class InvalidSpecError(CondaError):
+    def __init__(self, invalid_spec):
+        message = "Invalid spec: %(invalid_spec)s"
+        super(InvalidSpecError, self).__init__(message, invalid_spec=invalid_spec)
+
+
 def print_conda_exception(exception):
-    from conda.base.context import context
+    from .base.context import context
 
     stdoutlogger = getLogger('stdout')
     stderrlogger = getLogger('stderr')
@@ -532,21 +557,6 @@ def print_conda_exception(exception):
                                      cls=EntityEncoder))
     else:
         stderrlogger.info("\n\n%r", exception)
-
-def get_info():
-    from conda.cli import conda_argparse
-    from conda.cli.main_info import configure_parser
-    from shlex import split
-    from conda.common.io import captured
-
-    p = conda_argparse.ArgumentParser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-    configure_parser(sub_parsers)
-
-    args = p.parse_args(split("info"))
-    with captured() as c:
-        args.func(args, p)
-    return c.stdout, c.stderr
 
 
 def print_unexpected_error_message(e):
@@ -558,9 +568,9 @@ def print_unexpected_error_message(e):
 
     stderrlogger = getLogger('stderr')
 
-    from conda.base.context import context
+    from .base.context import context
     if context.json:
-        from conda.cli.common import stdout_json
+        from .cli.common import stdout_json
         stdout_json(dict(error=traceback))
     else:
         message = """\
@@ -574,9 +584,8 @@ conda GitHub issue tracker at:
         stderrlogger.info(message)
         command = ' '.join(sys.argv)
         if ' info' not in command:
-            # get and print `conda info`
-            info_stdout, info_stderr = get_info()
-            stderrlogger.info(info_stdout if info_stdout else info_stderr)
+            from .cli.main_info import get_info_dict, get_main_info_str
+            stderrlogger.info(get_main_info_str(get_info_dict()))
         stderrlogger.info("`$ {0}`".format(command))
         stderrlogger.info('\n')
         stderrlogger.info('\n'.join('    ' + line for line in traceback.splitlines()))
@@ -606,11 +615,8 @@ def maybe_raise(error, context):
 def handle_exception(e):
     if isinstance(e, CondaExitZero):
         return 0
-    elif isinstance(e, CondaRuntimeError):
-        print_unexpected_error_message(e)
-        return 1
     elif isinstance(e, CondaError):
-        from conda.base.context import context
+        from .base.context import context
         if context.debug or context.verbosity > 0:
             print_unexpected_error_message(e)
         else:

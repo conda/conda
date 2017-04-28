@@ -3,13 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import partial
 import logging
-from logging import CRITICAL, DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
+from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
 
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
-from .._vendor.auxlib.logz import NullHandler
 from ..common.io import attach_stderr_handler
 
 TRACE = 5  # TRACE LOG LEVEL
@@ -60,12 +59,6 @@ def initialize_logging():
     stderr.addFilter(TokenURLFilter())
     stderr.propagate = False
 
-    binstar = getLogger('binstar')
-    binstar.setLevel(CRITICAL+1)
-    binstar.addHandler(NullHandler())
-    binstar.propagate = False
-    binstar.disabled = True
-
 
 def initialize_root_logger(level=ERROR):
     attach_stderr_handler(level)
@@ -79,7 +72,6 @@ def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
     attach_stderr_handler(level, formatter=formatter)
     attach_stderr_handler(level, 'conda', formatter=formatter)
-    attach_stderr_handler(level, 'binstar', formatter=formatter)
     attach_stderr_handler(level, 'requests')
     attach_stderr_handler(level, 'requests.packages.urllib3')
 

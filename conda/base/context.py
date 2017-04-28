@@ -46,6 +46,7 @@ _platform_map = {
 non_x86_linux_machines = {
     'armv6l',
     'armv7l',
+    'aarch64',
     'ppc64le',
 }
 _arch_names = {
@@ -93,6 +94,7 @@ class Context(Configuration):
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
     _subdir = PrimitiveParameter('', aliases=('subdir',))
+    _subdirs = SequenceParameter(string_types, aliases=('subdirs',))
 
     local_repodata_ttl = PrimitiveParameter(1, element_type=(bool, int))
     # number of seconds to cache repodata locally
@@ -102,9 +104,11 @@ class Context(Configuration):
     # remote connection details
     ssl_verify = PrimitiveParameter(True, element_type=string_types + (bool,),
                                     validation=ssl_verify_validation)
-    client_ssl_cert = PrimitiveParameter('', aliases=('client_cert',))
-    client_ssl_cert_key = PrimitiveParameter('', aliases=('client_cert_key',))
-    proxy_servers = MapParameter(string_types)
+    client_ssl_cert = PrimitiveParameter(None, aliases=('client_cert',),
+                                         element_type=string_types + (NoneType,))
+    client_ssl_cert_key = PrimitiveParameter(None, aliases=('client_cert_key',),
+                                             element_type=string_types + (NoneType,))
+    proxy_servers = MapParameter(string_types + (NoneType,))
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
     remote_max_retries = PrimitiveParameter(3)
@@ -240,6 +244,10 @@ class Context(Configuration):
             return 'zos-z'
         else:
             return '%s-%d' % (self.platform, self.bits)
+
+    @property
+    def subdirs(self):
+        return self._subdirs if self._subdirs else (self.subdir, 'noarch')
 
     @property
     def bits(self):
@@ -456,6 +464,7 @@ class Context(Configuration):
             'root_dir',
             'skip_safety_checks',
             'subdir',
+            'subdirs',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
 # I don't think this documentation is correct any longer. # NOQA
             'update_dependencies',

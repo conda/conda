@@ -24,7 +24,7 @@ from os.path import basename, dirname, join
 from unittest import TestCase
 
 
-class ContextTests(TestCase):
+class ContextCustomRcTests(TestCase):
 
     def setUp(self):
         string = dals("""
@@ -45,6 +45,13 @@ class ContextTests(TestCase):
         channel_alias: ftp://new.url:8082
         conda-build:
           root-dir: /some/test/path
+        proxy_servers:
+          http: http://user:pass@corp.com:8080
+          https: none
+          ftp:
+          sftp: ''
+          ftps: false
+          rsync: 'false'
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -157,6 +164,14 @@ class ContextTests(TestCase):
             Channel('learn_from_every_thing'),
         )
 
+    def test_proxy_servers(self):
+        assert context.proxy_servers['http'] == 'http://user:pass@corp.com:8080'
+        assert context.proxy_servers['https'] is None
+        assert context.proxy_servers['ftp'] is None
+        assert context.proxy_servers['sftp'] == ''
+        assert context.proxy_servers['ftps'] == 'False'
+        assert context.proxy_servers['rsync'] == 'false'
+
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"
         from conda.config import rc
@@ -171,3 +186,13 @@ class ContextTests(TestCase):
         from pprint import pprint
         for name in paramter_names:
             pprint(context.describe_parameter(name))
+
+
+class ContextDefaultRcTests(TestCase):
+
+    def test_subdirs(self):
+        assert context.subdirs == (context.subdir, 'noarch')
+
+        subdirs = ('linux-highest', 'linux-64', 'noarch')
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+            assert context.subdirs == subdirs
