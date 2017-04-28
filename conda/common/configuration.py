@@ -105,7 +105,7 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = ("Parameter %s = %r declared in %s has type %s.\n"
-                   "Valid types: %s." % (parameter_name, parameter_value,
+                   "Valid types:\n%s" % (parameter_name, parameter_value,
                                          source, wrong_type, pretty_list(valid_types)))
         super(InvalidTypeError, self).__init__(parameter_name, parameter_value, source, msg=msg)
 
@@ -654,18 +654,23 @@ class MapParameter(Parameter):
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        relevant_matches = self._first_important_matches(matches)
+        relevant_matches_and_values = tuple((match, match.value(self)) for match in
+                                            self._first_important_matches(matches))
+        for match, value in relevant_matches_and_values:
+            if not isinstance(value, Mapping):
+                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
+                                       self._type.__name__)
 
         # mapkeys with important matches
         def key_is_important(match, key):
             return match.valueflags(self).get(key) is ParameterFlag.final
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match.value(self))
+                                    for k, v in iteritems(match_value)
                                     if key_is_important(match, k))
-                               for match in relevant_matches)
+                               for match, match_value in relevant_matches_and_values)
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m.value(self) for m in relevant_matches),
+        return merge(concatv((v for _, v in relevant_matches_and_values),
                              reversed(important_maps)))
 
     def repr_raw(self, raw_parameter):
