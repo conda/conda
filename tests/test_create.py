@@ -553,17 +553,20 @@ class IntegrationTests(TestCase):
             assert not stdout
             assert not stderr
 
-            with open(join(prefix, 'condarc'), 'a') as fh:
-                fh.write('default_python: anaconda\n')
-                fh.write('ssl_verify: /path/doesnt/exist\n')
-            reload_config(prefix)
+            try:
+                with open(join(prefix, 'condarc'), 'a') as fh:
+                    fh.write('default_python: anaconda\n')
+                    fh.write('ssl_verify: /path/doesnt/exist\n')
+                reload_config(prefix)
 
-            with pytest.raises(CondaMultiError) as exc:
-                run_command(Commands.CONFIG, prefix, "--validate")
+                with pytest.raises(CondaMultiError) as exc:
+                    run_command(Commands.CONFIG, prefix, "--validate")
 
-            assert len(exc.value.errors) == 2
-            assert "must be a boolean or a path to a certificate bundle" in str(exc.value)
-            assert "default_python value 'anaconda' not of the form '[23].[0-9]'" in str(exc.value)
+                assert len(exc.value.errors) == 2
+                assert "must be a boolean or a path to a certificate bundle" in str(exc.value)
+                assert "default_python value 'anaconda' not of the form '[23].[0-9]'" in str(exc.value)
+            finally:
+                reset_context()
 
     def test_rpy_search(self):
         with make_temp_env("python=3.5") as prefix:
