@@ -58,6 +58,16 @@ def translate_stream(stream, translator):
 def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
+    
+    Examples:
+        >>> human_bytes(42)
+        '42 B'
+        >>> human_bytes(1042)
+        '1 KB'
+        >>> human_bytes(10004242)
+        '9.5 MB'
+        >>> human_bytes(100000004242)
+        '93.13 GB'
     """
     if n < 1024:
         return '%d B' % n
