@@ -2,39 +2,48 @@ from __future__ import absolute_import, print_function
 
 import json
 import os
+from os.path import dirname, join
 import unittest
 
-from conda.common.url import join_url
-
-from conda.base.constants import MAX_CHANNEL_PRIORITY, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, \
-    CONDA_TARBALL_EXTENSION
+from conda.base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS
 from conda.base.context import reset_context
-from conda.common.compat import iteritems, text_type, string_types
+from conda.common.compat import iteritems, string_types
+from conda.core.index import supplement_index_with_features, supplement_index_with_repodata
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.dist import Dist, parse_legacy_dist_str
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
-from os.path import dirname, join
-
-import pytest
-
-from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
-
 
 SUBDIR_URL = Channel(DEFAULT_CHANNELS[0]).urls()[0]
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {}
-    for key, value in iteritems(json.load(fi)):
-        record = IndexRecord(schannel=DEFAULTS_CHANNEL_NAME, fn=key,
-                             url=join_url(SUBDIR_URL, key), **value)
-        index[record] = record
-    r = Resolve(index)
+    repodata = json.load(fi)
+
+index = {}
+channel = Channel('defaults')
+supplement_index_with_repodata(index, {'packages': repodata}, channel, 1)
+supplement_index_with_features(index, ('mkl',))
+r = Resolve(index)
+
+f_mkl = set(['mkl'])
 
 
-def make_record(dist):
+
+# with open(join(dirname(__file__), 'index.json')) as fi:
+#     index = {}
+#     for key, value in iteritems(json.load(fi)):
+#         record = IndexRecord(schannel=DEFAULTS_CHANNEL_NAME, fn=key,
+#                              url=join_url(SUBDIR_URL, key), **value)
+#         index[record] = record
+#     channel = Channel('defaults')
+#     supplement_index_with_repodata(index, {'packages': repodata}, channel, 1)
+#     supplement_index_with_features(index, ('mkl',))
+#     r = Resolve(index)
+
+
+def make_record(dist, **kwargs):
     assert isinstance(dist, string_types)
     parts = dist.split("::", 1)
     schannel = DEFAULTS_CHANNEL_NAME if len(parts) == 1 else parts[0]
@@ -42,94 +51,23 @@ def make_record(dist):
     fn = dist_name + CONDA_TARBALL_EXTENSION
     url = join(Channel(schannel).urls()[0], fn)
     return IndexRecord(schannel=schannel, fn=fn, url=url,
-                       name=name, version=version, build=build_string, build_number=build_number)
+                       name=name, version=version, build=build_string, build_number=build_number,
+                       **kwargs)
 
 
+# =======
+#     repodata = json.load(fi)
+#
+# index = {}
+
+# r = Resolve(index)
+# >>>>>>> origin/4.4.x
 
 f_mkl = set(['mkl'])
 
 
-class TestMatchSpec(unittest.TestCase):
-
-    def test_match(self):
-        for spec, res in [
-            ('numpy 1.7*', True),          ('numpy 1.7.1', True),
-            ('numpy 1.7', False),          ('numpy 1.5*', False),
-            ('numpy >=1.5', True),         ('numpy >=1.5,<2', True),
-            ('numpy >=1.8,<1.9', False),   ('numpy >1.5,<2,!=1.7.1', False),
-            ('numpy >1.8,<2|==1.7', False),('numpy >1.8,<2|>=1.7.1', True),
-            ('numpy >=1.8|1.7*', True),    ('numpy ==1.7', False),
-            ('numpy >=1.5,>1.6', True),    ('numpy ==1.7.1', True),
-            ('numpy >=1,*.7.*', True),     ('numpy *.7.*,>=1', True),
-            ('numpy >=1,*.8.*', False),    ('numpy >=2,*.7.*', False),
-            ('numpy 1.6*|1.7*', True),     ('numpy 1.6*|1.8*', False),
-            ('numpy 1.6.2|1.7*', True),    ('numpy 1.6.2|1.7.1', True),
-            ('numpy 1.6.2|1.7.0', False),  ('numpy 1.7.1 py27_0', True),
-            ('numpy 1.7.1 py26_0', False), ('numpy >1.7.1a', True),
-            ('python', False),
-            ]:
-            m = MatchSpec(spec)
-            self.assertEqual(m.match(make_record('numpy-1.7.1-py27_0.tar.bz2')), res)
-
-        # both version numbers conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1').match(make_record('numpy-1.0.1a-0.tar.bz2')))
-        # both version numbers non-conforming to PEP 440
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1*.vc11').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2')))
-        # one conforming, other non-conforming to PEP 440
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(make_record('numpy-1.0.1.vc11-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy <1.0.1').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2')))
-        self.assertFalse(MatchSpec('numpy >=1.0.1.vc11').match(make_record('numpy-1.0.1a-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a').match(make_record('numpy-1.0.1z-0.tar.bz2')))
-        self.assertTrue(MatchSpec('numpy >=1.0.1a py27*').match(make_record('numpy-1.0.1z-py27_1.tar.bz2')))
-        self.assertTrue(MatchSpec('blas * openblas').match(make_record('blas-1.0-openblas.tar.bz2')))
-
-        self.assertTrue(MatchSpec('blas').is_simple())
-        self.assertFalse(MatchSpec('blas').is_exact())
-        self.assertFalse(MatchSpec('blas 1.0').is_simple())
-        self.assertFalse(MatchSpec('blas 1.0').is_exact())
-        self.assertFalse(MatchSpec('blas 1.0 1').is_simple())
-        self.assertTrue(MatchSpec('blas 1.0 1').is_exact())
-        self.assertFalse(MatchSpec('blas 1.0 *').is_exact())
-
-        m = MatchSpec('blas 1.0', optional=True)
-        m2 = MatchSpec(m, optional=False)
-        m3 = MatchSpec(m2, target='blas-1.0-0.tar.bz2')
-        m4 = MatchSpec(m3, target=None, optional=True)
-        self.assertTrue(m.spec == m2.spec and m.optional != m2.optional)
-        self.assertTrue(m2.spec == m3.spec and m2.optional == m3.optional and m2.target != m3.target)
-        self.assertTrue(m == m4)
-
-        self.assertRaises(ValueError, MatchSpec, 'blas (optional')
-        self.assertRaises(ValueError, MatchSpec, 'blas (optional,test)')
-
-    def test_to_filename(self):
-        ms = MatchSpec('foo 1.7 52')
-        self.assertEqual(ms.to_filename(), 'foo-1.7-52.tar.bz2')
-
-        for spec in 'bitarray', 'pycosat 0.6.0', 'numpy 1.6*':
-            ms = MatchSpec(spec)
-            self.assertEqual(ms.to_filename(), None)
-
-    def test_hash(self):
-        a, b = MatchSpec('numpy 1.7*'), MatchSpec('numpy 1.7*')
-        # optional should not change the hash
-        d = MatchSpec('numpy 1.7* (optional)')
-        self.assertTrue(a is not b)
-        self.assertTrue(a is not d)
-        self.assertEqual(a, b)
-        self.assertNotEqual(a, d)
-        self.assertEqual(hash(a), hash(b))
-        self.assertEqual(hash(a), hash(d))
-        c, d = MatchSpec('python'), MatchSpec('python 2.7.4')
-        self.assertNotEqual(a, c)
-        self.assertNotEqual(hash(a), hash(c))
-        self.assertNotEqual(c, d)
-        self.assertNotEqual(hash(c), hash(d))
-
-    def test_string(self):
-        a = MatchSpec("foo1 >=1.3 2 (optional,target=burg)")
-        assert a.optional and a.target=='burg'
+def add_defaults_if_no_channel(string):
+    return 'defaults::' + string if '::' not in string else string
 
 
 class TestSolve(unittest.TestCase):
@@ -147,14 +85,14 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.explicit(['zlib']), None)
         self.assertEqual(r.explicit(['zlib 1.2.7']), None)
         # because zlib has no dependencies it is also explicit
-        self.assertEqual(r.explicit(['zlib 1.2.7 0']),
-                         [make_record('zlib-1.2.7-0.tar.bz2')])
+        exp_result = r.explicit([MatchSpec('zlib 1.2.7 0', schannel='defaults')])
+        self.assertEqual(exp_result, [make_record('defaults::zlib-1.2.7-0.tar.bz2')])
 
     def test_explicit2(self):
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7 0']),
-                         [make_record('pycosat-0.6.0-py27_0.tar.bz2'),
-                          make_record('zlib-1.2.7-0.tar.bz2')])
+                         [make_record('defaults::pycosat-0.6.0-py27_0.tar.bz2'),
+                          make_record('defaults::zlib-1.2.7-0.tar.bz2')])
         self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
                                      'zlib 1.2.7']), None)
 
@@ -168,7 +106,7 @@ class TestSolve(unittest.TestCase):
         specs = ['anaconda 1.4.0 np17py33_0']
         res = r.explicit(specs)
         self.assertEqual(len(res), 51)
-        self.assertEqual(r.install(specs), res)
+        assert r.install(specs) == res
         specs.append('python 3.3*')
         self.assertEqual(r.explicit(specs), None)
         self.assertEqual(r.install(specs), res)
@@ -218,17 +156,18 @@ class TestSolve(unittest.TestCase):
     def test_scipy_mkl(self):
         dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue(make_record('scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
+        self.assertTrue(make_record('defaults::scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
 
     def test_anaconda_nomkl(self):
         dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         self.assertEqual(len(dists), 107)
-        self.assertTrue(make_record('scipy-0.12.0-np17py27_0.tar.bz2') in dists)
+        self.assertTrue(make_record('defaults::scipy-0.12.0-np17py27_0.tar.bz2') in dists)
 
 
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[make_record(fn) for fn in [
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[
+        make_record(add_defaults_if_no_channel(fn)) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'numpy-1.5.1-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -241,7 +180,8 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[make_record(fn) for fn in [
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
+        make_record(add_defaults_if_no_channel(fn)) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
         'numpy-1.5.1-py27_p4.tar.bz2',
@@ -546,8 +486,11 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'})
 
-    assert r.install(['mypackage']) == r.install(['mypackage 1.1']) == [make_record(dname) for dname in [
-        'mypackage-1.1-py33_0.tar.bz2',
+    target_result = r.install(['mypackage'])
+    assert target_result == r.install(['mypackage 1.1'])
+    assert target_result == [
+        make_record(add_defaults_if_no_channel(dname)) for dname in [
+        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -560,9 +503,10 @@ def test_nonexistent_deps():
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0']))
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
-    assert r.install(['anotherpackage 1.0']) == [make_record(dname) for dname in [
-        'anotherpackage-1.0-py33_0.tar.bz2',
-        'mypackage-1.1-py33_0.tar.bz2',
+    assert r.install(['anotherpackage 1.0']) == [
+        make_record(add_defaults_if_no_channel(dname)) for dname in [
+        '<unknown>::anotherpackage-1.0-py33_0.tar.bz2',
+        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -573,9 +517,10 @@ def test_nonexistent_deps():
         'zlib-1.2.7-0.tar.bz2',
     ]]
 
-    assert r.install(['anotherpackage']) == [make_record(dname) for dname in [
-        'anotherpackage-2.0-py33_0.tar.bz2',
-        'mypackage-1.1-py33_0.tar.bz2',
+    assert r.install(['anotherpackage']) == [
+        make_record(add_defaults_if_no_channel(dname)) for dname in [
+        '<unknown>::anotherpackage-2.0-py33_0.tar.bz2',
+        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -631,8 +576,9 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'})
 
-    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [make_record(dname) for dname in [
-        'mypackage-1.0-py33_0.tar.bz2',
+    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [
+        make_record(add_defaults_if_no_channel(dname)) for dname in [
+        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -644,9 +590,10 @@ def test_nonexistent_deps():
     ]]
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.1']))
 
-    assert r.install(['anotherpackage 1.0']) == [make_record(dname) for dname in [
-        'anotherpackage-1.0-py33_0.tar.bz2',
-        'mypackage-1.0-py33_0.tar.bz2',
+    assert r.install(['anotherpackage 1.0']) == [
+        make_record(add_defaults_if_no_channel(dname))for dname in [
+        '<unknown>::anotherpackage-1.0-py33_0.tar.bz2',
+        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -659,9 +606,10 @@ def test_nonexistent_deps():
 
     # If recursive checking is working correctly, this will give
     # anotherpackage 2.0, not anotherpackage 1.0
-    assert r.install(['anotherpackage']) == [make_record(dname) for dname in [
-        'anotherpackage-2.0-py33_0.tar.bz2',
-        'mypackage-1.0-py33_0.tar.bz2',
+    assert r.install(['anotherpackage']) == [
+        make_record(add_defaults_if_no_channel(dname))for dname in [
+        '<unknown>::anotherpackage-2.0-py33_0.tar.bz2',
+        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -719,8 +667,56 @@ def test_circular_dependencies():
     ]
 
 
+def test_optional_dependencies():
+    index2 = index.copy()
+    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': ['package2 >1.0 (optional)'],
+        'name': 'package1',
+        'requires': ['package2'],
+        'version': '1.0',
+    })
+    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '1.0',
+    })
+    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+        'build': '0',
+        'build_number': 0,
+        'depends': [],
+        'name': 'package2',
+        'requires': [],
+        'version': '2.0',
+    })
+    index2 = {Dist(key): value for key, value in iteritems(index2)}
+    r = Resolve(index2)
+
+    assert set(r.find_matches(MatchSpec('package1'))) == {
+        Dist('package1-1.0-0.tar.bz2'),
+    }
+    assert set(r.get_reduced_index(['package1']).keys()) == {
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    }
+    assert r.install(['package1']) == [
+        Dist('package1-1.0-0.tar.bz2'),
+    ]
+    assert r.install(['package1', 'package2']) == r.install(['package1', 'package2 >1.0']) == [
+        Dist('package1-1.0-0.tar.bz2'),
+        Dist('package2-2.0-0.tar.bz2'),
+    ]
+    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 <2.0']))
+    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
+
+
 def test_irrational_version():
-    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[make_record(fname) for fname in [
+    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[
+        make_record(add_defaults_if_no_channel(fname)) for fname in [
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
         'pytz-2012d-py33_0.tar.bz2',
@@ -735,7 +731,7 @@ def test_irrational_version():
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
     assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
-        returnall=True) == [[make_record(fname) for fname in [
+        returnall=True) == [[make_record(add_defaults_if_no_channel(fname)) for fname in [
             'numpy-1.6.2-py26_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
             'python-2.6.8-6.tar.bz2',
@@ -748,7 +744,7 @@ def test_no_features():
             ]]]
 
     assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
-        returnall=True) == [[make_record(fname) for fname in [
+        returnall=True) == [[make_record(add_defaults_if_no_channel(fname)) for fname in [
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
             'openssl-1.0.1c-0.tar.bz2',
@@ -763,22 +759,54 @@ def test_no_features():
 
     index2 = index.copy()
 
-    record = make_record('pandas-0.12.0-np16py27_0')
-    record.depends = ["dateutil", "numpy 1.6*", "python 2.7*", "pytz"]
-    index2[record] = record
+    pandas = IndexRecord.from_objects(make_record("defaults::pandas-0.12.0-np16py27_0.tar.bz2"),
+                                      {
+                                          "build": "np16py27_0",
+                                          "build_number": 0,
+                                          "depends": [
+                                              "dateutil",
+                                              "numpy 1.6*",
+                                              "python 2.7*",
+                                              "pytz"
+                                          ],
+                                          "name": "pandas",
+                                          "requires": [
+                                              "dateutil 1.5",
+                                              "numpy 1.6",
+                                              "python 2.7",
+                                              "pytz"
+                                          ],
+                                          "version": "0.12.0"
+                                      }
+                             )
+    index2[pandas] = pandas
 
     # Make it want to choose the pro version by having it be newer.
-    record = make_record('numpy-1.6.2-py27_p5')
-    record.depends = ["mkl-rt 11.0", "python 2.7*"]
-    record.features = "mkl"
-    index2[record] = record
+    numpy = IndexRecord.from_objects(make_record("defaults::numpy-1.6.2-py27_p5.tar.bz2"), {
+            "build": "py27_p5",
+            "build_number": 5,
+            "depends": [
+              "mkl-rt 11.0",
+              "python 2.7*"
+            ],
+            "features": "mkl",
+            "name": "numpy",
+            "pub_date": "2013-04-29",
+            "requires": [
+              "mkl-rt 11.0",
+              "python 2.7"
+            ],
+            "version": "1.6.2"
+        })
+    index2[numpy] = numpy
+
 
     r2 = Resolve(index2)
 
     # This should not pick any mkl packages (the difference here is that none
     # of the specs directly have mkl versions)
     assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*'],
-        returnall=True) == [[make_record(fname) for fname in [
+        returnall=True) == [[make_record(add_defaults_if_no_channel(fname)) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'numpy-1.6.2-py27_4.tar.bz2',
             'openssl-1.0.1c-0.tar.bz2',
@@ -794,7 +822,7 @@ def test_no_features():
             ]]]
 
     assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', 'mkl@'],
-        returnall=True)[0] == [[make_record(fname) for fname in [
+        returnall=True)[0] == [[make_record(add_defaults_if_no_channel(fname)) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',           # This
             'numpy-1.6.2-py27_p5.tar.bz2',      # and this are different.
@@ -817,7 +845,7 @@ def test_multiple_solution():
     res1 = set([fn])
     for k in range(1,15):
         fn2 = Dist('%s_%d.tar.bz2'%(fn[:-8],k))
-        index2[fn2] = index[Dist(fn)]
+        index2[fn2] = index[Dist(add_defaults_if_no_channel(fn))]
         res1.add(fn2)
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
@@ -828,7 +856,7 @@ def test_multiple_solution():
 
 def test_broken_install():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
-    assert installed == [Dist(fname) for fname in [
+    assert installed == [Dist(add_defaults_if_no_channel(fname)) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -845,20 +873,20 @@ def test_broken_install():
 
     # Add an incompatible numpy; installation should be untouched
     installed1 = list(installed)
-    installed1[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
+    installed1[1] = Dist('defaults::numpy-1.7.1-py33_p0.tar.bz2')
     assert set(r.install([], installed1)) == set(installed1)
     assert r.install(['numpy 1.6*'], installed1) == installed
 
     # Add an incompatible pandas; installation should be untouched, then fixed
     installed2 = list(installed)
-    installed2[3] = Dist('pandas-0.11.0-np17py27_1.tar.bz2')
+    installed2[3] = Dist('defaults::pandas-0.11.0-np17py27_1.tar.bz2')
     assert set(r.install([], installed2)) == set(installed2)
     assert r.install(['pandas'], installed2) == installed
 
     # Removing pandas should fix numpy, since pandas depends on it
     installed3 = list(installed)
-    installed3[1] = Dist('numpy-1.7.1-py33_p0.tar.bz2')
-    installed3[3] = Dist('pandas-0.11.0-np17py27_1.tar.bz2')
+    installed3[1] = Dist('defaults::numpy-1.7.1-py33_p0.tar.bz2')
+    installed3[3] = Dist('defaults::pandas-0.11.0-np17py27_1.tar.bz2')
     installed4 = r.remove(['pandas'], installed)
     assert r.bad_installed(installed4, [])[0] is None
 
@@ -868,7 +896,7 @@ def test_broken_install():
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
-    assert installed == [Dist(fname) for fname in [
+    assert installed == [Dist(add_defaults_if_no_channel(fname)) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.7.1-py27_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -883,7 +911,8 @@ def test_remove():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']]
 
-    assert r.remove(['pandas'], installed=installed) == [Dist(fname) for fname in [
+    assert r.remove(['pandas'], installed=installed) == [
+        Dist(add_defaults_if_no_channel(fname)) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.7.1-py27_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -898,7 +927,8 @@ def test_remove():
         'zlib-1.2.7-0.tar.bz2']]
 
     # Pandas requires numpy
-    assert r.remove(['numpy'], installed=installed) == [Dist(fname) for fname in [
+    assert r.remove(['numpy'], installed=installed) == [
+        Dist(add_defaults_if_no_channel(fname)) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-2.7.5-0.tar.bz2',
@@ -923,6 +953,12 @@ def test_channel_priority():
     record2 = make_record(fn2)
     index2[record2] = record2
 
+# =======
+#     spec = ['pandas', 'python 2.7*']
+#     index2 = index.copy()
+#     index2[Dist(fn2)] = index2[Dist(add_defaults_if_no_channel(fn1))].copy()
+#     index2 = {Dist(key): value for key, value in iteritems(index2)}
+# >>>>>>> origin/4.4.x
     r2 = Resolve(index2)
     assert r2.index[record2]
 
@@ -987,7 +1023,7 @@ def test_dependency_sort():
 
 def test_update_deps():
     installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
-    assert installed == [Dist(fn) for fn in [
+    assert installed == [Dist(add_defaults_if_no_channel(fn)) for fn in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -1006,7 +1042,7 @@ def test_update_deps():
     # dependency of pandas. But numpy does not _need_ to be updated
     # to get the latest version of pandas, so it stays put.
     assert r.install(['pandas', 'python 2.7*'], installed=installed,
-        update_deps=True, returnall=True) == [[Dist(fn) for fn in [
+        update_deps=True, returnall=True) == [[Dist(add_defaults_if_no_channel(fn)) for fn in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -1024,7 +1060,7 @@ def test_update_deps():
     # pandas should be updated here. However, it's going to try to not update
     # scipy, so it won't be updated to the latest version (0.11.0).
     assert r.install(['pandas', 'python 2.7*'], installed=installed,
-        update_deps=False, returnall=True) == [[Dist(fn) for fn in [
+        update_deps=False, returnall=True) == [[Dist(add_defaults_if_no_channel(fn)) for fn in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.6.2-py27_4.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',

@@ -196,7 +196,7 @@ class Dist(object):
         if channel_override != NULL:
             channel = channel_override
         elif channel is None:
-            channel = DEFAULTS_CHANNEL_NAME
+            channel = UNKNOWN_CHANNEL
 
         return cls(channel=channel, dist_name=original_dist)
 

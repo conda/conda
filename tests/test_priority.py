@@ -7,7 +7,8 @@ from .test_create import (make_temp_env, assert_package_is_installed,
                           run_command, Commands, get_conda_list_tuple)
 
 
-class PriorityTest(TestCase):
+@pytest.mark.integration
+class PriorityIntegrationTests(TestCase):
 
     def test_channel_order_channel_priority_true(self):
         with make_temp_env("python=3.5 pycosat==0.6.1") as prefix:
@@ -21,8 +22,8 @@ class PriorityTest(TestCase):
             # update --all
             update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
 
-            # pycosat should be in the SUPERCEDED list
-            superceded_split = update_stdout.split('SUPERCEDED')
+            # pycosat should be in the SUPERSEDED list
+            superceded_split = update_stdout.split('SUPERSEDED')
             assert len(superceded_split) == 2
             assert 'pycosat' in superceded_split[1]
 
@@ -33,12 +34,11 @@ class PriorityTest(TestCase):
             pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
             assert pycosat_tuple[3] == 'conda-forge'
 
-    @pytest.mark.timeout(300)
     def test_channel_priority_update(self):
         """
             This case will fail now
         """
-        with make_temp_env("python=3.5") as prefix:
+        with make_temp_env("python=3.5.3=0") as prefix:
             assert_package_is_installed(prefix, 'python')
 
             # add conda-forge channel
@@ -48,7 +48,7 @@ class PriorityTest(TestCase):
             # update python
             update_stdout, _ = run_command(Commands.UPDATE, prefix, 'python')
 
-            # pycosat should be in the SUPERCEDED list
+            # pycosat should be in the SUPERSEDED list
             superceded_split = update_stdout.split('UPDATED')
             assert len(superceded_split) == 2
             assert 'conda-forge' in superceded_split[1]

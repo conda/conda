@@ -2,12 +2,18 @@ coverage:
   precision: 2
   round: nearest
   range: 60...100
+  status:
+    patch: off
+    project: off
 
 ignore:
   - conda_env/.*
   - conda/_vendor/.*
   - conda/console.py
+  - conda/cli/activate.py
   - conda/cli/main_package.py
   - conda/gateways/adapters/ftp.py
   - conda/gateways/adapters/s3.py
   - tests/.*
+
+comment: off

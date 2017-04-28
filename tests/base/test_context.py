@@ -24,13 +24,19 @@ from os.path import basename, dirname, join
 from unittest import TestCase
 
 
-class ContextTests(TestCase):
+class ContextCustomRcTests(TestCase):
 
     def setUp(self):
         string = dals("""
         custom_channels:
           darwin: https://some.url.somewhere/stuff
           chuck: http://another.url:8080/with/path
+        custom_multichannels:
+          michele:
+            - https://do.it.with/passion
+            - learn_from_every_thing
+          steve:
+            - more-downloads
         migrated_custom_channels:
           darwin: s3://just/cant
           chuck: file:///var/lib/repo/
@@ -39,6 +45,13 @@ class ContextTests(TestCase):
         channel_alias: ftp://new.url:8082
         conda-build:
           root-dir: /some/test/path
+        proxy_servers:
+          http: http://user:pass@corp.com:8080
+          https: none
+          ftp:
+          sftp: ''
+          ftps: false
+          rsync: 'false'
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -108,7 +121,7 @@ class ContextTests(TestCase):
         try:
             mkdir_p(conda_bld_path)
             with env_var('CONDA_BLD_PATH', conda_bld_path, reset_context):
-                assert len(context.conda_build_local_paths) == 2
+                assert len(context.conda_build_local_paths) >= 1
                 assert context.conda_build_local_paths[0] == conda_bld_path
 
                 channel = Channel('local')
@@ -145,6 +158,20 @@ class ContextTests(TestCase):
         finally:
             rm_rf(conda_bld_path)
 
+    def test_custom_multichannels(self):
+        assert context.custom_multichannels['michele'] == (
+            Channel('passion'),
+            Channel('learn_from_every_thing'),
+        )
+
+    def test_proxy_servers(self):
+        assert context.proxy_servers['http'] == 'http://user:pass@corp.com:8080'
+        assert context.proxy_servers['https'] is None
+        assert context.proxy_servers['ftp'] is None
+        assert context.proxy_servers['sftp'] == ''
+        assert context.proxy_servers['ftps'] == 'False'
+        assert context.proxy_servers['rsync'] == 'false'
+
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"
         from conda.config import rc
@@ -153,3 +180,19 @@ class ContextTests(TestCase):
     def test_clobber_enum(self):
         with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
             assert context.path_conflict == PathConflict.prevent
+
+    def test_describe_all(self):
+        paramter_names = context.list_parameters()
+        from pprint import pprint
+        for name in paramter_names:
+            pprint(context.describe_parameter(name))
+
+
+class ContextDefaultRcTests(TestCase):
+
+    def test_subdirs(self):
+        assert context.subdirs == (context.subdir, 'noarch')
+
+        subdirs = ('linux-highest', 'linux-64', 'noarch')
+        with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
+            assert context.subdirs == subdirs

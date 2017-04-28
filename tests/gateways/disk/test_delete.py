@@ -1,75 +1,166 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import ENOENT
 import os
+from os.path import isdir, isfile, islink, join, lexists
+
 import pytest
-from conda.base.context import context
-from conda.common.compat import text_type
-from conda.gateways.disk.delete import rm_rf
-from conda.utils import on_win
-from os.path import join, isdir, islink, lexists, isfile
 
-
-def can_not_symlink():
-    return on_win and context.default_python[0] == '2'
+from conda.compat import TemporaryDirectory
+from conda.gateways.disk.create import create_link
+from conda.gateways.disk.delete import move_to_trash, rm_rf
+from conda.gateways.disk.link import islink, symlink
+from conda.gateways.disk.update import touch
+from conda.models.enums import LinkType
+from .test_permissions import _make_read_only, _try_open, tempdir
 
 
 def _write_file(path, content):
-    with open(path, "w") as fh:
+    with open(path, "a") as fh:
         fh.write(content)
+        fh.close()
 
 
-def test_remove_file(tmpdir):
-    test_file = "test.txt"
-    path = join(text_type(tmpdir), test_file)
-    _write_file(path, "welcome to the ministry of silly walks")
-    assert rm_rf(path) is True
+def test_remove_file():
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        assert isfile(test_path)
+        _try_open(test_path)
+        _make_read_only(test_path)
+        pytest.raises((IOError, OSError), _try_open, test_path)
+        assert rm_rf(test_path)
+        assert not isfile(test_path)
 
 
-@pytest.mark.skipif(not on_win, reason="Testing case for windows is different then Unix")
-def test_remove_file_to_trash(tmpdir):
-    test_file = "test.txt"
-    path = join(text_type(tmpdir), test_file)
-    _write_file(path, "welcome to the ministry of silly walks")
-    assert rm_rf(path) is True
+def test_remove_file_to_trash():
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        assert isfile(test_path)
+        _try_open(test_path)
+        _make_read_only(test_path)
+        pytest.raises((IOError, OSError), _try_open, test_path)
+        assert rm_rf(test_path)
+        assert not isfile(test_path)
 
 
-def test_remove_dir(tmpdir):
-    test_dir = "test"
-    tmpdir.mkdir(test_dir)
-    path = join(text_type(tmpdir), test_dir)
-    assert isdir(path)
-    assert not islink(path)
-    assert rm_rf(path) is True
-    assert not isdir(path)
-    assert not lexists(path)
+def test_remove_dir():
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        _try_open(test_path)
+        assert isfile(test_path)
+        assert isdir(td)
+        assert not islink(test_path)
+        assert rm_rf(td)
+        assert rm_rf(test_path)
+        assert not isdir(td)
+        assert not isfile(test_path)
+        assert not lexists(test_path)
 
 
-@pytest.mark.skipif(can_not_symlink(), reason="symlink function not available")
-def test_remove_link_to_file(tmpdir):
-    dst_link = join(text_type(tmpdir), "test_link")
-    src_file = join(text_type(tmpdir), "test_file")
-    _write_file(src_file, "welcome to the ministry of silly walks")
-    os.symlink(src_file, dst_link)
-    assert isfile(src_file)
-    assert not islink(src_file)
-    assert islink(dst_link)
-    assert rm_rf(dst_link) is True
-    assert isfile(src_file)  # make sure the directory is still there
-    assert not isfile(dst_link)
-    assert not lexists(dst_link)
+def test_remove_link_to_file():
+    with tempdir() as td:
+        dst_link = join(td, "test_link")
+        src_file = join(td, "test_file")
+        _write_file(src_file, "welcome to the ministry of silly walks")
+        symlink(src_file, dst_link)
+        assert isfile(src_file)
+        assert not islink(src_file)
+        assert islink(dst_link)
+        assert rm_rf(dst_link)
+        assert isfile(src_file)
+        assert rm_rf(src_file)
+        assert not isfile(src_file)
+        assert not islink(dst_link)
+        assert not lexists(dst_link)
 
 
-@pytest.mark.skipif(can_not_symlink(), reason="symlink function not available")
-def test_remove_link_to_dir(tmpdir):
-    dst_link = join(text_type(tmpdir), "test_link")
-    src_dir = join(text_type(tmpdir), "test_dir")
-    tmpdir.mkdir("test_dir")
-    os.symlink(src_dir, dst_link)
-    assert isdir(src_dir)
-    assert not islink(src_dir)
-    assert islink(dst_link)
-    assert rm_rf(dst_link) is True
-    assert isdir(src_dir)  # make sure the directory is still there
-    assert not isdir(dst_link)
-    assert not lexists(dst_link)
+def test_remove_link_to_dir():
+    with tempdir() as td:
+        dst_link = join(td, "test_link")
+        src_dir = join(td, "test_dir")
+        _write_file(src_dir, "welcome to the ministry of silly walks")
+        symlink(src_dir, dst_link)
+        assert not islink(src_dir)
+        assert islink(dst_link)
+        assert rm_rf(dst_link)
+        assert not isdir(dst_link)
+        assert not islink(dst_link)
+        assert rm_rf(src_dir)
+        assert not isdir(src_dir)
+        assert not islink(src_dir)
+        assert not lexists(dst_link)
+
+
+def test_rm_rf_does_not_follow_symlinks():
+    with TemporaryDirectory() as tmp:
+        # make a file in some temp folder
+        real_file = os.path.join(tmp, 'testfile')
+        with open(real_file, 'w') as f:
+            f.write('weee')
+        # make a subfolder
+        subdir = os.path.join(tmp, 'subfolder')
+        os.makedirs(subdir)
+        # link to the file in the subfolder
+        link_path = join(subdir, 'file_link')
+        create_link(real_file, link_path, link_type=LinkType.softlink)
+        assert islink(link_path)
+        # rm_rf the subfolder
+        rm_rf(subdir)
+        # assert that the file still exists in the root folder
+        assert os.path.isfile(real_file)
+
+
+def test_move_to_trash():
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        _try_open(test_path)
+        assert isdir(td)
+        assert isfile(test_path)
+        move_to_trash(td, test_path)
+        assert not isfile(test_path)
+
+
+def test_move_path_to_trash_couldnt():
+    from conda.gateways.disk.delete import move_path_to_trash
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        _try_open(test_path)
+        assert isdir(td)
+        assert isfile(test_path)
+        assert move_path_to_trash(test_path)
+
+
+def test_backoff_unlink():
+    from conda.gateways.disk.delete import backoff_rmdir
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        _try_open(test_path)
+        assert isdir(td)
+        backoff_rmdir(td)
+        assert not isdir(td)
+
+
+def test_backoff_unlink_doesnt_exist():
+    from conda.gateways.disk.delete import backoff_rmdir
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        try:
+            backoff_rmdir(join(test_path, 'some', 'path', 'in', 'utopia'))
+        except Exception as e:
+            assert e.value.errno == ENOENT
+
+
+def test_try_rmdir_all_empty_doesnt_exist():
+    from conda.gateways.disk.delete import try_rmdir_all_empty
+    with tempdir() as td:
+        assert isdir(td)
+        try_rmdir_all_empty(td)
+        assert not isdir(td)

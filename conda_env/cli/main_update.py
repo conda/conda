@@ -1,18 +1,17 @@
 from argparse import RawDescriptionHelpFormatter
 import os
-import textwrap
 import sys
+import textwrap
 
 from conda import config
-from conda.cli import common
 from conda.cli import install as cli_install
+from conda.cli.conda_argparse import add_parser_json
 from conda.misc import touch_nonadmin
-from ..installers.base import get_installer, InvalidInstaller
-from .. import specs as install_specs
-from .. import exceptions
-# for conda env
-from conda_env.cli.common import get_prefix
+from .common import get_prefix
+from .. import exceptions, specs as install_specs
 from ..exceptions import CondaEnvException
+from ..installers.base import InvalidInstaller, get_installer
+
 description = """
 Update the current environment based on environment file
 """
@@ -65,7 +64,7 @@ def configure_parser(sub_parsers):
         default=None,
         nargs='?'
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 

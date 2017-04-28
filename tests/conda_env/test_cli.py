@@ -4,6 +4,8 @@ import unittest
 import tempfile
 from shlex import split
 
+import pytest
+
 from conda_env.exceptions import SpecNotFound
 from conda_env.cli.main import create_parser
 
@@ -134,7 +136,8 @@ def remove_env_file(filename='environment.yml'):
     os.remove(filename)
 
 
-class IntegrationTest(unittest.TestCase):
+@pytest.mark.integration
+class IntegrationTests(unittest.TestCase):
 
     def setUp(self):
         rm_rf("environment.yml")
@@ -214,7 +217,8 @@ def env_is_created(env_name):
     return False
 
 
-class NewIntegrationTest(unittest.TestCase):
+@pytest.mark.integration
+class NewIntegrationTests(unittest.TestCase):
     """
         This is integration test for conda env
         make sure all instruction on online documentation works

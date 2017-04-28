@@ -11,15 +11,8 @@ import logging
 from os.path import isdir, isfile
 import re
 
-from conda.models.dist import Dist, parse_legacy_dist_str
-from .common import (add_parser_help, add_parser_json, add_parser_prefix,
-                     add_parser_show_channel_urls, disp_features, stdout_json)
-from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from ..base.context import context
-from ..common.compat import text_type, itervalues
-from ..core.linked_data import is_linked, linked, linked_data
-from ..egg_info import get_egg_info
-from ..exceptions import CondaEnvironmentNotFoundError, CondaFileNotFoundError
+from .conda_argparse import (add_parser_help, add_parser_json, add_parser_prefix,
+                             add_parser_show_channel_urls)
 
 descr = "List linked packages in a conda environment."
 
@@ -45,6 +38,7 @@ Reinstall packages from an export file:
 
 """
 log = logging.getLogger(__name__)
+
 
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
@@ -106,13 +100,14 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def print_export_header():
+def print_export_header(subdir):
     print('# This file may be used to create an environment using:')
     print('# $ conda create --name <env> --file <this file>')
-    print('# platform: %s' % context.subdir)
+    print('# platform: %s' % subdir)
 
 
 def get_packages(installed, regex):
+    from ..models.dist import parse_legacy_dist_str
     pat = re.compile(regex, re.I) if regex else None
     get_name = lambda d: parse_legacy_dist_str(d).name
     pairs = sorted(((get_name(d), d) for d in installed), key=lambda x: x[0].lower())
@@ -123,7 +118,12 @@ def get_packages(installed, regex):
 
 
 def list_packages(prefix, installed, regex=None, format='human',
-                  show_channel_urls=context.show_channel_urls):
+                  show_channel_urls=None):
+    from .common import disp_features
+    from ..base.constants import DEFAULTS_CHANNEL_NAME
+    from ..base.context import context
+    from ..core.linked_data import is_linked
+    from ..models.dist import parse_legacy_dist_str
     res = 0
     result = []
     for dist in get_packages(installed, regex):
@@ -141,6 +141,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')
+            show_channel_urls = show_channel_urls or context.show_channel_urls
             if (show_channel_urls or show_channel_urls is None
                     and schannel != DEFAULTS_CHANNEL_NAME):
                 disp += '  %s' % schannel
@@ -153,16 +154,23 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
-                   json=False, show_channel_urls=context.show_channel_urls):
+                   json=False, show_channel_urls=None):
+    from .common import stdout_json
+    from ..base.context import context
+    from ..common.compat import itervalues, text_type
+    from ..core.linked_data import linked_data
+    from ..egg_info import get_egg_info
+
     if not isdir(prefix):
-        raise CondaEnvironmentNotFoundError(prefix)
+        from ..exceptions import EnvironmentLocationNotFound
+        raise EnvironmentLocationNotFound(prefix)
 
     if not json:
         if format == 'human':
             print('# packages in environment at %s:' % prefix)
             print('#')
         if format == 'export':
-            print_export_header()
+            print_export_header(context.subdir)
 
     installed = set(lpr for lpr in itervalues(linked_data(prefix)))
     log.debug("installed conda packages:\n%s", installed)
@@ -181,9 +189,13 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
 
 
 def print_explicit(prefix, add_md5=False):
+    from ..base.constants import UNKNOWN_CHANNEL
+    from ..base.context import context
+    from ..core.linked_data import linked_data
     if not isdir(prefix):
-        raise CondaEnvironmentNotFoundError(prefix)
-    print_export_header()
+        from ..exceptions import EnvironmentgLocationNotFound
+        raise EnvironmentLocationNotFound(prefix)
+    print_export_header(context.subdir)
     print("@EXPLICIT")
     for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
         url = meta.get('url')
@@ -195,13 +207,15 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
+    from ..base.context import context
+    from .common import stdout_json
     prefix = context.prefix_w_legacy_search
     regex = args.regex
     if args.full_name:
         regex = r'^%s$' % regex
 
     if args.revisions:
-        from conda.history import History
+        from ..history import History
         h = History(prefix)
         if isfile(h.path):
             if not context.json:
@@ -209,6 +223,7 @@ def execute(args, parser):
             else:
                 stdout_json(h.object_log())
         else:
+            from ..exceptions import CondaFileNotFoundError
             raise CondaFileNotFoundError(h.path)
         return
 

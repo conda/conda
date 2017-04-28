@@ -24,15 +24,6 @@ from conda._vendor.auxlib import packaging  # NOQA
 with open(os.path.join(src_dir, "README.rst")) as f:
     long_description = f.read()
 
-
-scripts = ['shell/activate',
-           'shell/deactivate',
-           ]
-if sys.platform == 'win32':
-    # Powershell scripts should go here
-    scripts.extend(['shell/activate.bat',
-                    'shell/deactivate.bat'])
-
 setup(
     name=conda.__name__,
     version=conda.__version__,
@@ -67,6 +58,5 @@ setup(
             "conda-env = conda_env.cli.main:main"
         ],
     },
-    scripts=scripts,
     zip_safe=False,
 )

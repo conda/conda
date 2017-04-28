@@ -24,7 +24,11 @@ Major areas addressed include:
 from __future__ import absolute_import, division, print_function
 
 # don't mess up logging for library users
-from .logz import getLogger, NullHandler
+from logging import getLogger, Handler
+class NullHandler(Handler):  # NOQA
+    def emit(self, record):
+        pass
+
 getLogger('auxlib').addHandler(NullHandler())
 
 __all__ = [

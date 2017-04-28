@@ -1,0 +1,18 @@
+machine:
+  timezone:
+    Etc/UTC
+  environment:
+    PYTHON_VERSION: 3.6
+
+dependencies:
+  pre:
+    - sudo apt-get update; sudo apt-get install zsh
+  cache_directories:
+    - "~/miniconda/pkgs"
+    - "~/.cache/pip"
+  override:
+    - source utils/functions.sh && run_setup
+
+test:
+  override:
+    - source utils/functions.sh && run_tests && conda_activate_test

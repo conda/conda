@@ -4,11 +4,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from functools import total_ordering
 
 from .enums import LinkType, NoarchType, Platform
+from .leased_path_entry import LeasedPathEntry
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, Field, IntegerField, ListField, MapField,
-                                     StringField)
-from ..common.compat import string_types
+                                     EnumField, Field, IntegerField, ListField, StringField)
+from ..common.compat import itervalues, string_types
 
 
 @total_ordering
@@ -67,8 +67,9 @@ class IndexJsonRecord(DictSafeMixin, Entity):
     arch = StringField(required=False, nullable=True)
     build = StringField()
     build_number = IntegerField()
+    constrains = ListField(string_types, required=False, nullable=True)
     date = StringField(required=False)
-    depends = ListField(string_types, required=False)
+    depends = ListField(string_types, required=False, nullable=True)
     features = StringField(required=False)
     has_prefix = BooleanField(required=False)
     license = StringField(required=False)
@@ -79,7 +80,8 @@ class IndexJsonRecord(DictSafeMixin, Entity):
     platform = EnumField(Platform, required=False, nullable=True)
     preferred_env = StringField(default=None, required=False, nullable=True)
     size = IntegerField(required=False)
-    track_features = StringField(required=False)
+    track_features = StringField(default='', required=False)
+
     version = StringField()
 
     @property
@@ -117,3 +119,15 @@ class LinkedPackageRecord(IndexRecord):
     # url is optional here for legacy support.
     #   see tests/test_create.py test_dash_c_usage_replacing_python
     url = StringField(required=False, nullable=True)
+    preferred_env = StringField(default=None, required=False, nullable=True)
+
+    # this is only for LinkedPackageRecord
+    leased_paths = ListField(LeasedPathEntry, required=False)
+
+    @property
+    def combined_depends(self):
+        from .match_spec import MatchSpec
+        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
+        result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
+                                              for spec in self.constrains or ())})
+        return tuple(itervalues(result))

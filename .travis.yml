@@ -1,51 +1,64 @@
-sudo: false
-
 env:
   global:
     - PYTHONUNBUFFERED=yes
     - secure: "TyC3F7uBmd4iWLpUyhIDkpRfbhPUmRqFeFhr12VSHfzODQfeLBqB9hHMhhjVLlk1gsQwIXzNDY2X82U83d4gG0X+SEPDUpTimuWc/GJoJLQL4+uyfpS8seQWnxa7ZXkZrUdKb2owHtx+0ESzZwfOg+pd0OxoMenK9bcGo3hZtkk="
 
-addons:
-  apt:
-    packages:
-      - zsh
+git:
+  depth: 500
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+before_cache:
+  - rm -f $HOME/.cache/pip/log/debug.log
+
 
 matrix:
   include:
-    - python: '2.7'
-      os: linux
-      language: python
-    - python: '3.4'
-      os: linux
-      language: python
-    - python: '3.6'
-      os: linux
-      language: python
-    - python: '3.5'
-      env: FLAKE8=true
-      os: linux
-      language: python
-    - os: osx
-      env: PYTHON_VERSION=3.6
+    - env: PYTHON_VERSION=3.6 SUDO=true
+      sudo: true
       language: generic
-    - python: '3.5'
-      env: CONDA_BUILD=2.1.3
       os: linux
+    - env: PYTHON_VERSION=3.4
+      sudo: false
+      language: generic
+      os: linux
+    - env: PYTHON_VERSION=2.7
+      sudo: false
+      language: generic
+      os: linux
+    - env: FLAKE8=true
+      sudo: false
       language: python
-
+      python: '3.5'
+      os: linux
+    - env: PYTHON_VERSION=3.6 SHELL_INTEGRATION=true
+      sudo: false
+      language: generic
+      os: linux
+      addons:
+        apt:
+          packages:
+            - zsh
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.10
+      sudo: false
+      language: generic
+      os: linux
+    - env: PYTHON_VERSION=3.6
+      sudo: false
+      language: generic
+      os: osx
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.0alpha3
+      sudo: false
+      language: generic
+      os: linux
+  allow_failures:
+    - os: osx
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.0alpha3
 
 install:
-  - which -a python
-  - env | sort
-  - source ./utils/travis-run-install.sh
+  - source utils/functions.sh && run_setup
 
 script:
-  - source ./utils/travis-run-script.sh
-
-sudo: false
-
-after_success:
-  - pip install codecov coveralls scrutinizer-ocular
-  - codecov --env PY_VERSION
-  - coveralls || true
-  - ocular || true
+  - source utils/functions.sh && run_tests

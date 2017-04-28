@@ -5,25 +5,24 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from argparse import SUPPRESS
 import collections
 import json
 import os
+from os.path import join
 import sys
+from textwrap import wrap
 
-from .common import Completer, add_parser_json, stdout_json_success
+from .conda_argparse import add_parser_json
 from .. import CondaError
-from .._vendor.auxlib.compat import isiterable
-from .._vendor.auxlib.entity import EntityEncoder
-from .._vendor.auxlib.type_coercion import boolify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import iteritems, string_types
+from ..common.compat import isiterable, iteritems, string_types, text_type
 from ..common.configuration import pretty_list, pretty_map
 from ..common.constants import NULL
 from ..common.yaml import yaml_dump, yaml_load
 from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
                       user_rc_path)
-from ..exceptions import CondaKeyError, CondaValueError, CouldntParseError
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -37,46 +36,30 @@ config command.  Writes to the user .condarc file (%s) by default.
 # recognize it because it removes the indentation, but at least it will be
 # valid.
 additional_descr = """
-See %s/docs/config.html for details on all the options
-that can go in .condarc.
+See `conda config --describe` or %s/docs/config.html
+for details on all the options that can go in .condarc.
 
-List keys, like
+Examples:
 
-  channels:
-    - conda
-    - defaults
+Display all configuration values as calculated and compiled:
 
-are modified with the --add and --remove options. For example
+    conda config --show
 
-    conda config --add channels r
+Display all identified configuration sources:
 
-on the above configuration would prepend the key 'r', giving
+    conda config --show-sources
 
-    channels:
-      - r
-      - conda
-      - defaults
+Describe all available configuration options:
 
-Note that the key 'channels' implicitly contains the key 'defaults' if it has
-not been configured yet.
+    conda config --describe
 
-Boolean keys, like
+Add the conda-canary channel:
 
-    always_yes: true
+    conda config --add channels conda-canary
 
-are modified with --set and removed with --remove-key. For example
+Set the output verbosity to level 3 (highest):
 
-    conda config --set always_yes false
-
-gives
-
-    always_yes: false
-
-Note that in YAML, "yes", "YES", "on", "true", "True", and "TRUE" are all
-valid ways to spell "true", and "no", "NO", "off", "false", "False", and
-"FALSE", are all valid ways to spell "false".
-
-The .condarc file is YAML, and any valid YAML syntax is allowed.
+    conda config --set verbosity 3
 """ % CONDA_HOMEPAGE_URL
 
 
@@ -98,32 +81,12 @@ Disable the 'show_channel_urls' option:
 """
 
 
-class SingleValueKey(Completer):
-    def _get_items(self):
-        return rc_bool_keys + \
-               rc_string_keys + \
-               ['yes', 'no', 'on', 'off', 'true', 'false']
-
-
-class ListKey(Completer):
-    def _get_items(self):
-        return rc_list_keys
-
-
-class BoolOrListKey(Completer):
-    def __contains__(self, other):
-        return other in self.get_items()
-
-    def _get_items(self):
-        return rc_list_keys + rc_bool_keys
-
-
 def configure_parser(sub_parsers):
     p = sub_parsers.add_parser(
         'config',
         description=descr,
         help=descr,
-        epilog=additional_descr + example,
+        epilog=additional_descr,
     )
     add_parser_json(p)
 
@@ -135,6 +98,13 @@ def configure_parser(sub_parsers):
         help="""Write to the system .condarc file ({system}). Otherwise writes to the user
         config file ({user}).""".format(system=sys_rc_path,
                                         user=user_rc_path),
+    )
+    location.add_argument(
+        "--env",
+        action="store_true",
+        help="Write to the active conda environment .condarc file (%s). "
+             "If no environment is active, write to the user config file (%s)."
+             "" % (os.getenv('CONDA_PREFIX', "<no active environment>"), user_rc_path),
     )
     location.add_argument(
         "--file",
@@ -165,13 +135,17 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="Validate all configuration sources.",
     )
     action.add_argument(
+        "--describe",
+        action="store_true",
+        help="Describe available configuration parameters.",
+    )
+    action.add_argument(
         "--get",
         nargs='*',
         action="store",
         help="Get a configuration value.",
         default=None,
         metavar='KEY',
-        choices=BoolOrListKey()
     )
     action.add_argument(
         "--append",
@@ -179,7 +153,6 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         action="append",
         help="""Add one configuration value to the end of a list key.""",
         default=[],
-        choices=ListKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
@@ -188,7 +161,6 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         action="append",
         help="""Add one configuration value to the beginning of a list key.""",
         default=[],
-        choices=ListKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
@@ -197,7 +169,6 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         action="append",
         help="""Set a boolean or string key""",
         default=[],
-        choices=SingleValueKey(),
         metavar=('KEY', 'VALUE'),
     )
     action.add_argument(
@@ -222,14 +193,14 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         "-f", "--force",
         action="store_true",
         default=NULL,
-        help="""Write to the config file using the yaml parser.  This will
-        remove any comments or structure from the file."""
+        help=SUPPRESS,  # TODO: No longer used.  Remove in a future release.
     )
 
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    from ..exceptions import CouldntParseError
     try:
         execute_config(args, parser)
     except (CouldntParseError, NotImplementedError) as e:
@@ -257,6 +228,7 @@ def format_dict(d):
 
 
 def execute_config(args, parser):
+    from .._vendor.auxlib.entity import EntityEncoder
     json_warnings = []
     json_get = {}
 
@@ -275,44 +247,57 @@ def execute_config(args, parser):
 
     if args.show:
         from collections import OrderedDict
+
         d = OrderedDict((key, getattr(context, key))
-                        for key in sorted(('add_anaconda_token',
-                                           'add_pip_as_python_dependency',
-                                           'allow_softlinks',
-                                           'always_copy',
-                                           'always_softlink',
-                                           'always_yes',
-                                           'auto_update_conda',
-                                           'binstar_upload',
-                                           'changeps1',
-                                           'channel_alias',
-                                           'channel_priority',
-                                           'channels',
-                                           'client_ssl_cert',
-                                           'client_ssl_cert_key',
-                                           'create_default_packages',
-                                           'debug',
-                                           'default_channels',
-                                           'disallow',
-                                           'envs_dirs',
-                                           'json',
-                                           'offline',
-                                           'proxy_servers',
-                                           'quiet',
-                                           'shortcuts',
-                                           'show_channel_urls',
-                                           'ssl_verify',
-                                           'track_features',
-                                           'update_dependencies',
-                                           'use_pip',
-                                           'verbosity',
-                                           )))
+                        for key in context.list_parameters())
         if context.json:
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
         else:
+            # coerce channels
+            d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
+                                    for k, v in iteritems(d['custom_channels'])}
+            # TODO: custom_multichannels needs better formatting
+            d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
+                                         for k, chnls in iteritems(d['custom_multichannels'])}
+
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
+        return
+
+    if args.describe:
+        paramater_names = context.list_parameters()
+        if context.json:
+            print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                             sort_keys=True, indent=2, separators=(',', ': '),
+                             cls=EntityEncoder))
+        else:
+            def clean_element_type(element_types):
+                _types = set()
+                for et in element_types:
+                    _types.add('str') if isinstance(et, string_types) else _types.add('%s' % et)
+                return tuple(sorted(_types))
+
+            for name in paramater_names:
+                details = context.describe_parameter(name)
+                aliases = details['aliases']
+                string_delimiter = details.get('string_delimiter')
+                element_types = details['element_types']
+                if details['parameter_type'] == 'primitive':
+                    print("%s (%s)" % (name, ', '.join(clean_element_type(element_types))))
+                else:
+                    print("%s (%s: %s)" % (name, details['parameter_type'],
+                                           ', '.join(clean_element_type(element_types))))
+                def_str = '  default: %s' % json.dumps(details['default_value'], indent=2,
+                                                       separators=(',', ': '),
+                                                       cls=EntityEncoder)
+                print('\n  '.join(def_str.split('\n')))
+                if aliases:
+                    print("  aliases: %s" % ', '.join(aliases))
+                if string_delimiter:
+                    print("  string delimiter: '%s'" % string_delimiter)
+                print('\n  '.join(wrap('  ' + details['description'], 70)))
+                print()
         return
 
     if args.validate:
@@ -321,6 +306,11 @@ def execute_config(args, parser):
 
     if args.system:
         rc_path = sys_rc_path
+    elif args.env:
+        if 'CONDA_PREFIX' in os.environ:
+            rc_path = join(os.environ['CONDA_PREFIX'], '.condarc')
+        else:
+            rc_path = user_rc_path
     elif args.file:
         rc_path = args.file
     else:
@@ -372,13 +362,16 @@ def execute_config(args, parser):
 
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
+        sequence_parameters = [p for p in context.list_parameters()
+                               if context.describe_parameter(p)['parameter_type'] == 'sequence']
         for key, item in arg:
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
-            if key not in rc_list_keys:
-                raise CondaValueError("key must be one of %s, not %r" %
-                                      (', '.join(rc_list_keys), key))
+            if key not in sequence_parameters:
+                from ..exceptions import CondaValueError
+                raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
             if not isinstance(rc_config.get(key, []), list):
+                from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
             if key == 'default_channels' and rc_path != sys_rc_path:
@@ -397,25 +390,24 @@ def execute_config(args, parser):
             arglist.insert(0 if prepend else len(arglist), item)
 
     # Set
-    set_bools, set_strings = set(rc_bool_keys), set(rc_string_keys)
     for key, item in args.set:
-        # Check key and value
-        if key in set_bools:
-            rc_config[key] = boolify(item)
-        elif key in set_strings:
-            assert isinstance(item, string_types)
-            rc_config[key] = item
-        else:
-            raise CondaValueError("Error key must be one of %s, not %s" %
-                                  (', '.join(set_bools | set_strings), key))
+        primitive_parameters = [p for p in context.list_parameters()
+                                if context.describe_parameter(p)['parameter_type'] == 'primitive']
+        if key not in primitive_parameters:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("Key '%s' is not a known primitive parameter." % key)
+        value = context.typify_parameter(key, item)
+        rc_config[key] = value
 
     # Remove
     for key, item in args.remove:
         if key not in rc_config:
             if key != 'channels':
+                from ..exceptions import CondaKeyError
                 raise CondaKeyError(key, "key %r is not in the config file" % key)
             rc_config[key] = ['defaults']
         if item not in rc_config[key]:
+            from ..exceptions import CondaKeyError
             raise CondaKeyError(key, "%r is not in the %r key of the config file" %
                                 (item, key))
         rc_config[key] = [i for i in rc_config[key] if i != item]
@@ -423,15 +415,18 @@ def execute_config(args, parser):
     # Remove Key
     for key, in args.remove_key:
         if key not in rc_config:
+            from ..exceptions import CondaKeyError
             raise CondaKeyError(key, "key %r is not in the config file" %
                                 key)
         del rc_config[key]
 
     # config.rc_keys
-    with open(rc_path, 'w') as rc:
-        rc.write(yaml_dump(rc_config))
+    if not args.get:
+        with open(rc_path, 'w') as rc:
+            rc.write(yaml_dump(rc_config))
 
     if context.json:
+        from .common import stdout_json_success
         stdout_json_success(
             rc_path=rc_path,
             warnings=json_warnings,

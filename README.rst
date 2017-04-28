@@ -7,17 +7,17 @@
 
 ----------------------------------------
 
-.. image:: https://img.shields.io/travis/conda/conda/4.3.x.svg?maxAge=900&label=Linux%20%26%20MacOS
+.. image:: https://img.shields.io/travis/conda/conda/4.4.x.svg?maxAge=900&label=Linux%20%26%20MacOS
     :target: https://travis-ci.org/conda/conda
     :alt: Linux & MacOS tests (Travis)
 
-.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/4.3.x.svg?maxAge=900&label=Windows
+.. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/4.4.x.svg?maxAge=900&label=Windows
     :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
     :alt: Windows tests (Appveyor)
 
-.. image:: https://img.shields.io/codecov/c/github/conda/conda/4.3.x.svg?label=coverage
+.. image:: https://img.shields.io/codecov/c/github/conda/conda/4.4.x.svg?label=coverage
    :alt: Codecov Status
-   :target: https://codecov.io/gh/conda/conda/branch/4.3.x
+   :target: https://codecov.io/gh/conda/conda/branch/4.4.x
 
 .. image:: https://img.shields.io/github/release/conda/conda.svg
    :alt: latest release version
@@ -31,7 +31,7 @@
 
 |
 
-Conda is a cross-platform, Python-agnostic binary package manager. It is the
+Conda is a cross-platform, language-agnostic binary package manager. It is the
 package manager used by `Anaconda
 <http://docs.continuum.io/anaconda/index.html>`_ installations, but it may be
 used for other systems as well.  Conda makes environments first-class
@@ -39,7 +39,9 @@ citizens, making it easy to create independent environments even for C
 libraries. Conda is written entirely in Python, and is BSD licensed open
 source.
 
-Conda is enhanced by organizations, tools, and repositories created and managed by the amazing members of the conda community.  Some of them can be found `here <https://github.com/conda/conda/wiki/Conda-Community>`_.
+Conda is enhanced by organizations, tools, and repositories created and managed by
+the amazing members of the conda community.  Some of them can be found
+`here <https://github.com/conda/conda/wiki/Conda-Community>`_.
 
 
 Installation
@@ -188,6 +190,12 @@ separate instance of `Miniconda <http://conda.pydata.org/miniconda.html>`_ and
 work off it. This is also the only way to test conda in both Python 2 and
 Python 3, as conda can only be installed into a root environment.
 
-Run the conda tests by ``conda install pytest pytest-cov pytest-timeout mock responses`` and then running ``py.test``
-in the conda directory. The tests are also run by Travis CI when you make a
+To run the tests, set up a testing environment by running
+
+* ``$CONDA/bin/python -m pip install -r utils/requirements-test.txt``.
+* ``$CONDA/bin/python utils/setup-testing.py develop``
+
+and then running ``py.test`` in the conda directory.  You can also run tests using the
+Makefile by running ``make unit``, ``make smoketest`` (a single integration test), or
+``make integration``.  The tests are also run by various CI systems when you make a
 pull request.

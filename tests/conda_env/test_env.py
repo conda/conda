@@ -4,7 +4,9 @@ import sys
 import random
 import textwrap
 import unittest
-import yaml
+
+from conda.common.yaml import get_yaml
+yaml = get_yaml()
 
 try:
     from io import StringIO

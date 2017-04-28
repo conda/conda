@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-from conda.cli import common
-from conda import plan
-from conda.exceptions import LockError, CondaSystemExit, CondaRuntimeError
 from conda.api import get_index
-from conda.common.compat import text_type
+from conda.cli import common
+from conda.core.solve import get_install_transaction
 from conda.models.channel import prioritize_channels
 
 
@@ -28,17 +26,10 @@ def install(prefix, specs, args, env, prune=False):
                       prepend='nodefaults' not in env.channels,
                       prefix=prefix)
     _channel_priority_map = prioritize_channels(channel_urls)
-    action_set = plan.install_actions_list(prefix, index, specs, prune=prune,
-                                           channel_priority_map=_channel_priority_map)
+    unlink_link_transaction = get_install_transaction(prefix, index, specs, prune=prune,
+                                                      channel_priority_map=_channel_priority_map)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
-        for actions in action_set:
-            try:
-                plan.execute_actions(actions, index, verbose=not args.quiet)
-            except RuntimeError as e:
-                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                    raise LockError('Already locked: %s' % text_type(e))
-                else:
-                    raise CondaRuntimeError('RuntimeError: %s' % e)
-            except SystemExit as e:
-                raise CondaSystemExit('Exiting', e)
+        pfe = unlink_link_transaction.get_pfe()
+        pfe.execute()
+        unlink_link_transaction.execute()

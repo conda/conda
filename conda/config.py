@@ -9,7 +9,7 @@ import os
 import sys
 from os.path import abspath, expanduser, isfile, join
 
-from conda.base.context import context, non_x86_linux_machines
+from .base.context import context, non_x86_linux_machines
 non_x86_linux_machines = non_x86_linux_machines
 
 
@@ -28,7 +28,9 @@ rc_list_keys = [
     'create_default_packages',
     'track_features',
     'envs_dirs',
+    'pkgs_dirs',
     'default_channels',
+    'pinned_packages',
 ]
 
 rc_bool_keys = [
@@ -53,10 +55,10 @@ rc_bool_keys = [
 ]
 
 rc_string_keys = [
-    'ssl_verify',
     'channel_alias',
     'client_ssl_cert',
     'client_ssl_cert_key',
+    'default_python',
 ]
 
 # Not supported by conda config yet
@@ -75,7 +77,7 @@ get_rc_urls = lambda: context.channels
 
 
 def get_local_urls():
-    from conda.models.channel import get_conda_build_local_url
+    from .models.channel import get_conda_build_local_url
     return get_conda_build_local_url() or []
 
 
@@ -104,7 +106,7 @@ def get_rc_path():
 
 rc_path = get_rc_path()
 
-pkgs_dirs = context.pkgs_dirs
+pkgs_dirs = list(context.pkgs_dirs)
 default_prefix = context.default_prefix
 subdir = context.subdir
 arch_name = context.arch_name
@@ -113,4 +115,4 @@ platform = context.platform
 
 # put back because of conda build
 default_python = context.default_python
-binstar_upload = context.binstar_upload
+binstar_upload = context.anaconda_upload
