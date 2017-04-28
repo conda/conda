@@ -365,11 +365,11 @@ run_tests() {
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
         conda_activate_test
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
     else
         conda_unit_test
         conda_integration_test
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
     fi
 }
 
