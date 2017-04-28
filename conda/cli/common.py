@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 from functools import partial
-from os.path import abspath, basename
+from os.path import basename
 import re
 import sys
 
