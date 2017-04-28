@@ -54,4 +54,4 @@ class LocalFSAdapter(BaseAdapter):
         return resp
 
     def close(self):
-        pass
+        pass  # pragma: no cover
