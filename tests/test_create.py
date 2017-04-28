@@ -129,7 +129,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
 
-    if command is Commands.CONFIG and prefix:
+    if command is Commands.CONFIG:
         arguments.append('--file "{0}"'.format(join(prefix, 'condarc')))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE):
@@ -152,7 +152,7 @@ def run_command(command, prefix, *arguments, **kwargs):
                 args.func(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
-    if command is Commands.CONFIG and prefix:
+    if command is Commands.CONFIG:
         reload_config(prefix)
     return c.stdout, c.stderr
 
@@ -540,10 +540,30 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python')
 
     def test_conda_config_describe(self):
-        stdout, stderr = run_command(Commands.CONFIG, None, "--describe")
-        assert not stderr
-        for param_name in context.list_parameters():
-            assert re.search(r'^%s \(' % param_name, stdout, re.MULTILINE)
+        with make_temp_env() as prefix:
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe")
+            assert not stderr
+            for param_name in context.list_parameters():
+                assert re.search(r'^%s \(' % param_name, stdout, re.MULTILINE)
+
+    def test_conda_config_validate(self):
+        with make_temp_env() as prefix:
+            run_command(Commands.CONFIG, prefix, "--set ssl_verify no")
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--validate")
+            assert not stdout
+            assert not stderr
+
+            with open(join(prefix, 'condarc'), 'a') as fh:
+                fh.write('default_python: anaconda\n')
+                fh.write('ssl_verify: /path/doesnt/exist\n')
+            reload_config(prefix)
+
+            with pytest.raises(CondaMultiError) as exc:
+                run_command(Commands.CONFIG, prefix, "--validate")
+
+            assert len(exc.value.errors) == 2
+            assert "must be a boolean or a path to a certificate bundle" in str(exc.value)
+            assert "default_python value 'anaconda' not of the form '[23].[0-9]'" in str(exc.value)
 
     def test_rpy_search(self):
         with make_temp_env("python=3.5") as prefix:
