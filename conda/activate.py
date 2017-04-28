@@ -81,6 +81,16 @@ class Activator(object):
             self.set_var_tmpl = '@SET "%s=%s"'
             self.run_script_tmpl = '@CALL "%s"'
 
+        elif shell == 'powershell':
+            self.pathsep_join = ';'.join
+            self.path_conversion = path_identity
+            self.script_extension = '.ps1'
+            self.tempfile_extension = None
+
+            self.unset_var_tmpl = 'Remove-Variable %s'
+            self.set_var_tmpl = '$env:%s = "%s"'
+            self.run_script_tmpl = '. "%s"'
+
         else:
             raise NotImplementedError()
 
