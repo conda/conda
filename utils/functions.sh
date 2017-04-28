@@ -371,13 +371,13 @@ run_tests() {
         conda_activate_test
         pwd
         ls -al
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --file "coverage.xml"
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
     else
         conda_unit_test
         conda_integration_test
         pwd
         ls -al
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --file "coverage.xml"
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
     fi
 }
 
