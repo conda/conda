@@ -6,7 +6,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .conda_argparse import add_parser_install, add_parser_json
+from .conda_argparse import add_parser_create_install_update, add_parser_json
 from ..common.compat import on_win
 
 help = "Installs a list of packages into a specified conda environment."
@@ -69,7 +69,7 @@ def configure_parser(sub_parsers):
             dest="shortcuts",
             default=True
         )
-    add_parser_install(p)
+    add_parser_create_install_update(p)
     add_parser_json(p)
     p.set_defaults(func=execute)
 
