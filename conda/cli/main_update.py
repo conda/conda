@@ -6,7 +6,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .conda_argparse import add_parser_install, add_parser_json
+from .conda_argparse import add_parser_create_install_update, add_parser_json
 
 help = "Updates conda packages to the latest compatible version."
 descr = help + """
@@ -50,7 +50,7 @@ def configure_parser(sub_parsers, name='update'):
             help=alias_help,
             epilog=example % name,
         )
-    add_parser_install(p)
+    add_parser_create_install_update(p)
     add_parser_json(p)
     p.add_argument(
         "--all",
