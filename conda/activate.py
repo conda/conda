@@ -81,11 +81,21 @@ class Activator(object):
             self.set_var_tmpl = '@SET "%s=%s"'
             self.run_script_tmpl = '@CALL "%s"'
 
+        elif shell == 'fish':
+            self.pathsep_join = ' '.join
+            self.path_conversion = native_path_to_unix
+            self.script_extension = '.fish'
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+
+            self.unset_var_tmpl = 'set -e %s'
+            self.set_var_tmpl = 'set -gx %s "%s"'
+            self.run_script_tmpl = 'source "%s"'
+
         elif shell == 'powershell':
             self.pathsep_join = ';'.join
             self.path_conversion = path_identity
             self.script_extension = '.ps1'
-            self.tempfile_extension = None
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
 
             self.unset_var_tmpl = 'Remove-Variable %s'
             self.set_var_tmpl = '$env:%s = "%s"'
