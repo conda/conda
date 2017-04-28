@@ -3,37 +3,30 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bz2
 from contextlib import contextmanager
-from errno import EACCES
+from datetime import datetime
 from glob import glob
 import json
 from json import loads as json_loads
 from logging import DEBUG, getLogger
 import os
-from os.path import basename, exists, isdir, isfile, join, relpath, dirname, lexists
+from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath
 from random import sample
 import re
 from shlex import split
+import shutil
 from shutil import copyfile, rmtree
-from stat import S_IRWXG
-from stat import S_IRWXU, S_IRWXO
 from subprocess import check_call
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-import shutil
-
-from datetime import datetime
-
-from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
 
-from conda import CondaError, CondaMultiError, plan
+from conda import CondaError, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
-from conda.base.context import context, reset_context, Context
-from conda.cli.common import get_index_trap
+from conda.base.context import Context, context, reset_context
 from conda.cli.main import generate_parser
 from conda.cli.main_clean import configure_parser as clean_configure_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
@@ -44,18 +37,20 @@ from conda.cli.main_list import configure_parser as list_configure_parser
 from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
-from conda.common.compat import itervalues, text_type, PY2, iteritems
-from conda.common.io import captured, disable_logger, replace_log_streams, stderr_log_level, \
-    env_var, argv
-from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, pyc_path
+from conda.common.compat import PY2, iteritems, itervalues, text_type
+from conda.common.io import argv, captured, disable_logger, env_var, replace_log_streams, \
+    stderr_log_level
+from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
+    pyc_path
 from conda.common.url import path_to_url
 from conda.common.yaml import yaml_load
-from conda.core.repodata import create_cache_dir
 from conda.core.linked_data import get_python_version_for_prefix, \
     linked as install_linked, linked_data, linked_data_
 from conda.core.package_cache import PackageCache
-from conda.exceptions import CondaHTTPError, DryRunExit, RemoveError, conda_exception_handler, \
-    PackageNotFoundError
+from conda.core.repodata import create_cache_dir
+from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \
+    conda_exception_handler
+from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch

@@ -134,7 +134,7 @@ from .core.repodata import cache_fn_url  # NOQA
 cache_fn_url = cache_fn_url
 
 
-class Completer(object):
+class Completer(object):  # pragma: no cover
     def get_items(self):
         return self._get_items()
 
