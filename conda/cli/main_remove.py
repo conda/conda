@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from argparse import RawDescriptionHelpFormatter
 import errno
 import logging
+from difflib import get_close_matches
 from os.path import join
 import sys
 
@@ -180,6 +181,11 @@ def execute(args, parser):
                 })
             return
         error_message = 'no packages found to remove from environment: %s' % prefix
+        error_message.append("\n\nClose matches found; did you mean one of these?\n")
+        from ..core.linked_data import linked
+        installed = linked(prefix)
+        close = get_close_matches(args.package_names, installed, cutoff=0.7)
+        error_message.append(close)
         raise PackageNotFoundError(error_message)
     for action in action_groups:
         if not context.json:
