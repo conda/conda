@@ -79,6 +79,11 @@ def _main(*args):
     import importlib
     from logging import CRITICAL, DEBUG, getLogger
 
+    try:
+        from cytoolz.itertoolz import concatv
+    except ImportError:  # pragma: no cover
+        from .._vendor.toolz.itertoolz import concatv
+
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
     from ..gateways.logging import set_all_logger_level, set_verbosity
@@ -105,7 +110,7 @@ def _main(*args):
 
     # when using sys.argv, first argument is generally conda or __main__.py.  Ignore it.
     if (any(sname in args[0] for sname in ('conda', 'conda.exe', '__main__.py', 'conda-script.py'))
-        and (args[1] in list(sub_parsers.choices.keys()) + find_commands()
+        and (args[1] in concatv(sub_parsers.choices, find_commands())
              or args[1].startswith('-'))):
         log.debug("Ignoring first argument (%s), as it is not a subcommand", args[0])
         args = args[1:]

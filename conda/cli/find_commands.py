@@ -41,6 +41,7 @@ def find_executable(executable, include_others=True):
                 return expanduser(path)
     return None
 
+
 @memoize
 def find_commands(include_others=True):
 
@@ -71,4 +72,4 @@ def find_commands(include_others=True):
             m = pat.match(fn)
             if m:
                 res.add(m.group(1))
-    return sorted(res)
+    return tuple(sorted(res))
