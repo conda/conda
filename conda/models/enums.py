@@ -17,6 +17,7 @@ class Arch(Enum):
     x86_64 = 'x86_64'
     armv6l = 'armv6l'
     armv7l = 'armv7l'
+    aarch64 = 'aarch64'
     ppc64le = 'ppc64le'
     z = 'z'
 

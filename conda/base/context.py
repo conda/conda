@@ -46,6 +46,7 @@ _platform_map = {
 non_x86_linux_machines = {
     'armv6l',
     'armv7l',
+    'aarch64',
     'ppc64le',
 }
 _arch_names = {
