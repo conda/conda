@@ -11,6 +11,7 @@ from logging import DEBUG, getLogger
 import os
 from os.path import basename, exists, isdir, isfile, join, relpath, dirname, lexists
 from random import sample
+import re
 from shlex import split
 from shutil import copyfile, rmtree
 from stat import S_IRWXG
@@ -128,7 +129,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     p, sub_parsers = generate_parser()
     parser_config[command](sub_parsers)
 
-    if command is Commands.CONFIG:
+    if command is Commands.CONFIG and prefix:
         arguments.append('--file "{0}"'.format(join(prefix, 'condarc')))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE):
@@ -151,7 +152,7 @@ def run_command(command, prefix, *arguments, **kwargs):
                 args.func(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
-    if command is Commands.CONFIG:
+    if command is Commands.CONFIG and prefix:
         reload_config(prefix)
     return c.stdout, c.stderr
 
@@ -537,6 +538,12 @@ class IntegrationTests(TestCase):
                 assert context.offline
                 assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                 assert_package_is_installed(clone_prefix, 'python')
+
+    def test_conda_config_describe(self):
+        stdout, stderr = run_command(Commands.CONFIG, None, "--describe")
+        assert not stderr
+        for param_name in context.list_parameters():
+            assert re.search(r'^%s \(' % param_name, stdout, re.MULTILINE)
 
     def test_rpy_search(self):
         with make_temp_env("python=3.5") as prefix:
