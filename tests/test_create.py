@@ -931,23 +931,39 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
     def test_offline_with_empty_index_cache(self):
-        prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        with make_temp_env(prefix=prefix):
+        with make_temp_env() as prefix, make_temp_channel(['flask-0.10.1']) as channel:
             # Clear the index cache.
             index_cache_dir = create_cache_dir()
             run_command(Commands.CLEAN, '', "--index-cache")
             assert not exists(index_cache_dir)
 
-            # Then attempt to install a package with --offline. Make sure
-            # that a) it fails because neither the package tarball nor the repodata
-            # cache should be available locally and b) we don't try to download
-            # the repodata.
+            # Then attempt to install a package with --offline. The package (flask) is
+            # available in a local channel, however its dependencies are not. Make sure
+            # that a) it fails because the dependencies are not available and b)
+            # we don't try to download the repodata from non-local channels but we do
+            # download repodata from local channels.
             from conda.connection import CondaSession
+
+            orig_get = CondaSession.get
+
+            result_dict = {}
+            def side_effect(self, url, **kwargs):
+                if not url.startswith('file://'):
+                    raise AssertionError('Attempt to fetch repodata: {}'.format(url))
+                if url.startswith(channel):
+                    result_dict['local_channel_seen'] = True
+                return orig_get(self, url, **kwargs)
+
             with patch.object(CondaSession, 'get', autospec=True) as mock_method:
-                mock_method.side_effect = AssertionError('Attempt to fetch repodata')
+                mock_method.side_effect = side_effect
+
+                # Fails because flask dependencies are not retrievable.
                 with pytest.raises(PackageNotFoundError):
-                    run_command(Commands.INSTALL, prefix, "flask", "--json", "--offline")
-                assert not mock_method.called
+                    run_command(Commands.INSTALL, prefix, "-c", channel,
+                                "flask", "--json", "--offline")
+
+                # The mock should have been called with our local channel URL though.
+                assert result_dict.get('local_channel_seen')
 
     def test_clean_tarballs_and_packages(self):
         pkgs_dir = PackageCache.first_writable().pkgs_dir
