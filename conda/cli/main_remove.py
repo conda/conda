@@ -12,7 +12,6 @@ import logging
 from difflib import get_close_matches
 from os.path import join
 import sys
-import re
 from conda.core.linked_data import linked as install_linked
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
