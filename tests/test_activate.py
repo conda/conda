@@ -645,3 +645,15 @@ class ShellWrapperUnitTests(TestCase):
                         'deactivate1': join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.ps1'),
 
                     }
+
+
+@pytest.mark.installed
+class ParameterizedShellTests(object):
+
+    def test_1(self):
+        import pexpect
+        cmdexe = pexpect.spawn('cmd.exe', timeout=10)
+        cmdexe.sendline('SET PATH="%cd%\\Library\\bin;%cd%\\Scripts;%PATH%"')
+        cmdexe.sendline('SET PYTHONPATH="%cd%;%PYTHONPATH%"')
+        cmdexe.sendline('conda activate root')
+        result = cmdexe.expect_exact("(root) ")

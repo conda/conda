@@ -7,4 +7,4 @@ $PYTHON conda.recipe/setup.py install
 
 . utils/functions.sh
 
-install_conda_shell_scripts $PREFIX
+install_conda_shell_scripts "$PREFIX" "$SRC_DIR"

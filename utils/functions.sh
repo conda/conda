@@ -208,7 +208,7 @@ install_conda_dev() {
         make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
     fi
 
-    install_conda_shell_scripts "$prefix" "$src_dir" false  # "$([ -n "$ON_WIN" ] && echo false || echo true)"
+    install_conda_shell_scripts "$prefix" "$src_dir"
 
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
