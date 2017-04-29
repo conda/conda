@@ -78,7 +78,7 @@ class Activator(object):
             self.tempfile_extension = '.bat'
 
             self.unset_var_tmpl = '@SET %s='
-            self.set_var_tmpl = '@SET "%s=%s"'
+            self.set_var_tmpl = '@SET "%s="%s""'
             self.run_script_tmpl = '@CALL "%s"'
 
         elif shell == 'fish':
