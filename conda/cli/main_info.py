@@ -98,8 +98,7 @@ def get_user_site():
     return site_dirs
 
 
-IGNORE_FIELDS = {'files', 'auth', 'with_features_depends',
-                 'preferred_env', 'priority'}
+IGNORE_FIELDS = {'files', 'auth', 'preferred_env', 'priority'}
 
 SKIP_FIELDS = IGNORE_FIELDS | {'name', 'version', 'build', 'build_number',
                                'channel', 'schannel', 'size', 'fn', 'depends'}
