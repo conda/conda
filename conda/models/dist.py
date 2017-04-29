@@ -5,11 +5,14 @@ from collections import namedtuple
 from logging import getLogger
 import re
 
+from conda.base.context import context
+from conda.models.version import VersionOrder
 from .channel import Channel
 from .index_record import IndexRecord
 from .package_info import PackageInfo
 from .. import CondaError
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, \
+    UNKNOWN_CHANNEL
 from ..common.compat import ensure_text_type, string_types, text_type, with_metaclass
 from ..common.constants import NULL
 from ..common.url import has_platform, is_url
@@ -227,7 +230,14 @@ class Dist(object):
         return cls(channel=channel, dist_name=dist_name)
 
     def __key__(self):
-        return self.channel, self.dist_name
+        cpri = 1  # self.get('priority', 1)
+        valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
+        ver = VersionOrder(self.version)
+        bld = self.build_number
+        bs = self.build_string
+        ts = 0
+        return ((valid, -cpri, ver, bld, bs, ts) if context.channel_priority else
+                (valid, ver, -cpri, bld, bs, ts))
 
     def __lt__(self, other):
         assert isinstance(other, self.__class__)

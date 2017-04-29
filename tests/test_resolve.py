@@ -490,7 +490,7 @@ def test_nonexistent_deps():
 
     target_result = r.install(['mypackage'])
     assert target_result == r.install(['mypackage 1.1'])
-    assert target_result == [
+    expected = [
         make_record(add_defaults_if_no_channel(dname)) for dname in [
         '<unknown>::mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
@@ -502,6 +502,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]]
+    assert target_result == expected
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0']))
     assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
@@ -898,7 +899,7 @@ def test_broken_install():
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
-    assert installed == [Dist(add_defaults_if_no_channel(fname)) for fname in [
+    expected = [make_record(add_defaults_if_no_channel(fname)) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.7.1-py27_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -912,9 +913,10 @@ def test_remove():
         'system-5.8-1.tar.bz2',
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2']]
+    assert installed == expected
 
     assert r.remove(['pandas'], installed=installed) == [
-        Dist(add_defaults_if_no_channel(fname)) for fname in [
+        make_record(add_defaults_if_no_channel(fname)) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'numpy-1.7.1-py27_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
@@ -930,7 +932,7 @@ def test_remove():
 
     # Pandas requires numpy
     assert r.remove(['numpy'], installed=installed) == [
-        Dist(add_defaults_if_no_channel(fname)) for fname in [
+        make_record(add_defaults_if_no_channel(fname)) for fname in [
         'dateutil-2.1-py27_1.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-2.7.5-0.tar.bz2',
