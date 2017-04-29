@@ -5,10 +5,9 @@ import json
 import logging
 import sys
 
+from ._vendor.auxlib.decorators import memoize
 from ._vendor.progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar
 from .base.context import context
-from .utils import memoized
-
 
 fetch_progress = ProgressBar(
     widgets=['', ' ', Percentage(), ' ', Bar(), ' ', ETA(), ' ',
@@ -169,7 +168,7 @@ class SysStderrWriteHandler(logging.Handler):
 _fetch_prog_handler = FetchProgressHandler()
 _prog_handler = ProgressHandler()
 
-@memoized  # to avoid setting up handlers more than once
+@memoize  # to avoid setting up handlers more than once
 def setup_verbose_handlers():
     fetch_prog_logger = logging.getLogger('fetch')
     fetch_prog_logger.setLevel(logging.INFO)
@@ -219,7 +218,7 @@ def json_progress_bars():
     fetch_prog_logger.addHandler(_fetch_prog_handler)
     prog_logger.addHandler(_prog_handler)
 
-@memoized
+@memoize
 def setup_handlers():
     dotlogger = logging.getLogger('dotupdate')
     dotlogger.setLevel(logging.DEBUG)

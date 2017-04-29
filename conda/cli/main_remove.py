@@ -104,7 +104,6 @@ def configure_parser(sub_parsers, name='remove'):
 def execute(args, parser):
     from .common import (confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
                          names_in_specs, specs_from_args, stdout_json)
-    from .install import check_write
     from ..base.constants import ROOT_NO_RM
     from ..base.context import context
     from ..common.compat import iteritems, iterkeys
@@ -131,7 +130,6 @@ def execute(args, parser):
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
-    check_write('remove', prefix, json=context.json)
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
     if not args.features and args.all:

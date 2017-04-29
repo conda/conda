@@ -214,6 +214,10 @@ class Context(Configuration):
             return expand('~/conda-bld')
 
     @property
+    def local_build_root(self):
+        return self.croot
+
+    @property
     def src_cache(self):
         path = join(self.croot, 'src_cache')
         conda_bld_ensure_dir(path)
@@ -271,15 +275,6 @@ class Context(Configuration):
             return 32
         else:
             return 8 * tuple.__itemsize__
-
-    @property
-    def local_build_root(self):
-        if self.bld_path:
-            return expand(self.bld_path)
-        elif self.root_writable:
-            return join(self.conda_prefix, 'conda-bld')
-        else:
-            return expand('~/conda-bld')
 
     @property
     def root_dir(self):

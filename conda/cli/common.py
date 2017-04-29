@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 from functools import partial
-from os.path import abspath, basename
+from os.path import basename
 import re
 import sys
 
@@ -78,8 +78,6 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
         raise SystemExit('Exiting\n')
     return False
 
-# --------------------------------------------------------------------
-
 
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
@@ -87,14 +85,6 @@ def ensure_name_or_prefix(args, command):
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
 
-
-def name_prefix(prefix):
-    if abspath(prefix) == context.root_prefix:
-        return ROOT_ENV_NAME
-    return basename(prefix)
-
-
-# -------------------------------------------------------------------------
 
 def arg2spec(arg, json=False, update=False):
     try:
@@ -137,8 +127,10 @@ spec_pat = re.compile(r'''
 $                                  # end-of-line
 ''', re.VERBOSE)
 
+
 def strip_comment(line):
     return line.split('#')[0].rstrip()
+
 
 def spec_from_line(line):
     m = spec_pat.match(strip_comment(line))
@@ -197,16 +189,6 @@ def stdout_json(d):
     from .._vendor.auxlib.entity import EntityEncoder
     json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
     sys.stdout.write('\n')
-
-
-def get_index_trap(*args, **kwargs):
-    """
-    Retrieves the package index, but traps exceptions and reports them as
-    JSON if necessary.
-    """
-    from ..core.index import get_index
-    kwargs.pop('json', None)
-    return get_index(*args, **kwargs)
 
 
 @contextmanager

@@ -3,6 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 
+from conda._vendor.auxlib.path import expand
+
 from conda.base.constants import PathConflict
 from conda.common.path import win_path_backout
 from tempfile import gettempdir
@@ -187,6 +189,17 @@ class ContextCustomRcTests(TestCase):
         for name in paramter_names:
             pprint(context.describe_parameter(name))
 
+    def test_local_build_root_custom_rc(self):
+        assert context.local_build_root == "C:\\some\\test\\path" if on_win else "/some/test/path"
+
+        test_path_1 = join(os.getcwd(), 'test_path_1')
+        with env_var("CONDA_CROOT", test_path_1, reset_context):
+            assert context.local_build_root == test_path_1
+
+        test_path_2 = join(os.getcwd(), 'test_path_2')
+        with env_var("CONDA_BLD_PATH", test_path_2, reset_context):
+            assert context.local_build_root == test_path_2
+
 
 class ContextDefaultRcTests(TestCase):
 
@@ -196,3 +209,9 @@ class ContextDefaultRcTests(TestCase):
         subdirs = ('linux-highest', 'linux-64', 'noarch')
         with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
             assert context.subdirs == subdirs
+
+    def test_local_build_root_default_rc(self):
+        if context.root_writable:
+            assert context.local_build_root == join(context.root_prefix, 'conda-bld')
+        else:
+            assert context.local_build_root == expand('~/conda-bld')
