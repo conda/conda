@@ -57,7 +57,6 @@ from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
-from tests.test_exceptions import _raise_helper
 
 try:
     from unittest.mock import patch
