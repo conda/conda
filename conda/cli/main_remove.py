@@ -7,7 +7,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from argparse import RawDescriptionHelpFormatter
-from difflib import get_close_matches
 import errno
 import logging
 from os.path import join
@@ -26,7 +25,6 @@ from ..common.compat import iteritems, iterkeys
 from ..common.path import is_private_env, prefix_to_env_name
 from ..console import json_progress_bars
 from ..core.index import get_index
-from ..core.linked_data import linked as install_linked
 from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
 from ..gateways.disk.delete import delete_trash
 from ..resolve import Resolve
