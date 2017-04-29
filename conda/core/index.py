@@ -85,21 +85,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
                                        priority=priority,
                                        url=join_url(channel_url, fn),
                                        auth=auth)
-        dist = Dist(rec)
-        index[dist] = rec
-        if 'with_features_depends' in info:
-            base_deps = info.get('depends', ())
-            base_feats = set(info.get('features', '').strip().split())
-            for feat, deps in iteritems(info['with_features_depends']):
-                feat = set(feat.strip().split())
-                snames = {MatchSpec(s).name for s in deps}
-                base2 = [s for s in base_deps if MatchSpec(s).name not in snames]
-                feat2 = ' '.join(sorted(base_feats | feat))
-                feat = ' '.join(sorted(feat))
-                deps2 = base2 + deps
-                dist = Dist.from_objects(dist, with_features_depends=feat)
-                rec2 = IndexRecord.from_objects(rec, features=feat2, depends=deps2)
-                index[dist] = rec2
+        index[rec] = rec
 
 
 def supplement_index_with_features(index, features=()):
@@ -112,8 +98,10 @@ def supplement_index_with_features(index, features=()):
             schannel='defaults',
             track_features=feat,
             build_number=0,
-            fn=fname)
-        index[Dist(rec)] = rec
+            fn=fname,
+            url='',
+        )
+        index[rec] = rec
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,

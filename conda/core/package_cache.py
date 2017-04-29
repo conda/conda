@@ -170,7 +170,7 @@ class PackageCache(object):
     _is_writable = None
 
     def __init__(self, pkgs_dir):
-        self._packages_map = {}
+        self.__packages_map = {}
         # type: Dict[pkey, PackageCacheEntry]
 
         self.pkgs_dir = pkgs_dir

@@ -157,12 +157,14 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 def test_display_actions_0():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
-    actions = defaultdict(list, {"FETCH": [Dist('sympy-0.7.2-py27_0'), Dist("numpy-1.7.1-py27_0")]})
+    sympy = make_record('sympy-0.7.2-py27_0')
+    numpy = make_record("numpy-1.7.1-py27_0")
+    actions = defaultdict(list, {"FETCH": [sympy, numpy]})
     # The older test index doesn't have the size metadata
-    d = Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(index[d], size=4374752)
-    d = Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")
-    index[d] = IndexRecord.from_objects(index[d], size=5994338)
+    sympy = IndexRecord.from_objects(index[sympy], size=4374752)
+    index[sympy] = sympy
+    numpy = IndexRecord.from_objects(index[numpy], size=5994338)
+    index[numpy] = numpy
 
     with captured() as c:
         display_actions(actions, index)
@@ -319,8 +321,8 @@ The following packages will be downloaded:
 
     package                    |            build
     ---------------------------|-----------------
-    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>
-    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>
+    sympy-0.7.2                |           py27_0         4.2 MB  defaults
+    numpy-1.7.1                |           py27_0         5.7 MB  defaults
     ------------------------------------------------------------
                                            Total:         9.9 MB
 

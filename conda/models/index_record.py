@@ -5,9 +5,12 @@ from functools import total_ordering
 
 from .enums import LinkType, NoarchType, Platform
 from .leased_path_entry import LeasedPathEntry
+from .version import VersionOrder
 from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
+from ..base.constants import MAX_CHANNEL_PRIORITY
+from ..base.context import context
 from ..common.compat import itervalues, string_types
 
 
@@ -95,9 +98,24 @@ class IndexRecord(IndexJsonRecord):
     schannel = StringField(required=False, nullable=True)
     channel = StringField(required=False, nullable=True)
     priority = PriorityField(required=False)
-    url = StringField()
     auth = StringField(required=False, nullable=True)
     subdir = StringField(required=False)
+
+    # url is optional here for legacy support.
+    #   see tests/test_create.py test_dash_c_usage_replacing_python
+    url = StringField()
+    preferred_env = StringField(default=None, required=False, nullable=True)
+
+    # this is only for LinkedPackageRecord
+    leased_paths = ListField(LeasedPathEntry, required=False)
+
+    @property
+    def combined_depends(self):
+        from .match_spec import MatchSpec
+        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
+        result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
+                                              for spec in self.constrains or ())})
+        return tuple(itervalues(result))
 
     @memoizedproperty
     def pkey(self):
@@ -111,23 +129,36 @@ class IndexRecord(IndexJsonRecord):
     def __eq__(self, other):
         return hash(self) == hash(other)
 
+    def __key__(self):
+        cpri = self.get('priority', 1)
+        valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
+        ver = VersionOrder(self.get('version', ''))
+        bld = self.get('build_number', 0)
+        bs = self.get('build_string')
+        ts = self.get('timestamp', 0)
+        return ((valid, -cpri, ver, bld, bs, ts) if context.channel_priority else
+                (valid, ver, -cpri, bld, bs, ts))
+
+    def __lt__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() < other.__key__()
+
+    def __gt__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() > other.__key__()
+
+    def __le__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() <= other.__key__()
+
+    def __ge__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() >= other.__key__()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class LinkedPackageRecord(IndexRecord):
     files = ListField(string_types, default=(), required=False)
     link = ComposableField(Link, required=False)
-
-    # url is optional here for legacy support.
-    #   see tests/test_create.py test_dash_c_usage_replacing_python
-    url = StringField(required=False, nullable=True)
-    preferred_env = StringField(default=None, required=False, nullable=True)
-
-    # this is only for LinkedPackageRecord
-    leased_paths = ListField(LeasedPathEntry, required=False)
-
-    @property
-    def combined_depends(self):
-        from .match_spec import MatchSpec
-        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
-        result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
-                                              for spec in self.constrains or ())})
-        return tuple(itervalues(result))

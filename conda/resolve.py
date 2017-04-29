@@ -347,7 +347,6 @@ class Resolve(object):
             else:
                 res = self.index.keys()
             res = [p for p in res if self.match(ms, p)]
-            assert all(isinstance(d, Dist) for d in res)
             self.find_matches_[ms] = res
         res = tuple(self.index[d] for d in res)
         return res
@@ -599,7 +598,7 @@ class Resolve(object):
 
         if None in res:
             return None
-        res = [Dist(add_defaults_if_no_channel(f)) for f in sorted(res)]
+        res = [self.index[Dist(add_defaults_if_no_channel(f))] for f in sorted(res)]
         log.debug('explicit(%r) finished', specs)
         return res
 
@@ -841,9 +840,9 @@ class Resolve(object):
             stdoutlog.info('\n')
 
             if returnall:
-                return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
+                return [sorted(self.index[Dist(stripfeat(dname))] for dname in psol) for psol in psolutions]
             else:
-                return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
+                return sorted(self.index[Dist(stripfeat(dname))] for dname in psolutions[0])
 
         except:
             stdoutlog.info('\n')
