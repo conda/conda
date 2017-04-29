@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
-import json
 from logging import getLogger
 import re
 
@@ -148,19 +147,7 @@ class Dist(object):
         return self.triple + (self.channel or DEFAULTS_CHANNEL_NAME,)
 
     def __str__(self):
-        if self.is_feature_package:
-            return self.dist_name
         return "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
-
-    def __repr__(self):
-        args = tuple("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
-
-    def dump(self):
-        return {s: getattr(self, s) for s in self.__slots__}
-
-    def json(self):
-        return json.dumps(self.dump())
 
     @property
     def is_feature_package(self):

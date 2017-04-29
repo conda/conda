@@ -16,7 +16,6 @@ from ..gateways.disk.read import read_index_json
 from ..models.channel import prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
-from ..resolve import MatchSpec
 
 try:
     from cytoolz.itertoolz import take
