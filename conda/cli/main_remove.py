@@ -179,8 +179,13 @@ def execute(args, parser):
                     'actions': action_groups
                 })
             return
-        error_message = 'no packages found to remove from environment: %s' % prefix
+
+        pkg = str(args.package_names).replace("['", "")
+        pkg = pkg.replace("']", "")
+
+        error_message = "No packages named '%s' found to remove from environment." % pkg
         raise PackageNotFoundError(error_message)
+
     for action in action_groups:
         if not context.json:
             print()

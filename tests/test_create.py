@@ -20,6 +20,7 @@ from uuid import uuid4
 
 import shutil
 
+from conda._vendor.auxlib.ish import dals
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
@@ -1093,6 +1094,19 @@ class IntegrationTests(TestCase):
                 assert context.pkgs_dirs == (pkgs_dir,)
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
+
+    def test_remove_spellcheck(self):
+        with make_temp_env("numpy=1.12") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'numpy')
+
+            with pytest.raises(PackageNotFoundError) as exc:
+                run_command(Commands.REMOVE, prefix, 'numpi')
+
+            exc_string = '%r' % exc.value
+            assert exc_string == "PackageNotFoundError: No packages named 'numpi' found to remove from environment.\n"
+
+            assert_package_is_installed(prefix, 'numpy')
 
     def test_conda_list_json(self):
         def pkg_info(s):
