@@ -20,6 +20,7 @@ from uuid import uuid4
 
 import shutil
 
+from conda._vendor.auxlib.ish import dals
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
@@ -56,6 +57,7 @@ from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
+from tests.test_exceptions import _raise_helper
 
 try:
     from unittest.mock import patch
@@ -1040,6 +1042,21 @@ class IntegrationTests(TestCase):
                 assert context.pkgs_dirs == (pkgs_dir,)
                 run_command(Commands.INSTALL, prefix, "-c conda-forge toolz cytoolz")
                 assert_package_is_installed(prefix, 'toolz-')
+
+    def test_remove_spellcheck(self):
+        with make_temp_env("numpy=1.12") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'numpy')
+
+            with pytest.raises(Exception) as exc:
+                run_command(Commands.REMOVE, prefix, 'numpi')
+                assert exc.value == dals("""
+                PackageNotFoundError: no packages named numpi found to remove from environment.
+                Close matches found; did you mean one of these?
+                """).strip()
+
+            assert_package_is_installed(prefix, 'numpy')
+
 
     def test_conda_list_json(self):
         def pkg_info(s):

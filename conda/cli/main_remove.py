@@ -12,7 +12,8 @@ import logging
 from difflib import get_close_matches
 from os.path import join
 import sys
-
+import re
+from conda.core.linked_data import linked as install_linked
 from .common import (InstalledPackages, add_parser_channels, add_parser_help, add_parser_json,
                      add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
@@ -180,13 +181,20 @@ def execute(args, parser):
                     'actions': action_groups
                 })
             return
-        error_message = 'no packages found to remove from environment: %s' % prefix
-        error_message.append("\n\nClose matches found; did you mean one of these?\n")
-        from ..core.linked_data import linked
-        installed = linked(prefix)
-        close = get_close_matches(args.package_names, installed, cutoff=0.7)
-        error_message.append(close)
+
+        pkg = str(args.package_names).replace("['", "")
+        pkg = pkg.replace("']", "")
+
+        error_message = 'no packages named %s found to remove from environment.' % pkg
+        error_message += "\n\nClose matches found; did you mean one of these?"
+
+        installed = list(install_linked(prefix))
+        packages = list(map(lambda x: x.dist_name, installed))
+        close = get_close_matches(pkg, packages, cutoff=0.7)
+
+        error_message += close
         raise PackageNotFoundError(error_message)
+
     for action in action_groups:
         if not context.json:
             print()
