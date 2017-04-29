@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
+from conda.models.index_record import IndexRecord
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
@@ -305,9 +306,19 @@ class Resolve(object):
         # Determine all valid packages in the dependency graph
         reduced_index = {}
         slist = list(specs)
-        for fstr in features:
-            dist = Dist(fstr + '@')
-            reduced_index[dist] = self.index[dist]
+        for feat in features:
+            fname = feat + '@'
+            rec = IndexRecord(
+                name=fname,
+                version='0',
+                build='0',
+                schannel='@',
+                track_features=feat,
+                build_number=0,
+                fn=fname,
+                url='',
+            )
+            reduced_index[rec] = self.index[rec]
         while slist:
             this_spec = slist.pop()
             for dist in self.find_matches(this_spec):

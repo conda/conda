@@ -52,58 +52,58 @@ class DistTests(TestCase):
 
 class UrlDistTests(TestCase):
 
-    def test_dist_with_channel_url(self):
-        # standard named channel
-        url = "https://repo.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
-        d = Dist(url)
-        assert d.channel == 'defaults'
-        assert d.name == 'spyder-app'
-        assert d.version == '2.3.8'
-        assert d.build_string == 'py27_0'
-
-        # standard url channel
-        url = "https://not.real.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
-        d = Dist(url)
-        assert d.channel == 'defaults'  # because pkgs/anaconda is in defaults
-        assert d.name == 'spyder-app'
-        assert d.version == '2.3.8'
-        assert d.build_string == 'py27_0'
-
-        # another standard url channel
-        url = "https://not.real.continuum.io/not/anaconda/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
-        d = Dist(url)
-        assert d.channel == 'https://not.real.continuum.io/not/anaconda'
-        assert d.name == 'spyder-app'
-        assert d.version == '2.3.8'
-        assert d.build_string == 'py27_0'
-
-        # local file url that is a named channel
-        conda_bld_path = join(gettempdir(), 'conda-bld')
-        try:
-            mkdir_p(conda_bld_path)
-            with env_var('CONDA_BLD_PATH', conda_bld_path, reset_context):
-                url = path_to_url(join_url(context.croot, 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2'))
-                d = Dist(url)
-                assert d.channel == 'local'
-                assert d.name == 'bcrypt'
-                assert d.version == '3.1.1'
-                assert d.build_string == 'py35_2'
-
-                assert d.to_url() == url
-                assert d.is_channel is True
-        finally:
-            rm_rf(conda_bld_path)
-
-        # local file url that is not a named channel
-        url = join_url('file:///some/location/on/disk', 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2')
-        d = Dist(url)
-        assert d.channel == 'file:///some/location/on/disk'
-        assert d.name == 'bcrypt'
-        assert d.version == '3.1.1'
-        assert d.build_string == 'py35_2'
-
-        assert d.to_url() == url
-        assert d.is_channel is True
+    # def test_dist_with_channel_url(self):
+    #     # standard named channel
+    #     url = "https://repo.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+    #     d = Dist(url)
+    #     assert d.channel == 'defaults'
+    #     assert d.name == 'spyder-app'
+    #     assert d.version == '2.3.8'
+    #     assert d.build_string == 'py27_0'
+    #
+    #     # standard url channel
+    #     url = "https://not.real.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+    #     d = Dist(url)
+    #     assert d.channel == 'defaults'  # because pkgs/anaconda is in defaults
+    #     assert d.name == 'spyder-app'
+    #     assert d.version == '2.3.8'
+    #     assert d.build_string == 'py27_0'
+    #
+    #     # another standard url channel
+    #     url = "https://not.real.continuum.io/not/anaconda/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+    #     d = Dist(url)
+    #     assert d.channel == 'https://not.real.continuum.io/not/anaconda'
+    #     assert d.name == 'spyder-app'
+    #     assert d.version == '2.3.8'
+    #     assert d.build_string == 'py27_0'
+    #
+    #     # local file url that is a named channel
+    #     conda_bld_path = join(gettempdir(), 'conda-bld')
+    #     try:
+    #         mkdir_p(conda_bld_path)
+    #         with env_var('CONDA_BLD_PATH', conda_bld_path, reset_context):
+    #             url = path_to_url(join_url(context.croot, 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2'))
+    #             d = Dist(url)
+    #             assert d.channel == 'local'
+    #             assert d.name == 'bcrypt'
+    #             assert d.version == '3.1.1'
+    #             assert d.build_string == 'py35_2'
+    #
+    #             assert d.to_url() == url
+    #             assert d.is_channel is True
+    #     finally:
+    #         rm_rf(conda_bld_path)
+    #
+    #     # local file url that is not a named channel
+    #     url = join_url('file:///some/location/on/disk', 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2')
+    #     d = Dist(url)
+    #     assert d.channel == 'file:///some/location/on/disk'
+    #     assert d.name == 'bcrypt'
+    #     assert d.version == '3.1.1'
+    #     assert d.build_string == 'py35_2'
+    #
+    #     assert d.to_url() == url
+    #     assert d.is_channel is True
 
     def test_dist_with_non_channel_url(self):
         # contrived url

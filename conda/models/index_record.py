@@ -130,14 +130,7 @@ class IndexRecord(IndexJsonRecord):
         return hash(self) == hash(other)
 
     def __key__(self):
-        cpri = self.get('priority', 1)
-        valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
-        ver = VersionOrder(self.get('version', ''))
-        bld = self.get('build_number', 0)
-        bs = self.get('build_string')
-        ts = self.get('timestamp', 0)
-        return ((valid, -cpri, ver, bld, bs, ts) if context.channel_priority else
-                (valid, ver, -cpri, bld, bs, ts))
+        return self.pkey
 
     def __lt__(self, other):
         assert isinstance(other, self.__class__)
@@ -157,6 +150,9 @@ class IndexRecord(IndexJsonRecord):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def to_filename(self):
+        return self.fn
 
 
 class LinkedPackageRecord(IndexRecord):

@@ -151,9 +151,9 @@ class MatchSpecTests(unittest.TestCase):
         assert hash(a) == hash(e)
 
     def test_index_record(self):
-        dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
+        dst = 'defaults::foo-1.2.3-4.tar.bz2'
         rec = make_record(dst)
-        a = MatchSpec(dst)
+        a = MatchSpec(Dist(dst))
         b = MatchSpec(rec)
         assert b.match(rec)
         assert a.match(rec)
@@ -175,7 +175,7 @@ class MatchSpecTests(unittest.TestCase):
         assert ms.to_filename() == 'zlib-1.2.7-0.tar.bz2'
 
     def test_features(self):
-        dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
+        dst = 'defaults::foo-1.2.3-4.tar.bz2'
         a = MatchSpec(features='test')
         assert a.match(make_record(dst, features='test'))
         assert not a.match(make_record(dst, features='test2'))

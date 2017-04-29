@@ -74,7 +74,7 @@ class TestSolve(unittest.TestCase):
 
     def assert_have_mkl(self, dists, names):
         for dist in dists:
-            if dist.quad[0] in names:
+            if dist.name in names:
                 self.assertEqual(r.features(dist), f_mkl)
 
     def test_explicit0(self):
@@ -149,6 +149,7 @@ class TestSolve(unittest.TestCase):
                          r.install(['mkl 11*', 'mkl@']))
 
     def test_accelerate(self):
+        a = r.install(['accelerate', 'mkl@'])
         self.assertEqual(
             r.install(['accelerate']),
             r.install(['accelerate', 'mkl@']))
@@ -492,7 +493,7 @@ def test_nonexistent_deps():
     assert target_result == r.install(['mypackage 1.1'])
     expected = [
         make_record(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -508,8 +509,8 @@ def test_nonexistent_deps():
 
     assert r.install(['anotherpackage 1.0']) == [
         make_record(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::anotherpackage-1.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
+        'anotherpackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -522,8 +523,8 @@ def test_nonexistent_deps():
 
     assert r.install(['anotherpackage']) == [
         make_record(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::anotherpackage-2.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
+        'anotherpackage-2.0-py33_0.tar.bz2',
+        'mypackage-1.1-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -581,7 +582,7 @@ def test_nonexistent_deps():
 
     assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [
         make_record(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -595,8 +596,8 @@ def test_nonexistent_deps():
 
     assert r.install(['anotherpackage 1.0']) == [
         make_record(add_defaults_if_no_channel(dname))for dname in [
-        '<unknown>::anotherpackage-1.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
+        'anotherpackage-1.0-py33_0.tar.bz2',
+        'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -611,8 +612,8 @@ def test_nonexistent_deps():
     # anotherpackage 2.0, not anotherpackage 1.0
     assert r.install(['anotherpackage']) == [
         make_record(add_defaults_if_no_channel(dname))for dname in [
-        '<unknown>::anotherpackage-2.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
+        'anotherpackage-2.0-py33_0.tar.bz2',
+        'mypackage-1.0-py33_0.tar.bz2',
         'nose-1.3.0-py33_0.tar.bz2',
         'openssl-1.0.1c-0.tar.bz2',
         'python-3.3.2-0.tar.bz2',
@@ -672,7 +673,7 @@ def test_circular_dependencies():
 
 def test_optional_dependencies():
     index2 = index.copy()
-    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+    package1 = IndexRecord.from_objects(make_record('package1-1.0-0.tar.bz2'), {
         'build': '0',
         'build_number': 0,
         'depends': ['package2 >1.0 (optional)'],
@@ -680,7 +681,8 @@ def test_optional_dependencies():
         'requires': ['package2'],
         'version': '1.0',
     })
-    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+    index2[package1] = package1
+    package2 = IndexRecord.from_objects(make_record('package2-1.0-0.tar.bz2'), {
         'build': '0',
         'build_number': 0,
         'depends': [],
@@ -688,7 +690,8 @@ def test_optional_dependencies():
         'requires': [],
         'version': '1.0',
     })
-    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+    index2[package2] = package2
+    package22 = IndexRecord.from_objects(make_record('package2-2.0-0.tar.bz2'), {
         'build': '0',
         'build_number': 0,
         'depends': [],
@@ -696,22 +699,23 @@ def test_optional_dependencies():
         'requires': [],
         'version': '2.0',
     })
+    index2[package22] = package22
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
     assert set(r.find_matches(MatchSpec('package1'))) == {
-        Dist('package1-1.0-0.tar.bz2'),
+        make_record('package1-1.0-0.tar.bz2'),
     }
     assert set(r.get_reduced_index(['package1']).keys()) == {
-        Dist('package1-1.0-0.tar.bz2'),
-        Dist('package2-2.0-0.tar.bz2'),
+        make_record('package1-1.0-0.tar.bz2'),
+        make_record('package2-2.0-0.tar.bz2'),
     }
     assert r.install(['package1']) == [
-        Dist('package1-1.0-0.tar.bz2'),
+        make_record('package1-1.0-0.tar.bz2'),
     ]
     assert r.install(['package1', 'package2']) == r.install(['package1', 'package2 >1.0']) == [
-        Dist('package1-1.0-0.tar.bz2'),
-        Dist('package2-2.0-0.tar.bz2'),
+        make_record('package1-1.0-0.tar.bz2'),
+        make_record('package2-2.0-0.tar.bz2'),
     ]
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 <2.0']))
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
