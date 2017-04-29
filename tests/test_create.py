@@ -1047,12 +1047,11 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
 
-            with pytest.raises(Exception) as exc:
+            with pytest.raises(PackageNotFoundError) as exc:
                 run_command(Commands.REMOVE, prefix, 'numpi')
-                assert exc.value == dals("""
-                PackageNotFoundError: no packages named numpi found to remove from environment.
-                Close matches found; did you mean one of these?
-                """).strip()
+
+            exc_string = '%r' % exc.value
+            assert exc_string == "PackageNotFoundError: No packages named 'numpi' found to remove from environment.\n"
 
             assert_package_is_installed(prefix, 'numpy')
 
