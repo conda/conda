@@ -432,3 +432,9 @@ class ConfigurationTests(TestCase):
         config = SampleConfiguration()._set_raw_data(data)
         with raises(InvalidTypeError):
             config.proxy_servers
+
+    def test_invalid_seq_parameter(self):
+        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', {'channels': 'y_u_no_tuple'}))
+        config = SampleConfiguration()._set_raw_data(data)
+        with raises(InvalidTypeError):
+            config.channels
