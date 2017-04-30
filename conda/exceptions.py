@@ -57,7 +57,7 @@ class TooManyArgumentsError(ArgumentError):
         self.optional_message = optional_message
 
         suffix = 's' if received - expected > 1 else ''
-        msg = ('Too many arguments: %s Got %s argument%s (%s) but expected %s.' %
+        msg = ('%s Got %s argument%s (%s) but expected %s.' %
                (optional_message, received, suffix, ', '.join(offending_arguments), expected))
         super(TooManyArgumentsError, self).__init__(msg, *args)
 
@@ -181,21 +181,21 @@ class CommandNotFoundError(CondaError):
             Did you mean 'source %(command)s'?
             """)
         else:
-            message = "Conda could not find the command: '%(command)s'"
+            message = "'%(command)s'"
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
 class CondaFileNotFoundError(CondaError, OSError):
     def __init__(self, filename, *args):
         self.filename = filename
-        message = " '%s'." % filename
+        message = "'%s'." % filename
         super(CondaFileNotFoundError, self).__init__(message, *args)
 
 
 class DirectoryNotFoundError(CondaError):
     def __init__(self, directory):
         self.directory = directory
-        msg = "%s." % directory
+        msg = "'%s'" % directory
         super(DirectoryNotFoundError, self).__init__(msg)
 
 
@@ -371,7 +371,7 @@ class CondaHTTPError(CondaError):
 
 class CondaRevisionError(CondaError):
     def __init__(self, message):
-        msg = "Revision Error: %s." % message
+        msg = "%s." % message
         super(CondaRevisionError, self).__init__(msg)
 
 
