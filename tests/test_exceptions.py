@@ -376,7 +376,7 @@ class ExceptionTests(TestCase):
         assert not c.stdout
 
         if on_win:
-            message = "CommandNotFoundError: Conda could not find the command: 'activate'"
+            message = "CommandNotFoundError: 'activate'"
         else:
             message = ("CommandNotFoundError: 'activate is not a conda command.\n"
                        "Did you mean 'source activate'?")
