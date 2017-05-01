@@ -261,6 +261,7 @@ class UnlinkLinkTransaction(object):
         if not self._verified:
             self.verify()
 
+        assert not context.dry_run
         # make sure prefix directory exists
         if not isdir(self.target_prefix):
             try:

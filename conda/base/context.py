@@ -136,6 +136,7 @@ class Context(Configuration):
     always_yes = PrimitiveParameter(False, aliases=('yes',))
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
+    dry_run = PrimitiveParameter(False)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
     offline = PrimitiveParameter(False)
@@ -459,6 +460,7 @@ class Context(Configuration):
             'croot',
             'debug',
             'default_python',
+            'dry_run',
             'force_32bit',
             'migrated_custom_channels',
             'root_dir',
