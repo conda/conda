@@ -3,7 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import join, isdir
+from os.path import join, isdir, dirname
+from subprocess import PIPE, Popen
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -13,9 +14,9 @@ from conda._vendor.auxlib.ish import dals
 import pytest
 
 from conda._vendor.toolz.itertoolz import concatv
-from conda.activate import Activator, native_path_to_unix
+from conda.activate import Activator, native_path_to_unix, ensure_binary
 from conda.base.context import context, reset_context
-from conda.common.compat import on_win, string_types
+from conda.common.compat import on_win, string_types, ensure_text_type
 from conda.common.io import env_var
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
@@ -647,13 +648,42 @@ class ShellWrapperUnitTests(TestCase):
                     }
 
 
-@pytest.mark.installed
-class ParameterizedShellTests(object):
+
+def run(cmd_list):
+    cwd = os.getcwd()
+    env = os.environ.copy()
+    env.update({
+        'PATH': os.pathsep.join((
+            join(cwd, 'shell', 'Library', 'bin'),
+            join(cwd, 'shell', 'Scripts'),
+            dirname(sys.executable),
+            os.environ['PATH'],
+        )),
+    })
+
+    p = Popen('cmd', cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+
+    stdin = os.linesep.join(concatv(cmd_list, ('',)))
+    stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
+    stdout, stderr = p.communicate(input=stdin)
+    rc = p.returncode
+
+    return ensure_text_type(stdout), ensure_text_type(stderr), rc
+
+
+
+
+class ParameterizedShellTests(TestCase):
 
     def test_1(self):
-        import pexpect
-        cmdexe = pexpect.spawn('cmd.exe', timeout=10)
-        cmdexe.sendline('SET PATH="%cd%\\Library\\bin;%cd%\\Scripts;%PATH%"')
-        cmdexe.sendline('SET PYTHONPATH="%cd%;%PYTHONPATH%"')
-        cmdexe.sendline('conda activate root')
-        result = cmdexe.expect_exact("(root) ")
+        stdout, stderr, rc = run((
+            'conda activate root',
+            'echo %PROMPT%',
+            'conda deactivate',
+            'echo %PROMPT%',
+        ))
+        sys.stdout.write(stdout)
+        sys.stdout.write(stderr)
+        sys.stdout.write(rc)
+
+        assert 0

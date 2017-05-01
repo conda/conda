@@ -9,10 +9,9 @@ import sys
 from tempfile import NamedTemporaryFile
 
 try:
-    from cytoolz.itertoolz import concatv
+    from cytoolz.itertoolz import concatv, drop
 except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concatv  # NOQA
-
+    from ._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 class Activator(object):
     # Activate and deactivate have three tasks
@@ -36,7 +35,39 @@ class Activator(object):
     # To implement support for a new shell, ideally one would only need to add shell-specific
     # information to the __init__ method of this class.
 
-    def __init__(self, shell):
+    def _parse_args(self, arguments):
+        arguments = tuple(drop(self.shift_args, arguments))
+        help_flags = ('-h', '--help', '/?')
+        non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
+        help_requested = len(arguments) != len(non_help_args)
+        command = next((arg for arg in non_help_args if not arg.startswith(('-', '/'))), None)
+        remainder_args = tuple(arg for arg in non_help_args if arg != command)
+
+        if not command:
+            from .exceptions import ArgumentError
+            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+        elif help_requested:
+            from . import CondaError
+            class Help(CondaError):
+                pass
+            raise Help("help requested for %s" % command)
+        elif command not in ('activate', 'deactivate', 'reactivate'):
+            from .exceptions import ArgumentError
+            raise ArgumentError("invalid command '%s'" % command)
+        elif command == 'activate' and len(remainder_args) > 1:
+            from .exceptions import ArgumentError
+            raise ArgumentError('activate does not accept more than one argument')
+        elif remainder_args:
+            from .exceptions import ArgumentError
+            raise ArgumentError('%s does not accept arguments' % command)
+
+        if command == 'activate':
+            self.env_name_or_prefix = remainder_args and remainder_args[0]
+
+        self.command = command
+
+
+    def __init__(self, shell, arguments):
         from .base.context import context
         self.context = context
         self.shell = shell
@@ -46,6 +77,7 @@ class Activator(object):
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
@@ -56,6 +88,7 @@ class Activator(object):
             self.path_conversion = native_path_to_unix
             self.script_extension = '.csh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'setenv %s "%s"'
@@ -66,6 +99,7 @@ class Activator(object):
             self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
             self.tempfile_extension = '.xsh'
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'del $%s'
             self.set_var_tmpl = '$%s = "%s"'
@@ -76,6 +110,7 @@ class Activator(object):
             self.path_conversion = path_identity
             self.script_extension = '.bat'
             self.tempfile_extension = '.bat'
+            self.shift_args = 1
 
             self.unset_var_tmpl = '@SET %s='
             self.set_var_tmpl = '@SET "%s="%s""'
@@ -86,6 +121,7 @@ class Activator(object):
             self.path_conversion = native_path_to_unix
             self.script_extension = '.fish'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'set -e %s'
             self.set_var_tmpl = 'set -gx %s "%s"'
@@ -96,6 +132,7 @@ class Activator(object):
             self.path_conversion = path_identity
             self.script_extension = '.ps1'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'Remove-Variable %s'
             self.set_var_tmpl = '$env:%s = "%s"'
@@ -103,6 +140,8 @@ class Activator(object):
 
         else:
             raise NotImplementedError()
+
+        self.arguments = self._parse_args(arguments)
 
     def _finalize(self, commands, ext):
         commands = concatv(commands, ('',))  # add terminating newline
@@ -115,7 +154,8 @@ class Activator(object):
         else:
             raise NotImplementedError()
 
-    def activate(self, name_or_prefix):
+    def activate(self, name_or_prefix=None):
+        name_or_prefix = name_or_prefix or self.env_name_or_prefix
         return self._finalize(self._yield_commands(self.build_activate(name_or_prefix)),
                               self.tempfile_extension)
 
@@ -126,6 +166,9 @@ class Activator(object):
     def reactivate(self):
         return self._finalize(self._yield_commands(self.build_reactivate()),
                               self.tempfile_extension)
+
+    def execute(self):
+        return getattr(self, self.command)()
 
     def _yield_commands(self, cmds_dict):
         for key in sorted(cmds_dict.get('unset_vars', ())):
@@ -393,41 +436,34 @@ on_win = bool(sys.platform == "win32")
 PY2 = sys.version_info[0] == 2
 if PY2:  # pragma: py3 no cover
     string_types = basestring,  # NOQA
+    text_type = unicode  # NOQA
 
     def iteritems(d, **kw):
         return d.iteritems(**kw)
 else:  # pragma: py2 no cover
     string_types = str,
+    text_type = str
 
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
 
-def main():
-    command = sys.argv[1]
-    shell = sys.argv[2]
-    activator = Activator(shell)
-    remainder_args = sys.argv[3:] if len(sys.argv) >= 4 else ()
-    # if '-h' in remainder_args or '--help' in remainder_args:
-    #     pass
-    if command == 'shell.activate':
-        if len(remainder_args) > 1:
-            from .exceptions import ArgumentError
-            raise ArgumentError("activate only accepts a single argument")
-        print(activator.activate(remainder_args and remainder_args[0] or "root"))
-    elif command == 'shell.deactivate':
-        if remainder_args:
-            from .exceptions import ArgumentError
-            raise ArgumentError("deactivate does not accept arguments")
-        print(activator.deactivate())
-    elif command == 'shell.reactivate':
-        if remainder_args:
-            from .exceptions import ArgumentError
-            raise ArgumentError("reactivate does not accept arguments")
-        print(activator.reactivate())
-    else:
-        raise NotImplementedError()
-    return 0
+def main(argv=None):
+    argv = argv or sys.argv
+    assert len(argv) >= 3
+    assert argv[1].startswith('shell.')
+    shell = argv[1].replace('shell.', '', 1)
+    activator_args = argv[2:]
+    activator = Activator(shell, activator_args)
+    try:
+        return activator.execute()
+    except Exception as e:
+        from . import CondaError
+        if isinstance(e, CondaError):
+            sys.stderr.write(text_type(e))
+            return e.return_code
+        else:
+            raise
 
 
 if __name__ == '__main__':
