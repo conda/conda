@@ -649,6 +649,7 @@ class ShellWrapperUnitTests(TestCase):
 
 
 
+
 def run(cmd_list):
     cwd = os.getcwd()
     env = os.environ.copy()
@@ -672,6 +673,26 @@ def run(cmd_list):
 
 
 
+def run_posix(cmd_list):
+    cwd = os.getcwd()
+    env = os.environ.copy()
+    env.update({
+        'PATH': os.pathsep.join((
+            join(cwd, 'bin'),
+            dirname(sys.executable),
+            os.environ['PATH'],
+        )),
+    })
+
+    p = Popen('bash', cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+
+    stdin = os.linesep.join(concatv(cmd_list, ('',)))
+    stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
+    stdout, stderr = p.communicate(input=stdin)
+    rc = p.returncode
+
+    return ensure_text_type(stdout), ensure_text_type(stderr), rc
+
 
 class ParameterizedShellTests(TestCase):
 
@@ -682,6 +703,20 @@ class ParameterizedShellTests(TestCase):
             'echo %PROMPT%',
             'conda deactivate',
             'echo %PROMPT%',
+        ))
+        sys.stdout.write(stdout)
+        sys.stdout.write(stderr)
+        sys.stdout.write(rc)
+
+        assert 0
+
+    def test_2(self):
+        stdout, stderr, rc = run_posix((
+            'env | sort',
+            'conda activate root',
+            'env | sort',
+            'conda deactivate',
+            'env | sort',
         ))
         sys.stdout.write(stdout)
         sys.stdout.write(stderr)
