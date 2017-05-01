@@ -1,11 +1,12 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 from functools import reduce as _reduce
-import logging
+from logging import getLogger
 
 from .exceptions import CondaValueError
 
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
+
 
 def _toposort(data):
     """Dependencies are expressed as a dictionary whose keys are items
@@ -43,8 +44,9 @@ items in the preceding sets.
 #                     if item not in ordered}
 
     if len(data) != 0:
-        msg = 'Cyclic dependencies exist among these items: {}'
-        raise CondaValueError(msg.format(' -> '.join(repr(x) for x in data.keys())))
+        log.warn("Cyclic dependencies exist among these items:\n  %s",
+                 ' -> '.join(repr(x) for x in data.keys()))
+
 
 def pop_key(data):
     '''
