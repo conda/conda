@@ -494,12 +494,12 @@ class ShellWrapperUnitTests(TestCase):
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
-        @SET "CONDA_DEFAULT_ENV="%(prefix)s""
-        @SET "CONDA_PREFIX="%(prefix)s""
-        @SET "CONDA_PROMPT_MODIFIER="(%(prefix)s) ""
-        @SET "CONDA_PYTHON_EXE="%(sys_executable)s""
-        @SET "CONDA_SHLVL="1""
-        @SET "PATH="%(new_path)s""
+        @SET "CONDA_DEFAULT_ENV=%(prefix)s"
+        @SET "CONDA_PREFIX=%(prefix)s"
+        @SET "CONDA_PROMPT_MODIFIER=(%(prefix)s) "
+        @SET "CONDA_PYTHON_EXE=%(sys_executable)s"
+        @SET "CONDA_SHLVL=1"
+        @SET "PATH=%(new_path)s"
         @CALL "%(activate1)s"
         """) % {
             'prefix': self.prefix,
@@ -535,8 +535,8 @@ class ShellWrapperUnitTests(TestCase):
                     @SET CONDA_PREFIX=
                     @SET CONDA_PROMPT_MODIFIER=
                     @SET CONDA_PYTHON_EXE=
-                    @SET "CONDA_SHLVL="0""
-                    @SET "PATH="%(new_path)s""
+                    @SET "CONDA_SHLVL=0"
+                    @SET "PATH=%(new_path)s"
                     @CALL "%(deactivate1)s"
                     """) % {
                         'new_path': new_path,
@@ -675,6 +675,7 @@ def run(cmd_list):
 
 class ParameterizedShellTests(TestCase):
 
+    @pytest.mark.skipif(not on_win, reason="windows-only test")
     def test_1(self):
         stdout, stderr, rc = run((
             'conda activate root',

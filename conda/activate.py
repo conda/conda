@@ -35,7 +35,7 @@ class Activator(object):
     # To implement support for a new shell, ideally one would only need to add shell-specific
     # information to the __init__ method of this class.
 
-    def _parse_args(self, arguments):
+    def _set_args(self, arguments):
         arguments = tuple(drop(self.shift_args, arguments))
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
@@ -67,7 +67,7 @@ class Activator(object):
         self.command = command
 
 
-    def __init__(self, shell, arguments):
+    def __init__(self, shell, arguments=None):
         from .base.context import context
         self.context = context
         self.shell = shell
@@ -113,7 +113,7 @@ class Activator(object):
             self.shift_args = 1
 
             self.unset_var_tmpl = '@SET %s='
-            self.set_var_tmpl = '@SET "%s="%s""'
+            self.set_var_tmpl = '@SET "%s=%s"'
             self.run_script_tmpl = '@CALL "%s"'
 
         elif shell == 'fish':
@@ -141,7 +141,8 @@ class Activator(object):
         else:
             raise NotImplementedError()
 
-        self.arguments = self._parse_args(arguments)
+        if arguments is not None:
+            self.arguments = self._set_args(arguments)
 
     def _finalize(self, commands, ext):
         commands = concatv(commands, ('',))  # add terminating newline
