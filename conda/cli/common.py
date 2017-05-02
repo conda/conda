@@ -60,7 +60,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
             return choices[user_choice]
 
 
-def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
+def confirm_yn(args, message="Proceed", default='yes'):
     if args.dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
@@ -69,13 +69,11 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     try:
         choice = confirm(args, message=message, choices=('yes', 'no'),
                          default=default)
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
     if choice == 'yes':
         return True
-    if exit_no:
-        raise SystemExit('Exiting\n')
     return False
 
 
