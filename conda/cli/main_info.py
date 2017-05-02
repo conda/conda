@@ -164,19 +164,19 @@ def get_info_dict(system=False):
     try:
         from ..install import linked_data
         root_pkgs = linked_data(context.root_prefix)
-    except:
-        root_pkgs = None
+    except:  # pragma: no cover
+        root_pkgs = {}
 
     try:
         from requests import __version__ as requests_version
-    except ImportError:
+    except ImportError:  # pragma: no cover
         requests_version = "could not import"
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         requests_version = "Error %r" % e
 
     try:
         from conda_env import __version__ as conda_env_version
-    except:
+    except:  # pragma: no cover
         try:
             cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
             conda_env_version = cenv[0]['version']
@@ -185,11 +185,11 @@ def get_info_dict(system=False):
 
     try:
         import conda_build
-    except ImportError:
+    except ImportError:  # pragma: no cover
         conda_build_version = "not installed"
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         conda_build_version = "Error %s" % e
-    else:
+    else:  # pragma: no cover
         conda_build_version = conda_build.__version__
 
     channels = list(prioritize_channels(context.channels).keys())
@@ -344,7 +344,7 @@ def execute(args, parser):
     if args.license and not context.json:
         try:
             from _license import show_info
-            show_info()
+            show_info()  # pragma: no cover
         except ImportError:
             print("""\
 WARNING: could not import _license.show_info
