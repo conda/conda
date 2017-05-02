@@ -660,7 +660,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
 
     env = os.environ.copy()
 
-    if action == 'pre-link':
+    if action == 'pre-link':  # pragma: no cover
+        # old no-arch support; deprecated
         is_old_noarch = False
         try:
             with open(path) as f:
@@ -703,7 +704,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         log.debug("for %s at %s, executing script: $ %s",
                   dist, env['PREFIX'], ' '.join(command_args))
         subprocess_call(command_args, env=env, path=dirname(path))
-    except CalledProcessError as e:
+    except CalledProcessError as e:  # pragma: no cover
         m = messages(prefix)
         if action in ('pre-link', 'post-link'):
             if 'openssl' in text_type(dist):
