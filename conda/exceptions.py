@@ -556,7 +556,7 @@ def print_conda_exception(exception):
         stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
                                      cls=EntityEncoder))
     else:
-        stderrlogger.info("\n\n%r", exception)
+        stderrlogger.info("\n%r", exception)
 
 
 def print_unexpected_error_message(e):

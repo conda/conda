@@ -1104,7 +1104,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
             exc_string = '%r' % exc.value
-            assert exc_string == "PackageNotFoundError: No packages named 'numpi' found to remove from environment.\n"
+            assert exc_string == "PackageNotFoundError: No packages named 'numpi' found to remove from environment."
 
             assert_package_is_installed(prefix, 'numpy')
 
