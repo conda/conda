@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 class LockError(CondaError):
     def __init__(self, message):
-        msg = "Lock error: %s" % message
+        msg = "%s" % message
         super(LockError, self).__init__(msg)
 
 
@@ -57,7 +57,7 @@ class TooManyArgumentsError(ArgumentError):
         self.optional_message = optional_message
 
         suffix = 's' if received - expected > 1 else ''
-        msg = ('Too many arguments: %s Got %s argument%s (%s) but expected %s.' %
+        msg = ('%s Got %s argument%s (%s) but expected %s.' %
                (optional_message, received, suffix, ', '.join(offending_arguments), expected))
         super(TooManyArgumentsError, self).__init__(msg, *args)
 
@@ -68,7 +68,7 @@ class TooFewArgumentsError(ArgumentError):
         self.received = received
         self.optional_message = optional_message
 
-        msg = ('Too few arguments: %s Got %s arguments but expected %s.' %
+        msg = ('%s Got %s arguments but expected %s.' %
                (optional_message, received, expected))
         super(TooFewArgumentsError, self).__init__(msg, *args)
 
@@ -181,21 +181,21 @@ class CommandNotFoundError(CondaError):
             Did you mean 'source %(command)s'?
             """)
         else:
-            message = "Conda could not find the command: '%(command)s'"
+            message = "'%(command)s'"
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
 class CondaFileNotFoundError(CondaError, OSError):
     def __init__(self, filename, *args):
         self.filename = filename
-        message = "File not found: '%s'." % filename
+        message = "'%s'." % filename
         super(CondaFileNotFoundError, self).__init__(message, *args)
 
 
 class DirectoryNotFoundError(CondaError):
     def __init__(self, directory):
         self.directory = directory
-        msg = "Directory not found: '%s'." % directory
+        msg = "'%s'" % directory
         super(DirectoryNotFoundError, self).__init__(msg)
 
 
@@ -216,7 +216,7 @@ class CondaEnvironmentNotFoundError(CondaError, EnvironmentError):
 
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args):
-        msg = 'Environment error: %s' % message
+        msg = '%s' % message
         super(CondaEnvironmentError, self).__init__(msg, *args)
 
 
@@ -251,19 +251,19 @@ class LinkError(CondaError):
 
 class CondaOSError(CondaError, OSError):
     def __init__(self, message):
-        msg = 'OS error: %s' % message
+        msg = '%s' % message
         super(CondaOSError, self).__init__(msg)
 
 
 class ProxyError(CondaError):
     def __init__(self, message):
-        msg = 'Proxy error: %s' % message
+        msg = '%s' % message
         super(ProxyError, self).__init__(msg)
 
 
 class CondaIOError(CondaError, IOError):
     def __init__(self, message, *args):
-        msg = 'IO error: %s' % message
+        msg = '%s' % message
         super(CondaIOError, self).__init__(msg)
 
 
@@ -271,38 +271,38 @@ class CondaFileIOError(CondaIOError):
     def __init__(self, filepath, message, *args):
         self.filepath = filepath
 
-        msg = "Couldn't read or write to file. '%s'. %s" % (filepath, message)
+        msg = "'%s'. %s" % (filepath, message)
         super(CondaFileIOError, self).__init__(msg, *args)
 
 
 class CondaKeyError(CondaError, KeyError):
     def __init__(self, key, message, *args):
         self.key = key
-        self.msg = "Error with key '%s': %s" % (key, message)
+        self.msg = "'%s': %s" % (key, message)
         super(CondaKeyError, self).__init__(self.msg, *args)
 
 
 class ChannelError(CondaError):
     def __init__(self, message, *args):
-        msg = 'Channel Error: %s' % message
+        msg = '%s' % message
         super(ChannelError, self).__init__(msg)
 
 
 class ChannelNotAllowed(ChannelError):
     def __init__(self, message, *args):
-        msg = 'Channel not allowed: %s' % message
+        msg = '%s' % message
         super(ChannelNotAllowed, self).__init__(msg, *args)
 
 
 class CondaImportError(CondaError, ImportError):
     def __init__(self, message):
-        msg = 'Import error: %s' % message
+        msg = '%s' % message
         super(CondaImportError, self).__init__(msg)
 
 
 class ParseError(CondaError):
     def __init__(self, message):
-        msg = 'Parse error: %s' % message
+        msg = '%s' % message
         super(ParseError, self).__init__(msg)
 
 
@@ -371,7 +371,7 @@ class CondaHTTPError(CondaError):
 
 class CondaRevisionError(CondaError):
     def __init__(self, message):
-        msg = "Revision Error: %s." % message
+        msg = "%s." % message
         super(CondaRevisionError, self).__init__(msg)
 
 
@@ -470,43 +470,43 @@ Use "conda info <package>" to see the dependencies for each package.'''
 
 class InstallError(CondaError):
     def __init__(self, message):
-        msg = 'Install error: %s' % message
+        msg = '%s' % message
         super(InstallError, self).__init__(msg)
 
 
 class RemoveError(CondaError):
     def __init__(self, message):
-        msg = 'Remove Error: %s' % message
+        msg = '%s' % message
         super(RemoveError, self).__init__(msg)
 
 
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
-        msg = 'Index error: %s' % message
+        msg = '%s' % message
         super(CondaIndexError, self).__init__(msg)
 
 
 class CondaValueError(CondaError, ValueError):
     def __init__(self, message, *args):
-        msg = 'Value error: %s' % message
+        msg = '%s' % message
         super(CondaValueError, self).__init__(msg)
 
 
 class CondaTypeError(CondaError, TypeError):
     def __init__(self, expected_type, received_type, optional_message):
-        msg = "Type error: expected type '%s' and got type '%s'. %s"
+        msg = "Expected type '%s' and got type '%s'. %s"
         super(CondaTypeError, self).__init__(msg)
 
 
 class CondaHistoryError(CondaError):
     def __init__(self, message):
-        msg = 'History error: %s' % message
+        msg = '%s' % message
         super(CondaHistoryError, self).__init__(msg)
 
 
 class CondaUpgradeError(CondaError):
     def __init__(self, message):
-        msg = "Conda upgrade error: %s" % message
+        msg = "%s" % message
         super(CondaUpgradeError, self).__init__(msg)
 
 
