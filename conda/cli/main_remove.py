@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from argparse import RawDescriptionHelpFormatter
 from collections import defaultdict
 import logging
-from os.path import abspath, join, isfile
+from os.path import abspath, join
 import sys
 
 from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_json,
@@ -151,8 +151,6 @@ def execute(args, parser):
         if prefix == context.root_prefix:
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
-        elif not isfile(join(prefix, 'conda-meta', 'history')):
-            raise CondaEnvironmentError("Not a conda environment: %s" % prefix)
         actions = defaultdict(list)
         actions[PREFIX] = prefix
         for dist in sorted(iterkeys(index)):
