@@ -373,7 +373,7 @@ run_tests() {
     else
         conda_unit_test
         conda_integration_test
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
+        # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
     fi
 }
 
