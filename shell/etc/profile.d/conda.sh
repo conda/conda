@@ -34,7 +34,8 @@ _conda_set_vars() {
         # typically this should be for dev only; _CONDA_EXE should be written at top of file
         # for normal installs
         _CONDA_EXE="$_CONDA_ROOT/$bin_dir/conda$exe_ext"
-    else
+    fi
+    if ! [ -f "$_CONDA_EXE" ]; then
         _CONDA_EXE="$PWD/shell/bin/conda"
     fi
 
