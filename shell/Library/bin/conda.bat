@@ -21,31 +21,31 @@
 
 :DO_ACTIVATE
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_activate
-    @CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%
+    @CALL "SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
 :skip_prompt_set_activate
-@FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe activate %*') DO @SET _TEMP_SCRIPT_PATH="%%i"
+@FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe activate %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 
 @REM What's the correct way to stop if the @CALL in the loop returns non-zero?
 
 @CALL "%_TEMP_SCRIPT_PATH%"
 @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=
-@SET PROMPT="%CONDA_PROMPT_MODIFIER%%PROMPT%"
+@SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
 @GOTO :End
 
 :DO_DEACTIVATE
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_deactivate
-    @CALL SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%
+    @CALL "SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
 :skip_prompt_set_deactivate
-@FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe deactivate %*') DO @SET _TEMP_SCRIPT_PATH="%%i"
+@FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe deactivate %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 @CALL "%_TEMP_SCRIPT_PATH%"
 @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=
-@SET PROMPT="%CONDA_PROMPT_MODIFIER%%PROMPT%"
+@SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
 @GOTO :End
 
 :DO_REACTIVATE
-@FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe reactivate %*') DO @SET _TEMP_SCRIPT_PATH="%%i"
+@FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe reactivate %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 @CALL "%_TEMP_SCRIPT_PATH%"
 @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=

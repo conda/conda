@@ -19,15 +19,6 @@ _conda_set_vars() {
         fi
     fi
 
-    # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
-    local script_dir
-    case "$_CONDA_SHELL_FLAVOR" in
-        bash) script_dir="$(dirname "${BASH_SOURCE[0]}")";;
-        zsh) script_dir="$(dirname "${(%):-%x}")";;  # http://stackoverflow.com/a/28336473/2127762
-        dash) x=$(lsof -p $$ -Fn0 | tail -1); script_dir="$(dirname "${x#n}")";;
-        *) script_dir="$(cd "$(dirname "$_")" && echo "$PWD")";;
-    esac
-
     case "$(uname -s)" in
         CYGWIN*|MINGW*|MSYS*)
             local bin_dir="Scripts"
@@ -40,6 +31,8 @@ _conda_set_vars() {
     esac
 
     if [ -z "$_CONDA_EXE" ]; then
+        # typically this should be for dev only; _CONDA_EXE should be written at top of file
+        # for normal installs
         _CONDA_EXE="shell/bin/conda"
     fi
 
