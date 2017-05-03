@@ -21,7 +21,7 @@
 
 :DO_ACTIVATE
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_activate
-    @CALL "SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
+    @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
 :skip_prompt_set_activate
 @FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe activate %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 @IF "%_TEMP_SCRIPT_PATH%"=="" GOTO :ErrorEnd
@@ -33,7 +33,7 @@
 
 :DO_DEACTIVATE
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_deactivate
-    @CALL "SET PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
+    @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
 :skip_prompt_set_deactivate
 @FOR /F "delims=" %%i IN ('@CALL "%_CONDA_EXE%" shell.cmd.exe deactivate %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 @IF "%_TEMP_SCRIPT_PATH%"=="" GOTO :ErrorEnd

@@ -920,7 +920,7 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell('bash') as shell:
             self.basic_posix(shell)
 
-    @pytest.mark.skipif(not which('dash') and not on_win, reason='dash not installed')
+    @pytest.mark.skipif(not which('dash') or on_win, reason='dash not installed')
     def test_dash_basic_integration(self):
         with InteractiveShell('dash') as shell:
             shell.sendline('env | sort')
