@@ -1,25 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from contextlib import contextmanager
-from functools import partial
 from logging import getLogger
 import os
-from os.path import join, isdir, dirname
-from subprocess import PIPE, Popen
+from os.path import dirname, isdir, join
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda._vendor.auxlib.ish import dals
 import pytest
 
+from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
-from conda.activate import Activator, native_path_to_unix, ensure_binary, main as activate_main
+from conda.activate import Activator, main as activate_main, native_path_to_unix
 from conda.base.context import context, reset_context
-from conda.common.compat import on_win, string_types, ensure_text_type, iteritems
-from conda.common.io import env_var, captured, env_vars
+from conda.common.compat import iteritems, on_win, string_types
+from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf

@@ -39,9 +39,9 @@ _conda_set_vars() {
             ;;
     esac
 
-    local _conda_root="$script_dir/../.."
-
-    _CONDA_EXE="$_conda_root/$bin_dir/conda$exe_ext"
+    if [ -z "$_CONDA_EXE" ]; then
+        _CONDA_EXE="$(which conda$exe_ext)"
+    fi
 
 }
 
