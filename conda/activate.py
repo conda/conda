@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
 import re
 import sys
 from tempfile import NamedTemporaryFile
@@ -202,6 +202,7 @@ class Activator(object):
         else:
             from .base.context import locate_prefix_by_name
             prefix = locate_prefix_by_name(self.context, env_name_or_prefix)
+        prefix = normpath(prefix)
 
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))

@@ -8,11 +8,13 @@ import sys
 import tempfile
 
 from datetime import datetime
+
+from conda import CONDA_PACKAGE_ROOT
 import pytest
 
 from conda.base.context import context
 from conda.cli.activate import _get_prefix_paths, binpath_from_arg
-from conda.compat import TemporaryDirectory
+from conda.compat import TemporaryDirectory, chain
 from conda.config import root_dir
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.update import touch
@@ -52,10 +54,7 @@ def _envpaths(env_root, env_name="", shell=None):
     return binpath_from_arg(sep.join([env_root, env_name]), shell)
 
 
-PYTHONPATH = os.path.dirname(os.path.dirname(__file__))
-
-# Make sure the subprocess activate calls this python
-syspath = os.pathsep.join(_get_prefix_paths(context.root_prefix))
+PYTHONPATH = os.path.dirname(CONDA_PACKAGE_ROOT)
 
 
 def make_win_ok(path):
@@ -94,19 +93,38 @@ def strip_leading_library_bin(path_string, shelldict):
 def _format_vars(shell):
     shelldict = shells[shell]
 
-    base_path, _ = run_in(shelldict['printpath'], shell)
-    # windows forces Library/bin onto PATH when starting up.  Strip it for the purposes of this test.
-    if on_win:
-        base_path = strip_leading_library_bin(base_path, shelldict)
+    # base_path, _ = run_in(shelldict['printpath'], shell)
+    # # windows forces Library/bin onto PATH when starting up.  Strip it for the purposes of this test.
+    # if on_win:
+    #     base_path = strip_leading_library_bin(base_path, shelldict)
 
     raw_ps, _ = run_in(shelldict["printps1"], shell)
+
+    old_path_parts = os.environ['PATH'].split(os.pathsep)
+
+    if on_win:
+        new_path_parts = (
+            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'Library', 'bin')),
+            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'Scripts')),
+            shelldict['path_to'](dirname(sys.executable)),
+        )
+    else:
+        new_path_parts = (
+            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'bin')),
+            shelldict['path_to'](dirname(sys.executable)),
+        )
+
+    base_path = shelldict['pathsep'].join(shelldict['path_to'](p)
+                                          for p in chain.from_iterable((new_path_parts,
+                                                                        old_path_parts)))
 
     command_setup = """\
 {set} PYTHONPATH="{PYTHONPATH}"
 {set} CONDARC=
 {set} CONDA_PATH_BACKUP=
+{set} PATH="{new_path}"
 """.format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
-           set=shelldict["set_var"])
+           set=shelldict["set_var"], new_path=base_path)
     if shelldict["shell_suffix"] == '.bat':
         command_setup = "@echo off\n" + command_setup
 
@@ -121,7 +139,7 @@ def _format_vars(shell):
         'source': shelldict['source_setup'],
         'binpath': shelldict['binpath'],
         'shell_suffix': shelldict['shell_suffix'],
-        'syspath': shelldict['path_to'](sys.prefix),
+        'syspath': join(dirname(CONDA_PACKAGE_ROOT), 'shell'),
         'command_setup': command_setup,
         'base_path': base_path,
 }
@@ -251,7 +269,7 @@ def test_wrong_args(shell):
 
         stdout, stderr = run_in(commands, shell)
         stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_in("activate only accepts a single argument", stderr)
+        assert_in("activate does not accept more than one argument", stderr)
         assert_equals(stdout, shell_vars['base_path'], stderr)
 
 
@@ -352,7 +370,7 @@ def test_PS1_changeps1(shell):  # , bash_profile
         # deactivate script in activated env returns us to raw PS1
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
-        {source} "{env_dirs[0]}{binpath}deactivate"
+        {source} "{syspath}{binpath}deactivate"
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
@@ -408,7 +426,7 @@ def test_PS1_no_changeps1(shell):  # , bash_profile
 
         commands = (shell_vars['command_setup'] + condarc + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
-        {source} "{env_dirs[0]}{binpath}deactivate"
+        {source} "{syspath}{binpath}deactivate"
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
@@ -466,7 +484,7 @@ def test_CONDA_DEFAULT_ENV(shell):
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
-        {source} "{env_dirs[0]}{binpath}deactivate"
+        {source} "{syspath}{binpath}deactivate"
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
@@ -488,7 +506,7 @@ def test_CONDA_DEFAULT_ENV(shell):
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root {nul}
-        {source} "{env_dirs[0]}{binpath}deactivate" {nul}
+        {source} "{syspath}{binpath}deactivate" {nul}
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
@@ -518,7 +536,7 @@ def test_deactivate_from_env(shell):
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        {source} "{env_dirs[0]}{binpath}deactivate"
+        {source} "{syspath}{binpath}deactivate"
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
@@ -577,7 +595,7 @@ def test_activate_non_ascii_char_in_path(shell):
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        {source} "{env_dirs[0]}{binpath}deactivate"
+        {source} "{syspath}{binpath}deactivate"
         {printdefaultenv}.
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
@@ -613,7 +631,7 @@ def test_activate_has_extra_env_vars(shell):
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        {source} "{env_dirs[0]}{binpath}deactivate"
+        {source} "{syspath}{binpath}deactivate"
         {echo} {var}.
         """).format(envs=envs, env_dirs=env_dirs, var=shells[shell]["var_format"].format("TEST_VAR"), **shell_vars)
         stdout, stderr = run_in(commands, shell)
