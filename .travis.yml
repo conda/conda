@@ -40,6 +40,7 @@ matrix:
       addons:
         apt:
           packages:
+            - dash
             - zsh
     - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.10
       sudo: false

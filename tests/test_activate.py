@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from contextlib import contextmanager
+from functools import partial
 from logging import getLogger
 import os
 from os.path import join, isdir, dirname
@@ -16,7 +18,7 @@ import pytest
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import Activator, native_path_to_unix, ensure_binary, main as activate_main
 from conda.base.context import context, reset_context
-from conda.common.compat import on_win, string_types, ensure_text_type
+from conda.common.compat import on_win, string_types, ensure_text_type, iteritems
 from conda.common.io import env_var, captured, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
@@ -786,54 +788,85 @@ class ShellWrapperUnitTests(TestCase):
             }
 
 
+class InteractiveShell(object):
+    activator = None
+    init_command = None
+    print_env_var = None
+    shells = {
+        'posix': {
+            'activator': 'posix',
+            'init_command': '. shell/etc/profile.d/conda.sh',
+            'print_env_var': 'echo $%s',
+        },
+        'bash': {
+            'base_shell': 'posix',
+        },
+        'dash': {
+            'base_shell': 'posix',
+        },
+        'cmd.exe': {
+            'activator': 'cmd.exe',
+            'init_command': None,
+            'print_env_var': '@echo %%%s%%',
+        },
+    }
+
+    def __init__(self, shell_name):
+        base_shell = self.shells[shell_name].get('base_shell')
+        shell_vals = self.shells.get(base_shell, {})
+        shell_vals.update(self.shells[shell_name])
+        for key, value in iteritems(shell_vals):
+            setattr(self, key, value)
+        self.activator = Activator(shell_vals['activator'])
+
+    def __enter__(self):
+        from pexpect.popen_spawn import PopenSpawn
+
+        cwd = os.getcwd()
+        env = os.environ.copy()
+        env['PATH'] = self.activator.pathsep_join(self.activator.path_conversion(*tuple(concatv(
+            self.activator._get_path_dirs(join(cwd, 'shell')),
+            (dirname(sys.executable),),
+            self.activator._get_starting_path_list(),
+        ))))
+
+        p = PopenSpawn('bash', timeout=3, maxread=2000, searchwindowsize=None,
+                       logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
+                       codec_errors='strict')
+        if self.init_command:
+            p.sendline(self.init_command)
+        self.p = p
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.p:
+            import signal
+            self.p.kill(signal.SIGTERM)
+
+    def sendline(self, s):
+        return self.p.sendline(s)
+
+    def expect(self, pattern, timeout=-1, searchwindowsize=-1, async=False):
+        return self.p.expect(pattern, timeout, searchwindowsize, async)
+
+    def assert_env_var(self, env_var, value):
+        # value is actually a regex
+        self.sendline(self.print_env_var % env_var)
+        try:
+            self.expect('%s\n' % value)
+        except:
+            print(self.p.before)
+            print(self.p.after)
+            raise
 
 
-def run(cmd_list):
-    cwd = os.getcwd()
-    env = os.environ.copy()
-    env.update({
-        'PATH': os.pathsep.join((
-            join(cwd, 'shell', 'Library', 'bin'),
-            join(cwd, 'shell', 'Scripts'),
-            dirname(sys.executable),
-            os.environ['PATH'],
-        )),
-    })
-
-    p = Popen('cmd', cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
-
-    stdin = os.linesep.join(concatv(cmd_list, ('',)))
-    stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
-    stdout, stderr = p.communicate(input=stdin)
-    rc = p.returncode
-
-    return ensure_text_type(stdout), ensure_text_type(stderr), rc
-
-
-
-def run_posix(cmd_list):
-    cwd = os.getcwd()
-    env = os.environ.copy()
-    env.update({
-        'PATH': os.pathsep.join((
-            join(cwd, 'shell', 'bin'),
-            dirname(sys.executable),
-            os.environ['PATH'],
-        )),
-    })
-
-    p = Popen('bash', cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
-
-    stdin = os.linesep.join(concatv(cmd_list, ('',)))
-    stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
-    stdout, stderr = p.communicate(input=stdin)
-    rc = p.returncode
-
-    return ensure_text_type(stdout), ensure_text_type(stderr), rc
+def which(executable):
+    from distutils.spawn import find_executable
+    return find_executable(executable)
 
 
 @pytest.mark.integration
-class ParameterizedShellTests(TestCase):
+class ShellWrapperIntegrationTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -852,78 +885,49 @@ class ParameterizedShellTests(TestCase):
     def tearDown(self):
         rm_rf(self.prefix)
 
-    # @pytest.mark.skipif(not on_win, reason="windows-only test")
-    # def test_1(self):
-    #     stdout, stderr, rc = run((
-    #         'conda activate root',
-    #         'echo %PROMPT%',
-    #         'conda deactivate',
-    #         'echo %PROMPT%',
-    #     ))
-    #     sys.stdout.write(stdout)
-    #     sys.stdout.write(stderr)
-    #     sys.stdout.write(rc)
-    #
-    #     assert 0
-    #
-    # def test_2(self):
-    #     stdout, stderr, rc = run_posix((
-    #         '. shell/etc/profile.d/conda.sh',
-    #         'conda activate root',
-    #         'env | sort',
-    #         'conda deactivate',
-    #         'env | sort',
-    #     ))
-    #     sys.stdout.write(stdout)
-    #     sys.stdout.write(stderr)
-    #     sys.stdout.write(str(rc))
-    #
-    #     assert 0
+    def basic_posix(self, shell):
+        shell.assert_env_var('CONDA_SHLVL', '0')
+        shell.sendline('conda activate root')
+        shell.assert_env_var('PS1', '\$CONDA_PROMPT_MODIFIER.*')
+        shell.assert_env_var('CONDA_SHLVL', '1')
+        shell.sendline('conda activate "%s"' % self.prefix)
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        shell.assert_env_var('CONDA_PREFIX', self.prefix)
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '1')
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '0')
 
-    def test_3(self):
-        cwd = os.getcwd()
-        env = os.environ.copy()
-        env.update({
-            'PATH': os.pathsep.join((
-                join(cwd, 'shell', 'bin'),
-                dirname(sys.executable),
-                os.environ['PATH'],
-            )),
-        })
+        shell.sendline(shell.print_env_var % 'PS1')
+        shell.expect('.*\n')
+        assert 'CONDA_PROMPT_MODIFIER' not in str(shell.p.after)
 
-        # from pexpect import spawn
-        # p = spawn('bash', timeout=5, maxread=2000, searchwindowsize=None,
-        #                logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
-        #                codec_errors='strict')
-        # index = p.expect_exact("$ ")
-        # print(p.before + p.match, end='')
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '0')
 
-        p = None
-        try:
-            from pexpect.popen_spawn import EOF, PopenSpawn
-            p = PopenSpawn('bash', timeout=5, maxread=2000, searchwindowsize=None,
-                           logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
-                           codec_errors='strict')
-            p.sendline('. shell/etc/profile.d/conda.sh')
-            p.sendline('conda activate root')
-            # p.sendline('env | sort')
-            p.sendline('echo $PS1')
-            p.expect('^\$CONDA_PROMPT_MODIFIER')
-            p.sendline('echo $CONDA_SHLVL')
-            p.expect('1$')
-            p.sendline('conda activate "%s"' % self.prefix)
-            p.sendline('echo $CONDA_PREFIX')
-            p.expect_exact(self.prefix)
-            p.sendline('echo $CONDA_SHLVL')
-            p.expect('2$')
-            p.sendline('conda deactivate')
-            p.sendline('echo $CONDA_SHLVL')
-            p.expect('1$')
-            p.sendline('conda deactivate')
-            p.sendline('echo $CONDA_SHLVL')
-            p.expect('0$')
-        finally:
-            if p:
-                import signal
-                p.kill(signal.SIGTERM)
+    @pytest.mark.skipif(not which('bash'), reason='dash not installed')
+    def test_bash_basic_integration(self):
+        with InteractiveShell('bash') as shell:
+            self.basic_posix(shell)
+
+    @pytest.mark.skipif(not which('dash'), reason='dash not installed')
+    def test_dash_basic_integration(self):
+        with InteractiveShell('dash') as shell:
+            self.basic_posix(shell)
+
+    @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
+    def test_cmd_exe_basic_integration(self):
+        with InteractiveShell('cmd.exe') as shell:
+            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.sendline('conda activate root')
+            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.sendline('conda activate "%s"' % self.prefix)
+            shell.assert_env_var('CONDA_SHLVL', '2')
+            shell.assert_env_var('CONDA_PREFIX', self.prefix)
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0')
 
