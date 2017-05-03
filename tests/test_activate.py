@@ -912,7 +912,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
 
-    @pytest.mark.skipif(not which('bash'), reason='dash not installed')
+    @pytest.mark.skipif(not which('bash'), reason='bash not installed')
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
             self.basic_posix(shell)
@@ -940,4 +940,15 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '0\r')
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '0\r')
+
+    def test_bash_activate_error(self):
+        with InteractiveShell('bash') as shell:
+            shell.sendline("conda activate environment-not-found-doesnt-exist")
+            shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
+            shell.assert_env_var('CONDA_SHLVL', '0')
+
+            shell.sendline("conda activate -h blah blah")
+            shell.expect('help requested for activate')
+
+
 
