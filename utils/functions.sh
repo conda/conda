@@ -180,10 +180,10 @@ make_conda_entrypoint() {
 	cat <<- EOF > $filepath
 	#!$pythonpath
 	if __name__ == '__main__':
-	   import sys
-	   sys.path.insert(0, '$workingdir')
-	   $function_import
-	   sys.exit(main())
+	    import sys
+	    sys.path.insert(0, '$workingdir')
+	    $function_import
+	    sys.exit(main())
 	EOF
     chmod +x $filepath
     cat $filepath

@@ -57,7 +57,7 @@ _conda_hashr() {
 
 _conda_activate() {
     local ask_conda
-    ask_conda="$("$_CONDA_EXE" shell.activate posix "$@")" || return $?
+    ask_conda="$("$_CONDA_EXE" shell.posix activate "$@")" || return $?
     eval "$ask_conda"
 
     case "$_CONDA_SHELL_FLAVOR" in
@@ -73,13 +73,12 @@ _conda_activate() {
             ;;
     esac
 
-
     _conda_hashr
 }
 
 _conda_deactivate() {
     local ask_conda
-    ask_conda="$("$_CONDA_EXE" shell.deactivate posix "$@")" || return $?
+    ask_conda="$("$_CONDA_EXE" shell.posix deactivate "$@")" || return $?
     eval "$ask_conda"
 
     if [ -z "$CONDA_PREFIX" ]; then
@@ -94,7 +93,7 @@ _conda_deactivate() {
 
 _conda_reactivate() {
     local ask_conda
-    ask_conda="$("$_CONDA_EXE" shell.reactivate posix "$@")" || return $?
+    ask_conda="$("$_CONDA_EXE" shell.posix reactivate "$@")" || return $?
     eval "$ask_conda"
 
     _conda_hashr

@@ -35,42 +35,11 @@ class Activator(object):
     # To implement support for a new shell, ideally one would only need to add shell-specific
     # information to the __init__ method of this class.
 
-    def _set_args(self, arguments):
-        arguments = tuple(drop(self.shift_args, arguments))
-        help_flags = ('-h', '--help', '/?')
-        non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
-        help_requested = len(arguments) != len(non_help_args)
-        command = next((arg for arg in non_help_args if not arg.startswith(('-', '/'))), None)
-        remainder_args = tuple(arg for arg in non_help_args if arg != command)
-
-        if not command:
-            from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
-        elif help_requested:
-            from . import CondaError
-            class Help(CondaError):
-                pass
-            raise Help("help requested for %s" % command)
-        elif command not in ('activate', 'deactivate', 'reactivate'):
-            from .exceptions import ArgumentError
-            raise ArgumentError("invalid command '%s'" % command)
-        elif command == 'activate' and len(remainder_args) > 1:
-            from .exceptions import ArgumentError
-            raise ArgumentError('activate does not accept more than one argument')
-        elif remainder_args:
-            from .exceptions import ArgumentError
-            raise ArgumentError('%s does not accept arguments' % command)
-
-        if command == 'activate':
-            self.env_name_or_prefix = remainder_args and remainder_args[0]
-
-        self.command = command
-
-
     def __init__(self, shell, arguments=None):
         from .base.context import context
         self.context = context
         self.shell = shell
+        self._raw_arguments = arguments
 
         if shell == 'posix':
             self.pathsep_join = ':'.join
@@ -141,9 +110,6 @@ class Activator(object):
         else:
             raise NotImplementedError()
 
-        if arguments is not None:
-            self.arguments = self._set_args(arguments)
-
     def _finalize(self, commands, ext):
         commands = concatv(commands, ('',))  # add terminating newline
         if ext is None:
@@ -155,9 +121,8 @@ class Activator(object):
         else:
             raise NotImplementedError()
 
-    def activate(self, name_or_prefix=None):
-        name_or_prefix = name_or_prefix or self.env_name_or_prefix
-        return self._finalize(self._yield_commands(self.build_activate(name_or_prefix)),
+    def activate(self):
+        return self._finalize(self._yield_commands(self.build_activate(self.env_name_or_prefix)),
                               self.tempfile_extension)
 
     def deactivate(self):
@@ -169,7 +134,45 @@ class Activator(object):
                               self.tempfile_extension)
 
     def execute(self):
+        # return value meant to be written to stdout
+        self._parse_and_set_args(self._raw_arguments)
         return getattr(self, self.command)()
+
+    def _parse_and_set_args(self, arguments):
+        # the first index of arguments MUST be either activate, deactivate, or reactivate
+        if arguments is None:
+            from .exceptions import ArgumentError
+            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+
+        command = arguments[0]
+        arguments = tuple(drop(self.shift_args + 1, arguments))
+        help_flags = ('-h', '--help', '/?')
+        non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
+        help_requested = len(arguments) != len(non_help_args)
+        remainder_args = tuple(arg for arg in non_help_args if arg != command)
+
+        if not command:
+            from .exceptions import ArgumentError
+            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+        elif help_requested:
+            from . import CondaError
+            class Help(CondaError):
+                pass
+            raise Help("help requested for %s" % command)
+        elif command not in ('activate', 'deactivate', 'reactivate'):
+            from .exceptions import ArgumentError
+            raise ArgumentError("invalid command '%s'" % command)
+        elif command == 'activate' and len(remainder_args) > 1:
+            from .exceptions import ArgumentError
+            raise ArgumentError('activate does not accept more than one argument')
+        elif command != 'activate' and remainder_args:
+            from .exceptions import ArgumentError
+            raise ArgumentError('%s does not accept arguments' % command)
+
+        if command == 'activate':
+            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
+
+        self.command = command
 
     def _yield_commands(self, cmds_dict):
         for key in sorted(cmds_dict.get('unset_vars', ())):
@@ -184,21 +187,21 @@ class Activator(object):
         for script in cmds_dict.get('activate_scripts', ()):
             yield self.run_script_tmpl % script
 
-    def build_activate(self, name_or_prefix):
-        test_path = expand(name_or_prefix)
+    def build_activate(self, env_name_or_prefix):
+        test_path = expand(env_name_or_prefix)
         if isdir(test_path):
             prefix = test_path
             if not isdir(join(prefix, 'conda-meta')):
                 from .exceptions import EnvironmentLocationNotFound
                 raise EnvironmentLocationNotFound(prefix)
-        elif re.search(r'\\|/', name_or_prefix):
-            prefix = name_or_prefix
+        elif re.search(r'\\|/', env_name_or_prefix):
+            prefix = env_name_or_prefix
             if not isdir(join(prefix, 'conda-meta')):
                 from .exceptions import EnvironmentLocationNotFound
                 raise EnvironmentLocationNotFound(prefix)
         else:
             from .base.context import locate_prefix_by_name
-            prefix = locate_prefix_by_name(self.context, name_or_prefix)
+            prefix = locate_prefix_by_name(self.context, env_name_or_prefix)
 
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
@@ -212,6 +215,7 @@ class Activator(object):
             #  i.e. step back down
             return self.build_deactivate()
 
+        join(prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension)
         activate_scripts = glob(join(
             prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
         ))
@@ -457,7 +461,8 @@ def main(argv=None):
     activator_args = argv[2:]
     activator = Activator(shell, activator_args)
     try:
-        return activator.execute()
+        sys.stdout.write(activator.execute())
+        return 0
     except Exception as e:
         from . import CondaError
         if isinstance(e, CondaError):
