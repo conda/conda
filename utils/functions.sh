@@ -150,8 +150,8 @@ install_conda_shell_scripts() {
 
         mkdir -p "$prefix/Library/bin"
         rm -f "$prefix/Library/bin/conda.bat"
-        # local win_conda_exe="$(cygpath --windows "$conda_exe")"
-        # echo "@SET \"CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
+        local win_conda_exe="$(cygpath --windows "$conda_exe")"
+        echo "@SET \"_CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
         cat "$src_dir/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
     fi
 
