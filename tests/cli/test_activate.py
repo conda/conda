@@ -106,6 +106,7 @@ def _format_vars(shell):
         new_path_parts = (
             shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'Library', 'bin')),
             shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'Scripts')),
+            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'bin')),
             shelldict['path_to'](dirname(sys.executable)),
         )
     else:
