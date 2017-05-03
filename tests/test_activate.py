@@ -832,33 +832,98 @@ def run_posix(cmd_list):
     return ensure_text_type(stdout), ensure_text_type(stderr), rc
 
 
-# @pytest.mark.integration
-# class ParameterizedShellTests(TestCase):
-#
-#     @pytest.mark.skipif(not on_win, reason="windows-only test")
-#     def test_1(self):
-#         stdout, stderr, rc = run((
-#             'conda activate root',
-#             'echo %PROMPT%',
-#             'conda deactivate',
-#             'echo %PROMPT%',
-#         ))
-#         sys.stdout.write(stdout)
-#         sys.stdout.write(stderr)
-#         sys.stdout.write(rc)
-#
-#         assert 0
-#
-#     def test_2(self):
-#         stdout, stderr, rc = run_posix((
-#             '. shell/etc/profile.d/conda.sh',
-#             'conda activate root',
-#             'env | sort',
-#             'conda deactivate',
-#             'env | sort',
-#         ))
-#         sys.stdout.write(stdout)
-#         sys.stdout.write(stderr)
-#         sys.stdout.write(str(rc))
-#
-#         assert 0
+@pytest.mark.integration
+class ParameterizedShellTests(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        mkdir_p(join(sys.prefix, 'conda-meta'))
+        touch(join(sys.prefix, 'conda-meta', 'history'))
+
+    def setUp(self):
+        tempdirdir = gettempdir()
+
+        prefix_dirname = str(uuid4())[:4] + ' ' + str(uuid4())[:4]
+        self.prefix = join(tempdirdir, prefix_dirname)
+        mkdir_p(join(self.prefix, 'conda-meta'))
+        assert isdir(self.prefix)
+        touch(join(self.prefix, 'conda-meta', 'history'))
+
+    def tearDown(self):
+        rm_rf(self.prefix)
+
+    # @pytest.mark.skipif(not on_win, reason="windows-only test")
+    # def test_1(self):
+    #     stdout, stderr, rc = run((
+    #         'conda activate root',
+    #         'echo %PROMPT%',
+    #         'conda deactivate',
+    #         'echo %PROMPT%',
+    #     ))
+    #     sys.stdout.write(stdout)
+    #     sys.stdout.write(stderr)
+    #     sys.stdout.write(rc)
+    #
+    #     assert 0
+    #
+    # def test_2(self):
+    #     stdout, stderr, rc = run_posix((
+    #         '. shell/etc/profile.d/conda.sh',
+    #         'conda activate root',
+    #         'env | sort',
+    #         'conda deactivate',
+    #         'env | sort',
+    #     ))
+    #     sys.stdout.write(stdout)
+    #     sys.stdout.write(stderr)
+    #     sys.stdout.write(str(rc))
+    #
+    #     assert 0
+
+    def test_3(self):
+        cwd = os.getcwd()
+        env = os.environ.copy()
+        env.update({
+            'PATH': os.pathsep.join((
+                join(cwd, 'shell', 'bin'),
+                dirname(sys.executable),
+                os.environ['PATH'],
+            )),
+        })
+
+        # from pexpect import spawn
+        # p = spawn('bash', timeout=5, maxread=2000, searchwindowsize=None,
+        #                logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
+        #                codec_errors='strict')
+        # index = p.expect_exact("$ ")
+        # print(p.before + p.match, end='')
+
+        p = None
+        try:
+            from pexpect.popen_spawn import EOF, PopenSpawn
+            p = PopenSpawn('bash', timeout=5, maxread=2000, searchwindowsize=None,
+                           logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
+                           codec_errors='strict')
+            p.sendline('. shell/etc/profile.d/conda.sh')
+            p.sendline('conda activate root')
+            # p.sendline('env | sort')
+            p.sendline('echo $PS1')
+            p.expect('^\$CONDA_PROMPT_MODIFIER')
+            p.sendline('echo $CONDA_SHLVL')
+            p.expect('1$')
+            p.sendline('conda activate "%s"' % self.prefix)
+            p.sendline('echo $CONDA_PREFIX')
+            p.expect_exact(self.prefix)
+            p.sendline('echo $CONDA_SHLVL')
+            p.expect('2$')
+            p.sendline('conda deactivate')
+            p.sendline('echo $CONDA_SHLVL')
+            p.expect('1$')
+            p.sendline('conda deactivate')
+            p.sendline('echo $CONDA_SHLVL')
+            p.expect('0$')
+        finally:
+            if p:
+                import signal
+                p.kill(signal.SIGTERM)
+
