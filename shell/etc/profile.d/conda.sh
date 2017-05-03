@@ -14,7 +14,7 @@ _conda_set_vars() {
         if [ "$_q" = dash ]; then
             _CONDA_SHELL_FLAVOR=dash
         else
-            (>&2 echo "Unrecognized shell.")
+            (>&2 echo "Unrecognized shell: $_q")
             return 1
         fi
     fi
