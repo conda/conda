@@ -122,16 +122,13 @@ install_conda_shell_scripts() {
 
     local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
 
-    local link_cmd
-    case "$symlink_scripts" in 0|true) link_cmd="ln -sf";; *) link_cmd="cp";; esac
-
     mkdir -p "$prefix/etc/profile.d/"
     rm -f "$prefix/etc/profile.d/conda.sh"
-    $link_cmd "$src_dir/shell/etc/profile.d/conda.sh" "$prefix/etc/profile.d/conda.sh"
+    echo "_CONDA_ROOT=\"$prefix\"" > "$prefix/etc/profile.d/conda.sh"
+    cat "$src_dir/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
 
     mkdir -p "$prefix/$BIN_DIR"
 
-    # can't symlink activate and deactivate as written
     rm -f "$prefix/$BIN_DIR/activate"
     echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
     echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
@@ -146,10 +143,10 @@ install_conda_shell_scripts() {
 
     if [ -n "$ON_WIN" ]; then
         rm -f "$prefix/$BIN_DIR/activate.bat"
-        $link_cmd "$src_dir/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
+        cp "$src_dir/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
 
         rm -f $bin_dir/deactivate.bat
-        $link_cmd "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
+        cp "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
 
         mkdir -p "$prefix/Library/bin"
         rm -f "$prefix/Library/bin/conda.bat"
@@ -160,7 +157,7 @@ install_conda_shell_scripts() {
 
     mkdir -p "$prefix/etc/fish/conf.d/"
     rm -f "$prefix/etc/fish/conf.d/conda.fish"
-    $link_cmd "$src_dir/shell/etc/fish/conf.d/conda.fish" "$prefix/etc/fish/conf.d/conda.fish"
+    cp "$src_dir/shell/etc/fish/conf.d/conda.fish" "$prefix/etc/fish/conf.d/conda.fish"
 
     local sp_dir=$("$PYTHON_EXE" -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     mkdir -p "$sp_dir/xonsh"

@@ -30,10 +30,12 @@ _conda_set_vars() {
             ;;
     esac
 
-    if [ -z "$_CONDA_EXE" ]; then
+    if [ -n "${_CONDA_ROOT:+x}" ]; then
         # typically this should be for dev only; _CONDA_EXE should be written at top of file
         # for normal installs
-        _CONDA_EXE="shell/bin/conda"
+        _CONDA_EXE="$_CONDA_ROOT/$bin_dir/conda$exe_ext"
+    else
+        _CONDA_EXE="$PWD/shell/bin/conda"
     fi
 
 }

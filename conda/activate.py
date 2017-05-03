@@ -156,7 +156,7 @@ class Activator(object):
             raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
         elif help_requested:
             from . import CondaError
-            class Help(CondaError):
+            class Help(CondaError):  # NOQA
                 pass
             raise Help("help requested for %s" % command)
         elif command not in ('activate', 'deactivate', 'reactivate'):

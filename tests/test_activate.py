@@ -874,8 +874,11 @@ class ShellWrapperIntegrationTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        mkdir_p(join(sys.prefix, 'conda-meta'))
-        touch(join(sys.prefix, 'conda-meta', 'history'))
+        try:
+            mkdir_p(join(sys.prefix, 'conda-meta'))
+            touch(join(sys.prefix, 'conda-meta', 'history'))
+        except Exception:
+            pass
 
     def setUp(self):
         tempdirdir = gettempdir()
