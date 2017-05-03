@@ -950,5 +950,13 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("conda activate -h blah blah")
             shell.expect('help requested for activate')
 
+    def test_cmd_exe_activate_error(self):
+        with InteractiveShell('cmd.exe') as shell:
+            shell.sendline("conda activate environment-not-found-doesnt-exist")
+            shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
+            shell.assert_env_var('errorlevel', '1\r')
+            shell.assert_env_var('CONDA_SHLVL', '0\r')
 
+            shell.sendline("conda activate -h blah blah")
+            shell.expect('help requested for activate')
 
