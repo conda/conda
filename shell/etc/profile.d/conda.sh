@@ -40,7 +40,7 @@ _conda_set_vars() {
     esac
 
     if [ -z "$_CONDA_EXE" ]; then
-        _CONDA_EXE="$(which conda$exe_ext)"
+        _CONDA_EXE="shell/bin/conda"
     fi
 
 }

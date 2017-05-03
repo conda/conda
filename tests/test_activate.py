@@ -9,6 +9,7 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+from conda import CONDA_PACKAGE_ROOT
 import pytest
 
 from conda._vendor.auxlib.ish import dals
@@ -809,6 +810,7 @@ class InteractiveShell(object):
     }
 
     def __init__(self, shell_name):
+        self.shell_name = shell_name
         base_shell = self.shells[shell_name].get('base_shell')
         shell_vals = self.shells.get(base_shell, {})
         shell_vals.update(self.shells[shell_name])
@@ -826,8 +828,9 @@ class InteractiveShell(object):
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
         ))))
+        env['PYTHONPATH'] = CONDA_PACKAGE_ROOT
 
-        p = PopenSpawn('bash', timeout=3, maxread=2000, searchwindowsize=None,
+        p = PopenSpawn(self.shell_name, timeout=3, maxread=2000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
                        codec_errors='strict')
         if self.init_command:
@@ -846,11 +849,15 @@ class InteractiveShell(object):
     def expect(self, pattern, timeout=-1, searchwindowsize=-1, async=False):
         return self.p.expect(pattern, timeout, searchwindowsize, async)
 
-    def assert_env_var(self, env_var, value):
+    def assert_env_var(self, env_var, value, use_exact=False):
         # value is actually a regex
         self.sendline(self.print_env_var % env_var)
         try:
-            self.expect('%s\n' % value)
+            if use_exact:
+                self.p.expect_exact(value)
+                self.expect('.*\n')
+            else:
+                self.expect('%s\n' % value)
         except:
             print(self.p.before)
             print(self.p.after)
@@ -879,6 +886,9 @@ class ShellWrapperIntegrationTests(TestCase):
         assert isdir(self.prefix)
         touch(join(self.prefix, 'conda-meta', 'history'))
 
+        mkdir_p(join(self.prefix, 'envs', 'charizard', 'conda-meta'))
+        touch(join(self.prefix, 'envs', 'charizard', 'conda-meta', 'history'))
+
     def tearDown(self):
         rm_rf(self.prefix)
 
@@ -889,7 +899,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_SHLVL', '1')
         shell.sendline('conda activate "%s"' % self.prefix)
         shell.assert_env_var('CONDA_SHLVL', '2')
-        shell.assert_env_var('CONDA_PREFIX', self.prefix)
+        shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
         shell.sendline('conda deactivate')
@@ -914,17 +924,20 @@ class ShellWrapperIntegrationTests(TestCase):
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_basic_integration(self):
+        charizard = join(self.prefix, 'envs', 'charizard')
         with InteractiveShell('cmd.exe') as shell:
-            shell.assert_env_var('CONDA_SHLVL', '0')
-            shell.sendline('conda activate root')
-            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.sendline('where conda')
+            shell.p.expect_exact('conda.bat')
+            shell.expect('.*\n')
+            shell.sendline('conda activate "%s"' % charizard)
+            shell.assert_env_var('CONDA_SHLVL', '1\r')
             shell.sendline('conda activate "%s"' % self.prefix)
-            shell.assert_env_var('CONDA_SHLVL', '2')
-            shell.assert_env_var('CONDA_PREFIX', self.prefix)
+            shell.assert_env_var('CONDA_SHLVL', '2\r')
+            shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
             shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.assert_env_var('CONDA_SHLVL', '1\r')
             shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.assert_env_var('CONDA_SHLVL', '0\r')
             shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.assert_env_var('CONDA_SHLVL', '0\r')
 
