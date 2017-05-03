@@ -16,10 +16,10 @@ from . import common
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import on_win, text_type
+from ..common.compat import itervalues, on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
-from ..core.linked_data import linked as install_linked
+from ..core.linked_data import linked_data
 from ..core.solve import get_install_transaction, get_pinned_specs
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
@@ -146,8 +146,8 @@ def install(args, parser, command='install'):
 
     args_packages = [s.strip('"\'') for s in args.packages]
 
-    linked_dists = install_linked(prefix)
-    linked_names = tuple(ld.quad[0] for ld in linked_dists)
+    linked_records = set(record for record in itervalues(linked_data(prefix)))
+    linked_names = tuple(ld.name for ld in linked_records)
     if isupdate and not args.all:
         for name in args_packages:
             common.arg2spec(name, json=context.json, update=True)
@@ -185,10 +185,10 @@ def install(args, parser, command='install'):
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
     elif getattr(args, 'all', False):
-        if not linked_dists:
+        if not linked_records:
             log.info("There are no packages installed in prefix %s", prefix)
             return
-        specs.extend(d.quad[0] for d in linked_dists)
+        specs.extend(d.name for d in linked_records)
     specs.extend(common.specs_from_args(args_packages, json=context.json))
 
     if isinstall and args.revision:

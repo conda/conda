@@ -5,148 +5,25 @@ from collections import namedtuple
 from logging import getLogger
 import re
 
+from conda.base.context import context
+from conda.models.version import VersionOrder
 from .channel import Channel
 from .index_record import IndexRecord
 from .package_info import PackageInfo
 from .. import CondaError
-from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from ..base.context import context
-from ..common.compat import ensure_text_type, text_type, with_metaclass
+from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, \
+    UNKNOWN_CHANNEL
+from ..common.compat import ensure_text_type, string_types, text_type, with_metaclass
 from ..common.constants import NULL
-from ..common.url import has_platform, is_url, join_url
+from ..common.url import has_platform, is_url
 
 log = getLogger(__name__)
 DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'build_number',
                                          'dist_name'))
 
 
-class DistType(EntityType):
-
-    def __call__(cls, *args, **kwargs):
-        if len(args) == 1 and not kwargs:
-            value = args[0]
-            if isinstance(value, Dist):
-                return value
-            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
-                return value.dist
-            elif isinstance(value, IndexRecord):
-                return Dist.from_string(value.fn, channel_override=value.schannel)
-            elif isinstance(value, PackageInfo):
-                return Dist.from_string(value.repodata_record.fn,
-                                        channel_override=value.channel.canonical_name)
-            elif isinstance(value, Channel):
-                return Dist.from_url(value.url())
-            else:
-                return Dist.from_string(value)
-        else:
-            return super(DistType, cls).__call__(*args, **kwargs)
-
-
-@with_metaclass(DistType)
-class Dist(Entity):
-    _lazy_validate = True
-
-    channel = StringField(required=False, nullable=True, immutable=True)
-
-    dist_name = StringField(immutable=True)
-    name = StringField(immutable=True)
-    version = StringField(immutable=True)
-    build_string = StringField(immutable=True)
-    build_number = IntegerField(immutable=True)
-
-    base_url = StringField(required=False, nullable=True, immutable=True)
-    platform = StringField(required=False, nullable=True, immutable=True)
-
-    def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
-                 build_number=None, base_url=None, platform=None):
-        super(Dist, self).__init__(channel=channel,
-                                   dist_name=dist_name,
-                                   name=name,
-                                   version=version,
-                                   build_string=build_string,
-                                   build_number=build_number,
-                                   base_url=base_url,
-                                   platform=platform)
-
-    @property
-    def full_name(self):
-        return self.__str__()
-
-    @property
-    def build(self):
-        return self.build_string
-
-    @property
-    def pair(self):
-        return self.channel or DEFAULTS_CHANNEL_NAME, self.dist_name
-
-    @property
-    def quad(self):
-        # returns: name, version, build_string, channel
-        parts = self.dist_name.rsplit('-', 2) + ['', '']
-        return parts[0], parts[1], parts[2], self.channel or DEFAULTS_CHANNEL_NAME
-
-    def __str__(self):
-        return "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
-
-    @property
-    def is_feature_package(self):
-        return self.dist_name.endswith('@')
-
-    @property
-    def is_channel(self):
-        return bool(self.base_url and self.platform)
-
-    def to_filename(self, extension='.tar.bz2'):
-        if self.is_feature_package:
-            return self.dist_name
-        else:
-            return self.dist_name + extension
-
-    def to_matchspec(self):
-        return ' '.join(self.quad[:3])
-
-    @classmethod
-    def from_string(cls, string, channel_override=NULL):
-        string = text_type(string)
-
-        if is_url(string) and channel_override == NULL:
-            return cls.from_url(string)
-
-        if string.endswith('@'):
-            return cls(channel='@',
-                       name=string,
-                       version="",
-                       build_string="",
-                       build_number=0,
-                       dist_name=string)
-
-        REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
-                     r'([^\s\[\]]+)'               # 3.x dist
-                     r'(?:\[([a-zA-Z0-9_-]+)\])?'  # with_features_depends
-                     )
-        channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
-
-        if original_dist.endswith(CONDA_TARBALL_EXTENSION):
-            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION)]
-
-        if channel_override != NULL:
-            channel = channel_override
-        elif channel is None:
-            channel = UNKNOWN_CHANNEL
-
-        # enforce dist format
-        dist_details = cls.parse_dist_name(original_dist)
-        return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
-                   dist_name=original_dist)
-
-    @staticmethod
-    def parse_dist_name(string):
+def parse_legacy_dist_str(string):
+    if isinstance(string, string_types):
         original_string = string
         try:
             string = ensure_text_type(string)
@@ -175,6 +52,163 @@ class Dist(Entity):
 
         except:
             raise CondaError("dist_name is not a valid conda package: %s" % original_string)
+    else:
+        s = string
+        return DistDetails(s.name, s.version, s.build, s.build_number, s.dist_name)
+
+
+class DistType(type):
+
+    def __call__(cls, *args, **kwargs):
+        if len(args) == 1 and not kwargs:
+            value = args[0]
+            if isinstance(value, Dist):
+                return value
+            elif isinstance(value, string_types):
+                return Dist.from_string(value)
+            elif isinstance(value, IndexRecord):
+                return Dist(value.schannel, '-'.join((value.name, value.version, value.build)))
+            elif isinstance(value, PackageInfo):
+                v = value.repodata_record
+                return Dist(value.channel.canonical_name, '-'.join((v.name, v.version, v.build)))
+            elif isinstance(value, Channel):
+                raise NotImplementedError()
+            else:
+                return Dist.from_string(value)
+        else:
+            return super(DistType, cls).__call__(*args, **kwargs)
+
+    def __new__(cls, name, bases, dct):
+         dct['__slots__'] = ('channel', 'dist_name')
+         return type.__new__(cls, name, bases, dct)
+
+
+@with_metaclass(DistType)
+class Dist(object):
+
+    def __init__(self, channel, dist_name=None):
+        self.channel = channel
+        self.dist_name = dist_name
+
+    @property
+    def base_url(self):
+        raise NotImplementedError()
+
+    @property
+    def platform(self):
+        raise NotImplementedError()
+
+    @property
+    def pkey(self):
+        return self.__str__()
+
+    def __hash__(self):
+        return hash(self.pkey)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    @property
+    def full_name(self):
+        return self.__str__()
+
+    @property
+    def pair(self):
+        return self.channel or DEFAULTS_CHANNEL_NAME, self.dist_name
+
+    @property
+    def triple(self):
+        res = self.dist_name.rsplit('-', 2) + ['', '']
+        return tuple(res[:3])
+
+    @property
+    def name(self):
+        return self.triple[0]
+
+    @property
+    def version(self):
+        return self.triple[1]
+
+    @property
+    def build(self):
+        return self.triple[2]
+
+    @property
+    def build_string(self):
+        return self.triple[2]
+
+    @property
+    def build_number(self):
+        try:
+            return int(self.build.rsplit('_', 1)[-1])
+        except ValueError:
+            return 0
+
+    @property
+    def quad(self):
+        # returns: name, version, build_string, channel
+        return self.triple + (self.channel or DEFAULTS_CHANNEL_NAME,)
+
+    def __str__(self):
+        return "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
+
+    @property
+    def is_feature_package(self):
+        return self.dist_name.endswith('@')
+
+    def to_filename(self, extension='.tar.bz2'):
+        if self.is_feature_package:
+            return self.dist_name
+        else:
+            return self.dist_name + extension
+
+    def to_matchspec(self):
+        return ' '.join(self.quad[:3])
+
+    @classmethod
+    def from_string(cls, string, channel_override=NULL):
+        string = text_type(string)
+
+        if is_url(string) and channel_override == NULL:
+            return cls.from_url(string)
+
+        if string.endswith('@'):
+            return cls(channel='@', dist_name=string)
+
+        REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
+                     r'([^\s\[\]]+)'               # 3.x dist
+                     )
+        channel, original_dist= re.search(REGEX_STR, string).groups()
+
+        if original_dist.endswith(CONDA_TARBALL_EXTENSION):
+            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION)]
+
+        if channel_override != NULL:
+            channel = channel_override
+        elif channel is None:
+            channel = UNKNOWN_CHANNEL
+
+        return cls(channel=channel, dist_name=original_dist)
+
+    @staticmethod
+    def parse_dist_name(string):
+        original_string = string
+        try:
+            string = ensure_text_type(string)
+
+            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
+                                 if string.endswith(CONDA_TARBALL_EXTENSION)
+                                 else string)
+
+            # remove any directory or channel information
+            if '::' in no_tar_bz2_string:
+                dist_name = no_tar_bz2_string.rsplit('::', 1)[-1]
+            else:
+                dist_name = no_tar_bz2_string.rsplit('/', 1)[-1]
+
+            return dist_name
+        except:
+            raise CondaError("dist_name is not a valid conda package: %s" % original_string)
 
     @classmethod
     def from_url(cls, url):
@@ -182,10 +216,9 @@ class Dist(Entity):
         if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
-        dist_details = cls.parse_dist_name(url)
+        dist_name = cls.parse_dist_name(url)
         if '::' in url:
             url_no_tarball = url.rsplit('::', 1)[0]
-            platform = context.subdir
             base_url = url_no_tarball.split('::')[0]
             channel = text_type(Channel(base_url))
         else:
@@ -194,25 +227,10 @@ class Dist(Entity):
             base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
             channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 
-        return cls(channel=channel,
-                   name=dist_details.name,
-                   version=dist_details.version,
-                   build_string=dist_details.build_string,
-                   build_number=dist_details.build_number,
-                   dist_name=dist_details.dist_name,
-                   base_url=base_url,
-                   platform=platform)
-
-    def to_url(self):
-        if not self.base_url:
-            return None
-        filename = self.dist_name + CONDA_TARBALL_EXTENSION
-        return (join_url(self.base_url, self.platform, filename)
-                if self.platform
-                else join_url(self.base_url, filename))
+        return cls(channel=channel, dist_name=dist_name)
 
     def __key__(self):
-        return self.channel, self.dist_name
+        return self.pkey
 
     def __lt__(self, other):
         assert isinstance(other, self.__class__)
@@ -229,12 +247,6 @@ class Dist(Entity):
     def __ge__(self, other):
         assert isinstance(other, self.__class__)
         return self.__key__() >= other.__key__()
-
-    def __hash__(self):
-        return hash(self.__key__())
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__key__() == other.__key__()
 
     def __ne__(self, other):
         return not self.__eq__(other)

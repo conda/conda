@@ -48,8 +48,8 @@ def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
-    for dist, extra in dists_extras:
-        name, version, build, _ = dist.quad
+    for record, extra in dists_extras:
+        name, version, build = record.name, record.version, record.build
         line = fmt % (name + '-' + version, build)
         if extra:
             line += extra
@@ -85,17 +85,16 @@ def display_actions(actions, index, show_channel_urls=None):
 
         disp_lst = []
         for dist in actions[FETCH]:
-            dist = Dist(dist)
-            info = index[dist]
-            extra = '%15s' % human_bytes(info['size'])
-            schannel = channel_filt(channel_str(info))
+            record = index[dist]
+            extra = '%15s' % human_bytes(record['size'])
+            schannel = channel_filt(channel_str(record))
             if schannel:
                 extra += '  ' + schannel
-            disp_lst.append((dist, extra))
+            disp_lst.append((record, extra))
         print_dists(disp_lst)
 
         if index and len(actions[FETCH]) > 1:
-            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
+            num_bytes = sum(index[dist]['size'] for dist in actions[FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -107,8 +106,7 @@ def display_actions(actions, index, show_channel_urls=None):
     linktypes = {}
 
     for arg in actions.get(LINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
+        rec = index[arg]
         pkg = rec['name']
         channels[pkg][1] = channel_str(rec)
         packages[pkg][1] = rec['version'] + '-' + rec['build']
@@ -116,8 +114,7 @@ def display_actions(actions, index, show_channel_urls=None):
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = rec.get('features', '')
     for arg in actions.get(UNLINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
+        rec = index[arg]
         pkg = rec['name']
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
@@ -254,10 +251,9 @@ def nothing_to_do(actions):
 
 
 def add_unlink(actions, dist):
-    assert isinstance(dist, Dist)
     if UNLINK not in actions:
         actions[UNLINK] = []
-    actions[UNLINK].append(dist)
+    actions[UNLINK].append(getattr(dist, 'pkey', dist))
 
 
 def handle_menuinst(unlink_dists, link_dists):
@@ -359,7 +355,6 @@ def plan_from_actions(actions, index):
 # supplying an index and setting force=True
 def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):
-    assert all(isinstance(d, Dist) for d in dists)
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
@@ -438,6 +433,256 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     log.debug('HF specs=%r' % specs)
 
 
+# def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
+#                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
+#                     channel_priority_map=None, is_update=False):
+#     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
+#     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> Dict[weird]
+#     str_specs = specs
+#     specs = [MatchSpec(spec) for spec in specs]
+#     r = get_resolve_object(index.copy(), prefix)
+#
+#     linked_in_root = linked_data(context.root_prefix)
+#
+#     # Ensure that there is only one prefix to install into
+#     dists_for_envs = determine_all_envs(r, specs)
+#     ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
+#     preferred_envs = set(d.env for d in dists_for_envs)
+#     assert len(preferred_envs) == 1
+#
+#     specs_for_prefix = SpecsForPrefix(
+#         prefix=prefix, specs=tuple(str_specs), r=r
+#     )
+#     actions = get_actions_for_dists(specs_for_prefix, only_names, index, force, always_copy, prune,
+#                                     update_deps, pinned)
+#     return actions
+#
+#
+# def install_actions_list(prefix, index, specs, force=False, only_names=None, always_copy=False,
+#                          pinned=True, minimal_hint=False, update_deps=True, prune=False,
+#                          channel_priority_map=None, is_update=False):
+#     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
+#     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
+#     str_specs = specs
+#     specs = [MatchSpec(spec) for spec in specs]
+#     r = get_resolve_object(index.copy(), prefix)
+#
+#     linked_in_root = linked_data(context.root_prefix)
+#
+#     dists_for_envs = determine_all_envs(r, specs, channel_priority_map=channel_priority_map)
+#     ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root)
+#     preferred_envs = set(d.env for d in dists_for_envs)
+#
+#     # Group specs by prefix
+#     grouped_specs = determine_dists_per_prefix(r, prefix, index, preferred_envs,
+#                                                dists_for_envs, context)
+#
+#     # Replace SpecsForPrefix specs with specs that were passed in in order to retain
+#     #   version information
+#     required_solves = match_to_original_specs(str_specs, grouped_specs)
+#
+#     actions = [get_actions_for_dists(dists_by_prefix, only_names, index, force,
+#                                      always_copy, prune, update_deps, pinned)
+#                for dists_by_prefix in required_solves]
+#
+#     # Need to add unlink actions if updating a private env from root
+#     if is_update and prefix == context.root_prefix:
+#         add_unlink_options_for_update(actions, required_solves, index)
+#
+#     return actions
+#
+#
+# def add_unlink_options_for_update(actions, required_solves, index):
+#     # type: (Dict[weird], List[SpecsForPrefix], List[weird]) -> ()
+#     get_action_for_prefix = lambda prfx: tuple(actn for actn in actions if actn["PREFIX"] == prfx)
+#     linked_in_prefix = linked_data(context.root_prefix)
+#     spec_in_root = lambda spc: tuple(
+#         mtch for mtch in linked_in_prefix.keys() if MatchSpec(spc).match(mtch))
+#     for solved in required_solves:
+#         # If the solved prefix is private
+#         if is_private_env(prefix_to_env_name(solved.prefix, context.root_prefix)):
+#             for spec in solved.specs:
+#                 matched_in_root = spec_in_root(spec)
+#                 if matched_in_root:
+#                     aug_action = get_action_for_prefix(context.root_prefix)
+#                     if len(aug_action) > 0:
+#                         add_unlink(aug_action[0], matched_in_root[0])
+#                     else:
+#                         actions.append(remove_actions(context.root_prefix, matched_in_root, index))
+#         # If the solved prefix is root
+#         elif preferred_env_matches_prefix(None, solved.prefix, context.root_dir):
+#             for spec in solved.specs:
+#                 spec_in_private_env = prefix_if_in_private_env(spec)
+#                 if spec_in_private_env:
+#                     # remove pkg from private env and install in root
+#                     aug_action = get_action_for_prefix(spec_in_private_env)
+#                     if len(aug_action) > 0:
+#                         add_unlink(aug_action[0], Dist(pkg_if_in_private_env(spec)))
+#                     else:
+#                         actions.append(remove_spec_action_from_prefix(
+#                             spec_in_private_env, Dist(pkg_if_in_private_env(spec))))
+#
+#
+# def get_resolve_object(index, prefix):
+#     # instantiate resolve object
+#     supplement_index_with_prefix(index, prefix, {})
+#     r = Resolve(index)
+#     return r
+#
+#
+# def determine_all_envs(r, specs, channel_priority_map=None):
+#     # type: (Record, List[MatchSpec], Option[List[Tuple]] -> List[SpecForEnv]
+#     assert all(isinstance(spec, MatchSpec) for spec in specs)
+#     best_pkgs = (r.index[r.get_dists_for_spec(s, emptyok=False)[-1]] for s in specs)
+#     spec_for_envs = tuple(SpecForEnv(env=p.preferred_env, spec=p.name) for p in best_pkgs)
+#     return spec_for_envs
+#
+#
+# def ensure_packge_not_duplicated_in_private_env_root(dists_for_envs, linked_in_root):
+#     # type: List[DistForEnv], List[(Dist, Record)] -> ()
+#     for dist_env in dists_for_envs:
+#         # If trying to install a package in root that is already in a private env
+#         if dist_env.env is None and common.prefix_if_in_private_env(dist_env.spec) is not None:
+#             raise InstallError("Package %s is already installed in a private env %s" %
+#                                (dist_env.spec, dist_env.env))
+#         # If trying to install a package in a private env that is already in root
+#         if (is_private_env(dist_env.env) and
+#                 any(dist for dist in linked_in_root if dist.dist_name.startswith(dist_env.spec))):
+#             raise InstallError("Package %s is already installed in root. Can't install in private"
+#                                " environment %s" % (dist_env.spec, dist_env.env))
+#
+#
+# def not_requires_private_env(prefix, preferred_envs):
+#     if (context.prefix_specified is True or not context.prefix == context.root_dir or
+#             all(preferred_env_matches_prefix(preferred_env, prefix, context.root_dir) for
+#                 preferred_env in preferred_envs)):
+#         return True
+#     return False
+#
+#
+# def determine_dists_per_prefix(r, prefix, index, preferred_envs, dists_for_envs, context):
+#     # type: (Resolve, string, List[(Dist, Record)], Set[String], List[SpecForEnv]) ->
+#     #   (List[pecsForPrefix])
+#
+#     # if len(preferred_envs) == 1 and preferred_env matches prefix
+#     #    solution is good
+#     # if len(preferred_envs) == 1 and preferred_env is None
+#     #    solution is good
+#     # if len(preferred_envs) == 2 and set([None, preferred_env]) preferred_env matches prefix
+#     #    solution is good
+#     if not_requires_private_env(prefix, preferred_envs):
+#         dists = set(d.spec for d in dists_for_envs)
+#         prefix_with_dists_no_deps_has_resolve = [SpecsForPrefix(prefix=prefix, r=r, specs=dists)]
+#     else:
+#         # Ensure that conda is working in the root dir
+#         assert(context.prefix == context.root_dir)
+#
+#         def get_r(preferred_env):
+#             # don't make r for the prefix where we already have it created
+#             if preferred_env_matches_prefix(preferred_env, prefix, context.root_dir):
+#                 return r
+#             else:
+#                 return get_resolve_object(index.copy(), preferred_env_to_prefix(
+#                     preferred_env, context.root_dir, context.envs_dirs))
+#
+#         prefix_with_dists_no_deps_has_resolve = []
+#         for env in preferred_envs:
+#             dists = IndexedSet(d.spec for d in dists_for_envs if d.env == env)
+#             prefix_with_dists_no_deps_has_resolve.append(
+#                 SpecsForPrefix(
+#                     prefix=preferred_env_to_prefix(env, context.root_dir, context.envs_dirs),
+#                     r=get_r(env),
+#                     specs=dists)
+#             )
+#     return prefix_with_dists_no_deps_has_resolve
+#
+#
+# def match_to_original_specs(str_specs, specs_for_prefix):
+#     matches_any_spec = lambda dst: next(spc for spc in str_specs if spc.startswith(dst))
+#     matched_specs_for_prefix = []
+#     for prefix_with_dists in specs_for_prefix:
+#         linked = linked_data(prefix_with_dists.prefix)
+#         r = prefix_with_dists.r
+#         new_matches = []
+#         for spec in prefix_with_dists.specs:
+#             matched = matches_any_spec(spec)
+#             if matched:
+#                 new_matches.append(matched)
+#         add_defaults_to_specs(r, linked, new_matches)
+#         matched_specs_for_prefix.append(SpecsForPrefix(
+#             prefix=prefix_with_dists.prefix, r=prefix_with_dists.r, specs=new_matches))
+#     return matched_specs_for_prefix
+#
+#
+# def get_actions_for_dists(dists_for_prefix, only_names, index, force, always_copy, prune,
+#                           update_deps, pinned):
+#     root_only = ('conda', 'conda-env')
+#     prefix = dists_for_prefix.prefix
+#     dists = dists_for_prefix.specs
+#     r = dists_for_prefix.r
+#     specs = [MatchSpec(dist) for dist in dists]
+#     specs = augment_specs(prefix, specs, pinned)
+#
+#     linked = linked_data(prefix)
+#     must_have = odict()
+#
+#     installed = linked
+#     if prune:
+#         installed = []
+#     pkgs = r.install(specs, installed, update_deps=update_deps)
+#
+#     for fn in pkgs:
+#         dist = Dist(fn)
+#         name = r.package_name(dist)
+#         if not name or only_names and name not in only_names:
+#             continue
+#         must_have[name] = dist
+#
+#     if is_root_prefix(prefix):
+#         # for name in foreign:
+#         #     if name in must_have:
+#         #         del must_have[name]
+#         pass
+#     elif basename(prefix).startswith('_'):
+#         # anything (including conda) can be installed into environments
+#         # starting with '_', mainly to allow conda-build to build conda
+#         pass
+#
+#     elif any(s in must_have for s in root_only):
+#         # the solver scheduled an install of conda, but it wasn't in the
+#         # specs, so it must have been a dependency.
+#         specs = [s for s in specs if r.depends_on(s, root_only)]
+#         if specs:
+#             raise InstallError("""\
+# Error: the following specs depend on 'conda' and can only be installed
+# into the root environment: %s""" % (' '.join(spec.name for spec in specs),))
+#         linked = [r.package_name(s) for s in linked]
+#         linked = [s for s in linked if r.depends_on(s, root_only)]
+#         if linked:
+#             raise InstallError("""\
+# Error: one or more of the packages already installed depend on 'conda'
+# and should only be installed in the root environment: %s
+# These packages need to be removed before conda can proceed.""" % (' '.join(linked),))
+#         raise InstallError("Error: 'conda' can only be installed into the "
+#                            "root environment")
+#
+#     smh = r.dependency_sort(must_have)
+#     actions = ensure_linked_actions(
+#         smh, prefix,
+#         index=r.index,
+#         force=force, always_copy=always_copy)
+#
+#     if actions[LINK]:
+#         actions[SYMLINK_CONDA] = [context.root_dir]
+#
+#     for dist in sorted(linked, key=r.version_key):
+#         dist = Dist(dist)
+#         name = r.package_name(dist)
+#         replace_existing = name in must_have and dist != must_have[name]
+#         prune_it = prune and dist not in smh
+#         if replace_existing or prune_it:
+#             add_unlink(actions, dist)
+
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
@@ -515,8 +760,9 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):
                    if not any(r.match(ms, dist) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
+        installed = tuple(Dist(record) for record in linked_data(prefix))
         nlinked = {r.package_name(dist): dist
-                   for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
+                   for dist in (Dist(fn) for fn in r.remove(specs, installed))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)

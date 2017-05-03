@@ -107,12 +107,13 @@ def print_export_header(subdir):
 
 
 def get_packages(installed, regex):
+    from ..models.dist import parse_legacy_dist_str
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.quad[0].lower()):
-        name = dist.quad[0]
+    get_name = lambda d: parse_legacy_dist_str(d).name
+    pairs = sorted(((get_name(d), d) for d in installed), key=lambda x: x[0].lower())
+    for name, dist in pairs:
         if pat and pat.search(name) is None:
             continue
-
         yield dist
 
 
@@ -122,6 +123,7 @@ def list_packages(prefix, installed, regex=None, format='human',
     from ..base.constants import DEFAULTS_CHANNEL_NAME
     from ..base.context import context
     from ..core.linked_data import is_linked
+    from ..models.dist import parse_legacy_dist_str
     res = 0
     result = []
     for dist in get_packages(installed, regex):
@@ -129,7 +131,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(dist)
             continue
         if format == 'export':
-            result.append('='.join(dist.quad[:3]))
+            result.append('='.join(parse_legacy_dist_str(dist)[:3]))
             continue
 
         try:
@@ -146,7 +148,7 @@ def list_packages(prefix, installed, regex=None, format='human',
             result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug("exception for dist %s:\n%r", dist, e)
-            result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
+            result.append('%-25s %-15s %15s' % tuple(parse_legacy_dist_str(dist)[:3]))
 
     return res, result
 
@@ -155,8 +157,8 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=None):
     from .common import stdout_json
     from ..base.context import context
-    from ..common.compat import text_type
-    from ..core.linked_data import linked
+    from ..common.compat import itervalues, text_type
+    from ..core.linked_data import linked_data
     from ..egg_info import get_egg_info
 
     if not isdir(prefix):
@@ -170,7 +172,7 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         if format == 'export':
             print_export_header(context.subdir)
 
-    installed = linked(prefix)
+    installed = set(lpr for lpr in itervalues(linked_data(prefix)))
     log.debug("installed conda packages:\n%s", installed)
     if piplist and context.use_pip and format == 'human':
         other_python = get_egg_info(prefix)
@@ -191,7 +193,7 @@ def print_explicit(prefix, add_md5=False):
     from ..base.context import context
     from ..core.linked_data import linked_data
     if not isdir(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
+        from ..exceptions import EnvironmentgLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
     print_export_header(context.subdir)
     print("@EXPLICIT")

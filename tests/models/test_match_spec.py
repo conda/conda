@@ -4,20 +4,8 @@ import re
 import unittest
 
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
-
-
-def DPkg(s, **kwargs):
-    d = Dist(s)
-    return IndexRecord(
-        fn=d.to_filename(),
-        name=d.name,
-        version=d.version,
-        build=d.build_string,
-        build_number=int(d.build_string.rsplit('_', 1)[-1]),
-        schannel=d.channel,
-        **kwargs)
+from tests.test_resolve import make_record
 
 
 class MatchSpecTests(unittest.TestCase):
@@ -40,22 +28,23 @@ class MatchSpecTests(unittest.TestCase):
             ('python', False),
         ]:
             m = MatchSpec(spec)
-            assert m.match(DPkg('numpy-1.7.1-py27_0.tar.bz2')) == result
+            assert m.match(make_record('numpy-1.7.1-py27_0.tar.bz2')) == result
             assert 'name' in m
             assert m.name == 'python' or 'version' in m
 
+
         # both version numbers conforming to PEP 440
-        assert not MatchSpec('numpy >=1.0.1').match(DPkg('numpy-1.0.1a-0.tar.bz2'))
+        assert not MatchSpec('numpy >=1.0.1').match(make_record('numpy-1.0.1a-0.tar.bz2'))
         # both version numbers non-conforming to PEP 440
-        assert not MatchSpec('numpy >=1.0.1.vc11').match(DPkg('numpy-1.0.1a.vc11-0.tar.bz2'))
-        assert MatchSpec('numpy >=1.0.1*.vc11').match(DPkg('numpy-1.0.1a.vc11-0.tar.bz2'))
+        assert not MatchSpec('numpy >=1.0.1.vc11').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2'))
+        assert MatchSpec('numpy >=1.0.1*.vc11').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2'))
         # one conforming, other non-conforming to PEP 440
-        assert MatchSpec('numpy <1.0.1').match(DPkg('numpy-1.0.1.vc11-0.tar.bz2'))
-        assert MatchSpec('numpy <1.0.1').match(DPkg('numpy-1.0.1a.vc11-0.tar.bz2'))
-        assert not MatchSpec('numpy >=1.0.1.vc11').match(DPkg('numpy-1.0.1a-0.tar.bz2'))
-        assert MatchSpec('numpy >=1.0.1a').match(DPkg('numpy-1.0.1z-0.tar.bz2'))
-        assert MatchSpec('numpy >=1.0.1a py27*').match(DPkg('numpy-1.0.1z-py27_1.tar.bz2'))
-        assert MatchSpec('blas * openblas_0').match(DPkg('blas-1.0-openblas_0.tar.bz2'))
+        assert MatchSpec('numpy <1.0.1').match(make_record('numpy-1.0.1.vc11-0.tar.bz2'))
+        assert MatchSpec('numpy <1.0.1').match(make_record('numpy-1.0.1a.vc11-0.tar.bz2'))
+        assert not MatchSpec('numpy >=1.0.1.vc11').match(make_record('numpy-1.0.1a-0.tar.bz2'))
+        assert MatchSpec('numpy >=1.0.1a').match(make_record('numpy-1.0.1z-0.tar.bz2'))
+        assert MatchSpec('numpy >=1.0.1a py27*').match(make_record('numpy-1.0.1z-py27_1.tar.bz2'))
+        assert MatchSpec('blas * openblas_0').match(make_record('blas-1.0-openblas_0.tar.bz2'))
 
         assert MatchSpec('blas').is_simple()
         assert not MatchSpec('blas').is_exact()
@@ -162,9 +151,9 @@ class MatchSpecTests(unittest.TestCase):
         assert hash(a) == hash(e)
 
     def test_index_record(self):
-        dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
-        rec = DPkg(dst)
-        a = MatchSpec(dst)
+        dst = 'defaults::foo-1.2.3-4.tar.bz2'
+        rec = make_record(dst)
+        a = MatchSpec(Dist(dst))
         b = MatchSpec(rec)
         assert b.match(rec)
         assert a.match(rec)
@@ -186,11 +175,11 @@ class MatchSpecTests(unittest.TestCase):
         assert ms.to_filename() == 'zlib-1.2.7-0.tar.bz2'
 
     def test_features(self):
-        dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
+        dst = 'defaults::foo-1.2.3-4.tar.bz2'
         a = MatchSpec(features='test')
-        assert a.match(DPkg(dst, features='test'))
-        assert not a.match(DPkg(dst, features='test2'))
-        assert a.match(DPkg(dst, features='test me'))
-        assert a.match(DPkg(dst, features='you test'))
-        assert a.match(DPkg(dst, features='you test me'))
+        assert a.match(make_record(dst, features='test'))
+        assert not a.match(make_record(dst, features='test2'))
+        assert a.match(make_record(dst, features='test me'))
+        assert a.match(make_record(dst, features='you test'))
+        assert a.match(make_record(dst, features='you test me'))
         assert a.exact_field('features') == 'test'

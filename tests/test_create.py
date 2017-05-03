@@ -55,6 +55,7 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
+from conda.models.index_record import IndexRecord, IndexJsonRecord
 from conda.gateways.subprocess import subprocess_call
 from conda.models.index_record import IndexRecord
 from conda.utils import on_win
@@ -63,6 +64,12 @@ try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
+
+try:
+    from menuinst.win32 import dirs as win_locations
+except ImportError:
+    win_locations = None
+
 
 log = getLogger(__name__)
 TRACE, DEBUG = TRACE, DEBUG  # these are so the imports aren't cleared, but it's easy to switch back and forth
@@ -193,7 +200,7 @@ def package_is_installed(prefix, package, exact=False):
     if '::' in package:
         packages = list(map(text_type, packages))
     else:
-        packages = list(map(lambda x: x.dist_name, packages))
+        packages = list(map(lambda x: text_type(x).split('::')[-1], packages))
     if exact:
         return package in packages
     return any(p.startswith(package) for p in packages)
@@ -364,7 +371,7 @@ class IntegrationTests(TestCase):
             flask_data = flask_data.dump()
             for field in ('url', 'channel', 'schannel'):
                 del flask_data[field]
-            repodata = {'info': {}, 'packages': {flask_fname: IndexRecord(**flask_data)}}
+            repodata = {'info': {}, 'packages': {flask_fname: IndexJsonRecord(**flask_data)}}
             with make_temp_env() as channel:
                 subchan = join(channel, context.subdir)
                 noarch_dir = join(channel, 'noarch')
@@ -637,7 +644,6 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
@@ -650,7 +656,6 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
-        from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
@@ -676,8 +681,6 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_does_not_barf_on_uninstall(self):
-        from menuinst.win32 import dirs as win_locations
-
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
@@ -704,7 +707,6 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_when_condarc_set(self):
-        from menuinst.win32 import dirs as win_locations
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"

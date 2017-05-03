@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
+from conda.models.index_record import IndexRecord
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
@@ -11,7 +12,7 @@ from .exceptions import NoPackagesFoundError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.match_spec import MatchSpec
-from .models.version import normalized_version
+from .models.version import VersionOrder
 
 log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
@@ -50,15 +51,6 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
-
-    @property
-    def installed(self):
-        # type: () -> Set[Dist]
-        installed = set()
-        for dist, info in iteritems(self.index):
-            if 'link' in info:
-                installed.add(dist)
-        return installed
 
     def default_filter(self, features=None, filter=None):
         if filter is None:
@@ -314,9 +306,19 @@ class Resolve(object):
         # Determine all valid packages in the dependency graph
         reduced_index = {}
         slist = list(specs)
-        for fstr in features:
-            dist = Dist(fstr + '@')
-            reduced_index[dist] = self.index[dist]
+        for feat in features:
+            fname = feat + '@'
+            rec = IndexRecord(
+                name=fname,
+                version='0',
+                build='0',
+                schannel='@',
+                track_features=feat,
+                build_number=0,
+                fn=fname,
+                url='',
+            )
+            reduced_index[rec] = self.index[rec]
         while slist:
             this_spec = slist.pop()
             for dist in self.find_matches(this_spec):
@@ -356,13 +358,13 @@ class Resolve(object):
             else:
                 res = self.index.keys()
             res = [p for p in res if self.match(ms, p)]
-            assert all(isinstance(d, Dist) for d in res)
             self.find_matches_[ms] = res
+        res = tuple(self.index[d] for d in res)
         return res
 
     def ms_depends(self, dist):
         # type: (Dist) -> List[MatchSpec]
-        deps = self.ms_depends_.get(dist)
+        deps = self.ms_depends_.get(dist, None)
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
@@ -390,7 +392,7 @@ class Resolve(object):
         rec = self.index[dist]
         cpri = rec.get('priority', 1)
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
-        ver = normalized_version(rec.get('version', ''))
+        ver = VersionOrder(rec.get('version', ''))
         bld = rec.get('build_number', 0)
         bs = rec.get('build_string')
         ts = rec.get('timestamp', 0)
@@ -405,11 +407,13 @@ class Resolve(object):
 
     def package_quad(self, dist):
         rec = self.index.get(dist, None)
-        if rec is None:
+        if rec is None and hasattr(rec, 'quad'):
             return dist.quad
-        else:
+        elif rec:
             return (rec['name'], rec['version'], rec['build'],
                     rec.get('schannel', DEFAULTS_CHANNEL_NAME))
+        else:
+            raise RuntimeError(dist)
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
@@ -459,18 +463,18 @@ class Resolve(object):
                 ms2 = MatchSpec(track_features=tf) if tf else nm
                 m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
-            dists = [dist.full_name for dist in libs]
+            libs = [dist.pkey for dist in libs]
             if ms.optional:
                 ms2 = MatchSpec(track_features=tf) if tf else nm
-                dists.append('!' + self.ms_to_v(ms2))
-            m = C.Any(dists)
+                libs.append('!' + self.ms_to_v(ms2))
+            m = C.Any(libs)
         C.name_var(m, name)
         return name
 
     def gen_clauses(self):
         C = Clauses()
         for name, group in iteritems(self.groups):
-            group = [dist.full_name for dist in group]
+            group = [dist.pkey for dist in group]
             # Create one variable for each package
             for fkey in group:
                 C.new_var(fkey)
@@ -481,7 +485,7 @@ class Resolve(object):
             C.Require(C.ExactlyOne, group + [C.Not(m)])
         # If a package is installed, its dependencies must be as well
         for dist in iterkeys(self.index):
-            nkey = C.Not(dist.full_name)
+            nkey = C.Not(dist.pkey)
             for ms in self.ms_depends(dist):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
@@ -503,7 +507,7 @@ class Resolve(object):
         for name, group in iteritems(self.groups):
             nf = [len(self.features(dist)) for dist in group]
             maxf = max(nf)
-            eq.update({dist.full_name: maxf-fc for dist, fc in zip(group, nf) if fc < maxf})
+            eq.update({dist.pkey: maxf-fc for dist, fc in zip(group, nf) if fc < maxf})
             total += maxf
         return eq, total
 
@@ -550,9 +554,9 @@ class Resolve(object):
                     ib += 1
 
                 if iv or include0:
-                    eqv[dist.full_name] = iv
+                    eqv[dist.pkey] = iv
                 if ib or include0:
-                    eqb[dist.full_name] = ib
+                    eqb[dist.pkey] = ib
                 pkey = version_key
 
         return eqv, eqb
@@ -605,7 +609,7 @@ class Resolve(object):
 
         if None in res:
             return None
-        res = [Dist(add_defaults_if_no_channel(f)) for f in sorted(res)]
+        res = [self.index[Dist(add_defaults_if_no_channel(f))] for f in sorted(res)]
         log.debug('explicit(%r) finished', specs)
         return res
 
@@ -677,7 +681,7 @@ class Resolve(object):
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
             if update_deps:
-                spec = MatchSpec(name=name, target=pkg.full_name)
+                spec = MatchSpec(name=name, target=pkg.pkey)
             else:
                 spec = MatchSpec(name=name, version=version,
                                  build=build, schannel=schannel)
@@ -720,7 +724,7 @@ class Resolve(object):
                 nspecs.append(MatchSpec(name=nm,
                                         version='>='+ver if ver else None,
                                         optional=True,
-                                        target=dist.full_name))
+                                        target=dist.pkey))
         return nspecs, preserve
 
     def remove(self, specs, installed):
@@ -847,9 +851,9 @@ class Resolve(object):
             stdoutlog.info('\n')
 
             if returnall:
-                return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
+                return [sorted(self.index[Dist(stripfeat(dname))] for dname in psol) for psol in psolutions]
             else:
-                return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
+                return sorted(self.index[Dist(stripfeat(dname))] for dname in psolutions[0])
 
         except:
             stdoutlog.info('\n')

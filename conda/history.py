@@ -288,7 +288,7 @@ class History(object):
         with open(self.path, 'w') as fo:
             if dists:
                 for dist in sorted(dists):
-                    fo.write('%s\n' % dist)
+                    fo.write('%s\n' % getattr(dist, 'pkey', dist))
 
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):

@@ -32,14 +32,7 @@ def _supplement_index_with_prefix(index, prefix, channels):
     assert prefix
     maxp = len(channels) + 1
     for dist, info in iteritems(linked_data(prefix)):
-        if dist in index:
-            # The downloaded repodata takes priority, so we do not overwrite.
-            # We do, however, copy the link information so that the solver
-            # knows this package is installed.
-            old_record = index[dist]
-            link = info.get('link') or EMPTY_LINK
-            index[dist] = IndexRecord.from_objects(old_record, link=link)
-        else:
+        if dist not in index:
             # If the package is not in the repodata, use the local data. If
             # the 'depends' field is not present, we need to set it; older
             # installations are likely to have this.
@@ -51,7 +44,8 @@ def _supplement_index_with_prefix(index, prefix, channels):
             # it is in a channel we don't know about, assign it a value just
             # above the priority of all known channels.
             priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-            index[dist] = IndexRecord.from_objects(info, depends=depends, priority=priority)
+            record = IndexRecord.from_objects(info, depends=depends, priority=priority)
+            index[record] = record
 
 
 def _supplement_index_with_cache(index, channels):
@@ -59,19 +53,18 @@ def _supplement_index_with_cache(index, channels):
     # supplement index with packages from the cache
     maxp = len(channels) + 1
     for pc_entry in PackageCache.get_all_extracted_entries():
-        dist = pc_entry.dist
-        if dist in index:
+        if pc_entry in index:
             # The downloaded repodata takes priority
             continue
         pkg_dir = pc_entry.extracted_package_dir
-        index_json_record = read_index_json(pkg_dir)
+        index_record = read_index_json(pkg_dir).copy()
         # See the discussion above about priority assignments.
-        priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-        index_json_record.fn = dist.to_filename()
-        index_json_record.schannel = dist.channel
-        index_json_record.priority = priority
-        index_json_record.url = dist.to_url()
-        index[dist] = index_json_record
+        c = pc_entry.channel.canonical_name
+        priority = MAX_CHANNEL_PRIORITY if c in channels else maxp
+        index_record.schannel = c
+        index_record.priority = priority
+        index_record.url = pc_entry.url
+        index[index_record] = index_record
 
 
 def supplement_index_with_repodata(index, repodata, channel, priority):
@@ -91,8 +84,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
                                        priority=priority,
                                        url=join_url(channel_url, fn),
                                        auth=auth)
-        dist = Dist(rec)
-        index[dist] = rec
+        index[rec] = rec
 
 
 def supplement_index_with_features(index, features=()):
@@ -102,11 +94,13 @@ def supplement_index_with_features(index, features=()):
             name=fname,
             version='0',
             build='0',
-            schannel='defaults',
+            schannel='@',
             track_features=feat,
             build_number=0,
-            fn=fname)
-        index[Dist(rec)] = rec
+            fn=fname,
+            url='',
+        )
+        index[rec] = rec
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
@@ -164,4 +158,4 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 
 
 def dist_str_in_index(index, dist_str):
-    return Dist(dist_str) in index
+    return dist_str in index

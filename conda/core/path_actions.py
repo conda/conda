@@ -11,6 +11,8 @@ from random import random
 import re
 from time import sleep
 
+from conda.base.constants import CONDA_TARBALL_EXTENSION
+from conda.models.channel import Channel
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
@@ -37,7 +39,7 @@ from ..gateways.download import download
 from ..history import History
 from ..models.dist import Dist
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
-from ..models.index_record import IndexRecord, Link
+from ..models.index_record import IndexRecord, Link, LinkedPackageRecord
 from ..models.leased_path_entry import LeasedPathEntry
 
 try:
@@ -699,14 +701,15 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         #   of the paths that will be removed when the package is unlinked
 
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        linked_package_record = IndexRecord.from_objects(package_info.repodata_record,
-                                                         package_info.index_json_record,
-                                                         files=all_target_short_paths,
-                                                         link=link,
-                                                         url=package_info.url,
-                                                         leased_paths=leased_paths)
+        linked_package_record = LinkedPackageRecord.from_objects(package_info.repodata_record,
+                                                                 package_info.index_json_record,
+                                                                 files=all_target_short_paths,
+                                                                 link=link,
+                                                                 url=package_info.url,
+                                                                 leased_paths=leased_paths)
 
-        target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
+        target_short_path = 'conda-meta/' + linked_package_record.fn
+        target_short_path = target_short_path.replace(CONDA_TARBALL_EXTENSION, '.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
                    linked_package_record),
 
@@ -721,14 +724,14 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
         write_linked_package_record(self.target_prefix, self.linked_package_record)
-        load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
+        load_linked_data(self.target_prefix, self.linked_package_record.fn[:-len(CONDA_TARBALL_EXTENSION)],
                          self.linked_package_record)
         self._linked_data_loaded = True
 
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
         if self._linked_data_loaded:
-            delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
+            delete_linked_data(self.target_prefix, self.linked_package_record,
                                delete=False)
         rm_rf(self.target_full_path)
 
@@ -930,7 +933,7 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
 
     def execute(self):
         super(RemoveLinkedPackageRecordAction, self).execute()
-        delete_linked_data(self.target_prefix, Dist(self.linked_package_data),
+        delete_linked_data(self.target_prefix, self.linked_package_data,
                            delete=False)
 
     def reverse(self):
@@ -939,7 +942,7 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
             meta_record = IndexRecord(**json.loads(fh.read()))
         log.trace("reloading cache entry %s", self.target_full_path)
         load_linked_data(self.target_prefix,
-                         Dist(self.linked_package_data).dist_name,
+                         self.linked_package_data.fn[:-len(CONDA_TARBALL_EXTENSION)],
                          meta_record)
 
 
@@ -1068,8 +1071,10 @@ class CacheUrlAction(PathAction):
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
                 origin_url = source_package_cache.urls_data.get_url(self.target_package_basename)
-                if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                if origin_url:
+                    if Channel(origin_url).platform:
+                        # this means origin_url actually is a channel
+                        target_package_cache.urls_data.add_url(origin_url)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
@@ -1085,7 +1090,8 @@ class CacheUrlAction(PathAction):
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
 
-                if origin_url and Dist(origin_url).is_channel:
+                if origin_url and Channel(origin_url).platform:
+                    # Channel(origin_url).platform means origin_url is a channel
                     target_package_cache.urls_data.add_url(origin_url)
                 else:
                     target_package_cache.urls_data.add_url(self.url)
@@ -1151,9 +1157,10 @@ class ExtractPackageAction(PathAction):
         target_package_cache = PackageCache(self.target_pkgs_dir)
 
         recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
-        dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, dist)
-        target_package_cache[package_cache_entry.dist] = package_cache_entry
+
+        package_cache_entry = PackageCacheEntry(recorded_url or path_to_url(self.source_full_path),
+                                                self.target_pkgs_dir)
+        target_package_cache[package_cache_entry] = package_cache_entry
 
     def reverse(self):
         rm_rf(self.target_full_path)

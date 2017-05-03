@@ -19,10 +19,9 @@ from ..common.path import url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
-from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink
+from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink, read_index_json
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
-from ..models.dist import Dist
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, remove
@@ -71,20 +70,40 @@ class UrlsData(object):
 
 class PackageCacheEntry(object):
 
-    @classmethod
-    def make_legacy(cls, pkgs_dir, dist):
-        # the dist object here should be created using a full url to the tarball
-        extracted_package_dir = join(pkgs_dir, dist.dist_name)
-        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
-        return cls(pkgs_dir, dist, package_tarball_full_path, extracted_package_dir)
-
-    def __init__(self, pkgs_dir, dist, package_tarball_full_path, extracted_package_dir):
-        # the channel object here should be created using a full url to the tarball
+    def __init__(self, url, pkgs_dir):
+        assert url.endswith(CONDA_TARBALL_EXTENSION)
+        self.url = url
         self.pkgs_dir = pkgs_dir
-        self.dist = dist
-        self.package_tarball_full_path = package_tarball_full_path
-        self.extracted_package_dir = extracted_package_dir
-        self.channel = Channel(dist.to_url()) if dist.is_channel else Channel(None)
+
+        fn = url.rsplit('/', 1)[-1]
+        self.package_tarball_full_path = join(pkgs_dir, fn)
+        self.extracted_package_dir = self.package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
+
+        channel = Channel(url)
+        if not channel.platform:
+            # this means the url actually isn't a channel
+            self.channel = UNKNOWN_CHANNEL
+        else:
+            self.channel = channel
+
+        read_path = self.extracted_package_dir if self.is_extracted else self.package_tarball_full_path
+        self.index_json_record = read_index_json(read_path)
+
+    @property
+    def pkey(self):
+        rec = self.index_json_record
+        if self.channel != UNKNOWN_CHANNEL:
+            pkey = "%s::%s-%s-%s" % (self.channel.canonical_name, rec.name, rec.version, rec.build)
+        else:
+            pkey = "%s-%s-%s" % (rec.name, rec.version, rec.build)
+        return pkey
+
+    def __hash__(self):
+        return hash(self.pkey)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
 
     @property
     def is_fetched(self):
@@ -122,9 +141,8 @@ class PackageCacheEntry(object):
         return compute_md5sum(self.package_tarball_full_path)
 
     def __repr__(self):
-        args = ('%s=%r' % (key, getattr(self, key))
-                for key in ('dist', 'package_tarball_full_path'))
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+        key = 'package_tarball_full_path'
+        return "%s(%s=%r)" % (self.__class__.__name__, key, getattr(self, key))
 
 
 class PackageCacheType(type):
@@ -142,8 +160,8 @@ class PackageCacheType(type):
             PackageCache._cache_[pkgs_dir] = package_cache_instance
             return package_cache_instance
 
-    def __getitem__(cls, dist):
-        return cls.get_entry_to_link(dist)
+    def __getitem__(cls, record):
+        return cls.get_entry_to_link(record)
 
 
 @with_metaclass(PackageCacheType)
@@ -152,8 +170,8 @@ class PackageCache(object):
     _is_writable = None
 
     def __init__(self, pkgs_dir):
-        self.__packages_map = None
-        # type: Dict[Dist, PackageCacheEntry]
+        self.__packages_map = {}
+        # type: Dict[pkey, PackageCacheEntry]
 
         self.pkgs_dir = pkgs_dir
         self.urls_data = UrlsData(pkgs_dir)
@@ -260,15 +278,9 @@ class PackageCache(object):
             return __packages_map
 
         def _add_entry(__packages_map, pkgs_dir, package_filename):
-            if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
-                package_filename += CONDA_TARBALL_EXTENSION
-
-            dist = first(self.urls_data, lambda x: basename(x) == package_filename,
-                         apply=Dist)
-            if not dist:
-                dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
-            pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
-            __packages_map[pc_entry.dist] = pc_entry
+            url = first(self.urls_data, lambda x: x.rsplit('/', 1)[-1] == package_filename)
+            pc_entry = PackageCacheEntry(url, pkgs_dir)
+            __packages_map[pc_entry] = pc_entry
 
         def dedupe_pkgs_dir_contents(pkgs_dir_contents):
             # if both 'six-1.10.0-py35_0/' and 'six-1.10.0-py35_0.tar.bz2' are in pkgs_dir,
@@ -439,7 +451,7 @@ class ProgressiveFetchExtract(object):
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         cache_axn = CacheUrlAction(
-            url=record.get('url') or dist.to_url(),
+            url=record.get('url'),
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=dist.to_filename(),
             md5sum=md5,

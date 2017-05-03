@@ -5,8 +5,12 @@ from functools import total_ordering
 
 from .enums import LinkType, NoarchType, Platform
 from .leased_path_entry import LeasedPathEntry
+from .version import VersionOrder
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
+from ..base.constants import MAX_CHANNEL_PRIORITY
+from ..base.context import context
 from ..common.compat import itervalues, string_types
 
 
@@ -59,28 +63,8 @@ class Link(DictSafeMixin, Entity):
 
 EMPTY_LINK = Link(source='')
 
-# TODO: eventually stop mixing Record with LinkedPackageData
-# class LinkedPackageRecord(DictSafeMixin, Entity):
-#     arch = EnumField(Arch, nullable=True)
-#     build = StringField()
-#     build_number = IntegerField()
-#     channel = StringField(required=False)
-#     date = StringField(required=False)
-#     depends = ListField(string_types)
-#     files = ListField(string_types, required=False)
-#     license = StringField(required=False)
-#     link = ComposableField(Link, required=False)
-#     md5 = StringField(required=False, nullable=True)
-#     name = StringField()
-#     platform = EnumField(Platform)
-#     requires = ListField(string_types, required=False)
-#     size = IntegerField(required=False)
-#     subdir = StringField(required=False)
-#     url = StringField(required=False)
-#     version = StringField()
 
-
-class IndexRecord(DictSafeMixin, Entity):
+class IndexJsonRecord(DictSafeMixin, Entity):
     _lazy_validate = True
 
     arch = StringField(required=False, nullable=True)
@@ -97,23 +81,29 @@ class IndexRecord(DictSafeMixin, Entity):
     name = StringField()
     noarch = NoarchField(NoarchType, required=False, nullable=True)
     platform = EnumField(Platform, required=False, nullable=True)
-    requires = ListField(string_types, required=False)
+    preferred_env = StringField(default=None, required=False, nullable=True)
     size = IntegerField(required=False)
-    subdir = StringField(required=False)
-    timestamp = IntegerField(required=False)
     track_features = StringField(default='', required=False)
+
     version = StringField()
 
-    fn = StringField(required=False, nullable=True)
+    @property
+    def dist_name(self):
+        return "%s-%s-%s" % (self.name, self.version, self.build)
+
+
+class IndexRecord(IndexJsonRecord):
+
+    fn = StringField()
     schannel = StringField(required=False, nullable=True)
     channel = StringField(required=False, nullable=True)
     priority = PriorityField(required=False)
-    url = StringField(required=False, nullable=True)
     auth = StringField(required=False, nullable=True)
+    subdir = StringField(required=False)
 
-    files = ListField(string_types, default=(), required=False)
-    link = ComposableField(Link, required=False)
-
+    # url is optional here for legacy support.
+    #   see tests/test_create.py test_dash_c_usage_replacing_python
+    url = StringField()
     preferred_env = StringField(default=None, required=False, nullable=True)
 
     # this is only for LinkedPackageRecord
@@ -126,3 +116,45 @@ class IndexRecord(DictSafeMixin, Entity):
         result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
                                               for spec in self.constrains or ())})
         return tuple(itervalues(result))
+
+    @memoizedproperty
+    def pkey(self):
+        if self.name.endswith('@'):
+            return self.name
+        return "%s::%s" % (self.schannel, self.dist_name) if self.schannel else self.dist_name
+
+    def __hash__(self):
+        return hash(self.pkey)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __key__(self):
+        return self.pkey
+
+    def __lt__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() < other.__key__()
+
+    def __gt__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() > other.__key__()
+
+    def __le__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() <= other.__key__()
+
+    def __ge__(self, other):
+        assert isinstance(other, self.__class__)
+        return self.__key__() >= other.__key__()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def to_filename(self):
+        return self.fn
+
+
+class LinkedPackageRecord(IndexRecord):
+    files = ListField(string_types, default=(), required=False)
+    link = ComposableField(Link, required=False)

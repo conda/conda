@@ -75,8 +75,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 if not exists(path):
                     raise CondaFileNotFoundError(path)
                 pc_entry = PackageCache.tarball_file_in_cache(path)
-                dist = pc_entry.dist
-                url = dist.to_url() or pc_entry.get_urls_txt_value()
+                url = pc_entry.get_urls_txt_value()
                 md5sum = md5sum or pc_entry.md5sum
         dist = dist or Dist(url)
         fetch_recs[dist] = {'md5': md5sum, 'url': url}
@@ -251,7 +250,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         r = Resolve(index, sort=True)
         for dist in unknowns:
             name = dist.dist_name
-            fn = dist.to_filename()
+            fn = dist.fn
             fkeys = [d for d in r.index.keys() if r.index[d]['fn'] == fn]
             if fkeys:
                 del drecs[dist]
@@ -268,13 +267,14 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     for dist, info in iteritems(drecs):
         fkey = dist
         if fkey not in index:
-            index[fkey] = IndexRecord.from_objects(info, not_fetched=True)
+            record = IndexRecord.from_objects(info, not_fetched=True)
+            index[record] = record
             r = None
         urls[dist] = info['url']
 
     if r is None:
         r = Resolve(index)
-    dists = r.dependency_sort({d.quad[0]: d for d in urls.keys()})
+    dists = r.dependency_sort({r.package_quad(d)[0]: d for d in urls.keys()})
     urls = [urls[d] for d in dists]
 
     if verbose:

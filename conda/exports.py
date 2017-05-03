@@ -59,7 +59,8 @@ is_linked, linked, linked_data = is_linked, linked, linked_data
 from .misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
-from .resolve import MatchSpec, NoPackagesFound, Resolve, Unsatisfiable, normalized_version  # NOQA
+from .resolve import MatchSpec, NoPackagesFound, Resolve, Unsatisfiable  # NOQA
+from .models.version import normalized_version  # NOQA
 MatchSpec, NoPackagesFound, Resolve = MatchSpec, NoPackagesFound, Resolve
 Unsatisfiable, normalized_version = Unsatisfiable, normalized_version
 

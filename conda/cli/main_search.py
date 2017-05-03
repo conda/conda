@@ -152,7 +152,7 @@ def execute_search(args, parser):
     prefix = context.prefix_w_legacy_search
 
     linked = linked_data(prefix)
-    extracted = set(pc_entry.dist.name for pc_entry in PackageCache.get_all_extracted_entries())
+    extracted = set(pc_entry.index_json_record.name for pc_entry in PackageCache.get_all_extracted_entries())
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
@@ -199,7 +199,7 @@ def execute_search(args, parser):
             json[name] = []
 
         if args.outdated:
-            vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
+            vers_inst = [lpr.version for lpr in linked if lpr.name == name]
             if not vers_inst:
                 continue
             assert len(vers_inst) == 1, name
