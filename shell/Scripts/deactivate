@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -x
-
 _conda_set_vars() {
     # set _CONDA_SHELL_FLAVOR
     if [ -n "${BASH_VERSION:+x}" ]; then
@@ -67,12 +65,12 @@ _conda_script_is_sourced() {
 
 if ! _conda_script_is_sourced; then
     (
-      >&2 echo "Error: activate must be sourced. Run 'source activate envname'"
-      >&2 echo "instead of 'activate envname'."
+      >&2 echo "Error: deactivate must be sourced. Run 'source deactivate'"
+      >&2 echo "instead of 'deactivate'."
     )
     exit 1
 fi
 
 _conda_set_vars
 . "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
-_conda_activate "$@"
+_conda_deactivate

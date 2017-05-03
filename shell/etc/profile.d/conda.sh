@@ -53,7 +53,9 @@ _conda_hashr() {
 
 _conda_activate() {
     local ask_conda
+    echo ">>>" "$_CONDA_EXE"
     ask_conda="$("$_CONDA_EXE" shell.posix activate "$@")" || return $?
+    echo "$ask_conda"
     eval "$ask_conda"
 
     case "$_CONDA_SHELL_FLAVOR" in
