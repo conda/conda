@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
+from datetime import datetime
 import os
 from os.path import dirname, join
 import subprocess
 import sys
 import tempfile
 
-from datetime import datetime
-
-from conda import CONDA_PACKAGE_ROOT
 import pytest
 
-from conda.base.context import context
+from conda import CONDA_PACKAGE_ROOT
 from conda.cli.activate import _get_prefix_paths, binpath_from_arg
 from conda.compat import TemporaryDirectory, chain
 from conda.config import root_dir
@@ -103,16 +101,14 @@ def _format_vars(shell):
     old_path_parts = os.environ['PATH'].split(os.pathsep)
 
     if on_win:
-        new_path_parts = (
-            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'Library', 'bin')),
-            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'Scripts')),
-            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'bin')),
-            shelldict['path_to'](dirname(sys.executable)),
+        new_path_parts = tuple(_get_prefix_paths(join(dirname(CONDA_PACKAGE_ROOT), 'shell'))) + (
+            join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'bin'),
+            dirname(sys.executable),
         )
     else:
         new_path_parts = (
-            shelldict['path_to'](join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'bin')),
-            shelldict['path_to'](dirname(sys.executable)),
+            join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'bin'),
+            dirname(sys.executable),
         )
 
     base_path = shelldict['pathsep'].join(shelldict['path_to'](p)
