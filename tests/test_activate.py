@@ -841,7 +841,7 @@ class InteractiveShell(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.p:
             import signal
-            self.p.kill(signal.SIGTERM)
+            self.p.kill(signal.SIGINT)
 
     def sendline(self, s):
         return self.p.sendline(s)
