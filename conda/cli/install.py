@@ -315,7 +315,7 @@ def install(args, parser, command='install'):
         if not context.json:
             from .main_list import print_packages
 
-            spec_regex = r'^(%s)$' % re.escape('|'.join(s.split()[0] for s in ospecs))
+            spec_regex = r'^(%s)$' % '|'.join(re.escape(s.split()[0]) for s in ospecs)
             print('\n# All requested packages already installed.')
             for action in action_set:
                 print_packages(action["PREFIX"], spec_regex)
