@@ -7,14 +7,16 @@ from os.path import basename, exists
 from threading import Lock
 import warnings
 
-from requests.exceptions import ConnectionError, HTTPError, SSLError
+from requests.exceptions import ConnectionError, HTTPError, InvalidSchema, SSLError
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.context import context
+from ..common.compat import text_type
 from ..connection import CondaSession
-from ..exceptions import BasicClobberError, CondaHTTPError, MD5MismatchError, maybe_raise
+from ..exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
+                          MD5MismatchError, maybe_raise)
 
 log = getLogger(__name__)
 
@@ -115,6 +117,18 @@ def download(url, target_full_path, md5sum):
             log.debug("MD5 sums mismatch for download: %s (%s != %s), "
                       "trying again" % (url, digest_builder.hexdigest(), md5sum))
             raise MD5MismatchError(url, target_full_path, md5sum, actual_md5sum)
+
+    except InvalidSchema as e:
+        if 'SOCKS' in text_type(e):
+            message = dals("""
+                Requests has identified that your current working environment is configured
+                to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
+                proxy configuration, run `conda install pysocks`, and then you can re-enable
+                your proxy configuration.
+                """)
+            raise CondaDependencyError(message)
+        else:
+            raise
 
     except (ConnectionError, HTTPError, SSLError) as e:
         help_message = dals("""
