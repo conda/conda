@@ -789,11 +789,11 @@ class UrlChannelTests(TestCase):
             prioritized = prioritize_channels(new_context.channels)
             assert prioritized == OrderedDict((
                 ("file://network_share/shared_folder/path/conda/%s" % context.subdir, ("file://network_share/shared_folder/path/conda", 0)),
-                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 1)),
-                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 2)),
-                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 3)),
-                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 4)),
-                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 5)),
+                ("file://network_share/shared_folder/path/conda/noarch", ("file://network_share/shared_folder/path/conda", 0)),
+                ("https://some.url/ch_name/%s" % context.subdir, ("https://some.url/ch_name", 1)),
+                ("https://some.url/ch_name/noarch", ("https://some.url/ch_name", 1)),
+                ("file:///some/place/on/my/machine/%s" % context.subdir, ("file:///some/place/on/my/machine", 2)),
+                ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
             ))
 
     def test_subdirs(self):
@@ -816,19 +816,19 @@ class UrlChannelTests(TestCase):
             prioritized = prioritize_channels(channels)
             assert prioritized == OrderedDict((
                 ("https://conda.anaconda.org/bioconda/linux-highest", ("bioconda", 0)),
-                ("https://conda.anaconda.org/bioconda/linux-64", ("bioconda", 1)),
-                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 2)),
-                ("https://conda.anaconda.org/conda-forge/linux-highest", ("conda-forge", 3)),
-                ("https://conda.anaconda.org/conda-forge/linux-64", ("conda-forge", 4)),
-                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 5)),
+                ("https://conda.anaconda.org/bioconda/linux-64", ("bioconda", 0)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 0)),
+                ("https://conda.anaconda.org/conda-forge/linux-highest", ("conda-forge", 1)),
+                ("https://conda.anaconda.org/conda-forge/linux-64", ("conda-forge", 1)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 1)),
             ))
 
             prioritized = prioritize_channels(channels, subdirs=('linux-again', 'noarch'))
             assert prioritized == OrderedDict((
                 ("https://conda.anaconda.org/bioconda/linux-again", ("bioconda", 0)),
-                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 1)),
-                ("https://conda.anaconda.org/conda-forge/linux-again", ("conda-forge", 2)),
-                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 3)),
+                ("https://conda.anaconda.org/bioconda/noarch", ("bioconda", 0)),
+                ("https://conda.anaconda.org/conda-forge/linux-again", ("conda-forge", 1)),
+                ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 1)),
             ))
 
 
