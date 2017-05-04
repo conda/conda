@@ -39,22 +39,22 @@ The conda configuration file can be used to change:
 
 To create or modify a .condarc configuration file, from the command line, use
 the ``conda config`` command, or use a text editor to create a new file named
-.condarc and save to your user home directory or root directory. 
+.condarc and save to your user home directory or root directory.
 
-Example: 
+Example:
 
 .. code-block:: yaml
 
-  conda config --add channels r
+  conda config --add channels conda-forge
 
-SEE ALSO: For a complete list of conda config commands available, see the 
-:doc:`command reference <commands/conda-config>`. The same list is available 
+SEE ALSO: For a complete list of conda config commands available, see the
+:doc:`command reference <commands/conda-config>`. The same list is available
 at the command prompt by typing ``conda config --help``.
 
 The .condarc configuration file follows
 simple `YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
 
-:doc:`Download a sample .condarc file<install/sample-condarc>` to edit in your editor 
+:doc:`Download a sample .condarc file<install/sample-condarc>` to edit in your editor
 and save to your user home directory or root directory.
 
 TIP: Conda supports :doc:`tab completion<install/tab-completion>` with external packages
@@ -87,20 +87,20 @@ the ``channel_alias`` key as explained below. The default is just ``defaults``.
     - file:///some/local/directory
     - defaults
 
-To select channels for a single environment, put a ``.condarc`` file in the root 
-directory of that environment. If you have installed Miniconda with Python 3 in 
-your home directory and the environment is named "flowers", the path may be 
-``~/miniconda3/envs/flowers/.condarc``, and for other conda installations the 
+To select channels for a single environment, put a ``.condarc`` file in the root
+directory of that environment. If you have installed Miniconda with Python 3 in
+your home directory and the environment is named "flowers", the path may be
+``~/miniconda3/envs/flowers/.condarc``, and for other conda installations the
 path will be similar.
 
 
 Update conda automatically (auto_update_conda)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When True, conda updates itself any time a user updates or installs a package 
-in the root environment. When False, conda updates itself only if the user 
-manually issues a conda update command. The default is ``True``. You can edit 
-the .condarc file or set the option with a command such 
+When True, conda updates itself any time a user updates or installs a package
+in the root environment. When False, conda updates itself only if the user
+manually issues a conda update command. The default is ``True``. You can edit
+the .condarc file or set the option with a command such
 as ``conda config --set auto_update_conda False``.
 
 .. code-block:: yaml
@@ -193,7 +193,7 @@ as follows: https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_rese
 
 Note: Be careful not to use ``http`` when you mean ``https``, or ``https`` when you mean ``http``.
 
-Note: If you are behind a proxy that does SSL inspection such as a Cisco IronPort Web Security Appliance (WSA), 
+Note: If you are behind a proxy that does SSL inspection such as a Cisco IronPort Web Security Appliance (WSA),
 it may be necessary to override the SSL verification settings using ``ssl_verify`` as described in :ref:`SSL_verification`.
 
 
@@ -247,8 +247,8 @@ the same as ``conda install --channel https://yourrepo.com/jsmith <package>`` .
 .. code-block:: yaml
 
   channel_alias: https://your.repo/
-  
-NOTE: For Windows users, the slash (/) at the end of a URL is required. 
+
+NOTE: For Windows users, the slash (/) at the end of a URL is required.
 Example https://your.repo/conda/
 
 
