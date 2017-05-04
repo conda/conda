@@ -53,6 +53,7 @@
 * fix #3470 reduce excessive error messages (#5195)
 * fix #1597 make extra sure --dry-run doesn't take any actions (#5201)
 * fix #3470 extra newlines around exceptions (#5200)
+* fix #5214 install messages for 'nothing_to_do' case (#5216)
 
 ### Non-User-Facing Changes
 * resolve #5138 add test of rm_rf of symlinked files (#4373)
