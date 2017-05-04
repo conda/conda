@@ -41,6 +41,7 @@ _platform_map = {
 non_x86_linux_machines = {
     'armv6l',
     'armv7l',
+    'aarch64',
     'ppc64le',
 }
 _arch_names = {
@@ -150,6 +151,7 @@ class Context(Configuration):
     always_yes = PrimitiveParameter(False, aliases=('yes',))
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
+    dry_run = PrimitiveParameter(False)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
     offline = PrimitiveParameter(False)
@@ -465,6 +467,7 @@ class Context(Configuration):
             'croot',
             'debug',
             'default_python',
+            'dry_run',
             'enable_private_envs',
             'force_32bit',
             'max_shlvl',

@@ -491,6 +491,7 @@ class ProgressiveFetchExtract(object):
         if not self._prepared:
             self.prepare()
 
+        assert not context.dry_run
         with signal_handler(conda_signal_handler):
             for action in concatv(self.cache_actions, self.extract_actions):
                 self._execute_action(action)

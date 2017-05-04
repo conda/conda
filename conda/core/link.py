@@ -196,6 +196,7 @@ class UnlinkLinkTransaction(object):
     def execute(self):
         if not self._verified:
             self.verify()
+        assert not context.dry_run
         self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
 
     @classmethod
