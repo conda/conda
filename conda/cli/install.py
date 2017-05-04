@@ -311,20 +311,20 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
 
-    if not context.json:
-        if any(nothing_to_do(actions) for actions in action_set) and not newenv:
+    if any(nothing_to_do(actions) for actions in action_set) and not newenv:
+        if not context.json:
             from .main_list import print_packages
 
-            if not context.json:
-                spec_regex = r'^(%s)$' % re.escape('|'.join(s.split()[0] for s in ospecs))
-                print('\n# All requested packages already installed.')
-                for action in action_set:
-                    print_packages(action["PREFIX"], spec_regex)
-            else:
-                common.stdout_json_success(
-                    message='All requested packages already installed.')
-            return
+            spec_regex = r'^(%s)$' % re.escape('|'.join(s.split()[0] for s in ospecs))
+            print('\n# All requested packages already installed.')
+            for action in action_set:
+                print_packages(action["PREFIX"], spec_regex)
+        else:
+            common.stdout_json_success(
+                message='All requested packages already installed.')
+        return
 
+    if not context.json:
         for actions in action_set:
             print()
             print("Package plan for installation in environment %s:" % actions["PREFIX"])
