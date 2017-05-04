@@ -1,7 +1,17 @@
 ## 4.3.18 (unreleased)
 
 ### Bug Fixes
+* fix #5152 conda info spacing (#5166)
 * fix --use-index-cache actually hitting the index cache (#5134)
+* backport LinkPathAction verify from 4.4 (#5171)
+* fix #5184 stack trace on invalid map configuration parameter (#5186)
+* fix #5189 stack trace on invalid sequence config param (#5192)
+* add support for the linux-aarch64 platform (#5190)
+* fix repodata fetch with the `--offline` flag (#5146)
+* fix #1773 conda remove spell checking (#5176)
+* fix #3470 reduce excessive error messages (#5195)
+* fix #1597 make extra sure --dry-run doesn't take any actions (#5201)
+* fix #3470 extra newlines around exceptions (#5200)
 
 ### Non-User-Facing Changes
 * resolve #5138 add test of rm_rf of symlinked files (#4373)
