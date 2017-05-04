@@ -204,7 +204,6 @@ class CreateLeasedPathAction(CreateInPrefixPathAction):
 
 
 class LinkPathAction(CreateInPrefixPathAction):
-    _verify_max_backoff_reached = False
 
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
@@ -288,10 +287,12 @@ class LinkPathAction(CreateInPrefixPathAction):
             # This backoff loop is added because of some weird race condition conda-build
             # experiences. Would be nice at some point to get to the bottom of why it happens.
 
+            # sum(((2 ** n) + random()) * 0.1 for n in range(2))
             # with max_retries = 2, max total time ~= 0.4 sec
+            # with max_retries = 3, max total time ~= 0.8 sec
             # with max_retries = 6, max total time ~= 6.5 sec
             count = self.transaction_context.get('_verify_backoff_count', 0)
-            max_retries = 6 if count < 2 else 2
+            max_retries = 6 if count < 4 else 3
             for n in range(max_retries):
                 sleep_time = ((2 ** n) + random()) * 0.1
                 log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)

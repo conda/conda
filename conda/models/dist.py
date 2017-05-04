@@ -55,19 +55,17 @@ class Dist(Entity):
     build_string = StringField(immutable=True)
     build_number = IntegerField(immutable=True)
 
-    with_features_depends = StringField(required=False, nullable=True, immutable=True)
     base_url = StringField(required=False, nullable=True, immutable=True)
     platform = StringField(required=False, nullable=True, immutable=True)
 
     def __init__(self, channel, dist_name=None, name=None, version=None, build_string=None,
-                 build_number=None, with_features_depends=None, base_url=None, platform=None):
+                 build_number=None, base_url=None, platform=None):
         super(Dist, self).__init__(channel=channel,
                                    dist_name=dist_name,
                                    name=name,
                                    version=version,
                                    build_string=build_string,
                                    build_number=build_number,
-                                   with_features_depends=with_features_depends,
                                    base_url=base_url,
                                    platform=platform)
 
@@ -90,11 +88,7 @@ class Dist(Entity):
         return parts[0], parts[1], parts[2], self.channel or DEFAULTS_CHANNEL_NAME
 
     def __str__(self):
-        base = "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
-        if self.with_features_depends:
-            return "%s[%s]" % (base, self.with_features_depends)
-        else:
-            return base
+        return "%s::%s" % (self.channel, self.dist_name) if self.channel else self.dist_name
 
     @property
     def is_feature_package(self):
@@ -126,8 +120,7 @@ class Dist(Entity):
                        version="",
                        build_string="",
                        build_number=0,
-                       dist_name=string,
-                       with_features_depends=None)
+                       dist_name=string)
 
         REGEX_STR = (r'(?:([^\s\[\]]+)::)?'        # optional channel
                      r'([^\s\[\]]+)'               # 3.x dist
@@ -150,8 +143,7 @@ class Dist(Entity):
                    version=dist_details.version,
                    build_string=dist_details.build_string,
                    build_number=dist_details.build_number,
-                   dist_name=original_dist,
-                   with_features_depends=w_f_d)
+                   dist_name=original_dist)
 
     @staticmethod
     def parse_dist_name(string):
@@ -220,7 +212,7 @@ class Dist(Entity):
                 else join_url(self.base_url, filename))
 
     def __key__(self):
-        return self.channel, self.dist_name, self.with_features_depends
+        return self.channel, self.dist_name
 
     def __lt__(self, other):
         assert isinstance(other, self.__class__)

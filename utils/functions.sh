@@ -120,6 +120,8 @@ install_conda_shell_scripts() {
     local src_dir=${2:-${SRC_DIR:-$PWD}}
     local symlink_scripts=${3:-1}
 
+    local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
+
     local link_cmd
     case "$symlink_scripts" in 0|true) link_cmd="ln -sf";; *) link_cmd="cp";; esac
 
@@ -148,11 +150,24 @@ install_conda_shell_scripts() {
 
         rm -f $bin_dir/deactivate.bat
         $link_cmd "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
+
+        mkdir -p "$prefix/Library/bin"
+        rm -f "$prefix/Library/bin/conda.bat"
+        # local win_conda_exe="$(cygpath --windows "$conda_exe")"
+        # echo "@SET \"CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
+        cat "$src_dir/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
     fi
 
     mkdir -p "$prefix/etc/fish/conf.d/"
     rm -f "$prefix/etc/fish/conf.d/conda.fish"
     $link_cmd "$src_dir/shell/etc/fish/conf.d/conda.fish" "$prefix/etc/fish/conf.d/conda.fish"
+
+    local sp_dir=$("$PYTHON_EXE" -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    mkdir -p "$sp_dir/xonsh"
+    rm -f "$sp_dir/xonsh/conda.xsh"
+    echo "_CONDA_EXE = \"$CONDA_EXE\"" > "$sp_dir/xonsh/conda.xsh"
+    cat "$src_dir/shell/conda.xsh" >> "$sp_dir/xonsh/conda.xsh"
+
 }
 
 
@@ -248,6 +263,7 @@ set_test_vars() {
     export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
 
     export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+
 }
 
 
@@ -333,7 +349,9 @@ run_setup() {
         CYGWIN*|MINGW*|MSYS*)
             install_conda_dev
             ;;
-        *)  ;;
+        *)  echo "setup not configured for $(uname -s)"
+            return 1
+            ;;
     esac
 
     set +e
@@ -351,11 +369,11 @@ run_tests() {
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
         conda_activate_test
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
+        # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
     else
         conda_unit_test
         conda_integration_test
-        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION
+        $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
     fi
 }
 

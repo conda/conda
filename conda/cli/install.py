@@ -355,17 +355,3 @@ def install(args, parser, command='install'):
     if context.json:
         actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]
         common.stdout_json_success(actions=actions)
-
-
-def check_write(command, prefix, json=False):
-    if inroot_notwritable(prefix):
-        from .help import root_read_only
-        root_read_only(command, prefix, json=json)
-
-
-def inroot_notwritable(prefix):
-    """
-    return True if the prefix is under root and root is not writeable
-    """
-    return (abspath(prefix).startswith(context.root_prefix) and
-            not context.root_writable)

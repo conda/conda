@@ -16,7 +16,6 @@ from ..gateways.disk.read import read_index_json
 from ..models.channel import prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
-from ..resolve import MatchSpec
 
 try:
     from cytoolz.itertoolz import take
@@ -94,19 +93,6 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
                                        auth=auth)
         dist = Dist(rec)
         index[dist] = rec
-        if 'with_features_depends' in info:
-            base_deps = info.get('depends', ())
-            base_feats = set(info.get('features', '').strip().split())
-            for feat, deps in iteritems(info['with_features_depends']):
-                feat = set(feat.strip().split())
-                snames = {MatchSpec(s).name for s in deps}
-                base2 = [s for s in base_deps if MatchSpec(s).name not in snames]
-                feat2 = ' '.join(sorted(base_feats | feat))
-                feat = ' '.join(sorted(feat))
-                deps2 = base2 + deps
-                dist = Dist.from_objects(dist, with_features_depends=feat)
-                rec2 = IndexRecord.from_objects(rec, features=feat2, depends=deps2)
-                index[dist] = rec2
 
 
 def supplement_index_with_features(index, features=()):

@@ -41,7 +41,7 @@ class CondaError(Exception):
         super(CondaError, self).__init__(message)
 
     def __repr__(self):
-        return '%s: %s\n' % (self.__class__.__name__, text_type(self))
+        return '%s: %s' % (self.__class__.__name__, text_type(self))
 
     def __str__(self):
         return text_type(self.message % self._kwargs)

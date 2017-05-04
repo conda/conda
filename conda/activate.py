@@ -6,6 +6,7 @@ import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
 import sys
+from tempfile import NamedTemporaryFile
 
 try:
     from cytoolz.itertoolz import concatv
@@ -38,11 +39,13 @@ class Activator(object):
     def __init__(self, shell):
         from .base.context import context
         self.context = context
+        self.shell = shell
 
         if shell == 'posix':
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
@@ -52,37 +55,83 @@ class Activator(object):
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.csh'
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'setenv %s "%s"'
             self.run_script_tmpl = 'source "%s"'
 
         elif shell == 'xonsh':
-            self.pathsep_join = lambda x: "['%s']" % "', '".join(x)
-            self.path_conversion = lambda x: x  # not sure if you want unix paths on windows or not
+            self.pathsep_join = ':'.join
+            self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
+            self.tempfile_extension = '.xsh'
 
             self.unset_var_tmpl = 'del $%s'
             self.set_var_tmpl = '$%s = "%s"'
             self.run_script_tmpl = 'source "%s"'
 
+        elif shell == 'cmd.exe':
+            self.pathsep_join = ';'.join
+            self.path_conversion = path_identity
+            self.script_extension = '.bat'
+            self.tempfile_extension = '.bat'
+
+            self.unset_var_tmpl = '@SET %s='
+            self.set_var_tmpl = '@SET "%s=%s"'
+            self.run_script_tmpl = '@CALL "%s"'
+
+        elif shell == 'fish':
+            self.pathsep_join = ' '.join
+            self.path_conversion = native_path_to_unix
+            self.script_extension = '.fish'
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+
+            self.unset_var_tmpl = 'set -e %s'
+            self.set_var_tmpl = 'set -gx %s "%s"'
+            self.run_script_tmpl = 'source "%s"'
+
+        elif shell == 'powershell':
+            self.pathsep_join = ';'.join
+            self.path_conversion = path_identity
+            self.script_extension = '.ps1'
+            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+
+            self.unset_var_tmpl = 'Remove-Variable %s'
+            self.set_var_tmpl = '$env:%s = "%s"'
+            self.run_script_tmpl = '. "%s"'
+
+        else:
+            raise NotImplementedError()
+
+    def _finalize(self, commands, ext):
+        commands = concatv(commands, ('',))  # add terminating newline
+        if ext is None:
+            return '\n'.join(commands)
+        elif ext:
+            with NamedTemporaryFile(suffix=ext, delete=False) as tf:
+                tf.write(ensure_binary('\n'.join(commands)))
+            return tf.name
         else:
             raise NotImplementedError()
 
     def activate(self, name_or_prefix):
-        return '\n'.join(self._make_commands(self.build_activate(name_or_prefix)))
+        return self._finalize(self._yield_commands(self.build_activate(name_or_prefix)),
+                              self.tempfile_extension)
 
     def deactivate(self):
-        return '\n'.join(self._make_commands(self.build_deactivate()))
+        return self._finalize(self._yield_commands(self.build_deactivate()),
+                              self.tempfile_extension)
 
     def reactivate(self):
-        return '\n'.join(self._make_commands(self.build_reactivate()))
+        return self._finalize(self._yield_commands(self.build_reactivate()),
+                              self.tempfile_extension)
 
-    def _make_commands(self, cmds_dict):
-        for key in cmds_dict.get('unset_vars', ()):
+    def _yield_commands(self, cmds_dict):
+        for key in sorted(cmds_dict.get('unset_vars', ())):
             yield self.unset_var_tmpl % key
 
-        for key, value in iteritems(cmds_dict.get('set_vars', {})):
+        for key, value in sorted(iteritems(cmds_dict.get('set_vars', {}))):
             yield self.set_var_tmpl % (key, value)
 
         for script in cmds_dict.get('deactivate_scripts', ()):
@@ -115,7 +164,7 @@ class Activator(object):
         if old_conda_prefix == prefix:
             return self.build_reactivate()
         elif os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
-            # in this case, user is attenmpting to activate the previous environment,
+            # in this case, user is attempting to activate the previous environment,
             #  i.e. step back down
             return self.build_deactivate()
 
@@ -232,7 +281,7 @@ class Activator(object):
             return path.split(os.pathsep)
 
     def _get_path_dirs(self, prefix):
-        if on_win:
+        if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
             yield join(prefix, 'Library', 'mingw-w64', 'bin')
             yield join(prefix, 'Library', 'usr', 'bin')
@@ -257,7 +306,7 @@ class Activator(object):
             path_list = self._get_starting_path_list()
         else:
             path_list = list(starting_path_dirs)
-        if on_win:
+        if on_win:  # pragma: unix no cover
             # windows has a nasty habit of adding extra Library\bin directories
             prefix_dirs = tuple(self._get_path_dirs(old_prefix))
             try:
@@ -303,13 +352,22 @@ def expand(path):
     return abspath(expanduser(expandvars(path)))
 
 
-def native_path_to_unix(*paths):
+def ensure_binary(value):
+    try:
+        return value.encode('utf-8')
+    except AttributeError:  # pragma: no cover
+        # AttributeError: '<>' object has no attribute 'encode'
+        # In this case assume already binary type and do nothing
+        return value
+
+
+def native_path_to_unix(*paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
-        return paths[0] if len(paths) == 1 else paths
+        return path_identity(*paths)
     from subprocess import PIPE, Popen
     from shlex import split
-    command = 'cygpath.exe --path -f -'
+    command = 'cygpath --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
     joined = ("%s" % os.pathsep).join(paths)
     if hasattr(joined, 'encode'):
@@ -318,11 +376,17 @@ def native_path_to_unix(*paths):
     rc = p.returncode
     if rc != 0 or stderr:
         from subprocess import CalledProcessError
-        raise CalledProcessError(rc, command, "\n  stdout: %s\n  stderr: %s\n" % (stdout, stderr))
+        message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
+        print(message, file=sys.stderr)
+        raise CalledProcessError(rc, command, message)
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
     final = stdout.strip().split(':')
     return final[0] if len(final) == 1 else tuple(final)
+
+
+def path_identity(*paths):
+    return paths[0] if len(paths) == 1 else paths
 
 
 on_win = bool(sys.platform == "win32")
@@ -367,4 +431,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

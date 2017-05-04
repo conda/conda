@@ -128,26 +128,6 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(len(dists), 107)
         self.assertTrue(Dist('defaults::scipy-0.12.0-np17py27_0.tar.bz2') in dists)
 
-    def test_anaconda_mkl_2(self):
-        # to test "with_features_depends"
-        dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
-        self.assert_have_mkl(dists, ('numpy', 'scipy', 'numexpr', 'scikit-learn'))
-        self.assertTrue(Dist('defaults::scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
-        self.assertTrue(Dist('defaults::mkl-rt-11.0-p0.tar.bz2') in dists)
-        self.assertEqual(len(dists), 108)
-
-        dists2 = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*', 'mkl'])
-        self.assertTrue(set(dists) <= set(dists2))
-        self.assertEqual(len(dists2), 110)
-
-    def test_anaconda_mkl_3(self):
-        # to test "with_features_depends"
-        dists = r.install(['anaconda 1.5.0', 'python 3*', 'mkl@'])
-        self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue(Dist('defaults::scipy-0.12.0-np17py33_p0.tar.bz2') in dists)
-        self.assertTrue(Dist('defaults::mkl-rt-11.0-p0.tar.bz2') in dists)
-        self.assertEqual(len(dists), 61)
-
 
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
@@ -264,10 +244,10 @@ def test_generate_eq():
         'numpy-1.5.1-py27_3.tar.bz2': 3,
         'numpy-1.6.2-py26_3.tar.bz2': 2,
         'numpy-1.6.2-py26_4.tar.bz2': 2,
-        'numpy-1.6.2-py26_p4.tar.bz2': 2,
+        # 'numpy-1.6.2-py26_p4.tar.bz2': 2,
         'numpy-1.6.2-py27_3.tar.bz2': 2,
         'numpy-1.6.2-py27_4.tar.bz2': 2,
-        'numpy-1.6.2-py27_p4.tar.bz2': 2,
+        # 'numpy-1.6.2-py27_p4.tar.bz2': 2,
         'numpy-1.7.0-py26_0.tar.bz2': 1,
         'numpy-1.7.0-py27_0.tar.bz2': 1,
         'numpy-1.7.0-py33_0.tar.bz2': 1,

@@ -424,7 +424,17 @@ class ConfigurationTests(TestCase):
             assert config.changeps1 is False
 
     def test_empty_map_parameter(self):
-
         config = SampleConfiguration()._set_raw_data(load_from_string_data('bad_boolean_map'))
         config.check_source('bad_boolean_map')
 
+    def test_invalid_map_parameter(self):
+        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', {'proxy_servers': 'blah'}))
+        config = SampleConfiguration()._set_raw_data(data)
+        with raises(InvalidTypeError):
+            config.proxy_servers
+
+    def test_invalid_seq_parameter(self):
+        data = odict(s1=YamlRawParameter.make_raw_parameters('s1', {'channels': 'y_u_no_tuple'}))
+        config = SampleConfiguration()._set_raw_data(data)
+        with raises(InvalidTypeError):
+            config.channels

@@ -38,18 +38,6 @@ class DistTests(TestCase):
         d3 = Dist(d2)
         assert d3 is d2
 
-    def test_with_feature_depends(self):
-        d = Dist.from_string("spyder-app-2.3.8-py27_0[mkl]")
-        assert d.with_features_depends == "mkl"
-
-        d = Dist("mkl@")
-        assert d.channel == "@"
-        assert d.quad[0] == "mkl@"
-        assert d.quad[1] == ""
-        assert d.quad[2] == ""
-        assert d.with_features_depends is None
-        assert d.is_feature_package
-
     def test_channel(self):
         d = Dist.from_string("conda-forge::spyder-app-2.3.8-py27_0.tar.bz2")
         assert d.channel == 'conda-forge'

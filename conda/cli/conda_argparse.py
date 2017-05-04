@@ -100,7 +100,7 @@ class NullCountAction(_CountAction):
         setattr(namespace, self.dest, new_count)
 
 
-def add_parser_install(p):
+def add_parser_create_install_update(p):
     add_parser_yes(p)
     p.add_argument(
         '-f', "--force",
@@ -174,6 +174,13 @@ def add_parser_install(p):
         help="Package version takes precedence over channel priority (default: %s). "
              "Note: This feature is in beta and may change in a future release."
              "" % (not context.channel_priority,)
+    )
+    p.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering of overlapping file paths within packages, "
+             "and suppress related warnings.",
     )
     add_parser_show_channel_urls(p)
 
@@ -257,16 +264,6 @@ def add_parser_copy(p):
         action="store_true",
         default=NULL,
         help="Install all packages using copies instead of hard- or soft-linking."
-    )
-
-
-def add_parser_create_install_update(p):
-    p.add_argument(
-        "--clobber",
-        action="store_true",
-        default=NULL,
-        help="Allow clobbering of overlapping file paths within packages, "
-             "and suppress related warnings.",
     )
 
 

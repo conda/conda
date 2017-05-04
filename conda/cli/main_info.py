@@ -98,8 +98,7 @@ def get_user_site():
     return site_dirs
 
 
-IGNORE_FIELDS = {'files', 'auth', 'with_features_depends',
-                 'preferred_env', 'priority'}
+IGNORE_FIELDS = {'files', 'auth', 'preferred_env', 'priority'}
 
 SKIP_FIELDS = IGNORE_FIELDS | {'name', 'version', 'build', 'build_number',
                                'channel', 'schannel', 'size', 'fn', 'depends'}
@@ -165,19 +164,19 @@ def get_info_dict(system=False):
     try:
         from ..install import linked_data
         root_pkgs = linked_data(context.root_prefix)
-    except:
-        root_pkgs = None
+    except:  # pragma: no cover
+        root_pkgs = {}
 
     try:
         from requests import __version__ as requests_version
-    except ImportError:
+    except ImportError:  # pragma: no cover
         requests_version = "could not import"
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         requests_version = "Error %r" % e
 
     try:
         from conda_env import __version__ as conda_env_version
-    except:
+    except:  # pragma: no cover
         try:
             cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
             conda_env_version = cenv[0]['version']
@@ -186,11 +185,11 @@ def get_info_dict(system=False):
 
     try:
         import conda_build
-    except ImportError:
+    except ImportError:  # pragma: no cover
         conda_build_version = "not installed"
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         conda_build_version = "Error %s" % e
-    else:
+    else:  # pragma: no cover
         conda_build_version = conda_build.__version__
 
     channels = list(prioritize_channels(context.channels).keys())
@@ -248,12 +247,14 @@ def get_info_dict(system=False):
 
 
 def get_main_info_str(info_dict):
+    from .._vendor.auxlib.ish import dals
+
     for key in 'pkgs_dirs', 'envs_dirs', 'channels':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
     builder = []
-    builder.append("""\
+    builder.append(dals("""
     Current conda install:
 
                    platform : %(platform)s
@@ -271,12 +272,10 @@ def get_main_info_str(info_dict):
                 config file : %(rc_path)s
                offline mode : %(offline)s
                  user-agent : %(user_agent)s\
-    """ % info_dict)
+    """) % info_dict)
 
     if not on_win:
-        builder.append("""\
-                    UID:GID : %(UID)s:%(GID)s
-    """ % info_dict)
+        builder.append("                UID:GID : %(UID)s:%(GID)s" % info_dict)
     else:
         builder.append("")
 
@@ -326,7 +325,7 @@ def execute(args, parser):
             print("sys.prefix: %s" % sys.prefix)
             print("sys.executable: %s" % sys.executable)
             print("conda location: %s" % info_dict['conda_location'])
-            for cmd in sorted(set(find_commands() + ['build'])):
+            for cmd in sorted(set(find_commands() + ('build',))):
                 print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
             print("user site dirs: ", end='')
             site_dirs = get_user_site()
@@ -345,12 +344,14 @@ def execute(args, parser):
     if args.license and not context.json:
         try:
             from _license import show_info
-            show_info()
+            show_info()  # pragma: no cover
         except ImportError:
             print("""\
 WARNING: could not import _license.show_info
 # try:
 # $ conda install -n root _license""")
+        except Exception as e:
+            log.warn('%r', e)
 
     if context.json:
         stdout_json(info_dict)
