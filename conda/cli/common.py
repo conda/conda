@@ -285,6 +285,8 @@ def add_parser_install(p):
     add_parser_prefix(p)
     add_parser_quiet(p)
     add_parser_copy(p)
+    add_parser_create_install_update(p)
+    add_parser_insecure(p)
     p.add_argument(
         "--alt-hint",
         action="store_true",
@@ -395,6 +397,16 @@ def add_parser_create_install_update(p):
         default=NULL,
         help="Allow clobbering of overlapping file paths within packages, "
              "and suppress related warnings.",
+    )
+
+
+def add_parser_insecure(p):
+    p.add_argument(
+        "-k", "--insecure",
+        action="store_false",
+        default=NULL,
+        help="Allow conda to perform \"insecure\" SSL connections and transfers."
+             "Equivalent to setting 'ssl_verify' to 'false'."
     )
 
 

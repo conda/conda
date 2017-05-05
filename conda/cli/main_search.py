@@ -9,7 +9,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from .common import (Completer, Packages, add_parser_channels, add_parser_json, add_parser_known,
                      add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
                      add_parser_use_local, disp_features, arg2spec,
-                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
+                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json,
+                     add_parser_insecure)
 from ..api import get_index
 from ..base.context import context
 from ..common.compat import text_type
@@ -117,6 +118,7 @@ package.""",
     add_parser_channels(p)
     add_parser_json(p)
     add_parser_use_local(p)
+    add_parser_insecure(p)
     p.set_defaults(func=execute)
 
 def execute(args, parser):

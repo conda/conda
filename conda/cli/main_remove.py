@@ -17,7 +17,8 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      add_parser_prefix, add_parser_pscheck, add_parser_quiet,
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes, confirm_yn,
                      create_prefix_spec_map_with_deps, ensure_override_channels_requires_channel,
-                     ensure_use_local, names_in_specs, specs_from_args, stdout_json)
+                     ensure_use_local, names_in_specs, specs_from_args, stdout_json,
+                     add_parser_insecure)
 from .install import check_write
 from ..base.constants import ROOT_NO_RM
 from ..base.context import context
@@ -98,6 +99,7 @@ def configure_parser(sub_parsers, name='remove'):
     add_parser_use_local(p)
     add_parser_offline(p)
     add_parser_pscheck(p)
+    add_parser_insecure(p)
     p.add_argument(
         'package_names',
         metavar='package_name',
