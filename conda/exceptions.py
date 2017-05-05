@@ -192,10 +192,9 @@ class FileNotFoundError(CondaError, OSError):
 
 
 class DirectoryNotFoundError(CondaError):
-    def __init__(self, directory):
-        self.directory = directory
-        msg = "'%s'" % directory
-        super(DirectoryNotFoundError, self).__init__(msg)
+    def __init__(self, path):
+        message = "%(path)s"
+        super(DirectoryNotFoundError, self).__init__(message, path=path)
 
 
 class EnvironmentLocationNotFound(CondaError):

@@ -169,14 +169,14 @@ class ExceptionTests(TestCase):
         assert json_obj['exception_name'] == 'DirectoryNotFoundError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
-        assert json_obj['directory'] == "Groot"
+        assert json_obj['path'] == "Groot"
 
         with env_var("CONDA_JSON", "no", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "DirectoryNotFoundError: 'Groot'"
+        assert c.stderr.strip() == "DirectoryNotFoundError: Groot"
 
     def test_MD5MismatchError(self):
         url = "https://download.url/path/to/file.tar.bz2"
