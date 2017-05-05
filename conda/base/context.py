@@ -103,6 +103,7 @@ class Context(Configuration):
 
     # remote connection details
     ssl_verify = PrimitiveParameter(True, element_type=string_types + (bool,),
+                                    aliases=('insecure',),
                                     validation=ssl_verify_validation)
     client_ssl_cert = PrimitiveParameter(None, aliases=('client_cert',),
                                          element_type=string_types + (NoneType,))
