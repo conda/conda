@@ -1126,6 +1126,9 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.REMOVE, prefix, "flask")
             assert not package_is_installed(prefix, "flask-")
 
+        # regression test for #3489
+        # don't raise for remove --all if environment doesn't exist
+        run_command(Commands.REMOVE, prefix, "--all")
 
     def test_transactional_rollback_simple(self):
         from conda.core.path_actions import CreateLinkedPackageRecordAction
