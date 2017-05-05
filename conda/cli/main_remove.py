@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from argparse import RawDescriptionHelpFormatter
 from collections import defaultdict
 import logging
-from os.path import abspath, join
+from os.path import abspath, join, isdir
 import sys
 
 from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_json,
@@ -130,6 +130,10 @@ def execute(args, parser):
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
+    if args.all and not isdir(prefix):
+        # full environment removal was requested, but environment doesn't exist anyway
+        return 0
+
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
     if not args.features and args.all:
