@@ -9,18 +9,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from argparse import RawDescriptionHelpFormatter
 from collections import defaultdict
 import logging
-from os.path import abspath, join, isdir
+from os.path import abspath, isdir, join
 import sys
 
-from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_json,
-                             add_parser_no_pin, add_parser_no_use_index_cache, add_parser_offline,
-                             add_parser_prefix, add_parser_pscheck, add_parser_quiet,
-                             add_parser_use_index_cache, add_parser_use_local, add_parser_yes)
-
-try:
-    from cytoolz.itertoolz import groupby
-except ImportError:
-    from .._vendor.toolz.itertoolz import groupby
+from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_insecure,
+                             add_parser_json, add_parser_no_pin, add_parser_no_use_index_cache,
+                             add_parser_offline, add_parser_prefix, add_parser_pscheck,
+                             add_parser_quiet, add_parser_use_index_cache, add_parser_use_local,
+                             add_parser_yes)
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -91,6 +87,7 @@ def configure_parser(sub_parsers, name='remove'):
     add_parser_use_local(p)
     add_parser_offline(p)
     add_parser_pscheck(p)
+    add_parser_insecure(p)
     p.add_argument(
         'package_names',
         metavar='package_name',
@@ -102,6 +99,11 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
+    try:
+        from cytoolz.itertoolz import groupby
+    except ImportError:
+        from .._vendor.toolz.itertoolz import groupby
+
     from .common import (confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
                          names_in_specs, specs_from_args, stdout_json)
     from ..base.constants import ROOT_NO_RM

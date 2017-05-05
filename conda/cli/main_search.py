@@ -6,13 +6,9 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
-                     ensure_use_local, stdout_json)
-from .conda_argparse import (add_parser_channels, add_parser_json, add_parser_known,
-                             add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
-                             add_parser_use_local)
-from ..base.context import context
-from ..common.compat import text_type
+from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
+                             add_parser_known, add_parser_offline, add_parser_prefix,
+                             add_parser_use_index_cache, add_parser_use_local)
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -104,11 +100,14 @@ package.""",
     add_parser_channels(p)
     add_parser_json(p)
     add_parser_use_local(p)
+    add_parser_insecure(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    from ..common.compat import text_type
     from ..exceptions import NoPackagesFoundError, PackageNotFoundError
+
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
@@ -118,12 +117,15 @@ def execute(args, parser):
 
 def execute_search(args, parser):
     import re
+    from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
+                         ensure_use_local, stdout_json)
     from ..resolve import Resolve
     from ..api import get_index
     from ..misc import make_icon_url
     from ..models.match_spec import MatchSpec
     from ..core.linked_data import linked as linked_data
     from ..core.package_cache import PackageCache
+    from ..base.context import context
 
     if args.reverse_dependency:
         if not args.regex:

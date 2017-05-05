@@ -43,6 +43,10 @@
 
 ## 4.3.18 (unreleased)
 
+### Improvements
+* resolve #4224 warn when pysocks isn't installed (#5226)
+* resolve #5229 add --insecure flag to skip ssl verification (#5230)
+
 ### Bug Fixes
 * fix #5152 conda info spacing (#5166)
 * fix --use-index-cache actually hitting the index cache (#5134)
@@ -56,6 +60,7 @@
 * fix #1597 make extra sure --dry-run doesn't take any actions (#5201)
 * fix #3470 extra newlines around exceptions (#5200)
 * fix #5214 install messages for 'nothing_to_do' case (#5216)
+* fix #598 stack trace for condarc write permission denied (#5232)
 
 ### Non-User-Facing Changes
 * resolve #5138 add test of rm_rf of symlinked files (#4373)
