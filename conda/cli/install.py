@@ -10,7 +10,6 @@ from difflib import get_close_matches
 import logging
 import os
 from os.path import abspath, basename, exists, isdir, join
-import re
 
 from . import common
 from .._vendor.auxlib.ish import dals
@@ -321,10 +320,7 @@ def install(args, parser, command='install'):
         if context.json:
             common.stdout_json_success(message='All requested packages already installed.')
         else:
-            from .main_list import print_packages
-            spec_regex = r'^(%s)$' % '|'.join(re.escape(s.split()[0]) for s in ospecs)
-            print('\n# All requested packages already installed.')
-            print_packages(prefix, spec_regex)
+            print('\n# All requested packages already installed.\n')
         return
 
     if not context.json:
