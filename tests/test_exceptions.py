@@ -7,7 +7,7 @@ from conda import text_type
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import reset_context, context
 from conda.common.io import captured, env_var, replace_log_streams
-from conda.exceptions import CommandNotFoundError, CondaFileNotFoundError, CondaHTTPError, CondaKeyError, \
+from conda.exceptions import CommandNotFoundError, FileNotFoundError, CondaHTTPError, CondaKeyError, \
     CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
     TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
     UnknownPackageClobberError, SharedLinkPathClobberError, BinaryPrefixReplacementError, BinaryPrefixReplacementError
@@ -137,15 +137,15 @@ class ExceptionTests(TestCase):
 
     def test_CondaFileNotFoundError(self):
         filename = "Groot"
-        exc = CondaFileNotFoundError(filename)
+        exc = FileNotFoundError(filename)
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.CondaFileNotFoundError'>"
-        assert json_obj['exception_name'] == 'CondaFileNotFoundError'
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.FileNotFoundError'>"
+        assert json_obj['exception_name'] == 'FileNotFoundError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
@@ -154,7 +154,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CondaFileNotFoundError: 'Groot'."
+        assert c.stderr.strip() == "FileNotFoundError: Groot"
 
     def test_DirectoryNotFoundError(self):
         directory = "Groot"

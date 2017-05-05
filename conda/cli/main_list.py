@@ -221,8 +221,8 @@ def execute(args, parser):
             else:
                 stdout_json(h.object_log())
         else:
-            from ..exceptions import CondaFileNotFoundError
-            raise CondaFileNotFoundError(h.path)
+            from ..exceptions import FileNotFoundError
+            raise FileNotFoundError(h.path)
         return
 
     if args.explicit:
