@@ -410,14 +410,12 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
     #   number as the value
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
     result = odict()
-    q = -1  # channel priority counter
-    for chn in channels:
+    for channel_priority, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
-            q += 1
-            result[url] = channel.canonical_name, min(q, MAX_CHANNEL_PRIORITY - 1)
+            result[url] = channel.canonical_name, min(channel_priority, MAX_CHANNEL_PRIORITY - 1)
     return result
 
 

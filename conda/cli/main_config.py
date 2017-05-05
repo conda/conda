@@ -422,8 +422,12 @@ def execute_config(args, parser):
 
     # config.rc_keys
     if not args.get:
-        with open(rc_path, 'w') as rc:
-            rc.write(yaml_dump(rc_config))
+        try:
+            with open(rc_path, 'w') as rc:
+                rc.write(yaml_dump(rc_config))
+        except (IOError, OSError) as e:
+            raise CondaError('Cannot write to condarc file at %s\n'
+                             'Caused by %r' % (rc_path, e))
 
     if context.json:
         from .common import stdout_json_success
