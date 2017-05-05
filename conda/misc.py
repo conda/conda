@@ -19,7 +19,7 @@ from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import get_index, _supplement_index_with_cache
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import CondaFileNotFoundError, ParseError, PackageNotFoundError
+from .exceptions import FileNotFoundError, ParseError, PackageNotFoundError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink
 from .instructions import LINK, UNLINK
@@ -73,7 +73,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             path = win_path_ok(url_to_path(url))
             if dirname(path) in context.pkgs_dirs:
                 if not exists(path):
-                    raise CondaFileNotFoundError(path)
+                    raise FileNotFoundError(path)
                 pc_entry = PackageCache.tarball_file_in_cache(path)
                 dist = pc_entry.dist
                 url = dist.to_url() or pc_entry.get_urls_txt_value()
