@@ -104,8 +104,9 @@ class UnlinkLinkTransaction(object):
     @classmethod
     def create_from_dists(cls, index, target_prefix, unlink_dists, link_dists):
         # This constructor method helps to patch into the 'plan' framework
-        linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
-                                               for dist in unlink_dists)
+        lnkd_pkg_data = (load_meta(target_prefix, dist) for dist in unlink_dists)
+        # TODO: figure out if this filter shouldn't be an assert not None
+        linked_packages_data_to_unlink = tuple(lpd for lpd in lnkd_pkg_data if lpd)
 
         log.debug("instantiating UnlinkLinkTransaction with\n"
                   "  target_prefix: %s\n"
