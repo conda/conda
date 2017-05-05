@@ -10,7 +10,6 @@ from difflib import get_close_matches
 import logging
 import os
 from os.path import abspath, basename, exists, isdir, join
-import re
 
 from . import common
 from .._vendor.auxlib.ish import dals
