@@ -27,6 +27,8 @@
 * fix orphaned --clobber parser arg (#5188)
 * fix #3814 don't remove directory that's not a conda environment (#5204)
 * fix #4468 _license stack trace (#5206)
+* fix #4987 conda update --all no longer displays full list of packages (#5228)
+* fix #3489 don't error on remove --all if environment doesn't exist (#5231)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
