@@ -691,7 +691,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, dist)
             return False
     else:
-        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
+        shell_path = '/usr/bin/env sh' if 'bsd' in sys.platform else '/usr/bin/env bash'
         command_args = [shell_path, "-x", path]
 
     env['ROOT_PREFIX'] = context.root_prefix
