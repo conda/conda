@@ -142,7 +142,7 @@ Set the build number. Defaults to the ``conda_buildnum`` passed to ``setup()``, 
 Notes
 =====
 
-- ``bdist_conda`` must be installed into a root conda environment, as it imports ``conda`` and ``conda_build``. It is included as part of the ``conda build`` package.
+- ``bdist_conda`` must be installed into a root conda environment, as it imports ``conda`` and ``conda_build``. It is included as part of the ``conda-build`` package.
 
 - All metadata is gathered from the standard metadata from the ``setup()`` function. Metadata that are not directly supported by ``setup()`` can be added using one of the options specified below.
 
