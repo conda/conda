@@ -475,6 +475,8 @@ class Context(Configuration):
             'force_32bit',
             'max_shlvl',
             'migrated_custom_channels',
+            'no_dependencies',
+            'only_dependencies',
             'prune',
             'respect_pinned',
             'root_prefix',
