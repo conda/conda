@@ -7,8 +7,8 @@ import json
 from logging import getLogger
 import os
 from os import X_OK, access, makedirs
-from os.path import basename, dirname, isdir, isfile, join, splitext
-import shutil
+from os.path import basename, dirname, isdir, isfile, join, lexists, splitext
+from shutil import copy as shutil_copy, copystat
 import sys
 import tarfile
 import traceback
@@ -200,7 +200,7 @@ def create_hard_link_or_copy(src, dst):
         link(src, dst)
     except (IOError, OSError):
         log.info('hard link failed, so copying %s => %s', src, dst)
-        shutil.copy2(src, dst)
+        _do_copy(src, dst)
 
 
 def _is_unix_executable_using_ORIGIN(path):
@@ -242,8 +242,18 @@ def copy(src, dst):
             log.trace("soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
+    _do_copy(src, dst)
+
+
+def _do_copy(src, dst):
     log.trace("copying %s => %s", src, dst)
-    shutil.copy2(src, dst)
+    shutil_copy(src, dst)
+    try:
+        copystat(src, dst)
+    except (IOError, OSError) as e:  # pragma: no cover
+        # shutil.copystat gives a permission denied when using the os.setxattr function
+        # on the security.selinux property.
+        log.debug('%r', e)
 
 
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):

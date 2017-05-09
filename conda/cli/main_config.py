@@ -272,22 +272,16 @@ def execute_config(args, parser):
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
-            def clean_element_type(element_types):
-                _types = set()
-                for et in element_types:
-                    _types.add('str') if isinstance(et, string_types) else _types.add('%s' % et)
-                return tuple(sorted(_types))
-
             for name in paramater_names:
                 details = context.describe_parameter(name)
                 aliases = details['aliases']
                 string_delimiter = details.get('string_delimiter')
                 element_types = details['element_types']
                 if details['parameter_type'] == 'primitive':
-                    print("%s (%s)" % (name, ', '.join(clean_element_type(element_types))))
+                    print("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
                 else:
                     print("%s (%s: %s)" % (name, details['parameter_type'],
-                                           ', '.join(clean_element_type(element_types))))
+                                           ', '.join(sorted(set(et for et in element_types)))))
                 def_str = '  default: %s' % json.dumps(details['default_value'], indent=2,
                                                        separators=(',', ': '),
                                                        cls=EntityEncoder)
