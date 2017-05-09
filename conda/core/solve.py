@@ -67,10 +67,7 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
         solved_linked_dists = r.remove(tuple(text_type(s) for s in specs_to_remove),
                                        solved_linked_dists)
 
-    if not context.update_dependencies:
-        specs_from_history = _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add)
-    else:
-        specs_from_history = ()
+    specs_from_history = _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add)
     augmented_specs_to_add = augment_specs(prefix, concatv(specs_from_history, specs_to_add))
 
     log.debug("final specs to add:\n    %s\n",
