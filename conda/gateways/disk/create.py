@@ -222,7 +222,9 @@ def _do_copy(src, dst):
     try:
         copystat(src, dst)
     except (IOError, OSError) as e:  # pragma: no cover
-        log.debug(repr(e))
+        # shutil.copystat gives a permission denied when using the os.setxattr function
+        # on the security.selinux property.
+        log.debug('%r', e)
 
 
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):
