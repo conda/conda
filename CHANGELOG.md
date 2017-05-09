@@ -1,4 +1,4 @@
-## 4.3.18 (unreleased)
+## 4.3.18 (2017-05-09)
 
 ### Improvements
 * resolve #4224 warn when pysocks isn't installed (#5226)
@@ -21,10 +21,13 @@
 * fix #598 stack trace for condarc write permission denied (#5232)
 * fix #4960 extra information when exception can't be displayed (#5236)
 * fix #4974 no matching dist in linked data for prefix (#5239)
+* fix #5258 give correct element types for conda config --describe (#5259)
+* fix #4911 separate shutil.copy2 into copy and copystat (#5261)
 
 ### Non-User-Facing Changes
 * resolve #5138 add test of rm_rf of symlinked files (#4373)
 * resolve #4516 add extra trace-level logging (#5249, #5250)
+* add tests for --update-deps flag (#5264)
 
 
 ## 4.3.17 (2017-04-24)
