@@ -29,6 +29,7 @@
 * fix #4468 _license stack trace (#5206)
 * fix #4987 conda update --all no longer displays full list of packages (#5228)
 * fix #3489 don't error on remove --all if environment doesn't exist (#5231)
+* fix #1509 bash doesn't need full path for pre/post link/unlink scripts on unix (#5252)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
@@ -39,6 +40,7 @@
 * localfs adapter tests (#5181)
 * extra config command tests (#5185)
 * add coverage for confirm (#5203)
+* clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 
 
 ## 4.3.18 (unreleased)
