@@ -55,7 +55,7 @@ matrix:
       os: osx
   allow_failures:
     - os: osx
-    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.0alpha3
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.0beta1
 
 install:
   - source utils/functions.sh && run_setup
