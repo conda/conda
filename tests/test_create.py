@@ -531,6 +531,19 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'pytz')
             assert package_is_installed(prefix, 'python-3')
 
+    def test_no_deps_flag(self):
+        with make_temp_env("python=2 flask --no-deps") as prefix:
+            assert package_is_installed(prefix, 'flask')
+            assert package_is_installed(prefix, 'python-2')
+            assert not package_is_installed(prefix, 'openssl')
+            assert not package_is_installed(prefix, 'itsdangerous')
+
+    def test_only_deps_flag(self):
+        with make_temp_env("python=2 flask --only-deps") as prefix:
+            assert not package_is_installed(prefix, 'flask')
+            assert package_is_installed(prefix, 'python')
+            assert package_is_installed(prefix, 'openssl')
+            assert package_is_installed(prefix, 'itsdangerous')
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
