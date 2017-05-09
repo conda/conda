@@ -218,6 +218,7 @@ def _do_softlink(src, dst):
         # A future optimization will be to copy code from @mingwandroid's virtualenv patch.
         copy(src, dst)
     else:
+        log.trace("soft linking %s => %s", src, dst)
         symlink(src, dst)
 
 
@@ -238,8 +239,10 @@ def copy(src, dst):
         src_points_to = readlink(src)
         if not src_points_to.startswith('/'):
             # copy relative symlinks as symlinks
+            log.trace("soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
+    log.trace("copying %s => %s", src, dst)
     shutil.copy2(src, dst)
 
 
@@ -268,6 +271,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if isdir(src):
             raise CondaError("Cannot hard link a directory. %s" % src)
         try:
+            log.trace("hard linking %s => %s", src, dst)
             link(src, dst)
         except (IOError, OSError) as e:
             log.debug("%r", e)
