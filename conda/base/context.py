@@ -155,7 +155,9 @@ class Context(Configuration):
     dry_run = PrimitiveParameter(False)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
+    no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
     offline = PrimitiveParameter(False)
+    only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
     quiet = PrimitiveParameter(False)
     prune = PrimitiveParameter(False)
     respect_pinned = PrimitiveParameter(True)
@@ -473,6 +475,8 @@ class Context(Configuration):
             'force_32bit',
             'max_shlvl',
             'migrated_custom_channels',
+            'no_dependencies',
+            'only_dependencies',
             'prune',
             'respect_pinned',
             'root_prefix',
