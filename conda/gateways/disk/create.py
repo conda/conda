@@ -7,7 +7,7 @@ import json
 from logging import getLogger
 import os
 from os import X_OK, access, makedirs
-from os.path import basename, dirname, isdir, isfile, join, lexists, splitext
+from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copy as shutil_copy, copystat
 import sys
 import tarfile
