@@ -20,6 +20,8 @@ from uuid import uuid4
 
 import shutil
 
+from datetime import datetime
+
 from conda._vendor.auxlib.ish import dals
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
@@ -585,6 +587,30 @@ class IntegrationTests(TestCase):
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
             assert package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "itsdangerous-0.23")
+
+    def test_update_deps_flag_absent(self):
+        with make_temp_env("python=2 itsdangerous=0.23") as prefix:
+            assert package_is_installed(prefix, 'python-2')
+            assert package_is_installed(prefix, 'itsdangerous-0.23')
+            assert not package_is_installed(prefix, 'flask')
+
+            run_command(Commands.INSTALL, prefix, 'flask')
+            assert package_is_installed(prefix, 'python-2')
+            assert package_is_installed(prefix, 'itsdangerous-0.23')
+            assert package_is_installed(prefix, 'flask')
+
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 6, 1), reason="#5263", strict=True)
+    def test_update_deps_flag_present(self):
+        with make_temp_env("python=2 itsdangerous=0.23") as prefix:
+            assert package_is_installed(prefix, 'python-2')
+            assert package_is_installed(prefix, 'itsdangerous-0.23')
+            assert not package_is_installed(prefix, 'flask')
+
+            run_command(Commands.INSTALL, prefix, '--update-deps python=2 flask')
+            assert package_is_installed(prefix, 'python-2')
+            assert not package_is_installed(prefix, 'itsdangerous-0.23')
+            assert package_is_installed(prefix, 'itsdangerous')
+            assert package_is_installed(prefix, 'flask')
 
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     # def test_shortcut_in_underscore_env_shows_message(self):
