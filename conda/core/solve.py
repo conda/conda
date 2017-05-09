@@ -128,6 +128,26 @@ def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
     return tuple(s for s in itervalues(specs_map))
 
 
+def build_dag(index, dists):
+    new_index = {d: index[d] for d in dists}
+    r = Resolve(new_index)
+    sorted_records = r.dependency_sort(new_index)
+
+    # http://stackoverflow.com/a/9899057/2127762
+    dag_result = odict((record, []) for record in sorted_records)
+
+    for record in sorted_records:
+        for spec in record.combined_depends:
+            matched_dists = r.find_matches(spec)
+            if matched_dists:
+                assert len(matched_dists) == 1, (spec, matched_dists)
+                matched_record = index[matched_dists[0]]
+                dag_result[record].append(matched_record)
+
+    # returns Map[Record, List[Record]]
+    return dag_result
+
+
 def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
     # this is not for force-removing packages, which doesn't invoke the solver
 
