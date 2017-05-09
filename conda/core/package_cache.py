@@ -263,6 +263,8 @@ class PackageCache(object):
             if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
                 package_filename += CONDA_TARBALL_EXTENSION
 
+            log.trace("adding to package cache %s", join(pkgs_dir, package_filename))
+
             dist = first(self.urls_data, lambda x: basename(x) == package_filename,
                          apply=Dist)
             if not dist:

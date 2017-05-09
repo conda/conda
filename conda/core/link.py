@@ -10,8 +10,7 @@ import sys
 from traceback import format_exc
 import warnings
 
-from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
-                          load_meta)
+from .linked_data import get_python_version_for_prefix, linked_data as get_linked_data, load_meta
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
                            CreateApplicationSoftlinkAction, CreateLinkedPackageRecordAction,
@@ -214,8 +213,10 @@ class UnlinkLinkTransaction(object):
                                  "" % target_prefix)
 
         # gather information from disk and caches
-        linked_packages_data_to_unlink = tuple(load_meta(target_prefix, dist)
-                                               for dist in unlink_dists)
+        linked_pkgs_data_to_unlink = (load_meta(target_prefix, dist) for dist in unlink_dists)
+        # NOTE: load_meta can return None
+        # TODO: figure out if this filter shouldn't be an assert not None
+        linked_pkgs_data_to_unlink = tuple(lpd for lpd in linked_pkgs_data_to_unlink if lpd)
         pkg_dirs_to_link = tuple(PackageCache.get_entry_to_link(dist).extracted_package_dir
                                  for dist in link_dists)
         assert all(pkg_dirs_to_link)
@@ -229,7 +230,7 @@ class UnlinkLinkTransaction(object):
         # no side effects allowed when instantiating these action objects
         transaction_context = dict()
         python_version = cls.get_python_version(target_prefix,
-                                                linked_packages_data_to_unlink,
+                                                linked_pkgs_data_to_unlink,
                                                 packages_info_to_link)
         transaction_context['target_python_version'] = python_version
         sp = get_python_site_packages_short_path(python_version)
@@ -240,7 +241,7 @@ class UnlinkLinkTransaction(object):
                                                                      target_prefix,
                                                                      lnkd_pkg_data),
                         target_prefix)
-            for lnkd_pkg_data in linked_packages_data_to_unlink
+            for lnkd_pkg_data in linked_pkgs_data_to_unlink
         )
 
         if unlink_action_groups:
@@ -691,7 +692,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, dist)
             return False
     else:
-        shell_path = '/bin/sh' if 'bsd' in sys.platform else '/bin/bash'
+        shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         command_args = [shell_path, "-x", path]
 
     env['ROOT_PREFIX'] = context.root_prefix

@@ -222,7 +222,10 @@ def get_info_dict(system=False):
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
     )
-    if not on_win:
+    if on_win:
+        from ..common.platform import is_admin_on_windows
+        info_dict['is_windows_admin'] = is_admin_on_windows()
+    else:
         info_dict['UID'] = os.geteuid()
         info_dict['GID'] = os.getegid()
 
@@ -274,10 +277,10 @@ def get_main_info_str(info_dict):
                  user-agent : %(user_agent)s\
     """) % info_dict)
 
-    if not on_win:
-        builder.append("                UID:GID : %(UID)s:%(GID)s" % info_dict)
+    if on_win:
+        builder.append("          administrator : %(is_windows_admin)s" % info_dict)
     else:
-        builder.append("")
+        builder.append("                UID:GID : %(UID)s:%(GID)s" % info_dict)
 
     return '\n'.join(builder)
 

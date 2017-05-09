@@ -29,6 +29,7 @@
 * fix #4468 _license stack trace (#5206)
 * fix #4987 conda update --all no longer displays full list of packages (#5228)
 * fix #3489 don't error on remove --all if environment doesn't exist (#5231)
+* fix #1509 bash doesn't need full path for pre/post link/unlink scripts on unix (#5252)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
@@ -39,6 +40,7 @@
 * localfs adapter tests (#5181)
 * extra config command tests (#5185)
 * add coverage for confirm (#5203)
+* clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 
 
 ## 4.3.18 (unreleased)
@@ -46,6 +48,7 @@
 ### Improvements
 * resolve #4224 warn when pysocks isn't installed (#5226)
 * resolve #5229 add --insecure flag to skip ssl verification (#5230)
+* resolve #4151 add admin indicator to conda info on windows (#5241)
 
 ### Bug Fixes
 * fix #5152 conda info spacing (#5166)
@@ -61,9 +64,12 @@
 * fix #3470 extra newlines around exceptions (#5200)
 * fix #5214 install messages for 'nothing_to_do' case (#5216)
 * fix #598 stack trace for condarc write permission denied (#5232)
+* fix #4960 extra information when exception can't be displayed (#5236)
+* fix #4974 no matching dist in linked data for prefix (#5239)
 
 ### Non-User-Facing Changes
 * resolve #5138 add test of rm_rf of symlinked files (#4373)
+* resolve #4516 add extra trace-level logging (#5249, #5250)
 
 
 ## 4.3.17 (2017-04-24)
