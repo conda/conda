@@ -29,7 +29,7 @@ if PY2:
     def represent_unicode(self, data):
         return self.represent_str(data.encode('utf-8'))
 
-    yaml.add_representer(unicode, represent_unicode)
+    yaml.add_representer(unicode, represent_unicode)  # NOQA
 
 dump = yaml.dump
 load = yaml.load
