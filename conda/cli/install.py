@@ -35,8 +35,6 @@ log = logging.getLogger(__name__)
 def check_prefix(prefix, json=False):
     name = basename(prefix)
     error = None
-    if name.startswith('.'):
-        error = "environment name cannot start with '.': %s" % name
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
