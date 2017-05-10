@@ -4,6 +4,7 @@
 * constrained, optional dependencies (#4982)
 * conda shell function (#5044, #5141, #5162, #5169, #5182)
 * resolve #5160 conda xontrib plugin (#5157)
+* resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
@@ -18,6 +19,7 @@
 * resolve #5078 record package metadata after tarball extraction (#5148)
 * resolve #3580 support stacking environments (#5159)
 * resolve #3763, #4378 allow pip requirements.txt syntax in environment files (#3969)
+* resolve #5147 add 'config files' to conda info (#5269)
 * use --format=json to parse list of pip packages (#5205)
 
 ### Bug Fixes
