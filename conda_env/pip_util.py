@@ -4,6 +4,8 @@ Functions related to core conda functionality that relates to pip
 NOTE: This modules used to in conda, as conda/pip.py
 """
 from __future__ import absolute_import, print_function
+
+import os
 from os.path import isfile, join
 import re
 import subprocess
@@ -52,9 +54,11 @@ def installed(prefix, output=True):
     if args is None:
         return
     args.append('list')
+    env = os.environ.copy()
+    env[str('PIP_FORMAT')] = str('legacy')
     try:
         pipinst = subprocess.check_output(
-            args, universal_newlines=True
+            args, universal_newlines=True, env=env,
         ).splitlines()
     except Exception:
         # Any error should just be ignored
