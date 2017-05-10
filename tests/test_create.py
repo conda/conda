@@ -1063,6 +1063,42 @@ class IntegrationTests(TestCase):
                 # The mock should have been called with our local channel URL though.
                 assert result_dict.get('local_channel_seen')
 
+    def test_create_from_extracted(self):
+        # Test that we can link a package from its extracted directory
+        # even if the tarball is no longer available.
+        pkgs_dir = PackageCache.first_writable().pkgs_dir
+        mkdir_p(pkgs_dir)
+        pkgs_dir_hold = pkgs_dir + '_hold'
+
+        try:
+            shutil.move(pkgs_dir, pkgs_dir_hold)
+
+            # First, make sure the python package is present
+            with make_temp_env('python') as prefix:
+                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+                pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
+                assert any(basename(d).startswith('python-') for d in pkgs_dir_tarballs)
+
+            # Then, remove the tarball but keep the extracted directory around
+            run_command(Commands.CLEAN, prefix, "--tarballs --yes")
+            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+            pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
+            assert not any(basename(d).startswith('python-') for d in pkgs_dir_tarballs)
+
+            # Finally, create a new environment with python in it. We expect that the
+            # tarball did not appear again because we simply linked the environment from
+            # the extracted directory. If the tarball appeared again, we decided to
+            # re-download the package for some reason.
+            with make_temp_env('python') as prefix:
+                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
+                pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
+                assert not any(basename(d).startswith('python-') for d in pkgs_dir_tarballs)
+
+        finally:
+            rm_rf(pkgs_dir)
+            shutil.move(pkgs_dir_hold, pkgs_dir)
+            PackageCache.clear()
+
     def test_clean_tarballs_and_packages(self):
         pkgs_dir = PackageCache.first_writable().pkgs_dir
         mkdir_p(pkgs_dir)
