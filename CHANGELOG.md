@@ -43,6 +43,17 @@
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 
 
+## 4.3.19 (unreleased)
+
+### Improvements
+* resolve #3689 better error messaging for missing anaconda-client (#5276)
+* resolve #4795 conda env export lacks -p flag (#5275)
+
+### Bug Fixes
+* fix #5272 conda env export ugliness under python2 (#5273)
+* fix #4596 warning message from pip on conda env export (#5274)
+
+
 ## 4.3.18 (2017-05-09)
 
 ### Improvements
