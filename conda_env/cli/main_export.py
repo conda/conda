@@ -1,16 +1,15 @@
 from __future__ import absolute_import, print_function
 
+from argparse import RawDescriptionHelpFormatter
 import os
 import textwrap
-from argparse import RawDescriptionHelpFormatter
 
 from conda.cli.common import add_parser_prefix
-
-from conda import config
-from ..env import from_environment
 # conda env import
 from .common import get_prefix
+from ..env import from_environment
 from ..exceptions import CondaEnvException
+
 description = """
 Export a given environment
 """
