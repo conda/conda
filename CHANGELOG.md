@@ -4,6 +4,7 @@
 * constrained, optional dependencies (#4982)
 * conda shell function (#5044, #5141, #5162, #5169, #5182)
 * resolve #5160 conda xontrib plugin (#5157)
+* resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
@@ -18,6 +19,7 @@
 * resolve #5078 record package metadata after tarball extraction (#5148)
 * resolve #3580 support stacking environments (#5159)
 * resolve #3763, #4378 allow pip requirements.txt syntax in environment files (#3969)
+* resolve #5147 add 'config files' to conda info (#5269)
 * use --format=json to parse list of pip packages (#5205)
 
 ### Bug Fixes
@@ -41,6 +43,17 @@
 * extra config command tests (#5185)
 * add coverage for confirm (#5203)
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
+
+
+## 4.3.19 (unreleased)
+
+### Improvements
+* resolve #3689 better error messaging for missing anaconda-client (#5276)
+* resolve #4795 conda env export lacks -p flag (#5275)
+
+### Bug Fixes
+* fix #5272 conda env export ugliness under python2 (#5273)
+* fix #4596 warning message from pip on conda env export (#5274)
 
 
 ## 4.3.18 (2017-05-09)

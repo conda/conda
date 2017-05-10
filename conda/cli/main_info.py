@@ -198,6 +198,9 @@ def get_info_dict(system=False):
                     for c in channels]
     channels = [mask_anaconda_token(c) for c in channels]
 
+    config_files = tuple(path for path in context.collect_all()
+                         if path not in ('envvars', 'cmd_line'))
+
     info_dict = dict(
         platform=context.subdir,
         conda_version=conda_version,
@@ -221,6 +224,7 @@ def get_info_dict(system=False):
         requests_version=requests_version,
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
+        config_files=config_files,
     )
     if on_win:
         from ..common.platform import is_admin_on_windows
@@ -252,7 +256,7 @@ def get_info_dict(system=False):
 def get_main_info_str(info_dict):
     from .._vendor.auxlib.ish import dals
 
-    for key in 'pkgs_dirs', 'envs_dirs', 'channels':
+    for key in 'pkgs_dirs', 'envs_dirs', 'channels', 'config_files':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
@@ -273,6 +277,7 @@ def get_main_info_str(info_dict):
               package cache : %(_pkgs_dirs)s
                channel URLs : %(_channels)s
                 config file : %(rc_path)s
+               config files : %(_config_files)s
                offline mode : %(offline)s
                  user-agent : %(user_agent)s\
     """) % info_dict)
