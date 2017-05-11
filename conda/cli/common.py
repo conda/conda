@@ -72,9 +72,10 @@ def confirm_yn(args, message="Proceed", default='yes'):
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
-    if choice == 'yes':
-        return True
-    return False
+    if choice == 'no':
+        from ..exceptions import CondaSystemExit
+        raise CondaSystemExit("Exiting.")
+    return True
 
 
 def ensure_name_or_prefix(args, command):
