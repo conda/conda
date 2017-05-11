@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import errno
 from functools import reduce
 from logging import getLogger
 from os import listdir
@@ -19,7 +20,7 @@ from ..common.path import url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
-from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink
+from ..gateways.disk.read import read_repodata_json, compute_md5sum, isdir, isfile, islink
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -96,6 +97,18 @@ class PackageCacheEntry(object):
         return isdir(epd) and isfile(join(epd, 'info', 'index.json'))
 
     @property
+    @memoizemethod
+    def repodata_record(self):
+        epd = self.extracted_package_dir
+
+        try:
+            return read_repodata_json(epd)
+        except (IOError, OSError) as ex:
+            if ex.errno == errno.ENOENT:
+                return None
+            raise
+
+    @property
     def tarball_basename(self):
         return basename(self.package_tarball_full_path)
 
@@ -111,7 +124,12 @@ class PackageCacheEntry(object):
 
     @property
     def md5sum(self):
-        return self._calculate_md5sum() if self.is_fetched else None
+        if self.repodata_record is not None and self.repodata_record.md5:
+            return self.repodata_record.md5
+        elif self.is_fetched:
+            return self._calculate_md5sum()
+        else:
+            return None
 
     def get_urls_txt_value(self):
         return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
