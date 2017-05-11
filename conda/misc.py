@@ -79,7 +79,10 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                 url = dist.to_url() or pc_entry.get_urls_txt_value()
                 md5sum = md5sum or pc_entry.md5sum
         dist = dist or Dist(url)
-        fetch_recs[dist] = {'md5': md5sum, 'url': url}
+        fetch_recs[dist] = IndexRecord(name=dist.name, version=dist.version, build=dist.build,
+                                       build_number=dist.build_number, arch=dist.platform,
+                                       url=url, md5=md5sum)
+
 
     # perform any necessary fetches and extractions
     if verbose:
