@@ -168,7 +168,8 @@ class Activator(object):
             raise ArgumentError('activate does not accept more than one argument')
         elif command != 'activate' and remainder_args:
             from .exceptions import ArgumentError
-            raise ArgumentError('%s does not accept arguments' % command)
+            raise ArgumentError('%s does not accept arguments\nremainder_args: %s'
+                                % (command, remainder_args))
 
         if command == 'activate':
             self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'

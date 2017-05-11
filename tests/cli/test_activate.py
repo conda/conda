@@ -253,7 +253,7 @@ def test_activate_root_simple(shell):
 
         stdout, stderr = run_in(commands, shell)
         stdout = strip_leading_library_bin(stdout, shells[shell])
-        assert_equals(stdout, u"%s" % shell_vars['base_path'])
+        assert_equals(stdout, u'%s' % shell_vars['base_path'])
 
 
 @pytest.mark.installed
@@ -664,6 +664,7 @@ def run_in(command, shell, cwd=None, env=None):
         cmd_bits = [shells[shell]["exe"]] + shells[shell]["shell_args"] + [cmd_script.name]
         try:
             print(cmd_bits)
+            print(command)
             p = subprocess.Popen(cmd_bits, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  cwd=cwd, env=env)
             stdout, stderr = p.communicate()

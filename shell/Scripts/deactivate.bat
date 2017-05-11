@@ -5,6 +5,6 @@
 
 @SET "_CONDA_BAT=%~dp0..\Library\bin\conda.bat"
 
-@CALL %_CONDA_BAT% deactivate "%_CONDA_NEW_ENV%"
+@CALL %_CONDA_BAT% deactivate
 
 @SET _CONDA_BAT=
