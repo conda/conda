@@ -72,10 +72,10 @@ class ActivatorUnitTests(TestCase):
     def test_add_prefix_to_path(self):
         activator = Activator('posix')
 
-        path_dirs = activator.path_conversion(*['/path1/bin', '/path2/bin', '/usr/local/bin', '/usr/bin', '/bin'])
+        path_dirs = activator.path_conversion(['/path1/bin', '/path2/bin', '/usr/local/bin', '/usr/bin', '/bin'])
         assert len(path_dirs) == 5
         test_prefix = '/usr/mytest/prefix'
-        added_paths = activator.path_conversion(*tuple(activator._get_path_dirs(test_prefix)))
+        added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
         if isinstance(added_paths, string_types):
             added_paths = added_paths,
 
@@ -87,7 +87,7 @@ class ActivatorUnitTests(TestCase):
         original_path = tuple(activator._get_starting_path_list())
         keep_path = activator.path_conversion('/keep/this/path')
         final_path = (keep_path,) + original_path
-        final_path = activator.path_conversion(*final_path)
+        final_path = activator.path_conversion(final_path)
 
         test_prefix = join(os.getcwd(), 'mytestpath')
         new_paths = tuple(activator._get_path_dirs(test_prefix))
@@ -101,7 +101,7 @@ class ActivatorUnitTests(TestCase):
         original_path = tuple(activator._get_starting_path_list())
         keep_path = activator.path_conversion('/keep/this/path')
         final_path = (keep_path,) + original_path
-        final_path = activator.path_conversion(*final_path)
+        final_path = activator.path_conversion(final_path)
 
         test_prefix = join(os.getcwd(), 'mytestpath')
         prefix_added_path = (keep_path,) + original_path
@@ -113,12 +113,12 @@ class ActivatorUnitTests(TestCase):
         activator = Activator('posix')
         original_path = tuple(activator._get_starting_path_list())
         new_prefix = join(os.getcwd(), 'mytestpath-new')
-        new_paths = activator.path_conversion(*tuple(activator._get_path_dirs(new_prefix)))
+        new_paths = activator.path_conversion(activator._get_path_dirs(new_prefix))
         if isinstance(new_paths, string_types):
             new_paths = new_paths,
         keep_path = activator.path_conversion('/keep/this/path')
         final_path = (keep_path,) + new_paths + original_path
-        final_path = activator.path_conversion(*final_path)
+        final_path = activator.path_conversion(final_path)
 
         replace_prefix = join(os.getcwd(), 'mytestpath')
         replace_paths = tuple(activator._get_path_dirs(replace_prefix))
@@ -163,7 +163,7 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER': "(%s) " % td,
                     }
                     assert builder['set_vars'] == set_vars
-                    assert builder['activate_scripts'] == [activate_d_1]
+                    assert builder['activate_scripts'] == (activate_d_1,)
                     assert builder['deactivate_scripts'] == ()
 
     def test_build_activate_shlvl_1(self):
@@ -193,7 +193,7 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER': "(%s) " % td,
                     }
                     assert builder['set_vars'] == set_vars
-                    assert builder['activate_scripts'] == [activate_d_1]
+                    assert builder['activate_scripts'] == (activate_d_1,)
                     assert builder['deactivate_scripts'] == ()
 
     def test_build_activate_shlvl_2(self):
@@ -227,8 +227,8 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER': "(%s) " % td,
                     }
                     assert builder['set_vars'] == set_vars
-                    assert builder['activate_scripts'] == [activate_d_1]
-                    assert builder['deactivate_scripts'] == [deactivate_d_1]
+                    assert builder['activate_scripts'] == (activate_d_1,)
+                    assert builder['deactivate_scripts'] == (deactivate_d_1,)
 
     def test_activate_same_environment(self):
         with tempdir() as td:
@@ -253,8 +253,8 @@ class ActivatorUnitTests(TestCase):
 
                     assert builder['unset_vars'] == ()
                     assert builder['set_vars'] == {}
-                    assert builder['activate_scripts'] == [activate_d_1]
-                    assert builder['deactivate_scripts'] == [deactivate_d_1]
+                    assert builder['activate_scripts'] == (activate_d_1,)
+                    assert builder['deactivate_scripts'] == (deactivate_d_1,)
 
     def test_build_deactivate_shlvl_2(self):
         with tempdir() as td:
@@ -282,7 +282,7 @@ class ActivatorUnitTests(TestCase):
 
                         assert builder['unset_vars'] == ('CONDA_PREFIX_1',)
 
-                        new_path = activator.pathsep_join(activator.path_conversion(*original_path))
+                        new_path = activator.pathsep_join(activator.path_conversion(original_path))
 
                         set_vars = {
                             'PATH': new_path,
@@ -292,8 +292,8 @@ class ActivatorUnitTests(TestCase):
                             'CONDA_PROMPT_MODIFIER': "(%s) " % old_prefix,
                         }
                         assert builder['set_vars'] == set_vars
-                        assert builder['activate_scripts'] == [activate_d_1]
-                        assert builder['deactivate_scripts'] == [deactivate_d_1]
+                        assert builder['activate_scripts'] == (activate_d_1,)
+                        assert builder['deactivate_scripts'] == (deactivate_d_1,)
 
     def test_build_deactivate_shlvl_1(self):
         with tempdir() as td:
@@ -317,13 +317,13 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER',
                     )
 
-                    new_path = activator.pathsep_join(activator.path_conversion(*original_path))
+                    new_path = activator.pathsep_join(activator.path_conversion(original_path))
                     assert builder['set_vars'] == {
                         'PATH': new_path,
                         'CONDA_SHLVL': 0,
                     }
                     assert builder['activate_scripts'] == ()
-                    assert builder['deactivate_scripts'] == [deactivate_d_1]
+                    assert builder['deactivate_scripts'] == (deactivate_d_1,)
 
 
 class ShellWrapperUnitTests(TestCase):
@@ -367,9 +367,9 @@ class ShellWrapperUnitTests(TestCase):
             assert native_path_to_unix(path1) == path1
 
         if on_win:
-            assert all(assert_unix_path(p) for p in native_path_to_unix(*paths))
+            assert all(assert_unix_path(p) for p in native_path_to_unix(paths))
         else:
-            assert native_path_to_unix(*paths) == paths
+            assert native_path_to_unix(paths) == paths
 
     def test_posix_basic(self):
         activator = Activator('posix')
@@ -823,11 +823,11 @@ class InteractiveShell(object):
 
         cwd = os.getcwd()
         env = os.environ.copy()
-        env['PATH'] = self.activator.pathsep_join(self.activator.path_conversion(*tuple(concatv(
+        env['PATH'] = self.activator.pathsep_join(self.activator.path_conversion(concatv(
             self.activator._get_path_dirs(join(cwd, 'shell')),
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
-        ))))
+        )))
         env['PYTHONPATH'] = CONDA_PACKAGE_ROOT
 
         p = PopenSpawn(self.shell_name, timeout=3, maxread=2000, searchwindowsize=None,

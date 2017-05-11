@@ -217,9 +217,7 @@ class Activator(object):
             return self.build_deactivate()
 
         join(prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension)
-        activate_scripts = glob(join(
-            prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
-        ))
+        activate_scripts = self._get_activate_scripts(prefix)
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
@@ -243,9 +241,7 @@ class Activator(object):
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
-            deactivate_scripts = glob(join(
-                old_conda_prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
-            ))
+            deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         else:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             set_vars = {
@@ -342,10 +338,10 @@ class Activator(object):
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         if starting_path_dirs is None:
             starting_path_dirs = self._get_starting_path_list()
-        return self.path_conversion(*tuple(concatv(
+        return self.path_conversion(concatv(
             self._get_path_dirs(prefix),
             starting_path_dirs,
-        )))
+        ))
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
@@ -376,7 +372,7 @@ class Activator(object):
                 del path_list[idx]
             if new_prefix is not None:
                 path_list.insert(idx, join(new_prefix, 'bin'))
-        return self.path_conversion(*path_list)
+        return self.path_conversion(path_list)
 
     def _default_env(self, prefix):
         if prefix == self.context.root_prefix:
@@ -387,12 +383,12 @@ class Activator(object):
         return "(%s) " % conda_default_env if self.context.changeps1 else ""
 
     def _get_activate_scripts(self, prefix):
-        return self.path_conversion(*glob(join(
+        return self.path_conversion(glob(join(
             prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
         )))
 
     def _get_deactivate_scripts(self, prefix):
-        return self.path_conversion(*glob(join(
+        return self.path_conversion(glob(join(
             prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
         )))
 
@@ -410,15 +406,20 @@ def ensure_binary(value):
         return value
 
 
-def native_path_to_unix(*paths):  # pragma: unix no cover
+def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
-        return path_identity(*paths)
+        return path_identity(paths)
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    joined = ("%s" % os.pathsep).join(paths)
+
+    if isinstance(paths, string_types):
+        joined = paths
+    else:
+        joined = ("%s" % os.pathsep).join(paths)
+
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
     stdout, stderr = p.communicate(input=joined)
@@ -431,11 +432,11 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
     final = stdout.strip().split(':')
-    return final[0] if len(final) == 1 else tuple(final)
+    return final
 
 
-def path_identity(*paths):
-    return paths[0] if len(paths) == 1 else paths
+def path_identity(paths):
+    return paths if isinstance(paths, string_types) else tuple(paths)
 
 
 on_win = bool(sys.platform == "win32")
