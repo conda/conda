@@ -13,6 +13,7 @@ try:
 except ImportError:  # pragma: no cover
     from ._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
+
 class Activator(object):
     # Activate and deactivate have three tasks
     #   1. Set and unset environment variables
@@ -415,10 +416,8 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     command = 'cygpath --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
-    if isinstance(paths, string_types):
-        joined = paths
-    else:
-        joined = ("%s" % os.pathsep).join(paths)
+    single_path = isinstance(paths, string_types)
+    joined = paths if single_path else ("%s" % os.pathsep).join(paths)
 
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
@@ -432,7 +431,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
     final = stdout.strip().split(':')
-    return final
+    return final[0] if single_path else tuple(final)
 
 
 def path_identity(paths):
