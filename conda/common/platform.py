@@ -9,10 +9,24 @@ from logging import getLogger
 import os
 import sys
 
-from .._vendor.auxlib.decorators import memoize
 from .compat import iteritems, on_win
+from .._vendor.auxlib.decorators import memoize
 
 log = getLogger(__name__)
+
+
+def is_admin_on_windows():  # pragma: unix no cover
+    # http://stackoverflow.com/a/1026626/2127762
+    if not on_win:  # pragma: no cover
+        return False
+    try:
+        from ctypes.windll.shell32 import IsUserAnAdmin
+        return IsUserAnAdmin() != 0
+    except ImportError:
+        return 'unknown'
+    except Exception as e:
+        log.warn(repr(e))
+        return 'unknown'
 
 
 @memoize

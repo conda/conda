@@ -43,10 +43,22 @@ class CondaError(Exception):
         super(CondaError, self).__init__(message)
 
     def __repr__(self):
-        return '%s: %s\n' % (self.__class__.__name__, text_type(self))
+        return '%s: %s' % (self.__class__.__name__, text_type(self))
 
     def __str__(self):
-        return text_type(self.message % self._kwargs)
+        try:
+            return text_type(self.message % self._kwargs)
+        except TypeError:
+            # TypeError: not enough arguments for format string
+            debug_message = "\n".join((
+                "class: " + self.__class__.__name__,
+                "message:",
+                self.message,
+                "kwargs:",
+                text_type(self._kwargs),
+            ))
+            sys.stderr.write(debug_message)
+            raise
 
     def dump_map(self):
         result = dict((k, v) for k, v in iteritems(vars(self)) if not k.startswith('_'))

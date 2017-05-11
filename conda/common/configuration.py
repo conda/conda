@@ -105,7 +105,7 @@ class InvalidTypeError(ValidationError):
         self.valid_types = valid_types
         if msg is None:
             msg = ("Parameter %s = %r declared in %s has type %s.\n"
-                   "Valid types: %s." % (parameter_name, parameter_value,
+                   "Valid types:\n%s" % (parameter_name, parameter_value,
                                          source, wrong_type, pretty_list(valid_types)))
         super(InvalidTypeError, self).__init__(parameter_name, parameter_value, source, msg=msg)
 
@@ -572,7 +572,12 @@ class SequenceParameter(Parameter):
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        relevant_matches = self._first_important_matches(matches)
+        relevant_matches_and_values = tuple((match, match.value(self)) for match in
+                                            self._first_important_matches(matches))
+        for match, value in relevant_matches_and_values:
+            if not isinstance(value, tuple):
+                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
+                                       self._type.__name__)
 
         # get individual lines from important_matches that were marked important
         # these will be prepended to the final result
@@ -581,16 +586,17 @@ class SequenceParameter(Parameter):
                          for line, flag in zip(match.value(parameter_obj),
                                                match.valueflags(parameter_obj))
                          if flag is marker) if match else ()
-        top_lines = concat(get_marked_lines(m, ParameterFlag.top, self) for m in relevant_matches)
+        top_lines = concat(get_marked_lines(m, ParameterFlag.top, self) for m, _ in
+                           relevant_matches_and_values)
 
         # also get lines that were marked as bottom, but reverse the match order so that lines
         # coming earlier will ultimately be last
-        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom, self) for m in
-                              reversed(relevant_matches))
+        bottom_lines = concat(get_marked_lines(m, ParameterFlag.bottom, self) for m, _ in
+                              reversed(relevant_matches_and_values))
 
         # now, concat all lines, while reversing the matches
         #   reverse because elements closer to the end of search path take precedence
-        all_lines = concat(m.value(self) for m in reversed(relevant_matches))
+        all_lines = concat(v for _, v in reversed(relevant_matches_and_values))
 
         # stack top_lines + all_lines, then de-dupe
         top_deduped = tuple(unique(concatv(top_lines, all_lines)))
@@ -654,18 +660,23 @@ class MapParameter(Parameter):
     def _merge(self, matches):
         # get matches up to and including first important_match
         #   but if no important_match, then all matches are important_matches
-        relevant_matches = self._first_important_matches(matches)
+        relevant_matches_and_values = tuple((match, match.value(self)) for match in
+                                            self._first_important_matches(matches))
+        for match, value in relevant_matches_and_values:
+            if not isinstance(value, Mapping):
+                raise InvalidTypeError(self.name, value, match.source, value.__class__.__name__,
+                                       self._type.__name__)
 
         # mapkeys with important matches
         def key_is_important(match, key):
             return match.valueflags(self).get(key) is ParameterFlag.final
         important_maps = tuple(dict((k, v)
-                                    for k, v in iteritems(match.value(self))
+                                    for k, v in iteritems(match_value)
                                     if key_is_important(match, k))
-                               for match in relevant_matches)
+                               for match, match_value in relevant_matches_and_values)
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((m.value(self) for m in relevant_matches),
+        return merge(concatv((v for _, v in relevant_matches_and_values),
                              reversed(important_maps)))
 
     def repr_raw(self, raw_parameter):

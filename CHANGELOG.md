@@ -2,7 +2,12 @@
 
 ### New Features
 * constrained, optional dependencies (#4982)
-* conda shell function (#5044, #5141)
+* conda shell function (#5044, #5141, #5162, #5169, #5182)
+* resolve #5160 conda xontrib plugin (#5157)
+* resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
+
+### Deprecations/Breaking Changes
+* remove support for with_features_depends (#5191)
 
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
@@ -14,26 +19,73 @@
 * resolve #5078 record package metadata after tarball extraction (#5148)
 * resolve #3580 support stacking environments (#5159)
 * resolve #3763, #4378 allow pip requirements.txt syntax in environment files (#3969)
+* resolve #5147 add 'config files' to conda info (#5269)
+* use --format=json to parse list of pip packages (#5205)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
 * resolve #5123 export toposort (#5124)
 * fix #5132 signal handler can only be used in main thread (#5133)
+* fix orphaned --clobber parser arg (#5188)
+* fix #3814 don't remove directory that's not a conda environment (#5204)
+* fix #4468 _license stack trace (#5206)
+* fix #4987 conda update --all no longer displays full list of packages (#5228)
+* fix #3489 don't error on remove --all if environment doesn't exist (#5231)
+* fix #1509 bash doesn't need full path for pre/post link/unlink scripts on unix (#5252)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
 * new MatchSpec implementation (#4158)
 * update conda.recipe for 4.4 (#5086)
 * resolve #5118 organization and cleanup for 4.4 release (#5115)
+* remove unused disk space check instructions (#5167)
+* localfs adapter tests (#5181)
+* extra config command tests (#5185)
+* add coverage for confirm (#5203)
+* clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 
 
-## 4.3.18 (unreleased)
+## 4.3.19 (unreleased)
+
+### Improvements
+* resolve #3689 better error messaging for missing anaconda-client (#5276)
+* resolve #4795 conda env export lacks -p flag (#5275)
 
 ### Bug Fixes
+* fix #5272 conda env export ugliness under python2 (#5273)
+* fix #4596 warning message from pip on conda env export (#5274)
+
+
+## 4.3.18 (2017-05-09)
+
+### Improvements
+* resolve #4224 warn when pysocks isn't installed (#5226)
+* resolve #5229 add --insecure flag to skip ssl verification (#5230)
+* resolve #4151 add admin indicator to conda info on windows (#5241)
+
+### Bug Fixes
+* fix #5152 conda info spacing (#5166)
 * fix --use-index-cache actually hitting the index cache (#5134)
+* backport LinkPathAction verify from 4.4 (#5171)
+* fix #5184 stack trace on invalid map configuration parameter (#5186)
+* fix #5189 stack trace on invalid sequence config param (#5192)
+* add support for the linux-aarch64 platform (#5190)
+* fix repodata fetch with the `--offline` flag (#5146)
+* fix #1773 conda remove spell checking (#5176)
+* fix #3470 reduce excessive error messages (#5195)
+* fix #1597 make extra sure --dry-run doesn't take any actions (#5201)
+* fix #3470 extra newlines around exceptions (#5200)
+* fix #5214 install messages for 'nothing_to_do' case (#5216)
+* fix #598 stack trace for condarc write permission denied (#5232)
+* fix #4960 extra information when exception can't be displayed (#5236)
+* fix #4974 no matching dist in linked data for prefix (#5239)
+* fix #5258 give correct element types for conda config --describe (#5259)
+* fix #4911 separate shutil.copy2 into copy and copystat (#5261)
 
 ### Non-User-Facing Changes
 * resolve #5138 add test of rm_rf of symlinked files (#4373)
+* resolve #4516 add extra trace-level logging (#5249, #5250)
+* add tests for --update-deps flag (#5264)
 
 
 ## 4.3.17 (2017-04-24)

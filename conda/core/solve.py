@@ -129,9 +129,43 @@ def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=Fals
     # this is not for force-removing packages, which doesn't invoke the solver
 
     solved_dists, _specs_to_add = solve_prefix(prefix, r, specs_to_remove, specs_to_add, prune)
+    # TODO: this _specs_to_add part should be refactored when we can better pin package channel origin  # NOQA
     dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists,
                                                                          _specs_to_add)
-    # TODO: this _specs_to_add part should be refactored when we can better pin package channel origin  # NOQA
+
+    def remove_non_matching_dists(dists_set, specs_to_match):
+        _dists_set = IndexedSet(dists_set)
+        for dist in dists_set:
+            for spec in specs_to_match:
+                if spec.match(dist):
+                    break
+            else:  # executed if the loop ended normally (no break)
+                _dists_set.remove(dist)
+        return _dists_set
+
+    if context.no_dependencies:
+        # for `conda create --no-deps python=3 flask`, do we install python? yes
+        # the only dists we touch are the ones that match a specs_to_add
+        dists_for_linking = remove_non_matching_dists(dists_for_linking, specs_to_add)
+        dists_for_unlinking = remove_non_matching_dists(dists_for_unlinking, specs_to_add)
+    elif context.only_dependencies:
+        # for `conda create --only-deps python=3 flask`, do we install python? yes
+        # remove all dists that match a specs_to_add, as long as that dist isn't a dependency
+        #   of other specs_to_add
+        _index = r.index
+        _match_any = lambda spec, dists: next((dist for dist in dists if spec.match(_index[dist])),
+                                              None)
+        _is_dependency = lambda spec, dist: any(r.depends_on(s, dist.name)
+                                                for s in specs_to_add if s != spec)
+        for spec in specs_to_add:
+            link_matching_dist = _match_any(spec, dists_for_linking)
+            if link_matching_dist:
+                if not _is_dependency(spec, link_matching_dist):
+                    # as long as that dist isn't a dependency of other specs_to_add
+                    dists_for_linking.remove(link_matching_dist)
+                    unlink_matching_dist = _match_any(spec, dists_for_unlinking)
+                    if unlink_matching_dist:
+                        dists_for_unlinking.remove(unlink_matching_dist)
 
     if context.force:
         dists_for_unlinking, dists_for_linking = forced_reinstall_specs(prefix, solved_dists,

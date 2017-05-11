@@ -263,6 +263,8 @@ class PackageCache(object):
             if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
                 package_filename += CONDA_TARBALL_EXTENSION
 
+            log.trace("adding to package cache %s", join(pkgs_dir, package_filename))
+
             dist = first(self.urls_data, lambda x: basename(x) == package_filename,
                          apply=Dist)
             if not dist:
@@ -491,6 +493,7 @@ class ProgressiveFetchExtract(object):
         if not self._prepared:
             self.prepare()
 
+        assert not context.dry_run
         with signal_handler(conda_signal_handler):
             for action in concatv(self.cache_actions, self.extract_actions):
                 self._execute_action(action)

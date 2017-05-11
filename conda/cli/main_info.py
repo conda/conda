@@ -198,6 +198,9 @@ def get_info_dict(system=False):
                     for c in channels]
     channels = [mask_anaconda_token(c) for c in channels]
 
+    config_files = tuple(path for path in context.collect_all()
+                         if path not in ('envvars', 'cmd_line'))
+
     info_dict = dict(
         platform=context.subdir,
         conda_version=conda_version,
@@ -221,8 +224,12 @@ def get_info_dict(system=False):
         requests_version=requests_version,
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
+        config_files=config_files,
     )
-    if not on_win:
+    if on_win:
+        from ..common.platform import is_admin_on_windows
+        info_dict['is_windows_admin'] = is_admin_on_windows()
+    else:
         info_dict['UID'] = os.geteuid()
         info_dict['GID'] = os.getegid()
 
@@ -247,12 +254,14 @@ def get_info_dict(system=False):
 
 
 def get_main_info_str(info_dict):
-    for key in 'pkgs_dirs', 'envs_dirs', 'channels':
+    from .._vendor.auxlib.ish import dals
+
+    for key in 'pkgs_dirs', 'envs_dirs', 'channels', 'config_files':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
     builder = []
-    builder.append("""\
+    builder.append(dals("""
     Current conda install:
 
                    platform : %(platform)s
@@ -268,16 +277,15 @@ def get_main_info_str(info_dict):
               package cache : %(_pkgs_dirs)s
                channel URLs : %(_channels)s
                 config file : %(rc_path)s
+               config files : %(_config_files)s
                offline mode : %(offline)s
                  user-agent : %(user_agent)s\
-    """ % info_dict)
+    """) % info_dict)
 
-    if not on_win:
-        builder.append("""\
-                    UID:GID : %(UID)s:%(GID)s
-    """ % info_dict)
+    if on_win:
+        builder.append("          administrator : %(is_windows_admin)s" % info_dict)
     else:
-        builder.append("")
+        builder.append("                UID:GID : %(UID)s:%(GID)s" % info_dict)
 
     return '\n'.join(builder)
 

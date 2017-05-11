@@ -3,15 +3,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import dirname, isdir, join, basename
+from os.path import basename, dirname, isdir, join
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda import CONDA_PACKAGE_ROOT
 import pytest
 
+from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import Activator, main as activate_main, native_path_to_unix

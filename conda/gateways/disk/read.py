@@ -18,7 +18,7 @@ from .link import islink, lexists
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...exceptions import CondaFileNotFoundError, CondaUpgradeError, CondaVerificationError
+from ...exceptions import FileNotFoundError, CondaUpgradeError, CondaVerificationError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
 from ...models.index_record import IndexRecord
@@ -56,7 +56,7 @@ def yield_lines(path):
 
 def compute_md5sum(file_full_path):
     if not isfile(file_full_path):
-        raise CondaFileNotFoundError(file_full_path)
+        raise FileNotFoundError(file_full_path)
 
     hash_md5 = hashlib.md5()
     with open(file_full_path, "rb") as fh:

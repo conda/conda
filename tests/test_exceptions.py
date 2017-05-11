@@ -7,7 +7,7 @@ from conda import text_type
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import reset_context, context
 from conda.common.io import captured, env_var, replace_log_streams
-from conda.exceptions import CommandNotFoundError, CondaFileNotFoundError, CondaHTTPError, CondaKeyError, \
+from conda.exceptions import CommandNotFoundError, FileNotFoundError, CondaHTTPError, CondaKeyError, \
     CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
     TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
     UnknownPackageClobberError, SharedLinkPathClobberError, BinaryPrefixReplacementError, BinaryPrefixReplacementError
@@ -43,7 +43,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "TooManyArgumentsError: Too many arguments:  Got 5 arguments (g, r, o, o, t) but expected 2."
+        assert c.stderr.strip() == "TooManyArgumentsError:  Got 5 arguments (g, r, o, o, t) but expected 2."
 
     def test_TooFewArgumentsError(self):
         expected = 5
@@ -67,7 +67,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "TooFewArgumentsError: Too few arguments:  Got 2 arguments but expected 5."
+        assert c.stderr.strip() == "TooFewArgumentsError:  Got 2 arguments but expected 5."
 
     def test_BasicClobberError(self):
         source_path = "some/path/on/goodwin.ave"
@@ -137,15 +137,15 @@ class ExceptionTests(TestCase):
 
     def test_CondaFileNotFoundError(self):
         filename = "Groot"
-        exc = CondaFileNotFoundError(filename)
+        exc = FileNotFoundError(filename)
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.CondaFileNotFoundError'>"
-        assert json_obj['exception_name'] == 'CondaFileNotFoundError'
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.FileNotFoundError'>"
+        assert json_obj['exception_name'] == 'FileNotFoundError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
@@ -154,7 +154,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CondaFileNotFoundError: File not found: 'Groot'."
+        assert c.stderr.strip() == "FileNotFoundError: Groot"
 
     def test_DirectoryNotFoundError(self):
         directory = "Groot"
@@ -169,14 +169,14 @@ class ExceptionTests(TestCase):
         assert json_obj['exception_name'] == 'DirectoryNotFoundError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
-        assert json_obj['directory'] == "Groot"
+        assert json_obj['path'] == "Groot"
 
         with env_var("CONDA_JSON", "no", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "DirectoryNotFoundError: Directory not found: 'Groot'."
+        assert c.stderr.strip() == "DirectoryNotFoundError: Groot"
 
     def test_MD5MismatchError(self):
         url = "https://download.url/path/to/file.tar.bz2"
@@ -252,7 +252,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CondaRevisionError: Revision Error: Groot."
+        assert c.stderr.strip() == "CondaRevisionError: Groot."
 
     def test_CondaKeyError(self):
         key = "Groot"
@@ -275,7 +275,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CondaKeyError: Error with key 'Groot': Groot is not a key."
+        assert c.stderr.strip() == "CondaKeyError: 'Groot': Groot is not a key."
 
     def test_CondaHTTPError(self):
         msg = "Groot"
@@ -331,7 +331,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CommandNotFoundError: Conda could not find the command: 'instate'"
+        assert c.stderr.strip() == "CommandNotFoundError: 'instate'"
 
     def test_CommandNotFoundError_conda_build(self):
         cmd = "build"
@@ -376,7 +376,7 @@ class ExceptionTests(TestCase):
         assert not c.stdout
 
         if on_win:
-            message = "CommandNotFoundError: Conda could not find the command: 'activate'"
+            message = "CommandNotFoundError: 'activate'"
         else:
             message = ("CommandNotFoundError: 'activate is not a conda command.\n"
                        "Did you mean 'source activate'?")

@@ -12,14 +12,15 @@ import shutil
 import sys
 
 from ._vendor.auxlib.path import expand
+from .base.constants import PREFIX_MAGIC_FILE
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win, open
 from .common.path import url_to_path, win_path_ok
 from .common.url import is_url, join_url, path_to_url, unquote
-from .core.index import get_index, _supplement_index_with_cache
+from .core.index import _supplement_index_with_cache, get_index
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import CondaFileNotFoundError, ParseError, PackageNotFoundError
+from .exceptions import FileNotFoundError, PackageNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink
 from .instructions import LINK, UNLINK
@@ -73,7 +74,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             path = win_path_ok(url_to_path(url))
             if dirname(path) in context.pkgs_dirs:
                 if not exists(path):
-                    raise CondaFileNotFoundError(path)
+                    raise FileNotFoundError(path)
                 pc_entry = PackageCache.tarball_file_in_cache(path)
                 dist = pc_entry.dist
                 url = dist.to_url() or pc_entry.get_urls_txt_value()
@@ -329,10 +330,8 @@ def list_prefixes():
         if not isdir(envs_dir):
             continue
         for dn in sorted(os.listdir(envs_dir)):
-            if dn.startswith('.'):
-                continue
             prefix = join(envs_dir, dn)
-            if isdir(prefix):
+            if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
                 prefix = join(envs_dir, dn)
                 yield prefix
 

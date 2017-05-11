@@ -368,7 +368,7 @@ channels:
                                                   'channels', 'defaults',
                                                   use_exception_handler=True)
         assert stdout == ''
-        assert "CondaKeyError: Error with key 'channels': 'defaults' is not in the 'channels' " \
+        assert "CondaKeyError: 'channels': 'defaults' is not in the 'channels' " \
                "key of the config file" in stderr
 
     # Test creating a new file with --set
@@ -597,13 +597,13 @@ def test_config_command_remove_force():
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                            '--remove', 'channels', 'test', use_exception_handler=True)
         assert stdout == ''
-        assert "CondaKeyError: Error with key 'channels': 'test' is not in the 'channels' " \
+        assert "CondaKeyError: 'channels': 'test' is not in the 'channels' " \
                "key of the config file" in stderr
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                            '--remove', 'disallow', 'python', use_exception_handler=True)
         assert stdout == ''
-        assert "CondaKeyError: Error with key 'disallow': key 'disallow' " \
+        assert "CondaKeyError: 'disallow': key 'disallow' " \
                "is not in the config file" in stderr
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
@@ -615,7 +615,7 @@ def test_config_command_remove_force():
                                            '--remove-key', 'always_yes', use_exception_handler=True)
 
         assert stdout == ''
-        assert "CondaKeyError: Error with key 'always_yes': key 'always_yes' " \
+        assert "CondaKeyError: 'always_yes': key 'always_yes' " \
                "is not in the config file" in stderr
 
 
