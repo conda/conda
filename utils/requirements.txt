@@ -1,5 +1,6 @@
-ruamel.yaml
-pycosat
-pycrypto
 enum34; python_version < '3.3'
 futures; python_version < '3'
+pycosat
+pycrypto
+requests>=2.14.2
+ruamel.yaml
