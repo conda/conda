@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import errno
+from errno import ENOENT
 from functools import reduce
 from logging import getLogger
 from os import listdir
@@ -130,7 +130,7 @@ class PackageCacheEntry(object):
         try:
             return read_repodata_json(epd)
         except (IOError, OSError) as ex:
-            if ex.errno == errno.ENOENT:
+            if ex.errno == ENOENT:
                 return None
             raise  # pragma: no cover
 
