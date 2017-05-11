@@ -644,7 +644,8 @@ def maybe_raise(error, context):
 
 
 def handle_exception(e):
-    if isinstance(e, CondaExitZero):
+    return_code = getattr(e, 'return_code', None)
+    if return_code == 0:
         return 0
     elif isinstance(e, CondaError):
         from .base.context import context
@@ -652,10 +653,10 @@ def handle_exception(e):
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
-        return 1
+        return return_code if return_code else 1
     else:
         print_unexpected_error_message(e)
-        return 1
+        return return_code if return_code else 1
 
 
 def conda_exception_handler(func, *args, **kwargs):
