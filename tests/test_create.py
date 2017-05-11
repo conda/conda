@@ -1107,11 +1107,7 @@ class IntegrationTests(TestCase):
                 assert not pkgs_dir_has_tarball('openssl-')
 
     def test_clean_tarballs_and_packages(self):
-        pkgs_dir = PackageCache.first_writable().pkgs_dir
-        mkdir_p(pkgs_dir)
-        pkgs_dir_hold = pkgs_dir + '_hold'
-        try:
-            shutil.move(pkgs_dir, pkgs_dir_hold)
+        with make_temp_package_cache() as pkgs_dir:
             with make_temp_env("flask") as prefix:
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
@@ -1134,10 +1130,6 @@ class IntegrationTests(TestCase):
             pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
             pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
             assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-        finally:
-            rm_rf(pkgs_dir)
-            shutil.move(pkgs_dir_hold, pkgs_dir)
-            PackageCache.clear()
 
     def test_clean_source_cache(self):
         cache_dirs = {
