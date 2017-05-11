@@ -73,7 +73,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
-def print_activate(arg):
+def print_activate(arg):  # pragma: no cover
     if on_win:
         message = dals("""
         #

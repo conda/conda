@@ -34,6 +34,8 @@ CONDA_PACKAGE_ROOT = dirname(__file__)
 
 
 class CondaError(Exception):
+    return_code = 1
+
     def __init__(self, message, caused_by=None, **kwargs):
         self.message = message
         self._kwargs = kwargs

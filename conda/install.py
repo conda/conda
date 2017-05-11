@@ -50,7 +50,7 @@ def package_cache():
     return package_cache()
 
 
-if on_win:  # pragma: unix no cover
+if on_win:  # pragma: no cover
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
@@ -97,7 +97,7 @@ if on_win:  # pragma: unix no cover
 
 
 # Should this be an API function?
-def symlink_conda(prefix, root_dir, shell=None):
+def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
     if normcase(normpath(prefix)) in normcase(normpath(root_dir)):
@@ -113,7 +113,7 @@ def symlink_conda(prefix, root_dir, shell=None):
     symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
 
 
-def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
+def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
     scripts = ["conda", "activate", "deactivate"]
     prefix_where = join(prefix, where)
     if not isdir(prefix_where):
