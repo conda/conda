@@ -97,18 +97,6 @@ class PackageCacheEntry(object):
         return isdir(epd) and isfile(join(epd, 'info', 'index.json'))
 
     @property
-    @memoizemethod
-    def repodata_record(self):
-        epd = self.extracted_package_dir
-
-        try:
-            return read_repodata_json(epd)
-        except (IOError, OSError) as ex:
-            if ex.errno == errno.ENOENT:
-                return None
-            raise
-
-    @property
     def tarball_basename(self):
         return basename(self.package_tarball_full_path)
 
@@ -124,8 +112,9 @@ class PackageCacheEntry(object):
 
     @property
     def md5sum(self):
-        if self.repodata_record is not None and self.repodata_record.md5:
-            return self.repodata_record.md5
+        repodata_record = self._get_repodata_record()
+        if repodata_record is not None and repodata_record.md5:
+            return repodata_record.md5
         elif self.is_fetched:
             return self._calculate_md5sum()
         else:
@@ -133,6 +122,17 @@ class PackageCacheEntry(object):
 
     def get_urls_txt_value(self):
         return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
+
+    @memoizemethod
+    def _get_repodata_record(self):
+        epd = self.extracted_package_dir
+
+        try:
+            return read_repodata_json(epd)
+        except (IOError, OSError) as ex:
+            if ex.errno == errno.ENOENT:
+                return None
+            raise  # pragma: no cover
 
     @memoizemethod
     def _calculate_md5sum(self):
