@@ -16,7 +16,7 @@ import traceback
 from . import mkdir_p
 from .delete import rm_rf
 from .link import islink, lexists, link, readlink, symlink
-from .permissions import make_executable
+from .permissions import make_executable, make_not_writable
 from .update import touch
 from ..subprocess import subprocess_call
 from ... import CondaError
@@ -140,10 +140,17 @@ def extract_tarball(tarball_full_path, destination_directory=None):
         # When extracting as root, tarfile will by restore ownership
         # of extracted files.  However, we want root to be the owner
         # (our implementation of --no-same-owner).
+        _lchown = os.lchown
         for root, dirs, files in os.walk(destination_directory):
             for fn in files:
-                p = join(root, fn)
-                os.lchown(p, 0, 0)
+                path = join(root, fn)
+                _lchown(path, 0, 0)
+    if context.extract_read_only:
+        _make_not_writable = make_not_writable
+        for root, dirs, files in os.walk(destination_directory):
+            for fn in files:
+                path = join(root, fn)
+                _make_not_writable(path)
 
 
 def write_linked_package_record(prefix, record):
