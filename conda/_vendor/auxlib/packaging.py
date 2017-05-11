@@ -91,7 +91,7 @@ log = getLogger(__name__)
 
 Response = namedtuple('Response', ['stdout', 'stderr', 'rc'])
 GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
-                             r"(?P<version>\d+\.\d+\.\d+)"
+                             r"(?P<version>[a-zA-Z0-9.]+)"
                              r"(?:-(?P<post>\d+)-g(?P<hash>[0-9a-f]{7,}))$")
 
 
