@@ -12,7 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import hashlib
 import json
 import os
-from os.path import abspath, basename, dirname, isdir, isfile, islink, join, normpath
+from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 import re
 import tarfile
 import tempfile
