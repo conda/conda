@@ -81,6 +81,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         dist = dist or Dist(url)
         fetch_recs[dist] = IndexRecord(name=dist.name, version=dist.version, build=dist.build,
                                        build_number=dist.build_number, arch=dist.platform,
+                                       channel=dist.channel, schannel=dist.channel, fn=dist.fn,
                                        url=url, md5=md5sum)
 
 
