@@ -32,8 +32,10 @@ def update_file_in_place_as_binary(file_full_path, callback):
     #   content of the file before updating
     # this method updates the file in-place, without releasing the file lock
     fh = None
+    made_writable = False
     try:
         make_writable(file_full_path)
+        made_writable = True
         fh = exp_backoff_fn(open, file_full_path, 'rb+')
         log.trace("in-place update path locked for %s", file_full_path)
         data = fh.read()
@@ -45,8 +47,9 @@ def update_file_in_place_as_binary(file_full_path, callback):
             pass  # NOQA
     finally:
         if fh:
-            make_not_writable(file_full_path)
             fh.close()
+        if made_writable:
+            make_not_writable(file_full_path)
 
 
 def rename(source_path, destination_path, force=False):
