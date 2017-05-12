@@ -26,6 +26,7 @@ import requests
 
 from conda import CondaError, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import Context, context, reset_context
 from conda.cli.main import generate_parser
 from conda.cli.main_clean import configure_parser as clean_configure_parser
@@ -164,6 +165,22 @@ def make_temp_env(*packages, **kwargs):
             yield prefix
         finally:
             rmtree(prefix, ignore_errors=True)
+
+@contextmanager
+def make_temp_package_cache():
+    prefix = make_temp_prefix()
+    pkgs_dir = join(prefix, 'pkgs')
+    mkdir_p(pkgs_dir)
+    touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
+
+    try:
+        with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+            assert context.pkgs_dirs == (pkgs_dir,)
+            yield pkgs_dir
+    finally:
+        rmtree(prefix, ignore_errors=True)
+        if pkgs_dir in PackageCache._cache_:
+            del PackageCache._cache_[pkgs_dir]
 
 @contextmanager
 def make_temp_channel(packages):
@@ -1086,12 +1103,34 @@ class IntegrationTests(TestCase):
                 # The mock should have been called with our local channel URL though.
                 assert result_dict.get('local_channel_seen')
 
+    def test_create_from_extracted(self):
+        with make_temp_package_cache() as pkgs_dir:
+            assert context.pkgs_dirs == (pkgs_dir,)
+            def pkgs_dir_has_tarball(tarball_prefix):
+                return any(f.startswith(tarball_prefix) and f.endswith(CONDA_TARBALL_EXTENSION)
+                           for f in os.listdir(pkgs_dir))
+
+            with make_temp_env() as prefix:
+                # First, make sure the openssl package is present in the cache,
+                # downloading it if needed
+                assert not pkgs_dir_has_tarball('openssl-')
+                run_command(Commands.INSTALL, prefix, 'openssl')
+                assert pkgs_dir_has_tarball('openssl-')
+
+                # Then, remove the tarball but keep the extracted directory around
+                run_command(Commands.CLEAN, prefix, '--tarballs --yes')
+                assert not pkgs_dir_has_tarball('openssl-')
+
+            with make_temp_env() as prefix:
+                # Finally, install openssl, enforcing the use of the extracted package.
+                # We expect that the tarball does not appear again because we simply
+                # linked the package from the extracted directory. If the tarball
+                # appeared again, we decided to re-download the package for some reason.
+                run_command(Commands.INSTALL, prefix, 'openssl --offline')
+                assert not pkgs_dir_has_tarball('openssl-')
+
     def test_clean_tarballs_and_packages(self):
-        pkgs_dir = PackageCache.first_writable().pkgs_dir
-        mkdir_p(pkgs_dir)
-        pkgs_dir_hold = pkgs_dir + '_hold'
-        try:
-            shutil.move(pkgs_dir, pkgs_dir_hold)
+        with make_temp_package_cache() as pkgs_dir:
             with make_temp_env("flask") as prefix:
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
@@ -1114,10 +1153,6 @@ class IntegrationTests(TestCase):
             pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
             pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
             assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-        finally:
-            rm_rf(pkgs_dir)
-            shutil.move(pkgs_dir_hold, pkgs_dir)
-            PackageCache.clear()
 
     def test_clean_source_cache(self):
         cache_dirs = {
