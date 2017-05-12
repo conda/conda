@@ -84,7 +84,6 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                                        channel=dist.channel, schannel=dist.channel, fn=dist.fn,
                                        url=url, md5=md5sum)
 
-
     # perform any necessary fetches and extractions
     if verbose:
         from .console import setup_verbose_handlers
