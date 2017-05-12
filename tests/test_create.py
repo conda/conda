@@ -1081,24 +1081,24 @@ class IntegrationTests(TestCase):
                 assert result_dict.get('local_channel_seen')
 
     def test_create_from_extracted(self):
-        with make_temp_env() as prefix:
-            with make_temp_package_cache() as pkgs_dir:
-                assert context.pkgs_dirs == (pkgs_dir,)
-                def pkgs_dir_has_tarball(tarball_prefix):
-                    return any(f.startswith(tarball_prefix) and f.endswith(CONDA_TARBALL_EXTENSION)
-                               for f in os.listdir(pkgs_dir))
+        with make_temp_package_cache() as pkgs_dir:
+            assert context.pkgs_dirs == (pkgs_dir,)
+            def pkgs_dir_has_tarball(tarball_prefix):
+                return any(f.startswith(tarball_prefix) and f.endswith(CONDA_TARBALL_EXTENSION)
+                           for f in os.listdir(pkgs_dir))
 
+            with make_temp_env() as prefix:
                 # First, make sure the openssl package is present in the cache,
                 # downloading it if needed
                 assert not pkgs_dir_has_tarball('openssl-')
                 run_command(Commands.INSTALL, prefix, 'openssl')
-                run_command(Commands.REMOVE, prefix, 'openssl')
                 assert pkgs_dir_has_tarball('openssl-')
 
                 # Then, remove the tarball but keep the extracted directory around
                 run_command(Commands.CLEAN, prefix, '--tarballs --yes')
                 assert not pkgs_dir_has_tarball('openssl-')
 
+            with make_temp_env() as prefix:
                 # Finally, install openssl, enforcing the use of the extracted package.
                 # We expect that the tarball does not appear again because we simply
                 # linked the package from the extracted directory. If the tarball
