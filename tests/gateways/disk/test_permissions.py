@@ -15,6 +15,7 @@ from stat import S_IRUSR, S_IRGRP, S_IROTH
 from stat import S_IRWXG, S_IRWXO, S_IRWXU
 from stat import S_IXUSR, S_IXGRP, S_IXOTH
 from conda.gateways.disk.update import touch
+from conda.gateways.disk.permissions import make_writable
 
 try:
     from unittest.mock import patch
@@ -92,6 +93,21 @@ def test_make_writable():
         make_writable(test_path)
         _try_open(test_path)
         assert _can_write_file(test_path, "welcome to the ministry of silly walks")
+        os.remove(test_path)
+        assert not isfile(test_path)
+
+
+def test_make_not_writable():
+    from conda.gateways.disk.permissions import make_not_writable
+    with tempdir() as td:
+        test_path = join(td, 'test_path')
+        touch(test_path)
+        assert isfile(test_path)
+        _try_open(test_path)
+        make_writable(test_path)
+        assert _can_write_file(test_path, "welcome to the ministry of silly walks")
+        make_not_writable(test_path)
+        assert not _can_write_file(test_path, "welcome to a corn field, where corn grows")
         os.remove(test_path)
         assert not isfile(test_path)
 
