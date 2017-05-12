@@ -188,6 +188,11 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar="KEY",
     )
+    action.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Apply configuration information given in yaml format piped through stdin.",
+    )
 
     p.add_argument(
         "-f", "--force",
@@ -353,6 +358,15 @@ def execute_config(args, parser):
                               "  # lowest priority" if q == 0 else "  # highest priority")
                     else:
                         print("--add", key, repr(item))
+
+    if args.stdin:
+        content = sys.stdin.read()
+        try:
+            parsed = yaml_load(content)
+        except Exception:  # pragma: no cover
+            from ..exceptions import ParseError
+            raise ParseError("invalid yaml content:\n%s" % content)
+        rc_config.update(parsed)
 
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
