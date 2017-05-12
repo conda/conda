@@ -1083,7 +1083,7 @@ class CacheUrlAction(PathAction):
                 #   directory that might exist in this cache because we are going to overwrite it
                 #   anyway when we extract the tarball.
                 source_md5sum = compute_md5sum(source_path)
-                exclude_caches = [self.target_pkgs_dir]
+                exclude_caches = self.target_pkgs_dir,
                 pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
                                                               exclude_caches=exclude_caches)
                 origin_url = pc_entry.get_urls_txt_value() if pc_entry else None

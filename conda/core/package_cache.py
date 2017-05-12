@@ -244,7 +244,7 @@ class PackageCache(object):
         raise CondaError("No package '%s' found in cache directories." % dist)
 
     @classmethod
-    def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=[]):
+    def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=()):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
         pc_entry = first(cls(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
                                                                   md5sum)
