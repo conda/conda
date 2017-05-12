@@ -23,13 +23,13 @@ from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_di
                            is_private_env_path, parse_entry_point_def,
                            preferred_env_matches_prefix, pyc_path, url_to_path, win_path_ok)
 from ..common.url import path_to_url, unquote
-from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
+from ..exceptions import CondaUpgradeError, CondaVerificationError, LinkError, PaddingError
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
                                     create_fake_executable_softlink, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
                                     make_menu, write_as_json_to_file, write_linked_package_record)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.link import symlink
+from ..gateways.disk.link import stat_nlink, symlink
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.test import softlink_supported
 from ..gateways.disk.update import backoff_rename, touch
@@ -364,6 +364,14 @@ class PrefixReplaceLinkAction(LinkPathAction):
             log.trace("ignoring prefix update for symlink with source path %s",
                       self.source_full_path)
             return
+
+        num_links = stat_nlink(self.target_full_path)
+        if num_links > 1:
+            raise LinkError(dals("""
+            Refusing to rewrite prefixes in path with more than one link.
+              path: %s
+              links: %s
+            """) % (self.target_full_path, num_links))
 
         try:
             log.trace("rewriting prefixes in %s", self.target_full_path)
