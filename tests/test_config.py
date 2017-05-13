@@ -660,11 +660,30 @@ def test_config_set():
         assert stdout == ''
         assert stderr == ''
 
+        with open(rc) as fh:
+            content = yaml_load(fh.read())
+            assert content['always_yes'] is True
+
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                                   '--set', 'always_yes', 'no')
 
         assert stdout == ''
         assert stderr == ''
+
+        with open(rc) as fh:
+            content = yaml_load(fh.read())
+            assert content['always_yes'] is False
+
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
+                                                  '--set', 'proxy_servers.http', '1.2.3.4:5678')
+
+        assert stdout == ''
+        assert stderr == ''
+
+        with open(rc) as fh:
+            content = yaml_load(fh.read())
+            assert content['always_yes'] is False
+            assert content['proxy_servers'] == {'http': '1.2.3.4:5678'}
 
 
 def test_set_rc_string():

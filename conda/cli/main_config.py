@@ -383,18 +383,27 @@ def execute_config(args, parser):
                     json_warnings.append(message)
             arglist.insert(0 if prepend else len(arglist), item)
 
+    primitive_parameters = frozenset(p for p in context.list_parameters()
+                                     if context.describe_parameter(p)['parameter_type'] == 'primitive')
+    map_parameters = frozenset(p for p in context.list_parameters()
+                               if context.describe_parameter(p)['parameter_type'] == 'map')
+
     # Set
     for key, item in args.set:
-        primitive_parameters = [p for p in context.list_parameters()
-                                if context.describe_parameter(p)['parameter_type'] == 'primitive']
-        if key not in primitive_parameters:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
+        if key in primitive_parameters:
+            value = context.typify_parameter(key, item)
+            rc_config[key] = value
+        elif key in map_parameters:
+            argmap = rc_config.setdefault(key, {})
+            argmap[subkey] = item
+        else:
             from ..exceptions import CondaValueError
             raise CondaValueError("Key '%s' is not a known primitive parameter." % key)
-        value = context.typify_parameter(key, item)
-        rc_config[key] = value
 
     # Remove
     for key, item in args.remove:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             if key != 'channels':
                 from ..exceptions import CondaKeyError
@@ -408,6 +417,7 @@ def execute_config(args, parser):
 
     # Remove Key
     for key, in args.remove_key:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             from ..exceptions import CondaKeyError
             raise CondaKeyError(key, "key %r is not in the config file" %
