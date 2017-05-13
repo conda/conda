@@ -35,8 +35,6 @@ log = logging.getLogger(__name__)
 def check_prefix(prefix, json=False):
     name = basename(prefix)
     error = None
-    if name.startswith('.'):
-        error = "environment name cannot start with '.': %s" % name
     if name == ROOT_ENV_NAME:
         error = "'%s' is a reserved environment name" % name
     if exists(prefix):
@@ -75,7 +73,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
-def print_activate(arg):
+def print_activate(arg):  # pragma: no cover
     if on_win:
         message = dals("""
         #

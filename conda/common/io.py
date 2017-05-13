@@ -8,7 +8,8 @@ import os
 from os import chdir, getcwd
 import sys
 
-from .compat import StringIO
+from .compat import StringIO, iteritems
+from .constants import NULL
 from .._vendor.auxlib.logz import NullHandler
 
 log = getLogger(__name__)
@@ -32,6 +33,27 @@ def env_var(name, value, callback=None):
             os.environ[name] = saved_env_var
         else:
             del os.environ[name]
+        if callback:
+            callback()
+
+
+@contextmanager
+def env_vars(var_map, callback=None):
+    # NOTE: will likely want to call reset_context() when using this function, so pass
+    #       it as callback
+    saved_vars = {str(name): os.environ.get(name, NULL) for name in var_map}
+    try:
+        for name, value in iteritems(var_map):
+            os.environ[str(name)] = str(value)
+        if callback:
+            callback()
+        yield
+    finally:
+        for name, value in iteritems(saved_vars):
+            if value is NULL:
+                del os.environ[name]
+            else:
+                os.environ[name] = value
         if callback:
             callback()
 

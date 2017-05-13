@@ -34,6 +34,8 @@ CONDA_PACKAGE_ROOT = dirname(__file__)
 
 
 class CondaError(Exception):
+    return_code = 1
+
     def __init__(self, message, caused_by=None, **kwargs):
         self.message = message
         self._kwargs = kwargs
@@ -90,7 +92,7 @@ class CondaMultiError(CondaError):
 
 
 class CondaExitZero(CondaError):
-    pass
+    return_code = 0
 
 
 ACTIVE_SUBPROCESSES = set()

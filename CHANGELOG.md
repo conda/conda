@@ -21,6 +21,11 @@
 * resolve #3763, #4378 allow pip requirements.txt syntax in environment files (#3969)
 * resolve #5147 add 'config files' to conda info (#5269)
 * use --format=json to parse list of pip packages (#5205)
+* resolve #1427 remove startswith '.' environment name constraint (#5284)
+* link packages from extracted tarballs when tarball is gone (#5289)
+* resolve #2511 accept config information from stdin (#5309)
+* resolve #4302 add ability to set map parameters with conda config (#5310)
+* resolve #5256 enable conda config --get for all primitive parameters (#5312)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -32,6 +37,9 @@
 * fix #4987 conda update --all no longer displays full list of packages (#5228)
 * fix #3489 don't error on remove --all if environment doesn't exist (#5231)
 * fix #1509 bash doesn't need full path for pre/post link/unlink scripts on unix (#5252)
+* fix #462 add regression test (#5286)
+* fix #5288 confirmation prompt doesn't accept no (#5291)
+* fix #1713 'conda package -w' is case dependent on Windows (#5308)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
@@ -43,6 +51,7 @@
 * extra config command tests (#5185)
 * add coverage for confirm (#5203)
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
+* add assertion that a path only has a single hard link before rewriting prefixes (#5305)
 
 
 ## 4.3.19 (unreleased)
@@ -54,6 +63,10 @@
 ### Bug Fixes
 * fix #5272 conda env export ugliness under python2 (#5273)
 * fix #4596 warning message from pip on conda env export (#5274)
+* fix #4986 --yes not functioning for conda clean (#5311)
+
+### Non-User-Facing Changes
+* test conda 4.3 with requests 2.14.2 (#5281)
 
 
 ## 4.3.18 (2017-05-09)

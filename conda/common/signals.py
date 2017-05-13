@@ -33,6 +33,8 @@ def get_signal_name(signum):
 
 @contextmanager
 def signal_handler(handler):
+    # TODO: test and fix windows
+    #   https://danielkaes.wordpress.com/2009/06/04/how-to-catch-kill-events-with-python/
     _thread_local = threading.local()
     _thread_local.previous_handlers = []
     for signame in INTERRUPT_SIGNALS:

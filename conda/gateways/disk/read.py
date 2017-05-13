@@ -102,6 +102,12 @@ def read_index_json(extracted_package_directory):
     return record
 
 
+def read_repodata_json(extracted_package_directory):
+    with open(join(extracted_package_directory, 'info', 'repodata_record.json')) as fi:
+        record = IndexRecord(**json.load(fi))
+    return record
+
+
 def read_icondata(extracted_package_directory):
     icon_file_path = join(extracted_package_directory, 'info', 'icon.png')
     if isfile(icon_file_path):

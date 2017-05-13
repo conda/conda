@@ -21,8 +21,7 @@ from ..common.compat import isiterable, iteritems, string_types, text_type
 from ..common.configuration import pretty_list, pretty_map
 from ..common.constants import NULL
 from ..common.yaml import yaml_dump, yaml_load
-from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
-                      user_rc_path)
+from ..config import rc_other, sys_rc_path, user_rc_path
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -188,6 +187,11 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar="KEY",
     )
+    action.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Apply configuration information given in yaml format piped through stdin.",
+    )
 
     p.add_argument(
         "-f", "--force",
@@ -228,6 +232,10 @@ def format_dict(d):
 
 
 def execute_config(args, parser):
+    try:
+        from cytoolz.itertoolz import groupby
+    except ImportError:  # pragma: no cover
+        from .._vendor.toolz.itertoolz import groupby  # NOQA
     from .._vendor.auxlib.entity import EntityEncoder
     json_warnings = []
     json_get = {}
@@ -317,13 +325,19 @@ def execute_config(args, parser):
     else:
         rc_config = {}
 
+    grouped_paramaters = groupby(lambda p: context.describe_parameter(p)['parameter_type'],
+                                 context.list_parameters())
+    primitive_parameters = grouped_paramaters['primitive']
+    sequence_parameters = grouped_paramaters['sequence']
+    map_parameters = grouped_paramaters['map']
+
     # Get
     if args.get is not None:
         context.validate_all()
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
-            if key not in rc_list_keys + rc_bool_keys + rc_string_keys:
+            if key not in primitive_parameters + sequence_parameters:
                 if key not in rc_other:
                     message = "unknown key %s" % key
                     if not context.json:
@@ -354,10 +368,17 @@ def execute_config(args, parser):
                     else:
                         print("--add", key, repr(item))
 
+    if args.stdin:
+        content = sys.stdin.read()
+        try:
+            parsed = yaml_load(content)
+        except Exception:  # pragma: no cover
+            from ..exceptions import ParseError
+            raise ParseError("invalid yaml content:\n%s" % content)
+        rc_config.update(parsed)
+
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
-        sequence_parameters = [p for p in context.list_parameters()
-                               if context.describe_parameter(p)['parameter_type'] == 'sequence']
         for key, item in arg:
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
@@ -385,16 +406,20 @@ def execute_config(args, parser):
 
     # Set
     for key, item in args.set:
-        primitive_parameters = [p for p in context.list_parameters()
-                                if context.describe_parameter(p)['parameter_type'] == 'primitive']
-        if key not in primitive_parameters:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
+        if key in primitive_parameters:
+            value = context.typify_parameter(key, item)
+            rc_config[key] = value
+        elif key in map_parameters:
+            argmap = rc_config.setdefault(key, {})
+            argmap[subkey] = item
+        else:
             from ..exceptions import CondaValueError
             raise CondaValueError("Key '%s' is not a known primitive parameter." % key)
-        value = context.typify_parameter(key, item)
-        rc_config[key] = value
 
     # Remove
     for key, item in args.remove:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             if key != 'channels':
                 from ..exceptions import CondaKeyError
@@ -408,6 +433,7 @@ def execute_config(args, parser):
 
     # Remove Key
     for key, in args.remove_key:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             from ..exceptions import CondaKeyError
             raise CondaKeyError(key, "key %r is not in the config file" %

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import ENOENT
 from functools import reduce
 from logging import getLogger
 from os import listdir
@@ -19,7 +20,7 @@ from ..common.path import url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
-from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink
+from ..gateways.disk.read import read_repodata_json, compute_md5sum, isdir, isfile, islink
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -111,10 +112,27 @@ class PackageCacheEntry(object):
 
     @property
     def md5sum(self):
-        return self._calculate_md5sum() if self.is_fetched else None
+        repodata_record = self._get_repodata_record()
+        if repodata_record is not None and repodata_record.md5:
+            return repodata_record.md5
+        elif self.is_fetched:
+            return self._calculate_md5sum()
+        else:
+            return None
 
     def get_urls_txt_value(self):
         return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
+
+    @memoizemethod
+    def _get_repodata_record(self):
+        epd = self.extracted_package_dir
+
+        try:
+            return read_repodata_json(epd)
+        except (IOError, OSError) as ex:
+            if ex.errno == ENOENT:
+                return None
+            raise  # pragma: no cover
 
     @memoizemethod
     def _calculate_md5sum(self):
@@ -226,11 +244,12 @@ class PackageCache(object):
         raise CondaError("No package '%s' found in cache directories." % dist)
 
     @classmethod
-    def tarball_file_in_cache(cls, tarball_path, md5sum=None):
+    def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=()):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
         pc_entry = first(cls(pkgs_dir).tarball_file_in_this_cache(tarball_full_path,
                                                                   md5sum)
-                         for pkgs_dir in context.pkgs_dirs)
+                         for pkgs_dir in context.pkgs_dirs
+                         if pkgs_dir not in exclude_caches)
         return pc_entry
 
     @classmethod
