@@ -383,10 +383,14 @@ def execute_config(args, parser):
                     json_warnings.append(message)
             arglist.insert(0 if prepend else len(arglist), item)
 
-    primitive_parameters = frozenset(p for p in context.list_parameters()
-                                     if context.describe_parameter(p)['parameter_type'] == 'primitive')
-    map_parameters = frozenset(p for p in context.list_parameters()
-                               if context.describe_parameter(p)['parameter_type'] == 'map')
+    primitive_parameters = frozenset(
+        p for p in context.list_parameters()
+        if context.describe_parameter(p)['parameter_type'] == 'primitive'
+    )
+    map_parameters = frozenset(
+        p for p in context.list_parameters()
+        if context.describe_parameter(p)['parameter_type'] == 'map'
+    )
 
     # Set
     for key, item in args.set:
