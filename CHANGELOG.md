@@ -63,6 +63,10 @@
 ### Bug Fixes
 * fix #5272 conda env export ugliness under python2 (#5273)
 * fix #4596 warning message from pip on conda env export (#5274)
+* fix #4986 --yes not functioning for conda clean (#5311)
+
+### Non-User-Facing Changes
+* test conda 4.3 with requests 2.14.2 (#5281)
 
 
 ## 4.3.18 (2017-05-09)

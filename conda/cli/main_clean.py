@@ -120,7 +120,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
-    if not context.json:
+    if not context.json or not context.yes:
         confirm_yn(args)
     if context.json and args.dry_run:
         return
@@ -221,7 +221,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
-    if not context.json:
+    if not context.json or not context.yes:
         confirm_yn(args)
     if context.json and args.dry_run:
         return
@@ -286,7 +286,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
 
     print("%-40s %10s" % ("Total:", human_bytes(total_size)))
 
-    if not context.json:
+    if not context.json or not context.yes:
         confirm_yn(args)
     if context.json and args.dry_run:
         return
