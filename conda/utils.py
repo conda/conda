@@ -289,7 +289,7 @@ def sys_prefix_unfollowed():
     is when conda looks for external sub-commands in find_commands.py
     """
     try:
-        frame = sys._current_frames().values()[0]
+        frame = list(sys._current_frames().values())[0]
         while frame.f_back:
             frame = frame.f_back
         code = frame.f_code
