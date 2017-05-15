@@ -167,15 +167,18 @@ def make_temp_env(*packages, **kwargs):
             rmtree(prefix, ignore_errors=True)
 
 @contextmanager
-def make_temp_package_cache():
+def make_temp_package_cache(prepend=False):
     prefix = make_temp_prefix()
     pkgs_dir = join(prefix, 'pkgs')
     mkdir_p(pkgs_dir)
     touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
 
     try:
-        with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
-            assert context.pkgs_dirs == (pkgs_dir,)
+        new_pkgs_dirs = (pkgs_dir,)
+        if prepend:
+            new_pkgs_dirs = (pkgs_dir,) + context.pkgs_dirs
+        with env_var('CONDA_PKGS_DIRS', ','.join(new_pkgs_dirs), reset_context):
+            assert context.pkgs_dirs == new_pkgs_dirs
             yield pkgs_dir
     finally:
         rmtree(prefix, ignore_errors=True)
@@ -1128,6 +1131,18 @@ class IntegrationTests(TestCase):
                 # appeared again, we decided to re-download the package for some reason.
                 run_command(Commands.INSTALL, prefix, 'openssl --offline')
                 assert not pkgs_dir_has_tarball('openssl-')
+
+    def test_explicit_install_with_second_package_cache(self):
+        with make_temp_package_cache() as pkgs_dir:
+            with make_temp_env() as prefix:
+                run_command(Commands.INSTALL, prefix, 'openssl')
+
+            with make_temp_package_cache(prepend=True), make_temp_env() as prefix:
+                tarball = glob(join(pkgs_dir, 'openssl-*' + CONDA_TARBALL_EXTENSION))[0]
+                new_tarball = join(prefix, basename(tarball))
+                copyfile(tarball, new_tarball)
+
+                run_command(Commands.INSTALL, prefix, new_tarball)
 
     def test_clean_tarballs_and_packages(self):
         with make_temp_package_cache() as pkgs_dir:
