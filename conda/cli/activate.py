@@ -6,7 +6,7 @@ from os.path import abspath, isdir
 import re as regex
 import sys
 
-from ..common.compat import on_win, text_type
+from ..common.compat import ensure_text_type, on_win, text_type
 from ..exceptions import (ArgumentError, CondaEnvironmentError, CondaSystemExit, CondaValueError,
                           TooFewArgumentsError, TooManyArgumentsError)
 from ..utils import shells
@@ -42,7 +42,7 @@ of the environment ENV from the front of PATH.""")
 Removes the 'bin' directory of the environment activated with 'source
 activate' from PATH. """)
     else:
-        raise CondaSystemExit("No help available for command %s" % sys.argv[1])
+        raise CondaSystemExit("No help available for command %s" % ensure_text_type(sys.argv[1]))
 
 
 def prefix_from_arg(arg, shell):
