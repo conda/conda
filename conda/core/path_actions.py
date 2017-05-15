@@ -1079,31 +1079,10 @@ class CacheUrlAction(PathAction):
                 if origin_url and Dist(origin_url).is_channel:
                     target_package_cache.urls_data.add_url(origin_url)
             else:
-                # so our tarball source isn't a package cache, but that doesn't mean it's not
-                #   in another package cache somewhere
-                # let's try to find the actual, remote source url by matching md5sums, and then
-                #   record that url as the remote source url in urls.txt
-                # we do the search part of this operation before the create_link so that we
-                #   don't md5sum-match the file created by 'create_link'
-                # there is no point in looking for the tarball in the cache that we are writing
-                #   this file into because we have already removed the previous file if there was
-                #   any. This also makes sure that we ignore the md5sum of a possible extracted
-                #   directory that might exist in this cache because we are going to overwrite it
-                #   anyway when we extract the tarball.
-                source_md5sum = compute_md5sum(source_path)
-                exclude_caches = self.target_pkgs_dir,
-                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
-                                                              exclude_caches=exclude_caches)
-                origin_url = pc_entry.get_urls_txt_value() if pc_entry else None
-
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
-
-                if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
-                else:
-                    target_package_cache.urls_data.add_url(self.url)
+                target_package_cache.urls_data.add_url(self.url)
 
         else:
             download(self.url, self.target_full_path, self.md5sum)
