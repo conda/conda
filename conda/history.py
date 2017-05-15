@@ -11,6 +11,7 @@ import time
 import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
+from .common.compat import ensure_text_type, open
 from .core.linked_data import linked
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .models.dist import Dist
@@ -24,7 +25,7 @@ class CondaHistoryWarning(Warning):
 
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
-    fo.write("# cmd: %s\n" % (' '.join(sys.argv)))
+    fo.write("# cmd: %s\n" % (' '.join(ensure_text_type(s) for s in sys.argv)))
 
 
 def is_diff(content):
