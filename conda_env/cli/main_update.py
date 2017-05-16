@@ -41,6 +41,7 @@ def configure_parser(sub_parsers):
         help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
         default=None,
     )
+    common.add_parser_prefix(p)
     p.add_argument(
         '-f', '--file',
         action='store',
@@ -79,7 +80,7 @@ def execute(args, parser):
     except exceptions.SpecNotFound:
         raise
 
-    if not args.name:
+    if not (args.name or args.prefix):
         if not env.name:
                     # Note, this is a hack fofr get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
