@@ -29,7 +29,7 @@ from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
 
 from .base.constants import PREFIX_PLACEHOLDER
-from .common.compat import on_win
+from .common.compat import on_win, open
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.linked_data import is_linked, linked, linked_data  # NOQA

@@ -136,12 +136,25 @@ def _main(*args):
         return exit_code
 
 
+def _ensure_text_type(value):
+    # copying here from conda/common/compat.py to avoid the import
+    try:
+        return value.decode('utf-8')
+    except AttributeError:
+        # AttributeError: '<>' object has no attribute 'decode'
+        # In this case assume already text_type and do nothing
+        return value
+    except UnicodeDecodeError:
+        from requests.packages.chardet import detect
+        encoding = detect(value).get('encoding') or 'utf-8'
+        return value.decode(encoding)
+
+
 def main(*args):
     if not args:
         args = sys.argv
 
-    if not args:
-        args = sys.argv
+    args = tuple(_ensure_text_type(s) for s in args)
 
     log.debug("conda.cli.main called with %s", args)
     if len(args) > 1:

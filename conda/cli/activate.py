@@ -6,7 +6,7 @@ from os.path import abspath, isdir
 import re as regex
 import sys
 
-from ..common.compat import on_win, text_type
+from ..common.compat import ensure_text_type, on_win, text_type
 from ..exceptions import (ArgumentError, CondaEnvironmentError, CondaSystemExit, CondaValueError,
                           TooFewArgumentsError, TooManyArgumentsError)
 from ..utils import shells
@@ -42,7 +42,7 @@ of the environment ENV from the front of PATH.""")
 Removes the 'bin' directory of the environment activated with 'source
 activate' from PATH. """)
     else:
-        raise CondaSystemExit("No help available for command %s" % sys.argv[1])
+        raise CondaSystemExit("No help available for command %s" % ensure_text_type(sys.argv[1]))
 
 
 def prefix_from_arg(arg, shell):
@@ -107,34 +107,37 @@ def get_activate_path(prefix, shell):
 
 def main():
     from ..base.constants import ROOT_ENV_NAME
-    if '-h' in sys.argv or '--help' in sys.argv:
-        # all execution paths sys.exit at end.
-        help(sys.argv[1], sys.argv[2])
 
-    if len(sys.argv) > 2:
-        shell = sys.argv[2]
+    sys_argv = tuple(ensure_text_type(s) for s in sys.argv)
+
+    if '-h' in sys_argv or '--help' in sys_argv:
+        # all execution paths sys.exit at end.
+        help(sys_argv[1], sys_argv[2])
+
+    if len(sys_argv) > 2:
+        shell = sys_argv[2]
     else:
         shell = ''
 
-    if regex.match('^..(?:de|)activate$', sys.argv[1]):
-        arg_num = len(sys.argv)
+    if regex.match('^..(?:de|)activate$', sys_argv[1]):
+        arg_num = len(sys_argv)
         if arg_num != 4:
             num_expected = 2
             if arg_num < 4:
                 raise TooFewArgumentsError(num_expected, arg_num - num_expected,
                                            "{} expected exactly two arguments:\
-                                            shell and env name".format(sys.argv[1]))
+                                            shell and env name".format(sys_argv[1]))
             if arg_num > 4:
-                raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
+                raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys_argv[2:],
                                             "{} expected exactly two arguments:\
-                                             shell and env name".format(sys.argv[1]))
+                                             shell and env name".format(sys_argv[1]))
 
-    if sys.argv[1] == '..activate':
-        print(get_activate_path(sys.argv[3], shell))
+    if sys_argv[1] == '..activate':
+        print(get_activate_path(sys_argv[3], shell))
         sys.exit(0)
 
-    elif sys.argv[1] == '..deactivate.path':
-        activation_path = get_activate_path(sys.argv[3], shell)
+    elif sys_argv[1] == '..deactivate.path':
+        activation_path = get_activate_path(sys_argv[3], shell)
 
         if os.getenv('_CONDA_HOLD'):
             new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path),
@@ -147,19 +150,19 @@ def main():
         print(new_path)
         sys.exit(0)
 
-    elif sys.argv[1] == '..checkenv':
-        if len(sys.argv) < 4:
+    elif sys_argv[1] == '..checkenv':
+        if len(sys_argv) < 4:
             raise ArgumentError("Invalid arguments to checkenv.  Need shell and env name/path")
-        if len(sys.argv) > 4:
+        if len(sys_argv) > 4:
             raise ArgumentError("did not expect more than one argument.")
-        if sys.argv[3].lower() == ROOT_ENV_NAME.lower():
+        if sys_argv[3].lower() == ROOT_ENV_NAME.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
             # raise CondaSystemExit
 
         # this should throw an error and exit if the env or path can't be found.
         try:
-            prefix = prefix_from_arg(sys.argv[3], shell)
+            prefix = prefix_from_arg(sys_argv[3], shell)
         except ValueError as e:
             raise CondaValueError(text_type(e))
 
@@ -172,12 +175,12 @@ def main():
             if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 msg = ("Cannot activate environment {0}.\n"
                        "User does not have write access for conda symlinks."
-                       .format(sys.argv[2]))
+                       .format(sys_argv[2]))
                 raise CondaEnvironmentError(msg)
             raise
         sys.exit(0)
         # raise CondaSystemExit
-    elif sys.argv[1] == '..changeps1':
+    elif sys_argv[1] == '..changeps1':
         from ..base.context import context
         path = int(context.changeps1)
 
