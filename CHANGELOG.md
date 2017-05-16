@@ -26,6 +26,8 @@
 * resolve #2511 accept config information from stdin (#5309)
 * resolve #4302 add ability to set map parameters with conda config (#5310)
 * resolve #5256 enable conda config --get for all primitive parameters (#5312)
+* resolve #1992 add short flag -C for --use-index-cache (#5314)
+* resolve #2173 add --quiet option to conda clean (#5313)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -52,6 +54,7 @@
 * add coverage for confirm (#5203)
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 * add assertion that a path only has a single hard link before rewriting prefixes (#5305)
+* remove pycrypto as requirement on windows (#5326)
 
 
 ## 4.3.19 (unreleased)
@@ -59,14 +62,17 @@
 ### Improvements
 * resolve #3689 better error messaging for missing anaconda-client (#5276)
 * resolve #4795 conda env export lacks -p flag (#5275)
+* resolve #5315 add alias verify_ssl for ssl_verify (#5316)
 
 ### Bug Fixes
 * fix #5272 conda env export ugliness under python2 (#5273)
 * fix #4596 warning message from pip on conda env export (#5274)
 * fix #4986 --yes not functioning for conda clean (#5311)
+* fix #5329 unicode errors on Windows (#5328)
 
 ### Non-User-Facing Changes
 * test conda 4.3 with requests 2.14.2 (#5281)
+* remove pycrypto as requirement on windows (#5325)
 
 
 ## 4.3.18 (2017-05-09)

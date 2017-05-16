@@ -11,7 +11,7 @@ import json
 from logging import getLogger
 import os
 from os import listdir
-from os.path import exists, expanduser, join
+from os.path import exists, expanduser, isfile, join
 import re
 import sys
 
@@ -169,6 +169,11 @@ def get_info_dict(system=False):
 
     try:
         from requests import __version__ as requests_version
+        # These environment variables can influence requests' behavior, along with configuration
+        # in a .netrc file
+        #   REQUESTS_CA_BUNDLE
+        #   HTTP_PROXY
+        #   HTTPS_PROXY
     except ImportError:  # pragma: no cover
         requests_version = "could not import"
     except Exception as e:  # pragma: no cover
@@ -201,6 +206,12 @@ def get_info_dict(system=False):
     config_files = tuple(path for path in context.collect_all()
                          if path not in ('envvars', 'cmd_line'))
 
+    netrc_file = os.environ.get('NETRC')
+    if not netrc_file:
+        user_netrc = expanduser("~/.netrc")
+        if isfile(user_netrc):
+            netrc_file = user_netrc
+
     info_dict = dict(
         platform=context.subdir,
         conda_version=conda_version,
@@ -225,6 +236,7 @@ def get_info_dict(system=False):
         user_agent=context.user_agent,
         conda_location=CONDA_PACKAGE_ROOT,
         config_files=config_files,
+        netrc_file=netrc_file,
     )
     if on_win:
         from ..common.platform import is_admin_on_windows
@@ -278,6 +290,7 @@ def get_main_info_str(info_dict):
                channel URLs : %(_channels)s
                 config file : %(rc_path)s
                config files : %(_config_files)s
+                 netrc file : %(netrc_file)s
                offline mode : %(offline)s
                  user-agent : %(user_agent)s\
     """) % info_dict)

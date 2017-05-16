@@ -381,20 +381,10 @@ def add_parser_known(p):
 
 def add_parser_use_index_cache(p):
     p.add_argument(
-        "--use-index-cache",
+        "-C", "--use-index-cache",
         action="store_true",
         default=False,
-        help="Use cache of channel index files.",
-    )
-
-
-def add_parser_no_use_index_cache(p):
-    p.add_argument(
-        "--no-use-index-cache",
-        action="store_false",
-        default=True,
-        dest="use_index_cache",
-        help="Force fetching of channel index files.",
+        help="Use cache of channel index files, even if it has expired.",
     )
 
 
