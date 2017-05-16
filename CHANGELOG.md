@@ -4,6 +4,8 @@
 * resolve #3689 better error messaging for missing anaconda-client (#5276)
 * resolve #4795 conda env export lacks -p flag (#5275)
 * resolve #5315 add alias verify_ssl for ssl_verify (#5316)
+* resolve #3399 add netrc existence/location to 'conda info' (#5333)
+* resolve #3810 add --prefix to conda env update (#5335)
 
 ### Bug Fixes
 * fix #5272 conda env export ugliness under python2 (#5273)
