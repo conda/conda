@@ -26,6 +26,8 @@
 * resolve #2511 accept config information from stdin (#5309)
 * resolve #4302 add ability to set map parameters with conda config (#5310)
 * resolve #5256 enable conda config --get for all primitive parameters (#5312)
+* resolve #1992 add short flag -C for --use-index-cache (#5314)
+* resolve #2173 add --quiet option to conda clean (#5313)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -52,6 +54,7 @@
 * add coverage for confirm (#5203)
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 * add assertion that a path only has a single hard link before rewriting prefixes (#5305)
+* remove pycrypto as requirement on windows (#5326)
 
 
 ## 4.3.19 (unreleased)
