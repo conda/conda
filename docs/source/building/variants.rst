@@ -882,7 +882,7 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', max_pin='x.x'] }}
+           - {{ pin_compatible('numpy', max_pin='x.x'] }}
 
 
 This would yield a pinning of ``>=1.11.2,<1.12``
@@ -903,7 +903,7 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x'] }}
+           - {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x'] }}
 
 
 This would yield a pinning of ``>=1.11,<1.12``
@@ -925,7 +925,7 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - numpy {{ pin_compatible('numpy', lower_bound='1.10', upper_bound='3.0') }}
+           - {{ pin_compatible('numpy', lower_bound='1.10', upper_bound='3.0') }}
 
 
 This would yield a pinning of ``>=1.10,<3.0``
@@ -1034,9 +1034,9 @@ evaluating ``meta.yaml`` templates:
   requirements. Takes package name argument. Looks up compatibility of named
   package installed in the build environment, and writes compatible range pin
   for run and/or test requirements. Defaults to a semver-based assumption:
-  ``>=(current version),<(next major version)``. Pass ``min_pin`` or ``max_pin``
-  a `Pinning expressions`_ . This will be enhanced as time goes on with
-  information from `ABI Laboratory <https://abi-laboratory.pro/>`_
+  ``package_name >=(current version),<(next major version)``. Pass ``min_pin``
+  or ``max_pin`` a `Pinning expressions`_ . This will be enhanced as time goes
+  on with information from `ABI Laboratory <https://abi-laboratory.pro/>`_
 
 * ``pin_subpackage('package_name', min_pin='x.x.x.x.x.x', max_pin='x',
   exact=False)``: To be used as pin in run and/or test requirements. Takes
