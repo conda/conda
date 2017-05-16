@@ -79,7 +79,7 @@ def execute(args, parser):
     except exceptions.SpecNotFound:
         raise
 
-    if not args.name:
+    if not (args.name or args.prefix):
         if not env.name:
                     # Note, this is a hack fofr get_prefix that assumes argparse results
             # TODO Refactor common.get_prefix
