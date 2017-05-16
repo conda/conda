@@ -62,14 +62,17 @@
 ### Improvements
 * resolve #3689 better error messaging for missing anaconda-client (#5276)
 * resolve #4795 conda env export lacks -p flag (#5275)
+* resolve #5315 add alias verify_ssl for ssl_verify (#5316)
 
 ### Bug Fixes
 * fix #5272 conda env export ugliness under python2 (#5273)
 * fix #4596 warning message from pip on conda env export (#5274)
 * fix #4986 --yes not functioning for conda clean (#5311)
+* fix #5329 unicode errors on Windows (#5328)
 
 ### Non-User-Facing Changes
 * test conda 4.3 with requests 2.14.2 (#5281)
+* remove pycrypto as requirement on windows (#5325)
 
 
 ## 4.3.18 (2017-05-09)

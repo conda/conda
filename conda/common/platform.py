@@ -22,10 +22,11 @@ def is_admin_on_windows():  # pragma: unix no cover
     try:
         from ctypes.windll.shell32 import IsUserAnAdmin
         return IsUserAnAdmin() != 0
-    except ImportError:
+    except ImportError as e:
+        log.debug('%r', e)
         return 'unknown'
     except Exception as e:
-        log.warn(repr(e))
+        log.warn('%r', e)
         return 'unknown'
 
 
