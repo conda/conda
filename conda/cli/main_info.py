@@ -286,7 +286,7 @@ def get_main_info_str(info_dict):
               package cache : %(_pkgs_dirs)s
                channel URLs : %(_channels)s
                 config file : %(rc_path)s
-                 netrc file : %(netrc_file)s                
+                 netrc file : %(netrc_file)s
                offline mode : %(offline)s
                  user-agent : %(user_agent)s\
     """) % info_dict)
