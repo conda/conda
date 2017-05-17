@@ -44,6 +44,8 @@
 @IF errorlevel 1 exit /b 1
 
 @REM take a snapshot of pristine state for later
+@REM if PROMPT is not set at all, explicitly set it to the default, i.e. current path followed by greater sign
+@IF NOT DEFINED PROMPT SET PROMPT=$P$G
 @SET "CONDA_PS1_BACKUP=%PROMPT%"
 @FOR /F "delims=" %%i IN ('@call "%CONDA_EXE%" ..changeps1') DO @SET "CHANGE_PROMPT=%%i"
 @IF errorlevel 1 exit /b 1
