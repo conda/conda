@@ -45,6 +45,18 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+
+def get_win_locations():
+    try:
+        from menuinst.win32 import dirs_src as win_locations
+    except ImportError:
+        try:
+            from menuinst.win32 import dirs as win_locations
+        except ImportError:
+            win_locations = {}
+    return win_locations
+
+
 log = getLogger(__name__)
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
@@ -560,6 +572,10 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        win_locations = get_win_locations()
+        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         with make_temp_env(prefix=prefix):
             stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut",
                                          "--no-shortcuts")
@@ -570,7 +586,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
-        from menuinst.win32 import dirs as win_locations
+        win_locations = get_win_locations()
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
@@ -596,7 +612,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_does_not_barf_on_uninstall(self):
-        from menuinst.win32 import dirs as win_locations
+        win_locations = get_win_locations()
 
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
@@ -625,7 +641,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     @pytest.mark.xfail(reason="deal with this later")
     def test_shortcut_absent_when_condarc_set(self):
-        from menuinst.win32 import dirs as win_locations
+        win_locations = get_win_locations()
         user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
         shortcut_dir = win_locations[user_mode]["start"]
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
