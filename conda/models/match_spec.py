@@ -5,12 +5,11 @@ from ast import literal_eval
 import re
 import sys
 
-from conda.base.constants import CONDA_TARBALL_EXTENSION
-
 from .dist import Dist
 from .index_record import IndexRecord
 from .version import VersionSpec
 from .._vendor.auxlib.collection import frozendict
+from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import iteritems, string_types, text_type
 from ..exceptions import CondaValueError
 
@@ -320,3 +319,153 @@ class MatchSpec(object):
         # in the old MatchSpec object, version was a VersionSpec, not a str
         # so we'll keep that API here
         return self._specs_map.get('version')
+
+
+
+def parse_legacy_dist(filename):
+    assert filename.endswith(CONDA_TARBALL_EXTENSION)
+    dist_str = filename[:-len(CONDA_TARBALL_EXTENSION)]
+    name, version, build = dist_str.rsplit('-', 2)
+    return name, version, build
+
+
+
+def tokenize(arg):
+    # quite possibly the ugliest code I've ever written
+    print("--------------")
+    print(arg)
+
+    # first strip '#' comment
+    if '#' in arg:
+        ndx = arg.index('#')
+        arg, hash_remainder = arg[:ndx], arg[ndx:]
+    else:
+        hash_remainder = None
+
+    if CONDA_TARBALL_EXTENSION in arg:
+        # treat as a normal url
+        from .channel import Channel
+        channel = Channel(arg)
+        name, version, build = parse_legacy_dist(channel.package_filename)
+        return MatchSpec(schannel=channel.canonical_name, subdir=channel.subdir, name=name,
+                         version=version, build=build)
+
+    m1 = re.match(r'^(.*)(\[.*\])$', arg)
+    if m1:
+        arg, brackets = m1.groups()
+        brackets = brackets[1:-1]
+    else:
+        brackets = None
+
+    m2 = arg.rsplit(':', 2)
+    m2_len = len(m2)
+    if m2_len == 3:
+        channel, namespace, arg = m2
+    elif m2_len == 2:
+        namespace, arg = m2
+        channel = None
+    elif m2_len:
+        arg = m2[0]
+        channel, namespace = None, None
+    else:
+        raise NotImplementedError()
+
+    m3 = re.match(r'(.*?)([ =<>*!].*)', arg)
+    if m3:
+        name, arg = m3.groups()
+    else:
+        name, arg = arg, None
+
+    if arg is not None:
+        arg = arg.strip()
+
+    # now arg is at most version and build
+    # need to detangle intelligently
+    if arg:
+        m4 = re.search(r'([<>=!])', arg)
+        if m4:
+            # whole thing is versionspec?
+            if re.search(r'[0-9]+=([0-9a-zA-Z_]_)[0-9]+$', arg):
+
+
+            version = ''.join(c for c in arg if c != ' ')
+            build = None
+        else:
+            # last part could be build?
+            num_spaces = arg.count(' ')
+            assert num_spaces <= 1
+            if num_spaces:
+                version, build = arg.split(' ')
+            else:
+                version, build = arg, None
+
+        # translate version
+        version = version.strip()
+        if re.match(r'^=[^=]', version):
+            version = version[1:]
+            if build is None and ',' not in version and '|' not in version:
+                version = version + '*'
+    else:
+        version, build = None, None
+
+    # "1.7.1 py26_0"
+    # ">1.7.1a"
+    # ">1.5,<2,!=1.7.1"
+    # "1.0 1"
+    # ">=1.0 , < 2.0"
+
+    kwargs = {}
+    kwargs['name'] = name if name else '*'
+    if channel is not None:
+        from .channel import Channel
+        kwargs['schannel'] = Channel(channel).canonical_name
+    # if namespace is not None:
+    #     kwargs['namespace'] = namespace
+    if version is not None:
+        kwargs['version'] = version
+    if build is not None:
+        kwargs['build'] = build
+
+
+    # now parse brackets
+    # anything in brackets will STRICTLY override key as set in other area of spec str
+    if brackets:
+        brackets = brackets.strip("[]\n\r\t ")
+        m5 = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets)
+        for match in m5:
+            key, _, value, _ = match.groups()
+            assert key
+            assert value
+            kwargs[key] = value
+
+    # print(channel)
+    # print(namespace)
+    # print(package_name)
+    # print(brackets)
+    # print(version)
+    # print(build)
+    # print()
+    # print()
+    print(kwargs)
+    return MatchSpec(**kwargs)
+
+
+
+if __name__ == "__main__":
+    # print(tokenize('channel:namespace:package_name version build[subdir=linux-64,channel=defaults,version=">=1.8,<2|1.8*,==1.8.1"]'))
+    # tokenize('channel:namespace:numpy 1.6.2|1.7.1[subdir=linux-64,gpu=nvidia,channel=defaults,version=">=1.8,<2|1.8*,==1.8.1"]')
+    # tokenize('https://repo.continuum.io/pkgs/free::graphviz')
+    # print(tokenize('zlib 1.2.7 0'))
+
+    # tokenize('foo >=1.0 , < 2.0')
+    # tokenize('foo=1.0|1.2')
+    # tokenize('foo =1.0|1.2')
+    # tokenize('foo 1.0|1.2')
+    tokenize('foo=1.0=2')
+
+
+    # print(tokenize("https://repo.continuum.io/pkgs/free/linux-64/_license-1.1-py27_1.tar.bz2"))
+    # print(tokenize("defaults::_license"))
+    # print(tokenize("defaults::_license=1.1"))
+    # print(tokenize("defaults::_license==1.1"))
+    # print(tokenize("defaults::_license=1.1[build_number=1]"))

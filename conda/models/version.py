@@ -404,6 +404,7 @@ class VersionSpec(object):
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
+                import pdb; pdb.set_trace()
                 raise InvalidVersionSpecError(spec)
             op, b = m.groups()
             self.op = opdict[op]

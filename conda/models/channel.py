@@ -196,6 +196,10 @@ class Channel(object):
     def channel_name(self):
         return self.name
 
+    @property
+    def subdir(self):
+        return self.platform
+
     @staticmethod
     def from_url(url):
         return parse_conda_channel_url(url)

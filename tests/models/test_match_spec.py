@@ -3,6 +3,10 @@ from __future__ import absolute_import, print_function
 import re
 import unittest
 
+from conda.exceptions import CondaValueError
+
+from conda.cli.common import arg2spec, spec_from_line
+
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
@@ -194,3 +198,51 @@ class MatchSpecTests(unittest.TestCase):
         assert a.match(DPkg(dst, features='you test'))
         assert a.match(DPkg(dst, features='you test me'))
         assert a.exact_field('features') == 'test'
+
+
+class TestArg2Spec(unittest.TestCase):
+
+    def test_simple(self):
+        assert arg2spec('python') == 'python'
+        assert arg2spec('python=2.6') == 'python 2.6*'
+        assert arg2spec('python=2.6*') == 'python 2.6*'
+        assert arg2spec('ipython=0.13.2') == 'ipython 0.13.2*'
+        assert arg2spec('ipython=0.13.0') == 'ipython 0.13.0*'
+        assert arg2spec('ipython==0.13.0') == 'ipython ==0.13.0'
+        assert arg2spec('foo=1.3.0=3') == 'foo 1.3.0 3'
+
+    def test_pip_style(self):
+        assert arg2spec('foo>=1.3') == 'foo >=1.3'
+        assert arg2spec('zope.int>=1.3,<3.0') == 'zope.int >=1.3,<3.0'
+        assert arg2spec('numpy >=1.9') == 'numpy >=1.9'
+
+    def test_invalid_arg2spec(self):
+        self.assertRaises(CondaValueError, arg2spec, '!xyz 1.3')
+
+
+class TestSpecFromLine(unittest.TestCase):
+
+    def test_invalid(self):
+        assert spec_from_line('=') is None
+        assert spec_from_line('foo 1.0') is None
+
+    def test_comment(self):
+        assert spec_from_line('foo # comment') == 'foo'
+        assert spec_from_line('foo ## comment') == 'foo'
+
+    def test_conda_style(self):
+        assert spec_from_line('foo') == 'foo'
+        assert spec_from_line('foo=1.0') == 'foo 1.0'
+        assert spec_from_line('foo=1.0*') == 'foo 1.0*'
+        assert spec_from_line('foo=1.0|1.2') == 'foo 1.0|1.2'
+        assert spec_from_line('foo=1.0=2') == 'foo 1.0 2'
+
+    def test_pip_style(self):
+        assert spec_from_line('foo>=1.0') == 'foo >=1.0'
+        assert spec_from_line('foo >=1.0') == 'foo >=1.0'
+        assert spec_from_line('FOO-Bar >=1.0') == 'foo-bar >=1.0'
+        assert spec_from_line('foo >= 1.0') == 'foo >=1.0'
+        assert spec_from_line('foo > 1.0') == 'foo >1.0'
+        assert spec_from_line('foo != 1.0') == 'foo !=1.0'
+        assert spec_from_line('foo <1.0') == 'foo <1.0'
+        assert spec_from_line('foo >=1.0 , < 2.0') == 'foo >=1.0,<2.0'
