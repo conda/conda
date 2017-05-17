@@ -40,9 +40,10 @@ remove_conda() {
        $site_packages/pyopenssl* \
        $site_packages/cryptography* \
        $site_packages/idna* \
-       $site_packages/ruamel* \
-       $site_packages/pycrypto* \
-       $site_packages/pycosat*
+       $site_packages/ruamel*
+
+       # $site_packages/pycrypto* \
+       # $site_packages/pycosat*
     hash -r
 }
 
