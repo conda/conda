@@ -66,29 +66,6 @@ except ImportError:
     from mock import patch
 
 
-def get_win_locations():
-    try:
-        from menuinst.win32 import dirs_src as win_locations
-    except ImportError:
-        try:
-            from menuinst.win32 import dirs as win_locations
-        except ImportError:
-            win_locations = {}
-    return win_locations
-
-
-
-def get_win_locations():
-    try:
-        from menuinst.win32 import dirs_src as win_locations
-    except ImportError:
-        try:
-            from menuinst.win32 import dirs as win_locations
-        except ImportError:
-            win_locations = {}
-    return win_locations
-
-
 log = getLogger(__name__)
 TRACE, DEBUG = TRACE, DEBUG  # these are so the imports aren't cleared, but it's easy to switch back and forth
 TEST_LOG_LEVEL = DEBUG
@@ -232,6 +209,7 @@ def make_temp_channel(packages):
 
         yield channel
 
+
 def reload_config(prefix):
     prefix_condarc = join(prefix+os.sep, 'condarc')
     reset_context([prefix_condarc])
@@ -260,6 +238,20 @@ def get_conda_list_tuple(prefix, package_name):
     package_line = next((line for line in stdout_lines
                          if line.lower().startswith(package_name + " ")), None)
     return package_line.split()
+
+
+def get_shortcut_dir():
+    assert on_win
+    user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
+    try:
+        from menuinst.win32 import dirs_src as win_locations
+        return win_locations[user_mode]["start"][0]
+    except ImportError:
+        try:
+            from menuinst.win32 import dirs as win_locations
+            return win_locations[user_mode]["start"]
+        except ImportError:
+            raise
 
 
 @pytest.mark.integration
@@ -647,9 +639,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
-        win_locations = get_win_locations()
-        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
-        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_dir = get_shortcut_dir()
         shortcut_file = join(shortcut_dir, "Anaconda Prompt ({0}).lnk".format(basename(prefix)))
         with make_temp_env(prefix=prefix):
             stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut",
@@ -660,9 +650,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_creation_installs_shortcut(self):
-        win_locations = get_win_locations()
-        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
-        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
                                           "".format(sys.version_info.major, context.bits))
 
@@ -686,10 +674,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_does_not_barf_on_uninstall(self):
-        win_locations = get_win_locations()
-
-        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
-        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
                                           "".format(sys.version_info.major, context.bits))
 
@@ -714,9 +699,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_absent_when_condarc_set(self):
-        win_locations = get_win_locations()
-        user_mode = 'user' if exists(join(sys.prefix, u'.nonadmin')) else 'system'
-        shortcut_dir = win_locations[user_mode]["start"]
+        shortcut_dir = get_shortcut_dir()
         shortcut_dir = join(shortcut_dir, "Anaconda{0} ({1}-bit)"
                                           "".format(sys.version_info.major, context.bits))
 
