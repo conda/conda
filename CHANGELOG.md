@@ -28,6 +28,7 @@
 * resolve #5256 enable conda config --get for all primitive parameters (#5312)
 * resolve #1992 add short flag -C for --use-index-cache (#5314)
 * resolve #2173 add --quiet option to conda clean (#5313)
+* resolve #5358 conda should exec to subcommands, not subprocess (#5359)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
