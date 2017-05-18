@@ -12,15 +12,14 @@ from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
-from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
-from ..common.path import url_to_path
+from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
-from ..gateways.disk.read import read_repodata_json, compute_md5sum, isdir, isfile, islink
+from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink, read_repodata_json
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist

@@ -2,28 +2,26 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-
-from conda._vendor.auxlib.path import expand
-
-from conda.base.constants import PathConflict
-from conda.common.path import win_path_backout
+from os.path import join
 from tempfile import gettempdir
+from unittest import TestCase
 
 import pytest
+
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
+from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var
+from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
 from conda.common.yaml import yaml_load
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel
 from conda.utils import on_win
-from os.path import basename, dirname, join
-from unittest import TestCase
 
 
 class ContextCustomRcTests(TestCase):

@@ -15,12 +15,12 @@ from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.path import expand
 from .._vendor.boltons.setutils import IndexedSet
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
+from ..common.path import expand
 from ..common.platform import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 

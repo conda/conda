@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import operator as op
 import re
 
-from ..common.compat import string_types, zip, zip_longest
+from ..common.compat import string_types, zip, zip_longest, text_type
 from ..exceptions import CondaValueError, InvalidVersionSpecError
 
 
@@ -395,7 +395,7 @@ class VersionSpec(object):
             self.spec = untreeify(spec)
             return self
         self = object.__new__(cls)
-        self.spec = spec = spec.strip()
+        self.spec = spec = text_type(spec).strip()
         if spec.startswith('^') or spec.endswith('$'):
             if not spec.startswith('^') or not spec.endswith('$'):
                 raise InvalidVersionSpecError(spec)
@@ -404,7 +404,6 @@ class VersionSpec(object):
         elif spec.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(spec)
             if m is None:
-                import pdb; pdb.set_trace()
                 raise InvalidVersionSpecError(spec)
             op, b = m.groups()
             self.op = opdict[op]
@@ -449,3 +448,79 @@ class VersionSpec(object):
 
     def __repr__(self):
         return "VersionSpec('%s')" % self.spec
+
+
+class BuildNumberSpec(object):
+
+    def __new__(cls, spec):
+        if isinstance(spec, cls):
+            return spec
+
+        self = object.__new__(cls)
+        try:
+            spec = int(spec)
+        except ValueError:
+            pass
+        else:
+            self.spec = spec
+            self.match = self.exact_match_
+            return self
+
+        _spec = spec
+        self.spec = spec = text_type(spec).strip()
+        if spec == '*':
+            self.match = self.triv_match_
+        elif spec.startswith(('=', '<', '>', '!')):
+            m = version_relation_re.match(spec)
+            if m is None:
+                raise InvalidVersionSpecError(spec)
+            op, b = m.groups()
+            self.op = opdict[op]
+            self.cmp = VersionOrder(b)
+            self.match = self.veval_match_
+        elif spec.startswith('^') or spec.endswith('$'):
+            if not spec.startswith('^') or not spec.endswith('$'):
+                raise InvalidVersionSpecError(spec)
+            self.regex = re.compile(spec)
+            self.match = self.regex_match_
+        elif hasattr(spec, 'match'):
+            self.spec = _spec
+            self.match = spec.match
+        else:
+            raise InvalidVersionSpecError(spec)
+        return self
+
+    def exact_match_(self, vspec):
+        return self.spec == vspec
+
+    def veval_match_(self, vspec):
+        return self.op(VersionOrder(vspec), self.cmp)
+
+    def triv_match_(self, vspec):
+        return True
+
+    def regex_match_(self, vspec):
+        return bool(self.regex.match(vspec))
+
+    def is_exact(self):
+        return self.match == self.exact_match_
+
+    def __eq__(self, other):
+        if isinstance(other, BuildNumberSpec):
+            return self.spec == other.spec
+        return False
+
+    def __ne__(self, other):
+        if isinstance(other, BuildNumberSpec):
+            return self.spec != other.spec
+        return True
+
+    def __hash__(self):
+        return hash(self.spec)
+
+    def __str__(self):
+        return self.spec
+
+    def __repr__(self):
+        # return "BuildNumberSpec('%s')" % self.spec
+        return text_type(self.spec)

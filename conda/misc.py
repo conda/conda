@@ -11,11 +11,10 @@ import re
 import shutil
 import sys
 
-from ._vendor.auxlib.path import expand
 from .base.constants import PREFIX_MAGIC_FILE
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win, open
-from .common.path import url_to_path, win_path_ok
+from .common.path import expand, url_to_path, win_path_ok
 from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import _supplement_index_with_cache, get_index
 from .core.linked_data import linked_data
