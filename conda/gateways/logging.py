@@ -11,6 +11,7 @@ from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 from ..common.io import attach_stderr_handler
 
+log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
 VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
@@ -82,6 +83,7 @@ def set_verbosity(verbosity_level):
     except IndexError:
         raise CondaError("Invalid verbosity level: %(verbosity_level)s",
                          verbosity_level=verbosity_level)
+    log.debug("verbosity set to %s", verbosity_level)
 
 
 def trace(self, message, *args, **kwargs):
