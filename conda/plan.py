@@ -418,15 +418,15 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
             log.debug('H2B %s' % name)
             continue
 
-        if name in names_linked:
-            # if Python/Numpy is already linked, we add that instead of the default
-            log.debug('H3 %s' % name)
-            dist = Dist(names_linked[name])
-            info = r.index[dist]
-            ver = '.'.join(info['version'].split('.', 2)[:2])
-            spec = '%s %s* (target=%s)' % (info['name'], ver, dist)
-            specs.append(spec)
-            continue
+        # if name in names_linked:
+        #     # if Python/Numpy is already linked, we add that instead of the default
+        #     log.debug('H3 %s' % name)
+        #     dist = Dist(names_linked[name])
+        #     info = r.index[dist]
+        #     ver = '.'.join(info['version'].split('.', 2)[:2])
+        #     spec = '%s %s* (target=%s)' % (info['name'], ver, dist)
+        #     specs.append(spec)
+        #     continue
 
         if name == 'python' and def_ver and def_ver.startswith('3.'):
             # Don't include Python 3 in the specs if this is the Python 3

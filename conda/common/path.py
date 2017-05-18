@@ -3,8 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 import os
-from os.path import basename, dirname, join, split, splitext, abspath, normpath, expanduser, \
-    expandvars
+from os.path import (abspath, basename, dirname, expanduser, expandvars, join, normpath, split,
+                     splitext)
 import re
 
 from .compat import on_win, string_types
