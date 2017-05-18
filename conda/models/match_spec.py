@@ -491,11 +491,13 @@ def _parse_spec_str(spec_str):
         raise NotImplementedError()
 
     # Step 5. strip off package name from remaining version + build
-    m3 = re.match(r'(.+?)([ =<>*!].*)', spec_str)
+    m3 = re.match(r'([^ =<>!]+)?([><!= ].+)?', spec_str)
     if m3:
         name, spec_str = m3.groups()
+        if name is None:
+            raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
     else:
-        name, spec_str = spec_str, None
+        raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 
     # Step 6. sort out version + build
     spec_str = spec_str and spec_str.strip()
@@ -510,7 +512,7 @@ def _parse_spec_str(spec_str):
         if version.startswith('='):
             test_str = version[1:]
             if not any(c in test_str for c in "=,|"):
-                if build is None:
+                if build is None and not test_str.endswith('*'):
                     version = test_str + '*'
                 else:
                     version = test_str

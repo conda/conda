@@ -218,52 +218,53 @@ class MatchSpecTests(TestCase):
         assert a.exact_field('features') == 'test'
 
 
-# class TestArg2Spec(TestCase):
-#
-#     def test_simple(self):
-#         assert arg2spec('python') == 'python'
-#         assert arg2spec('python=2.6') == 'python 2.6*'
-#         assert arg2spec('python=2.6*') == 'python 2.6*'
-#         assert arg2spec('ipython=0.13.2') == 'ipython 0.13.2*'
-#         assert arg2spec('ipython=0.13.0') == 'ipython 0.13.0*'
-#         assert arg2spec('ipython==0.13.0') == 'ipython ==0.13.0'
-#         assert arg2spec('foo=1.3.0=3') == 'foo 1.3.0 3'
-#
-#     def test_pip_style(self):
-#         assert arg2spec('foo>=1.3') == 'foo >=1.3'
-#         assert arg2spec('zope.int>=1.3,<3.0') == 'zope.int >=1.3,<3.0'
-#         assert arg2spec('numpy >=1.9') == 'numpy >=1.9'
-#
-#     def test_invalid_arg2spec(self):
-#         self.assertRaises(CondaValueError, arg2spec, '!xyz 1.3')
-#
-#
-# class TestSpecFromLine(TestCase):
-#
-#     def test_invalid(self):
-#         assert spec_from_line('=') is None
-#         assert spec_from_line('foo 1.0') is None
-#
-#     def test_comment(self):
-#         assert spec_from_line('foo # comment') == 'foo'
-#         assert spec_from_line('foo ## comment') == 'foo'
-#
-#     def test_conda_style(self):
-#         assert spec_from_line('foo') == 'foo'
-#         assert spec_from_line('foo=1.0') == 'foo 1.0'
-#         assert spec_from_line('foo=1.0*') == 'foo 1.0*'
-#         assert spec_from_line('foo=1.0|1.2') == 'foo 1.0|1.2'
-#         assert spec_from_line('foo=1.0=2') == 'foo 1.0 2'
-#
-#     def test_pip_style(self):
-#         assert spec_from_line('foo>=1.0') == 'foo >=1.0'
-#         assert spec_from_line('foo >=1.0') == 'foo >=1.0'
-#         assert spec_from_line('FOO-Bar >=1.0') == 'foo-bar >=1.0'
-#         assert spec_from_line('foo >= 1.0') == 'foo >=1.0'
-#         assert spec_from_line('foo > 1.0') == 'foo >1.0'
-#         assert spec_from_line('foo != 1.0') == 'foo !=1.0'
-#         assert spec_from_line('foo <1.0') == 'foo <1.0'
-#         assert spec_from_line('foo >=1.0 , < 2.0') == 'foo >=1.0,<2.0'
+class TestArg2Spec(TestCase):
+
+    def test_simple(self):
+        assert arg2spec('python') == 'python'
+        assert arg2spec('python=2.6') == 'python 2.6*'
+        assert arg2spec('python=2.6*') == 'python 2.6*'
+        assert arg2spec('ipython=0.13.2') == 'ipython 0.13.2*'
+        assert arg2spec('ipython=0.13.0') == 'ipython 0.13.0*'
+        assert arg2spec('ipython==0.13.0') == 'ipython ==0.13.0'
+        assert arg2spec('foo=1.3.0=3') == 'foo 1.3.0 3'
+
+    def test_pip_style(self):
+        assert arg2spec('foo>=1.3') == 'foo >=1.3'
+        assert arg2spec('zope.int>=1.3,<3.0') == 'zope.int >=1.3,<3.0'
+        assert arg2spec('numpy >=1.9') == 'numpy >=1.9'
+
+    def test_invalid_arg2spec(self):
+        with pytest.raises(CondaValueError):
+            arg2spec('!xyz 1.3')
+
+
+class TestSpecFromLine(TestCase):
+
+    def test_invalid(self):
+        assert spec_from_line('=') is None
+        assert spec_from_line('foo 1.0') is None
+
+    def test_comment(self):
+        assert spec_from_line('foo # comment') == 'foo'
+        assert spec_from_line('foo ## comment') == 'foo'
+
+    def test_conda_style(self):
+        assert spec_from_line('foo') == 'foo'
+        assert spec_from_line('foo=1.0') == 'foo 1.0'
+        assert spec_from_line('foo=1.0*') == 'foo 1.0*'
+        assert spec_from_line('foo=1.0|1.2') == 'foo 1.0|1.2'
+        assert spec_from_line('foo=1.0=2') == 'foo 1.0 2'
+
+    def test_pip_style(self):
+        assert spec_from_line('foo>=1.0') == 'foo >=1.0'
+        assert spec_from_line('foo >=1.0') == 'foo >=1.0'
+        assert spec_from_line('FOO-Bar >=1.0') == 'foo-bar >=1.0'
+        assert spec_from_line('foo >= 1.0') == 'foo >=1.0'
+        assert spec_from_line('foo > 1.0') == 'foo >1.0'
+        assert spec_from_line('foo != 1.0') == 'foo !=1.0'
+        assert spec_from_line('foo <1.0') == 'foo <1.0'
+        assert spec_from_line('foo >=1.0 , < 2.0') == 'foo >=1.0,<2.0'
 
 
 class SpecStrParsingTests(TestCase):
@@ -383,6 +384,11 @@ class SpecStrParsingTests(TestCase):
             "name": "*",
             "version": "*",
         }
+
+    def test_parse_errors(self):
+        with pytest.raises(CondaValueError):
+            _parse_spec_str('!xyz 1.3')
+
 
 
 

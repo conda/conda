@@ -87,16 +87,7 @@ def ensure_name_or_prefix(args, command):
 
 def arg2spec(arg, json=False, update=False):
     try:
-        # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
-        #   a space in the path
-        _arg = spec_from_line(arg)
-        if _arg is None:
-            if arg.endswith(CONDA_TARBALL_EXTENSION):
-                _arg = arg
-            else:
-                from ..exceptions import CondaValueError
-                raise CondaValueError("Cannot construct MatchSpec from: %r" % None)
-        spec = MatchSpec(_arg, normalize=True)
+        spec = MatchSpec(arg)
     except:
         from ..exceptions import CondaValueError
         raise CondaValueError('invalid package specification: %s' % arg)
