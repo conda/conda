@@ -77,6 +77,18 @@ def get_win_locations():
     return win_locations
 
 
+
+def get_win_locations():
+    try:
+        from menuinst.win32 import dirs_src as win_locations
+    except ImportError:
+        try:
+            from menuinst.win32 import dirs as win_locations
+        except ImportError:
+            win_locations = {}
+    return win_locations
+
+
 log = getLogger(__name__)
 TRACE, DEBUG = TRACE, DEBUG  # these are so the imports aren't cleared, but it's easy to switch back and forth
 TEST_LOG_LEVEL = DEBUG
