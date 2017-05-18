@@ -4,7 +4,7 @@ from argparse import RawDescriptionHelpFormatter
 import os
 import textwrap
 
-from conda.cli.common import add_parser_prefix
+from conda.cli.common import add_parser_json, add_parser_prefix
 # conda env import
 from .common import get_prefix
 from ..env import from_environment
@@ -63,7 +63,7 @@ def configure_parser(sub_parsers):
         action='store_true',
         required=False,
         help='Do not include channel names with package names.')
-
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 
