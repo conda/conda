@@ -487,7 +487,7 @@ class BuildNumberSpec(object):
             self.spec = _spec
             self.match = spec.match
         else:
-            raise InvalidVersionSpecError(spec)
+            self.match = self.exact_match_
         return self
 
     def exact_match_(self, vspec):

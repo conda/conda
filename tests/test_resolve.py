@@ -685,7 +685,7 @@ def test_optional_dependencies():
     index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
         'build': '0',
         'build_number': 0,
-        'depends': ['package2 >1.0 (optional)'],
+        'constrains': ['package2 >1.0'],
         'name': 'package1',
         'requires': ['package2'],
         'version': '1.0',
