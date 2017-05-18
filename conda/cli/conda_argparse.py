@@ -45,7 +45,6 @@ class ArgumentParser(ArgumentParserBase):
 
     def error(self, message):
         import re
-        import subprocess
         from .find_commands import find_executable
 
         exc = sys.exc_info()[1]
