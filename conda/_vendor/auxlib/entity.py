@@ -369,12 +369,13 @@ class Field(object):
     _order_helper = 0
 
     def __init__(self, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         self._required = required
         self._validation = validation
         self._in_dump = in_dump
         self._nullable = nullable
         self._immutable = immutable
+        self._aliases = aliases
         self._default = default if callable(default) else self.box(None, default)
         if default is not None:
             self.validate(None, self.box(None, maybecall(default)))
@@ -718,8 +719,11 @@ class Entity(object):
             try:
                 setattr(self, key, kwargs[key])
             except KeyError:
-                # handle the case of fields inherited from subclass but overrode on class object
-                if key in getattr(self, KEY_OVERRIDES_MAP):
+                alias = next((ls for ls in field._aliases if ls in kwargs), None)
+                if alias is not None:
+                    setattr(self, key, kwargs[alias])
+                elif key in getattr(self, KEY_OVERRIDES_MAP):
+                    # handle the case of fields inherited from subclass but overrode on class object
                     setattr(self, key, getattr(self, KEY_OVERRIDES_MAP)[key])
                 elif field.required and field.default is None:
                     raise ValidationError(key, msg="{0} requires a {1} field. Instantiated with "
@@ -765,6 +769,8 @@ class Entity(object):
             # TODO: re-enable once aliases are implemented
             # if key.startswith('_'):
             #     return False
+            if '__' in key:
+                return False
             try:
                 getattr(self, key)
                 return True
