@@ -1,4 +1,4 @@
-## 4.3.19 (unreleased)
+## 4.3.19 (2017-05-18)
 
 ### Improvements
 * resolve #3689 better error messaging for missing anaconda-client (#5276)
@@ -11,11 +11,16 @@
 * fix #5272 conda env export ugliness under python2 (#5273)
 * fix #4596 warning message from pip on conda env export (#5274)
 * fix #4986 --yes not functioning for conda clean (#5311)
-* fix #5329 unicode errors on Windows (#5328)
+* fix #5329 unicode errors on Windows (#5328, #5357)
+* fix sys_prefix_unfollowed for Python 3 (#5334)
+* fix #5341 --json flag with conda-env (#5342)
+* fix 5321 ensure variable PROMPT is set in activate.bat (#5351)
 
 ### Non-User-Facing Changes
 * test conda 4.3 with requests 2.14.2 (#5281)
 * remove pycrypto as requirement on windows (#5325)
+* fix typo avaialble -> available (#5345)
+* fix test failures related to menuinst update (#5344, #5362)
 
 
 ## 4.3.18 (2017-05-09)
