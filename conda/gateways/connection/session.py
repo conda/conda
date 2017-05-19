@@ -103,7 +103,7 @@ class CondaHttpAuth(AuthBase):
             for binstar_url, token in iteritems(read_binstar_tokens()):
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
-                    from ..models.channel import Channel
+                    from ...models.channel import Channel
                     channel = Channel(clean_url)
                     channel.token = token
                     return channel.url(with_credentials=True)
