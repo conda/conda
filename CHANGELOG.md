@@ -1,3 +1,12 @@
+## 4.3.20 (2017-05-19)
+
+### Bug Fixes
+* fix #5367 conda info always shows 'unknown' for admin indicator on Windows (#5368)
+* fix #5248 drop plan description information that might not alwasy be accurate (#5373)
+* fix #5378 duplicate log messages (#5379)
+* fix #5298 record has 'build', not 'build_string' (#5382)
+
+
 ## 4.3.19 (2017-05-18)
 
 ### Improvements
