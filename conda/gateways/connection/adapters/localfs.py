@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
 from email.utils import formatdate
+import json
 from logging import getLogger
 from mimetypes import guess_type
 from os import lstat
-from requests.adapters import BaseAdapter
-from requests.models import Response
-from requests.structures import CaseInsensitiveDict
 from tempfile import SpooledTemporaryFile
 
-from ...common.compat import ensure_binary
-from ...common.path import url_to_path
+from .. import BaseAdapter, CaseInsensitiveDict, Response
+from ....common.compat import ensure_binary
+from ....common.path import url_to_path
 
 log = getLogger(__name__)
 

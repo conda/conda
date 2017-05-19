@@ -2,13 +2,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from requests import Response
-from requests.adapters import BaseAdapter
-from requests.structures import CaseInsensitiveDict
 from tempfile import mkstemp
 
-from ..disk.delete import rm_rf
-from ...common.url import url_to_s3_info
+from .. import BaseAdapter, CaseInsensitiveDict, Response
+from ...disk.delete import rm_rf
+from ....common.url import url_to_s3_info
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')

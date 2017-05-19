@@ -43,6 +43,8 @@
 * fix #462 add regression test (#5286)
 * fix #5288 confirmation prompt doesn't accept no (#5291)
 * fix #1713 'conda package -w' is case dependent on Windows (#5308)
+* fix #5371 try falling back to pip's vendored requests if no requests available (#5372)
+* fix #5356 skip root logger configuration (#5380)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
@@ -56,6 +58,15 @@
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 * add assertion that a path only has a single hard link before rewriting prefixes (#5305)
 * remove pycrypto as requirement on windows (#5326)
+
+
+## 4.3.20 (2017-05-19)
+
+### Bug Fixes
+* fix #5367 conda info always shows 'unknown' for admin indicator on Windows (#5368)
+* fix #5248 drop plan description information that might not alwasy be accurate (#5373)
+* fix #5378 duplicate log messages (#5379)
+* fix #5298 record has 'build', not 'build_string' (#5382)
 
 
 ## 4.3.19 (2017-05-18)

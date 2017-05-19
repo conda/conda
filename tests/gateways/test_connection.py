@@ -11,7 +11,7 @@ from requests import HTTPError
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
-from conda.gateways.connection import CondaHttpAuth, CondaSession
+from conda.gateways.connection.session import CondaHttpAuth, CondaSession
 from conda.gateways.disk.delete import rm_rf
 
 log = getLogger(__name__)

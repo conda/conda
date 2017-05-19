@@ -20,7 +20,7 @@ from ..common.path import url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
-from ..gateways.disk.read import read_repodata_json, compute_md5sum, isdir, isfile, islink
+from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink, read_repodata_json
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
@@ -561,7 +561,7 @@ def rm_fetched(dist):
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
-    from ..gateways.download import download as gateway_download
+    from conda.gateways.connection.download import download as gateway_download
     gateway_download(url, dst_path, md5)
 
 

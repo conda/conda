@@ -12,8 +12,8 @@ ignore:
   - conda/console.py
   - conda/cli/activate.py
   - conda/cli/main_package.py
-  - conda/gateways/adapters/ftp.py
-  - conda/gateways/adapters/s3.py
+  - conda/gateways/connection/adapters/ftp.py
+  - conda/gateways/connection/adapters/s3.py
   - tests/.*
 
 comment: off
