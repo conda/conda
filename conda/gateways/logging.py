@@ -91,4 +91,3 @@ def trace(self, message, *args, **kwargs):
 
 logging.addLevelName(TRACE, "TRACE")
 logging.Logger.trace = trace
-initialize_logging()
