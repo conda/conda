@@ -109,23 +109,23 @@ class TestAddDeaultsToSpec(unittest.TestCase):
     #         (['scipy'], ['python 3.3*']),
     #         ]:
     #         self.check(specs, added)
-
-    def test_4(self):
-        self.linked = []
-        for dp in ('2.7', '3.5'):
-            with env_var('CONDA_DEFAULT_PYTHON', dp, reset_context):
-                ps = ['python 2.7*'] if context.default_python == '2.7' else []
-                for specs, added in [
-                    (['python'], ps),
-                    (['numpy'], ps),
-                    (['scipy'], ps),
-                    (['anaconda'], ps),
-                    (['anaconda 1.5.0 np17py27_0'], []),
-                    (['sympy 0.7.2 py27_0'], []),
-                    (['scipy 0.12.0 np16py27_0'], []),
-                    (['anaconda', 'python 3*'], []),
-                    ]:
-                    self.check(specs, added)
+    #
+    # def test_4(self):
+    #     self.linked = []
+    #     for dp in ('2.7', '3.5'):
+    #         with env_var('CONDA_DEFAULT_PYTHON', dp, reset_context):
+    #             ps = ['python 2.7*'] if context.default_python == '2.7' else []
+    #             for specs, added in [
+    #                 (['python'], ps),
+    #                 (['numpy'], ps),
+    #                 (['scipy'], ps),
+    #                 (['anaconda'], ps),
+    #                 (['anaconda 1.5.0 np17py27_0'], []),
+    #                 (['sympy 0.7.2 py27_0'], []),
+    #                 (['scipy 0.12.0 np16py27_0'], []),
+    #                 (['anaconda', 'python 3*'], []),
+    #                 ]:
+    #                 self.check(specs, added)
 
 
 def test_display_actions_0():
