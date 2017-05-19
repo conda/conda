@@ -235,7 +235,7 @@ def display_actions(actions, index, show_channel_urls=None):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
     if downgraded:
-        print("\nThe following packages will be DOWNGRADED due to dependency conflicts:\n")
+        print("\nThe following packages will be DOWNGRADED:\n")
         for pkg in sorted(downgraded):
             print(format(oldfmt[pkg] + arrow + newfmt[pkg], pkg))
 
