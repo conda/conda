@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from ast import literal_eval
 from collections import Mapping
 import re
 import sys
 
-from ..common.path import expand
-from ..common.url import is_url, path_to_url
-
 from .dist import Dist
 from .index_record import IndexRecord
-from .version import VersionSpec, BuildNumberSpec
+from .version import BuildNumberSpec, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import iteritems, string_types, text_type, with_metaclass
+from ..common.path import expand
+from ..common.url import is_url, path_to_url
 from ..exceptions import CondaValueError
 
 
@@ -182,9 +180,9 @@ class MatchSpec(object):
     #                     raise CondaValueError("Invalid MatchSpec: %s" % spec)
     #                 elif field == 'optional':
     #                     kwargs.setdefault('optional', bool(value) if eq else True)
-    #                     if bool(_exact_field('name')) + bool(_exact_field('track_features')) != 1:
+    #                     if bool(_exact_field('name')) + bool(_exact_field('track_features')) != 1:  # NOQA
     #                         raise CondaValueError("Optional MatchSpec must be tied"
-    #                                               " to a name or track_feature (and not both): %s"
+    #                                               " to a name or track_feature (and not both): %s"  # NOQA
     #                                               "" % spec)
     #                 elif field == 'target':
     #                     kwargs.setdefault('target', value)
@@ -373,7 +371,8 @@ class MatchSpec(object):
     def strictness(self):
         # With the old MatchSpec, strictness==3 if name, version, and
         # build were all specified.
-        if sum(f in self._components for f in ('name', 'version', 'build')) < len(self._components):
+        s = sum(f in self._components for f in ('name', 'version', 'build'))
+        if s < len(self._components):
             return 3
         elif not self.exact_field('name') or 'build' in self._components:
             return 3
@@ -448,7 +447,7 @@ def _parse_spec_str(spec_str):
     # Step 1. strip '#' comment
     if '#' in spec_str:
         ndx = spec_str.index('#')
-        spec_str, hash_remainder = spec_str[:ndx], spec_str[ndx:]
+        spec_str, _ = spec_str[:ndx], spec_str[ndx:]
         spec_str.strip()
 
     # Step 2. done if spec_str is a tarball
@@ -529,9 +528,9 @@ def _parse_spec_str(spec_str):
             components['schannel'] = chn.name
         else:
             components['schannel'] = chn.canonical_name
-    # if namespace is not None:
-    #     kwargs['namespace'] = namespace
-
+    if namespace is not None:
+        # kwargs['namespace'] = namespace
+        pass
 
     if version is not None:
         components['version'] = version

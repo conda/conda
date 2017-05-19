@@ -390,7 +390,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     if r.explicit(specs) or is_private_env_path(prefix):
         return
     log.debug('H0 specs=%r' % specs)
-    names_linked = {r.package_name(d): d for d in linked if d in r.index}
+    # names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
 
     for name, def_ver in [('python', context.default_python or None),

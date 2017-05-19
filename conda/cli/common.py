@@ -6,7 +6,7 @@ from os.path import basename
 import re
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION, ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
