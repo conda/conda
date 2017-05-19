@@ -11,6 +11,7 @@ from random import random
 import re
 from time import sleep
 
+from conda.gateways.connection.download import download
 from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
@@ -33,7 +34,6 @@ from ..gateways.disk.link import stat_nlink, symlink
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.test import softlink_supported
 from ..gateways.disk.update import backoff_rename, touch
-from ..gateways.download import download
 from ..history import History
 from ..models.dist import Dist
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType

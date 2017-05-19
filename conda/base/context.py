@@ -743,8 +743,11 @@ def _get_user_agent(context_platform):
     import platform
     try:
         from requests import __version__ as REQUESTS_VERSION
-    except ImportError:
-        REQUESTS_VERSION = "unknown"
+    except ImportError:  # pragma: no cover
+        try:
+            from pip._vendor.requests import __version__ as REQUESTS_VERSION
+        except ImportError:
+            REQUESTS_VERSION = "unknown"
 
     _user_agent = ("conda/{conda_ver} "
                    "requests/{requests_ver} "
