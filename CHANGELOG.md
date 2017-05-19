@@ -43,6 +43,8 @@
 * fix #462 add regression test (#5286)
 * fix #5288 confirmation prompt doesn't accept no (#5291)
 * fix #1713 'conda package -w' is case dependent on Windows (#5308)
+* fix #5371 try falling back to pip's vendored requests if no requests available (#5372)
+* fix #5356 skip root logger configuration (#5380)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
