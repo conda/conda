@@ -3,23 +3,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from requests import Session
-from requests.adapters import BaseAdapter, HTTPAdapter
-from requests.auth import AuthBase, _basic_auth_str
-from requests.cookies import extract_cookies_to_jar
-from requests.utils import get_auth_from_url, get_netrc_auth
-
+from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
+               extract_cookies_to_jar, get_auth_from_url, get_netrc_auth)
 from .adapters.ftp import FTPAdapter
 from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
-from .anaconda_client import read_binstar_tokens
-from .._vendor.auxlib.ish import dals
-from ..base.constants import CONDA_HOMEPAGE_URL
-from ..base.context import context
-from ..common.compat import iteritems
-from ..common.url import (add_username_and_password, get_proxy_username_and_pass,
-                          split_anaconda_token, urlparse)
-from ..exceptions import ProxyError
+from ..anaconda_client import read_binstar_tokens
+from ..._vendor.auxlib.ish import dals
+from ...base.constants import CONDA_HOMEPAGE_URL
+from ...base.context import context
+from ...common.compat import iteritems
+from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
+                           split_anaconda_token, urlparse)
+from ...exceptions import ProxyError
 
 log = getLogger(__name__)
 RETRIES = 3
@@ -107,7 +103,7 @@ class CondaHttpAuth(AuthBase):
             for binstar_url, token in iteritems(read_binstar_tokens()):
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
-                    from ..models.channel import Channel
+                    from ...models.channel import Channel
                     channel = Channel(clean_url)
                     channel.token = token
                     return channel.url(with_credentials=True)
