@@ -17,7 +17,6 @@ import sys
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
 from .common.compat import on_win
-from .common.path import is_private_env_path
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
