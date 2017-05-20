@@ -8,7 +8,7 @@ from shlex import split
 from ..base.constants import APP_NAME, SEARCH_PATH
 from ..base.context import context
 from ..cli.main import generate_parser
-from ..common.io import captured, replace_log_streams, argv
+from ..common.io import captured, replace_log_streams, argv, CaptureTarget
 from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
 from ..gateways import initialize_logging
@@ -29,6 +29,10 @@ class Commands:
     UPDATE = "update"
 
 
+STRING = CaptureTarget.STRING
+STDOUT = CaptureTarget.STDOUT
+
+
 def get_configure_parser_function(command):
     module = 'conda.cli.main_' + command
     return import_module(module).configure_parser
@@ -47,8 +51,16 @@ def run_command(command, *arguments, **kwargs):
               has occured, and instead give a non-zero return code
           search_path: an optional non-standard search path for configuration information
               that overrides the default SEARCH_PATH
+          stdout: Define capture behavior for stream sys.stdout. Defaults to STRING.
+              STRING captures as a string.  None leaves stream untouched.
+              Otherwise redirect to file-like object stdout.
+          stderr: Define capture behavior for stream sys.stderr. Defaults to STRING.
+              STRING captures as a string.  None leaves stream untouched.
+              STDOUT redirects to stdout target and returns None as stderr value.
+              Otherwise redirect to file-like object stderr.
 
-    Returns: a tuple of stdout, stderr, and return_code
+    Returns: a tuple of stdout, stderr, and return_code.
+        stdout, stderr are either strings, None or the corresponding file-like function argument.
 
     Examples:
         >>  run_command(Commands.CREATE, "-n newenv python=3 flask", use_exception_handler=True)
@@ -59,6 +71,8 @@ def run_command(command, *arguments, **kwargs):
     """
     use_exception_handler = kwargs.get('use_exception_handler', False)
     configuration_search_path = kwargs.get('search_path', SEARCH_PATH)
+    stdout = kwargs.get('stdout', STRING)
+    stderr = kwargs.get('stderr', STRING)
     p, sub_parsers = generate_parser()
     get_configure_parser_function(command)(sub_parsers)
 
@@ -74,7 +88,8 @@ def run_command(command, *arguments, **kwargs):
     )
     log.debug("executing command >>>  conda %s", command_line)
     try:
-        with argv(['python_api'] + split_command_line), captured() as c, replace_log_streams():
+        python_api_command_line = ['python_api'] + split_command_line
+        with argv(python_api_command_line), captured(stdout, stderr) as c, replace_log_streams():
             if use_exception_handler:
                 return_code = conda_exception_handler(args.func, args, p)
             else:
