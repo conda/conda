@@ -11,10 +11,12 @@ from conda.common.url import path_to_url
 from conda.exceptions import CondaValueError
 
 from conda.cli.common import arg2spec, spec_from_line
+from conda.models.channel import Channel
 
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.index_record import IndexRecord, RepodataRecord
 from conda.models.match_spec import MatchSpec, _parse_spec_str
+from conda.models.version import VersionSpec
 
 
 def DPkg(s, **kwargs):
@@ -188,6 +190,30 @@ class MatchSpecTests(TestCase):
 
         assert a != d
         assert hash(a) != hash(d)
+
+        p = MatchSpec(channel='defaults',name='python',version=VersionSpec('3.5*'))
+        assert p.match(Dist(channel='defaults', dist_name='python-3.5.3-1', name='python',
+                            version='3.5.3', build_string='1', build_number=1, base_url=None,
+                            platform=None))
+
+        assert not p.match(Dist(channel='defaults', dist_name='python-3.6.0-0', name='python',
+                                version='3.6.0', build_string='0', build_number=0, base_url=None,
+                                platform=None))
+
+        assert p.match(Dist(channel='defaults', dist_name='python-3.5.1-0', name='python',
+                            version='3.5.1', build_string='0', build_number=0, base_url=None,
+                            platform=None))
+        assert p.match(RepodataRecord(name='python', version='3.5.1', build='0', build_number=0,
+                                      depends=('openssl 1.0.2*', 'readline 6.2*', 'sqlite',
+                                               'tk 8.5*', 'xz 5.0.5', 'zlib 1.2*', 'pip'),
+                                      channel=Channel(scheme='https', auth=None,
+                                                      location='repo.continuum.io', token=None,
+                                                      name='pkgs/free', platform='osx-64',
+                                                      package_filename=None),
+                                      subdir='osx-64', fn='python-3.5.1-0.tar.bz2',
+                                      md5='a813bc0a32691ab3331ac9f37125164c', size=14678857,
+                                      priority=0,
+                                      url='https://repo.continuum.io/pkgs/free/osx-64/python-3.5.1-0.tar.bz2'))
 
 
     def test_index_record(self):

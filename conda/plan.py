@@ -506,7 +506,7 @@ def augment_specs(prefix, specs, pinned=True):
 def _remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
     linked = linked_data(prefix)
-    linked_dists = [d for d in linked.keys()]
+    linked_dists = [d for d in linked]
 
     if force:
         mss = list(map(MatchSpec, specs))
@@ -516,7 +516,7 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
         nlinked = {r.package_name(dist): dist
-                   for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
+                   for dist in (Dist(fn) for fn in r.remove(specs, set(linked_dists)))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)

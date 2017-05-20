@@ -70,9 +70,9 @@ class ChannelSpec(object):
 
     def match(self, other):
         try:
-            return self.exact == other.exact
+            return self.exact.canonical_name == other.exact.canonical_name
         except AttributeError:
-            return self.exact == Channel(other)
+            return self.exact.canonical_name == Channel(other).canonical_name
 
     def __repr__(self):
         return "'%s'" % self.exact.canonical_name

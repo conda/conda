@@ -52,15 +52,6 @@ class Resolve(object):
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
 
-    @property
-    def installed(self):
-        # type: () -> Set[Dist]
-        installed = set()
-        for dist, info in iteritems(self.index):
-            if 'link' in info:
-                installed.add(dist)
-        return installed
-
     def default_filter(self, features=None, filter=None):
         if filter is None:
             filter = {}
@@ -162,6 +153,7 @@ class Resolve(object):
                 spec2.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
+            # type: Map[Dist, bool]
             bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFoundError(bad_deps)
@@ -359,7 +351,6 @@ class Resolve(object):
             else:
                 res = self.index.keys()
             res = [p for p in res if self.match(ms, p)]
-            assert all(isinstance(d, Dist) for d in res)
             self.find_matches_[ms] = res
         return res
 
